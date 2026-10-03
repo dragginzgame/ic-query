@@ -44,8 +44,6 @@ pub use read::open_managed_file;
     test
 ))]
 pub use read::read_bounded_managed_file;
-#[cfg(test)]
-pub use read::read_managed_text;
 pub use read::{BoundedManagedFileReadError, managed_file_exists};
 #[cfg(feature = "sns-host")]
 pub use scan::collect_managed_collection_files;

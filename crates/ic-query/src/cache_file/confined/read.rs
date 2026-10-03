@@ -4,8 +4,6 @@
 //! Does not own: path confinement, cache schemas, or atomic publication.
 //! Boundary: opens only validated regular files beneath a capability root.
 
-#[cfg(test)]
-use super::open_managed_path_error;
 use super::{CacheFileError, ConfinedCacheRoot, ConfinedManagedPath};
 use std::{
     io::{self, Read},
@@ -70,21 +68,6 @@ pub fn open_managed_file(
     target.open_regular_file()
 }
 
-/// Read a confined regular managed file without following symbolic links.
-#[cfg(test)]
-pub fn read_managed_file(
-    cache_root: &Path,
-    target_path: &Path,
-) -> Result<Option<Vec<u8>>, CacheFileError> {
-    let Some(mut file) = open_managed_file(cache_root, target_path)? else {
-        return Ok(None);
-    };
-    let mut data = Vec::new();
-    file.read_to_end(&mut data)
-        .map_err(|source| open_managed_path_error(cache_root, target_path, source))?;
-    Ok(Some(data))
-}
-
 /// Read a confined regular managed file under an explicit byte ceiling.
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
@@ -106,24 +89,6 @@ pub fn read_bounded_managed_file(
         return Ok(None);
     };
     read_opened_file_bounded(file, target_path, maximum).map(Some)
-}
-
-/// Read a confined regular managed file as UTF-8 text.
-#[cfg(test)]
-pub fn read_managed_text(
-    cache_root: &Path,
-    target_path: &Path,
-) -> Result<Option<String>, CacheFileError> {
-    let Some(data) = read_managed_file(cache_root, target_path)? else {
-        return Ok(None);
-    };
-    String::from_utf8(data).map(Some).map_err(|source| {
-        open_managed_path_error(
-            cache_root,
-            target_path,
-            io::Error::new(io::ErrorKind::InvalidData, source),
-        )
-    })
 }
 
 impl ConfinedManagedPath {

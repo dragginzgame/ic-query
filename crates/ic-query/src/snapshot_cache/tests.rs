@@ -10,15 +10,11 @@ use super::{
 use crate::{
     QueryProgressEvent, QueryProgressState,
     cache::CacheCollectionCompleteness,
-    cache_file::{CacheFileError, LoadJsonCacheErrorMapper, LoadJsonCacheRequest},
+    cache_file::{CacheFileError, HostCacheError, LoadJsonCacheRequest},
     test_support::temp_dir,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::{
-    cell::RefCell,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{cell::RefCell, fs, path::Path};
 
 #[test]
 fn shared_cache_rejects_oversize_before_json_and_classifies_invalid_bytes_as_content() {
@@ -29,20 +25,21 @@ fn shared_cache_rejects_oversize_before_json_and_classifies_invalid_bytes_as_con
     })
     .unwrap();
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
-    assert_eq!(
+    assert!(matches!(
         load_fixture_snapshot(&path, &key).unwrap_err(),
-        SnapshotLoadTestError::Parse(path.clone())
-    );
+        SnapshotLoadTestError::Cache(HostCacheError::ParseCache { path: actual, .. }) if actual == path
+    ));
     fs::OpenOptions::new()
         .write(true)
         .open(&path)
         .unwrap()
         .set_len(64 * 1024 * 1024 + 1)
         .unwrap();
-    assert_eq!(
+    assert!(matches!(
         load_fixture_snapshot(&path, &key).unwrap_err(),
-        SnapshotLoadTestError::TooLarge(path)
-    );
+        SnapshotLoadTestError::Cache(HostCacheError::CacheTooLarge { path: actual, actual: size, maximum, .. })
+            if actual == path && size == 64 * 1024 * 1024 + 1 && maximum == 64 * 1024 * 1024
+    ));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -155,14 +152,11 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
     let err = load_fixture_snapshot(&path, &key).expect_err("identity mismatch is rejected");
 
-    assert_eq!(
+    assert!(matches!(
         err,
-        SnapshotLoadTestError::Identity(SnapshotIdentityMismatch {
-            field: "entity",
-            expected: "root".to_string(),
-            actual: "wrong-root".to_string(),
-        })
-    );
+        SnapshotLoadTestError::Identity(SnapshotIdentityMismatch { field: "entity", expected, actual })
+            if expected == "root" && actual == "wrong-root"
+    ));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -198,7 +192,9 @@ fn load_complete_snapshot_rejects_unknown_top_level_fields() {
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
     let error = load_fixture_snapshot(&path, &key).expect_err("unknown field is rejected");
 
-    assert_eq!(error, SnapshotLoadTestError::Parse(path));
+    assert!(
+        matches!(error, SnapshotLoadTestError::Cache(HostCacheError::ParseCache { path: actual, .. }) if actual == path)
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -215,8 +211,9 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
     );
 
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
-    let error = load_complete_snapshot_for_key::<FixtureSnapshot, _>(
+    let error = load_complete_snapshot_for_key::<FixtureSnapshotMetadata, FixtureSnapshotRows, _>(
         LoadJsonCacheRequest {
+            component: "fixture",
             cache_root: &root,
             path,
             network: "ic",
@@ -225,19 +222,20 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
         },
         &key,
         FIXTURE_SNAPSHOT_FIELDS,
-        SnapshotLoadTestErrors,
+        |path| HostCacheError::missing_cache("fixture", path).into(),
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
     )
     .expect_err("schema mismatch rejected before changed row shape");
 
-    assert_eq!(
+    assert!(matches!(
         error,
-        SnapshotLoadTestError::UnsupportedSchema {
+        SnapshotLoadTestError::Cache(HostCacheError::UnsupportedCacheSchemaVersion {
             version: 999,
             expected: 1,
-        }
-    );
+            ..
+        })
+    ));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -555,45 +553,16 @@ const fn identity_cache_error(err: CacheFileError) -> CacheFileError {
     err
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 enum SnapshotLoadTestError {
-    Missing(PathBuf),
-    Operation,
-    Parse(PathBuf),
-    TooLarge(PathBuf),
-    UnsupportedSchema { version: u32, expected: u32 },
-    NetworkMismatch { requested: String, actual: String },
+    Cache(HostCacheError),
     Incomplete,
     Identity(SnapshotIdentityMismatch),
 }
 
-struct SnapshotLoadTestErrors;
-
-impl LoadJsonCacheErrorMapper for SnapshotLoadTestErrors {
-    type Error = SnapshotLoadTestError;
-
-    fn missing_cache(&self, path: PathBuf) -> Self::Error {
-        SnapshotLoadTestError::Missing(path)
-    }
-
-    fn cache_operation(&self, _source: CacheFileError) -> Self::Error {
-        SnapshotLoadTestError::Operation
-    }
-
-    fn cache_too_large(&self, path: PathBuf, _actual: u64, _maximum: u64) -> Self::Error {
-        SnapshotLoadTestError::TooLarge(path)
-    }
-
-    fn parse_cache(&self, path: PathBuf, _source: serde_json::Error) -> Self::Error {
-        SnapshotLoadTestError::Parse(path)
-    }
-
-    fn unsupported_schema(&self, version: u32, expected: u32) -> Self::Error {
-        SnapshotLoadTestError::UnsupportedSchema { version, expected }
-    }
-
-    fn network_mismatch(&self, requested: String, actual: String) -> Self::Error {
-        SnapshotLoadTestError::NetworkMismatch { requested, actual }
+impl From<HostCacheError> for SnapshotLoadTestError {
+    fn from(error: HostCacheError) -> Self {
+        Self::Cache(error)
     }
 }
 
@@ -630,6 +599,7 @@ fn load_fixture_snapshot(
 ) -> Result<FixtureSnapshot, SnapshotLoadTestError> {
     load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: "fixture",
             cache_root: path.parent().expect("fixture cache root"),
             path: path.to_path_buf(),
             network: "ic",
@@ -638,7 +608,7 @@ fn load_fixture_snapshot(
         },
         key,
         FIXTURE_SNAPSHOT_FIELDS,
-        SnapshotLoadTestErrors,
+        |path| HostCacheError::missing_cache("fixture", path).into(),
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
     )

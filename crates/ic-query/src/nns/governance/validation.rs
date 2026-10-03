@@ -20,21 +20,14 @@ pub fn validate_governance_request(
 ) -> Result<(), NnsGovernanceError> {
     enforce_mainnet_network(&request.network)?;
     validate_source_selection(&request.source)?;
-    validate_governance_timestamp("fetched_at", &request.fetched_at)
+    parse_governance_timestamp("fetched_at", &request.fetched_at).map(|_| ())
 }
 
-pub fn validate_governance_timestamp(
-    field: &'static str,
-    value: &str,
-) -> Result<(), NnsGovernanceError> {
-    if parse_utc_timestamp_secs(value).is_some() {
-        Ok(())
-    } else {
-        Err(NnsGovernanceError::InvalidTimestamp {
-            field,
-            value: value.to_string(),
-        })
-    }
+fn parse_governance_timestamp(field: &'static str, value: &str) -> Result<u64, NnsGovernanceError> {
+    parse_utc_timestamp_secs(value).ok_or_else(|| NnsGovernanceError::InvalidTimestamp {
+        field,
+        value: value.to_string(),
+    })
 }
 
 /// Validate an inclusive chronological interval of canonical UTC timestamps.
@@ -44,9 +37,9 @@ pub fn validate_governance_time_interval(
     end_field: &'static str,
     end: &str,
 ) -> Result<(), NnsGovernanceError> {
-    validate_governance_timestamp(start_field, start)?;
-    validate_governance_timestamp(end_field, end)?;
-    if parse_utc_timestamp_secs(start) > parse_utc_timestamp_secs(end) {
+    let start_unix_secs = parse_governance_timestamp(start_field, start)?;
+    let end_unix_secs = parse_governance_timestamp(end_field, end)?;
+    if start_unix_secs > end_unix_secs {
         return Err(NnsGovernanceError::InvalidTimestampOrder {
             start_field,
             start: start.to_string(),

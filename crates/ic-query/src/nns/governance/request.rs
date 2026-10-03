@@ -37,7 +37,7 @@ pub enum NnsGovernanceSourceSelection {
 pub struct NnsGovernanceRequest {
     /// Network to query.
     pub network: String,
-    /// UTC collection timestamp recorded in the report.
+    /// Canonical UTC collection timestamp with second precision recorded in the report.
     pub fetched_at: String,
     /// Requested source transport.
     pub source: NnsGovernanceSourceSelection,

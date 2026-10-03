@@ -551,11 +551,6 @@ fn validate_collection_time(
     let fetched_at_unix_secs =
         crate::subnet_catalog::parse_utc_timestamp_secs(&raw.provenance.fetched_at)
             .ok_or_else(invalid_timestamp)?;
-    if crate::subnet_catalog::format_utc_timestamp_secs(fetched_at_unix_secs)
-        != raw.provenance.fetched_at
-    {
-        return Err(invalid_timestamp());
-    }
     let latest_allowed = context
         .now_unix_secs
         .saturating_add(context.max_future_skew_seconds);

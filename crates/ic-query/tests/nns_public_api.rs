@@ -668,6 +668,9 @@ fn governance_rejects_invalid_request_timestamps_before_source_calls() {
         for timestamp in [
             "invalid",
             "2026-02-29T00:00:00Z",
+            "2026-6-04T00:00:00Z",
+            "2026-06-04T0:00:00Z",
+            "+2026-06-04T00:00:00Z",
             "9223372036854775807-01-01T00:00:00Z",
         ] {
             request.fetched_at = timestamp.to_string();
@@ -678,8 +681,9 @@ fn governance_rejects_invalid_request_timestamps_before_source_calls() {
                 )),
                 Err(NnsGovernanceError::InvalidTimestamp {
                     field: "fetched_at",
+                    value,
                     ..
-                })
+                }) if value == timestamp
             ));
         }
     }

@@ -6,9 +6,8 @@
 
 use super::{NnsLeafCachePaths, NnsLeafCacheRequest, NnsLeafRefreshRequest};
 use crate::cache_file::{
-    CachedJsonReport, HostCacheError, HostJsonCacheErrorMapper, JsonCacheReport,
-    LoadJsonCacheRequest, RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache,
-    write_json_refresh_cache,
+    CachedJsonReport, HostCacheError, JsonCacheReport, LoadJsonCacheRequest,
+    RefreshCacheWriteRequest, RefreshCacheWriteResult, load_json_cache, write_json_refresh_cache,
 };
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -29,16 +28,14 @@ where
         cache.network(),
         cache_file,
     );
-    load_json_cache(
-        LoadJsonCacheRequest {
-            cache_root: cache.cache_root(),
-            path: paths.cache_path,
-            network: cache.network(),
-            expected_schema_version,
-            maximum_bytes: 64 * 1024 * 1024,
-        },
-        HostJsonCacheErrorMapper::new(component_dir),
-    )
+    load_json_cache(LoadJsonCacheRequest {
+        component: component_dir,
+        cache_root: cache.cache_root(),
+        path: paths.cache_path,
+        network: cache.network(),
+        expected_schema_version,
+        maximum_bytes: 64 * 1024 * 1024,
+    })
 }
 
 /// Write a refreshed generic NNS leaf JSON cache using component-labelled errors.

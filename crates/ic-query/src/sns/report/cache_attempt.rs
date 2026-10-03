@@ -4,6 +4,7 @@
 //! Does not own: family page fetching, cache publication, or text rendering.
 //! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
 
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
@@ -11,7 +12,6 @@ use crate::{
         PagedCollectionPage, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
         SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
-        write_snapshot_refresh_attempt,
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsNeuronsRefreshRequest, SnsProposalsRefreshRequest,
@@ -253,7 +253,7 @@ fn write_sns_refresh_attempt_status(
         progress,
         last_error,
     });
-    write_snapshot_refresh_attempt(
+    write_managed_json_pretty_atomically(
         context.request.cache_root(),
         context.path,
         &attempt,

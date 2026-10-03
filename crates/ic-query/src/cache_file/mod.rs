@@ -54,8 +54,6 @@ pub use write::{canonical_json_serialized_len, json_error_to_io};
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
-#[cfg(test)]
-pub use confined::read_managed_text;
 #[cfg(any(feature = "subnet-catalog-host", test))]
 pub use confined::write_managed_text_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -66,10 +64,6 @@ pub use confined::{
 pub use confined::{collect_managed_files, open_managed_file};
 pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
-#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
-pub use json::HostJsonCacheErrorMapper;
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use json::OwnerJsonCacheErrorMapper;
 #[cfg(feature = "nns-topology-host")]
 pub use json::load_json_cache;
 #[cfg(all(
@@ -78,7 +72,7 @@ pub use json::load_json_cache;
 ))]
 pub use json::load_json_cache_strict;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use json::{CachedJsonReport, LoadJsonCacheErrorMapper, load_json_cache_strict};
+pub use json::{CachedJsonReport, load_json_cache_strict};
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
@@ -110,18 +104,10 @@ pub use policy::CacheRefreshReason;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host"
-))]
-pub use policy::load_or_refresh_cache_with_error_policy;
-#[cfg(feature = "sns-host")]
-pub use policy::load_or_refresh_missing_cache;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub use policy::{host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy};
+pub use policy::{host_cache_refresh_reason, load_or_refresh_cache};
 #[cfg(feature = "nns-host")]
 pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
 #[cfg(feature = "subnet-catalog-host")]

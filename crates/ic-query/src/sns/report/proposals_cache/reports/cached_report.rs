@@ -6,7 +6,7 @@
 
 use crate::{
     QueryProgress, QueryProgressEvent,
-    cache_file::load_or_refresh_missing_cache,
+    cache_file::{CacheRefreshReason, load_or_refresh_cache},
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
         assemble::{SnsProposalsReportParts, SnsReportProvenance, sns_proposals_report_from_parts},
@@ -45,7 +45,7 @@ fn load_or_refresh_sns_proposals_cache(
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
-    load_or_refresh_missing_cache(
+    load_or_refresh_cache(
         || {
             load_sns_cache_for_input::<SnsProposalsCacheCollection>(
                 cache_root,
@@ -53,14 +53,18 @@ fn load_or_refresh_sns_proposals_cache(
                 &request.input,
             )
         },
+        |_| false,
         |err| match err {
-            SnsHostError::MissingProposalsCache { path } => Ok(path),
+            SnsHostError::MissingProposalsCache { path } => Ok(CacheRefreshReason::Missing(path)),
             err => Err(err),
         },
-        |path| {
+        |reason| {
+            let CacheRefreshReason::Missing(path) = reason else {
+                unreachable!("SNS proposal reads refresh only missing caches");
+            };
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: "SNS proposals".to_string(),
-                path: path.to_path_buf(),
+                path,
                 source_endpoint: request.source_endpoint.clone(),
             });
             refresh_sns_proposals_cache_with_source_and_progress(

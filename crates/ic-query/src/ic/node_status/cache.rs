@@ -13,13 +13,13 @@ use super::{
     ic_node_status_report_from_snapshot, ic_subnet_status_report_from_snapshot,
     node_status_group_counts, validate_canonical_node_status_rows, validate_default_node_scope,
 };
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{
-        CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, OwnerJsonCacheErrorMapper,
-        host_cache_refresh_reason, load_or_refresh_cache_with_error_policy,
-        load_or_refresh_stale_cache_with_error_policy,
+        CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, host_cache_refresh_reason,
+        load_or_refresh_cache,
     },
     freshness::freshness_facts,
     ic::{
@@ -30,7 +30,7 @@ use crate::{
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotIdentityMismatch,
         SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
-        with_locked_snapshot_refresh, write_snapshot_json,
+        with_locked_snapshot_refresh,
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
@@ -121,8 +121,9 @@ pub fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
     let expected_path =
         ic_node_status_cache_path(&request.cache.cache_root, &request.cache.network);
-    let snapshot = load_or_refresh_cache_with_error_policy(
+    let snapshot = load_or_refresh_cache(
         || load_node_status_cache(&request.cache, request.now_unix_secs),
+        |_| false,
         |error| cache_refresh_reason(error, &expected_path),
         |_| {
             report_refresh(progress, request, &expected_path);
@@ -149,7 +150,7 @@ pub fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
     let expected_path =
         ic_node_status_cache_path(&request.cache.cache_root, &request.cache.network);
-    let snapshot = load_or_refresh_stale_cache_with_error_policy(
+    let snapshot = load_or_refresh_cache(
         || load_node_status_cache(&request.cache, request.now_unix_secs),
         |cached| node_status_cache_is_stale(cached, request.now_unix_secs),
         |error| cache_refresh_reason(error, &expected_path),
@@ -195,7 +196,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
                 source,
             )?;
             let cache = cache_from_snapshot(&snapshot);
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
@@ -318,6 +319,7 @@ fn load_node_status_cache(
     let key = status_key(&request.network);
     let cache: NodeStatusCache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: CACHE_COMPONENT,
             cache_root: &request.cache_root,
             path: path.clone(),
             network: &request.network,
@@ -326,7 +328,7 @@ fn load_node_status_cache(
         },
         &key,
         CACHE_FIELDS,
-        OwnerJsonCacheErrorMapper::new(CACHE_COMPONENT, missing_cache_error),
+        missing_cache_error,
         |completeness| IcNodeStatusHostError::InvalidCache {
             path: path.clone(),
             reason: format!(

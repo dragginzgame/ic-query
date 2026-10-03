@@ -4,16 +4,9 @@
 //! Does not own: command-specific cache schemas, refresh execution, or process output.
 //! Boundary: exposes schema and network validation helpers for cached reports.
 
-mod errors;
 mod load;
 mod model;
 
-#[cfg(any(feature = "icrc-host", feature = "nns-topology-host"))]
-pub use errors::HostJsonCacheErrorMapper;
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use errors::LoadJsonCacheErrorMapper;
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use errors::OwnerJsonCacheErrorMapper;
 #[cfg(feature = "nns-topology-host")]
 pub use load::load_json_cache;
 #[cfg(any(

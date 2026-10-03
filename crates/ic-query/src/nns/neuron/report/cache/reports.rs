@@ -18,7 +18,7 @@ use super::{
 use crate::{
     HostCacheError,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
+    cache_file::{LoadJsonCacheRequest, managed_file_exists},
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
@@ -155,6 +155,7 @@ fn load_cache_at(
     );
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: NNS_NEURON_CACHE_COMPONENT,
             cache_root,
             path: path.to_path_buf(),
             network,
@@ -163,7 +164,7 @@ fn load_cache_at(
         },
         &key,
         NNS_NEURON_CACHE_FIELDS,
-        OwnerJsonCacheErrorMapper::new(NNS_NEURON_CACHE_COMPONENT, missing_neuron_cache_error),
+        missing_neuron_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_neuron_identity_mismatch_error(path.to_path_buf(), mismatch),
     )?;

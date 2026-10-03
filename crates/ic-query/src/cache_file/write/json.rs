@@ -194,7 +194,7 @@ impl Write for MatchingWriter<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cache_file::read_managed_text, test_support::temp_dir};
+    use crate::{cache_file::confined::read_bounded_managed_file, test_support::temp_dir};
     use serde::{Serializer, ser::Error as _};
     use std::fs;
 
@@ -224,8 +224,8 @@ mod tests {
         )
         .expect("write streamed JSON");
         assert_eq!(
-            read_managed_text(&root, &path).expect("read streamed JSON"),
-            Some(serde_json::to_string_pretty(&value).expect("encode expected JSON"))
+            read_bounded_managed_file(&root, &path, 1024).expect("read streamed JSON"),
+            Some(serde_json::to_vec_pretty(&value).expect("encode expected JSON"))
         );
 
         let error = write_managed_json_pretty_atomically(
@@ -238,8 +238,8 @@ mod tests {
         .expect_err("serialization failure is returned");
         assert!(error.contains("fixture serialization failure"));
         assert_eq!(
-            read_managed_text(&root, &path).expect("read preserved JSON"),
-            Some(serde_json::to_string_pretty(&value).expect("encode expected JSON"))
+            read_bounded_managed_file(&root, &path, 1024).expect("read preserved JSON"),
+            Some(serde_json::to_vec_pretty(&value).expect("encode expected JSON"))
         );
 
         let _ = fs::remove_dir_all(root);

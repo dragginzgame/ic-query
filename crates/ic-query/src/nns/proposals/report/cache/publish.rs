@@ -12,6 +12,7 @@ use super::{
         NnsProposalRefreshReport,
     },
 };
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
@@ -22,10 +23,7 @@ use crate::{
         },
         proposals::report::{NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError},
     },
-    snapshot_cache::{
-        SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt,
-        write_snapshot_json,
-    },
+    snapshot_cache::{SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt},
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
 
@@ -63,7 +61,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
     let proposal_count = cache.data.proposals.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 &request.cache_root,
                 &paths.snapshot_path,
                 &cache,

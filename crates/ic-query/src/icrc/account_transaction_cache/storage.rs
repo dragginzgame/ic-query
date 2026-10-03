@@ -7,9 +7,7 @@
 use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
 use crate::{
     cache::validate_cache_collection_completeness,
-    cache_file::{
-        HostJsonCacheErrorMapper, JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict,
-    },
+    cache_file::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict},
     freshness::freshness_facts,
     icrc::{
         ledger::principal_from_text,
@@ -96,6 +94,7 @@ pub(super) fn load_snapshot_at(
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let cached = load_json_cache_strict(
         LoadJsonCacheRequest {
+            component: ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
             cache_root: &request.cache_root,
             path: path.to_path_buf(),
             network: MAINNET_NETWORK,
@@ -103,7 +102,6 @@ pub(super) fn load_snapshot_at(
             maximum_bytes: 512 * 1024 * 1024,
         },
         ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS,
-        HostJsonCacheErrorMapper::new(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT),
     )
     .map_err(IcrcAccountTransactionError::from)?;
     validate_snapshot(path, &cached.report, request)?;

@@ -42,46 +42,6 @@ impl<Metadata, Data> JsonCacheReport for SnapshotEnvelope<Metadata, Data> {
 }
 
 ///
-/// SnapshotReport
-///
-/// JSON cache report that exposes complete snapshot metadata.
-///
-
-pub trait SnapshotReport: JsonCacheReport {
-    fn completeness(&self) -> &CacheCollectionCompleteness;
-
-    fn snapshot_domain(&self) -> &str;
-
-    fn snapshot_entity(&self) -> &str;
-
-    fn snapshot_collection(&self) -> &str;
-
-    fn snapshot_scope(&self) -> &str;
-}
-
-impl<Metadata, Data> SnapshotReport for SnapshotEnvelope<Metadata, Data> {
-    fn completeness(&self) -> &CacheCollectionCompleteness {
-        &self.completeness
-    }
-
-    fn snapshot_domain(&self) -> &str {
-        &self.domain
-    }
-
-    fn snapshot_entity(&self) -> &str {
-        &self.entity
-    }
-
-    fn snapshot_collection(&self) -> &str {
-        &self.collection
-    }
-
-    fn snapshot_scope(&self) -> &str {
-        &self.scope
-    }
-}
-
-///
 /// SnapshotIdentityMismatch
 ///
 /// Mismatch between a snapshot envelope identity field and its logical key.

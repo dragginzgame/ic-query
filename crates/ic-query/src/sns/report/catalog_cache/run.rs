@@ -8,18 +8,18 @@ use super::{
     SNS_CATALOG_CACHE_SCHEMA_VERSION, SNS_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
     SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
 };
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError, QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{
-        CacheRefreshReason, LoadJsonCacheRequest, OwnerJsonCacheErrorMapper,
-        host_cache_refresh_reason, load_or_refresh_stale_cache_with_error_policy,
+        CacheRefreshReason, LoadJsonCacheRequest, host_cache_refresh_reason, load_or_refresh_cache,
     },
     freshness::freshness_facts,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotIdentityMismatch,
         SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
-        with_locked_snapshot_refresh, write_snapshot_json,
+        with_locked_snapshot_refresh,
     },
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsListReport,
@@ -127,7 +127,7 @@ pub fn build_sns_list_report_from_cache_or_refresh_with_source(
 ) -> Result<SnsListReport, SnsHostError> {
     let refresh = refresh_request(request, cache_root);
     let cache_path = sns_catalog_cache_path(cache_root, &request.network);
-    let cached = load_or_refresh_stale_cache_with_error_policy(
+    let cached = load_or_refresh_cache(
         || load_observed_sns_catalog(&refresh.cache, request.now_unix_secs),
         |cached| catalog_is_stale(cached, request.now_unix_secs),
         |error| catalog_cache_refresh_reason(error, &cache_path),
@@ -188,7 +188,7 @@ pub fn refresh_sns_catalog_with_source(
                 .count();
             let sns_count = list.sns_instances.len();
             let cache = cache_from_list(list);
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
@@ -226,6 +226,7 @@ fn load_cached_sns_catalog(
     let key = catalog_key(&request.network);
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: SNS_CACHE_COMPONENT,
             cache_root: &request.cache_root,
             path: path.clone(),
             network: &request.network,
@@ -234,7 +235,7 @@ fn load_cached_sns_catalog(
         },
         &key,
         CACHE_FIELDS,
-        OwnerJsonCacheErrorMapper::new(SNS_CACHE_COMPONENT, missing_catalog_cache_error),
+        missing_catalog_cache_error,
         |completeness| SnsHostError::InvalidCache {
             path: path.clone(),
             reason: format!(

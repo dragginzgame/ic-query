@@ -10,6 +10,7 @@ use super::{
     model::{CompleteNeuronCollection, NnsNeuronCache, NnsNeuronCacheRows, NnsNeuronRefreshReport},
     paths::{NNS_NEURON_CACHE_COLLECTION, NNS_NEURON_CACHE_DOMAIN, NNS_NEURON_CACHE_ENTITY},
 };
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
@@ -20,10 +21,7 @@ use crate::{
         },
         neuron::report::{NNS_NEURON_FETCHED_BY, NnsNeuronHostError, source::validate_neuron_rows},
     },
-    snapshot_cache::{
-        SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt,
-        write_snapshot_json,
-    },
+    snapshot_cache::{SnapshotJsonPaths, SnapshotRefreshProgress, publish_snapshot_with_attempt},
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
 
@@ -63,7 +61,7 @@ pub(super) fn publish_complete_neuron_cache(
     let progress = SnapshotRefreshProgress::new(page_count, neuron_count, last_cursor);
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 &request.cache_root,
                 &paths.snapshot_path,
                 &cache,

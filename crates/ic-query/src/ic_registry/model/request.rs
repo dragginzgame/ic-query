@@ -9,6 +9,7 @@ use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MainnetRegistryFetchRequest {
     pub endpoint: String,
+    /// Canonical UTC collection timestamp with second precision.
     pub fetched_at: String,
     pub fetched_by: String,
 }

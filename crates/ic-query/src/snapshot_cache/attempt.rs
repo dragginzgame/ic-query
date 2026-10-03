@@ -1,10 +1,9 @@
 //! Module: snapshot_cache::attempt
 //!
-//! Responsibility: read and write refresh-attempt sidecar files.
+//! Responsibility: read and validate refresh-attempt sidecar files.
 //! Does not own: command-specific attempt metadata or refresh execution.
-//! Boundary: persists generic refresh-attempt JSON through cache-file primitives.
+//! Boundary: validates generic refresh-attempt JSON through cache-file primitives.
 
-use super::json::write_snapshot_json;
 use crate::{
     cache::CacheRefreshAttemptStatus,
     cache_file::{BoundedManagedFileReadError, CacheFileError, read_bounded_managed_file},
@@ -169,19 +168,6 @@ fn attempt_field_is_supported(field: &str, metadata_fields: &[&str]) -> bool {
             | "last_cursor"
             | "last_error"
     ) || metadata_fields.contains(&field)
-}
-
-pub fn write_snapshot_refresh_attempt<T, Error>(
-    cache_root: &Path,
-    path: &Path,
-    attempt: &T,
-    serialize_error: impl FnOnce(PathBuf, serde_json::Error) -> Error,
-    write_error: impl FnOnce(CacheFileError) -> Error,
-) -> Result<(), Error>
-where
-    T: Serialize,
-{
-    write_snapshot_json(cache_root, path, attempt, serialize_error, write_error)
 }
 
 pub fn current_attempt_timestamp(fallback: &str) -> String {

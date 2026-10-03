@@ -34,8 +34,9 @@ pub fn catalog_stale_status(
     }
 }
 
-/// Parse a UTC collection timestamp with second precision into Unix seconds.
+/// Parse the canonical UTC representation emitted by `format_utc_timestamp_secs`.
 pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
+    let original = value;
     let value = value.strip_suffix('Z')?;
     let (date, time) = value.split_once('T')?;
     let mut date_parts = date.split('-');
@@ -65,10 +66,7 @@ pub fn parse_utc_timestamp_secs(value: &str) -> Option<u64> {
         .checked_add(i64::from(minute) * 60)?
         .checked_add(i64::from(second))?;
     let seconds = u64::try_from(seconds).ok()?;
-    if civil_from_days(days) != (year, i64::from(month), i64::from(day)) {
-        return None;
-    }
-    Some(seconds)
+    (format_utc_timestamp_secs(seconds) == original).then_some(seconds)
 }
 
 /// Formats a Unix timestamp as a UTC RFC3339-like timestamp with second precision.
@@ -117,7 +115,45 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
 
 #[cfg(test)]
 mod timestamp_tests {
-    use super::parse_utc_timestamp_secs;
+    use super::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
+
+    #[test]
+    fn timestamp_parser_accepts_canonical_formatter_output() {
+        for seconds in [
+            0,
+            1,
+            86_400,
+            951_782_400,
+            1_780_531_200,
+            253_402_300_800,
+            i64::MAX.unsigned_abs(),
+        ] {
+            let timestamp = format_utc_timestamp_secs(seconds);
+            assert_eq!(parse_utc_timestamp_secs(&timestamp), Some(seconds));
+        }
+    }
+
+    #[test]
+    fn timestamp_parser_requires_canonical_utc_text() {
+        for timestamp in [
+            "2026-6-04T00:00:00Z",
+            "2026-06-4T00:00:00Z",
+            "2026-06-04T0:00:00Z",
+            "2026-06-04T00:0:00Z",
+            "2026-06-04T00:00:0Z",
+            "002026-06-04T00:00:00Z",
+            "+2026-06-04T00:00:00Z",
+            "2026-+06-04T00:00:00Z",
+            "2026-06-04T00:00:000Z",
+            "2026-06-04T00:00:00.000Z",
+            "2026-06-04T00:00:00+00:00",
+            "2026-06-04t00:00:00z",
+            " 2026-06-04T00:00:00Z",
+            "2026-06-04T00:00:00Z ",
+        ] {
+            assert_eq!(parse_utc_timestamp_secs(timestamp), None, "{timestamp:?}");
+        }
+    }
 
     #[test]
     fn timestamp_parser_rejects_impossible_calendar_dates() {

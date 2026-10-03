@@ -42,6 +42,9 @@ use crate::{
 use candid::Reserved;
 use std::fs;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 struct FixtureSource;
 
 impl NnsProposalSource for FixtureSource {
@@ -338,27 +341,65 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
 }
 
 #[test]
-fn nns_proposal_list_cache_lookup_returns_none_when_cache_is_missing() {
-    let root = temp_dir("ic-query-nns-proposal-list-cache-missing");
-    let report = build_nns_proposal_list_report_from_cache(
-        &NnsProposalListRequest {
-            governance: proposal_governance_request(1_700_100_000),
-            limit: 25,
-            before_proposal_id: None,
-            status: NnsProposalStatusFilter::Any,
-            reward_status: NnsProposalRewardStatusFilter::Any,
-            topic: NnsProposalTopicFilter::Any,
-            proposer_neuron_id: None,
-            query: None,
-            sort: NnsProposalListSort::Api,
-            sort_direction: NnsProposalSortDirection::Desc,
-            verbose: false,
-        },
-        &root,
-    )
-    .expect("cache lookup");
+fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
+    let root = temp_dir("ic-query-nns-proposal-cache-read-fallback");
+    let list_request = NnsProposalListRequest {
+        governance: proposal_governance_request(1_700_100_000),
+        limit: 25,
+        before_proposal_id: None,
+        status: NnsProposalStatusFilter::Any,
+        reward_status: NnsProposalRewardStatusFilter::Any,
+        topic: NnsProposalTopicFilter::Any,
+        proposer_neuron_id: None,
+        query: None,
+        sort: NnsProposalListSort::Api,
+        sort_direction: NnsProposalSortDirection::Desc,
+        verbose: false,
+    };
+    let detail_request = NnsProposalRequest {
+        governance: list_request.governance.clone(),
+        proposal_id: 42,
+        show_ballots: false,
+        verbose: false,
+    };
+    let read_list = || build_nns_proposal_list_report_from_cache(&list_request, &root);
+    let read_detail = || build_nns_proposal_report_from_cache(&detail_request, &root);
 
-    assert!(report.is_none());
+    assert!(read_list().expect("missing list cache").is_none());
+    assert!(read_detail().expect("missing detail cache").is_none());
+    assert!(!root.exists(), "cache-only reads do not create files");
+
+    let path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
+    crate::cache_file::write_managed_text_atomically(&root, &path, "{")
+        .expect("write invalid cache");
+    for error in [
+        read_list().expect_err("invalid list cache"),
+        read_detail().expect_err("invalid detail cache"),
+    ] {
+        assert!(matches!(
+            error,
+            NnsProposalHostError::Cache(HostCacheError::ParseCache { path: actual, .. })
+                if actual == path
+        ));
+    }
+    #[cfg(unix)]
+    {
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644))
+            .expect("widen file permissions");
+        for error in [
+            read_list().expect_err("unsafe list cache"),
+            read_detail().expect_err("unsafe detail cache"),
+        ] {
+            assert!(matches!(
+                error,
+                NnsProposalHostError::Cache(HostCacheError::Operation {
+                    source: crate::CacheFileError::UnsafeManagedPermissions { .. },
+                    ..
+                })
+            ));
+        }
+    }
+    fs::remove_dir_all(root).expect("remove cache fixture");
 }
 
 #[test]

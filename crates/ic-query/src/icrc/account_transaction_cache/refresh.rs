@@ -13,13 +13,11 @@ use super::{
         normalize_cache_request, snapshot_is_stale, validate_snapshot,
     },
 };
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError, QueryProgress,
     cache::CacheCollectionCompleteness,
-    cache_file::{
-        CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache_with_error_policy,
-        load_or_refresh_stale_cache_with_error_policy,
-    },
+    cache_file::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache},
     icrc::{
         ledger::principal_from_text,
         live::{
@@ -35,7 +33,7 @@ use crate::{
     progress::IgnoreQueryProgress,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotJsonPaths, publish_snapshot_with_attempt,
-        run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh, write_snapshot_json,
+        run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -118,8 +116,9 @@ pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
-    load_or_refresh_cache_with_error_policy(
+    load_or_refresh_cache(
         || load_cached_icrc_account_transactions(&request.cache),
+        |_| false,
         |error| account_transaction_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source)?;
@@ -147,7 +146,7 @@ pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
-    load_or_refresh_stale_cache_with_error_policy(
+    load_or_refresh_cache(
         || load_cached_icrc_account_transactions(&request.cache),
         |snapshot| {
             snapshot_is_stale(
@@ -209,7 +208,7 @@ fn publish_complete_snapshot(
     let transaction_count = snapshot.transactions.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &snapshot,

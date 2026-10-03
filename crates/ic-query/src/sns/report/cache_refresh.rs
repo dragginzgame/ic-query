@@ -4,13 +4,14 @@
 //! Does not own: family paging, row validation, report DTOs, or text rendering.
 //! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
 
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotRefreshProgress,
         publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
-        with_locked_snapshot_refresh, write_snapshot_json,
+        with_locked_snapshot_refresh,
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError,
@@ -161,7 +162,7 @@ where
     };
     publish_snapshot_with_attempt(
         || {
-            write_snapshot_json(
+            write_managed_json_pretty_atomically(
                 context.request.cache_root(),
                 &context.paths.cache_path,
                 &cache,

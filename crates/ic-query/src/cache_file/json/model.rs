@@ -41,6 +41,8 @@ pub trait JsonCacheReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LoadJsonCacheRequest<'a> {
+    /// Component retained in mechanical cache errors.
+    pub component: &'static str,
     /// Capability root that confines the managed cache path.
     pub cache_root: &'a Path,
     /// Managed file containing the report.

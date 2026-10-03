@@ -9,9 +9,7 @@ use super::{
 };
 use crate::{
     HostCacheError,
-    cache_file::{
-        CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache_with_error_policy,
-    },
+    cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
     nns::leaf::write_nns_leaf_json_refresh_cache,
     subnet_catalog::{
         MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text,
@@ -165,8 +163,9 @@ pub(in crate::nns) fn load_or_refresh_nns_inventory_report<Report, Error>(
 where
     Error: NnsInventoryHostError,
 {
-    load_or_refresh_cache_with_error_policy(
+    load_or_refresh_cache(
         || load(request.cache()),
+        |_| false,
         |error| error.cache_refresh_reason(expected_cache_path),
         |_| {
             let refresh_request = NnsInventoryRefreshRequest::new(

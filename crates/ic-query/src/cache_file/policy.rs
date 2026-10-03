@@ -43,54 +43,9 @@ pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
     Missing(PathBuf),
     /// The loaded cache is older than its owner's freshness policy.
-    #[cfg(any(
-        feature = "dashboard-host",
-        feature = "icrc-host",
-        feature = "nns-topology-host",
-        feature = "sns-host"
-    ))]
     Stale,
     /// The cache file exists but cannot satisfy its owner's current contract.
     Invalid(PathBuf),
-}
-
-/// Load a cache, refresh it when the error represents a missing cache, then
-/// load again.
-#[cfg(feature = "sns-host")]
-pub fn load_or_refresh_missing_cache<T, Error>(
-    mut load: impl FnMut() -> Result<T, Error>,
-    missing_path: impl FnOnce(Error) -> Result<PathBuf, Error>,
-    refresh: impl FnOnce(&Path) -> Result<(), Error>,
-) -> Result<T, Error> {
-    match load() {
-        Ok(cached) => Ok(cached),
-        Err(err) => {
-            let path = missing_path(err)?;
-            refresh(&path)?;
-            load()
-        }
-    }
-}
-
-/// Load a cache, using an owner-defined error policy to refresh recoverable
-/// local state, then load the persisted result again.
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host"
-))]
-pub fn load_or_refresh_cache_with_error_policy<T, Error>(
-    mut load: impl FnMut() -> Result<T, Error>,
-    refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,
-    refresh: impl FnOnce(CacheRefreshReason) -> Result<(), Error>,
-) -> Result<T, Error> {
-    match load() {
-        Ok(cached) => Ok(cached),
-        Err(error) => {
-            refresh(refresh_reason(error)?)?;
-            load()
-        }
-    }
 }
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
@@ -101,23 +56,19 @@ pub fn load_or_refresh_cache_with_error_policy<T, Error>(
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub fn load_or_refresh_stale_cache_with_error_policy<T, Error>(
+pub fn load_or_refresh_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     stale: impl FnOnce(&T) -> bool,
     refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,
     refresh: impl FnOnce(CacheRefreshReason) -> Result<(), Error>,
 ) -> Result<T, Error> {
-    match load() {
-        Ok(cached) if !stale(&cached) => Ok(cached),
-        Ok(_) => {
-            refresh(CacheRefreshReason::Stale)?;
-            load()
-        }
-        Err(err) => {
-            refresh(refresh_reason(err)?)?;
-            load()
-        }
-    }
+    let reason = match load() {
+        Ok(cached) if !stale(&cached) => return Ok(cached),
+        Ok(_) => CacheRefreshReason::Stale,
+        Err(error) => refresh_reason(error)?,
+    };
+    refresh(reason)?;
+    load()
 }
 
 /// Classify shared JSON cache load failures that can be replaced safely by an

@@ -42,8 +42,6 @@ fn catalog_path_lives_under_cache_root() {
         path,
         PathBuf::from("/tmp/ic-query-cache/nns/ic/subnet-catalog/catalog.json")
     );
-    assert!(!path.display().to_string().contains("/deployments/"));
-    assert!(!path.display().to_string().contains("/fleets/"));
 }
 
 #[test]

@@ -5,6 +5,7 @@
 //! Boundary: keeps failed collection progress observable without publishing partial rows.
 
 use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
+use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
@@ -19,7 +20,6 @@ use crate::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
         SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
-        write_snapshot_refresh_attempt,
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
@@ -179,7 +179,7 @@ fn write_attempt(
         last_cursor: progress.last_cursor,
         last_error,
     };
-    write_snapshot_refresh_attempt(
+    write_managed_json_pretty_atomically(
         &request.cache.cache_root,
         path,
         &attempt,

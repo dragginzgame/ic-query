@@ -7,9 +7,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-## [0.45.x] - Unreleased - Cache and decoder bounds, validation, and cleanup
+## [0.45.x] - 2026-10-03 - Cache and decoder bounds, validation, and cleanup
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
+
+- `0.45.1` fixes canonical UTC timestamp validation across Governance and
+  shared report/cache consumers. Previously accepted noncanonical padding or
+  extra signs now follow existing validation or stale-data policies. Proposal
+  cache reads use the loader's missing-file result directly, preserving typed
+  content and filesystem errors. Consolidates cache refresh and storage
+  mechanics while retaining family recovery rules and atomic publication.
+  Public Rust signatures, CLI grammar, and serialized shapes are unchanged;
+  schemas remain `1` and Rust 1.91.0 remains supported.
 
 - `0.45.0` bounds JSON cache reads, local inventory traversal, and Candid
   decoding work. Repairs invalid UTF-8 only under the selected invalid-content

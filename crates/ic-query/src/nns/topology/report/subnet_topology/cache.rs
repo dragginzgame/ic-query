@@ -6,11 +6,9 @@ use super::{
 };
 use crate::{
     cache_file::{
-        CacheRefreshReason, HostCacheError, HostJsonCacheErrorMapper, LoadJsonCacheRequest,
-        RefreshLockRequest, create_managed_parent_directory, host_cache_refresh_reason,
-        load_json_cache, load_or_refresh_cache_with_error_policy,
-        load_or_refresh_stale_cache_with_error_policy, with_refresh_lock,
-        write_managed_json_pretty_atomically,
+        CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, RefreshLockRequest,
+        create_managed_parent_directory, host_cache_refresh_reason, load_json_cache,
+        load_or_refresh_cache, with_refresh_lock, write_managed_json_pretty_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
@@ -43,16 +41,14 @@ pub fn load_cached_nns_subnet_topology(
     request: &NnsSubnetTopologyCacheRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     enforce_mainnet_network(&request.network)?;
-    let cached = load_json_cache(
-        LoadJsonCacheRequest {
-            cache_root: &request.cache_root,
-            path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
-            network: &request.network,
-            expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-            maximum_bytes: 64 * 1024 * 1024,
-        },
-        HostJsonCacheErrorMapper::new(CACHE_COMPONENT),
-    )
+    let cached = load_json_cache(LoadJsonCacheRequest {
+        component: CACHE_COMPONENT,
+        cache_root: &request.cache_root,
+        path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
+        network: &request.network,
+        expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
+        maximum_bytes: 64 * 1024 * 1024,
+    })
     .map_err(NnsSubnetTopologyHostError::from)?;
     validate_report_identity(&cached.report, &request.network, None)?;
     Ok(CachedNnsSubnetTopologyReport {
@@ -131,8 +127,9 @@ pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     let expected_path =
         nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
-    load_or_refresh_cache_with_error_policy(
+    load_or_refresh_cache(
         || load_cached_nns_subnet_topology(&request.cache),
+        |_| false,
         |error| subnet_topology_cache_refresh_reason(error, &expected_path),
         |_| {
             refresh_nns_subnet_topology_with_source(request, source)?;
@@ -161,7 +158,7 @@ pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     let expected_path =
         nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
-    load_or_refresh_stale_cache_with_error_policy(
+    load_or_refresh_cache(
         || load_cached_nns_subnet_topology(&request.cache),
         |cached| {
             nns_subnet_topology_freshness(

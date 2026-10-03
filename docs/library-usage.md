@@ -100,8 +100,11 @@ layout. Sequential pages can span Governance changes. Native `nns-host` cache
 refresh uses the same continuation beneath its existing atomic publication
 boundary.
 
-Request timestamps and restored start/update timestamps must be valid UTC
-dates and times with second precision. Invalid timestamps return a typed
+Request timestamps and restored start/update timestamps must use canonical
+UTC text with second precision, such as `2026-06-04T00:00:00Z`. Numeric
+components must match the Unix-seconds constructors' formatting; extra signs,
+noncanonical padding, fractional seconds, offsets, and whitespace are rejected.
+Invalid timestamps return a typed
 `NnsGovernanceError::InvalidTimestamp` before a source call. Complete-collection
 projections also validate retained timestamps and require enough rows to
 account for every preceding full page. Continuations must not precede the

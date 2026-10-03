@@ -6,8 +6,8 @@
 
 use crate::{
     HostCacheError,
-    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper},
+    cache::validate_cache_collection_completeness,
+    cache_file::LoadJsonCacheRequest,
     snapshot_cache::{
         SnapshotEnvelope, SnapshotHeader, SnapshotIdentityMismatch,
         collect_full_collection_snapshot_paths, load_complete_snapshot_for_key,
@@ -66,36 +66,6 @@ pub(in crate::sns::report) type SnsStoredCache<Family> =
 
 pub(in crate::sns::report) type SnsStoredCacheWithPath<Family> = (PathBuf, SnsStoredCache<Family>);
 
-#[derive(Clone, Copy)]
-struct SnsCacheLoadErrors {
-    collection: &'static str,
-    missing_cache_error: fn(PathBuf) -> SnsHostError,
-}
-
-impl SnsCacheLoadErrors {
-    fn for_family<Family>() -> Self
-    where
-        Family: SnsCacheStorageFamily,
-    {
-        Self {
-            collection: Family::COLLECTION,
-            missing_cache_error: Family::missing_cache_error,
-        }
-    }
-
-    fn incomplete_cache_error(self, completeness: &CacheCollectionCompleteness) -> SnsHostError {
-        SnsHostError::IncompleteRefresh {
-            pages_fetched: completeness.page_count,
-            rows_fetched: completeness.row_count,
-            reason: format!("cached SNS {} snapshot is not complete", self.collection),
-        }
-    }
-
-    fn json_errors(self) -> OwnerJsonCacheErrorMapper<SnsHostError> {
-        OwnerJsonCacheErrorMapper::new(SNS_CACHE_COMPONENT, self.missing_cache_error)
-    }
-}
-
 ///
 /// SnsCacheMetadata
 ///
@@ -147,6 +117,7 @@ where
 {
     load_snapshot_header(
         LoadJsonCacheRequest {
+            component: SNS_CACHE_COMPONENT,
             cache_root,
             path: path.to_path_buf(),
             network,
@@ -154,7 +125,7 @@ where
             maximum_bytes: 512 * 1024 * 1024,
         },
         Family::CACHE_FIELDS,
-        SnsCacheLoadErrors::for_family::<Family>().json_errors(),
+        Family::missing_cache_error,
     )
 }
 
@@ -255,9 +226,9 @@ where
     Family: SnsCacheStorageFamily,
 {
     let key = sns_snapshot_key_for_cache_path::<Family>(network, &path);
-    let errors = SnsCacheLoadErrors::for_family::<Family>();
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: SNS_CACHE_COMPONENT,
             cache_root,
             path: path.clone(),
             network,
@@ -266,8 +237,12 @@ where
         },
         &key,
         Family::CACHE_FIELDS,
-        errors.json_errors(),
-        |completeness| errors.incomplete_cache_error(completeness),
+        Family::missing_cache_error,
+        |completeness| SnsHostError::IncompleteRefresh {
+            pages_fetched: completeness.page_count,
+            rows_fetched: completeness.row_count,
+            reason: format!("cached SNS {} snapshot is not complete", Family::COLLECTION),
+        },
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
     )?;
     validate_sns_cache::<Family>(&path, &cache)?;

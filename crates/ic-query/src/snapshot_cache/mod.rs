@@ -6,6 +6,7 @@
 
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 mod attempt;
+#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 mod json;
 mod key;
 mod lifecycle;
@@ -22,13 +23,11 @@ pub use attempt::{
     SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
     SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
     read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
-    write_snapshot_refresh_attempt,
 };
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub use json::load_complete_snapshot_for_key;
 #[cfg(feature = "sns-host")]
 pub use json::load_snapshot_header;
-pub use json::write_snapshot_json;
 pub use key::SnapshotKey;
 pub use lifecycle::{LockedSnapshotRefreshRequest, with_locked_snapshot_refresh};
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
@@ -36,7 +35,7 @@ pub use lifecycle::{publish_snapshot_with_attempt, run_snapshot_refresh_with_att
 #[cfg(feature = "sns-host")]
 pub use model::SnapshotHeader;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotReport};
+pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch};
 #[cfg(feature = "sns-host")]
 pub use paged::CompletePagedCollection;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]

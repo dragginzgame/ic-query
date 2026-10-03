@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, OwnerJsonCacheErrorMapper, managed_file_exists},
+    cache_file::{LoadJsonCacheRequest, managed_file_exists},
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest,
         NnsGovernanceRefreshAttemptStatus,
@@ -118,14 +118,15 @@ pub fn build_nns_proposal_list_report_from_cache(
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.governance.network)?;
     let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
-    if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
-        return Ok(None);
-    }
-    let cache = load_nns_proposal_cache(
+    let cache = match load_nns_proposal_cache(
         cache_root,
         paths.snapshot_path.clone(),
         &request.governance.network,
-    )?;
+    ) {
+        Ok(cache) => cache,
+        Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
+        Err(error) => return Err(error),
+    };
     Ok(Some(nns_proposal_list_report_from_cache(
         request,
         paths.snapshot_path,
@@ -140,14 +141,15 @@ pub fn build_nns_proposal_report_from_cache(
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.governance.network)?;
     let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
-    if !proposal_cache_exists(cache_root, &paths.snapshot_path)? {
-        return Ok(None);
-    }
-    let cache = load_nns_proposal_cache(
+    let cache = match load_nns_proposal_cache(
         cache_root,
         paths.snapshot_path.clone(),
         &request.governance.network,
-    )?;
+    ) {
+        Ok(cache) => cache,
+        Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
+        Err(error) => return Err(error),
+    };
     Ok(nns_proposal_report_from_cache(
         request,
         paths.snapshot_path,
@@ -183,6 +185,7 @@ fn load_nns_proposal_cache(
     let key = SnapshotKey::full("nns", network, "governance", "proposals");
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
+            component: NNS_PROPOSAL_CACHE_COMPONENT,
             cache_root,
             path: cache_path.clone(),
             network,
@@ -191,7 +194,7 @@ fn load_nns_proposal_cache(
         },
         &key,
         NNS_PROPOSAL_CACHE_FIELDS,
-        OwnerJsonCacheErrorMapper::new(NNS_PROPOSAL_CACHE_COMPONENT, missing_proposal_cache_error),
+        missing_proposal_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
     )?;

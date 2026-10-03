@@ -38,6 +38,11 @@ invalid-content recovery policy; genuine IO and confinement failures remain
 errors. Failed repair preserves the previous file. Subnet Catalog retains its
 separate 64 MiB limit.
 
+The shared UTC timestamp parser accepts only the canonical second-precision
+text emitted by the timestamp formatter, such as `2026-06-04T00:00:00Z`.
+Noncanonical text follows each owner's existing invalid-content or freshness
+error path; reads do not normalize or migrate stored values.
+
 Strict shared loads validate top-level duplicates, supported fields, schema,
 and network in one header pass, then deserialize the typed report. An isolated
 local harness over the actual old/new loaders, with shared regular-file IO
@@ -128,16 +133,18 @@ or collection completeness. Owner-aware JSON loading preserves the specialized
 missing error while mapping every other generic failure through this shared
 taxonomy.
 
-Use the owner-error-policy helpers when the operation already has:
+Use the shared read-through runner with an owner-specific error classifier when
+the operation already has:
 
 - a cache loader
 - a refresh implementation
 - an exact expected cache path and typed recoverable-content errors
 
-For small fixed-cost snapshots with an explicit age policy, use the distinct
-refresh-if-stale flow. It refreshes a missing, owner-classified invalid, or
-older complete snapshot. Read and permission failures must not be classified
-as invalid content.
+The same runner accepts the owner's freshness predicate. Missing-only and
+missing-or-invalid reads disable age-triggered refresh; snapshots with an
+explicit age policy select their stale predicate. Error classifiers retain
+each family's recovery rules. Read and permission failures must not be
+classified as invalid content.
 
 ## Manual Refresh
 

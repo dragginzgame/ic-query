@@ -30,7 +30,7 @@ pub struct NnsSourceRequest {
     pub network: String,
     /// Replica endpoint used for the query.
     pub endpoint: String,
-    /// UTC collection timestamp recorded in the report.
+    /// Canonical UTC collection timestamp with second precision recorded in the report.
     pub fetched_at: String,
     /// Collector identity recorded in the report.
     pub fetched_by: String,

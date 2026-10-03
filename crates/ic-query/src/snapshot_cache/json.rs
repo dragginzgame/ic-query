@@ -1,58 +1,54 @@
 //! Module: snapshot_cache::json
 //!
-//! Responsibility: load and write shared complete-snapshot JSON files.
+//! Responsibility: load shared complete-snapshot JSON files.
 //! Does not own: snapshot path discovery, refresh attempts, or family-specific schemas.
 //! Boundary: validates complete snapshot envelopes through cache-file JSON helpers.
 
 #[cfg(feature = "sns-host")]
 use super::SnapshotHeader;
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-use super::{SnapshotIdentityMismatch, SnapshotKey, SnapshotReport};
-use crate::cache_file::{CacheFileError, write_managed_json_pretty_atomically};
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
+use super::{SnapshotEnvelope, SnapshotIdentityMismatch, SnapshotKey};
 use crate::{
     cache::CacheCollectionCompleteness,
-    cache_file::{
-        CachedJsonReport, LoadJsonCacheErrorMapper, LoadJsonCacheRequest, load_json_cache_strict,
-    },
+    cache_file::{CachedJsonReport, HostCacheError, LoadJsonCacheRequest, load_json_cache_strict},
 };
-use serde::Serialize;
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 use serde::de::DeserializeOwned;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub fn load_complete_snapshot<T, Errors>(
+pub fn load_complete_snapshot<Metadata, Data, Error>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
-    errors: Errors,
-    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Errors::Error,
-) -> Result<T, Errors::Error>
+    missing_error: impl FnOnce(PathBuf) -> Error,
+    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Error,
+) -> Result<SnapshotEnvelope<Metadata, Data>, Error>
 where
-    T: DeserializeOwned + SnapshotReport,
-    Errors: LoadJsonCacheErrorMapper,
+    Metadata: DeserializeOwned,
+    Data: DeserializeOwned,
+    Error: From<HostCacheError>,
 {
-    let cached: CachedJsonReport<T> = load_json_cache_strict(request, supported_fields, errors)?;
-    if !cached.report.completeness().is_api_exhausted() {
-        return Err(incomplete_error(cached.report.completeness()));
+    let cached: CachedJsonReport<SnapshotEnvelope<Metadata, Data>> =
+        load_json_cache_strict(request, supported_fields)
+            .map_err(|error| map_snapshot_cache_error(error, missing_error))?;
+    if !cached.report.completeness.is_api_exhausted() {
+        return Err(incomplete_error(&cached.report.completeness));
     }
     Ok(cached.report)
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub fn load_complete_snapshot_for_key<T, Errors>(
+pub fn load_complete_snapshot_for_key<Metadata, Data, Error>(
     request: LoadJsonCacheRequest<'_>,
     key: &SnapshotKey,
     supported_fields: &'static [&'static str],
-    errors: Errors,
-    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Errors::Error,
-    identity_error: impl FnOnce(SnapshotIdentityMismatch) -> Errors::Error,
-) -> Result<T, Errors::Error>
+    missing_error: impl FnOnce(PathBuf) -> Error,
+    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Error,
+    identity_error: impl FnOnce(SnapshotIdentityMismatch) -> Error,
+) -> Result<SnapshotEnvelope<Metadata, Data>, Error>
 where
-    T: DeserializeOwned + SnapshotReport,
-    Errors: LoadJsonCacheErrorMapper,
+    Metadata: DeserializeOwned,
+    Data: DeserializeOwned,
+    Error: From<HostCacheError>,
 {
-    let snapshot = load_complete_snapshot(request, supported_fields, errors, incomplete_error)?;
+    let snapshot =
+        load_complete_snapshot(request, supported_fields, missing_error, incomplete_error)?;
     if let Some(mismatch) = snapshot_identity_mismatch(&snapshot, key) {
         return Err(identity_error(mismatch));
     }
@@ -60,57 +56,43 @@ where
 }
 
 #[cfg(feature = "sns-host")]
-pub fn load_snapshot_header<Metadata, Errors>(
+pub fn load_snapshot_header<Metadata, Error>(
     request: LoadJsonCacheRequest<'_>,
     supported_fields: &'static [&'static str],
-    errors: Errors,
-) -> Result<SnapshotHeader<Metadata>, Errors::Error>
+    missing_error: impl FnOnce(PathBuf) -> Error,
+) -> Result<SnapshotHeader<Metadata>, Error>
 where
     Metadata: DeserializeOwned,
-    Errors: LoadJsonCacheErrorMapper,
+    Error: From<HostCacheError>,
 {
     let cached: CachedJsonReport<SnapshotHeader<Metadata>> =
-        load_json_cache_strict(request, supported_fields, errors)?;
+        load_json_cache_strict(request, supported_fields)
+            .map_err(|error| map_snapshot_cache_error(error, missing_error))?;
     Ok(cached.report)
 }
 
-pub fn write_snapshot_json<T, Error>(
-    cache_root: &Path,
-    path: &Path,
-    snapshot: &T,
-    serialize_error: impl FnOnce(PathBuf, serde_json::Error) -> Error,
-    write_error: impl FnOnce(CacheFileError) -> Error,
-) -> Result<(), Error>
-where
-    T: Serialize,
-{
-    write_managed_json_pretty_atomically(cache_root, path, snapshot, serialize_error, write_error)
+fn map_snapshot_cache_error<Error: From<HostCacheError>>(
+    error: HostCacheError,
+    missing_error: impl FnOnce(PathBuf) -> Error,
+) -> Error {
+    match error {
+        HostCacheError::MissingCache { path, .. } => missing_error(path),
+        error => error.into(),
+    }
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-fn snapshot_identity_mismatch(
-    snapshot: &impl SnapshotReport,
+fn snapshot_identity_mismatch<Metadata, Data>(
+    snapshot: &SnapshotEnvelope<Metadata, Data>,
     key: &SnapshotKey,
 ) -> Option<SnapshotIdentityMismatch> {
-    identity_field_mismatch("domain", key.domain(), snapshot.snapshot_domain())
-        .or_else(|| identity_field_mismatch("entity", key.entity(), snapshot.snapshot_entity()))
+    identity_field_mismatch("domain", key.domain(), &snapshot.domain)
+        .or_else(|| identity_field_mismatch("entity", key.entity(), &snapshot.entity))
+        .or_else(|| identity_field_mismatch("collection", key.collection(), &snapshot.collection))
         .or_else(|| {
-            identity_field_mismatch(
-                "collection",
-                key.collection(),
-                snapshot.snapshot_collection(),
-            )
-        })
-        .or_else(|| {
-            identity_field_mismatch(
-                "scope",
-                SnapshotKey::scope_file_stem(),
-                snapshot.snapshot_scope(),
-            )
+            identity_field_mismatch("scope", SnapshotKey::scope_file_stem(), &snapshot.scope)
         })
 }
 
-#[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 fn identity_field_mismatch(
     field: &'static str,
     expected: &str,
