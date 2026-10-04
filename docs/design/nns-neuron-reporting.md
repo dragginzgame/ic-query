@@ -57,6 +57,10 @@ page length and cursor presence. Canister callers own page retention,
 scheduling, and publication.
 Request and restored-state collection timestamps must parse as valid UTC
 dates and times with second precision before another source call is admitted.
+After page admission, the next continuation is derived without repeating the
+incoming-state validator. Native list and detail report construction derives
+cache origin from the optional cache path; the public `from_cache` field remains
+available in both Rust reports and JSON.
 
 ## Portable Distribution Contract
 

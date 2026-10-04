@@ -231,6 +231,9 @@ fn validate_nns_proposal_cache(
         let proposal_id = proposal
             .proposal_id
             .ok_or_else(|| invalid("cache contains a proposal without an id".to_string()))?;
+        if proposal_id == 0 {
+            return Err(invalid("cache contains proposal id zero".to_string()));
+        }
         if !proposal_ids.insert(proposal_id) {
             return Err(invalid(format!("duplicate proposal id {proposal_id}")));
         }

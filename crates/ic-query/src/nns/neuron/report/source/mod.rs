@@ -175,7 +175,6 @@ pub trait NnsNeuronSource: Send + Sync {
 pub(super) struct NnsNeuronReportProvenance {
     pub(super) context: NnsGovernanceReportContext,
     pub(super) cache_path: Option<String>,
-    pub(super) from_cache: bool,
 }
 
 impl NnsNeuronReportProvenance {
@@ -183,7 +182,6 @@ impl NnsNeuronReportProvenance {
         Self {
             context,
             cache_path: None,
-            from_cache: false,
         }
     }
 }
@@ -200,8 +198,8 @@ pub(super) fn list_report_from_rows(
             schema_version: NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
             ..provenance.context
         },
+        from_cache: provenance.cache_path.is_some(),
         cache_path: provenance.cache_path,
-        from_cache: provenance.from_cache,
         requested_limit: request.limit,
         exclusive_start_neuron_id: request.exclusive_start_neuron_id,
         next_start_neuron_id,
@@ -223,8 +221,8 @@ pub(super) fn info_report_from_row(
             schema_version: NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
             ..provenance.context
         },
+        from_cache: provenance.cache_path.is_some(),
         cache_path: provenance.cache_path,
-        from_cache: provenance.from_cache,
         verbose: request.verbose,
         neuron,
     }

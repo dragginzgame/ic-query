@@ -422,9 +422,13 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
         &second.state,
     );
 
+    let restored: NnsProposalCollectionState = serde_json::from_value(
+        serde_json::to_value(&second.state).expect("serialize completed state"),
+    )
+    .expect("restore completed state");
     let error = run_ready(advance_nns_proposal_collection_with_source(
         &second_request,
-        &second.state,
+        &restored,
         &PagedFixtureNnsProposalSource,
     ))
     .expect_err("complete collection cannot make another source call");
@@ -494,9 +498,13 @@ fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
     );
     assert_eq!(step.state.max_pages(), 1);
     assert!(!step.state.is_complete());
+    let restored: NnsProposalCollectionState = serde_json::from_value(
+        serde_json::to_value(&step.state).expect("serialize page-limited state"),
+    )
+    .expect("restore page-limited state");
     let error = run_ready(advance_nns_proposal_collection_with_source(
         &request,
-        &step.state,
+        &restored,
         &PagedFixtureNnsProposalSource,
     ))
     .expect_err("page-limited collection cannot advance");
@@ -887,9 +895,13 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
 
     assert_public_nns_neuron_distribution(&first.page.neurons, &second.page.neurons, &second.state);
 
+    let restored: NnsNeuronCollectionState = serde_json::from_value(
+        serde_json::to_value(&second.state).expect("serialize completed state"),
+    )
+    .expect("restore completed state");
     let error = run_ready(advance_nns_neuron_collection_with_source(
         &second_request,
-        &second.state,
+        &restored,
         &PagedFixtureNnsNeuronSource,
     ))
     .expect_err("complete collection cannot make another source call");
@@ -956,9 +968,13 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
     );
     assert_eq!(step.state.max_pages(), 1);
     assert!(!step.state.is_complete());
+    let restored: NnsNeuronCollectionState = serde_json::from_value(
+        serde_json::to_value(&step.state).expect("serialize page-limited state"),
+    )
+    .expect("restore page-limited state");
     let error = run_ready(advance_nns_neuron_collection_with_source(
         &request,
-        &step.state,
+        &restored,
         &PagedFixtureNnsNeuronSource,
     ))
     .expect_err("page-limited collection cannot advance");

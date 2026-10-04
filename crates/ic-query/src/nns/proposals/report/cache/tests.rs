@@ -539,6 +539,48 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
 }
 
 #[test]
+fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
+    let root = temp_dir("ic-query-nns-proposal-invalid-ids");
+    let path = refresh_fixture_nns_proposal_cache(&root);
+    let original: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).expect("read cache")).expect("parse cache");
+    let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_100_000), 25);
+    let detail_request = NnsProposalRequest::new(list_request.governance.clone(), 1);
+
+    for (id, reason) in [
+        (serde_json::Value::Null, "without an id"),
+        (serde_json::json!(0), "id zero"),
+        (
+            original["proposals"][1]["proposal_id"].clone(),
+            "duplicate proposal id",
+        ),
+    ] {
+        let mut cache = original.clone();
+        cache["proposals"][0]["proposal_id"] = id;
+        fs::write(
+            &path,
+            serde_json::to_vec_pretty(&cache).expect("serialize cache"),
+        )
+        .expect("write invalid cache");
+
+        for error in [
+            build_nns_proposal_list_report_from_cache(&list_request, &root)
+                .expect_err("invalid list cache"),
+            build_nns_proposal_report_from_cache(&detail_request, &root)
+                .expect_err("invalid detail cache"),
+        ] {
+            assert!(matches!(
+                error,
+                NnsProposalHostError::InvalidCache { path: actual, reason: actual_reason }
+                    if actual == path && actual_reason.contains(reason)
+            ));
+        }
+        assert_invalid_nns_proposal_cache_status(&root, reason);
+    }
+    fs::remove_dir_all(root).expect("remove cache fixture");
+}
+
+#[test]
 fn nns_proposal_cache_status_reports_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-nns-proposal-identity-mismatch");
     let cache_path = refresh_fixture_nns_proposal_cache(&root);
