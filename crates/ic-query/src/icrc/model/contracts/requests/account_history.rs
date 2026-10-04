@@ -170,7 +170,7 @@ impl IcrcAccountTransactionRefreshRequest {
         self
     }
 
-    /// Bounds pages for diagnostics; reaching the bound never publishes a cache.
+    /// Bounds pages for diagnostics; failing to exhaust the API within the bound prevents publication.
     #[must_use]
     pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
         self.max_pages = max_pages;

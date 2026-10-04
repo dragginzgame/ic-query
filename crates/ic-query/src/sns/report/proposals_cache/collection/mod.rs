@@ -84,12 +84,10 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
             .iter()
             .map(|proposal| proposal.proposal_id)
             .min();
-        Ok(self.pages.ingest_page(
-            page.proposals,
-            last_cursor,
-            ToString::to_string,
-            |proposal| proposal.proposal_id.to_string(),
-        ))
+        let page_len = page.proposals.len();
+        Ok(self
+            .pages
+            .ingest_page(page.proposals, page_len, last_cursor, ToString::to_string))
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

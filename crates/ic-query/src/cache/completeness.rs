@@ -19,7 +19,7 @@ const API_EXHAUSTED_STATUS: &str = "api_exhausted";
 pub struct CacheCollectionCompleteness {
     /// Raw persisted completeness status; complete collections use `api_exhausted`.
     pub status: String,
-    /// Maximum rows requested from the source per page.
+    /// Maximum rows requested per page, or observed width of an unpaged inventory (at least one).
     pub page_size: u32,
     /// Number of source pages collected.
     pub page_count: u32,
@@ -77,6 +77,13 @@ pub fn validate_cache_collection_completeness(
             completeness.row_count
         ));
     }
+    let maximum_row_count = u64::from(completeness.page_size) * u64::from(completeness.page_count);
+    if actual_row_count as u128 > u128::from(maximum_row_count) {
+        return Err(format!(
+            "completeness row_count is {actual_row_count}, maximum for {} pages of size {} is {maximum_row_count}",
+            completeness.page_count, completeness.page_size
+        ));
+    }
     Ok(())
 }
 
@@ -98,7 +105,8 @@ mod tests {
                         );
                         let expected_valid = page_size > 0
                             && page_count > 0
-                            && declared_row_count == actual_row_count;
+                            && declared_row_count == actual_row_count
+                            && actual_row_count <= (page_size * page_count) as usize;
 
                         assert_eq!(
                             validate_cache_collection_completeness(&completeness, actual_row_count)
@@ -122,5 +130,23 @@ mod tests {
                 .expect("serialize completeness")["status"],
             "api_exhausted"
         );
+    }
+
+    #[test]
+    fn completeness_enforces_page_capacity_without_narrow_multiplication() {
+        for (page_size, page_count, row_count, valid) in [
+            (2, 2, 4, true),
+            (2, 2, 5, false),
+            (1, 1, 0, true),
+            (u32::MAX, 2, 100, true),
+            (u32::MAX, u32::MAX, 0, true),
+        ] {
+            let completeness =
+                CacheCollectionCompleteness::api_exhausted(page_size, page_count, row_count, false);
+            assert_eq!(
+                validate_cache_collection_completeness(&completeness, row_count).is_ok(),
+                valid
+            );
+        }
     }
 }

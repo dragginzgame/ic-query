@@ -193,10 +193,10 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
                 Some(vec![2; 32]),
             ),
             Some(cursor) if cursor == [2; 32] => (
-                vec![neuron_row(2, 30), neuron_row(3, 50)],
+                vec![neuron_row(2, 300), neuron_row(3, 50)],
                 Some(vec![3; 32]),
             ),
-            Some(cursor) if cursor == [3; 32] => (vec![neuron_row(3, 50)], Some(vec![3; 32])),
+            Some(cursor) if cursor == [3; 32] => (vec![neuron_row(3, 500)], Some(vec![3; 32])),
             Some(other) => panic!("unexpected cursor {other:?}"),
         };
         Ok(MainnetSnsNeuronPage {

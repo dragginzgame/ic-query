@@ -53,11 +53,22 @@ before replacing the previous snapshot. Refresh-attempt update timestamps
 remain local wall-clock observations, separate from this collection interval.
 
 ICRC publication validates caller-supplied collection rows, index identity,
-page count, and final cursor before building the snapshot. Request identity,
-completeness, and newest/oldest ids are then constructed from those validated
-inputs without a second row-validation pass. Publication and stored-snapshot
+page evidence, the requested page cap, and final cursor before building the
+snapshot. It constructs and validates completeness once through the shared
+validator, then moves that evidence into the snapshot. Request identity and
+newest/oldest ids are constructed from the validated inputs without a second
+row-validation pass. Publication and stored-snapshot
 loading share the canonical ordered timestamp check; disk reads retain full
 snapshot identity, completeness, index, and row validation.
+
+The shared completeness validator rejects row counts exceeding page size times
+page count. It widens before multiplication and permits exact capacity and
+empty exhausted collections. SNS discovery records one complete inventory
+response with its observed width as `page_size` (at least one for an empty
+inventory), replacing placeholder page evidence. Contradictory persisted
+counts are invalid content: cache-only reads remain strict, while the owning
+read-through policies visibly recollect them. No fallback reader or migration
+is added, and schemas remain `1`.
 
 Strict shared loads validate top-level duplicates, supported fields, schema,
 and network in one header pass, then deserialize the typed report. An isolated
@@ -187,12 +198,17 @@ read-through helper because the user has already requested refresh behavior.
 
 Each complete SNS proposal or neuron collector owns its paged state directly.
 It validates source pages before ingesting rows and maps its family-specific
-cursor. Shared paging state owns cross-page deduplication, counters, and the
-next cursor. Neuron pages must have ascending ids and any supplied cursor
-must equal the final row. Inclusive boundary overlap remains supported;
+cursor. Proposal pages are unique within each page and strictly below the
+previous minimum id, so they cannot overlap. Continuation uses the lowest
+returned id without changing source row order. Neuron pages must have ascending
+ids and any supplied cursor must equal the final row. Inclusive boundary overlap
+remains supported; the neuron adapter removes that one repeated row and retains
+its first observation. Older rows are invalid, so no other overlap is possible;
 full pages require an advancing cursor, while short terminal pages may omit it.
-Proposal rows must remain below the exclusive requested boundary;
-continuation uses the lowest returned id without changing source row order.
+
+Shared paging state owns counters, admitted rows, and the next cursor, without
+a collection-wide duplicate registry. Exhaustion uses the original API page
+length, including any boundary row, rather than the number of newly admitted rows.
 Invalid pages fail before ingestion and cannot replace a complete snapshot.
 The shared refresh runner detects page limits and stalls and drives
 progress events and running-attempt updates before completion.

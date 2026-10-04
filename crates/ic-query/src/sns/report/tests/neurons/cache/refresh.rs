@@ -77,11 +77,86 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         serde_json::from_slice(&fs::read(attempt_path).expect("read attempt"))
             .expect("parse attempt");
     assert_eq!(attempt["status"], "complete");
+    assert_eq!(attempt["pages_fetched"], 3);
+    assert_eq!(attempt["rows_fetched"], 3);
+    assert_eq!(attempt["last_cursor"], "03".repeat(32));
     assert_eq!(attempt["id"], refresh.id);
     assert_eq!(attempt["root_canister_id"], ROOT_A);
     assert!(attempt.get("metadata").is_none());
 
     let _ = fs::remove_dir_all(root);
+}
+
+struct ExclusiveNeuronPagesSource;
+
+delegate_sns_discovery!(ExclusiveNeuronPagesSource);
+
+impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
+    fn fetch_sns_neurons(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeurons, SnsHostError> {
+        unreachable!("refresh uses pages")
+    }
+
+    fn fetch_sns_neuron_page(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        limit: u32,
+        start_page_at: Option<&SnsNeuronId>,
+        owner_principal_id: Option<&str>,
+    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
+        assert_eq!(limit, 2);
+        assert!(owner_principal_id.is_none());
+        let ids = match start_page_at.map(|cursor| cursor.id.as_slice()) {
+            None => vec![1, 2],
+            Some(cursor) if cursor == [2; 32] => vec![3, 4],
+            Some(cursor) if cursor == [4; 32] => vec![],
+            other => panic!("unexpected cursor {other:?}"),
+        };
+        Ok(MainnetSnsNeuronPage {
+            last_cursor: ids.last().map(|id| SnsNeuronId { id: vec![*id; 32] }),
+            neurons: ids
+                .into_iter()
+                .map(|id| {
+                    let mut row = fixture_sns_neuron().detail.neuron;
+                    row.neuron_id = format!("{id:02x}").repeat(32);
+                    row
+                })
+                .collect(),
+        })
+    }
+}
+
+#[test]
+fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
+    let root = temp_dir("ic-query-sns-neurons-exclusive-pages");
+    let request = sns_neurons_refresh_request(&root, None);
+    let refresh = refresh_sns_neurons_cache_with_source(&request, &ExclusiveNeuronPagesSource)
+        .expect("exclusive pages exhaust successfully");
+    assert_eq!(refresh.page_count, 3);
+    assert_eq!(refresh.neuron_count, 4);
+    let cache: serde_json::Value = serde_json::from_slice(
+        &fs::read(sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)).unwrap(),
+    )
+    .unwrap();
+    let ids: Vec<_> = cache["neurons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["neuron_id"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        ids,
+        (1..=4)
+            .map(|id| format!("{id:02x}").repeat(32))
+            .collect::<Vec<_>>()
+    );
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

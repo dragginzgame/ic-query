@@ -9,6 +9,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.11` rejects complete-cache row counts that exceed the declared page
+  capacity and custom ICRC completion results beyond the requested page cap.
+  SNS discovery records its actual inventory width; contradictory cached
+  counts are rejected and visibly refreshed by its existing list policy.
+  Removes redundant SNS collection-wide duplicate tracking while preserving
+  boundary overlaps, first-observed values, exhaustion, and failure recovery.
+  SNS Root health reuses shared plain-decimal conversion, preserving arbitrary
+  precision and zero-balance classification. Public Rust APIs, CLI grammar,
+  cache identities, and serialized shapes are unchanged; schemas remain `1`.
+
 - `0.45.10` fixes live ICRC history failures caused by grouped Candid numbers
   and emits plain decimal strings for ICRC balances, allowances, token metadata,
   block histories, and archive ranges, including SNS token metadata. Validates

@@ -6,6 +6,7 @@
 
 use crate::{
     hex::hex_bytes,
+    icrc::ledger::nat_text,
     sns::report::{
         MainnetSnsCanisterInventory, SnsCanisterCycleBalanceStatus, SnsCanisterGap,
         SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterRole,
@@ -398,7 +399,7 @@ fn canister_row(
         .collect::<Vec<_>>();
     controllers.sort();
 
-    let cycles = nat_decimal_text(&status.cycles);
+    let cycles = nat_text(&status.cycles);
     let cycle_balance_status = if cycles == "0" {
         SnsCanisterCycleBalanceStatus::ReportedZero
     } else {
@@ -415,14 +416,10 @@ fn canister_row(
         module_hash_hex: status.module_hash.map(|value| hex_bytes(&value)),
         cycles: Some(cycles),
         cycle_balance_status,
-        memory_size: Some(nat_decimal_text(&status.memory_size)),
-        idle_cycles_burned_per_day: Some(nat_decimal_text(&status.idle_cycles_burned_per_day)),
+        memory_size: Some(nat_text(&status.memory_size)),
+        idle_cycles_burned_per_day: Some(nat_text(&status.idle_cycles_burned_per_day)),
         controllers,
     }
-}
-
-fn nat_decimal_text(value: &candid::Nat) -> String {
-    value.to_string().replace('_', "")
 }
 
 const fn gap(
@@ -529,21 +526,28 @@ mod tests {
     }
 
     #[test]
-    fn exact_zero_cycle_balance_is_classified_without_numeric_conversion() {
-        let mut canister_status = status(CanisterStatusType::Stopped);
-        canister_status.cycles = Nat::from(0_u8);
+    fn cycle_balance_classification_preserves_raw_naturals() {
+        const LARGE: &str = "18446744073709551616000";
+        for (cycles, expected_status) in [
+            ("0", SnsCanisterCycleBalanceStatus::ReportedZero),
+            (LARGE, SnsCanisterCycleBalanceStatus::ReportedNonzero),
+        ] {
+            let mut canister_status = status(CanisterStatusType::Stopped);
+            canister_status.cycles = cycles.parse().unwrap();
+            canister_status.memory_size = LARGE.parse().unwrap();
+            canister_status.idle_cycles_burned_per_day = LARGE.parse().unwrap();
 
-        let row = canister_row(
-            SnsCanisterRole::Root,
-            principal(1).to_text(),
-            Some(canister_status),
-        );
+            let row = canister_row(
+                SnsCanisterRole::Root,
+                principal(1).to_text(),
+                Some(canister_status),
+            );
 
-        assert_eq!(row.cycles.as_deref(), Some("0"));
-        assert_eq!(
-            row.cycle_balance_status,
-            SnsCanisterCycleBalanceStatus::ReportedZero
-        );
+            assert_eq!(row.cycles.as_deref(), Some(cycles));
+            assert_eq!(row.cycle_balance_status, expected_status);
+            assert_eq!(row.memory_size.as_deref(), Some(LARGE));
+            assert_eq!(row.idle_cycles_burned_per_day.as_deref(), Some(LARGE));
+        }
     }
 
     #[test]

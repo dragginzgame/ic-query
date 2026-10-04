@@ -186,7 +186,7 @@ pub fn refresh_sns_catalog_with_source(
                 .filter(|sns| sns.lifecycle_error.is_some())
                 .count();
             let sns_count = list.sns_instances.len();
-            let cache = cache_from_list(list);
+            let cache = cache_from_list(list)?;
             write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
@@ -293,9 +293,14 @@ fn load_observed_sns_catalog(
     Ok(cached)
 }
 
-fn cache_from_list(list: JoinedMainnetSnsInventory) -> SnsCatalogCache {
+fn cache_from_list(list: JoinedMainnetSnsInventory) -> Result<SnsCatalogCache, SnsHostError> {
     let row_count = list.sns_instances.len();
-    SnapshotEnvelope {
+    let page_size =
+        u32::try_from(row_count.max(1)).map_err(|_| SnsHostError::InvalidSourceData {
+            capability: "SNS catalog",
+            reason: "inventory width exceeds the completeness page_size representation".to_string(),
+        })?;
+    Ok(SnapshotEnvelope {
         schema_version: SNS_CATALOG_CACHE_SCHEMA_VERSION,
         network: list.network,
         source_endpoint: list.source_endpoint,
@@ -308,11 +313,11 @@ fn cache_from_list(list: JoinedMainnetSnsInventory) -> SnsCatalogCache {
         metadata: SnsCatalogMetadata {
             sns_wasm_canister_id: list.sns_wasm_canister_id,
         },
-        completeness: CacheCollectionCompleteness::api_exhausted(1, 1, row_count, false),
+        completeness: CacheCollectionCompleteness::api_exhausted(page_size, 1, row_count, false),
         data: SnsCatalogData {
             sns_instances: list.sns_instances,
         },
-    }
+    })
 }
 
 fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) -> SnsListReport {

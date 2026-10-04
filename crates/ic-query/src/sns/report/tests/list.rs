@@ -259,6 +259,10 @@ fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
     .expect("create complete catalog");
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     let snapshot = fs::read(&path).expect("read complete catalog");
+    let snapshot_json: serde_json::Value = serde_json::from_slice(&snapshot).unwrap();
+    assert_eq!(snapshot_json["completeness"]["page_size"], 2);
+    assert_eq!(snapshot_json["completeness"]["page_count"], 1);
+    assert_eq!(snapshot_json["completeness"]["row_count"], 2);
 
     for all_lifecycles in [false, true] {
         for sort in [SnsListSort::Id, SnsListSort::Name] {
@@ -286,6 +290,46 @@ fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
             assert_eq!(fs::read(&path).expect("reread catalog"), snapshot);
         }
     }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
+    let root = temp_catalog_root("ic-query-sns-catalog-capacity");
+    let source = UnsortedFixtureSnsDiscoverySource;
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let request = list_request(false);
+    build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut progress,
+    )
+    .unwrap();
+    let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
+    let mut invalid: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    invalid["completeness"]["page_size"] = serde_json::json!(1);
+    let invalid_bytes = serde_json::to_vec(&invalid).unwrap();
+    fs::write(&path, &invalid_bytes).unwrap();
+    assert!(matches!(
+        build_sns_list_report_from_cache(&request, &root),
+        Err(SnsHostError::InvalidCache { .. })
+    ));
+    assert_eq!(fs::read(&path).unwrap(), invalid_bytes);
+    let mut events = Vec::new();
+    let refreshed = build_sns_list_report_from_cache_or_refresh_with_source(
+        &request,
+        &root,
+        &source,
+        &mut |event| events.push(event),
+    )
+    .unwrap();
+    assert_eq!(refreshed.catalog_sns_count, 2);
+    assert_eq!(refreshed.sns_count, 1);
+    assert_eq!(events.len(), 1);
+    assert!(matches!(events[0], QueryProgressEvent::CacheRefresh { .. }));
+    let repaired: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert_eq!(repaired["completeness"]["page_size"], 2);
     let _ = fs::remove_dir_all(root);
 }
 

@@ -141,8 +141,9 @@ log end and custom sources with unknown length remain valid.
 
 Raw ICRC numbers use plain base-10 strings, preserving arbitrary precision
 and signed integer values. The shared ledger `nat_text` helper owns conversion
-for account-history cursors, ledger reports, and SNS token metadata. Candid's
-human-facing `Display` adds underscore grouping and is unsuitable for these
+for account-history cursors, ledger reports, SNS token metadata, and SNS Root
+canister health fields. Candid's human-facing `Display` adds underscore grouping
+and is unsuitable for these
 raw fields or the history validator's decimal inputs.
 
 ### Candid subtype performance follow-up: 2026-10-03
@@ -399,14 +400,15 @@ assurance.
   and atomically publishes one endpoint/ledger/account snapshot. It records
   API exhaustion but no point-in-time guarantee because the index exposes no
   snapshot version. A custom complete-collection source must return the
-  explicitly requested index canister when supplied. Failed collection
+  explicitly requested index canister when supplied, fit the stated page
+  capacity, and stay within any requested page cap. Failed collection
   attempts retain a resolved index canister and page/row/cursor progress when
-  that evidence exists. The collector canonicalizes transaction ids and checks
-  adjacent duplicates after the final ordering pass, avoiding a second
-  full-history id set; local list projection consumes the loaded row vector
-  rather than cloning the complete snapshot before truncation. Canonical row
-  validation and collection sorting share decimal-text comparison for
-  arbitrary-size ids, while cursor normalization retains Candid `Nat` parsing.
+  that evidence exists. Page validation admits canonical newest-first ids and
+  exclusive boundaries before updating collection state, establishing global
+  uniqueness and ordering without a final sort or duplicate scan. Local list
+  projection consumes the loaded row vector rather than cloning the complete
+  snapshot before truncation. Canonical row validation compares arbitrary-size
+  decimal text, while caller cursor normalization retains Candid `Nat` parsing.
   The bounded page builder applies the same explicit-index, canonical-cursor,
   requested-limit, uniqueness, and newest-first checks to custom page sources.
 - Official Dashboard canister reporting follows one canonical canister

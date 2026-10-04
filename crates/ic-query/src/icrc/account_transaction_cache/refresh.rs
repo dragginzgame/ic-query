@@ -16,7 +16,7 @@ use super::{
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError, QueryProgress,
-    cache::CacheCollectionCompleteness,
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache},
     icrc::{
         ledger::principal_from_text,
@@ -174,7 +174,7 @@ fn publish_complete_snapshot(
     complete: IcrcAccountTransactionCollectionData,
     collection_elapsed: Duration,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    validate_collection_data(request, &complete)?;
+    let completeness = validate_collection_data(request, &complete)?;
     let collection_started_at = format_utc_timestamp_secs(request.now_unix_secs);
     let collection_completed_unix_secs = request
         .now_unix_secs
@@ -207,12 +207,7 @@ fn publish_complete_snapshot(
         decimals: complete.decimals,
         newest_transaction_id: newest_transaction_id.clone(),
         oldest_transaction_id: oldest_transaction_id.clone(),
-        completeness: CacheCollectionCompleteness::api_exhausted(
-            request.page_size,
-            complete.page_count,
-            complete.transactions.len(),
-            false,
-        ),
+        completeness,
         transactions: complete.transactions,
     };
     validate_collection_timestamps(
@@ -278,11 +273,22 @@ fn publish_complete_snapshot(
 fn validate_collection_data(
     request: &IcrcAccountTransactionRefreshRequest,
     complete: &IcrcAccountTransactionCollectionData,
-) -> Result<(), IcrcAccountTransactionError> {
-    if complete.page_count == 0 {
+) -> Result<CacheCollectionCompleteness, IcrcAccountTransactionError> {
+    let completeness = CacheCollectionCompleteness::api_exhausted(
+        request.page_size,
+        complete.page_count,
+        complete.transactions.len(),
+        false,
+    );
+    validate_cache_collection_completeness(&completeness, complete.transactions.len())
+        .map_err(|reason| incomplete_collection_error(complete, reason))?;
+    if request
+        .max_pages
+        .is_some_and(|maximum| complete.page_count > maximum)
+    {
         return Err(incomplete_collection_error(
             complete,
-            "source returned a complete collection with zero pages",
+            "source returned a complete collection beyond the requested max pages",
         ));
     }
     let actual_index =
@@ -306,7 +312,8 @@ fn validate_collection_data(
         ));
     }
     validate_canonical_account_transactions(&complete.transactions)
-        .map_err(|reason| incomplete_collection_error(complete, reason))
+        .map_err(|reason| incomplete_collection_error(complete, reason))?;
+    Ok(completeness)
 }
 
 fn incomplete_collection_error(

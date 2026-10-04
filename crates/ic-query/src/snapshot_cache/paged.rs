@@ -1,16 +1,13 @@
 //! Module: snapshot_cache::paged
 //!
-//! Responsibility: accumulate deduplicated rows across paged API walks.
+//! Responsibility: accumulate admitted rows across paged API walks.
 //! Does not own: source fetching, progress rendering, or cache publication.
-//! Boundary: tracks page counters, cursors, and duplicate row suppression.
-
-#[cfg(feature = "sns-host")]
-use std::collections::HashSet;
+//! Boundary: tracks page counters and cursors after family-owned page validation.
 
 ///
 /// CompletePagedCollection
 ///
-/// Deduplicated rows and pagination metadata from a complete API walk.
+/// Admitted rows and pagination metadata from a complete API walk.
 ///
 
 #[cfg(feature = "sns-host")]
@@ -37,13 +34,12 @@ pub struct PagedCollectionPage {
 ///
 /// PagedCollectionState
 ///
-/// Accumulates unique rows while walking a cursor-based collection.
+/// Accumulates validated rows while walking a cursor-based collection.
 ///
 
 #[cfg(feature = "sns-host")]
 pub struct PagedCollectionState<Row, Cursor> {
     rows: Vec<Row>,
-    seen_row_ids: HashSet<String>,
     page_count: u32,
     next_cursor: Option<Cursor>,
 }
@@ -53,7 +49,6 @@ impl<Row, Cursor> Default for PagedCollectionState<Row, Cursor> {
     fn default() -> Self {
         Self {
             rows: Vec::new(),
-            seen_row_ids: HashSet::new(),
             page_count: 0,
             next_cursor: None,
         }
@@ -82,23 +77,18 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
         self.next_cursor.is_some()
     }
 
+    /// Record admitted rows while retaining the unmodified API page length for exhaustion.
     pub fn ingest_page(
         &mut self,
         rows: Vec<Row>,
+        page_len: usize,
         next_cursor: Option<Cursor>,
         cursor_text: impl FnOnce(&Cursor) -> String,
-        row_id: impl Fn(&Row) -> String,
     ) -> PagedCollectionPage {
         self.page_count = self.page_count.saturating_add(1);
-        let page_len = rows.len();
         let last_cursor_text = next_cursor.as_ref().map(cursor_text);
-        let mut new_rows = 0_usize;
-        for row in rows {
-            if self.seen_row_ids.insert(row_id(&row)) {
-                new_rows = new_rows.saturating_add(1);
-                self.rows.push(row);
-            }
-        }
+        let new_rows = rows.len();
+        self.rows.extend(rows);
         self.next_cursor = next_cursor;
 
         PagedCollectionPage {

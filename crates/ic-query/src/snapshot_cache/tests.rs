@@ -314,7 +314,7 @@ fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
 }
 
 #[test]
-fn paged_collection_state_tracks_progress_and_deduplicates_rows() {
+fn paged_collection_state_tracks_admitted_rows_and_original_page_length() {
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct Row {
         id: &'static str,
@@ -322,12 +322,9 @@ fn paged_collection_state_tracks_progress_and_deduplicates_rows() {
 
     let mut state = PagedCollectionState::<Row, Vec<u8>>::new();
 
-    let first_page = state.ingest_page(
-        vec![Row { id: "a" }, Row { id: "a" }],
-        Some(vec![1, 2]),
-        |cursor| format!("{cursor:?}"),
-        |row| row.id.to_string(),
-    );
+    let first_page = state.ingest_page(vec![Row { id: "a" }], 2, Some(vec![1, 2]), |cursor| {
+        format!("{cursor:?}")
+    });
 
     assert_eq!(state.page_count(), 1);
     assert_eq!(state.row_count(), 1);
@@ -335,27 +332,24 @@ fn paged_collection_state_tracks_progress_and_deduplicates_rows() {
     assert_eq!(first_page.last_cursor_text, Some("[1, 2]".to_string()));
     assert!(!first_page.exhausts_collection(2, state.has_next_cursor()));
 
-    let final_page = state.ingest_page(
-        vec![Row { id: "a" }],
-        None,
-        |cursor| format!("{cursor:?}"),
-        |row| row.id.to_string(),
-    );
+    let final_page = state.ingest_page(vec![Row { id: "b" }], 1, None, |cursor| {
+        format!("{cursor:?}")
+    });
 
     assert_eq!(state.page_count(), 2);
-    assert_eq!(state.row_count(), 1);
+    assert_eq!(state.row_count(), 2);
     assert!(final_page.exhausts_collection(2, state.has_next_cursor()));
 
     let complete = state.into_complete(|cursor| format!("{cursor:?}"));
     assert_eq!(complete.page_count, 2);
-    assert_eq!(complete.rows, vec![Row { id: "a" }]);
+    assert_eq!(complete.rows, vec![Row { id: "a" }, Row { id: "b" }]);
     assert_eq!(complete.last_cursor, None);
 }
 
 #[test]
 fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
     let refresh = FixturePagedRefresh {
-        pages: vec![(vec!["a", "a"], Some("next")), (vec!["b"], None)],
+        pages: vec![(vec!["a"], 2, Some("next")), (vec!["b"], 1, None)],
         max_pages: None,
         attempts: RefCell::new(Vec::new()),
         state: PagedCollectionState::new(),
@@ -395,7 +389,7 @@ fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
 #[test]
 fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
     let refresh = FixturePagedRefresh {
-        pages: vec![(vec!["a", "b"], Some("next")), (vec!["c"], None)],
+        pages: vec![(vec!["a", "b"], 2, Some("next")), (vec!["c"], 1, None)],
         max_pages: Some(1),
         attempts: RefCell::new(Vec::new()),
         state: PagedCollectionState::new(),
@@ -411,11 +405,11 @@ fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
 }
 
 #[test]
-fn paged_snapshot_refresh_rejects_duplicate_only_page_with_cursor() {
+fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows() {
     let refresh = FixturePagedRefresh {
         pages: vec![
-            (vec!["a", "b"], Some("next")),
-            (vec!["a", "b"], Some("still-next")),
+            (vec!["a", "b"], 2, Some("next")),
+            (vec![], 2, Some("still-next")),
         ],
         max_pages: None,
         attempts: RefCell::new(Vec::new()),
@@ -677,7 +671,7 @@ fn write_snapshot_fixture(path: &Path, value: serde_json::Value) {
 }
 
 struct FixturePagedRefresh {
-    pages: Vec<(Vec<&'static str>, Option<&'static str>)>,
+    pages: Vec<(Vec<&'static str>, usize, Option<&'static str>)>,
     max_pages: Option<u32>,
     attempts: RefCell<Vec<(u32, usize)>>,
     state: PagedCollectionState<&'static str, &'static str>,
@@ -718,13 +712,10 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
         if self.pages.is_empty() {
             return Err("no fixture page".to_string());
         }
-        let (rows, cursor) = self.pages.remove(0);
-        Ok(self.state.ingest_page(
-            rows,
-            cursor,
-            |cursor| (*cursor).to_string(),
-            |row| (*row).to_string(),
-        ))
+        let (rows, page_len, cursor) = self.pages.remove(0);
+        Ok(self
+            .state
+            .ingest_page(rows, page_len, cursor, |cursor| (*cursor).to_string()))
     }
 
     fn write_running_attempt(&self, _page: &PagedCollectionPage) -> Result<(), Self::Error> {

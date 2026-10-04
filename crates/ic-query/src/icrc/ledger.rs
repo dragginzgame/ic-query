@@ -442,7 +442,7 @@ where
     query_encoded_bytes(agent, ledger_canister, method, arg).await
 }
 
-/// Return plain decimal text for raw ledger fields and reusable cursors.
+/// Return plain decimal text for raw Candid naturals without display separators.
 pub fn nat_text(value: &Nat) -> String {
     value.0.to_str_radix(10)
 }

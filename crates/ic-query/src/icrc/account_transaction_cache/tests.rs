@@ -190,7 +190,7 @@ fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
 }
 
 #[test]
-fn cache_only_reads_validate_rows_even_when_extrema_and_counts_match() {
+fn cache_only_reads_validate_rows_and_page_capacity_when_declared_counts_match() {
     let root = temp_dir("ic-query-icrc-account-persisted-row-validation");
     let cache = cache_request(&root);
     refresh_icrc_account_transaction_cache_with_source(
@@ -200,8 +200,14 @@ fn cache_only_reads_validate_rows_even_when_extrema_and_counts_match() {
     .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    for ids in [["12", "12", "2"], ["12", "1", "2"], ["12", "010", "2"]] {
+    for (ids, page_size) in [
+        (["12", "10", "2"], 1),
+        (["12", "12", "2"], 100),
+        (["12", "1", "2"], 100),
+        (["12", "010", "2"], 100),
+    ] {
         let mut invalid = original.clone();
+        invalid["completeness"]["page_size"] = json!(page_size);
         for (transaction, id) in invalid["transactions"]
             .as_array_mut()
             .unwrap()
@@ -282,6 +288,57 @@ fn custom_source_must_return_the_explicitly_requested_index() {
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
+    let root = temp_dir("ic-query-icrc-account-completion-bounds");
+    let cache = cache_request(&root);
+    let request = refresh_request(cache.clone(), 1_700_000_000);
+    refresh_icrc_account_transaction_cache_with_source(
+        &request,
+        &SuccessSource::new(vec![row("7")]),
+    )
+    .unwrap();
+    let path = icrc_account_transaction_cache_path(&cache).unwrap();
+    let original = fs::read(&path).unwrap();
+
+    for (page_count, page_size, max_pages) in [(1, 1, None), (2, 100, Some(1))] {
+        let mut source = SuccessSource::new(vec![row("7"), row("6")]);
+        source.page_count = page_count;
+        let mut bounded = request.clone().with_max_pages(max_pages);
+        bounded.page_size = page_size;
+        let error = refresh_icrc_account_transaction_cache_with_source(&bounded, &source)
+            .expect_err("contradictory completion must not publish");
+        assert!(matches!(
+            error,
+            IcrcAccountTransactionError::IncompleteCollection { .. }
+        ));
+        assert_eq!(fs::read(&path).unwrap(), original);
+        let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+        assert_eq!(
+            status.cache.unwrap().cache_status,
+            CacheValidationStatus::Valid
+        );
+        let attempt = status.latest_attempt.unwrap();
+        assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
+        assert_eq!(attempt.pages_fetched, page_count);
+        assert_eq!(attempt.rows_fetched, 2);
+        assert_eq!(attempt.last_cursor.as_deref(), Some("6"));
+    }
+
+    let mut source = SuccessSource::new(vec![row("7"), row("6")]);
+    source.page_count = 2;
+    let mut bounded = request.with_max_pages(Some(2));
+    bounded.page_size = 1;
+    let report = refresh_icrc_account_transaction_cache_with_source(&bounded, &source)
+        .expect("exhaustion exactly at the page cap is valid");
+    assert_eq!(report.page_count, 2);
+    assert_eq!(report.transaction_count, 2);
+    let cached = load_cached_icrc_account_transactions(&cache).unwrap();
+    assert_eq!(cached.snapshot.completeness.page_size, 1);
+    assert_eq!(cached.snapshot.completeness.page_count, 2);
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -475,6 +532,7 @@ fn row(id: &str) -> IcrcAccountTransactionRow {
 struct SuccessSource {
     calls: AtomicUsize,
     transactions: Vec<IcrcAccountTransactionRow>,
+    page_count: u32,
 }
 
 impl SuccessSource {
@@ -482,6 +540,7 @@ impl SuccessSource {
         Self {
             calls: AtomicUsize::new(0),
             transactions,
+            page_count: 1,
         }
     }
 }
@@ -499,7 +558,7 @@ impl IcrcAccountTransactionCollectionSource for SuccessSource {
             token_symbol: "ICP".to_string(),
             decimals: 8,
             transactions: self.transactions.clone(),
-            page_count: 1,
+            page_count: self.page_count,
             last_cursor: self
                 .transactions
                 .last()
