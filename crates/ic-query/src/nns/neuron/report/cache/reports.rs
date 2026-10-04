@@ -26,7 +26,10 @@ use crate::{
             read_governance_refresh_attempt_status, validate_governance_cache_metadata,
         },
         neuron::report::{
-            NnsNeuronHostError, enforce_mainnet_network,
+            NnsNeuronHostError,
+            collection::validate_collection_state,
+            distribution::{NnsNeuronDistributionReport, build_nns_neuron_distribution_report},
+            enforce_mainnet_network,
             model::{
                 NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport,
                 NnsNeuronListRequest,
@@ -40,6 +43,19 @@ use crate::{
     snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
 use std::path::{Path, PathBuf};
+
+/// Build public-neuron distribution from the complete local snapshot without a network call.
+pub fn build_nns_neuron_distribution_report_from_cache(
+    request: &NnsGovernanceCacheRequest,
+) -> Result<NnsNeuronDistributionReport, NnsNeuronHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let path = nns_neuron_cache_path(&request.cache_root, &request.network);
+    let cache = load_cache_at(&request.cache_root, &path, &request.network)?;
+    Ok(build_nns_neuron_distribution_report(
+        &cache.data.collection_state,
+        &cache.data.neurons,
+    )?)
+}
 
 /// Read a complete neuron snapshot and build a local list page when present.
 pub fn build_nns_neuron_list_report_from_cache(
@@ -186,7 +202,26 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
             "point_in_time_guaranteed must be false for the Governance neuron index".to_string(),
         ));
     }
-    validate_page_size(cache.completeness.page_size).map_err(|error| invalid(error.to_string()))?;
+    let state = &cache.data.collection_state;
+    validate_collection_state(state).map_err(|error| invalid(error.to_string()))?;
+    let source = NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: cache.source_endpoint.clone(),
+        fetched_by: cache.fetched_by.clone(),
+    };
+    if !state.is_complete()
+        || state.network() != cache.network
+        || state.governance_canister_id() != cache.metadata.governance_canister_id
+        || state.source() != Some(&source)
+        || state.updated_at() != cache.fetched_at
+        || state.pages_fetched() != cache.completeness.page_count
+        || state.page_size() != cache.completeness.page_size
+        || state.neurons_fetched() != cache.completeness.row_count as u64
+    {
+        return Err(invalid(
+            "collection_state disagrees with snapshot identity, provenance, or completeness"
+                .to_string(),
+        ));
+    }
     validate_neuron_rows(&cache.data.neurons).map_err(|error| invalid(error.to_string()))
 }
 
@@ -245,10 +280,7 @@ fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsN
 }
 
 const fn missing_neuron_cache_error(path: PathBuf) -> NnsNeuronHostError {
-    NnsNeuronHostError::Cache(HostCacheError::missing_cache(
-        NNS_NEURON_CACHE_COMPONENT,
-        path,
-    ))
+    NnsNeuronHostError::MissingNeuronCache { path }
 }
 
 fn nns_neuron_identity_mismatch_error(
@@ -264,8 +296,5 @@ fn nns_neuron_identity_mismatch_error(
 }
 
 const fn is_missing_cache(error: &NnsNeuronHostError) -> bool {
-    matches!(
-        error,
-        NnsNeuronHostError::Cache(HostCacheError::MissingCache { .. })
-    )
+    matches!(error, NnsNeuronHostError::MissingNeuronCache { .. })
 }

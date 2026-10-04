@@ -124,6 +124,17 @@ pub enum NnsNeuronError {
 #[cfg(feature = "nns-host")]
 #[derive(Debug, ThisError)]
 pub enum NnsNeuronHostError {
+    /// A cache-only read could not find the required complete snapshot.
+    #[error("NNS neurons cache is missing at {}\n\nRun `icq nns neuron refresh` to fetch a complete snapshot.", path.display())]
+    MissingNeuronCache {
+        /// Expected complete snapshot path.
+        path: PathBuf,
+    },
+
+    /// Local distribution input or aggregation failed.
+    #[error(transparent)]
+    Distribution(#[from] super::NnsNeuronDistributionError),
+
     /// Portable neuron collection or validation failed.
     #[error(transparent)]
     Neuron(#[from] NnsNeuronError),

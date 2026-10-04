@@ -24,8 +24,9 @@ pub use refresh::{
     refresh_nns_proposal_cache_with_progress, refresh_nns_proposal_cache_with_source,
 };
 pub use reports::{
-    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
-    build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
+    build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
+    build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
+    build_nns_proposal_report_from_cache,
 };
 
 #[cfg(test)]

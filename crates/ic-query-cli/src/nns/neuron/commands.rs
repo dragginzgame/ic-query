@@ -18,6 +18,8 @@ const REFRESH_DEFAULT_PAGE_SIZE: &str = "300";
 
 const NEURON_HELP_AFTER: &str = "\
 Examples:
+  icq nns neuron distribution
+  icq nns neuron distribution --json
   icq nns neuron list
   icq nns neuron info 123456789
   icq nns neuron refresh
@@ -53,10 +55,22 @@ pub(in crate::nns) fn neuron_command() -> ClapCommand {
         .bin_name("icq nns neuron")
         .about("Inspect public NNS Governance neuron views")
         .subcommand(neuron_list_command())
+        .subcommand(neuron_distribution_command())
         .subcommand(neuron_info_command())
         .subcommand(neuron_refresh_command())
         .subcommand(neuron_cache_command())
         .after_help(NEURON_HELP_AFTER)
+}
+
+pub(in crate::nns) fn neuron_distribution_command() -> ClapCommand {
+    ClapCommand::new("distribution")
+        .bin_name("icq nns neuron distribution")
+        .about("Summarize public-neuron distribution from the complete local snapshot")
+        .arg(leaf::json_arg())
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            "Examples:\n  icq nns neuron distribution\n  icq nns neuron distribution --json",
+        ))
 }
 
 pub(in crate::nns) fn neuron_list_command() -> ClapCommand {

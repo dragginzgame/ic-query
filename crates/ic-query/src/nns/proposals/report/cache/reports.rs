@@ -24,10 +24,15 @@ use crate::{
         },
         proposals::report::{
             NnsProposalHostError,
+            activity::{
+                NnsProposalActivityReport, NnsProposalActivityRequest,
+                build_nns_proposal_activity_report, validate_time_window,
+            },
             assemble::{
                 NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
                 nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
             },
+            collection::validate_collection_state,
             enforce_mainnet_network,
             model::{
                 NnsProposalListReport, NnsProposalListRequest, NnsProposalReport,
@@ -46,6 +51,23 @@ use std::{
     collections::HashSet,
     path::{Path, PathBuf},
 };
+
+/// Build proposal activity from the complete local snapshot without making a network call.
+pub fn build_nns_proposal_activity_report_from_cache(
+    cache_request: &NnsGovernanceCacheRequest,
+    request: &NnsProposalActivityRequest,
+) -> Result<NnsProposalActivityReport, NnsProposalHostError> {
+    enforce_mainnet_network(&cache_request.network)?;
+    validate_time_window(request)?;
+    let path =
+        nns_proposal_cache_paths(&cache_request.cache_root, &cache_request.network).snapshot_path;
+    let cache = load_nns_proposal_cache(&cache_request.cache_root, path, &cache_request.network)?;
+    Ok(build_nns_proposal_activity_report(
+        request,
+        &cache.data.collection_state,
+        &cache.data.proposals,
+    )?)
+}
 
 /// Build a local NNS proposal cache list report.
 pub fn build_nns_proposal_cache_list_report(
@@ -226,6 +248,26 @@ fn validate_nns_proposal_cache(
         ));
     }
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
+    let state = &cache.data.collection_state;
+    validate_collection_state(state).map_err(|error| invalid(error.to_string()))?;
+    let source = NnsGovernanceSourceProvenance::ReplicaQuery {
+        endpoint: cache.source_endpoint.clone(),
+        fetched_by: cache.fetched_by.clone(),
+    };
+    if !state.is_complete()
+        || state.network() != cache.network
+        || state.governance_canister_id() != cache.metadata.governance_canister_id
+        || state.source() != Some(&source)
+        || state.updated_at() != cache.fetched_at
+        || state.pages_fetched() != cache.completeness.page_count
+        || state.page_size() != cache.completeness.page_size
+        || state.proposals_fetched() != cache.completeness.row_count as u64
+    {
+        return Err(invalid(
+            "collection_state disagrees with snapshot identity, provenance, or completeness"
+                .to_string(),
+        ));
+    }
     let mut proposal_ids = HashSet::new();
     for proposal in &cache.data.proposals {
         let proposal_id = proposal

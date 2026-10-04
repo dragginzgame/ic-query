@@ -150,6 +150,10 @@ pub enum NnsProposalError {
 #[cfg(feature = "nns-host")]
 #[derive(Debug, ThisError)]
 pub enum NnsProposalHostError {
+    /// Local activity input or aggregation failed.
+    #[error(transparent)]
+    Activity(#[from] super::NnsProposalActivityError),
+
     /// Portable proposal collection or validation failed.
     #[error(transparent)]
     Proposal(#[from] NnsProposalError),

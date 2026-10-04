@@ -7,8 +7,9 @@
 use crate::{
     cache::CacheValidationStatus,
     nns::{
-        NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
-        neuron::report::model::NnsNeuronRow,
+        NnsGovernanceRefreshAttemptStatus,
+        governance::NnsGovernanceCacheMetadata,
+        neuron::report::{collection::NnsNeuronCollectionState, model::NnsNeuronRow},
     },
     snapshot_cache::SnapshotEnvelope,
 };
@@ -28,6 +29,7 @@ pub(super) const NNS_NEURON_CACHE_FIELDS: &[&str] = &[
     "scope",
     "governance_canister_id",
     "completeness",
+    "collection_state",
     "neurons",
 ];
 
@@ -137,6 +139,7 @@ pub struct NnsNeuronCacheSummary {
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct NnsNeuronCacheRows {
+    pub(super) collection_state: NnsNeuronCollectionState,
     pub(super) neurons: Vec<NnsNeuronRow>,
 }
 
@@ -148,6 +151,5 @@ pub(super) struct NnsNeuronCacheRows {
 
 pub(super) struct CompleteNeuronCollection {
     pub(super) neurons: Vec<NnsNeuronRow>,
-    pub(super) page_count: u32,
-    pub(super) last_cursor: Option<String>,
+    pub(super) state: NnsNeuronCollectionState,
 }

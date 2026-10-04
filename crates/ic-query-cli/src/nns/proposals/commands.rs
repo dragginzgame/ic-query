@@ -34,6 +34,11 @@ const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSAL_LIST_MAX_LIMIT: u64 = 100;
 const NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
+const NNS_PROPOSAL_ACTIVITY_HELP_AFTER: &str = "\
+Examples:
+  icq nns proposal activity
+  icq nns proposal activity --from 1700000000 --until 1700100000 --json";
+
 const NNS_PROPOSAL_LIST_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal list
@@ -55,6 +60,8 @@ Examples:
 
 const NNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
+  icq nns proposal activity
+  icq nns proposal activity --from 1700000000 --until 1700100000 --json
   icq nns proposal list
   icq nns proposal info 132411
   icq nns proposal info 132411 --ballots
@@ -95,6 +102,31 @@ const NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal cache status
   icq nns proposal cache status --json";
+
+pub(in crate::nns) fn nns_proposal_activity_command() -> ClapCommand {
+    ClapCommand::new("activity")
+        .bin_name("icq nns proposal activity")
+        .about("Summarize proposal activity from the complete local snapshot")
+        .arg(leaf::json_arg())
+        .arg(
+            value_arg("from")
+                .long("from")
+                .value_name("unix-seconds")
+                .value_parser(RangedU64ValueParser::<u64>::new())
+                .help("Inclusive lower bound on proposal creation time"),
+        )
+        .arg(
+            value_arg("until")
+                .long("until")
+                .value_name("unix-seconds")
+                .value_parser(RangedU64ValueParser::<u64>::new())
+                .help("Exclusive upper bound on proposal creation time"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_CACHE_ONLY,
+            NNS_PROPOSAL_ACTIVITY_HELP_AFTER,
+        ))
+}
 
 pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
     ClapCommand::new("list")
@@ -225,6 +257,7 @@ pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
         .bin_name("icq nns proposal")
         .about("Inspect NNS governance proposals")
         .subcommand(nns_proposal_list_command())
+        .subcommand(nns_proposal_activity_command())
         .subcommand(nns_proposal_info_command())
         .subcommand(nns_proposal_refresh_command())
         .subcommand(nns_proposal_cache_command())

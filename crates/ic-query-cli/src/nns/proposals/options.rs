@@ -23,9 +23,35 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::nns::proposals::{
-    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
-    NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalActivityRequest, NnsProposalListSort, NnsProposalRewardStatusFilter,
+    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+
+///
+/// NnsProposalActivityOptions
+///
+/// Output and time-window options for local proposal activity.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) struct NnsProposalActivityOptions {
+    pub(in crate::nns) network: String,
+    pub(in crate::nns) format: OutputFormat,
+    pub(in crate::nns) request: NnsProposalActivityRequest,
+}
+
+impl NnsProposalActivityOptions {
+    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+            request: NnsProposalActivityRequest {
+                from_proposal_timestamp_seconds: typed_option(matches, "from"),
+                until_proposal_timestamp_seconds: typed_option(matches, "until"),
+            },
+        }
+    }
+}
 
 ///
 /// NnsProposalListOptions

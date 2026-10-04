@@ -154,6 +154,34 @@ are removed as a Rust API hard cut. Persisted state still uses schema `1`
 and the labels `ready`, `collecting`, `complete`, and `page_limit_reached`.
 Proposal and neuron cursor and exhaustion rules remain separate.
 
+With `nns-host`, the same pure analytics reports can be built directly from
+complete local snapshots:
+
+```rust,no_run
+use ic_query::nns::{
+    NnsGovernanceCacheRequest,
+    proposals::{NnsProposalActivityRequest, build_nns_proposal_activity_report_from_cache},
+    neuron::build_nns_neuron_distribution_report_from_cache,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cache = NnsGovernanceCacheRequest::new("/path/to/ic-query-cache", "ic");
+    let activity = build_nns_proposal_activity_report_from_cache(
+        &cache, &NnsProposalActivityRequest::default(),
+    )?;
+    let distribution = build_nns_neuron_distribution_report_from_cache(&cache)?;
+    Ok(())
+}
+```
+
+These functions make no network call or cache write. Missing and invalid
+snapshots return typed host errors. Starting with 0.46.0, complete proposal and
+neuron snapshots must retain their actual final `collection_state`; refresh
+existing snapshots explicitly to replace the schema-1 shape. No continuation,
+timestamp, or source provenance is reconstructed from incomplete metadata.
+The CLI exposes these builders as `nns proposal activity` and
+`nns neuron distribution`.
+
 Once a retained public-neuron walk is `complete`, project its rows locally
 without another call:
 

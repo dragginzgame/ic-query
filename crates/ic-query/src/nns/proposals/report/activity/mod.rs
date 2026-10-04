@@ -788,7 +788,7 @@ impl ActivityAccumulator {
     }
 }
 
-const fn validate_time_window(
+pub(super) const fn validate_time_window(
     request: &NnsProposalActivityRequest,
 ) -> Result<(), NnsProposalActivityError> {
     if let (Some(from), Some(until)) = (

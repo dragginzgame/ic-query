@@ -98,7 +98,7 @@ impl NnsNeuronRefreshOptions {
 ///
 /// NnsNeuronCacheOptions
 ///
-/// Parsed options for local public NNS neuron cache inspection.
+/// Parsed output options for local public NNS neuron cache views.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]

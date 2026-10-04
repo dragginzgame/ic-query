@@ -21,7 +21,7 @@ and local-only inspection visibly distinct.
 | Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
 | CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
 | NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
-| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure complete-collection proposal activity and public-neuron distribution analytics, economics, metrics, latest reward event, and maturity modulation |
+| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure and cache-only CLI proposal activity and public-neuron distribution analytics, economics, metrics, latest reward event, and maturity modulation |
 | SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
 | ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
 | System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
@@ -122,6 +122,12 @@ icq nns proposal list --limit 25
 icq nns neuron list --limit 25
 icq nns governance economics
 
+# Local analytics after explicit complete collection
+icq nns proposal refresh
+icq nns proposal activity --json
+icq nns neuron refresh
+icq nns neuron distribution --json
+
 # Deployed SNS reports
 icq sns list
 icq sns list --all
@@ -216,12 +222,12 @@ icq ic replica-version info|list
 
 icq nns data-center info|list|refresh
 icq nns governance economics|maturity-modulation|metrics|reward-event
-icq nns neuron cache|info|list|refresh
+icq nns neuron cache|distribution|info|list|refresh
 icq nns node info|list|refresh|status
 icq nns node-operator info|list|refresh
 icq nns node-provider info|list|refresh|status
 icq nns node-provider reward history|info|list
-icq nns proposal cache|info|list|refresh
+icq nns proposal activity|cache|info|list|refresh
 icq nns registry version
 icq nns subnet info|list|refresh|status
 icq nns topology capacity|check|coverage|gaps|providers|refresh|regions|summary|versions

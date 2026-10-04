@@ -33,11 +33,11 @@ pub(super) fn publish_complete_nns_proposal_cache(
     replaced_existing_cache: bool,
     complete: CompleteNnsProposalCollection,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
-    let CompleteNnsProposalCollection {
-        proposals,
-        page_count,
-        last_cursor,
-    } = complete;
+    let CompleteNnsProposalCollection { proposals, state } = complete;
+    let page_count = state.pages_fetched();
+    let last_cursor = state
+        .next_before_proposal_id()
+        .map(|cursor| cursor.to_string());
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
     let cache = NnsProposalCache {
         schema_version: NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
@@ -56,7 +56,10 @@ pub(super) fn publish_complete_nns_proposal_cache(
             proposals.len(),
             false,
         ),
-        data: NnsProposalCacheRows { proposals },
+        data: NnsProposalCacheRows {
+            collection_state: state,
+            proposals,
+        },
     };
     let proposal_count = cache.data.proposals.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(

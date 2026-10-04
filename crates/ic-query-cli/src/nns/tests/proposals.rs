@@ -1,6 +1,33 @@
 use super::*;
 use crate::cli::clap::render_help;
 
+#[test]
+fn nns_proposal_activity_parses_cache_only_window_and_json() {
+    let matches = parse_test_matches(nns_proposal_activity_command(), &[]).unwrap();
+    let defaults = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
+    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.request.from_proposal_timestamp_seconds, None);
+    assert_eq!(defaults.request.until_proposal_timestamp_seconds, None);
+    let matches = parse_test_matches(
+        nns_proposal_activity_command(),
+        &["--from", "1", "--until", "3", "--json"],
+    )
+    .unwrap();
+    let options = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.request.from_proposal_timestamp_seconds, Some(1));
+    assert_eq!(options.request.until_proposal_timestamp_seconds, Some(3));
+    for args in [
+        &["--from", "invalid"][..],
+        &["--until", "18446744073709551616"][..],
+    ] {
+        assert!(parse_test_matches(nns_proposal_activity_command(), args).is_err());
+    }
+    assert!(
+        render_help(nns_proposal_activity_command()).contains("does not make a network request")
+    );
+}
+
 fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
     let matches = parse_test_matches(nns_proposal_list_command(), args)?;
     NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
