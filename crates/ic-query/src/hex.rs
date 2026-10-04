@@ -27,7 +27,6 @@ pub fn is_canonical_lowercase_hex(value: &str) -> bool {
 /// Decode even-length lowercase hexadecimal, including an empty byte string.
 ///
 
-#[cfg(feature = "subnet-catalog-host")]
 pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
     if !value.len().is_multiple_of(2) || !is_lowercase_hex(value) {
         return None;
@@ -58,7 +57,6 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "nns-host")]
     #[test]
     fn lowercase_hex_decoder_accepts_complete_bytes_only() {
         assert_eq!(decode_lowercase_hex(""), Some(Vec::new()));
@@ -66,5 +64,9 @@ mod tests {
         assert_eq!(decode_lowercase_hex("0"), None);
         assert_eq!(decode_lowercase_hex("0A"), None);
         assert_eq!(decode_lowercase_hex("0g"), None);
+        assert_eq!(decode_lowercase_hex("aé0"), None);
+        assert_eq!(decode_lowercase_hex("🦀"), None);
+        assert_eq!(decode_lowercase_hex("+a"), None);
+        assert_eq!(decode_lowercase_hex(" 0a"), None);
     }
 }

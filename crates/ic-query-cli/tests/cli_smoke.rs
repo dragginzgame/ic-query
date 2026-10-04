@@ -342,6 +342,38 @@ fn binary_invalid_value_preserves_clap_diagnostic() {
 }
 
 #[test]
+fn binary_malformed_subaccounts_return_argument_errors() {
+    for value in [format!("aé{}", "0".repeat(61)), "+a".repeat(32)] {
+        for args in [
+            vec![
+                "icrc",
+                "account",
+                "balance",
+                "aaaaa-aa",
+                "aaaaa-aa",
+                "--subaccount",
+                &value,
+            ],
+            vec![
+                "icrc",
+                "account",
+                "allowance",
+                "aaaaa-aa",
+                "aaaaa-aa",
+                "aaaaa-aa",
+                "--spender-subaccount",
+                &value,
+            ],
+        ] {
+            let output = run_icq(&args);
+            assert_eq!(output.status.code(), Some(2));
+            assert!(stderr_text(&output).contains("invalid subaccount hex"));
+            assert_eq!(output.stdout, Vec::<u8>::new());
+        }
+    }
+}
+
+#[test]
 fn binary_invalid_network_precedes_help_like_option_values() {
     let output = run_icq(&[
         "--network",

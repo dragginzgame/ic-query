@@ -1262,18 +1262,22 @@ fn index_report_renders_index_error_when_not_set() {
 
 #[test]
 fn invalid_subaccount_is_rejected_before_source_fetch() {
-    let request = IcrcBalanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
-        account_owner: ACCOUNT_OWNER.to_string(),
-        subaccount_hex: Some("abc".to_string()),
-    };
-
-    let err = build_icrc_balance_report_with_source(&request, &PanickingIcrcSource)
-        .expect_err("invalid subaccount should fail before source fetch");
-
-    assert!(matches!(err, IcrcError::InvalidSubaccountHex { .. }));
+    for value in [
+        "abc".to_string(),
+        format!("aé{}", "0".repeat(61)),
+        "+a".repeat(32),
+    ] {
+        let request = IcrcBalanceRequest {
+            source_endpoint: SOURCE_ENDPOINT.to_string(),
+            now_unix_secs: FETCHED_AT_UNIX_SECS,
+            ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+            account_owner: ACCOUNT_OWNER.to_string(),
+            subaccount_hex: Some(value),
+        };
+        let err = build_icrc_balance_report_with_source(&request, &PanickingIcrcSource)
+            .expect_err("invalid subaccount should fail before source fetch");
+        assert!(matches!(err, IcrcError::InvalidSubaccountHex { .. }));
+    }
 }
 
 #[test]

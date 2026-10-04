@@ -6,7 +6,7 @@
 
 use super::validation::SnsSourceValidator;
 use crate::{
-    hex::{is_canonical_lowercase_hex, is_lowercase_hex},
+    hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
     sns::report::{
         SnsHostError, SnsNeuronDetail, SnsNeuronRow,
         model::{validate_maturity_disbursements, validate_neuron_permissions},
@@ -165,18 +165,14 @@ pub(in crate::sns::report) fn validate_sns_neuron_row(neuron: &SnsNeuronRow) -> 
 pub(in crate::sns::report) fn sns_neuron_id_from_text(
     neuron_id: &str,
 ) -> Result<SnsNeuronId, SnsHostError> {
-    if neuron_id.len() != SNS_NEURON_ID_HEX_LENGTH || !is_lowercase_hex(neuron_id) {
-        return Err(SnsHostError::InvalidNeuronIdText {
-            neuron_id: neuron_id.to_string(),
-        });
+    let id = if neuron_id.len() == SNS_NEURON_ID_HEX_LENGTH {
+        decode_lowercase_hex(neuron_id)
+    } else {
+        None
     }
-    let id = (0..neuron_id.len())
-        .step_by(2)
-        .map(|index| u8::from_str_radix(&neuron_id[index..index + 2], 16))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| SnsHostError::InvalidNeuronIdText {
-            neuron_id: neuron_id.to_string(),
-        })?;
+    .ok_or_else(|| SnsHostError::InvalidNeuronIdText {
+        neuron_id: neuron_id.to_string(),
+    })?;
     Ok(SnsNeuronId { id })
 }
 

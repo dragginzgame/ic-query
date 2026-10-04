@@ -139,6 +139,12 @@ before following callbacks; custom-source report construction applies the same
 range validator and checks the length when supplied. Empty pages beyond the
 log end and custom sources with unknown length remain valid.
 
+The shared hex decoder owns byte decoding for Registry/archive data, ICRC
+subaccounts, and SNS neuron IDs. Family parsers retain their input contracts:
+ICRC trims surrounding whitespace and folds ASCII case before requiring 32
+bytes; SNS requires exactly 64 lowercase hex characters. Non-ASCII hex
+characters and signs are rejected without slicing unvalidated UTF-8 text.
+
 Raw ICRC numbers use plain base-10 strings, preserving arbitrary precision
 and signed integer values. The shared ledger `nat_text` helper owns conversion
 for account-history cursors, ledger reports, SNS token metadata, and SNS Root

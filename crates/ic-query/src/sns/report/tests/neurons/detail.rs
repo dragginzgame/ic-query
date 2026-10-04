@@ -103,13 +103,22 @@ fn exact_neuron_detail_preserves_native_permission_and_disbursement_evidence() {
 
 #[test]
 fn exact_neuron_detail_rejects_invalid_input_before_source_calls() {
-    let mut request = neuron_request("1");
-    request.neuron_id = "AB".repeat(32);
-
-    assert!(matches!(
-        build_sns_neuron_detail_report_with_source(&request, &NoCallSnsNeuronSource),
-        Err(SnsHostError::InvalidNeuronIdText { neuron_id }) if neuron_id == "AB".repeat(32)
-    ));
+    for invalid in [
+        "AB".repeat(32),
+        "gg".repeat(32),
+        "+a".repeat(32),
+        format!("aé{}", "0".repeat(61)),
+        "00".repeat(31),
+        "00".repeat(33),
+        String::new(),
+    ] {
+        let mut request = neuron_request("1");
+        request.neuron_id = invalid.clone();
+        assert!(matches!(
+            build_sns_neuron_detail_report_with_source(&request, &NoCallSnsNeuronSource),
+            Err(SnsHostError::InvalidNeuronIdText { neuron_id }) if neuron_id == invalid
+        ));
+    }
 }
 
 #[test]
