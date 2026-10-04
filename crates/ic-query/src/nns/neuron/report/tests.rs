@@ -182,6 +182,7 @@ fn public_list_and_info_reports_preserve_governance_rows() {
     .expect("live list report");
 
     assert!(!list.from_cache);
+    assert_eq!(list.cache_path, None);
     assert_eq!(list.next_start_neuron_id, Some(2));
     assert_eq!(
         list.neurons
@@ -201,6 +202,7 @@ fn public_list_and_info_reports_preserve_governance_rows() {
     .expect("live info report");
 
     assert!(!info.from_cache);
+    assert_eq!(info.cache_path, None);
     assert_eq!(info.neuron.neuron_id, 42);
     assert_eq!(
         info.neuron
@@ -350,6 +352,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         .expect("load cached list")
         .expect("complete cache");
     assert!(list.from_cache);
+    assert_eq!(list.cache_path, Some(path.display().to_string()));
     assert_eq!(list.total_neuron_count, Some(3));
     assert!(!list.point_in_time_guaranteed);
     assert_eq!(
@@ -366,6 +369,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         .expect("load cached detail")
         .expect("cached neuron");
     assert!(info.from_cache);
+    assert_eq!(info.cache_path, Some(path.display().to_string()));
     assert_eq!(info.neuron.neuron_id, 2);
 
     let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(

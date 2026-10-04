@@ -89,6 +89,12 @@ stop. Proposal cursors descend; neuron cursors ascend and remain exclusive.
 Neither continuation prescribes a storage or publication format, and
 sequential pages are not point-in-time.
 
+Each advance validates the incoming continuation before a source call, then
+derives the next state from the validated page and checked accounting. It does
+not run restored-state validation again on the state it just constructed.
+Disk snapshots and caller-owned analytics inputs retain independent validation;
+proposal cache rows, like source pages, must have positive, unique ids.
+
 ## CLI Contract
 
 ```bash

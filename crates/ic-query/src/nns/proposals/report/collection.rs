@@ -234,15 +234,13 @@ pub async fn advance_nns_proposal_collection_with_source(
 
     let page_count = u32::try_from(page.proposal_count)
         .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
-    let page_row_count = u64::try_from(page.proposal_count)
-        .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
     let pages_fetched = state
         .pages_fetched
         .checked_add(1)
         .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let proposals_fetched = state
         .proposals_fetched
-        .checked_add(page_row_count)
+        .checked_add(u64::from(page_count))
         .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let next_before_proposal_id = (page_count == state.page_size)
         .then(|| {
@@ -269,7 +267,6 @@ pub async fn advance_nns_proposal_collection_with_source(
         status,
         ..state.clone()
     };
-    validate_collection_state(&next_state)?;
     Ok(NnsProposalCollectionStep {
         page,
         state: next_state,
@@ -342,13 +339,9 @@ pub(super) fn validate_collection_state(
     let page_size = u64::from(state.page_size);
     let pages_fetched = u64::from(state.pages_fetched);
     let proposals_fetched = state.proposals_fetched;
-    let maximum_rows = pages_fetched
-        .checked_mul(page_size)
-        .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
-    let minimum_rows = pages_fetched
-        .saturating_sub(1)
-        .checked_mul(page_size)
-        .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
+    // Both operands originate as u32, so their product fits in u64.
+    let maximum_rows = pages_fetched * page_size;
+    let minimum_rows = pages_fetched.saturating_sub(1) * page_size;
     if proposals_fetched < minimum_rows || proposals_fetched > maximum_rows {
         return Err(invalid(format!(
             "proposals_fetched {} is outside {}..={} for {} pages of size {}",

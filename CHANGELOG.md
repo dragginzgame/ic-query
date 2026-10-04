@@ -9,6 +9,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.13` rejects proposal ID zero in NNS disk snapshots, matching live
+  collection and analytics checks; invalid caches remain visible in local
+  status and list reports. NNS collectors derive their next state from admitted
+  pages without repeating restored-state validation. Neuron reports derive
+  cache origin from their cache path instead of storing a second internal flag.
+  Public Rust APIs, CLI grammar, cache identities, and serialized shapes are
+  unchanged; schemas remain `1`.
+
 - `0.45.12` gives patch/minor/major releases one sequential recipe and CI
   ownership of the target-version changelog check. Release staging follows
   workspace-owned version metadata; publication retains library-first ordering,

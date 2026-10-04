@@ -203,7 +203,6 @@ fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProve
             },
         },
         cache_path: Some(path.display().to_string()),
-        from_cache: true,
     }
 }
 

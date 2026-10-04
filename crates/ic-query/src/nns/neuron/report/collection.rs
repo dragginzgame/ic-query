@@ -257,7 +257,6 @@ pub async fn advance_nns_neuron_collection_with_source(
         status,
         ..state.clone()
     };
-    validate_collection_state(&next_state)?;
     Ok(NnsNeuronCollectionStep {
         page,
         state: next_state,
@@ -330,13 +329,9 @@ pub(super) fn validate_collection_state(
     let page_size = u64::from(state.page_size);
     let pages_fetched = u64::from(state.pages_fetched);
     let neurons_fetched = state.neurons_fetched;
-    let maximum_rows = pages_fetched
-        .checked_mul(page_size)
-        .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
-    let minimum_rows = pages_fetched
-        .saturating_sub(1)
-        .checked_mul(page_size)
-        .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
+    // Both operands originate as u32, so their product fits in u64.
+    let maximum_rows = pages_fetched * page_size;
+    let minimum_rows = pages_fetched.saturating_sub(1) * page_size;
     if neurons_fetched < minimum_rows || neurons_fetched > maximum_rows {
         return Err(invalid(format!(
             "neurons_fetched {} is outside {}..={} for {} pages of size {}",
