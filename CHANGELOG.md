@@ -9,6 +9,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
 
+- `0.46.2` simplifies SNS reward checkpoint completion bookkeeping and removes
+  repeat checks after ending evidence equals validated starting evidence.
+  Strict pagination, full bracket comparisons, completion-time checks, and
+  restored-report validation remain enforced. Proposal text and SNS neuron
+  sorting avoid temporary string keys; neuron value sorts share their ordering
+  rule. Live and restored neuron evidence share permission and pending
+  disbursement checks, with more specific malformed-checkpoint diagnostics.
+  Public Rust APIs, CLI grammar, successful reports, and cache shapes are
+  unchanged; schemas remain `1`.
+
 - `0.46.1` simplifies NNS analytics construction while retaining validation of
   caller-supplied state, rows, and restored reports. Proposal queries and
   refreshes now share one page-size validator and limit, also used by the CLI.

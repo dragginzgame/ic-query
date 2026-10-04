@@ -52,6 +52,7 @@ pub(in crate::sns::report) use neurons::{
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use neurons::{
+    validate_maturity_disbursements, validate_neuron_permissions,
     validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,
 };

@@ -183,9 +183,7 @@ fn validate_stable_brackets(
             return Err(SnsHostError::UnstableRewardCheckpoint { component });
         }
     }
-    validate_parameters(parameters_after)?;
-    validate_sns_reward_event_evidence(event_after).map_err(invalid_checkpoint)?;
-    validate_sns_reward_running_version_evidence(version_after).map_err(invalid_checkpoint)
+    Ok(())
 }
 
 fn validate_parameters(parameters: &SnsGovernanceParameters) -> Result<u64, SnsHostError> {

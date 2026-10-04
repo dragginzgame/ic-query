@@ -5,29 +5,27 @@
 //! Boundary: sorts neuron rows without changing cache identity.
 
 use crate::sns::report::{SnsNeuronRow, SnsNeuronsSort};
-use std::cmp::Reverse;
 
 pub(in crate::sns::report) fn sort_sns_neurons(neurons: &mut [SnsNeuronRow], sort: SnsNeuronsSort) {
     match sort {
         SnsNeuronsSort::Api => {}
         SnsNeuronsSort::Id => neurons.sort_by(|left, right| left.neuron_id.cmp(&right.neuron_id)),
-        SnsNeuronsSort::Stake => neurons.sort_by_key(|neuron| {
-            (
-                Reverse(neuron.cached_neuron_stake_e8s),
-                neuron.neuron_id.clone(),
-            )
-        }),
-        SnsNeuronsSort::Maturity => neurons.sort_by_key(|neuron| {
-            (
-                Reverse(neuron.maturity_e8s_equivalent),
-                neuron.neuron_id.clone(),
-            )
-        }),
-        SnsNeuronsSort::Created => neurons.sort_by_key(|neuron| {
-            (
-                Reverse(neuron.created_timestamp_seconds),
-                neuron.neuron_id.clone(),
-            )
-        }),
+        SnsNeuronsSort::Stake => {
+            sort_by_descending_value(neurons, |neuron| neuron.cached_neuron_stake_e8s);
+        }
+        SnsNeuronsSort::Maturity => {
+            sort_by_descending_value(neurons, |neuron| neuron.maturity_e8s_equivalent);
+        }
+        SnsNeuronsSort::Created => {
+            sort_by_descending_value(neurons, |neuron| neuron.created_timestamp_seconds);
+        }
     }
+}
+
+fn sort_by_descending_value(neurons: &mut [SnsNeuronRow], value: impl Fn(&SnsNeuronRow) -> u64) {
+    neurons.sort_by(|left, right| {
+        value(right)
+            .cmp(&value(left))
+            .then_with(|| left.neuron_id.cmp(&right.neuron_id))
+    });
 }

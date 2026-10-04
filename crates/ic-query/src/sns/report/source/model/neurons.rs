@@ -7,10 +7,13 @@
 use super::validation::SnsSourceValidator;
 use crate::{
     hex::{is_canonical_lowercase_hex, is_lowercase_hex},
-    sns::report::{SnsHostError, SnsNeuronDetail, SnsNeuronRow, sns_neuron_permission_name},
+    sns::report::{
+        SnsHostError, SnsNeuronDetail, SnsNeuronRow,
+        model::{validate_maturity_disbursements, validate_neuron_permissions},
+    },
     subnet_catalog::format_utc_timestamp_secs,
 };
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize};
 use std::collections::HashSet;
 
 const SNS_NEURON_ID_HEX_LENGTH: usize = 64;
@@ -242,67 +245,6 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
     Ok(())
 }
 
-pub(super) fn validate_neuron_permissions(
-    permissions: &[crate::sns::report::SnsNeuronPermissionRow],
-    require_principal: bool,
-) -> Result<(), String> {
-    let mut principals = HashSet::new();
-    for permission in permissions {
-        let principal = match permission.principal.as_deref() {
-            Some(principal) => {
-                validate_canonical_principal_reason(principal, "permission principal")?;
-                if !principals.insert(principal) {
-                    return Err(format!("duplicate permission principal {principal}"));
-                }
-                principal
-            }
-            None if require_principal => {
-                return Err("permission principal is missing".to_string());
-            }
-            None => "missing principal",
-        };
-        let mut codes = HashSet::new();
-        for value in &permission.permission_types {
-            if value.name != sns_neuron_permission_name(value.code) {
-                return Err(format!(
-                    "permission code {} has label {}, expected {}",
-                    value.code,
-                    value.name,
-                    sns_neuron_permission_name(value.code)
-                ));
-            }
-            if !codes.insert(value.code) {
-                return Err(format!(
-                    "{principal} contains duplicate permission code {}",
-                    value.code
-                ));
-            }
-        }
-    }
-    Ok(())
-}
-
-pub(super) fn validate_maturity_disbursements(
-    disbursements: &[crate::sns::report::SnsMaturityDisbursementRow],
-) -> Result<(), String> {
-    for disbursement in disbursements {
-        if let Some(account) = disbursement.account_to_disburse_to.as_ref() {
-            if let Some(owner) = account.owner.as_deref() {
-                validate_canonical_principal_reason(owner, "pending disbursement account owner")?;
-            }
-            if let Some(subaccount) = account.subaccount_hex.as_deref()
-                && (subaccount.len() != SNS_NEURON_ID_HEX_LENGTH || !is_lowercase_hex(subaccount))
-            {
-                return Err(
-                    "pending disbursement subaccount is not 32-byte lowercase hexadecimal text"
-                        .to_string(),
-                );
-            }
-        }
-    }
-    Ok(())
-}
-
 fn validate_followee_ids(neuron_ids: &[String]) -> Result<(), SnsHostError> {
     let mut unique = HashSet::new();
     for neuron_id in neuron_ids {
@@ -323,16 +265,6 @@ pub(super) fn validate_exact_neuron_id(neuron_id: &str, field: &str) -> Result<(
         Err(invalid_neuron_detail(format!(
             "{field} {neuron_id} is not 32-byte lowercase hexadecimal text"
         )))
-    }
-}
-
-fn validate_canonical_principal_reason(value: &str, field: &str) -> Result<(), String> {
-    let principal =
-        Principal::from_text(value).map_err(|err| format!("{field} {value} is invalid: {err}"))?;
-    if principal.to_text() == value {
-        Ok(())
-    } else {
-        Err(format!("{field} {value} is not canonical principal text"))
     }
 }
 

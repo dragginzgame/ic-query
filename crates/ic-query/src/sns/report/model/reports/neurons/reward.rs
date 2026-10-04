@@ -7,7 +7,9 @@
 use super::{
     SnsMaturityDisbursementRow, SnsNeuronPermissionRow,
     detail::{
-        SnsPolicyObservationStatus, neuron_policy_observations, permission_code_policy_observations,
+        SnsPolicyObservationStatus, neuron_policy_observations,
+        permission_code_policy_observations, validate_canonical_principal,
+        validate_maturity_disbursements, validate_neuron_permissions,
     },
 };
 use crate::{
@@ -20,7 +22,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;
 use thiserror::Error as ThisError;
@@ -283,7 +285,7 @@ fn validate_checkpoint_header(
         ("swap_canister_id", report.swap_canister_id.as_str()),
         ("index_canister_id", report.index_canister_id.as_str()),
     ] {
-        validate_principal(field, principal)?;
+        validate_canonical_principal(principal, field).map_err(invalid_validation)?;
     }
     let canister_ids = [
         report.sns_wasm_canister_id.as_str(),
@@ -447,50 +449,10 @@ fn validate_checkpoint_rows(
                 row.neuron_id
             )));
         }
-        validate_checkpoint_row_evidence(row)?;
-    }
-    Ok(())
-}
-
-fn validate_checkpoint_row_evidence(
-    row: &SnsRewardCheckpointRow,
-) -> Result<(), SnsRewardCheckpointValidationError> {
-    let mut principals = HashSet::new();
-    for permission in &row.permissions {
-        if let Some(principal) = permission.principal.as_deref() {
-            validate_principal("permission principal", principal)?;
-            if !principals.insert(principal) {
-                return Err(invalid_validation(format!(
-                    "neuron {} contains duplicate permission principal {principal}",
-                    row.neuron_id
-                )));
-            }
-        }
-        let mut codes = HashSet::new();
-        for value in &permission.permission_types {
-            if value.name != super::sns_neuron_permission_name(value.code)
-                || !codes.insert(value.code)
-            {
-                return Err(invalid_validation(format!(
-                    "neuron {} contains invalid or duplicate permission code {}",
-                    row.neuron_id, value.code
-                )));
-            }
-        }
-    }
-    for disbursement in &row.disburse_maturity_in_progress {
-        if let Some(account) = disbursement.account_to_disburse_to.as_ref() {
-            if let Some(owner) = account.owner.as_deref() {
-                validate_principal("pending disbursement owner", owner)?;
-            }
-            if let Some(subaccount) = account.subaccount_hex.as_deref()
-                && (subaccount.len() != 64 || !is_lowercase_hex(subaccount))
-            {
-                return Err(invalid_validation(
-                    "pending disbursement subaccount is not 32-byte lowercase hexadecimal text",
-                ));
-            }
-        }
+        validate_neuron_permissions(&row.permissions, false)
+            .map_err(|reason| invalid_validation(format!("neuron {}: {reason}", row.neuron_id)))?;
+        validate_maturity_disbursements(&row.disburse_maturity_in_progress)
+            .map_err(invalid_validation)?;
     }
     Ok(())
 }
@@ -635,18 +597,6 @@ pub(in crate::sns::report) fn validate_sns_reward_event_evidence(
         return Err("reward event contains duplicate settled proposal ids".to_string());
     }
     Ok(())
-}
-
-fn validate_principal(field: &str, value: &str) -> Result<(), SnsRewardCheckpointValidationError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid_validation(format!("{field} {value} is invalid: {error}")))?;
-    if principal.to_text() == value {
-        Ok(())
-    } else {
-        Err(invalid_validation(format!(
-            "{field} {value} is not canonical principal text"
-        )))
-    }
 }
 
 fn invalid_validation(reason: impl Into<String>) -> SnsRewardCheckpointValidationError {

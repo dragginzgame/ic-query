@@ -303,16 +303,24 @@ fn sns_name_sort_preserves_stable_id_tiebreaker() {
 }
 
 #[test]
-fn neuron_stake_sort_orders_highest_stake_first_with_id_tiebreaker() {
-    let mut neurons = vec![
+fn neuron_sorts_preserve_direction_and_ascending_id_tiebreakers() {
+    let neurons = vec![
         neuron_row("bb", 10, 1, 1),
         neuron_row("aa", 10, 2, 2),
         neuron_row("cc", 20, 1, 3),
+        neuron_row("dd", 0, 0, 2),
     ];
-
-    sort_sns_neurons(&mut neurons, SnsNeuronsSort::Stake);
-
-    assert_eq!(neuron_ids(&neurons), vec!["cc", "aa", "bb"]);
+    for (sort, expected) in [
+        (SnsNeuronsSort::Api, vec!["bb", "aa", "cc", "dd"]),
+        (SnsNeuronsSort::Id, vec!["aa", "bb", "cc", "dd"]),
+        (SnsNeuronsSort::Stake, vec!["cc", "aa", "bb", "dd"]),
+        (SnsNeuronsSort::Maturity, vec!["aa", "bb", "cc", "dd"]),
+        (SnsNeuronsSort::Created, vec!["cc", "aa", "dd", "bb"]),
+    ] {
+        let mut sorted = neurons.clone();
+        sort_sns_neurons(&mut sorted, sort);
+        assert_eq!(neuron_ids(&sorted), expected);
+    }
 }
 
 #[test]

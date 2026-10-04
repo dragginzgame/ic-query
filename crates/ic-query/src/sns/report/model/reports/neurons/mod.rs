@@ -18,6 +18,10 @@ pub use detail::{
     SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow, SnsNeuronPermissionValue,
     SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus, sns_neuron_permission_name,
 };
+#[cfg(feature = "sns-host")]
+pub(in crate::sns::report) use detail::{
+    validate_maturity_disbursements, validate_neuron_permissions,
+};
 pub use diff::{
     SnsRewardAllocationStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
     SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow,

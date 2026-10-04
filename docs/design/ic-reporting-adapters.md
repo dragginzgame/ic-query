@@ -351,6 +351,17 @@ assurance.
 - SNS reward checkpoint reporting strictly exhausts ordered native neuron
   pages beneath the Governance parameter ceiling and brackets the walk with
   complete parameters, latest reward event, and running version responses.
+  The collector derives exhaustion from an admitted page count and absence of
+  a next cursor, so initial and exhausted empty collections remain distinct
+  without storing a second completion flag. Starting bracket evidence is
+  validated before the walk; ending evidence must equal it in full. Final
+  checkpoint validation retains the checks against collection completion
+  time, and restored reports are independently validated.
+  The portable neuron model owns permission and pending-disbursement checks
+  shared by source admission and restored checkpoints. Exact detail still
+  requires permission principals; checkpoints preserve missing principals and
+  unknown codes as unassessable evidence. Each trust boundary runs those rules
+  independently.
   Local diff projection treats checkpoints as untrusted, recomputes their raw
   policy and maturity evidence, and reports an allocation only after exact
   immediate-event reconciliation.

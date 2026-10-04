@@ -4,11 +4,11 @@
 //! Does not own: live transport, checkpoint assembly, or text rendering.
 //! Boundary: rejects non-canonical rows, pagination overlap, cursor drift, and post-exhaustion rows.
 
-use super::neurons::{validate_maturity_disbursements, validate_neuron_permissions};
 use crate::{
     hex::{hex_bytes, is_lowercase_hex},
     sns::report::{
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsHostError, SnsNeuronId, SnsRewardCheckpointRow,
+        model::{validate_maturity_disbursements, validate_neuron_permissions},
     },
 };
 
@@ -39,7 +39,6 @@ pub(in crate::sns::report) struct SnsRewardCollectionState {
     rows: Vec<SnsRewardCheckpointRow>,
     page_count: u32,
     next_cursor: Option<SnsNeuronId>,
-    exhausted: bool,
 }
 
 impl SnsRewardCollectionState {
@@ -48,7 +47,6 @@ impl SnsRewardCollectionState {
             rows: Vec::new(),
             page_count: 0,
             next_cursor: None,
-            exhausted: false,
         }
     }
 
@@ -65,14 +63,14 @@ impl SnsRewardCollectionState {
     }
 
     pub(in crate::sns::report) const fn exhausted(&self) -> bool {
-        self.exhausted
+        self.page_count > 0 && self.next_cursor.is_none()
     }
 
     pub(in crate::sns::report) fn ingest_page(
         &mut self,
         page: MainnetSnsRewardNeuronPage,
     ) -> Result<(), SnsHostError> {
-        if self.exhausted {
+        if self.exhausted() {
             return Err(invalid("source offered rows after reported API exhaustion"));
         }
         validate_mainnet_sns_reward_neuron_page(&page)?;
@@ -92,7 +90,6 @@ impl SnsRewardCollectionState {
                 })?;
         self.rows.extend(page.neurons);
         self.next_cursor = page.next_cursor;
-        self.exhausted = self.next_cursor.is_none();
         Ok(())
     }
 

@@ -1,4 +1,114 @@
+use crate::sns::report::source::validate_mainnet_sns_neuron;
 use crate::sns::report::tests::{fixtures::*, *};
+
+#[test]
+fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
+    let mut row = fixture_reward_row(1);
+    row.disburse_maturity_in_progress = fixture_sns_neuron().detail.disburse_maturity_in_progress;
+    let (mint, staking) = row.derived_policy_observations();
+    row.maturity_mint_conversion_observed_disabled = mint;
+    row.manual_maturity_staking_observed_disabled = staking;
+    let valid = build_sns_reward_checkpoint_report_with_source(
+        &reward_checkpoint_request("1"),
+        &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
+    )
+    .expect("valid variable evidence");
+    let mutations: [fn(&mut SnsRewardCheckpointRow); 8] = [
+        |row| row.permissions[0].principal = Some("invalid".to_string()),
+        |row| row.permissions[0].principal = Some(ROOT_A.to_uppercase()),
+        |row| row.permissions.push(row.permissions[0].clone()),
+        |row| {
+            let permission = row.permissions[0].permission_types[0].clone();
+            row.permissions[0].permission_types.push(permission);
+        },
+        |row| row.permissions[0].permission_types[0].name = "incorrect".to_string(),
+        |row| {
+            row.disburse_maturity_in_progress[0]
+                .account_to_disburse_to
+                .as_mut()
+                .unwrap()
+                .owner = Some("invalid".to_string());
+        },
+        |row| {
+            row.disburse_maturity_in_progress[0]
+                .account_to_disburse_to
+                .as_mut()
+                .unwrap()
+                .subaccount_hex = Some("AB".repeat(32));
+        },
+        |row| {
+            row.disburse_maturity_in_progress[0]
+                .account_to_disburse_to
+                .as_mut()
+                .unwrap()
+                .subaccount_hex = Some("ab".to_string());
+        },
+    ];
+    for mutate in mutations {
+        let mut restored = valid.clone();
+        mutate(&mut restored.rows[0]);
+        assert!(validate_sns_reward_checkpoint_report(&restored).is_err());
+        assert!(matches!(
+            validate_mainnet_sns_reward_neuron_page(&fixture_reward_page(
+                restored.rows.clone(),
+                None,
+            )),
+            Err(SnsHostError::InvalidSourceData {
+                capability: "SNS reward checkpoint",
+                ..
+            })
+        ));
+        let row = &restored.rows[0];
+        let mut neuron = fixture_sns_neuron();
+        neuron.detail.permissions = row.permissions.clone();
+        neuron.detail.disburse_maturity_in_progress = row.disburse_maturity_in_progress.clone();
+        let (mint, staking) = neuron.detail.derived_policy_observations();
+        neuron.detail.maturity_mint_conversion_observed_disabled = mint;
+        neuron.detail.manual_maturity_staking_observed_disabled = staking;
+        assert!(matches!(
+            validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id),
+            Err(SnsHostError::InvalidSourceData {
+                capability: "SNS neuron detail",
+                ..
+            })
+        ));
+    }
+}
+
+#[test]
+fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_principals() {
+    let mut row = fixture_reward_row(1);
+    row.permissions[0].permission_types = [0, 11, -1]
+        .map(SnsNeuronPermissionValue::from_code)
+        .to_vec();
+    row.permissions[0].principal = None;
+    let (mint, staking) = row.derived_policy_observations();
+    row.maturity_mint_conversion_observed_disabled = mint;
+    row.manual_maturity_staking_observed_disabled = staking;
+    let report = build_sns_reward_checkpoint_report_with_source(
+        &reward_checkpoint_request("1"),
+        &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
+    )
+    .expect("checkpoint preserves incomplete and unknown evidence");
+    validate_sns_reward_checkpoint_report(&report).expect("restored evidence remains valid");
+    assert_eq!(
+        report.maturity_conversion_policy_observed_status,
+        SnsPolicyObservationStatus::Unassessable,
+    );
+    let mut neuron = fixture_sns_neuron();
+    neuron.detail.permissions = report.rows[0].permissions.clone();
+    assert!(matches!(
+        validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id),
+        Err(SnsHostError::InvalidSourceData { reason, .. })
+            if reason.contains("principal is missing")
+    ));
+    neuron.detail.permissions[0].principal = Some(ROOT_A.to_string());
+    let (mint, staking) = neuron.detail.derived_policy_observations();
+    neuron.detail.maturity_mint_conversion_observed_disabled = mint;
+    neuron.detail.manual_maturity_staking_observed_disabled = staking;
+    validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id)
+        .expect("detail preserves unknown permission codes with canonical labels");
+}
 
 #[test]
 fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order() {
@@ -121,9 +231,11 @@ fn reward_checkpoint_rejects_overlap_and_noncanonical_cursor_evidence() {
     let mut full_rows = (1..=100).map(fixture_reward_row).collect::<Vec<_>>();
     let final_cursor = SnsNeuronId { id: vec![100; 32] };
     let mut state = SnsRewardCollectionState::new();
+    assert!(!state.exhausted());
     state
         .ingest_page(fixture_reward_page(full_rows.clone(), Some(final_cursor)))
         .expect("first full page");
+    assert!(!state.exhausted());
     assert!(matches!(
         state.ingest_page(fixture_reward_page(
             vec![fixture_reward_row(100)],
@@ -134,6 +246,20 @@ fn reward_checkpoint_rejects_overlap_and_noncanonical_cursor_evidence() {
             reason,
         }) if reason.contains("does not increase")
     ));
+    assert_eq!(state.page_count(), 1);
+    assert_eq!(state.row_count(), 100);
+    assert_eq!(
+        state.next_cursor().expect("full-page cursor").id,
+        vec![100; 32]
+    );
+    assert!(!state.exhausted());
+    state
+        .ingest_page(fixture_reward_page(Vec::new(), None))
+        .expect("empty terminal page after a rejected page");
+    assert_eq!(state.page_count(), 2);
+    assert_eq!(state.row_count(), 100);
+    assert!(state.next_cursor().is_none());
+    assert!(state.exhausted());
 
     let short_with_cursor = fixture_reward_page(
         vec![fixture_reward_row(1)],
@@ -202,16 +328,23 @@ fn reward_checkpoint_enforces_parameter_derived_collection_ceiling() {
 
 #[test]
 fn reward_checkpoint_collection_rejects_rows_after_exhaustion() {
-    let mut state = SnsRewardCollectionState::new();
-    state
-        .ingest_page(fixture_reward_page(vec![fixture_reward_row(1)], None))
-        .expect("short page exhausts the API");
-
-    assert!(matches!(
-        state.ingest_page(fixture_reward_page(Vec::new(), None)),
-        Err(SnsHostError::InvalidSourceData { reason, .. })
-            if reason.contains("after reported API exhaustion")
-    ));
+    for rows in [Vec::new(), vec![fixture_reward_row(1)]] {
+        let row_count = rows.len();
+        let mut state = SnsRewardCollectionState::new();
+        assert!(!state.exhausted());
+        state
+            .ingest_page(fixture_reward_page(rows, None))
+            .expect("short or empty first page exhausts the API");
+        assert!(state.exhausted());
+        assert!(matches!(
+            state.ingest_page(fixture_reward_page(Vec::new(), None)),
+            Err(SnsHostError::InvalidSourceData { reason, .. })
+                if reason.contains("after reported API exhaustion")
+        ));
+        assert_eq!(state.page_count(), 1);
+        assert_eq!(state.row_count(), row_count);
+        assert!(state.exhausted());
+    }
 }
 
 #[test]

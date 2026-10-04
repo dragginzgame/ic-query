@@ -20,11 +20,15 @@ pub fn compare_optional_ascii_case_insensitive_text(
 }
 
 pub fn compare_ascii_case_insensitive_text(left: &str, right: &str, descending: bool) -> Ordering {
-    compare_ord(
-        left.to_ascii_lowercase(),
-        right.to_ascii_lowercase(),
-        descending,
-    )
+    let ordering = left
+        .bytes()
+        .map(|byte| byte.to_ascii_lowercase())
+        .cmp(right.bytes().map(|byte| byte.to_ascii_lowercase()));
+    if descending {
+        ordering.reverse()
+    } else {
+        ordering
+    }
 }
 
 pub fn compare_optional_ord<T>(left: Option<T>, right: Option<T>, descending: bool) -> Ordering
@@ -47,5 +51,43 @@ where
         right.cmp(&left)
     } else {
         left.cmp(&right)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_ordering_folds_ascii_and_preserves_other_bytes() {
+        for (left, right, expected) in [
+            ("Alpha", "aLPHA", Ordering::Equal),
+            ("", "a", Ordering::Less),
+            ("A", "aa", Ordering::Less),
+            ("beta", "Alpha", Ordering::Greater),
+            ("_", "A", Ordering::Less),
+            ("Ä", "ä", Ordering::Less),
+            ("ÉA", "Éa", Ordering::Equal),
+            ("z", "é", Ordering::Less),
+        ] {
+            assert_eq!(
+                compare_ascii_case_insensitive_text(left, right, false),
+                expected
+            );
+            assert_eq!(
+                compare_ascii_case_insensitive_text(left, right, true),
+                expected.reverse()
+            );
+        }
+        for descending in [false, true] {
+            assert_eq!(
+                compare_optional_ascii_case_insensitive_text(Some("a"), None, descending),
+                Ordering::Less
+            );
+            assert_eq!(
+                compare_optional_ascii_case_insensitive_text(None, Some("a"), descending),
+                Ordering::Greater
+            );
+        }
     }
 }
