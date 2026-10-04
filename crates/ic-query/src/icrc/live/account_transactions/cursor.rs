@@ -1,10 +1,13 @@
 //! Module: icrc::live::account_transactions::cursor
 //!
-//! Responsibility: validate and compare arbitrary-size account-transaction cursors.
+//! Responsibility: validate account-history pages and arbitrary-size transaction cursors.
 //! Does not own: collection state, index wire decoding, transport, or reports.
 //! Boundary: keeps public cursor normalization and snapshot ordering on canonical decimal text.
 
-use crate::icrc::model::{IcrcAccountTransactionError, IcrcAccountTransactionRow};
+use crate::icrc::{
+    ledger::nat_text,
+    model::{IcrcAccountTransactionError, IcrcAccountTransactionRow},
+};
 use candid::Nat;
 use std::{cmp::Ordering, str::FromStr};
 
@@ -36,6 +39,56 @@ pub(in crate::icrc) fn validate_canonical_account_transactions(
     Ok(())
 }
 
+/// Validate page metadata and rows before reporting or ingesting an index page.
+/// The requested start is already canonical from request normalization or an accepted page.
+pub(in crate::icrc) fn validate_account_transaction_page(
+    transactions: &[IcrcAccountTransactionRow],
+    requested_start: Option<&str>,
+    oldest_transaction_id: Option<&str>,
+    next_start: Option<&str>,
+) -> Result<(), IcrcAccountTransactionError> {
+    for (value, field) in [
+        (next_start, "next_start"),
+        (oldest_transaction_id, "oldest_transaction_id"),
+    ] {
+        if let Some(value) = value {
+            validate_transaction_cursor_text(value)?;
+            if value.len() > 1 && value.starts_with('0') {
+                return Err(IcrcAccountTransactionError::InvalidPage {
+                    reason: format!("{field} {value:?} is not canonical unsigned decimal text"),
+                });
+            }
+        }
+    }
+    validate_canonical_account_transactions(transactions)
+        .map_err(|reason| IcrcAccountTransactionError::InvalidPage { reason })?;
+    if next_start
+        != transactions
+            .last()
+            .map(|transaction| transaction.id.as_str())
+    {
+        return Err(IcrcAccountTransactionError::InvalidPage {
+            reason: "next cursor does not match the oldest returned transaction".to_string(),
+        });
+    }
+    if let Some(first) = transactions.first()
+        && requested_start.is_some_and(|start| compare_canonical_decimal(&first.id, start).is_ge())
+    {
+        return Err(IcrcAccountTransactionError::InvalidPage {
+            reason: "transaction is not below the exclusive requested cursor".to_string(),
+        });
+    }
+    if let Some(last) = transactions.last()
+        && oldest_transaction_id
+            .is_some_and(|oldest| compare_canonical_decimal(&last.id, oldest).is_lt())
+    {
+        return Err(IcrcAccountTransactionError::InvalidPage {
+            reason: "transaction is below the index's oldest transaction id".to_string(),
+        });
+    }
+    Ok(())
+}
+
 pub(super) fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTransactionError> {
     validate_transaction_cursor_text(value)?;
     Nat::from_str(value).map_err(|error| IcrcAccountTransactionError::InvalidCursor {
@@ -54,10 +107,6 @@ fn validate_transaction_cursor_text(value: &str) -> Result<(), IcrcAccountTransa
     Ok(())
 }
 
-pub(super) fn nat_text(value: &Nat) -> String {
-    value.0.to_str_radix(10)
-}
-
 pub(super) fn compare_canonical_decimal(left: &str, right: &str) -> Ordering {
     left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
@@ -65,11 +114,6 @@ pub(super) fn compare_canonical_decimal(left: &str, right: &str) -> Ordering {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn nat_text_is_plain_decimal_for_reusable_pagination_cursors() {
-        assert_eq!(nat_text(&Nat::from(779_513_u64)), "779513");
-    }
 
     #[test]
     fn account_transaction_cursor_accepts_nat_beyond_u64_and_canonicalizes_zeroes() {

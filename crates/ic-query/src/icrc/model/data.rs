@@ -139,6 +139,8 @@ pub struct IcrcIndexData {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTransactionsData {
+    /// Total number of blocks as a decimal natural, or unknown for custom sources.
+    /// Returned blocks and archive ranges must stay below this length when known.
     pub log_length: Option<String>,
     pub blocks: Vec<IcrcTransactionBlockRow>,
     pub archived_blocks: Vec<IcrcArchivedBlocksRow>,

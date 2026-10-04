@@ -876,6 +876,49 @@ fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     ));
 }
 
+#[test]
+fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
+    let request = IcrcAccountTransactionPageRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+        ACCOUNT_OWNER,
+        2,
+    )
+    .with_start("42");
+    for (id, oldest) in [("42", "7"), ("43", "7"), ("6", "7")] {
+        let mut page = fixture_account_transaction_page();
+        page.transactions[0].id = id.into();
+        page.next_start = Some(id.into());
+        page.oldest_transaction_id = Some(oldest.into());
+        assert!(matches!(
+            build_icrc_account_transaction_page_report_with_source(
+                &request,
+                &AccountTransactionsDataSource(page),
+            ),
+            Err(IcrcAccountTransactionError::InvalidPage { .. })
+        ));
+    }
+    for id in ["41", "7"] {
+        let mut page = fixture_account_transaction_page();
+        page.transactions[0].id = id.into();
+        page.next_start = Some(id.into());
+        build_icrc_account_transaction_page_report_with_source(
+            &request,
+            &AccountTransactionsDataSource(page),
+        )
+        .expect("valid sparse row below cursor and at or above oldest id");
+    }
+    let mut empty = fixture_account_transaction_page();
+    empty.transactions.clear();
+    empty.next_start = None;
+    build_icrc_account_transaction_page_report_with_source(
+        &request.with_start("0"),
+        &AccountTransactionsDataSource(empty),
+    )
+    .expect("valid empty page below oldest id");
+}
+
 struct TransactionsDataSource(IcrcTransactionsData);
 
 impl IcrcTransactionsSource for TransactionsDataSource {
@@ -898,7 +941,7 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
         follow_archives: true,
     };
     let original = FixtureIcrcSource.fetch_transactions(&request).unwrap();
-    for case in 0..6 {
+    for case in 0..9 {
         let mut data = original.clone();
         match case {
             0 => data.archived_blocks[0].ranges[0].start = "99".into(),
@@ -909,6 +952,9 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
                 .push(data.followed_archive_blocks[0].clone()),
             4 => data.archive_follow_errors[0].ranges[0].length = "2".into(),
             5 => data.archived_blocks[0].ranges[0].length = "0".into(),
+            6 => data.log_length = Some("100".into()),
+            7 => data.log_length = Some("102".into()),
+            8 => data.log_length = Some("not-decimal".into()),
             _ => unreachable!(),
         }
         assert!(matches!(
@@ -916,6 +962,20 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
             Err(IcrcError::InvalidTransactionPage { .. })
         ));
     }
+    for length in [Some("103".into()), None] {
+        let mut data = original.clone();
+        data.log_length = length;
+        build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(data))
+            .expect("valid page ending at the log length or with unknown length");
+    }
+    let mut empty = original.clone();
+    empty.log_length = Some("0".into());
+    empty.blocks.clear();
+    empty.archived_blocks.clear();
+    empty.followed_archive_blocks.clear();
+    empty.archive_follow_errors.clear();
+    build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(empty))
+        .expect("empty page past the end of the log");
     let request = IcrcTransactionsRequest {
         follow_archives: false,
         ..request

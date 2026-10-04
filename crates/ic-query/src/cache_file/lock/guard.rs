@@ -29,17 +29,20 @@ impl fmt::Debug for RefreshLockGuard {
 }
 
 impl RefreshLockGuard {
-    pub(super) fn new(path: ConfinedManagedPath) -> Result<Self, CacheFileError> {
-        Self::new_with_sync(path, ConfinedManagedPath::sync_parent)
+    pub(super) const fn new(path: ConfinedManagedPath) -> Self {
+        Self { path, active: true }
     }
 
-    fn new_with_sync(
-        path: ConfinedManagedPath,
+    pub(super) fn sync_acquisition(self) -> Result<Self, CacheFileError> {
+        self.sync_acquisition_with(ConfinedManagedPath::sync_parent)
+    }
+
+    fn sync_acquisition_with(
+        self,
         sync: impl FnOnce(&ConfinedManagedPath) -> Result<(), CacheFileError>,
     ) -> Result<Self, CacheFileError> {
-        let guard = Self { path, active: true };
-        sync(&guard.path)?;
-        Ok(guard)
+        sync(&self.path)?;
+        Ok(self)
     }
 
     pub(super) fn release(self) -> Result<(), CacheFileError> {
@@ -86,6 +89,7 @@ mod tests {
         let managed = root.resolve_parent(&path, true).unwrap().unwrap();
         fs::write(&path, b"original").unwrap();
         let error = RefreshLockGuard::new(managed)
+            .sync_acquisition()
             .expect("sync acquired lock")
             .release_with_sync(|_| {
                 fs::write(&path, b"replacement").unwrap();
@@ -107,13 +111,14 @@ mod tests {
         let path = root_path.join("refresh.lock");
         let managed = root.resolve_parent(&path, true).unwrap().unwrap();
         fs::write(&path, b"original").unwrap();
-        let error = RefreshLockGuard::new_with_sync(managed, |_| {
-            Err(CacheFileError::SyncDirectory {
-                path: root_path.clone(),
-                source: io::Error::other("injected acquisition sync failure"),
+        let error = RefreshLockGuard::new(managed)
+            .sync_acquisition_with(|_| {
+                Err(CacheFileError::SyncDirectory {
+                    path: root_path.clone(),
+                    source: io::Error::other("injected acquisition sync failure"),
+                })
             })
-        })
-        .expect_err("failed acquisition sync");
+            .expect_err("failed acquisition sync");
         assert!(matches!(error, CacheFileError::SyncDirectory { .. }));
         assert!(!path.exists());
         fs::remove_dir_all(root_path).unwrap();

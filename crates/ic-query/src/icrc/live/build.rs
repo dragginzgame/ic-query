@@ -14,7 +14,7 @@ use super::{
     IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
     IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
     LiveIcrcSource,
-    account_transactions::{normalize_transaction_cursor, validate_canonical_account_transactions},
+    account_transactions::{normalize_transaction_cursor, validate_account_transaction_page},
 };
 use crate::{
     icrc::{
@@ -220,22 +220,12 @@ pub fn build_icrc_account_transaction_page_report_with_source(
             ),
         });
     }
-    let next_start = validate_source_cursor(transactions.next_start.as_deref(), "next_start")?;
-    let oldest_transaction_id = validate_source_cursor(
+    validate_account_transaction_page(
+        &transactions.transactions,
+        request.start.as_deref(),
         transactions.oldest_transaction_id.as_deref(),
-        "oldest_transaction_id",
+        transactions.next_start.as_deref(),
     )?;
-    validate_canonical_account_transactions(&transactions.transactions)
-        .map_err(|reason| IcrcAccountTransactionError::InvalidPage { reason })?;
-    let expected_next_start = transactions
-        .transactions
-        .last()
-        .map(|transaction| transaction.id.as_str());
-    if next_start.as_deref() != expected_next_start {
-        return Err(IcrcAccountTransactionError::InvalidPage {
-            reason: "next cursor does not match the oldest returned transaction".to_string(),
-        });
-    }
     Ok(IcrcAccountTransactionPageReport {
         schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
@@ -244,8 +234,8 @@ pub fn build_icrc_account_transaction_page_report_with_source(
         subaccount_hex: request.subaccount_hex,
         requested_start: request.start,
         requested_limit: request.limit,
-        next_start,
-        oldest_transaction_id,
+        next_start: transactions.next_start,
+        oldest_transaction_id: transactions.oldest_transaction_id,
         balance: transactions.balance,
         token_symbol: transactions.token_symbol,
         decimals: transactions.decimals,
@@ -254,23 +244,6 @@ pub fn build_icrc_account_transaction_page_report_with_source(
         fetched_by: ICRC_FETCHED_BY.to_string(),
         transactions: transactions.transactions,
     })
-}
-
-fn validate_source_cursor(
-    value: Option<&str>,
-    field: &'static str,
-) -> Result<Option<String>, IcrcAccountTransactionError> {
-    value
-        .map(|value| {
-            let normalized = normalize_transaction_cursor(value)?;
-            if normalized != value {
-                return Err(IcrcAccountTransactionError::InvalidPage {
-                    reason: format!("{field} {value:?} is not canonical unsigned decimal text"),
-                });
-            }
-            Ok(normalized)
-        })
-        .transpose()
 }
 
 pub fn build_icrc_index_report_with_source(

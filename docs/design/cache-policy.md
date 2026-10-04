@@ -204,9 +204,10 @@ time, and the stale threshold chosen by the refresh that created them. A
 competing refresh honors that recorded threshold, so one caller cannot
 reclassify another caller's active lock by supplying a shorter policy.
 
-An acquiring refresh owns its lock before syncing the parent directory, so a
-sync failure drops that ownership and attempts to remove the newly created
-lock. This does not authorize removal of another refresh's lock.
+The refresh guard owns its lock immediately after exclusive creation. Writing
+and syncing the lock file precede syncing the parent directory; failure at
+either stage drops the guard and attempts to remove the newly created lock.
+This does not authorize removal of another refresh's lock.
 
 Existing refresh locks are never removed automatically. Parsed locks older
 than their recorded stale threshold are reported explicitly as stale; malformed or
@@ -529,3 +530,13 @@ subaccount form cache identity, while page size, cursor, list limit, and sort
 do not. Failed refresh-attempt evidence retains the resolved index canister
 when discovery or collection reached one, plus the latest page, row, and
 cursor progress. It never publishes partial rows.
+
+Single-page ICRC account reports and native complete collections share page
+validation. Rows are canonical newest-first ids below the exclusive requested
+cursor and at or above any supplied oldest id; the next cursor equals the final
+row. A rejected page leaves accepted rows, balance, page counts, and cursor
+unchanged. Ordered pages and exclusive boundaries establish global uniqueness
+and order during collection, so finalization does not sort or deduplicate again.
+Disk loads and caller-supplied complete collections retain their own boundary
+validation. Sparse ids, arbitrary-size naturals, and empty terminal pages remain
+supported; exhaustion still does not establish a point-in-time snapshot.

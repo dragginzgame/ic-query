@@ -9,6 +9,17 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.10` fixes live ICRC history failures caused by grouped Candid numbers
+  and emits plain decimal strings for ICRC balances, allowances, token metadata,
+  block histories, and archive ranges, including SNS token metadata. Validates
+  blocks and archive ranges against the reported log length while preserving
+  valid empty pages and unknown custom-source lengths. Refresh locks use one
+  cleanup owner through creation, writing, and sync. Account-history pages
+  share cursor and ordering validation, reject invalid pages before updating
+  collection progress, and no longer need final sorting/deduplication.
+  Corrects cache permission guidance for supported `0755`/`0644` paths. Public
+  Rust APIs, CLI grammar, and serialized shapes are unchanged; schemas remain `1`.
+
 - `0.45.9` bounds ICRC archive following to the requested page, 100 callbacks,
   and a 64 MiB Candid decoding budget, rejecting invalid or duplicate block
   identities. Cache publication, including Subnet Catalog, enforces its readers'

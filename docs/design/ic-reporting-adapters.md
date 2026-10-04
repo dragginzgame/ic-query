@@ -131,6 +131,20 @@ ceiling through `ic-agent` itself. Registry, NNS, SNS, ICRC, and CMC adapters
 therefore share the same finite per-call transport policy without merging
 their report-specific paging, cache, provenance, or validation contracts.
 
+ICRC-3 history validates resident blocks and archive ranges together: coverage
+must be disjoint, stay inside the requested page, and end no later than the
+returned `log_length`. The [ICRC-3 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#icrc3_get_blocks)
+defines that field as the total number of blocks. The live adapter validates
+before following callbacks; custom-source report construction applies the same
+range validator and checks the length when supplied. Empty pages beyond the
+log end and custom sources with unknown length remain valid.
+
+Raw ICRC numbers use plain base-10 strings, preserving arbitrary precision
+and signed integer values. The shared ledger `nat_text` helper owns conversion
+for account-history cursors, ledger reports, and SNS token metadata. Candid's
+human-facing `Display` adds underscore grouping and is unsuitable for these
+raw fields or the history validator's decimal inputs.
+
 ### Candid subtype performance follow-up: 2026-10-03
 
 [Candid #603](https://github.com/dfinity/candid/issues/603) remains open for

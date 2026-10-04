@@ -687,7 +687,8 @@ icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 Transaction queries can follow ledger-supplied archive callbacks explicitly.
 Following uses each supplied callback method name with the ICRC-3 argument
 and result contract; callbacks execute as queries. Ledger blocks and archive
-ranges must fit the requested page without overlapping. Following is one hop,
+ranges must fit the requested page and reported log length without overlapping.
+Following is one hop,
 with at most 100 callbacks and 64 MiB of cumulative Candid replies admitted
 for decoding; an over-budget reply is discarded before decoding. Each replica
 response retains its existing 8 MiB transport cap. Archive replies
@@ -719,6 +720,11 @@ icq icrc account transaction cache status \
 index, verifies its ledger identity, exhausts pagination, and atomically
 publishes a complete endpoint/ledger/account snapshot. `list` and
 `cache status` are local-only.
+Both live operations require canonical newest-first transaction ids below the
+exclusive requested cursor and at or above the index's oldest known id. Invalid
+pages fail without changing accepted refresh progress or the complete snapshot.
+Sparse ids, arbitrary-size ids, and valid empty pages remain supported. Raw
+ICRC numeric fields use plain decimal strings without display separators.
 
 The ICP ledger does not export ICRC-106 index discovery. Supply its official
 index explicitly when querying ICP account history:
@@ -742,16 +748,16 @@ Empty values are ignored. A relative `ICQ_CACHE_ROOT` is an error; a relative
 It never discovers or migrates repository-local `.icq` directories.
 
 Managed cache IO is capability-rooted beneath the selected cache root. On Unix,
-every traversed managed directory must deny group and other access, and every
-managed cache or lock file must be a regular `0600` file. New directories use
-`0700`; new files use `0600`. Symlinks, path escapes, nonregular files, and
-unsafe modes fail as storage-authority errors and do not trigger automatic
+managed directories and files must deny group and other write access. Readable
+directories such as `0755` and regular files such as `0644` are supported without
+permission repair. New directories use `0700`; new files use `0600`.
+Symlinks, path escapes, nonregular files, and unsafe modes fail as
+storage-authority errors and do not trigger automatic
 invalid-content repair. Explicit output paths supplied by a caller are not
 managed cache paths, but a refresh export must not alias its managed snapshot
 or refresh lock, even during a dry run. Subnet Catalog exports also protect
-Registry history and its writer lock. There is no compatibility migration for
-permissive cache trees created before `0.29.1`; remove the old tree or secure
-its directories and files before using it.
+Registry history and its writer lock. Group/world-writable paths remain errors
+and require explicit operator correction.
 
 `icq cache status` inventories known complete snapshots across this root. Each
 row keeps generic header integrity, age state, file size, applicable stale

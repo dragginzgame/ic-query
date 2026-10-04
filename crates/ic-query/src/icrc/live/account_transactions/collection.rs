@@ -4,9 +4,7 @@
 //! Does not own: index discovery, wire decoding, live transport, caching, or reports.
 //! Boundary: accepts normalized index pages and emits only complete canonical collections.
 
-use super::cursor::{
-    compare_canonical_decimal, nat_text, normalize_transaction_cursor, parse_transaction_cursor,
-};
+use super::cursor::validate_account_transaction_page;
 use crate::{
     QueryProgress, QueryProgressEvent, QueryProgressState,
     icrc::model::{
@@ -74,52 +72,30 @@ impl AccountTransactionCollectionState {
                 "index returned {page_len} transactions for page size {page_size}"
             )));
         }
-        if self.balance.is_none() {
-            self.balance = Some(page.balance);
-            self.oldest_transaction_id = page.oldest_transaction_id.clone();
-        } else if self.oldest_transaction_id != page.oldest_transaction_id {
+        validate_account_transaction_page(
+            &page.transactions,
+            self.next_cursor.as_deref(),
+            page.oldest_transaction_id.as_deref(),
+            page.next_start.as_deref(),
+        )
+        .map_err(|error| self.incomplete(error.to_string()))?;
+        if self.balance.is_some() && self.oldest_transaction_id != page.oldest_transaction_id {
             return Err(self.incomplete("index oldest transaction id changed during collection"));
         }
-        if page_len > 0 && self.oldest_transaction_id.is_none() {
+        if page_len > 0 && page.oldest_transaction_id.is_none() {
             return Err(
                 self.incomplete("index returned transactions without an oldest transaction id")
             );
         }
 
-        for transaction in page.transactions {
-            let normalized = normalize_transaction_cursor(&transaction.id)
-                .map_err(|error| self.incomplete(error.to_string()))?;
-            if normalized != transaction.id {
-                return Err(self.incomplete("index returned a non-canonical transaction id"));
-            }
-            self.transactions.push(transaction);
+        if self.balance.is_none() {
+            self.balance = Some(page.balance);
+            self.oldest_transaction_id = page.oldest_transaction_id;
         }
+        self.transactions.extend(page.transactions);
         self.page_count = self.page_count.saturating_add(1);
-
-        if let Some(next_cursor) = page.next_start.as_deref() {
-            let next = parse_transaction_cursor(next_cursor)
-                .map_err(|error| self.incomplete(error.to_string()))?;
-            if nat_text(&next) != next_cursor {
-                return Err(self.incomplete("index returned a non-canonical transaction cursor"));
-            }
-            if let Some(previous_cursor) = self.next_cursor.as_deref()
-                && next
-                    >= parse_transaction_cursor(previous_cursor)
-                        .map_err(|error| self.incomplete(error.to_string()))?
-            {
-                return Err(self.incomplete("index cursor did not move toward older transactions"));
-            }
-        }
         self.next_cursor = page.next_start;
-
-        let exhausted =
-            self.next_cursor.is_none() || self.next_cursor == self.oldest_transaction_id;
-        if !exhausted && page_len == 0 {
-            return Err(
-                self.incomplete("index returned no transactions while advertising another cursor")
-            );
-        }
-        Ok(exhausted)
+        Ok(self.next_cursor.is_none() || self.next_cursor == self.oldest_transaction_id)
     }
 
     pub(super) fn incomplete(&self, reason: impl Into<String>) -> IcrcAccountTransactionError {
@@ -165,18 +141,12 @@ impl AccountTransactionCollectionState {
         token_symbol: String,
         decimals: u8,
     ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
-        self.transactions
-            .sort_unstable_by(|left, right| compare_canonical_decimal(&right.id, &left.id));
-        if self
-            .transactions
-            .windows(2)
-            .any(|rows| rows[0].id == rows[1].id)
-        {
-            return Err(self.incomplete("index returned a duplicate transaction id"));
-        }
+        let Some(balance) = self.balance.take() else {
+            return Err(self.incomplete("index collection has no accepted page"));
+        };
         Ok(IcrcAccountTransactionCollectionData {
             index_canister_id: self.index_canister_id,
-            balance: self.balance.unwrap_or_else(|| "0".to_string()),
+            balance,
             token_symbol,
             decimals,
             transactions: self.transactions,
@@ -247,24 +217,23 @@ mod tests {
     }
 
     #[test]
-    fn collection_state_rejects_duplicate_rows_and_changed_oldest_id() {
+    fn collection_state_rejects_overlapping_rows_and_changed_oldest_id() {
         let mut duplicate =
             AccountTransactionCollectionState::new(Principal::management_canister().to_text());
         duplicate
             .ingest(page(&["10", "9"], Some("8"), Some("9")), 2)
             .expect("first page");
-        duplicate
-            .ingest(page(&["9", "8"], Some("8"), Some("8")), 2)
-            .expect("duplicate is detected after canonical sorting");
         let duplicate_error = duplicate
-            .into_complete("TEST".to_string(), 8)
-            .expect_err("duplicate transaction id");
+            .ingest(page(&["9", "8"], Some("8"), Some("8")), 2)
+            .expect_err("overlap violates the exclusive page cursor");
         assert!(matches!(
             duplicate_error,
             IcrcAccountTransactionError::IncompleteCollection {
-                reason,
+                pages_fetched: 1,
+                rows_fetched: 2,
+                last_cursor: Some(cursor),
                 ..
-            } if reason.contains("duplicate")
+            } if cursor == "9"
         ));
 
         let mut changed_oldest =
@@ -282,6 +251,108 @@ mod tests {
                 ..
             } if reason.contains("oldest transaction id changed")
         ));
+    }
+
+    #[test]
+    fn invalid_later_pages_preserve_accepted_progress_and_rows() {
+        let mut fresh = AccountTransactionCollectionState::new(Principal::anonymous().to_text());
+        let error = fresh
+            .ingest(page(&["10"], Some("1"), Some("9")), 2)
+            .expect_err("invalid first page cannot capture a balance or progress");
+        assert!(matches!(
+            error,
+            IcrcAccountTransactionError::IncompleteCollection {
+                pages_fetched: 0,
+                rows_fetched: 0,
+                last_cursor: None,
+                ..
+            }
+        ));
+        let mut empty = page(&[], None, None);
+        empty.balance = "200".into();
+        assert!(fresh.ingest(empty, 2).unwrap());
+        assert_eq!(
+            fresh.into_complete("TEST".into(), 8).unwrap().balance,
+            "200"
+        );
+
+        for invalid in [
+            page(&["7", "8"], Some("1"), Some("8")),
+            page(&["9", "8"], Some("1"), Some("8")),
+            page(&["11", "8"], Some("1"), Some("8")),
+            page(&["08"], Some("1"), Some("08")),
+            page(&["8"], Some("1"), Some("7")),
+            page(&["8"], Some("1"), Some("9")),
+            page(&["8"], Some("1"), None),
+            page(&["0"], Some("1"), Some("0")),
+            page(&["8"], None, Some("8")),
+            page(&[], Some("1"), Some("8")),
+            page(&["8", "8"], Some("1"), Some("8")),
+        ] {
+            let mut state =
+                AccountTransactionCollectionState::new(Principal::anonymous().to_text());
+            assert!(
+                !state
+                    .ingest(page(&["10", "9"], Some("1"), Some("9")), 2)
+                    .unwrap()
+            );
+            let error = state.ingest(invalid, 2).expect_err("invalid later page");
+            assert!(matches!(
+                error,
+                IcrcAccountTransactionError::IncompleteCollection {
+                    pages_fetched: 1,
+                    rows_fetched: 2,
+                    last_cursor: Some(cursor),
+                    ..
+                } if cursor == "9"
+            ));
+            assert!(
+                state
+                    .ingest(page(&["8", "1"], Some("1"), Some("1")), 2)
+                    .unwrap()
+            );
+            let complete = state.into_complete("TEST".into(), 8).unwrap();
+            assert_eq!(complete.page_count, 2);
+            assert_eq!(
+                complete
+                    .transactions
+                    .iter()
+                    .map(|row| row.id.as_str())
+                    .collect::<Vec<_>>(),
+                vec!["10", "9", "8", "1"]
+            );
+        }
+    }
+
+    #[test]
+    fn collection_keeps_sparse_arbitrary_size_ids_in_page_order() {
+        let mut state = AccountTransactionCollectionState::new(Principal::anonymous().to_text());
+        assert!(
+            !state
+                .ingest(
+                    page(
+                        &["18446744073709551617", "18446744073709551616"],
+                        Some("9"),
+                        Some("18446744073709551616")
+                    ),
+                    2,
+                )
+                .unwrap()
+        );
+        assert!(
+            state
+                .ingest(page(&["10", "9"], Some("9"), Some("9")), 2)
+                .unwrap()
+        );
+        let complete = state.into_complete("TEST".into(), 8).unwrap();
+        assert_eq!(
+            complete
+                .transactions
+                .iter()
+                .map(|row| row.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["18446744073709551617", "18446744073709551616", "10", "9"]
+        );
     }
 
     #[test]

@@ -26,11 +26,9 @@ pub(super) fn acquire_refresh_lock(
     let lock_path = managed_path_for_create(request.cache_root, request.lock_path)?;
     match lock_path.create_new_file() {
         Ok(file) => {
-            if let Err(err) = write_refresh_lock_file(file, request, now_unix_ms) {
-                let _ = lock_path.remove_file();
-                return Err(err);
-            }
-            RefreshLockGuard::new(lock_path)
+            let guard = RefreshLockGuard::new(lock_path);
+            write_refresh_lock_file(file, request, now_unix_ms)?;
+            guard.sync_acquisition()
         }
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
             let existing = read_refresh_lock(&lock_path)?;

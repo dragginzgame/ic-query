@@ -210,7 +210,6 @@
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::archived_blocks",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::blocks",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::followed_archive_blocks",
-  "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::log_length",
   "crates/ic-query/src/icrc/text/account.rs::::a function::icrc_allowance_report_text",
   "crates/ic-query/src/icrc/text/account.rs::::a function::icrc_balance_report_text",
   "crates/ic-query/src/icrc/text/history.rs::::a function::icrc_archives_report_text",

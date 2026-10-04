@@ -11,7 +11,8 @@ mod wire;
 use self::collection::{AccountTransactionCollectionState, AccountTransactionsPage};
 use self::cursor::parse_transaction_cursor;
 pub(in crate::icrc) use self::cursor::{
-    normalize_transaction_cursor, validate_canonical_account_transactions,
+    normalize_transaction_cursor, validate_account_transaction_page,
+    validate_canonical_account_transactions,
 };
 use super::fetch::{
     account_from_parts, live_query_context, query_index_principal, query_token_display_fields,

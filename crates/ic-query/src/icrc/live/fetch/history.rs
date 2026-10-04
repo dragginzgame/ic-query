@@ -12,7 +12,7 @@ use crate::{
             GetIndexPrincipalResult, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
             Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
             Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, index_principal_error_text,
-            principal_from_text, query_ledger, query_ledger_arg,
+            nat_text, principal_from_text, query_ledger, query_ledger_arg,
         },
         model::{
             IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
@@ -171,11 +171,17 @@ fn validate_block_page(
             ranges.push((range.start.clone(), Nat(&range.start.0 + &range.length.0)));
         }
     }
-    validate_page_ranges(request, result.archived_blocks.len(), ranges)
+    validate_page_ranges(
+        request,
+        Some(&result.log_length),
+        result.archived_blocks.len(),
+        ranges,
+    )
 }
 
 fn validate_page_ranges(
     request: &IcrcTransactionsRequest,
+    log_length: Option<&Nat>,
     callback_count: usize,
     mut ranges: Vec<(Nat, Nat)>,
 ) -> Result<(), IcrcError> {
@@ -192,6 +198,11 @@ fn validate_page_ranges(
     {
         return Err(invalid_transaction_page(
             "block or archive range is outside the requested page or empty",
+        ));
+    }
+    if log_length.is_some_and(|length| ranges.iter().any(|(_, to)| to > length)) {
+        return Err(invalid_transaction_page(
+            "block or archive range exceeds the ledger log length",
         ));
     }
     ranges.sort_unstable();
@@ -211,12 +222,13 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     let parse = |text: &str| -> Result<Nat, IcrcError> {
         if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
             return Err(invalid_transaction_page(
-                "block indexes and ranges must be decimal naturals",
+                "log length, block indexes, and ranges must be decimal naturals",
             ));
         }
         text.parse()
             .map_err(|_| invalid_transaction_page("invalid decimal block index or range"))
     };
+    let log_length = data.log_length.as_deref().map(parse).transpose()?;
     let mut ranges = Vec::new();
     let mut seen = BTreeSet::new();
     for block in &data.blocks {
@@ -234,7 +246,12 @@ pub(in crate::icrc::live) fn validate_transactions_data(
             ranges.push((start.clone(), Nat(start.0 + length.0)));
         }
     }
-    validate_page_ranges(request, data.archived_blocks.len(), ranges)?;
+    validate_page_ranges(
+        request,
+        log_length.as_ref(),
+        data.archived_blocks.len(),
+        ranges,
+    )?;
     if !request.follow_archives
         && (!data.followed_archive_blocks.is_empty() || !data.archive_follow_errors.is_empty())
     {
@@ -426,7 +443,7 @@ fn transactions_data_from_blocks(
     followed_archives: ArchiveFollowResult,
 ) -> IcrcTransactionsData {
     IcrcTransactionsData {
-        log_length: Some(result.log_length.to_string()),
+        log_length: Some(nat_text(&result.log_length)),
         blocks: result
             .blocks
             .into_iter()
@@ -493,7 +510,7 @@ struct Icrc3BlockSummary {
 fn block_summary_from_wire(block: Icrc3BlockWithId) -> Icrc3BlockSummary {
     let block_type = icrc3_text_at_path(&block.block, &["btype"]);
     Icrc3BlockSummary {
-        index: block.id.to_string(),
+        index: nat_text(&block.id),
         transaction_kind: block_type
             .clone()
             .or_else(|| icrc3_text_at_path(&block.block, &["tx", "op"])),
@@ -520,8 +537,8 @@ fn archived_range_rows(ranges: &[Icrc3GetBlocksRequest]) -> Vec<IcrcArchivedRang
     ranges
         .iter()
         .map(|range| IcrcArchivedRangeRow {
-            start: range.start.to_string(),
-            length: range.length.to_string(),
+            start: nat_text(&range.start),
+            length: nat_text(&range.length),
         })
         .collect()
 }
@@ -536,8 +553,8 @@ fn block_type_row_from_wire(block_type: Icrc3SupportedBlockType) -> IcrcBlockTyp
 fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
     IcrcArchiveRow {
         canister_id: archive.canister_id.to_text(),
-        start: archive.start.to_string(),
-        end: archive.end.to_string(),
+        start: nat_text(&archive.start),
+        end: nat_text(&archive.end),
     }
 }
 
@@ -552,7 +569,7 @@ fn icrc3_text_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
 fn icrc3_nat_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
     let value = icrc3_value_at_path(value, path)?;
     match value {
-        Icrc3Value::Nat(nat) => Some(nat.to_string()),
+        Icrc3Value::Nat(nat) => Some(nat_text(nat)),
         _ => None,
     }
 }
@@ -574,10 +591,10 @@ fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
             variant.insert("Text".to_string(), JsonValue::String(text.clone()));
         }
         Icrc3Value::Nat(nat) => {
-            variant.insert("Nat".to_string(), JsonValue::String(nat.to_string()));
+            variant.insert("Nat".to_string(), JsonValue::String(nat_text(nat)));
         }
         Icrc3Value::Int(int) => {
-            variant.insert("Int".to_string(), JsonValue::String(int.to_string()));
+            variant.insert("Int".to_string(), JsonValue::String(int.0.to_str_radix(10)));
         }
         Icrc3Value::Array(values) => {
             variant.insert(
@@ -612,6 +629,87 @@ mod tests {
         net::TcpListener,
         thread,
     };
+
+    #[test]
+    fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
+        let large: Nat = "18446744073709551616".parse().unwrap();
+        let block = Icrc3BlockWithId {
+            id: Nat::from(1_000u32),
+            block: Icrc3Value::Map(BTreeMap::from([
+                ("ts".into(), Icrc3Value::Nat(large.clone())),
+                (
+                    "tx".into(),
+                    Icrc3Value::Map(BTreeMap::from([(
+                        "amt".into(),
+                        Icrc3Value::Nat(large.clone()),
+                    )])),
+                ),
+                ("signed".into(), Icrc3Value::Int(candid::Int::from(-1_000))),
+            ])),
+        };
+        let result = Icrc3GetBlocksResult {
+            log_length: large,
+            blocks: vec![block.clone()],
+            archived_blocks: vec![Icrc3ArchivedBlocks {
+                args: vec![Icrc3GetBlocksRequest {
+                    start: Nat::from(1_001u32),
+                    length: Nat::from(1_000u32),
+                }],
+                callback: Icrc3ArchiveCallback(Func {
+                    principal: Principal::anonymous(),
+                    method: "read_page".into(),
+                }),
+            }],
+        };
+        let request = IcrcTransactionsRequest {
+            source_endpoint: "fixture".into(),
+            now_unix_secs: 0,
+            ledger_canister_id: Principal::anonymous().to_text(),
+            start: 1_000,
+            limit: 1_001,
+            follow_archives: true,
+        };
+        validate_block_page(&result, &request).unwrap();
+        let mut followed = block;
+        followed.id = Nat::from(1_001u32);
+        let data = transactions_data_from_blocks(
+            result,
+            ArchiveFollowResult {
+                blocks: vec![followed_archive_block_row_from_wire(
+                    &Principal::anonymous().to_text(),
+                    "read_page",
+                    followed,
+                )],
+                errors: vec![],
+            },
+        );
+        validate_transactions_data(&request, &data).expect("wire data satisfies report contract");
+        assert_eq!(data.log_length.as_deref(), Some("18446744073709551616"));
+        assert_eq!(data.blocks[0].index, "1000");
+        assert_eq!(data.followed_archive_blocks[0].index, "1001");
+        assert_eq!(data.archived_blocks[0].ranges[0].start, "1001");
+        assert_eq!(data.archived_blocks[0].ranges[0].length, "1000");
+        assert_eq!(
+            data.blocks[0].amount_base_units.as_deref(),
+            Some("18446744073709551616")
+        );
+        assert_eq!(
+            data.blocks[0].timestamp_unix_nanos.as_deref(),
+            Some("18446744073709551616")
+        );
+        assert_eq!(
+            data.blocks[0].raw_block["Map"]["tx"]["Map"]["amt"]["Nat"],
+            "18446744073709551616"
+        );
+        assert_eq!(data.blocks[0].raw_block["Map"]["signed"]["Int"], "-1000");
+        let archive = archive_row_from_wire(Icrc3ArchiveInfo {
+            canister_id: Principal::anonymous(),
+            start: Nat::from(1_000u32),
+            end: Nat::from(2_000u32),
+        });
+        assert_eq!(archive.start, "1000");
+        assert_eq!(archive.end, "2000");
+    }
 
     fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -762,7 +860,7 @@ mod tests {
     }
 
     #[test]
-    fn block_page_rejects_excessive_callbacks_empty_ranges_and_overlapping_coverage() {
+    fn block_page_validates_request_and_log_bounds_and_disjoint_coverage() {
         let request = IcrcTransactionsRequest {
             source_endpoint: "fixture".into(),
             now_unix_secs: 0,
@@ -787,6 +885,15 @@ mod tests {
             blocks: vec![],
             archived_blocks: vec![archive(vec![range(12u64, 2u64)])],
         };
+        validate_block_page(&result, &request).unwrap();
+        for length in [0u32, 12, 13] {
+            result.log_length = Nat::from(length);
+            assert!(matches!(
+                validate_block_page(&result, &request),
+                Err(IcrcError::InvalidTransactionPage { .. })
+            ));
+        }
+        result.log_length = Nat::from(14u32);
         validate_block_page(&result, &request).unwrap();
         for args in [
             vec![],
@@ -818,11 +925,23 @@ mod tests {
             block: Icrc3Value::Text("outside".into()),
         }];
         assert!(validate_block_page(&result, &request).is_err());
+        result.blocks[0].id = Nat::from(13u32);
+        result.log_length = Nat::from(13u32);
+        assert!(matches!(
+            validate_block_page(&result, &request),
+            Err(IcrcError::InvalidTransactionPage { .. })
+        ));
+        result.log_length = Nat::from(14u32);
+        validate_block_page(&result, &request).unwrap();
         let huge_request = IcrcTransactionsRequest {
             start: u64::MAX,
             ..request
         };
         result.blocks[0].id = Nat(Nat::from(u64::MAX).0 + 1u32);
+        result.log_length = Nat(Nat::from(u64::MAX).0 + 2u32);
         validate_block_page(&result, &huge_request).unwrap();
+        result.blocks.clear();
+        result.log_length = Nat::from(0u32);
+        validate_block_page(&result, &huge_request).expect("empty page past the end of the log");
     }
 }

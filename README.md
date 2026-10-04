@@ -452,14 +452,13 @@ Network-scoped cache paths consistently begin with
 
 Managed cache loads, discovery, refresh locks, and publication are confined to
 that root. On Unix, symbolic links, path escapes, nonregular managed files,
-group/other-accessible directories, and files not using mode `0600` are
-rejected. New managed directories use mode `0700`; new cache and lock files use
-mode `0600`. These authority failures are not treated as invalid JSON that a
-read-through call may silently replace. Explicit caller-selected output files
-are outside this cache policy, but refresh exports must not alias the managed
-snapshot or its refresh lock, including during a dry run. The `0.29.1` hard cut
-does not migrate or loosen older permissive caches: remove the old cache root
-or restrict its directories and files before use.
+and group/world-writable directories or files are rejected. Readable
+directories such as `0755` and files such as `0644` are supported without
+permission repair. New managed directories use mode `0700`; new cache and lock
+files use mode `0600`. These authority failures are not treated as invalid JSON
+that a read-through call may silently replace. Explicit caller-selected output
+files are outside this cache policy, but refresh exports must not alias the
+managed snapshot or its refresh lock, including during a dry run.
 
 Use `icq cache status` to inspect known complete caches across that root,
 including generic header integrity, separate fresh/stale/unmanaged/unknown age,

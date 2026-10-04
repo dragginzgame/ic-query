@@ -361,8 +361,8 @@ where
         token_name,
         token_symbol,
         decimals,
-        transfer_fee: transfer_fee.to_string(),
-        total_supply: total_supply.to_string(),
+        transfer_fee: nat_text(&transfer_fee),
+        total_supply: nat_text(&total_supply),
         minting_account_owner: minting_account
             .as_ref()
             .map(|account| account.owner.to_text()),
@@ -442,10 +442,15 @@ where
     query_encoded_bytes(agent, ledger_canister, method, arg).await
 }
 
+/// Return plain decimal text for raw ledger fields and reusable cursors.
+pub fn nat_text(value: &Nat) -> String {
+    value.0.to_str_radix(10)
+}
+
 pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadataRow {
     let (value_type, value) = match value {
-        IcrcMetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, value.to_string()),
-        IcrcMetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.to_string()),
+        IcrcMetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, nat_text(&value)),
+        IcrcMetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.0.to_str_radix(10)),
         IcrcMetadataValue::Text(value) => (IcrcMetadataValueKind::Text, value),
         IcrcMetadataValue::Blob(value) => (IcrcMetadataValueKind::Blob, hex_bytes(&value)),
     };
@@ -515,6 +520,16 @@ mod tests {
                 IcrcMetadataValue::Int(Int::from(-2_i8)),
                 IcrcMetadataValueKind::Int,
                 "-2",
+            ),
+            (
+                IcrcMetadataValue::Nat("18446744073709551616".parse().unwrap()),
+                IcrcMetadataValueKind::Nat,
+                "18446744073709551616",
+            ),
+            (
+                IcrcMetadataValue::Int("-18446744073709551616".parse().unwrap()),
+                IcrcMetadataValueKind::Int,
+                "-18446744073709551616",
             ),
             (
                 IcrcMetadataValue::Text("token".to_string()),

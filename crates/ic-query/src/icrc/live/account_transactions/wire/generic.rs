@@ -4,12 +4,12 @@
 //! Does not own: transport, index discovery, pagination state, ICP-index compatibility, or reports.
 //! Boundary: keeps the current ICRC index Candid contract separate from deployed ICP wire types.
 
-use super::super::{collection::AccountTransactionsPage, cursor::nat_text};
+use super::super::collection::AccountTransactionsPage;
 use super::{TransactionSummary, object, optional_blob_json, optional_json};
 use crate::{
     hex::hex_bytes,
     icrc::{
-        ledger::IcrcAccount,
+        ledger::{IcrcAccount, nat_text},
         model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow},
     },
 };

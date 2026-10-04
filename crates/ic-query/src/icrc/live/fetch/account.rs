@@ -8,7 +8,7 @@ use super::live_query_context;
 use crate::icrc::{
     ledger::{
         IcrcAccount, IcrcAllowance, IcrcAllowanceArgs, IcrcLedgerMetadataRow,
-        IcrcLedgerStandardRow, IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata,
+        IcrcLedgerStandardRow, IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, nat_text,
         principal_from_text, query_ledger, query_ledger_arg,
     },
     model::{
@@ -60,7 +60,7 @@ pub(in crate::icrc::live) async fn fetch_balance_async(
     Ok(IcrcBalanceData {
         token_symbol,
         decimals,
-        balance: balance.to_string(),
+        balance: nat_text(&balance),
     })
 }
 
@@ -93,7 +93,7 @@ pub(in crate::icrc::live) async fn fetch_allowance_async(
     Ok(IcrcAllowanceData {
         token_symbol,
         decimals,
-        allowance: allowance.allowance.to_string(),
+        allowance: nat_text(&allowance.allowance),
         expires_at_unix_nanos: allowance
             .expires_at
             .map(|expires_at| expires_at.to_string()),
