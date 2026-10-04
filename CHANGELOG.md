@@ -9,6 +9,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
 
+- `0.46.3` release notes are pending. No additional changes have been recorded
+  since `0.46.2`.
+
 - `0.46.2` simplifies SNS reward checkpoint completion bookkeeping and removes
   repeat checks after ending evidence equals validated starting evidence.
   Strict pagination, full bracket comparisons, completion-time checks, and
