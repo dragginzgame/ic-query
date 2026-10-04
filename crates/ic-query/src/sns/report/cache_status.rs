@@ -18,7 +18,7 @@ use crate::{
             read_sns_cache_header,
         },
         enforce_mainnet_network, find_sns_cache_summary_by_id, load_sns_cache_summary_at,
-        parse_sns_root_canister_input,
+        lookup::parse_sns_root_canister_input,
     },
 };
 use std::path::{Path, PathBuf};

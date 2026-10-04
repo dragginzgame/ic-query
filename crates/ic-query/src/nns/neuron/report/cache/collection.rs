@@ -100,7 +100,6 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
         self.collection_state = step.state;
         Ok(PagedCollectionPage::new(
             page_len,
-            page_len,
             cursor.map(|cursor| cursor.to_string()),
         ))
     }
@@ -119,11 +118,8 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
         .map_err(NnsNeuronHostError::from)
     }
 
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(
-            self.request.page_size,
-            self.collection_state.next_start_neuron_id().is_some(),
-        )
+    fn page_exhausts_collection(&self, _page: &PagedCollectionPage) -> bool {
+        self.collection_state.is_complete()
     }
 
     fn into_complete(self) -> Self::Complete {

@@ -11,8 +11,8 @@ use crate::{
         MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsProposalReport, SnsProposalRequest,
         SnsProposalStatusFilter, SnsProposalsReport, SnsProposalsRequest,
         assemble::{
-            SnsProposalReportContext, SnsProposalReportParts, SnsProposalsReportParts,
-            SnsReportProvenance, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
+            SnsProposalReportContext, SnsReportProvenance, sns_proposal_report_from_parts,
+            sns_proposals_report_from_parts,
         },
         enforce_mainnet_network,
         live::LiveSnsSource,
@@ -71,8 +71,9 @@ pub fn build_sns_proposal_report_with_source(
     let proposal =
         source.fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)?;
     validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
-    Ok(sns_proposal_report_from_parts(SnsProposalReportParts {
-        context: SnsProposalReportContext {
+    Ok(sns_proposal_report_from_parts(
+        request,
+        SnsProposalReportContext {
             network: lookup.fetch_request.network,
             sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
             fetched_at: lookup.fetch_request.fetched_at,
@@ -83,12 +84,9 @@ pub fn build_sns_proposal_report_with_source(
             root_canister_id: lookup.sns.root_canister_id,
             governance_canister_id: lookup.sns.governance_canister_id,
         },
-        proposal_id: request.proposal_id,
-        verbose: request.verbose,
-        show_ballots: request.show_ballots,
-        provenance: SnsReportProvenance::live(),
-        proposal,
-    }))
+        SnsReportProvenance::live(),
+        proposal.proposal,
+    ))
 }
 
 pub fn build_sns_proposals_report_with_source(
@@ -162,8 +160,9 @@ fn build_sns_proposals_report_live(
         request.sort,
         request.sort_direction,
     );
-    Ok(sns_proposals_report_from_parts(SnsProposalsReportParts {
-        context: SnsProposalReportContext {
+    Ok(sns_proposals_report_from_parts(
+        request,
+        SnsProposalReportContext {
             network: lookup.fetch_request.network,
             sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
             fetched_at: lookup.fetch_request.fetched_at,
@@ -174,17 +173,7 @@ fn build_sns_proposals_report_live(
             root_canister_id: lookup.sns.root_canister_id,
             governance_canister_id: lookup.sns.governance_canister_id,
         },
-        requested_limit: request.limit,
-        before_proposal_id: request.before_proposal_id,
-        status: request.status,
-        topic: request.topic,
-        eligibility: request.eligibility,
-        proposer_neuron_id: request.proposer_neuron_id.clone(),
-        query: request.query.clone(),
-        sort: request.sort,
-        sort_direction: request.sort_direction,
-        verbose: request.verbose,
-        provenance: SnsReportProvenance::live(),
-        proposals,
-    }))
+        SnsReportProvenance::live(),
+        proposals.proposals,
+    ))
 }

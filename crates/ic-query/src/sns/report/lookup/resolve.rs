@@ -4,7 +4,10 @@
 //! Does not own: command parsing, live transport internals, or report assembly.
 //! Boundary: resolves id/root against raw SNS-W inventory before targeted metadata enrichment.
 
-use crate::sns::report::lookup::{model::SnsLookup, request::fetch_request_from_parts};
+use crate::sns::report::lookup::{
+    model::SnsLookup,
+    request::{fetch_request_from_parts, parse_sns_root_canister_input},
+};
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{
@@ -12,7 +15,6 @@ use crate::sns::report::{
         validate_mainnet_sns_inventory,
     },
 };
-use candid::Principal;
 
 /// Resolve a user SNS lookup input to one deployed SNS and fetch context.
 pub(in crate::sns::report) fn resolve_sns_lookup(
@@ -59,11 +61,7 @@ fn resolve_sns(
             });
     }
 
-    let root_canister_id = Principal::from_text(input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: input.to_string(),
-        })?
-        .to_text();
+    let root_canister_id = parse_sns_root_canister_input(input)?;
     instances
         .iter()
         .enumerate()

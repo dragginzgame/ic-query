@@ -47,6 +47,41 @@ use std::os::unix::fs::PermissionsExt;
 
 struct FixtureSource;
 
+struct FullTerminalPageSource;
+
+impl NnsProposalSource for FullTerminalPageSource {
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+        status: NnsProposalStatusFilter,
+        reward_status: NnsProposalRewardStatusFilter,
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move {
+            assert_eq!(limit, 2);
+            assert_eq!(before_proposal_id, None);
+            assert_eq!(status, NnsProposalStatusFilter::Any);
+            assert_eq!(reward_status, NnsProposalRewardStatusFilter::Any);
+            Ok(NnsGovernanceSourceData::new(
+                vec![
+                    nns_proposal_row_from_info(proposal_info(1)),
+                    nns_proposal_row_from_info(proposal_info(2)),
+                ],
+                fixture_provenance(request),
+            ))
+        })
+    }
+
+    fn fetch_proposal<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        proposal_id: u64,
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        FixtureSource.fetch_proposal(request, proposal_id)
+    }
+}
+
 impl NnsProposalSource for FixtureSource {
     fn fetch_proposals<'a>(
         &'a self,
@@ -162,6 +197,39 @@ fn nns_proposal_failed_refresh_preserves_page_progress() {
     assert_eq!(attempt["rows_fetched"], 2);
     assert_eq!(attempt["last_cursor"], "2");
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one() {
+    let root = temp_dir("ic-query-nns-proposal-full-terminal-page");
+    let request = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_MAINNET_ENDPOINT,
+        1_700_000_000,
+        2,
+    )
+    .with_max_pages(Some(1));
+    let report = refresh_nns_proposal_cache_with_source(&request, &FullTerminalPageSource)
+        .expect("id one proves exhaustion even with a full page");
+
+    assert!(report.complete);
+    assert_eq!(report.page_count, 1);
+    assert_eq!(report.proposal_count, 2);
+    let paths = nns_proposal_cache_paths(&root, MAINNET_NETWORK);
+    let cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&paths.snapshot_path).expect("read cache"))
+            .expect("parse cache");
+    assert_eq!(cache["proposals"][0]["proposal_id"], 2);
+    assert_eq!(cache["proposals"][1]["proposal_id"], 1);
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&fs::read(&paths.refresh_attempt_path).expect("read attempt"))
+            .expect("parse attempt");
+    assert_eq!(attempt["status"], "complete");
+    assert_eq!(attempt["pages_fetched"], 1);
+    assert_eq!(attempt["rows_fetched"], 2);
+    assert_eq!(attempt["last_cursor"], serde_json::Value::Null);
+    fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
 #[test]

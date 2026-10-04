@@ -471,6 +471,41 @@ fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
 }
 
 #[test]
+fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
+    let root = temp_dir("ic-query-nns-neuron-empty-terminal-page");
+    let request = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    )
+    .with_max_pages(Some(2));
+    let source = MutatingLastPageSource(|page| page.neurons.clear());
+    let report = refresh_nns_neuron_cache_with_source(&request, &source)
+        .expect("empty terminal page proves exhaustion at the page cap");
+
+    assert!(report.complete);
+    assert_eq!(report.page_count, 2);
+    assert_eq!(report.neuron_count, 2);
+    let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
+        &root,
+        MAINNET_NETWORK,
+    ))
+    .expect("published cache status");
+    assert_eq!(
+        status.cache.expect("complete cache").cache_status,
+        CacheValidationStatus::Valid
+    );
+    let attempt = status.latest_attempt.expect("complete attempt");
+    assert_eq!(attempt.status, CacheRefreshAttemptStatus::Complete);
+    assert_eq!(attempt.pages_fetched, 2);
+    assert_eq!(attempt.rows_fetched, 2);
+    assert_eq!(attempt.last_cursor, None);
+    fs::remove_dir_all(root).expect("remove fixture cache");
+}
+
+#[test]
 fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-incomplete");
     let request = NnsGovernanceRefreshRequest::new(

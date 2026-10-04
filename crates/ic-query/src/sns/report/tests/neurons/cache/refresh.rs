@@ -42,6 +42,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     cached_request.limit = 2;
+    cached_request.verbose = true;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .expect("cached neurons report");
 
@@ -49,6 +50,24 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(report.sort, "stake");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neuron_count, 2);
+    assert_eq!(report.requested_limit, 2);
+    assert!(report.verbose);
+    assert_eq!(report.owner_principal_id, None);
+    assert_eq!(report.cache_complete, Some(true));
+    let report_json = serde_json::to_value(&report).expect("serialize cached report");
+    for field in [
+        "network",
+        "sns_wasm_canister_id",
+        "fetched_at",
+        "source_endpoint",
+        "fetched_by",
+        "id",
+        "name",
+        "root_canister_id",
+        "governance_canister_id",
+    ] {
+        assert_eq!(report_json[field], cache[field], "cached {field}");
+    }
     assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 50);
     assert_eq!(report.neurons[1].neuron_id, "02".repeat(32));

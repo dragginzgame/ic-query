@@ -22,9 +22,9 @@ use crate::{
             sns_snapshot_network_cache_dir,
         },
         enforce_mainnet_network,
+        lookup::parse_sns_root_canister_input,
     },
 };
-use candid::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::path::{Path, PathBuf};
 
@@ -259,17 +259,6 @@ where
 
     let root_canister_id = parse_sns_root_canister_input(input)?;
     load_sns_cache_for_root::<Family>(cache_root, network, &root_canister_id)
-}
-
-/// Parse and normalize an SNS root canister principal input.
-pub(in crate::sns::report) fn parse_sns_root_canister_input(
-    input: &str,
-) -> Result<String, SnsHostError> {
-    Principal::from_text(input)
-        .map_err(|_| SnsHostError::InvalidLookup {
-            input: input.to_string(),
-        })
-        .map(|principal| principal.to_text())
 }
 
 /// Load and validate one complete SNS snapshot cache.

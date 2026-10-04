@@ -6,10 +6,8 @@
 
 use crate::sns::report::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::SnsReportProvenance,
-    cache_storage::load_sns_cache_for_input,
-    neurons_cache::{model::SnsNeuronsCachedReportParts, paths::SnsNeuronsCacheCollection},
-    view::sort_sns_neurons,
+    assemble::SnsReportProvenance, cache_storage::load_sns_cache_for_input,
+    neurons_cache::paths::SnsNeuronsCacheCollection, view::sort_sns_neurons,
 };
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
@@ -28,23 +26,11 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     let total_neuron_count = cache.data.neurons.len();
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     cache.data.neurons.truncate(limit);
-    Ok(sns_neurons_report_from_cache(SnsNeuronsCachedReportParts {
-        requested_limit: request.limit,
-        sort: request.sort,
-        cache,
-        total_neuron_count,
-        cache_path,
-        verbose: request.verbose,
-    }))
-}
-
-fn sns_neurons_report_from_cache(parts: SnsNeuronsCachedReportParts) -> SnsNeuronsReport {
-    let cache = parts.cache;
     let neuron_count = cache.data.neurons.len();
     let cache_complete = cache.completeness.is_api_exhausted();
-    let provenance = SnsReportProvenance::cache(&parts.cache_path, cache_complete);
+    let provenance = SnsReportProvenance::cache(&cache_path, cache_complete);
     let metadata = cache.metadata;
-    SnsNeuronsReport {
+    Ok(SnsNeuronsReport {
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
         network: cache.network,
         sns_wasm_canister_id: metadata.sns_wasm_canister_id,
@@ -55,15 +41,15 @@ fn sns_neurons_report_from_cache(parts: SnsNeuronsCachedReportParts) -> SnsNeuro
         name: metadata.name,
         root_canister_id: metadata.root_canister_id,
         governance_canister_id: metadata.governance_canister_id,
-        requested_limit: parts.requested_limit,
+        requested_limit: request.limit,
         owner_principal_id: None,
-        verbose: parts.verbose,
+        verbose: request.verbose,
         data_source: provenance.data_source,
-        sort: parts.sort.as_str().to_string(),
+        sort: request.sort.as_str().to_string(),
         cache_path: provenance.cache_path,
         cache_complete: provenance.cache_complete,
-        total_neuron_count: parts.total_neuron_count,
+        total_neuron_count,
         neuron_count,
         neurons: cache.data.neurons,
-    }
+    })
 }

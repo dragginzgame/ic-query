@@ -52,7 +52,9 @@ call per advance. The schema-1 state binds request identity, concrete source
 provenance, cursor, timestamps, and cumulative page and row accounting under a
 caller-selected page ceiling. `complete` means observed API exhaustion;
 `page_limit_reached` retains incomplete progress. Native refresh uses the same
-engine. Canister callers own page retention, scheduling, and publication.
+engine and follows its completion status rather than independently evaluating
+page length and cursor presence. Canister callers own page retention,
+scheduling, and publication.
 Request and restored-state collection timestamps must parse as valid UTC
 dates and times with second precision before another source call is admitted.
 

@@ -9,6 +9,18 @@ use crate::sns::report::{
     enforce_mainnet_network, source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
+use candid::Principal;
+
+/// Parse and normalize an SNS root canister principal input.
+pub(in crate::sns::report) fn parse_sns_root_canister_input(
+    input: &str,
+) -> Result<String, SnsHostError> {
+    Principal::from_text(input)
+        .map_err(|_| SnsHostError::InvalidLookup {
+            input: input.to_string(),
+        })
+        .map(|principal| principal.to_text())
+}
 
 /// Build a shared SNS lookup request from command runtime fields.
 pub(in crate::sns::report) fn lookup_request_from_parts(

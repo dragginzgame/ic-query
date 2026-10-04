@@ -5,11 +5,8 @@
 //! Boundary: returns an optional report so callers can fall back to live lookup.
 
 use crate::sns::report::{
-    MainnetSnsProposal, SnsHostError, SnsProposalReport, SnsProposalRequest,
-    assemble::{
-        SnsProposalReportContext, SnsProposalReportParts, SnsReportProvenance,
-        sns_proposal_report_from_parts,
-    },
+    SnsHostError, SnsProposalReport, SnsProposalRequest,
+    assemble::{SnsProposalReportContext, SnsReportProvenance, sns_proposal_report_from_parts},
     cache_storage::load_sns_cache_for_input,
     proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
@@ -43,8 +40,9 @@ fn sns_proposal_report_from_cache(
         .proposals
         .into_iter()
         .find(|proposal| proposal.proposal_id == request.proposal_id)?;
-    Some(sns_proposal_report_from_parts(SnsProposalReportParts {
-        context: SnsProposalReportContext {
+    Some(sns_proposal_report_from_parts(
+        request,
+        SnsProposalReportContext {
             network: cache.network,
             sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
             fetched_at: cache.fetched_at,
@@ -55,10 +53,7 @@ fn sns_proposal_report_from_cache(
             root_canister_id: cache.metadata.root_canister_id,
             governance_canister_id: cache.metadata.governance_canister_id,
         },
-        proposal_id: request.proposal_id,
-        verbose: request.verbose,
-        show_ballots: request.show_ballots,
-        provenance: SnsReportProvenance::cache(&cache_path, cache_complete),
-        proposal: MainnetSnsProposal { proposal },
-    }))
+        SnsReportProvenance::cache(&cache_path, cache_complete),
+        proposal,
+    ))
 }

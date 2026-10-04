@@ -10,8 +10,7 @@ use crate::{
     sns::report::{
         SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
         assemble::{
-            SnsProposalReportContext, SnsProposalsReportParts, SnsReportProvenance,
-            sns_proposals_report_from_parts,
+            SnsProposalReportContext, SnsReportProvenance, sns_proposals_report_from_parts,
         },
         cache_storage::load_sns_cache_for_input,
         proposals_cache::{
@@ -19,7 +18,7 @@ use crate::{
             paths::SnsProposalsCacheCollection,
             refresh_sns_proposals_cache_with_source_and_progress,
         },
-        source::{MainnetSnsProposals, SnsProposalsSource},
+        source::SnsProposalsSource,
         view::{
             proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
             proposal_matches_query, proposal_matches_status, proposal_matches_topic,
@@ -115,8 +114,9 @@ fn sns_proposals_report_from_cache(
         .collect::<Vec<_>>();
     sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
-    sns_proposals_report_from_parts(SnsProposalsReportParts {
-        context: SnsProposalReportContext {
+    sns_proposals_report_from_parts(
+        request,
+        SnsProposalReportContext {
             network: cache.network,
             sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
             fetched_at: cache.fetched_at,
@@ -127,17 +127,7 @@ fn sns_proposals_report_from_cache(
             root_canister_id: cache.metadata.root_canister_id,
             governance_canister_id: cache.metadata.governance_canister_id,
         },
-        requested_limit: request.limit,
-        before_proposal_id: request.before_proposal_id,
-        status: request.status,
-        topic: request.topic,
-        eligibility: request.eligibility,
-        proposer_neuron_id: request.proposer_neuron_id.clone(),
-        query: request.query.clone(),
-        sort: request.sort,
-        sort_direction: request.sort_direction,
-        verbose: request.verbose,
-        provenance: SnsReportProvenance::cache(&cache_path, cache_complete),
-        proposals: MainnetSnsProposals { proposals },
-    })
+        SnsReportProvenance::cache(&cache_path, cache_complete),
+        proposals,
+    )
 }

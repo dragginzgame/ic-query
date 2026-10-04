@@ -9,6 +9,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.8` gives native NNS cache refreshes one completion decision through
+  their portable collectors and simplifies SNS proposal and cached-neuron
+  report construction. Live and local SNS lookup share root-principal parsing.
+  Page caps, ordered rows, complete-only publication, failed-refresh evidence,
+  cached provenance, and view options are preserved. Public Rust APIs, CLI
+  grammar, cache identities, and serialized shapes are unchanged;
+  schemas remain `1`.
+
 - `0.45.7` rejects invalid provenance in caller-owned Dashboard node-status
   snapshots, including certification and point-in-time claims, through the
   same observation validation used by cache reads. Replaces proposal and neuron

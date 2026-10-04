@@ -24,10 +24,11 @@ pub struct CompletePagedCollection<Row> {
 ///
 /// PagedCollectionPage
 ///
-/// Per-page counters used to decide whether pagination has completed.
+/// Per-page progress and SNS exhaustion evidence for the refresh runner.
 ///
 
 pub struct PagedCollectionPage {
+    #[cfg(feature = "sns-host")]
     page_len: usize,
     new_rows: usize,
     pub last_cursor_text: Option<String>,
@@ -120,17 +121,19 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
 }
 
 impl PagedCollectionPage {
-    /// Describe one fetched page for the shared refresh runner.
+    /// Describe one validated NNS page, whose rows are all newly admitted.
     #[must_use]
     #[cfg(feature = "nns-host")]
-    pub const fn new(page_len: usize, new_rows: usize, last_cursor_text: Option<String>) -> Self {
+    pub const fn new(new_rows: usize, last_cursor_text: Option<String>) -> Self {
         Self {
-            page_len,
+            #[cfg(feature = "sns-host")]
+            page_len: new_rows,
             new_rows,
             last_cursor_text,
         }
     }
 
+    #[cfg(feature = "sns-host")]
     pub fn exhausts_collection(&self, page_size: u32, has_next_cursor: bool) -> bool {
         self.page_len < usize::try_from(page_size).unwrap_or(usize::MAX) || !has_next_cursor
     }

@@ -285,6 +285,8 @@ assurance.
   resolves that inventory before requesting metadata for exactly one target;
   unknown lookup requests no metadata. The resolved `MainnetSns` owns the
   original inventory id used by live reports and complete-cache refreshes.
+  Lookup owns root-principal text normalization for live resolution, complete
+  cache reads, and cache-status inspection.
   Direct reports and refreshes retain that row and the shared source request;
   inventory validation first requires its provenance to match the request and
   its SNS-W identity to match the mainnet constant. The temporary joined lookup
@@ -327,6 +329,10 @@ assurance.
   and pending-disbursement graphs remain outside collection caches;
   `sns neuron info` follows one exact 32-byte neuron id through the explicit
   `SnsNeuronSource` detail capability instead.
+- SNS proposal list and detail assembly read view options from the original
+  request. Resolved live or cache context owns acquisition identity and
+  metadata, keeping cache provenance independent of the current request's
+  endpoint and clock.
 - SNS reward checkpoint reporting strictly exhausts ordered native neuron
   pages beneath the Governance parameter ceiling and brackets the walk with
   complete parameters, latest reward event, and running version responses.
@@ -337,6 +343,10 @@ assurance.
   and public-neuron continuations expose one bounded call per advance for
   native or replicated canister collection, with caller-owned persistence and
   explicit incomplete page-limit stops.
+  Native NNS refresh adapters use the portable collector's completion status
+  directly, so page length and cursor evidence have one decision owner. The
+  shared runner still owns page-cap enforcement, attempt writes, progress,
+  failure handling, and complete-only publication orchestration.
 - NNS neuron reporting follows the native ascending `get_neuron_index`
   cursor, preserves publicly readable `NeuronInfo` fields, and atomically
   publishes only an API-exhausted ordered collection. Governance exposes no

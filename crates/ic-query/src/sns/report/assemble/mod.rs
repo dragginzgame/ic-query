@@ -24,8 +24,7 @@ pub(super) use neuron::{SnsNeuronDetailReportParts, sns_neuron_detail_report_fro
 pub(super) use neurons::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts};
 pub(super) use params::sns_params_report_from_parts;
 pub(super) use proposals::{
-    SnsProposalReportContext, SnsProposalReportParts, SnsProposalsReportParts,
-    sns_proposal_report_from_parts, sns_proposals_report_from_parts,
+    SnsProposalReportContext, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
 };
 pub(super) use provenance::SnsReportProvenance;
 pub(super) use reward::{SnsRewardCheckpointReportParts, sns_reward_checkpoint_report_from_parts};
