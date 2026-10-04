@@ -12,6 +12,8 @@ mod network;
 mod node_provider_reward;
 mod node_status;
 mod replica_version;
+#[cfg(test)]
+mod tests;
 
 use crate::{
     ic::{
@@ -111,6 +113,38 @@ pub fn validate_provenance(
         }
     }
     Ok(())
+}
+
+fn validate_offset_page(
+    offset: u64,
+    total: u64,
+    returned_count: usize,
+    total_field: &str,
+    overflow_reason: &str,
+) -> Result<Option<u64>, IcHostError> {
+    let returned_count = u64::try_from(returned_count).unwrap_or(u64::MAX);
+    if returned_count > total {
+        return invalid_source(format!(
+            "returned_count {returned_count} exceeds {total_field} {total}"
+        ));
+    }
+    if returned_count == 0 {
+        return Ok(None);
+    }
+    if offset >= total {
+        return invalid_source(format!(
+            "nonempty page starts at offset {offset}, but {total_field} is {total}"
+        ));
+    }
+    let consumed = offset
+        .checked_add(returned_count)
+        .ok_or_else(|| invalid_source_value(overflow_reason))?;
+    if consumed > total {
+        return invalid_source(format!(
+            "page ending at offset {consumed} exceeds {total_field} {total}"
+        ));
+    }
+    Ok((consumed < total).then_some(consumed))
 }
 
 pub fn canonical_request_principal(

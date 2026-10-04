@@ -263,7 +263,7 @@ fn status_inventory_rejects_unsafe_managed_file_modes() {
     let root = temp_dir("ic-query-cache-status-mode");
     let path = root.join("nns/ic/node/nodes.json");
     write_cache(&root, &path, "{}");
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("widen cache mode");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o664)).expect("widen cache mode");
 
     let error = build_cache_status_report(&CacheStatusRequest::new(&root, 1_700_000_000))
         .expect_err("unsafe inventory file rejected");
@@ -271,7 +271,7 @@ fn status_inventory_rejects_unsafe_managed_file_modes() {
     assert!(matches!(
         error,
         CacheStatusError::CacheOperation(CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o644,
+            actual_mode: 0o664,
             ..
         })
     ));

@@ -63,8 +63,7 @@ pub use scan::{ManagedDirectoryFile, remove_managed_regular_file, scan_managed_d
 
 const MANAGED_DIRECTORY_MODE: u32 = 0o700;
 const MANAGED_FILE_MODE: u32 = 0o600;
-const OWNER_ONLY_DIRECTORY_MODE: &str = "no group or other access";
-const OWNER_READ_WRITE_FILE_MODE: &str = "mode 0o600";
+const OWNER_ONLY_WRITE_MODE: &str = "no group or other write access";
 
 static ATOMIC_WRITE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -492,13 +491,7 @@ fn validate_managed_directory_mode(path: &Path, dir: &Dir) -> Result<(), CacheFi
             .permissions()
             .mode()
             & 0o777;
-        if mode & 0o077 != 0 {
-            return Err(CacheFileError::UnsafeManagedPermissions {
-                path: path.to_path_buf(),
-                actual_mode: mode,
-                required_mode: OWNER_ONLY_DIRECTORY_MODE,
-            });
-        }
+        validate_managed_mode(path, mode)?;
     }
     Ok(())
 }
@@ -512,13 +505,19 @@ fn validate_managed_file_mode(path: &Path, file: &cap_std::fs::File) -> Result<(
             .permissions()
             .mode()
             & 0o777;
-        if mode != MANAGED_FILE_MODE {
-            return Err(CacheFileError::UnsafeManagedPermissions {
-                path: path.to_path_buf(),
-                actual_mode: mode,
-                required_mode: OWNER_READ_WRITE_FILE_MODE,
-            });
-        }
+        validate_managed_mode(path, mode)?;
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn validate_managed_mode(path: &Path, mode: u32) -> Result<(), CacheFileError> {
+    if mode & 0o022 != 0 {
+        return Err(CacheFileError::UnsafeManagedPermissions {
+            path: path.to_path_buf(),
+            actual_mode: mode,
+            required_mode: OWNER_ONLY_WRITE_MODE,
+        });
     }
     Ok(())
 }

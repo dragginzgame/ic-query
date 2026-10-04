@@ -81,9 +81,12 @@ Managed loads, collection discovery, cache-status traversal, refresh locks,
 attempt sidecars, and publication resolve from one opened capability root. A
 managed path must remain beneath that root without parent traversal, and no
 root, parent, or final component may be a symbolic link. Loads require regular
-files. On Unix, managed directories deny group and other access, newly created
-directories use mode `0700`, and managed cache and lock files use exactly
-`0600`.
+files. On Unix, managed directories and files deny group and other write access.
+Readable directories such as `0755` and files such as `0644` are supported:
+reports contain public metadata, and confinement protects the integrity of that
+evidence rather than requiring confidentiality. Newly created directories use
+`0700`, and newly published cache and lock files use `0600`. Existing permissions
+are never automatically changed.
 
 Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
 errors. Cache-only operations report them directly, and read-through policies
@@ -98,8 +101,13 @@ Compare resolved paths before creating managed directories or acquiring the lock
 including missing targets and symlink aliases, then check again when writing.
 On Unix, also compare file identities to reject hard links; open exports without
 truncation and check their opened identity before clearing their contents.
-There is no legacy reader, permission repair, deletion, or migration for older
-permissive cache trees.
+Group/world-writable paths remain errors; there is no permission repair,
+deletion, or migration for them.
+
+Atomic replacement is not rollback. A parent-directory sync error after rename
+is returned as a durability failure even though the new snapshot is already
+visible. Source, validation, and temporary-write failures before replacement
+leave the previous snapshot intact.
 
 Managed pretty-JSON publication validates serialization before filesystem
 mutation and then streams directly through the atomic temporary file, avoiding
@@ -235,6 +243,15 @@ snapshot and attempt files are still separate observations, not an atomic pair.
 Status and failed-refresh progress recovery use one validated SNS attempt
 reader. Failure recording treats unreadable or invalid prior attempt evidence
 as absent and keeps the original refresh error; exact status remains strict.
+
+Complete paged refreshes share the lock and attempt lifecycle helpers.
+Failure-sidecar writes are best effort and preserve the original refresh error. Snapshot
+publication precedes attempt finalization; a failed finalization is exposed in
+the successful refresh report as `attempt_finalization_error`, without marking
+the published snapshot as failed. NNS and SNS recover the latest valid page
+progress from their running sidecar, while ICRC collection errors carry their
+progress and resolved index identity directly. These are distinct evidence
+contracts under the same lifecycle, not competing recovery coordinators.
 
 Resolved live SNS identity, including its original SNS-W inventory position,
 belongs to `MainnetSns`. Live reports, complete snapshots, and refresh-attempt

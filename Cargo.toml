@@ -12,12 +12,24 @@ homepage = "https://github.com/dragginzgame/ic-query"
 repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
+cap-fs-ext = "4.0.2"
+cap-std = "4.0.2"
 candid = { version = "0.10", default-features = false }
 clap = { version = "4.6.1", features = ["derive"] }
+futures = "0.3"
+ic-agent = { version = "0.49.2", default-features = false }
+ic-cdk = "0.20.2"
 ic-query = { path = "crates/ic-query", version = "0.45.5", default-features = false }
+prost = "0.14.3"
+reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde_cbor = "0.11.2"
 serde_json = "1.0"
+sha2 = "0.10.9"
 thiserror = "2.0"
+tokio = "1.52.3"
+unicode-width = "0.2"
+url = "2.5.8"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

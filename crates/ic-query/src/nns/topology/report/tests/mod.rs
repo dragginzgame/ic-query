@@ -7,6 +7,7 @@ mod coverage;
 mod fixtures;
 mod gaps;
 mod providers;
+mod read;
 mod refresh;
 mod regions;
 mod summary;

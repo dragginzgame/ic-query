@@ -35,8 +35,6 @@ mod subnet_topology;
 #[cfg(feature = "nns-host")]
 mod summary;
 mod text;
-#[cfg(feature = "nns-host")]
-mod versions;
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
@@ -57,8 +55,6 @@ use refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_r
 use regions::topology_regions_report_from_report;
 #[cfg(all(test, feature = "nns-host"))]
 use summary::topology_summary_report_from_reports;
-#[cfg(all(test, feature = "nns-host"))]
-use versions::topology_versions_report_from_summary;
 
 #[cfg(feature = "nns-host")]
 pub use build::{

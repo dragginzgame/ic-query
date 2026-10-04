@@ -8,6 +8,7 @@ use crate::{
     cli::clap::{flag_arg, value_arg},
     output::{write_pretty_json, write_text},
 };
+use clap::builder::RangedU64ValueParser;
 use serde::Serialize;
 use std::{
     io,
@@ -124,4 +125,19 @@ pub fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
 
 pub fn collection_help(mode: &str, examples: &str) -> String {
     format!("Collection mode: {mode}\n\n{examples}")
+}
+
+pub fn page_size_arg(default: &'static str, maximum: u32) -> clap::Arg {
+    value_arg("page-size")
+        .long("page-size")
+        .value_name("count")
+        .default_value(default)
+        .value_parser(RangedU64ValueParser::<u32>::new().range(1..=u64::from(maximum)))
+}
+
+pub fn max_pages_arg() -> clap::Arg {
+    value_arg("max-pages")
+        .long("max-pages")
+        .value_name("count")
+        .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
 }

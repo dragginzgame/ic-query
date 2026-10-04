@@ -9,12 +9,12 @@ use crate::{
         clap::value_arg,
         common::{
             COLLECTION_MODE_LIVE, COLLECTION_MODE_LOCAL_ONLY, collection_help, json_arg,
-            source_endpoint_arg,
+            max_pages_arg, source_endpoint_arg,
         },
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
 };
-use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::Command as ClapCommand;
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
 use std::path::PathBuf;
 
@@ -80,10 +80,7 @@ pub(in crate::sns::commands) fn sns_reward_checkpoint_command() -> ClapCommand {
                 .help("IC API endpoint used for SNS-W and Governance queries"),
         )
         .arg(
-            value_arg("max-pages")
-                .long("max-pages")
-                .value_name("count")
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+            max_pages_arg()
                 .help("Optional diagnostic page cap; reaching it before exhaustion is an error"),
         )
         .after_help(collection_help(

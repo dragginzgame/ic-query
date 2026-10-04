@@ -452,7 +452,7 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
     }
     #[cfg(unix)]
     {
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o644))
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o664))
             .expect("widen file permissions");
         for error in [
             read_list().expect_err("unsafe list cache"),

@@ -117,17 +117,19 @@ fn validate_complete_provider_resource(
         ));
     }
 
-    let mut principals = HashSet::with_capacity(providers.len());
     for provider in providers.iter() {
         validate_provider(provider)?;
-        if !principals.insert(provider.principal_id.as_str()) {
-            return invalid_source(format!(
-                "duplicate node-provider principal {:?}",
-                provider.principal_id
-            ));
-        }
     }
     providers.sort_unstable_by(|left, right| left.principal_id.cmp(&right.principal_id));
+    if let Some(pair) = providers
+        .windows(2)
+        .find(|pair| pair[0].principal_id == pair[1].principal_id)
+    {
+        return invalid_source(format!(
+            "duplicate node-provider principal {:?}",
+            pair[0].principal_id
+        ));
+    }
     Ok(())
 }
 

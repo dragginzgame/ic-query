@@ -109,6 +109,92 @@ fn all_status_views_share_one_snapshot_and_attention_filter() {
 }
 
 #[test]
+fn aggregate_status_views_keep_snapshot_totals_when_selecting_rows() {
+    let mut snapshot = fixture_snapshot();
+    snapshot.nodes.push(fixture_node(
+        "r7inp-6aaaa-aaaaa-aaabq-cai",
+        "UP",
+        "REPLICA",
+        Some("rrkah-fqaaa-aaaaa-aaaaq-cai"),
+        "ryjl3-tyaaa-aaaaa-aaaba-cai",
+    ));
+    snapshot
+        .nodes
+        .sort_unstable_by(|left, right| left.node_id.cmp(&right.node_id));
+    snapshot.node_count = snapshot.nodes.len();
+    snapshot.counts = node_status_group_counts(snapshot.nodes.iter());
+    let all = IcNodeStatusView::attention().with_all(true);
+    let all_subnets = ic_subnet_status_report_from_snapshot(&snapshot, &all).expect("all Subnets");
+    let all_providers =
+        ic_node_provider_status_report_from_snapshot(&snapshot, &all).expect("all providers");
+    assert_eq!(all_subnets.subnet_count, 2);
+    assert_eq!(all_subnets.attention_subnet_count, 1);
+    assert_eq!(all_providers.provider_count, 3);
+    assert_eq!(all_providers.attention_provider_count, 2);
+    assert_eq!(
+        all_providers.unassigned_up_vs_assigned_up_provider_counts,
+        IcNodeCountComparisonCounts {
+            less: 2,
+            equal: 1,
+            greater: 0,
+        }
+    );
+    assert_eq!(
+        all_providers.unassigned_non_up_vs_assigned_non_up_provider_counts,
+        IcNodeCountComparisonCounts {
+            less: 1,
+            equal: 1,
+            greater: 1,
+        }
+    );
+
+    for (view, selected_row) in [
+        (IcNodeStatusView::attention(), 1),
+        (IcNodeStatusView::attention().with_target("rrk"), 0),
+        (IcNodeStatusView::attention().with_target("ryj"), 1),
+    ] {
+        let report = ic_subnet_status_report_from_snapshot(&snapshot, &view).expect("Subnet view");
+        assert_eq!(report.snapshot_node_count, 4);
+        assert_eq!(report.assigned_node_count, 3);
+        assert_eq!(report.subnet_count, all_subnets.subnet_count);
+        assert_eq!(
+            report.attention_subnet_count,
+            all_subnets.attention_subnet_count
+        );
+        assert_eq!(report.returned_subnet_count, 1);
+        assert_eq!(report.subnets, [all_subnets.subnets[selected_row].clone()]);
+    }
+    for (view, selected_rows) in [
+        (IcNodeStatusView::attention(), vec![0, 1]),
+        (IcNodeStatusView::attention().with_target("ryj"), vec![2]),
+        (IcNodeStatusView::attention().with_target("2v"), vec![0]),
+    ] {
+        let report =
+            ic_node_provider_status_report_from_snapshot(&snapshot, &view).expect("provider view");
+        assert_eq!(report.snapshot_node_count, 4);
+        assert_eq!(report.provider_count, all_providers.provider_count);
+        assert_eq!(
+            report.attention_provider_count,
+            all_providers.attention_provider_count
+        );
+        assert_eq!(
+            report.unassigned_up_vs_assigned_up_provider_counts,
+            all_providers.unassigned_up_vs_assigned_up_provider_counts
+        );
+        assert_eq!(
+            report.unassigned_non_up_vs_assigned_non_up_provider_counts,
+            all_providers.unassigned_non_up_vs_assigned_non_up_provider_counts
+        );
+        assert_eq!(report.returned_provider_count, selected_rows.len());
+        let expected = selected_rows
+            .into_iter()
+            .map(|index| all_providers.providers[index].clone())
+            .collect::<Vec<_>>();
+        assert_eq!(report.providers, expected);
+    }
+}
+
+#[test]
 fn status_text_separates_preambles_and_tables() {
     let snapshot = fixture_snapshot();
     let view = IcNodeStatusView::attention().with_all(true);

@@ -2,7 +2,7 @@
 //!
 //! Responsibility: publish complete SNS proposal snapshots.
 //! Does not own: refresh locking, live proposal paging, or command parsing.
-//! Boundary: writes complete cache JSON and complete-attempt metadata atomically.
+//! Boundary: atomically publishes the snapshot, then finalizes its attempt sidecar separately.
 
 use super::SnsProposalsRefreshContext;
 use crate::sns::report::{

@@ -199,44 +199,79 @@ fn managed_path_rejects_symlinked_parent_and_file() {
 
 #[cfg(unix)]
 #[test]
+fn readable_cache_tree_supports_load_and_publication_without_permission_repair() {
+    let root = temp_dir("ic-query-confined-readable");
+    let directory = root.join("nns");
+    let path = directory.join("cache.json");
+    fs::create_dir_all(&directory).expect("create readable cache tree");
+    for directory in [&root, &directory] {
+        fs::set_permissions(directory, fs::Permissions::from_mode(0o755))
+            .expect("set readable directory mode");
+    }
+    fs::write(&path, "evidence").expect("write readable cache");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("set readable file mode");
+
+    assert_eq!(
+        read_bounded_managed_file(&root, &path, 1024, None).expect("read readable cache"),
+        Some(b"evidence".to_vec())
+    );
+    assert!(managed_file_exists(&root, &path).expect("inspect readable cache"));
+    write_managed_text_atomically(&root, &path, "replacement")
+        .expect("publish into readable cache tree");
+    assert_eq!(fs::read(&path).expect("read replacement"), b"replacement");
+    for directory in [&root, &directory] {
+        assert_eq!(
+            fs::metadata(directory).unwrap().permissions().mode() & 0o777,
+            0o755
+        );
+    }
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    fs::remove_dir_all(root).expect("remove readable cache tree");
+}
+
+#[cfg(unix)]
+#[test]
 fn managed_path_rejects_unsafe_directory_and_file_modes() {
     let root = temp_dir("ic-query-confined-mode");
     let directory = root.join("nns");
     let path = directory.join("cache.json");
     write_managed_text_atomically(&root, &path, "evidence").expect("write managed cache");
 
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("widen file mode");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o664)).expect("widen file mode");
     let file_error =
         read_bounded_managed_file(&root, &path, 1024, None).expect_err("unsafe file mode rejected");
     assert!(matches!(
         file_error,
         BoundedManagedFileReadError::Operation(CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o644,
+            actual_mode: 0o664,
             ..
         })
     ));
 
     fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).expect("restore file mode");
-    fs::set_permissions(&directory, fs::Permissions::from_mode(0o755))
+    fs::set_permissions(&directory, fs::Permissions::from_mode(0o775))
         .expect("widen managed directory mode");
     let directory_error =
         managed_file_exists(&root, &path).expect_err("unsafe managed directory rejected");
     assert!(matches!(
         directory_error,
         CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o755,
+            actual_mode: 0o775,
             ..
         }
     ));
 
     fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
         .expect("restore managed directory mode");
-    fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).expect("widen root mode");
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o757)).expect("widen root mode");
     let root_error = managed_file_exists(&root, &path).expect_err("unsafe root mode rejected");
     assert!(matches!(
         root_error,
         CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o755,
+            actual_mode: 0o757,
             ..
         }
     ));

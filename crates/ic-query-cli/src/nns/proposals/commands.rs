@@ -9,7 +9,7 @@ use crate::{
         clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            COLLECTION_MODE_FORCE_REFRESH, collection_help,
+            COLLECTION_MODE_FORCE_REFRESH, collection_help, max_pages_arg, page_size_arg,
         },
     },
     nns::{
@@ -241,21 +241,14 @@ pub(in crate::nns) fn nns_proposal_refresh_command() -> ClapCommand {
                 .help("IC API endpoint used for the native NNS governance query"),
         )
         .arg(
-            value_arg("page-size")
-                .long("page-size")
-                .value_name("count")
-                .default_value(NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE)),
-                )
-                .help("Maximum NNS proposals to request per governance page"),
+            page_size_arg(
+                NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE,
+                NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
+            )
+            .help("Maximum NNS proposals to request per governance page"),
         )
         .arg(
-            value_arg("max-pages")
-                .long("max-pages")
-                .value_name("count")
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+            max_pages_arg()
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .after_help(collection_help(

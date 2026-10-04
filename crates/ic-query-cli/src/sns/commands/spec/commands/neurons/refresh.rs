@@ -5,13 +5,13 @@
 //! Boundary: defines refresh limits, source endpoint option, and examples.
 
 use crate::{
-    cli::{
-        clap::value_arg,
-        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, source_endpoint_arg},
+    cli::common::{
+        COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, max_pages_arg, page_size_arg,
+        source_endpoint_arg,
     },
     sns::commands::spec::commands::args::sns_lookup_input_arg,
 };
-use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::Command as ClapCommand;
 use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE};
 
 const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
@@ -34,21 +34,14 @@ pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
                 .help("IC API endpoint used for SNS-W and governance queries"),
         )
         .arg(
-            value_arg("page-size")
-                .long("page-size")
-                .value_name("count")
-                .default_value(SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(SNS_REFRESH_MAX_PAGE_SIZE)),
-                )
-                .help("Maximum neurons to request per SNS governance page"),
+            page_size_arg(
+                SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE,
+                SNS_REFRESH_MAX_PAGE_SIZE,
+            )
+            .help("Maximum neurons to request per SNS governance page"),
         )
         .arg(
-            value_arg("max-pages")
-                .long("max-pages")
-                .value_name("count")
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+            max_pages_arg()
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .after_help(collection_help(

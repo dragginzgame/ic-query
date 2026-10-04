@@ -6,7 +6,7 @@
 
 use super::{
     invalid_request, invalid_source, report_provenance, validate_canonical_principal,
-    validate_provenance,
+    validate_offset_page, validate_provenance,
 };
 use crate::{
     hex::is_lowercase_hex,
@@ -93,18 +93,16 @@ pub(in crate::ic) fn replica_version_list_report_from_source(
             source.query.limit
         ));
     }
-    validate_list_metadata(&source.query, source.total_proposals, source.rows.len())?;
+    let next_offset = validate_offset_page(
+        source.query.offset,
+        source.total_proposals,
+        source.rows.len(),
+        "total_proposals",
+        "replica-version page offset overflows u64",
+    )?;
     validate_list_rows(&mut source.rows)?;
 
     let returned_count = source.rows.len();
-    let consumed = source
-        .query
-        .offset
-        .checked_add(u64::try_from(returned_count).unwrap_or(u64::MAX))
-        .ok_or_else(|| IcHostError::InvalidSourceData {
-            reason: "replica-version page offset overflows u64".to_string(),
-        })?;
-    let next_offset = (returned_count > 0 && consumed < source.total_proposals).then_some(consumed);
 
     Ok(IcReplicaVersionListReport {
         provenance: report_provenance(source.source),
@@ -147,41 +145,6 @@ pub(in crate::ic) fn replica_version_info_report_from_source(
         subnet_count: source.subnets.len(),
         subnets: source.subnets,
     })
-}
-
-fn validate_list_metadata(
-    query: &IcReplicaVersionListQuery,
-    total_proposals: u64,
-    returned_count: usize,
-) -> Result<(), IcHostError> {
-    let returned_count = u64::try_from(returned_count).unwrap_or(u64::MAX);
-    if returned_count > total_proposals {
-        return invalid_source(format!(
-            "returned_count {returned_count} exceeds total_proposals {total_proposals}"
-        ));
-    }
-    if returned_count == 0 {
-        return Ok(());
-    }
-    if query.offset >= total_proposals {
-        return invalid_source(format!(
-            "nonempty page starts at offset {}, but total_proposals is {total_proposals}",
-            query.offset
-        ));
-    }
-    let consumed =
-        query
-            .offset
-            .checked_add(returned_count)
-            .ok_or_else(|| IcHostError::InvalidSourceData {
-                reason: "replica-version page offset overflows u64".to_string(),
-            })?;
-    if consumed > total_proposals {
-        return invalid_source(format!(
-            "page ending at offset {consumed} exceeds total_proposals {total_proposals}"
-        ));
-    }
-    Ok(())
 }
 
 fn validate_list_rows(rows: &mut [IcReplicaVersionListRow]) -> Result<(), IcHostError> {

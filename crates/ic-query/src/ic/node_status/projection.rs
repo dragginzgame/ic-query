@@ -6,10 +6,10 @@
 
 use super::{
     IcNodeCountComparison, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
-    IcNodeProviderStatusRow, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
-    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
-    IcSubnetStatusRow, node_status_group_counts, validate_canonical_node_status_rows,
-    validate_default_node_scope,
+    IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusProjectionError, IcNodeStatusReport,
+    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
+    IcSubnetStatusReport, IcSubnetStatusRow, node_status_group_counts,
+    validate_canonical_node_status_rows, validate_default_node_scope,
 };
 use std::collections::BTreeMap;
 
@@ -63,26 +63,17 @@ pub fn ic_subnet_status_report_from_snapshot(
         grouped.keys().map(String::as_str),
         "subnet_principal",
     )?;
-    let all_subnets = grouped
-        .into_iter()
-        .map(|(subnet_id, nodes)| subnet_row(subnet_id, &nodes))
-        .collect::<Vec<_>>();
-    let subnet_count = all_subnets.len();
-    let attention_subnet_count = all_subnets
-        .iter()
-        .filter(|row| row.statuses.non_up() > 0)
-        .count();
-    let subnets = all_subnets
-        .into_iter()
-        .filter(|row| {
-            view_includes(
-                view,
-                resolution.as_ref(),
-                &row.subnet_id,
-                row.statuses.non_up() > 0,
-            )
-        })
-        .collect::<Vec<_>>();
+    let subnet_count = grouped.len();
+    let mut attention_subnet_count = 0;
+    let mut subnets = Vec::new();
+    for (subnet_id, nodes) in grouped {
+        let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
+        let requires_attention = statuses.non_up() > 0;
+        attention_subnet_count += usize::from(requires_attention);
+        if view_includes(view, resolution.as_ref(), &subnet_id, requires_attention) {
+            subnets.push(subnet_row(subnet_id, statuses, &nodes));
+        }
+    }
 
     Ok(IcSubnetStatusReport {
         observation: snapshot.observation.clone(),
@@ -118,35 +109,44 @@ pub fn ic_node_provider_status_report_from_snapshot(
         grouped.keys().map(String::as_str),
         "node_provider_principal",
     )?;
-    let all_providers = grouped
-        .into_iter()
-        .map(|(provider_id, nodes)| provider_row(provider_id, &nodes))
-        .collect::<Vec<_>>();
-    let provider_count = all_providers.len();
-    let attention_provider_count = all_providers
-        .iter()
-        .filter(|row| row.counts.statuses.non_up() > 0)
-        .count();
+    let provider_count = grouped.len();
+    let mut attention_provider_count = 0;
     let mut up_comparisons = IcNodeCountComparisonCounts::default();
     let mut non_up_comparisons = IcNodeCountComparisonCounts::default();
-    for provider in &all_providers {
-        increment_comparison(&mut up_comparisons, provider.unassigned_up_vs_assigned_up);
+    let mut providers = Vec::new();
+    for (node_provider_id, nodes) in grouped {
+        let counts = node_status_group_counts(nodes.iter().copied());
+        let assigned = &counts.assignment_statuses.assigned;
+        let unassigned = &counts.assignment_statuses.unassigned;
+        let unassigned_up_vs_assigned_up =
+            IcNodeCountComparison::from_counts(unassigned.up, assigned.up);
+        let unassigned_non_up_vs_assigned_non_up =
+            IcNodeCountComparison::from_counts(unassigned.non_up(), assigned.non_up());
+        increment_comparison(&mut up_comparisons, unassigned_up_vs_assigned_up);
         increment_comparison(
             &mut non_up_comparisons,
-            provider.unassigned_non_up_vs_assigned_non_up,
+            unassigned_non_up_vs_assigned_non_up,
         );
+        let requires_attention = counts.statuses.non_up() > 0;
+        attention_provider_count += usize::from(requires_attention);
+        if view_includes(
+            view,
+            resolution.as_ref(),
+            &node_provider_id,
+            requires_attention,
+        ) {
+            providers.push(IcNodeProviderStatusRow {
+                node_provider_id,
+                node_provider_name: nodes
+                    .first()
+                    .map_or_else(String::new, |node| node.node_provider_name.clone()),
+                unassigned_up_vs_assigned_up,
+                unassigned_non_up_vs_assigned_non_up,
+                counts,
+                non_up_nodes: non_up_nodes(&nodes),
+            });
+        }
     }
-    let providers = all_providers
-        .into_iter()
-        .filter(|row| {
-            view_includes(
-                view,
-                resolution.as_ref(),
-                &row.node_provider_id,
-                row.counts.statuses.non_up() > 0,
-            )
-        })
-        .collect::<Vec<_>>();
 
     Ok(IcNodeProviderStatusReport {
         observation: snapshot.observation.clone(),
@@ -164,8 +164,11 @@ pub fn ic_node_provider_status_report_from_snapshot(
     })
 }
 
-fn subnet_row(subnet_id: String, nodes: &[&IcNodeStatusRow]) -> IcSubnetStatusRow {
-    let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
+fn subnet_row(
+    subnet_id: String,
+    statuses: IcNodeStatusCounts,
+    nodes: &[&IcNodeStatusRow],
+) -> IcSubnetStatusRow {
     let fault_tolerance_node_count = statuses.total.saturating_sub(1) / 3;
     let first_exceeding_count = fault_tolerance_node_count.saturating_add(1);
     let non_up_nodes = non_up_nodes(nodes);
@@ -180,30 +183,6 @@ fn subnet_row(subnet_id: String, nodes: &[&IcNodeStatusRow]) -> IcSubnetStatusRo
             > fault_tolerance_node_count,
         fault_tolerance_node_count,
         statuses,
-        non_up_nodes,
-    }
-}
-
-fn provider_row(node_provider_id: String, nodes: &[&IcNodeStatusRow]) -> IcNodeProviderStatusRow {
-    let node_provider_name = nodes
-        .first()
-        .map_or_else(String::new, |node| node.node_provider_name.clone());
-    let non_up_nodes = non_up_nodes(nodes);
-    let counts = node_status_group_counts(nodes.iter().copied());
-    let assigned = &counts.assignment_statuses.assigned;
-    let unassigned = &counts.assignment_statuses.unassigned;
-    IcNodeProviderStatusRow {
-        node_provider_id,
-        node_provider_name,
-        unassigned_up_vs_assigned_up: IcNodeCountComparison::from_counts(
-            unassigned.up,
-            assigned.up,
-        ),
-        unassigned_non_up_vs_assigned_non_up: IcNodeCountComparison::from_counts(
-            unassigned.non_up(),
-            assigned.non_up(),
-        ),
-        counts,
         non_up_nodes,
     }
 }

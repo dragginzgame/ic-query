@@ -407,7 +407,9 @@ assurance.
   It preserves raw status, assignment, alert, provider/operator, version,
   location, and hardware evidence, then projects node, Subnet, and provider
   views from one canonical snapshot. The 60-second atomic cache is keyed only
-  by the collected network resource; targets and `--all` are views. Reports
+  by the collected network resource; targets and `--all` are views. Aggregate
+  projections count every group for snapshot-wide summaries but construct
+  detailed rows and clone non-up node evidence only for selected groups. Reports
   explicitly state that the observation is uncertified, not point-in-time,
   and excludes cloud-engine nodes under the Dashboard's default scope. No
   per-row follow-up call or Registry-version claim is introduced.
@@ -446,7 +448,9 @@ assurance.
 - Official Dashboard CloudEngine provider reporting makes one request for the
   complete node-provider resource or one exact provider. Complete collection
   is capped at 1,000 rows and validated before filtering to explicit
-  CloudEngine counts or locations. Exact detail preserves valid zero-evidence
+  CloudEngine counts or locations. Principal uniqueness is checked against
+  the canonical provider ordering; location uniqueness is checked without
+  reordering either location scope. Exact detail preserves valid zero-evidence
   providers. It does not infer native control-plane state, provider-to-node
   identity, health, or a join to the identifier-free boundary-location
   aggregate.

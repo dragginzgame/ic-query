@@ -5,9 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.45.x] - 2026-10-03 - Cache and decoder bounds, validation, and cleanup
+## [0.45.x] - 2026-10-04 - Cache and decoder bounds, validation, and cleanup
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
+
+- `0.45.6` accepts readable managed cache directories/files (`0755`/`0644`),
+  fixing failures on conventional user cache trees. Group/world-writable paths
+  and symlinks remain rejected; new directories/files retain `0700`/`0600`.
+  Simplifies CloudEngine exact-node and provider validation, removing
+  temporary row storage and a redundant provider identity set. Dashboard
+  Subnet/provider status views build detailed rows only for selected groups,
+  preserving snapshot-wide totals, assignment comparisons, ordering, and
+  source/cache validation. Consolidates Dashboard page validation and topology
+  component reads; topology versions projects provenance directly while
+  preserving source order and failures. Public Rust APIs, CLI grammar, cache
+  identities, and serialized shapes are unchanged; schemas remain `1`.
 
 - `0.45.5` removes redundant SNS collection-state wrappers and forwarding
   modules while preserving page validation, deduplication, cursor handling,

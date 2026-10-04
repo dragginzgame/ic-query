@@ -606,7 +606,7 @@ fn confinement_and_permissions_remain_errors_without_cold_network_fallback() {
             fs::rename(&path, &other).expect("move fixture");
             symlink(&other, &path).expect("link fixture");
         } else {
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o644))
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o664))
                 .expect("unsafe permissions");
         }
         let error = futures::executor::block_on(collect_key_family(

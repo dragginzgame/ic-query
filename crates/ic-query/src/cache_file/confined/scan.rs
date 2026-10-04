@@ -429,7 +429,7 @@ mod tests {
         let network = root.join("sns/ic");
         let path = network.join("entity/proposals/full.json");
         super::super::write_managed_text_atomically(&root, &path, "{}").unwrap();
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o664)).unwrap();
         assert!(matches!(
             collect_managed_collection_files(&root, &network, "proposals", "full.json", 2),
             Err(CacheFileError::UnsafeManagedPermissions { .. })

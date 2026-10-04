@@ -5,7 +5,7 @@ use crate::{
         clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            COLLECTION_MODE_FORCE_REFRESH, collection_help,
+            COLLECTION_MODE_FORCE_REFRESH, collection_help, max_pages_arg, page_size_arg,
         },
     },
     nns::leaf,
@@ -134,23 +134,10 @@ pub(in crate::nns) fn neuron_refresh_command() -> ClapCommand {
                 .help("IC API endpoint used for every native NNS Governance page"),
         )
         .arg(
-            value_arg("page-size")
-                .long("page-size")
-                .value_name("count")
-                .default_value(REFRESH_DEFAULT_PAGE_SIZE)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(NNS_NEURON_MAX_PAGE_SIZE)),
-                )
+            page_size_arg(REFRESH_DEFAULT_PAGE_SIZE, NNS_NEURON_MAX_PAGE_SIZE)
                 .help("Maximum public neurons requested per Governance page"),
         )
-        .arg(
-            value_arg("max-pages")
-                .long("max-pages")
-                .value_name("count")
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
-                .help("Stop without publishing if this cap precedes API exhaustion"),
-        )
+        .arg(max_pages_arg().help("Stop without publishing if this cap precedes API exhaustion"))
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             REFRESH_HELP_AFTER,

@@ -1,38 +1,39 @@
 use super::{fixtures::*, *};
 
 #[test]
-fn topology_versions_report_projects_summary_registry_versions() {
-    let summary = topology_summary_report_from_reports(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
-    );
-
-    let report = topology_versions_report_from_summary(summary);
+fn topology_versions_report_preserves_component_registry_provenance() {
+    let report = build_nns_topology_versions_report_with_source(
+        &topology_read_request_fixture(),
+        &RecordingTopologySource::default(),
+    )
+    .expect("topology versions report");
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(report.source_count, 5);
     assert_eq!(report.registry_versions[0].source, "subnet_catalog");
     assert_eq!(report.registry_versions[1].source, "nodes");
+    let summary = build_nns_topology_summary_report_with_source(
+        &topology_read_request_fixture(),
+        &RecordingTopologySource::default(),
+    )
+    .expect("topology summary report");
+    assert_eq!(report.registry_versions, summary.registry_versions);
+    assert_eq!(report.registry_versions[0].stale, Some(false));
+    assert_eq!(report.registry_versions[0].source_endpoint, "-");
+    for (row, version) in report.registry_versions.iter().zip(42..=46) {
+        assert_eq!(row.registry_version, version);
+        assert_ne!(row.fetched_at, "");
+    }
 }
 
 #[test]
 fn topology_versions_text_renders_registry_version_table() {
-    let summary = topology_summary_report_from_reports(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
-    );
-    let report = topology_versions_report_from_summary(summary);
+    let report = build_nns_topology_versions_report_with_source(
+        &topology_read_request_fixture(),
+        &RecordingTopologySource::default(),
+    )
+    .expect("topology versions report");
 
     let text = nns_topology_versions_report_text(&report);
 

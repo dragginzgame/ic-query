@@ -10,7 +10,7 @@ use crate::{
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
             COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
-            json_arg, source_endpoint_arg,
+            json_arg, max_pages_arg, page_size_arg, source_endpoint_arg,
         },
     },
     sns::commands::spec::{
@@ -242,21 +242,14 @@ pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
                 .help("IC API endpoint used for SNS-W and governance queries"),
         )
         .arg(
-            value_arg("page-size")
-                .long("page-size")
-                .value_name("count")
-                .default_value(SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(SNS_REFRESH_MAX_PAGE_SIZE)),
-                )
-                .help("Maximum proposals to request per SNS governance page"),
+            page_size_arg(
+                SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE,
+                SNS_REFRESH_MAX_PAGE_SIZE,
+            )
+            .help("Maximum proposals to request per SNS governance page"),
         )
         .arg(
-            value_arg("max-pages")
-                .long("max-pages")
-                .value_name("count")
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+            max_pages_arg()
                 .help("Stop before publishing if this page count is reached before API exhaustion"),
         )
         .after_help(collection_help(

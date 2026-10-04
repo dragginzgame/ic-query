@@ -171,7 +171,7 @@ fn existing_refresh_lock_uses_its_recorded_stale_policy() {
 fn existing_refresh_lock_rejects_unsafe_file_mode() {
     let fixture = LockFixture::new("ic-query-unsafe-refresh-lock-mode");
     fixture.write_valid_lock(100_000);
-    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o644))
+    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o664))
         .expect("widen lock mode");
 
     let error = acquire_refresh_lock(fixture.request(120)).expect_err("unsafe lock is rejected");
@@ -179,7 +179,7 @@ fn existing_refresh_lock_rejects_unsafe_file_mode() {
     assert!(matches!(
         error,
         CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o644,
+            actual_mode: 0o664,
             ..
         }
     ));

@@ -5,9 +5,11 @@
 //! Boundary: combines component report counts, relations, and versions.
 
 mod join;
-mod registry_versions;
 
-use super::{NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport};
+use super::{
+    NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport,
+    registry_versions::topology_registry_versions,
+};
 use crate::{
     nns::{
         data_center::NnsDataCenterListReport, node::NnsNodeListReport,
@@ -16,7 +18,6 @@ use crate::{
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},
 };
 use join::topology_summary_join_coverage_counts;
-use registry_versions::topology_summary_registry_versions;
 
 pub(super) fn topology_summary_report_from_reports(
     network: String,
@@ -41,7 +42,7 @@ pub(super) fn topology_summary_report_from_reports(
         &node_operator_report,
         &data_center_report,
     );
-    let registry_versions = topology_summary_registry_versions(
+    let registry_versions = topology_registry_versions(
         &subnet_report,
         &node_report,
         &node_provider_report,

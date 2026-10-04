@@ -1,3 +1,4 @@
+use super::fetch_topology_inventory_reports;
 use crate::nns::{
     LiveNnsSource,
     topology::report::{
@@ -23,18 +24,15 @@ pub fn build_nns_topology_gaps_report_with_source(
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let node_report = source.fetch_node_list_report(&source_request)?;
-    let node_provider_report = source.fetch_node_provider_list_report(&source_request)?;
-    let node_operator_report = source.fetch_node_operator_list_report(&source_request)?;
-    let data_center_report = source.fetch_data_center_list_report(&source_request)?;
+    let reports = fetch_topology_inventory_reports(&source_request, source)?;
 
     Ok(topology_gaps_report_from_reports(
         request.network().to_string(),
         request.source_endpoint().to_string(),
-        node_report,
-        node_provider_report,
-        node_operator_report,
-        data_center_report,
+        reports.node,
+        reports.node_provider,
+        reports.node_operator,
+        reports.data_center,
     ))
 }
 
@@ -95,17 +93,14 @@ pub fn build_nns_topology_providers_report_with_source(
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let node_report = source.fetch_node_list_report(&source_request)?;
-    let node_provider_report = source.fetch_node_provider_list_report(&source_request)?;
-    let node_operator_report = source.fetch_node_operator_list_report(&source_request)?;
-    let data_center_report = source.fetch_data_center_list_report(&source_request)?;
+    let reports = fetch_topology_inventory_reports(&source_request, source)?;
 
     Ok(topology_providers_report_from_reports(
         request.network().to_string(),
         request.source_endpoint().to_string(),
-        node_report,
-        node_provider_report,
-        node_operator_report,
-        data_center_report,
+        reports.node,
+        reports.node_provider,
+        reports.node_operator,
+        reports.data_center,
     ))
 }

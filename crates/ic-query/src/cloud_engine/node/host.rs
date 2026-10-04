@@ -146,13 +146,10 @@ pub fn build_cloud_engine_node_info_report_with_source(
             source_data.node_id
         ));
     }
-    let mut nodes = vec![source_data.node];
-    canonicalize_node_status_rows_with_policy(&mut nodes, 1, true).map_err(invalid_source_value)?;
-    validate_type4_nodes(&nodes, None, false)?;
-    let node = nodes
-        .into_iter()
-        .next()
-        .ok_or_else(|| invalid_source_value("exact node source returned no row"))?;
+    let mut node = source_data.node;
+    let nodes = std::slice::from_mut(&mut node);
+    canonicalize_node_status_rows_with_policy(nodes, 1, true).map_err(invalid_source_value)?;
+    validate_type4_nodes(nodes, None, false)?;
     if node.node_id != requested_node_id {
         return invalid_source(format!(
             "returned node id is {:?}, expected {requested_node_id:?}",

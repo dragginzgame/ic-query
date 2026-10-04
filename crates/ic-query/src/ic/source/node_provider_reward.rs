@@ -6,7 +6,8 @@
 
 use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
-    validate_canonical_principal, validate_collection_end, validate_provenance,
+    validate_canonical_principal, validate_collection_end, validate_offset_page,
+    validate_provenance,
 };
 use crate::{
     hex::is_lowercase_hex,
@@ -132,23 +133,16 @@ pub(in crate::ic) fn node_provider_reward_list_report_from_source(
             source.query.limit
         ));
     }
-    validate_list_metadata(
-        &source.query,
+    let next_offset_hint = validate_offset_page(
+        source.query.offset,
         source.total_reward_records,
         source.rows.len(),
+        "total_reward_records",
+        "node-provider reward page offset overflows u64",
     )?;
     validate_reward_rows(&source.rows)?;
 
     let returned_count = source.rows.len();
-    let consumed = source
-        .query
-        .offset
-        .checked_add(u64::try_from(returned_count).unwrap_or(u64::MAX))
-        .ok_or_else(|| IcHostError::InvalidSourceData {
-            reason: "node-provider reward page offset overflows u64".to_string(),
-        })?;
-    let next_offset_hint =
-        (returned_count > 0 && consumed < source.total_reward_records).then_some(consumed);
 
     Ok(IcNodeProviderRewardListReport {
         provenance: report_provenance(source.source),
@@ -225,41 +219,6 @@ pub(in crate::ic) fn node_provider_reward_history_report_from_source(
         returned_observation_count: source.observations.len(),
         observations: source.observations,
     })
-}
-
-fn validate_list_metadata(
-    query: &IcNodeProviderRewardListQuery,
-    total_reward_records: u64,
-    returned_count: usize,
-) -> Result<(), IcHostError> {
-    let returned_count = u64::try_from(returned_count).unwrap_or(u64::MAX);
-    if returned_count > total_reward_records {
-        return invalid_source(format!(
-            "returned_count {returned_count} exceeds total_reward_records {total_reward_records}"
-        ));
-    }
-    if returned_count == 0 {
-        return Ok(());
-    }
-    if query.offset >= total_reward_records {
-        return invalid_source(format!(
-            "nonempty page starts at offset {}, but total_reward_records is {total_reward_records}",
-            query.offset
-        ));
-    }
-    let consumed =
-        query
-            .offset
-            .checked_add(returned_count)
-            .ok_or_else(|| IcHostError::InvalidSourceData {
-                reason: "node-provider reward page offset overflows u64".to_string(),
-            })?;
-    if consumed > total_reward_records {
-        return invalid_source(format!(
-            "page ending at offset {consumed} exceeds total_reward_records {total_reward_records}"
-        ));
-    }
-    Ok(())
 }
 
 fn validate_reward_rows(rows: &[IcNodeProviderRewardRow]) -> Result<(), IcHostError> {

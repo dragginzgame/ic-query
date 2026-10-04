@@ -114,7 +114,7 @@ where
     )
 }
 
-/// Build and atomically publish one complete SNS family snapshot and attempt.
+/// Atomically publish a complete SNS family snapshot, then finalize its attempt sidecar.
 pub(in crate::sns::report) fn publish_complete_sns_snapshot<Request, Collection, Data>(
     context: &SnsSnapshotRefreshContext<'_, Request, Collection>,
     cache_schema_version: u32,

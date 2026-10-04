@@ -151,15 +151,3 @@ impl TopologyRefreshParts for NnsTopologyRefreshRequest {
         self.dry_run
     }
 }
-
-#[cfg(feature = "nns-host")]
-pub(in crate::nns::topology::report) fn summary_request_from(
-    request: &impl TopologyRequestParts,
-) -> NnsTopologyReadRequest {
-    NnsTopologyReadRequest::new(
-        request.cache_root(),
-        request.network(),
-        request.source_endpoint(),
-        request.now_unix_secs(),
-    )
-}

@@ -735,11 +735,38 @@ fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
 
 #[cfg(unix)]
 #[test]
+fn catalog_load_accepts_readable_managed_paths() {
+    let root = temp_dir("ic-query-subnet-readable-mode");
+    write_catalog(&root, fixture_catalog());
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    for directory in [&root, path.parent().unwrap()] {
+        fs::set_permissions(directory, fs::Permissions::from_mode(0o755))
+            .expect("set readable directory mode");
+    }
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("set readable cache mode");
+
+    let catalog = load_cached_subnet_catalog(&cache_only_load_request(&root))
+        .expect("readable catalog loads without a refresh");
+    assert_eq!(catalog.catalog.raw(), &fixture_catalog());
+    assert_eq!(catalog.disposition, CacheDisposition::CacheHit);
+    assert_eq!(
+        fs::metadata(&root).unwrap().permissions().mode() & 0o777,
+        0o755
+    );
+    assert_eq!(
+        fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o644
+    );
+    fs::remove_dir_all(root).expect("remove catalog fixture");
+}
+
+#[cfg(unix)]
+#[test]
 fn catalog_load_rejects_unsafe_managed_file_mode() {
     let root = temp_dir("ic-query-subnet-unsafe-mode");
     write_catalog(&root, fixture_catalog());
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).expect("widen cache mode");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o664)).expect("widen cache mode");
 
     let error = load_cached_subnet_catalog(&cache_only_load_request(&root))
         .expect_err("unsafe mode rejected");
@@ -749,7 +776,7 @@ fn catalog_load_rejects_unsafe_managed_file_mode() {
         error,
         SubnetCatalogHostError::Cache(HostCacheError::Operation {
             source: CacheFileError::UnsafeManagedPermissions {
-                actual_mode: 0o644,
+                actual_mode: 0o664,
                 ..
             },
             ..

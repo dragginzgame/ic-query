@@ -91,3 +91,10 @@ operator's deficit.
 
 Summary construction owns its join-coverage counts, while summary and gap
 reports share one relation-membership index.
+
+Diagnostic builders share one sequential collector for node, provider,
+operator, and data-center inventories. Summary and versions read the Subnet
+Catalog first; versions projects the same five provenance rows directly
+without constructing summary counts or relation indexes. Coverage and check
+retain their full-summary dependency, and capacity and regions read only their
+required component. Every read stops at the first component failure.
