@@ -1,3 +1,23 @@
+<!-- helper-navigation:start -->
+<p align="center">
+  <a href="https://github.com/dragginzgame/canic"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/canic.svg" width="18" height="18" alt=""> <strong>canic</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/icydb"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/icydb.svg" width="18" height="18" alt=""> <strong>icydb</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-timers"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-timers.svg" width="18" height="18" alt=""> <strong>ic-timers</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-memory"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-memory.svg" width="18" height="18" alt=""> <strong>ic-memory</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-query"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-query.svg" width="18" height="18" alt=""> <strong>ic-query</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-backup"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-backup.svg" width="18" height="18" alt=""> <strong>ic-backup</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-blob-storage"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-blob-storage.svg" width="18" height="18" alt=""> <strong>ic-blob-storage</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/dragginzgame/ic-testkit"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-testkit.svg" width="18" height="18" alt=""> <strong>ic-testkit</strong></a>
+</p>
+<!-- helper-navigation:end -->
+
 # ic-query
 
 [![CI](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml/badge.svg)](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml)
@@ -5,71 +25,137 @@
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
 
-`ic-query` is a read-only Internet Computer reporting library.
-`ic-query-cli` provides its `icq` command-line interface.
+`ic-query` is a read-only tool for asking structured questions about the
+Internet Computer (IC). Its command is called `icq`.
 
-The project turns CloudEngine, Registry, NNS, SNS, system-canister,
-ledger/index, certificate, and official IC Dashboard responses into typed
-reports with explicit provenance. It keeps live calls, cache reads, refreshes,
-and local-only inspection visibly distinct.
+Instead of visiting several dashboards, calling canisters by hand, and working
+out which source an answer came from, you can use one command to produce a
+human-readable report or machine-readable JSON. The report keeps the source,
+retrieval time, and important limits visible so that you can judge what the
+answer actually proves.
 
-## Supported reporting
+`ic-query` never changes network state. It does not submit proposals, move
+tokens, manage neurons, or modify canisters.
 
-| Family | Current surface |
-| --- | --- |
-| Certified IC state | Complete authenticated API boundary-node identities, domains, and IPv4/IPv6 configuration from one certified state tree |
-| Official IC Dashboard | Bounded canister count/search pages, deployed canister metadata and upgrade history, bounded network metric time series and daily activity, boundary-node data-center aggregates, exact/one-page replica releases, exact/one-page/aggregate node-provider rewards, one-request observed default-scope and explicit Type4 node status, cached default-scope node/Subnet/provider views with typed provider assignment comparisons, and one-ledger ICRC total-supply/token-value history, indexed counts, account detail/pages, and holder pages |
-| CloudEngine | Registry-backed CloudEngine Subnet inventory with bounded public operator bindings, exact one-Subnet operator details, public network fee and bounded marketplace prices, one-request official Dashboard provider footprint and exact provider detail, plus explicit Type4 node health, assignment, and exact detail |
-| NNS Registry | Certified latest version, bounded exact-target replay and retained archives, archive-bound certified Subnet Catalog authority, Subnets, nodes, node operators, node providers, data centers, component topology diagnostics, and an exact-version joined topology library API |
-| NNS Governance | Bounded and caller-resumable complete proposal and public-neuron collection, pure complete-collection proposal activity and public-neuron distribution analytics, economics, metrics, latest reward event, and maturity modulation |
-| SNS | Cached joined discovery, targeted metadata, token and nervous-system parameters, bounded Governance metrics, swap and upgrade state, Root canister inventory and health, proposals, fixed-size neuron collections, exact permission/followee neuron detail, bracketed API-exhausted maturity checkpoints, and local reward-event reconciliation |
-| ICRC | Capabilities, token metadata, balances, allowances, index discovery, ledger and account transactions, archives, block types, tip certificates, and bounded official total-supply, external token-value, and indexed-count analytics |
-| System canisters | Certified Cycle Minting Canister ICP/XDR rates and exact cycles-per-ICP derivation |
+## Why use it?
 
-The living [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md) records the broader reporting
-surface, current coverage estimates, and the remaining work.
+`ic-query` is useful when you want to:
+
+- inspect a canister, Subnet, node, token ledger, or governance system;
+- compare what the Registry says with what an operational dashboard observes;
+- investigate network topology, capacity, health, rewards, or release records;
+- save repeatable JSON evidence for analysis or monitoring; or
+- build another read-only tool on the same validated Rust reports.
+
+The important idea is that not every IC data source offers the same guarantee.
+Some answers are cryptographically certified, some are direct canister query
+responses, and some come from official off-chain analytics. `ic-query` labels
+those differences instead of presenting every answer as equally authoritative
+or equally current.
+
+## How it works
+
+1. You choose the thing you want to inspect, such as a canister, Subnet, SNS,
+   ledger, or network metric.
+2. `icq` contacts the explicitly named authority for that report. Depending on
+   the question, that may be certified IC state, a canister, the NNS Registry,
+   or an official analytics API.
+3. The response is bounded and validated before it becomes a report. Commands
+   that collect larger datasets make their limits and progress visible.
+4. You receive readable terminal output or raw JSON together with provenance
+   and freshness information. A local cache is used only when the command's
+   documented collection mode calls for one.
+
+## What can you investigate?
+
+| Question | Example command | What you get |
+| --- | --- | --- |
+| What is known about a canister? | `icq ic canister info <canister-id>` | Dashboard metadata, controllers, Subnet, module details, and recorded upgrades |
+| What is happening across the network? | `icq ic metrics ic-node-count` | A bounded time series from the official IC metrics service |
+| Which nodes and providers make up the network? | `icq nns topology summary` | A cached summary of joined Registry topology; related commands show capacity, geography, versions, and gaps |
+| What is the NNS governing? | `icq nns proposal list --limit 25` | Recent proposals and their status; related commands inspect public neurons, economics, and rewards |
+| Which SNS projects exist and how are they configured? | `icq sns list` | A deployed-project catalog; related commands inspect governance settings, canisters, proposals, neurons, and upgrades |
+| What does a token ledger report? | `icq icrc ledger token <ledger-canister-id>` | Current token metadata and supply; related commands inspect balances, transactions, archives, and index analytics |
+| What is the current certified ICP/XDR rate? | `icq system xdr` | The CMC rate with its certificate evidence |
+| What public CloudEngine infrastructure is visible? | `icq cloud-engine list` | Registry inventory plus separately identified control-plane and Dashboard observations |
+
+Angle brackets mean “replace this with your own value.” For example,
+`<canister-id>` means the principal of the canister you want to inspect.
+
+## A few IC terms
+
+- A **canister** is a program and its stored state running on the Internet
+  Computer.
+- A **Subnet** is a group of machines that runs a set of canisters.
+- The **NNS** is the Network Nervous System, which governs and configures the IC.
+- An **SNS** is a governance system used by an individual decentralized
+  project.
+- **ICRC** names token and ledger standards used by many IC projects.
+- The **Registry** is the NNS-managed record of network configuration.
+
+You do not need to memorize these terms before using the tool. Start with
+`icq help`, then follow the command names that match the thing you want to
+inspect.
 
 ## Install
 
-For canister-adapter development, see the [Governance canister smoke harness](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
-for ICP CLI 1.6.0 builds, local NNS integration tests, retained execution
-receipts, and environment-specific bundles.
-
-From this checkout:
-
-```bash
-make install
-```
-
-The install target replaces an existing `icq` binary, so repeated development
-installs do not need a separate Cargo `--force` option.
-
-From crates.io:
+`icq` is a terminal application. The published install currently uses Cargo,
+so a Rust toolchain is required. Once Rust and Cargo are installed, run:
 
 ```bash
 cargo install ic-query-cli
 ```
 
-Local `make patch`, `make minor`, and `make major` runs execute the complete
-release gate and update version metadata while retaining Cargo build artifacts
-for subsequent builds and diagnosis. Use `make clean` when you explicitly want
-to remove build artifacts. Release staging includes every generated version and
-dependency-example edit; committing rejects unstaged, untracked, or unexpected
-staged paths and creates the tag only from a clean completed commit.
-`make release-patch`, `make release-minor`, and `make release-major` run the
-bump, stage, commit/tag, and push steps sequentially, stopping on any failure.
-The CI gate owns the target-version changelog check. After the release is pushed,
-`make publish` checks the clean tree and tag, publishes the library first, and
-waits for registry visibility before publishing the CLI; reruns skip packages
-already published. Its registry-backed verification is separate from the
-pre-bump CI packaging check, which tests the CLI against the local library.
-CI helper scripts likewise remove only their own exact temporary paths. They
-do not sweep shared `/tmp` or remove the shared Cargo download cache.
-Dependency checks give `cargo audit` a fresh, disposable RustSec checkout on
-every run, using a shallow Git clone with progress output and a slow-transfer
-cutoff, so stale files in the shared advisory cache cannot break the release gate.
+This installs the `icq` command. Confirm it is available with:
 
-## Quick start
+```bash
+icq --version
+```
+
+Contributors working from a repository checkout can instead use:
+
+```bash
+make install
+```
+
+The local install replaces an existing `icq` binary. Canister-adapter
+contributors should also read the
+[Governance canister smoke harness](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md).
+
+## A first session
+
+After installation, try a report that does not require you to know an id:
+
+```bash
+icq ic metrics ic-node-count
+```
+
+Then list deployed SNS projects:
+
+```bash
+icq sns list
+```
+
+Text output is designed for reading in a terminal. Add `--json` when you want
+to save, filter, or process the complete raw report:
+
+```bash
+icq sns list --json
+```
+
+Every report command explains where it gets its data and whether it uses live
+network access or a local cache:
+
+```bash
+icq sns list --help
+```
+
+The [CLI Usage guide](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
+contains the complete command map. The living
+[Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
+records current coverage and remaining work.
+
+## Example command gallery
 
 ```bash
 # Official Dashboard canister metadata
@@ -170,11 +256,16 @@ subcommand, such as `icq sns reward`. Every
 cache behavior are documented in
 [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
 
-## Authority and freshness
+## How to read the evidence
 
-An “official” source is not automatically certified or point-in-time
-consistent. Reports preserve the authority and guarantees the source can
-actually make:
+An answer can be accurate for its source without being a permanent fact about
+the whole network. In particular, “official” does not automatically mean
+cryptographically certified or captured at one exact moment.
+
+Each report therefore records its **provenance**: where the data came from,
+when it was retrieved, and what validation was possible. The main source types
+are compared below. This section becomes more technical because these
+distinctions matter when a report is used as evidence.
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
@@ -479,7 +570,7 @@ Subnet Catalog history transcripts and their writer lock appear as
 `nns/registry-history`. Their unmanaged age is separate from catalog freshness;
 full transcript validation occurs only during authorized live acquisition.
 
-## Library
+## Rust library for developers
 
 Use `ic-query` for typed requests, reports, validation, cache behavior, source
 adapters, and renderers without spawning `icq`.

@@ -9,11 +9,12 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
-- `0.45.14` refreshes the documentation audit against the current command
-  tree, library feature boundary, cache policy, and release history. Corrects
-  the Subnet Catalog history transcript's managed-permission guidance, records
-  the completed review in the roadmap, and replaces stale `Unreleased` labels
-  for tagged releases with their release dates. CLI grammar, Rust APIs,
+- `0.45.14` rewrites the README introduction around plain-language use cases,
+  a first session, a short IC glossary, and an approachable explanation of
+  evidence provenance while retaining the complete technical reference.
+  Refreshes the documentation audit against the current command tree, library
+  feature boundary, cache policy, and release history; corrects managed-cache
+  permission guidance and stale release labels. CLI grammar, Rust APIs,
   serialized shapes, and schema identifiers are unchanged.
 
 - `0.45.13` rejects proposal ID zero in NNS disk snapshots, matching live
