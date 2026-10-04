@@ -31,6 +31,13 @@ icq nns neuron distribution --json
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.14` refreshes the documentation audit against the current command
+  tree, library feature boundary, cache policy, and release history. Corrects
+  the Subnet Catalog history transcript's managed-permission guidance, records
+  the completed review in the roadmap, and replaces stale `Unreleased` labels
+  for tagged releases with their release dates. CLI grammar, Rust APIs,
+  serialized shapes, and schema identifiers are unchanged.
+
 - `0.45.13` rejects proposal ID zero in NNS disk snapshots, matching live
   collection and analytics checks; invalid caches remain visible in local
   status and list reports. NNS collectors derive their next state from admitted
@@ -172,7 +179,7 @@ Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
   Documents 87 more public API items in the latest audit cleanup and checks
   documentation debt by item identity.
 
-## [0.44.x] - Unreleased - Governance canister tooling and dependency refresh
+## [0.44.x] - 2026-10-02 - Governance canister tooling and dependency refresh
 
 Detailed release notes: [docs/changelog/0.44.md](docs/changelog/0.44.md)
 
@@ -249,7 +256,7 @@ make canister-smoke
 make canister-bundle
 ```
 
-## [0.42.x] - Unreleased - Stable Subnet Catalog authority identity
+## [0.42.x] - 2026-08-21 - Stable Subnet Catalog authority identity
 
 Detailed release notes: [docs/changelog/0.42.md](docs/changelog/0.42.md)
 
@@ -265,7 +272,7 @@ Detailed release notes: [docs/changelog/0.42.md](docs/changelog/0.42.md)
   `cache_evidence()`. Read policies, atomic refresh, cache and failure behavior,
   schemas, network calls, and CLI surfaces are unchanged.
 
-## [0.41.x] - Unreleased - Mainnet Subnet Catalog routing authority
+## [0.41.x] - 2026-08-21 - Mainnet Subnet Catalog routing authority
 
 Detailed release notes: [docs/changelog/0.41.md](docs/changelog/0.41.md)
 
@@ -400,7 +407,7 @@ Detailed release notes: [docs/changelog/0.38.md](docs/changelog/0.38.md)
   create duplicate-ID parse failures, and the exact temporary checkout is
   removed after both successful and failed checks.
 
-## [0.37.x] - Unreleased - ICRC account and holder index reporting
+## [0.37.x] - 2026-08-09 - ICRC account and holder index reporting
 
 Detailed release notes: [docs/changelog/0.37.md](docs/changelog/0.37.md)
 
