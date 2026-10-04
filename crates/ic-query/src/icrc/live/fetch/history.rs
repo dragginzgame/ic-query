@@ -25,6 +25,10 @@ use crate::{
 use candid::{CandidType, Nat, Principal};
 use ic_agent::Agent;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use std::collections::BTreeSet;
+
+const MAX_ARCHIVE_CALLBACKS: usize = 100;
+const MAX_ARCHIVE_REPLY_BYTES: usize = 64 * 1024 * 1024;
 
 pub(super) const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principal";
 pub(super) const ICRC3_GET_BLOCKS_METHOD: &str = "icrc3_get_blocks";
@@ -61,6 +65,7 @@ pub(in crate::icrc::live) async fn fetch_transactions_async(
         length: Nat::from(request.limit),
     }];
     let result = query_blocks(&agent, &ledger_canister, &block_args).await?;
+    validate_block_page(&result, request)?;
     let followed_archives = if request.follow_archives {
         fetch_archive_blocks(&agent, &result.archived_blocks).await
     } else {
@@ -81,10 +86,11 @@ async fn fetch_archive_blocks(
     archives: &[Icrc3ArchivedBlocks],
 ) -> ArchiveFollowResult {
     let mut result = ArchiveFollowResult::default();
+    let mut remaining_bytes = MAX_ARCHIVE_REPLY_BYTES;
     for archive in archives {
         let canister_id = archive.callback.0.principal.to_text();
         let method = archive.callback.0.method.clone();
-        match query_archive_blocks(agent, archive).await {
+        match query_archive_blocks(agent, archive, &mut remaining_bytes).await {
             Ok(blocks) => {
                 result.blocks.extend(blocks.blocks.into_iter().map(|block| {
                     followed_archive_block_row_from_wire(&canister_id, &method, block)
@@ -101,8 +107,14 @@ async fn fetch_archive_blocks(
 async fn query_archive_blocks(
     agent: &Agent,
     archive: &Icrc3ArchivedBlocks,
+    remaining_bytes: &mut usize,
 ) -> Result<Icrc3GetBlocksResult, IcrcError> {
     const CONTEXT: &str = "ICRC3 archive callback";
+    if *remaining_bytes == 0 {
+        return Err(invalid_transaction_page(
+            "archive reply byte budget exhausted",
+        ));
+    }
     let arg = candid::encode_one(&archive.args).map_err(|error| IcrcError::CandidEncode {
         message: CONTEXT,
         reason: error.to_string(),
@@ -116,10 +128,187 @@ async fn query_archive_blocks(
             method: CONTEXT,
             reason: error.to_string(),
         })?;
-    crate::candid_decode::decode_reply(&bytes).map_err(|error| IcrcError::CandidDecode {
-        message: CONTEXT,
-        reason: error.to_string(),
-    })
+    charge_archive_reply(remaining_bytes, bytes.len())?;
+    let result: Icrc3GetBlocksResult =
+        crate::candid_decode::decode_reply(&bytes).map_err(|error| IcrcError::CandidDecode {
+            message: CONTEXT,
+            reason: error.to_string(),
+        })?;
+    validate_archive_reply(&result, &archive.args)?;
+    Ok(result)
+}
+
+fn invalid_transaction_page(reason: &str) -> IcrcError {
+    IcrcError::InvalidTransactionPage {
+        reason: reason.to_string(),
+    }
+}
+
+fn charge_archive_reply(remaining: &mut usize, length: usize) -> Result<(), IcrcError> {
+    let Some(next) = remaining.checked_sub(length) else {
+        *remaining = 0;
+        return Err(invalid_transaction_page(
+            "archive reply byte budget exhausted",
+        ));
+    };
+    *remaining = next;
+    Ok(())
+}
+
+fn validate_block_page(
+    result: &Icrc3GetBlocksResult,
+    request: &IcrcTransactionsRequest,
+) -> Result<(), IcrcError> {
+    let mut ranges = Vec::new();
+    for block in &result.blocks {
+        ranges.push((block.id.clone(), Nat(&block.id.0 + 1u32)));
+    }
+    for archive in &result.archived_blocks {
+        if archive.args.is_empty() {
+            return Err(invalid_transaction_page("archive callback has no ranges"));
+        }
+        for range in &archive.args {
+            ranges.push((range.start.clone(), Nat(&range.start.0 + &range.length.0)));
+        }
+    }
+    validate_page_ranges(request, result.archived_blocks.len(), ranges)
+}
+
+fn validate_page_ranges(
+    request: &IcrcTransactionsRequest,
+    callback_count: usize,
+    mut ranges: Vec<(Nat, Nat)>,
+) -> Result<(), IcrcError> {
+    if callback_count > MAX_ARCHIVE_CALLBACKS {
+        return Err(invalid_transaction_page(
+            "too many archive callbacks for one page",
+        ));
+    }
+    let start = Nat::from(request.start);
+    let end = Nat(&start.0 + Nat::from(request.limit).0);
+    if ranges
+        .iter()
+        .any(|(from, to)| from < &start || to > &end || from >= to)
+    {
+        return Err(invalid_transaction_page(
+            "block or archive range is outside the requested page or empty",
+        ));
+    }
+    ranges.sort_unstable();
+    if ranges.windows(2).any(|pair| pair[0].1 > pair[1].0) {
+        return Err(invalid_transaction_page(
+            "ledger blocks and archive ranges overlap",
+        ));
+    }
+    Ok(())
+}
+
+/// Validate the same page bounds at the public custom-source report boundary.
+pub(in crate::icrc::live) fn validate_transactions_data(
+    request: &IcrcTransactionsRequest,
+    data: &IcrcTransactionsData,
+) -> Result<(), IcrcError> {
+    let parse = |text: &str| -> Result<Nat, IcrcError> {
+        if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(invalid_transaction_page(
+                "block indexes and ranges must be decimal naturals",
+            ));
+        }
+        text.parse()
+            .map_err(|_| invalid_transaction_page("invalid decimal block index or range"))
+    };
+    let mut ranges = Vec::new();
+    let mut seen = BTreeSet::new();
+    for block in &data.blocks {
+        let id = parse(&block.index)?;
+        ranges.push((id.clone(), Nat(&id.0 + 1u32)));
+        seen.insert(id);
+    }
+    for archive in &data.archived_blocks {
+        if archive.ranges.is_empty() {
+            return Err(invalid_transaction_page("archive callback has no ranges"));
+        }
+        for range in &archive.ranges {
+            let start = parse(&range.start)?;
+            let length = parse(&range.length)?;
+            ranges.push((start.clone(), Nat(start.0 + length.0)));
+        }
+    }
+    validate_page_ranges(request, data.archived_blocks.len(), ranges)?;
+    if !request.follow_archives
+        && (!data.followed_archive_blocks.is_empty() || !data.archive_follow_errors.is_empty())
+    {
+        return Err(invalid_transaction_page(
+            "source followed archives without being requested",
+        ));
+    }
+    for block in &data.followed_archive_blocks {
+        let id = parse(&block.index)?;
+        let mut in_range = false;
+        for archive in &data.archived_blocks {
+            if (
+                archive.callback_canister_id.as_str(),
+                archive.callback_method.as_str(),
+            ) == (
+                block.archive_canister_id.as_str(),
+                block.callback_method.as_str(),
+            ) {
+                for range in &archive.ranges {
+                    let start = parse(&range.start)?;
+                    let end = Nat(&start.0 + parse(&range.length)?.0);
+                    in_range |= id >= start && id < end;
+                }
+            }
+        }
+        if !in_range || !seen.insert(id) {
+            return Err(invalid_transaction_page(
+                "followed archive block is outside its callback ranges or duplicated",
+            ));
+        }
+    }
+    for error in &data.archive_follow_errors {
+        if !data.archived_blocks.iter().any(|archive| {
+            archive.callback_canister_id == error.callback_canister_id
+                && archive.callback_method == error.callback_method
+                && archive.ranges == error.ranges
+        }) {
+            return Err(invalid_transaction_page(
+                "archive follow error does not match a returned callback",
+            ));
+        }
+    }
+    if data.archive_follow_errors.len() > data.archived_blocks.len() {
+        return Err(invalid_transaction_page("too many archive follow errors"));
+    }
+    Ok(())
+}
+
+fn validate_archive_reply(
+    result: &Icrc3GetBlocksResult,
+    args: &[Icrc3GetBlocksRequest],
+) -> Result<(), IcrcError> {
+    let ranges: Vec<_> = args
+        .iter()
+        .map(|range| (&range.start, Nat(&range.start.0 + &range.length.0)))
+        .collect();
+    let mut ids = BTreeSet::new();
+    for block in &result.blocks {
+        if !ranges
+            .iter()
+            .any(|(start, end)| block.id >= **start && block.id < *end)
+        {
+            return Err(invalid_transaction_page(
+                "archive block is outside its callback ranges",
+            ));
+        }
+        if !ids.insert(&block.id) {
+            return Err(invalid_transaction_page(
+                "archive returned duplicate block ids",
+            ));
+        }
+    }
+    // Archive referrals are metadata only; following is deliberately one hop.
+    Ok(())
 }
 
 pub(in crate::icrc::live) async fn fetch_block_types_async(
@@ -424,16 +613,18 @@ mod tests {
         thread,
     };
 
-    #[test]
-    fn follows_the_supplied_query_callback_method_and_arguments() {
+    fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let endpoint = format!("http://{}", listener.local_addr().unwrap());
         let reply = Icrc3GetBlocksResult {
             log_length: Nat::from(100u64),
-            blocks: vec![Icrc3BlockWithId {
-                id: Nat::from(12u64),
-                block: Icrc3Value::Text("fixture".into()),
-            }],
+            blocks: block_ids
+                .iter()
+                .map(|id| Icrc3BlockWithId {
+                    id: Nat::from(*id),
+                    block: Icrc3Value::Text("fixture".into()),
+                })
+                .collect(),
             archived_blocks: vec![],
         };
         let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
@@ -489,9 +680,6 @@ mod tests {
             }],
         };
         let followed = block_on_current_thread(fetch_archive_blocks(&agent, &[archive])).unwrap();
-        assert!(followed.errors.is_empty(), "{:?}", followed.errors);
-        assert_eq!(followed.blocks[0].index, "12");
-        assert_eq!(followed.blocks[0].callback_method, "read_archive_page");
         let Value::Map(envelope) = server.join().unwrap() else {
             panic!("request envelope")
         };
@@ -512,5 +700,129 @@ mod tests {
         let args: Vec<Icrc3GetBlocksRequest> = candid::decode_one(args).unwrap();
         assert_eq!(args[0].start, Nat::from(12u64));
         assert_eq!(args[0].length, Nat::from(2u64));
+        followed
+    }
+
+    #[test]
+    fn follows_the_supplied_query_callback_method_and_arguments() {
+        let followed = follow_callback_fixture(&[12]);
+        assert!(followed.errors.is_empty(), "{:?}", followed.errors);
+        assert_eq!(followed.blocks[0].index, "12");
+        assert_eq!(followed.blocks[0].callback_method, "read_archive_page");
+    }
+
+    #[test]
+    fn invalid_archive_rows_are_reported_without_retaining_partial_blocks() {
+        for ids in [&[12, 14][..], &[12, 12][..]] {
+            let followed = follow_callback_fixture(ids);
+            assert_eq!(followed.blocks, Vec::<IcrcFollowedArchiveBlockRow>::new());
+            assert_eq!(followed.errors.len(), 1);
+            assert_eq!(followed.errors[0].callback_method, "read_archive_page");
+            assert_eq!(followed.errors[0].ranges[0].start, "12");
+        }
+    }
+
+    #[test]
+    fn archive_reply_budget_counts_every_reply_and_stops_at_exhaustion() {
+        let mut remaining = 10;
+        charge_archive_reply(&mut remaining, 4).unwrap();
+        assert_eq!(remaining, 6);
+        assert!(matches!(
+            charge_archive_reply(&mut remaining, 7),
+            Err(IcrcError::InvalidTransactionPage { .. })
+        ));
+        assert_eq!(remaining, 0);
+        assert!(charge_archive_reply(&mut remaining, 1).is_err());
+        let mut exact = 4;
+        charge_archive_reply(&mut exact, 4).unwrap();
+        assert_eq!(exact, 0);
+    }
+
+    #[test]
+    fn exhausted_archive_budget_rejects_work_before_querying() {
+        let agent = Agent::builder()
+            .with_url("http://127.0.0.1:1")
+            .build()
+            .unwrap();
+        let archive = Icrc3ArchivedBlocks {
+            args: vec![Icrc3GetBlocksRequest {
+                start: Nat::from(12u32),
+                length: Nat::from(1u32),
+            }],
+            callback: Icrc3ArchiveCallback(Func {
+                principal: Principal::anonymous(),
+                method: "read_page".into(),
+            }),
+        };
+        let mut remaining = 0;
+        let error = block_on_current_thread(query_archive_blocks(&agent, &archive, &mut remaining))
+            .unwrap()
+            .expect_err("no network work after budget exhaustion");
+        assert!(matches!(error, IcrcError::InvalidTransactionPage { .. }));
+    }
+
+    #[test]
+    fn block_page_rejects_excessive_callbacks_empty_ranges_and_overlapping_coverage() {
+        let request = IcrcTransactionsRequest {
+            source_endpoint: "fixture".into(),
+            now_unix_secs: 0,
+            ledger_canister_id: Principal::anonymous().to_text(),
+            start: 12,
+            limit: 2,
+            follow_archives: true,
+        };
+        let range = |start, length| Icrc3GetBlocksRequest {
+            start: Nat::from(start),
+            length: Nat::from(length),
+        };
+        let archive = |args| Icrc3ArchivedBlocks {
+            args,
+            callback: Icrc3ArchiveCallback(Func {
+                principal: Principal::anonymous(),
+                method: "read_page".into(),
+            }),
+        };
+        let mut result = Icrc3GetBlocksResult {
+            log_length: Nat::from(100u32),
+            blocks: vec![],
+            archived_blocks: vec![archive(vec![range(12u64, 2u64)])],
+        };
+        validate_block_page(&result, &request).unwrap();
+        for args in [
+            vec![],
+            vec![range(12, 0)],
+            vec![range(11, 2)],
+            vec![range(13, 2)],
+            vec![range(12, 1), range(12, 1)],
+        ] {
+            result.archived_blocks = vec![archive(args)];
+            assert!(matches!(
+                validate_block_page(&result, &request),
+                Err(IcrcError::InvalidTransactionPage { .. })
+            ));
+        }
+        result.archived_blocks = vec![archive(vec![range(12, 2)])];
+        result.blocks.push(Icrc3BlockWithId {
+            id: Nat::from(12u32),
+            block: Icrc3Value::Text("overlap".into()),
+        });
+        assert!(validate_block_page(&result, &request).is_err());
+        result.blocks.clear();
+        result.archived_blocks = (0..=MAX_ARCHIVE_CALLBACKS)
+            .map(|_| archive(vec![range(12, 1)]))
+            .collect();
+        assert!(validate_block_page(&result, &request).is_err());
+        result.archived_blocks.clear();
+        result.blocks = vec![Icrc3BlockWithId {
+            id: Nat::from(14u32),
+            block: Icrc3Value::Text("outside".into()),
+        }];
+        assert!(validate_block_page(&result, &request).is_err());
+        let huge_request = IcrcTransactionsRequest {
+            start: u64::MAX,
+            ..request
+        };
+        result.blocks[0].id = Nat(Nat::from(u64::MAX).0 + 1u32);
+        validate_block_page(&result, &huge_request).unwrap();
     }
 }

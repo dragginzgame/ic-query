@@ -35,8 +35,9 @@ confined reader checks metadata before allocating and stops streamed growth at
 the ceiling plus one byte. Oversize content returns `HostCacheError::CacheTooLarge`.
 Invalid UTF-8 is a JSON content failure. Both follow the owner's existing
 invalid-content recovery policy; genuine IO and confinement failures remain
-errors. Failed repair preserves the previous file. Subnet Catalog retains its
-separate 64 MiB limit.
+errors. Failed repair preserves the previous file. Subnet Catalog uses the
+same 64 MiB ceiling for reads and publication, retaining its typed catalog
+read failures.
 
 The shared UTC timestamp parser accepts only the canonical second-precision
 text emitted by the timestamp formatter, such as `2026-06-04T00:00:00Z`.
@@ -111,11 +112,20 @@ leave the previous snapshot intact.
 
 Managed pretty-JSON publication validates serialization before filesystem
 mutation and then streams directly through the atomic temporary file, avoiding
-a second complete encoded cache copy. An explicit caller-selected export may
-retain one encoded string when the same bytes must also be published to cache.
+a second complete encoded cache copy. Both serialization passes enforce the
+same byte ceiling as the owner's reader; an oversized refresh returns
+`CacheFileError::WriteLimitExceeded` before replacement. The temporary-file
+pass remains bounded if serialization changes between passes. An explicit
+caller-selected export may retain one encoded string when the same bytes must
+also be published to cache.
 Certified Registry archive objects and certified Subnet Catalog caches retain
 their caller-selected read ceilings through the shared confined reader.
-Refresh-lock reads are capped at 64 KiB and refresh-attempt sidecars at 1 MiB;
+Ordinary Subnet Catalog refreshes stream through the bounded JSON writer;
+only explicit exports retain the full pretty-JSON string. Dry-run validation
+without an export uses a serialization sink. Exports that also publish a
+snapshot must fit the reader's ceiling before either file is replaced.
+Refresh-lock reads and writes are capped at 64 KiB and refresh-attempt sidecars
+at 1 MiB;
 oversized metadata fails as invalid local evidence and never authorizes hidden
 network work or automatic deletion.
 
@@ -178,7 +188,13 @@ read-through helper because the user has already requested refresh behavior.
 Each complete SNS proposal or neuron collector owns its paged state directly.
 It validates source pages before ingesting rows and maps its family-specific
 cursor. Shared paging state owns cross-page deduplication, counters, and the
-next cursor. The shared refresh runner detects page limits and stalls and drives
+next cursor. Neuron pages must have ascending ids and any supplied cursor
+must equal the final row. Inclusive boundary overlap remains supported;
+full pages require an advancing cursor, while short terminal pages may omit it.
+Proposal rows must remain below the exclusive requested boundary;
+continuation uses the lowest returned id without changing source row order.
+Invalid pages fail before ingestion and cannot replace a complete snapshot.
+The shared refresh runner detects page limits and stalls and drives
 progress events and running-attempt updates before completion.
 
 ## Refresh Locks
@@ -188,8 +204,12 @@ time, and the stale threshold chosen by the refresh that created them. A
 competing refresh honors that recorded threshold, so one caller cannot
 reclassify another caller's active lock by supplying a shorter policy.
 
-Refresh locks are never removed automatically. Parsed locks older than their
-recorded stale threshold are reported explicitly as stale; malformed or
+An acquiring refresh owns its lock before syncing the parent directory, so a
+sync failure drops that ownership and attempts to remove the newly created
+lock. This does not authorize removal of another refresh's lock.
+
+Existing refresh locks are never removed automatically. Parsed locks older
+than their recorded stale threshold are reported explicitly as stale; malformed or
 future-dated locks are reported as invalid. Commands show the lock path and
 require the operator to remove it manually after verifying that no refresh is
 still running. This avoids deleting a newly acquired lock during concurrent

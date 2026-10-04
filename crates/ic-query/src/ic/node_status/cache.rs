@@ -202,6 +202,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
+                crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
                 |path, source| {
                     IcNodeStatusHostError::from(HostCacheError::serialize_cache(
                         CACHE_COMPONENT,
@@ -326,7 +327,7 @@ fn load_node_status_cache(
             path: path.clone(),
             network: &request.network,
             expected_schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
-            maximum_bytes: 64 * 1024 * 1024,
+            maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
         },
         None,
         &key,

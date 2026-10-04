@@ -294,6 +294,7 @@ pub fn build_icrc_transactions_report_with_source(
     source: &dyn IcrcTransactionsSource,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
     let transactions = source.fetch_transactions(request)?;
+    super::fetch::validate_transactions_data(request, &transactions)?;
     Ok(IcrcTransactionsReport {
         schema_version: ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),

@@ -96,7 +96,10 @@ pub trait SnsNeuronsSource: SnsDiscoverySource {
         owner_principal_id: Option<&str>,
     ) -> Result<MainnetSnsNeurons, SnsHostError>;
 
-    /// Fetch one SNS neuron page for complete snapshot refresh.
+    /// Fetch one ascending neuron page for complete snapshot refresh.
+    /// A supplied cursor must equal the final row's id; empty pages omit it.
+    /// A repeated boundary row is allowed; full pages require an advancing cursor.
+    /// Short terminal pages may omit the cursor.
     fn fetch_sns_neuron_page(
         &self,
         request: &SnsSourceRequest,

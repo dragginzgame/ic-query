@@ -6,7 +6,7 @@
 
 use super::{validate_output_path, write_text_output};
 use crate::cache_file::{
-    CacheFileError, create_managed_parent_directory,
+    CacheFileError, create_managed_parent_directory, ensure_managed_write_size,
     lock::{RefreshLockRequest, with_refresh_lock},
     managed_file_exists, write_managed_json_pretty_atomically, write_managed_text_atomically,
 };
@@ -83,6 +83,14 @@ where
             if let Some(output_path) = request.output_path {
                 let report_json = serde_json::to_string_pretty(request.report)
                     .map_err(|source| serialize_cache(request.cache_path.to_path_buf(), source))?;
+                if !request.dry_run {
+                    ensure_managed_write_size(
+                        request.cache_path,
+                        report_json.len() as u64,
+                        crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
+                    )
+                    .map_err(&cache_error)?;
+                }
                 write_text_output(output_path, &report_json, &managed_paths)
                     .map_err(&cache_error)?;
                 if !request.dry_run {
@@ -101,6 +109,7 @@ where
                     request.cache_root,
                     request.cache_path,
                     request.report,
+                    crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
                     &serialize_cache,
                     &cache_error,
                 )?;

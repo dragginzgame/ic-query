@@ -65,6 +65,7 @@ pub(super) fn publish_complete_nns_proposal_cache(
                 &request.cache_root,
                 &paths.snapshot_path,
                 &cache,
+                crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
                 |path, source| {
                     NnsProposalHostError::Cache(HostCacheError::serialize_cache(
                         NNS_PROPOSAL_CACHE_COMPONENT,

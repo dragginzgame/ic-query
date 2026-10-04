@@ -4,12 +4,14 @@
 //! Does not own: JSON cache schemas, refresh locking internals, or report construction.
 //! Boundary: exposes parent creation, atomic text writes, and refresh publication helpers.
 
+use crate::cache_file::CacheFileError;
+use std::path::Path;
+
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
     feature = "sns-host"
 ))]
 mod json;
@@ -29,7 +31,7 @@ pub use json::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
+    feature = "subnet-catalog-host",
     feature = "sns-host"
 ))]
 pub use json::write_managed_json_pretty_atomically;
@@ -39,3 +41,18 @@ pub use json::{canonical_json_serialized_len, json_error_to_io};
 pub use output::{validate_output_path, write_text_output};
 #[cfg(feature = "nns-host")]
 pub use refresh::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
+
+/// Reject an encoded managed file that exceeds its owner's read ceiling.
+pub fn ensure_managed_write_size(
+    path: &Path,
+    length: u64,
+    maximum: u64,
+) -> Result<(), CacheFileError> {
+    if length > maximum {
+        return Err(CacheFileError::WriteLimitExceeded {
+            path: path.to_path_buf(),
+            maximum,
+        });
+    }
+    Ok(())
+}

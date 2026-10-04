@@ -57,8 +57,16 @@ pub(in crate::sns::report) fn validate_mainnet_sns_proposals(
 pub(in crate::sns::report) fn validate_mainnet_sns_proposal_page(
     page: &MainnetSnsProposalPage,
     requested_limit: u32,
+    before_proposal_id: Option<u64>,
 ) -> Result<(), SnsHostError> {
-    validate_sns_proposal_source_rows(&page.proposals, requested_limit, PROPOSAL_PAGE_CAPABILITY)
+    validate_sns_proposal_source_rows(&page.proposals, requested_limit, PROPOSAL_PAGE_CAPABILITY)?;
+    if let Some(before) = before_proposal_id
+        && page.proposals.iter().any(|row| row.proposal_id >= before)
+    {
+        return Err(SnsSourceValidator::new(PROPOSAL_PAGE_CAPABILITY)
+            .invalid("proposal page violates its exclusive before cursor".to_string()));
+    }
+    Ok(())
 }
 
 /// Validate one exact proposal returned by a public source implementation.

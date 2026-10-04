@@ -686,7 +686,13 @@ icq icrc ledger tip-certificate mxzaz-hqaaa-aaaar-qaada-cai
 
 Transaction queries can follow ledger-supplied archive callbacks explicitly.
 Following uses each supplied callback method name with the ICRC-3 argument
-and result contract; callbacks execute as queries.
+and result contract; callbacks execute as queries. Ledger blocks and archive
+ranges must fit the requested page without overlapping. Following is one hop,
+with at most 100 callbacks and 64 MiB of cumulative Candid replies admitted
+for decoding; an over-budget reply is discarded before decoding. Each replica
+response retains its existing 8 MiB transport cap. Archive replies
+must contain unique block ids inside their callback ranges. Callback failures
+and exhausted byte budgets are reported separately from returned blocks.
 Tip-certificate reports authenticate certificate, delegation, canister
 authority, freshness, certified data, and required tip leaves when the ledger
 returns that evidence.

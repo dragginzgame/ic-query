@@ -361,7 +361,14 @@ assurance.
   bounded aggregate-history request. It preserves raw e8s and Unix seconds,
   does not join native Governance or Registry state, and explicitly denies
   complete collection because offset pages can overlap.
-- ICRC block collection can follow ledger-supplied archive callbacks.
+- ICRC block collection validates disjoint ledger block and archive ranges
+  inside the requested page before following callbacks. Following uses the
+  supplied query method for one hop, at most 100 callbacks and 64 MiB of
+  cumulative Candid replies admitted for decoding, with the existing 8 MiB
+  per-response cap. An over-budget reply is discarded before decoding.
+  Replies require unique ids inside their callback ranges; failures remain
+  explicit archive error rows. Custom-source reports enforce the same page
+  bounds and callback provenance before projection.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
 - CMC system reporting makes one `get_icp_xdr_conversion_rate` query,

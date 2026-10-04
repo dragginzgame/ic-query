@@ -1688,7 +1688,9 @@ impl SnsNeuronsSource for FixtureSnsSource {
         assert_eq!(owner_principal_id, None);
         Ok(MainnetSnsNeuronPage {
             neurons: vec![sample_sns_neuron_row()],
-            last_cursor: Some(SnsNeuronId { id: vec![1; 32] }),
+            last_cursor: Some(SnsNeuronId {
+                id: (0..32).collect(),
+            }),
         })
     }
 }

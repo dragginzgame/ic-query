@@ -34,7 +34,7 @@ where
         path: paths.cache_path,
         network: cache.network(),
         expected_schema_version,
-        maximum_bytes: 64 * 1024 * 1024,
+        maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
     })
 }
 

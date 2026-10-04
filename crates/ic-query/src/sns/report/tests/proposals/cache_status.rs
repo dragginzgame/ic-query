@@ -468,3 +468,92 @@ fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files() {
         let _ = fs::remove_dir_all(root);
     }
 }
+
+struct UnorderedPagedProposalsSource {
+    invalid_second_page: bool,
+}
+
+delegate_sns_discovery!(UnorderedPagedProposalsSource);
+
+impl SnsProposalsSource for UnorderedPagedProposalsSource {
+    fn fetch_sns_proposals(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        _limit: u32,
+        _before_proposal_id: Option<u64>,
+        _include_status: &[i32],
+        _topic: SnsProposalTopicFilter,
+    ) -> Result<MainnetSnsProposals, SnsHostError> {
+        unreachable!("refresh uses pages")
+    }
+
+    fn fetch_sns_proposal_page(
+        &self,
+        _request: &SnsSourceRequest,
+        _sns: &MainnetSns,
+        limit: u32,
+        before_proposal_id: Option<u64>,
+    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
+        assert_eq!(limit, 2);
+        let ids = match before_proposal_id {
+            None => vec![20, 30],
+            Some(20) => vec![if self.invalid_second_page { 20 } else { 10 }],
+            other => panic!("unexpected continuation {other:?}"),
+        };
+        Ok(MainnetSnsProposalPage {
+            proposals: ids
+                .into_iter()
+                .map(|id| {
+                    let mut row = fixture_proposal_row();
+                    row.proposal_id = id;
+                    row
+                })
+                .collect(),
+        })
+    }
+}
+
+#[test]
+fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
+    let root = temp_dir("ic-query-sns-proposals-page-boundary");
+    let mut request = sns_proposals_refresh_request(&root, None);
+    request.page_size = 2;
+    let report = refresh_sns_proposals_cache_with_source(
+        &request,
+        &UnorderedPagedProposalsSource {
+            invalid_second_page: false,
+        },
+    )
+    .unwrap();
+    assert_eq!(report.proposal_count, 3);
+    let path = sns_proposals_cache_path(&root, MAINNET_NETWORK, ROOT_A);
+    let original = fs::read(&path).unwrap();
+    let error = refresh_sns_proposals_cache_with_source(
+        &request,
+        &UnorderedPagedProposalsSource {
+            invalid_second_page: true,
+        },
+    )
+    .expect_err("exclusive cursor rejects overlap even on a terminal page");
+    assert!(matches!(
+        error,
+        SnsHostError::InvalidSourceData {
+            capability: "SNS proposal page",
+            ..
+        }
+    ));
+    assert_eq!(fs::read(&path).unwrap(), original);
+    let attempt: serde_json::Value = serde_json::from_slice(
+        &fs::read(sns_proposals_refresh_attempt_path(
+            &root,
+            MAINNET_NETWORK,
+            ROOT_A,
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(attempt["status"], "failed");
+    assert_eq!(attempt["pages_fetched"], 1);
+    fs::remove_dir_all(root).unwrap();
+}

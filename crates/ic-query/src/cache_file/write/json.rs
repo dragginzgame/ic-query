@@ -7,7 +7,7 @@
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
+    feature = "subnet-catalog-host",
     feature = "sns-host",
     test
 ))]
@@ -20,6 +20,9 @@ use std::io;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "sns-host",
     test
 ))]
 use std::io::Write;
@@ -27,7 +30,7 @@ use std::io::Write;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
+    feature = "subnet-catalog-host",
     feature = "sns-host",
     test
 ))]
@@ -97,7 +100,7 @@ pub fn json_error_to_io(error: serde_json::Error) -> io::Error {
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
+    feature = "subnet-catalog-host",
     feature = "sns-host",
     test
 ))]
@@ -105,18 +108,90 @@ pub fn write_managed_json_pretty_atomically<T, Error>(
     cache_root: &Path,
     path: &Path,
     value: &T,
+    maximum_bytes: u64,
     serialize_error: impl FnOnce(PathBuf, serde_json::Error) -> Error,
     write_error: impl FnOnce(CacheFileError) -> Error,
 ) -> Result<(), Error>
 where
     T: Serialize,
 {
-    serde_json::to_writer_pretty(io::sink(), value)
-        .map_err(|source| serialize_error(path.to_path_buf(), source))?;
+    let mut counter = LimitedJsonWriter::new(io::sink(), maximum_bytes);
+    if let Err(source) = serde_json::to_writer_pretty(&mut counter, value) {
+        if counter.exceeded {
+            return Err(write_error(CacheFileError::WriteLimitExceeded {
+                path: path.to_path_buf(),
+                maximum: maximum_bytes,
+            }));
+        }
+        return Err(serialize_error(path.to_path_buf(), source));
+    }
     write_managed_file_atomically(cache_root, path, |file| {
-        serde_json::to_writer_pretty(file, value).map_err(json_error_to_io)
+        serde_json::to_writer_pretty(LimitedJsonWriter::new(file, maximum_bytes), value)
+            .map_err(json_error_to_io)
     })
     .map_err(write_error)
+}
+
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host",
+    test
+))]
+struct LimitedJsonWriter<W> {
+    writer: W,
+    maximum: u64,
+    bytes: u64,
+    exceeded: bool,
+}
+
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host",
+    test
+))]
+impl<W> LimitedJsonWriter<W> {
+    const fn new(writer: W, maximum: u64) -> Self {
+        Self {
+            writer,
+            maximum,
+            bytes: 0,
+            exceeded: false,
+        }
+    }
+}
+
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host",
+    test
+))]
+impl<W: Write> Write for LimitedJsonWriter<W> {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        let length = u64::try_from(buffer.len()).map_err(io::Error::other)?;
+        if self
+            .bytes
+            .checked_add(length)
+            .is_none_or(|bytes| bytes > self.maximum)
+        {
+            self.exceeded = true;
+            return Err(io::Error::other(
+                "serialized JSON exceeds the cache write byte limit",
+            ));
+        }
+        let written = self.writer.write(buffer)?;
+        self.bytes += u64::try_from(written).map_err(io::Error::other)?;
+        Ok(written)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()
+    }
 }
 
 #[derive(Default)]
@@ -198,6 +273,75 @@ mod tests {
     use serde::{Serializer, ser::Error as _};
     use std::fs;
 
+    #[test]
+    fn json_write_limit_preserves_existing_cache_and_accepts_exact_ceiling() {
+        let root = temp_dir("ic-query-json-write-limit");
+        let path = root.join("full.json");
+        let value = serde_json::json!({"rows": ["fixture"]});
+        let bytes = serde_json::to_vec_pretty(&value).unwrap();
+        let maximum = u64::try_from(bytes.len()).unwrap();
+        let write = |path: &Path, maximum| {
+            write_managed_json_pretty_atomically(
+                &root,
+                path,
+                &value,
+                maximum,
+                |path, source| crate::HostCacheError::serialize_cache("fixture", path, source),
+                |source| crate::HostCacheError::operation("fixture", source),
+            )
+        };
+        write(&path, maximum).expect("exact ceiling is admitted");
+        let error = write(&path, maximum - 1).expect_err("oversized replacement rejected");
+        assert!(matches!(error, crate::HostCacheError::Operation {
+            source: CacheFileError::WriteLimitExceeded { maximum: actual, .. }, ..
+        } if actual == maximum - 1));
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        let missing = root.join("new/full.json");
+        write(&missing, maximum - 1).expect_err("oversized new cache rejected");
+        assert!(!missing.parent().unwrap().exists());
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn changed_serialization_cannot_exceed_the_limit_during_atomic_write() {
+        struct ChangingSerialization(std::cell::Cell<bool>);
+
+        impl Serialize for ChangingSerialization {
+            fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                serializer.serialize_str(if self.0.replace(true) {
+                    "a larger second serialization that exceeds the write limit"
+                } else {
+                    "small"
+                })
+            }
+        }
+
+        let root = temp_dir("ic-query-json-second-pass-limit");
+        let path = root.join("full.json");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(&path, b"original").unwrap();
+        let error = write_managed_json_pretty_atomically(
+            &root,
+            &path,
+            &ChangingSerialization(std::cell::Cell::new(false)),
+            16,
+            |path, source| crate::HostCacheError::serialize_cache("fixture", path, source),
+            |source| crate::HostCacheError::operation("fixture", source),
+        )
+        .expect_err("second serialization remains bounded");
+        assert!(matches!(
+            error,
+            crate::HostCacheError::Operation {
+                source: CacheFileError::WriteTemp { .. },
+                ..
+            }
+        ));
+        assert_eq!(fs::read(&path).unwrap(), b"original");
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+
     struct FailingSerialization;
 
     impl Serialize for FailingSerialization {
@@ -219,6 +363,7 @@ mod tests {
             &root,
             &path,
             &value,
+            1024,
             |_, source| source.to_string(),
             |source| source.to_string(),
         )
@@ -232,6 +377,7 @@ mod tests {
             &root,
             &path,
             &FailingSerialization,
+            1024,
             |_, source| source.to_string(),
             |source| source.to_string(),
         )

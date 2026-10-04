@@ -8,9 +8,10 @@ use super::{
 };
 use crate::{
     cache_file::{
-        RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
-        validate_output_path, with_refresh_lock_async, write_managed_text_atomically,
-        write_text_output,
+        MAX_JSON_SNAPSHOT_BYTES, RefreshLockRequest, create_managed_parent_directory,
+        ensure_managed_write_size, managed_file_exists, validate_output_path,
+        with_refresh_lock_async, write_managed_json_pretty_atomically,
+        write_managed_text_atomically, write_text_output,
     },
     runtime::block_on_current_thread,
     subnet_catalog::{
@@ -21,6 +22,7 @@ use crate::{
     },
 };
 use std::{
+    io,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -229,9 +231,17 @@ async fn refresh_subnet_catalog_under_lock(
     );
     let catalog = ValidatedSubnetCatalog::try_from_raw(raw, &validation)
         .map_err(|source| catalog_failure(source, registry_version))?;
-    let catalog_json = catalog_to_pretty_json(catalog.raw())
-        .map_err(|source| catalog_failure(source, registry_version))?;
     if let Some(output_path) = &request.output_path {
+        let catalog_json = catalog_to_pretty_json(catalog.raw())
+            .map_err(|source| catalog_failure(source, registry_version))?;
+        if !request.dry_run {
+            ensure_managed_write_size(
+                catalog_path,
+                catalog_json.len() as u64,
+                MAX_JSON_SNAPSHOT_BYTES,
+            )
+            .map_err(|error| cache_failure(error, Some(registry_version), catalog_path))?;
+        }
         let history_path =
             super::subnet_catalog_history_path(&request.cache.cache_root, &request.cache.network);
         let history_lock_path = super::subnet_catalog_history_lock_path(
@@ -244,10 +254,22 @@ async fn refresh_subnet_catalog_under_lock(
         }
         write_text_output(output_path, &catalog_json, &protected)
             .map_err(|error| cache_failure(error, Some(registry_version), output_path))?;
-    }
-    if !request.dry_run {
-        write_managed_text_atomically(&request.cache.cache_root, catalog_path, &catalog_json)
-            .map_err(|error| cache_failure(error, Some(registry_version), catalog_path))?;
+        if !request.dry_run {
+            write_managed_text_atomically(&request.cache.cache_root, catalog_path, &catalog_json)
+                .map_err(|error| cache_failure(error, Some(registry_version), catalog_path))?;
+        }
+    } else if request.dry_run {
+        serde_json::to_writer_pretty(io::sink(), catalog.raw())
+            .map_err(|source| catalog_failure(source.into(), registry_version))?;
+    } else {
+        write_managed_json_pretty_atomically(
+            &request.cache.cache_root,
+            catalog_path,
+            catalog.raw(),
+            MAX_JSON_SNAPSHOT_BYTES,
+            |_, source| catalog_failure(source.into(), registry_version),
+            |error| cache_failure(error, Some(registry_version), catalog_path),
+        )?;
     }
     Ok(SubnetCatalogRefreshReport {
         schema_version: SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,

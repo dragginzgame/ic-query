@@ -237,6 +237,7 @@ fn write_sns_refresh_attempt_status(
         context.request.cache_root(),
         context.path,
         &attempt,
+        crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,
         |path, source| {
             SnsHostError::from(HostCacheError::serialize_cache(
                 SNS_CACHE_COMPONENT,

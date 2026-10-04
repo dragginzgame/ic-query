@@ -74,8 +74,16 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
             self.context.request.page_size(),
             self.pages.next_cursor().copied(),
         )?;
-        validate_mainnet_sns_proposal_page(&page, self.context.request.page_size())?;
-        let last_cursor = page.proposals.last().map(|proposal| proposal.proposal_id);
+        validate_mainnet_sns_proposal_page(
+            &page,
+            self.context.request.page_size(),
+            self.pages.next_cursor().copied(),
+        )?;
+        let last_cursor = page
+            .proposals
+            .iter()
+            .map(|proposal| proposal.proposal_id)
+            .min();
         Ok(self.pages.ingest_page(
             page.proposals,
             last_cursor,

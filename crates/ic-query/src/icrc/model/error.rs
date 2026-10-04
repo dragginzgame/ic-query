@@ -54,6 +54,13 @@ pub enum IcrcError {
         bytes: usize,
     },
 
+    /// Ledger or archive evidence violates the requested page bounds or callback provenance.
+    #[error("invalid ICRC transaction page: {reason}")]
+    InvalidTransactionPage {
+        /// Source-result invariant that failed.
+        reason: String,
+    },
+
     /// The typed Candid request could not be encoded.
     #[error("failed to encode Candid request for {message}: {reason}")]
     CandidEncode {

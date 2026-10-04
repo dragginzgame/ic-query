@@ -63,6 +63,7 @@ mod tests {
             &root,
             &path,
             &cache,
+            crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
             |_, error| error.to_string(),
             |error| error.to_string(),
         )

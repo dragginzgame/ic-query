@@ -74,8 +74,48 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neurons(
 pub(in crate::sns::report) fn validate_mainnet_sns_neuron_page(
     page: &MainnetSnsNeuronPage,
     requested_limit: u32,
+    start_page_at: Option<&SnsNeuronId>,
 ) -> Result<(), SnsHostError> {
-    validate_sns_neuron_source_rows(&page.neurons, requested_limit, "SNS neuron page")
+    validate_sns_neuron_source_rows(&page.neurons, requested_limit, "SNS neuron page")?;
+    let validator = SnsSourceValidator::new("SNS neuron page");
+    let last_id = page.neurons.last().map(|neuron| neuron.neuron_id.as_str());
+    let cursor_text = page
+        .last_cursor
+        .as_ref()
+        .map(|cursor| crate::hex::hex_bytes(&cursor.id));
+    if (cursor_text.is_some() || page.neurons.len() == requested_limit as usize)
+        && last_id != cursor_text.as_deref()
+    {
+        return Err(validator.invalid("cursor does not match the final neuron id".to_string()));
+    }
+    if page
+        .neurons
+        .windows(2)
+        .any(|rows| rows[0].neuron_id >= rows[1].neuron_id)
+    {
+        return Err(validator.invalid("neuron page is not in ascending id order".to_string()));
+    }
+    if let Some(start) = start_page_at {
+        let start_text = crate::hex::hex_bytes(&start.id);
+        // Governance may include the boundary neuron again; older rows are never valid.
+        if page
+            .neurons
+            .first()
+            .is_some_and(|row| row.neuron_id < start_text)
+        {
+            return Err(validator.invalid("neuron page precedes its requested cursor".to_string()));
+        }
+        if page.neurons.len() == requested_limit as usize
+            && cursor_text
+                .as_ref()
+                .is_none_or(|cursor| cursor <= &start_text)
+        {
+            return Err(
+                validator.invalid("full neuron page does not advance its cursor".to_string())
+            );
+        }
+    }
+    Ok(())
 }
 
 fn validate_sns_neuron_source_rows(
@@ -369,12 +409,45 @@ mod tests {
             last_cursor: None,
         };
         assert!(matches!(
-            validate_mainnet_sns_neuron_page(&page, 1),
+            validate_mainnet_sns_neuron_page(&page, 1, None),
             Err(SnsHostError::InvalidSourceData {
                 capability: "SNS neuron page",
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn neuron_pages_bind_cursors_and_preserve_inclusive_boundaries() {
+        let cursor = SnsNeuronId { id: vec![2; 32] };
+        let mut page = MainnetSnsNeuronPage {
+            neurons: vec![neuron(&"02".repeat(32)), neuron(&"03".repeat(32))],
+            last_cursor: Some(SnsNeuronId { id: vec![3; 32] }),
+        };
+        validate_mainnet_sns_neuron_page(&page, 2, Some(&cursor)).unwrap();
+        page.last_cursor = Some(SnsNeuronId { id: vec![4; 32] });
+        assert!(validate_mainnet_sns_neuron_page(&page, 2, Some(&cursor)).is_err());
+        page.last_cursor = None;
+        assert!(validate_mainnet_sns_neuron_page(&page, 2, Some(&cursor)).is_err());
+        page.last_cursor = Some(SnsNeuronId { id: vec![3; 32] });
+        page.neurons[0] = neuron(&"01".repeat(32));
+        assert!(validate_mainnet_sns_neuron_page(&page, 2, Some(&cursor)).is_err());
+        page.neurons.reverse();
+        assert!(validate_mainnet_sns_neuron_page(&page, 2, None).is_err());
+        let mut terminal = MainnetSnsNeuronPage {
+            neurons: vec![neuron(&"02".repeat(32))],
+            last_cursor: Some(cursor.clone()),
+        };
+        validate_mainnet_sns_neuron_page(&terminal, 2, Some(&cursor)).unwrap();
+        assert!(validate_mainnet_sns_neuron_page(&terminal, 1, Some(&cursor)).is_err());
+        terminal.last_cursor = None;
+        validate_mainnet_sns_neuron_page(&terminal, 2, Some(&cursor)).unwrap();
+        assert!(validate_mainnet_sns_neuron_page(&terminal, 1, None).is_err());
+        let empty = MainnetSnsNeuronPage {
+            neurons: vec![],
+            last_cursor: None,
+        };
+        validate_mainnet_sns_neuron_page(&empty, 2, Some(&cursor)).unwrap();
     }
 
     fn neuron(neuron_id: &str) -> SnsNeuronRow {

@@ -9,6 +9,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.9` bounds ICRC archive following to the requested page, 100 callbacks,
+  and a 64 MiB Candid decoding budget, rejecting invalid or duplicate block
+  identities. Cache publication, including Subnet Catalog, enforces its readers'
+  size ceilings and preserves existing snapshots on oversize failure. SNS refreshes validate
+  pagination cursors and boundaries; failed lock acquisition cleans up after
+  directory-sync failure. Adds `IcrcError::InvalidTransactionPage` and
+  `CacheFileError::WriteLimitExceeded`, requiring downstream exhaustive-match
+  updates. CLI grammar and serialized shapes are unchanged; schemas remain `1`.
+
 - `0.45.8` gives native NNS cache refreshes one completion decision through
   their portable collectors and simplifies SNS proposal and cached-neuron
   report construction. Live and local SNS lookup share root-principal parsing.

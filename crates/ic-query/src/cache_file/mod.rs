@@ -19,6 +19,24 @@ mod policy;
 mod tests;
 mod write;
 
+pub use write::ensure_managed_write_size;
+
+/// Maximum encoded bytes admitted for inventories and bounded report snapshots.
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host"
+))]
+pub const MAX_JSON_SNAPSHOT_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Maximum encoded bytes admitted for complete Governance and account histories.
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub const MAX_COLLECTION_SNAPSHOT_BYTES: u64 = 512 * 1024 * 1024;
+
+/// Maximum encoded bytes admitted for refresh-attempt sidecars.
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub const MAX_REFRESH_ATTEMPT_BYTES: u64 = 1024 * 1024;
+
 pub use confined::BoundedManagedFileReadError;
 #[cfg(any(
     feature = "dashboard-host",
@@ -52,7 +70,7 @@ pub use write::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "nns-topology-host",
+    feature = "subnet-catalog-host",
     feature = "sns-host"
 ))]
 pub use write::write_managed_json_pretty_atomically;

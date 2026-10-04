@@ -17,7 +17,6 @@ use std::{
 };
 
 pub const SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION: u32 = 1;
-const MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES: u64 = 1024 * 1024;
 
 ///
 /// SnapshotRefreshAttemptReadError
@@ -95,9 +94,13 @@ pub fn read_snapshot_refresh_attempt_strict<T>(
 where
     T: DeserializeOwned,
 {
-    let Some(data) =
-        read_bounded_managed_file(cache_root, path, MAX_SNAPSHOT_REFRESH_ATTEMPT_BYTES, budget)
-            .map_err(|error| snapshot_attempt_read_error(cache_root, error))?
+    let Some(data) = read_bounded_managed_file(
+        cache_root,
+        path,
+        crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,
+        budget,
+    )
+    .map_err(|error| snapshot_attempt_read_error(cache_root, error))?
     else {
         return Ok(None);
     };

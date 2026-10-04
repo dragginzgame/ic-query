@@ -156,7 +156,7 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
         assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
         assert_eq!(request.start, 100);
-        assert_eq!(request.limit, 2);
+        assert_eq!(request.limit, 3);
         assert!(request.follow_archives);
 
         Ok(IcrcTransactionsData {
@@ -203,14 +203,14 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
                 callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
                 callback_method: "icrc3_get_blocks".to_string(),
                 ranges: vec![IcrcArchivedRangeRow {
-                    start: "0".to_string(),
-                    length: "100".to_string(),
+                    start: "102".to_string(),
+                    length: "1".to_string(),
                 }],
             }],
             followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
                 archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
                 callback_method: "icrc3_get_blocks".to_string(),
-                index: "0".to_string(),
+                index: "102".to_string(),
                 block_type: Some("1mint".to_string()),
                 transaction_kind: Some("1mint".to_string()),
                 timestamp_unix_nanos: Some("1699999999123456789".to_string()),
@@ -231,8 +231,8 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
                 callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
                 callback_method: "icrc3_get_blocks".to_string(),
                 ranges: vec![IcrcArchivedRangeRow {
-                    start: "200".to_string(),
-                    length: "10".to_string(),
+                    start: "102".to_string(),
+                    length: "1".to_string(),
                 }],
                 error: "archive query failed".to_string(),
             }],
@@ -876,6 +876,56 @@ fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     ));
 }
 
+struct TransactionsDataSource(IcrcTransactionsData);
+
+impl IcrcTransactionsSource for TransactionsDataSource {
+    fn fetch_transactions(
+        &self,
+        _request: &IcrcTransactionsRequest,
+    ) -> Result<IcrcTransactionsData, IcrcError> {
+        Ok(self.0.clone())
+    }
+}
+
+#[test]
+fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
+    let request = IcrcTransactionsRequest {
+        source_endpoint: SOURCE_ENDPOINT.to_string(),
+        now_unix_secs: FETCHED_AT_UNIX_SECS,
+        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        start: 100,
+        limit: 3,
+        follow_archives: true,
+    };
+    let original = FixtureIcrcSource.fetch_transactions(&request).unwrap();
+    for case in 0..6 {
+        let mut data = original.clone();
+        match case {
+            0 => data.archived_blocks[0].ranges[0].start = "99".into(),
+            1 => data.followed_archive_blocks[0].index = "103".into(),
+            2 => data.blocks[0].index = "not-decimal".into(),
+            3 => data
+                .followed_archive_blocks
+                .push(data.followed_archive_blocks[0].clone()),
+            4 => data.archive_follow_errors[0].ranges[0].length = "2".into(),
+            5 => data.archived_blocks[0].ranges[0].length = "0".into(),
+            _ => unreachable!(),
+        }
+        assert!(matches!(
+            build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(data)),
+            Err(IcrcError::InvalidTransactionPage { .. })
+        ));
+    }
+    let request = IcrcTransactionsRequest {
+        follow_archives: false,
+        ..request
+    };
+    assert!(
+        build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(original))
+            .is_err()
+    );
+}
+
 #[test]
 fn transactions_report_builds_text_and_json_friendly_fields() {
     let request = IcrcTransactionsRequest {
@@ -883,7 +933,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
         start: 100,
-        limit: 2,
+        limit: 3,
         follow_archives: true,
     };
 
@@ -893,7 +943,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.requested_start, "100");
-    assert_eq!(report.requested_limit, 2);
+    assert_eq!(report.requested_limit, 3);
     assert_eq!(report.log_length.as_deref(), Some("1000"));
     assert_eq!(report.blocks.len(), 2);
     assert_eq!(report.archived_blocks.len(), 1);
@@ -914,7 +964,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
 
     let json = serde_json::to_value(&report).expect("serialize ICRC transactions report");
     assert_eq!(json["requested_start"], json!("100"));
-    assert_eq!(json["requested_limit"], json!(2));
+    assert_eq!(json["requested_limit"], json!(3));
     assert_eq!(json["follow_archives"], json!(true));
     assert_eq!(json["log_length"], json!("1000"));
     assert_eq!(json["blocks"][0]["index"], json!("100"));
@@ -925,9 +975,9 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     );
     assert_eq!(
         json["archived_blocks"][0]["ranges"][0]["length"],
-        json!("100")
+        json!("1")
     );
-    assert_eq!(json["followed_archive_blocks"][0]["index"], json!("0"));
+    assert_eq!(json["followed_archive_blocks"][0]["index"], json!("102"));
     assert_eq!(
         json["followed_archive_blocks"][0]["archive_canister_id"],
         json!(ARCHIVE_CANISTER_ID)

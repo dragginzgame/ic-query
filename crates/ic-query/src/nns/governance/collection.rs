@@ -304,6 +304,7 @@ fn write_governance_refresh_attempt(
         &request.cache_root,
         path,
         &attempt,
+        crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,
         |path, source| HostCacheError::serialize_cache(cache_component, path, source),
         |error| HostCacheError::operation(cache_component, error),
     )

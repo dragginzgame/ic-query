@@ -82,6 +82,9 @@ pub trait IcrcIndexSource {
 
 pub trait IcrcTransactionsSource {
     /// Fetch a bounded ledger block range and follow callbacks only when requested.
+    /// Ledger blocks and archive ranges must be disjoint and inside the requested page.
+    /// Followed blocks must have unique ids and match a returned callback's ranges;
+    /// follow errors must identify a returned callback. At most 100 callbacks are accepted.
     fn fetch_transactions(
         &self,
         request: &IcrcTransactionsRequest,

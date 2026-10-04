@@ -91,6 +91,23 @@ fn refresh_lock_rejects_mismatched_identity() {
 }
 
 #[test]
+fn oversized_new_refresh_lock_is_not_persisted() {
+    let fixture = LockFixture::new("ic-query-oversized-new-refresh-lock");
+    let bytes = usize::try_from(super::acquire::MAX_REFRESH_LOCK_BYTES)
+        .expect("refresh-lock ceiling fits usize");
+    let network = "x".repeat(bytes);
+    let mut request = fixture.request(120);
+    request.network = &network;
+    let error = acquire_refresh_lock(request).expect_err("lock must fit its reader ceiling");
+    assert!(
+        matches!(error, CacheFileError::WriteLimitExceeded { maximum, .. }
+        if maximum == super::acquire::MAX_REFRESH_LOCK_BYTES)
+    );
+    assert!(!fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
+#[test]
 fn oversized_refresh_lock_is_rejected_as_invalid_local_evidence() {
     let fixture = LockFixture::new("ic-query-oversized-refresh-lock");
     let bytes = usize::try_from(super::acquire::MAX_REFRESH_LOCK_BYTES + 1)

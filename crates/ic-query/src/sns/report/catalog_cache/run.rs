@@ -191,6 +191,7 @@ pub fn refresh_sns_catalog_with_source(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &cache,
+                crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
                 |path, source| {
                     SnsHostError::from(HostCacheError::serialize_cache(
                         SNS_CACHE_COMPONENT,
@@ -230,7 +231,7 @@ fn load_cached_sns_catalog(
             path: path.clone(),
             network: &request.network,
             expected_schema_version: SNS_CATALOG_CACHE_SCHEMA_VERSION,
-            maximum_bytes: 64 * 1024 * 1024,
+            maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
         },
         None,
         &key,

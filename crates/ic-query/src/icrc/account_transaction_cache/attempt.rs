@@ -184,6 +184,7 @@ fn write_attempt(
         &request.cache.cache_root,
         path,
         &attempt,
+        crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,
         |path, source| {
             HostCacheError::serialize_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source)
                 .into()

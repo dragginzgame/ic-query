@@ -24,9 +24,6 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{io, path::PathBuf};
 
-// Admit complete catalogs with headroom while bounding local allocation before decoding.
-const MAX_CACHED_CATALOG_BYTES: u64 = 64 * 1024 * 1024;
-
 ///
 /// SubnetCatalogCacheRequest
 ///
@@ -454,7 +451,7 @@ fn load_cached_with_disposition_detailed(
     let Some(data) = read_bounded_managed_file(
         &request.cache.cache_root,
         &path,
-        MAX_CACHED_CATALOG_BYTES,
+        crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
         None,
     )
     .map_err(|error| {

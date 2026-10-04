@@ -47,7 +47,7 @@ pub fn load_cached_nns_subnet_topology(
         path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
         network: &request.network,
         expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-        maximum_bytes: 64 * 1024 * 1024,
+        maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
     })
     .map_err(NnsSubnetTopologyHostError::from)?;
     validate_report_identity(&cached.report, &request.network, None)?;
@@ -102,6 +102,7 @@ pub fn refresh_nns_subnet_topology_with_source(
                 &request.cache.cache_root,
                 &cache_path,
                 &report,
+                crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
                 |path, source| HostCacheError::serialize_cache(CACHE_COMPONENT, path, source),
                 |error| HostCacheError::operation(CACHE_COMPONENT, error),
             )?;

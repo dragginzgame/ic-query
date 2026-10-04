@@ -76,7 +76,11 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
             self.pages.next_cursor(),
             None,
         )?;
-        validate_mainnet_sns_neuron_page(&page, self.context.request.page_size())?;
+        validate_mainnet_sns_neuron_page(
+            &page,
+            self.context.request.page_size(),
+            self.pages.next_cursor(),
+        )?;
         Ok(self.pages.ingest_page(
             page.neurons,
             page.last_cursor,

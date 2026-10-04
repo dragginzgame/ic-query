@@ -227,6 +227,7 @@ fn publish_complete_snapshot(
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &snapshot,
+                crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
                 |path, source| {
                     HostCacheError::serialize_cache(
                         ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,

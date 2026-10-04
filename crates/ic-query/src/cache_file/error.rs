@@ -15,6 +15,15 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum CacheFileError {
+    /// Serialized managed JSON exceeds the owner's supported read ceiling.
+    #[error("cache write at {} exceeds its byte limit of {maximum}", path.display())]
+    WriteLimitExceeded {
+        /// Managed snapshot or sidecar that was not published.
+        path: PathBuf,
+        /// Maximum supported encoded byte length.
+        maximum: u64,
+    },
+
     /// Complete discovery or inspection exceeded its aggregate work ceiling.
     #[error("cache scan at {} exceeds its {resource} limit of {maximum}; no complete result is available", path.display())]
     ScanLimitExceeded {

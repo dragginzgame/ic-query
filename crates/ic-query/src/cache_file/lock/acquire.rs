@@ -13,6 +13,7 @@ use super::{
 use crate::cache_file::{
     BoundedManagedFileReadError, CacheFileError,
     confined::{ConfinedManagedPath, managed_path_for_create},
+    ensure_managed_write_size,
 };
 use std::{io, io::Write, path::Path};
 
@@ -29,8 +30,7 @@ pub(super) fn acquire_refresh_lock(
                 let _ = lock_path.remove_file();
                 return Err(err);
             }
-            lock_path.sync_parent()?;
-            Ok(RefreshLockGuard::new(lock_path))
+            RefreshLockGuard::new(lock_path)
         }
         Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
             let existing = read_refresh_lock(&lock_path)?;
@@ -70,6 +70,7 @@ fn write_refresh_lock_file(
             source,
         }
     })?;
+    ensure_managed_write_size(request.lock_path, data.len() as u64, MAX_REFRESH_LOCK_BYTES)?;
     file.write_all(&data)
         .map_err(|source| CacheFileError::WriteRefreshLock {
             path: request.lock_path.to_path_buf(),

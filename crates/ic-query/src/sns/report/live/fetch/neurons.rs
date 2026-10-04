@@ -149,6 +149,6 @@ async fn fetch_mainnet_sns_neuron_page_async(
         neurons,
         last_cursor,
     };
-    validate_mainnet_sns_neuron_page(&page, limit)?;
+    validate_mainnet_sns_neuron_page(&page, limit, start_page_at)?;
     Ok(page)
 }

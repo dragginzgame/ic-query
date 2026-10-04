@@ -159,6 +159,7 @@ where
                 context.request.cache_root(),
                 &context.paths.cache_path,
                 &cache,
+                crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
                 |path, source| {
                     SnsHostError::from(HostCacheError::serialize_cache(
                         SNS_CACHE_COMPONENT,

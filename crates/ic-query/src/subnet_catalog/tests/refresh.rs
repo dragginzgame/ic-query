@@ -126,6 +126,12 @@ fn refresh_writes_catalog_atomically_and_removes_lock() {
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
     let lock_path = PathBuf::from(&report.refresh_lock_path);
+    assert_eq!(
+        fs::read(&report.catalog_path).expect("read published catalog bytes"),
+        catalog_to_pretty_json(cached.catalog.raw())
+            .expect("pretty catalog JSON")
+            .into_bytes(),
+    );
 
     let _ = fs::remove_dir_all(root);
     assert!(report.wrote_catalog);

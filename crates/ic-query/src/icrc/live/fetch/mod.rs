@@ -15,7 +15,7 @@ pub(super) use account::{
 pub(super) use capabilities::fetch_capabilities_async;
 pub(super) use history::{
     fetch_archives_async, fetch_block_types_async, fetch_index_async, fetch_tip_certificate_async,
-    fetch_transactions_async, query_index_principal,
+    fetch_transactions_async, query_index_principal, validate_transactions_data,
 };
 
 use crate::icrc::{

@@ -160,7 +160,7 @@ fn load_cache_at(
             path: path.to_path_buf(),
             network,
             expected_schema_version: NNS_NEURON_CACHE_SCHEMA_VERSION,
-            maximum_bytes: 512 * 1024 * 1024,
+            maximum_bytes: crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
         },
         None,
         &key,

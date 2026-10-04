@@ -99,7 +99,7 @@ pub(super) fn load_snapshot_at(
             path: path.to_path_buf(),
             network: MAINNET_NETWORK,
             expected_schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
-            maximum_bytes: 512 * 1024 * 1024,
+            maximum_bytes: crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
         },
         ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS,
         None,
