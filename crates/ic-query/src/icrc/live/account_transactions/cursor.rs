@@ -4,17 +4,21 @@
 //! Does not own: collection state, index wire decoding, transport, or reports.
 //! Boundary: keeps public cursor normalization and snapshot ordering on canonical decimal text.
 
-use crate::icrc::{
-    ledger::nat_text,
-    model::{IcrcAccountTransactionError, IcrcAccountTransactionRow},
-};
+use crate::icrc::model::{IcrcAccountTransactionError, IcrcAccountTransactionRow};
 use candid::Nat;
 use std::{cmp::Ordering, str::FromStr};
 
 pub(in crate::icrc) fn normalize_transaction_cursor(
     value: &str,
 ) -> Result<String, IcrcAccountTransactionError> {
-    parse_transaction_cursor(value).map(|cursor| nat_text(&cursor))
+    validate_transaction_cursor_text(value)?;
+    let normalized = value.trim_start_matches('0');
+    Ok(if normalized.is_empty() {
+        "0"
+    } else {
+        normalized
+    }
+    .to_string())
 }
 
 pub(in crate::icrc) fn validate_canonical_account_transactions(
@@ -97,7 +101,9 @@ pub(super) fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTr
     })
 }
 
-fn validate_transaction_cursor_text(value: &str) -> Result<(), IcrcAccountTransactionError> {
+pub(in crate::icrc) fn validate_transaction_cursor_text(
+    value: &str,
+) -> Result<(), IcrcAccountTransactionError> {
     if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err(IcrcAccountTransactionError::InvalidCursor {
             value: value.to_string(),
@@ -116,16 +122,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn account_transaction_cursor_accepts_nat_beyond_u64_and_canonicalizes_zeroes() {
-        assert_eq!(
-            normalize_transaction_cursor("18446744073709551616")
-                .expect("arbitrary candid Nat cursor"),
-            "18446744073709551616"
-        );
-        assert_eq!(
-            normalize_transaction_cursor("00042").expect("decimal cursor"),
-            "42"
-        );
+    fn account_transaction_cursor_accepts_arbitrary_decimal_and_canonicalizes_zeroes() {
+        for (value, expected) in [
+            ("0", "0"),
+            ("0000", "0"),
+            ("42", "42"),
+            ("00042", "42"),
+            ("18446744073709551616", "18446744073709551616"),
+            ("00018446744073709551616", "18446744073709551616"),
+        ] {
+            assert_eq!(normalize_transaction_cursor(value).unwrap(), expected);
+        }
+        for value in ["", "+1", "-1", " 1", "1 ", "1.0", "١", "４２"] {
+            assert!(matches!(
+                normalize_transaction_cursor(value),
+                Err(IcrcAccountTransactionError::InvalidCursor { .. })
+            ));
+        }
     }
 
     #[test]

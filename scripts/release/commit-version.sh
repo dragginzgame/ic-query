@@ -37,9 +37,7 @@ fi
 unexpected_staged=0
 while IFS= read -r staged_path; do
   case "${staged_path}" in
-    Cargo.lock | Cargo.toml | README.md | \
-      crates/ic-query/Cargo.toml | crates/ic-query-cli/Cargo.toml | \
-      docs/library-usage.md)
+    Cargo.lock | Cargo.toml | README.md | docs/library-usage.md)
       ;;
     *)
       echo "error: unexpected staged release path: ${staged_path}" >&2

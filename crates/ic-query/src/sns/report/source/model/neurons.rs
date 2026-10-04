@@ -67,7 +67,9 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neurons(
     neurons: &MainnetSnsNeurons,
     requested_limit: u32,
 ) -> Result<(), SnsHostError> {
-    validate_sns_neuron_source_rows(&neurons.neurons, requested_limit, "SNS neurons")
+    let validator = SnsSourceValidator::new("SNS neurons");
+    validator.row_limit(neurons.neurons.len(), requested_limit)?;
+    validate_sns_neuron_rows(&neurons.neurons).map_err(|reason| validator.invalid(reason))
 }
 
 /// Validate one neuron page returned by a public source implementation.
@@ -76,8 +78,11 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron_page(
     requested_limit: u32,
     start_page_at: Option<&SnsNeuronId>,
 ) -> Result<(), SnsHostError> {
-    validate_sns_neuron_source_rows(&page.neurons, requested_limit, "SNS neuron page")?;
     let validator = SnsSourceValidator::new("SNS neuron page");
+    validator.row_limit(page.neurons.len(), requested_limit)?;
+    for neuron in &page.neurons {
+        validate_sns_neuron_row(neuron).map_err(|reason| validator.invalid(reason))?;
+    }
     let last_id = page.neurons.last().map(|neuron| neuron.neuron_id.as_str());
     let cursor_text = page
         .last_cursor
@@ -116,21 +121,6 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron_page(
         }
     }
     Ok(())
-}
-
-fn validate_sns_neuron_source_rows(
-    neurons: &[SnsNeuronRow],
-    requested_limit: u32,
-    capability: &'static str,
-) -> Result<(), SnsHostError> {
-    let validator = SnsSourceValidator::new(capability);
-    if neurons.len() > requested_limit as usize {
-        return Err(validator.invalid(format!(
-            "returned {} rows for requested limit {requested_limit}",
-            neurons.len()
-        )));
-    }
-    validate_sns_neuron_rows(neurons).map_err(|reason| validator.invalid(reason))
 }
 
 /// Validate canonical row fields and neuron-id uniqueness within one row collection.
@@ -403,6 +393,10 @@ mod tests {
                 reason,
             } if reason == "returned 2 rows for requested limit 1"
         ));
+        let mut unordered = over_limit.clone();
+        unordered.neurons.reverse();
+        validate_mainnet_sns_neurons(&unordered, 2)
+            .expect("bounded results need uniqueness without requiring page ordering");
 
         let page = MainnetSnsNeuronPage {
             neurons: over_limit.neurons,
@@ -448,6 +442,25 @@ mod tests {
             last_cursor: None,
         };
         validate_mainnet_sns_neuron_page(&empty, 2, Some(&cursor)).unwrap();
+        for ids in [vec![2, 2], vec![2, 3, 2]] {
+            let last_id = *ids.last().unwrap();
+            let page = MainnetSnsNeuronPage {
+                neurons: ids
+                    .iter()
+                    .map(|id| neuron(&crate::hex::hex_bytes(&[*id; 32])))
+                    .collect(),
+                last_cursor: Some(SnsNeuronId {
+                    id: vec![last_id; 32],
+                }),
+            };
+            assert!(matches!(
+                validate_mainnet_sns_neuron_page(&page, u32::try_from(ids.len()).unwrap(), None),
+                Err(SnsHostError::InvalidSourceData {
+                    capability: "SNS neuron page",
+                    ..
+                })
+            ));
+        }
     }
 
     fn neuron(neuron_id: &str) -> SnsNeuronRow {

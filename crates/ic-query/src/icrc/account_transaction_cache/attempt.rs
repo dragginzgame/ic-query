@@ -10,7 +10,7 @@ use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
     icrc::{
-        live::account_transactions::normalize_transaction_cursor,
+        live::account_transactions::validate_transaction_cursor_text,
         model::{
             IcrcAccountTransactionCacheRequest, IcrcAccountTransactionError,
             IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshRequest,
@@ -217,7 +217,7 @@ fn validate_attempt(
             .map_err(|error| invalid(format!("invalid index canister id: {error}")))?;
     }
     if let Some(cursor) = attempt.last_cursor.as_deref() {
-        normalize_transaction_cursor(cursor).map_err(|error| invalid(error.to_string()))?;
+        validate_transaction_cursor_text(cursor).map_err(|error| invalid(error.to_string()))?;
     }
     Ok(status)
 }

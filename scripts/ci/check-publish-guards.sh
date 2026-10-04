@@ -119,3 +119,59 @@ fi
   || fail "the workspace publisher did not publish the missing library"
 [[ ! -e "${publish_case}/hidden-index-state/ic-query-cli" ]] \
   || fail "the workspace publisher published the CLI before the library was indexed"
+
+make_case="${work_dir}/make-publish"
+mkdir -p "${make_case}/bin" "${make_case}/scripts/release"
+printf 'version = "%s"\n' "${current_version}" > "${make_case}/Cargo.toml"
+ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
+  "${make_case}/scripts/release/publish-workspace.sh"
+cat > "${make_case}/bin/git" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  'diff-index --quiet HEAD --') exit "${DIRTY_STATUS:-0}" ;;
+  'ls-files --others --exclude-standard')
+    [[ -z "${UNTRACKED_PATH:-}" ]] || printf '%s\n' "${UNTRACKED_PATH}"
+    ;;
+  "rev-parse v${RELEASE_VERSION}^{}")
+    [[ -z "${MISSING_TAG:-}" ]] || exit 1
+    printf '%s\n' "${TAG_COMMIT:-release}"
+    ;;
+  'rev-parse HEAD') printf 'release\n' ;;
+  *) exit 2 ;;
+esac
+EOF
+chmod +x "${make_case}/bin/git"
+
+# Already-published fixtures exercise Make's entry checks without registry IO.
+(
+  cd "${make_case}"
+  PATH="${make_case}/bin:${publish_case}/bin:${PATH}" RELEASE_VERSION="${current_version}" \
+    TRACE_FILE="${make_case}/trace" STATE_DIR="${publish_case}/state" \
+    make --no-print-directory -f "${repo_root}/Makefile" publish
+) >/dev/null \
+  || fail "make publish rejected a clean tagged release"
+mapfile -t make_publish_trace < "${make_case}/trace"
+[[ "${make_publish_trace[*]}" == "${republish_trace[*]}" ]] \
+  || fail "make publish did not delegate once to the retry-safe workspace publisher"
+
+for invalid_release in dirty untracked stale-tag missing-tag; do
+  : > "${make_case}/trace"
+  if (
+    cd "${make_case}"
+    export PATH="${make_case}/bin:${publish_case}/bin:${PATH}"
+    export RELEASE_VERSION="${current_version}" TRACE_FILE="${make_case}/trace"
+    export STATE_DIR="${publish_case}/state"
+    case "${invalid_release}" in
+      dirty) export DIRTY_STATUS=1 ;;
+      untracked) export UNTRACKED_PATH=unexpected.txt ;;
+      stale-tag) export TAG_COMMIT=stale ;;
+      missing-tag) export MISSING_TAG=1 ;;
+    esac
+    make --no-print-directory -f "${repo_root}/Makefile" publish
+  ) >/dev/null 2>&1; then
+    fail "make publish accepted a ${invalid_release} release"
+  fi
+  [[ ! -s "${make_case}/trace" ]] \
+    || fail "make publish reached Cargo for a ${invalid_release} release"
+done

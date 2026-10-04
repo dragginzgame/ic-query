@@ -384,6 +384,10 @@ assurance.
   Replies require unique ids inside their callback ranges; failures remain
   explicit archive error rows. Custom-source reports enforce the same page
   bounds and callback provenance before projection.
+  Disjoint page ranges already establish resident uniqueness and exclude
+  resident ids from followed archive rows. The custom-source duplicate set
+  therefore tracks only followed archive ids, using numeric identity so
+  alternate decimal spellings cannot evade it.
 - ICRC tip-certificate collection authenticates the certificate and proves the
   ledger tip witness against the canister's certified-data value.
 - CMC system reporting makes one `get_icp_xdr_conversion_rate` query,

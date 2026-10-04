@@ -230,11 +230,10 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     };
     let log_length = data.log_length.as_deref().map(parse).transpose()?;
     let mut ranges = Vec::new();
-    let mut seen = BTreeSet::new();
     for block in &data.blocks {
         let id = parse(&block.index)?;
-        ranges.push((id.clone(), Nat(&id.0 + 1u32)));
-        seen.insert(id);
+        let end = Nat(&id.0 + 1u32);
+        ranges.push((id, end));
     }
     for archive in &data.archived_blocks {
         if archive.ranges.is_empty() {
@@ -259,6 +258,8 @@ pub(in crate::icrc::live) fn validate_transactions_data(
             "source followed archives without being requested",
         ));
     }
+    // Disjoint validated ranges already exclude resident ids from archive rows.
+    let mut followed_ids = BTreeSet::new();
     for block in &data.followed_archive_blocks {
         let id = parse(&block.index)?;
         let mut in_range = false;
@@ -277,7 +278,7 @@ pub(in crate::icrc::live) fn validate_transactions_data(
                 }
             }
         }
-        if !in_range || !seen.insert(id) {
+        if !in_range || !followed_ids.insert(id) {
             return Err(invalid_transaction_page(
                 "followed archive block is outside its callback ranges or duplicated",
             ));

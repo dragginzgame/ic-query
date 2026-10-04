@@ -16,6 +16,9 @@ mkdir -p "${ci_gate_case}/bin"
 cat > "${ci_gate_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
+[[ "${*: -1}" != "${FAIL_TARGET:-}" ]] || exit 43
+[[ -z "${EXPECTED_CHANGELOG_VERSION:-}" \
+  || "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION}" ]] || exit 42
 EOF
 chmod +x "${ci_gate_case}/bin/make"
 (
@@ -49,6 +52,27 @@ for index in "${!expected_ci_targets[@]}"; do
   expected_command="make --no-print-directory ${expected_ci_targets[index]}"
   [[ "${ci_gate_trace[index]}" == "${expected_command}" ]] \
     || fail "make ci did not run its targets sequentially"
+done
+
+for failed_target in changelog-check test; do
+  : > "${ci_gate_case}/trace"
+  if (
+    cd "${repo_root}"
+    TRACE_FILE="${ci_gate_case}/trace" FAIL_TARGET="${failed_target}" \
+      EXPECTED_CHANGELOG_VERSION=0.8.1 CHANGELOG_VERSION=0.8.1 \
+      "${make_bin}" --no-print-directory MAKE="${ci_gate_case}/bin/make" ci
+  ) >/dev/null 2>&1; then
+    fail "make ci accepted a failed ${failed_target}"
+  fi
+  mapfile -t failed_ci_trace < "${ci_gate_case}/trace"
+  expected_count=0
+  for target in "${expected_ci_targets[@]}"; do
+    expected_count=$((expected_count + 1))
+    [[ "${target}" != "${failed_target}" ]] || break
+  done
+  [[ "${#failed_ci_trace[@]}" -eq "${expected_count}" \
+    && "${failed_ci_trace[-1]}" == "make --no-print-directory ${failed_target}" ]] \
+    || fail "make ci continued after a failed ${failed_target} or lost the target changelog version"
 done
 
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"

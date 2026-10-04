@@ -61,9 +61,6 @@ if git rev-parse "v${new_version}" >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Checking committed changelog for target version ${new_version}..."
-bash scripts/ci/check-changelog-version.sh "${new_version}"
-
 echo "Running full CI gate before version bump..."
 make --no-print-directory ensure-clean
 CHANGELOG_VERSION="${new_version}" make --no-print-directory ci

@@ -52,6 +52,13 @@ cache-only reads reject them. A refresh with an unrepresentable interval fails
 before replacing the previous snapshot. Refresh-attempt update timestamps
 remain local wall-clock observations, separate from this collection interval.
 
+Account-history cursors share unsigned ASCII-decimal validation. Request
+normalization strips leading zeroes directly from validated text; native index
+queries convert to Candid `Nat` only for wire arguments. Attempt reads validate
+cursor text without allocating and discarding a normalized value. Arbitrary-size
+ids and leading-zero request/attempt text remain supported, while stored rows
+and returned page cursors retain their canonical newest-first requirements.
+
 ICRC publication validates caller-supplied collection rows, index identity,
 page evidence, the requested page cap, and final cursor before building the
 snapshot. It constructs and validates completeness once through the shared
@@ -205,6 +212,11 @@ ids and any supplied cursor must equal the final row. Inclusive boundary overlap
 remains supported; the neuron adapter removes that one repeated row and retains
 its first observation. Older rows are invalid, so no other overlap is possible;
 full pages require an advancing cursor, while short terminal pages may omit it.
+
+Strict neuron-page ordering also establishes within-page uniqueness, so page
+validation does not build a second id set. Bounded results and stored snapshots
+permit unordered rows and retain set-based uniqueness validation. Proposal and
+neuron source results share the same capability-aware requested-row limit check.
 
 Shared paging state owns counters, admitted rows, and the next cursor, without
 a collection-wide duplicate registry. Exhaustion uses the original API page

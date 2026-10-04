@@ -179,27 +179,14 @@ minor:
 major:
 	bash scripts/release/bump-version.sh major
 
-release-patch:
-	+$(MAKE) --no-print-directory patch
-	+$(MAKE) --no-print-directory release-stage
-	+$(MAKE) --no-print-directory release-commit
-	+$(MAKE) --no-print-directory release-push
-
-release-minor:
-	+$(MAKE) --no-print-directory minor
-	+$(MAKE) --no-print-directory release-stage
-	+$(MAKE) --no-print-directory release-commit
-	+$(MAKE) --no-print-directory release-push
-
-release-major:
-	+$(MAKE) --no-print-directory major
+release-patch release-minor release-major:
+	+$(MAKE) --no-print-directory $(patsubst release-%,%,$@)
 	+$(MAKE) --no-print-directory release-stage
 	+$(MAKE) --no-print-directory release-commit
 	+$(MAKE) --no-print-directory release-push
 
 release-stage:
-	git add Cargo.toml Cargo.lock README.md docs/library-usage.md \
-		crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml
+	git add Cargo.toml Cargo.lock README.md docs/library-usage.md
 
 release-commit:
 	bash "$(REPO_ROOT)scripts/release/commit-version.sh"

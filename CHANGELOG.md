@@ -9,6 +9,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.12` gives patch/minor/major releases one sequential recipe and CI
+  ownership of the target-version changelog check. Release staging follows
+  workspace-owned version metadata; publication retains library-first ordering,
+  registry visibility checks, and retry-safe skips. Replaces release recipe
+  text assertions with failure/ordering fixtures and verifies publication
+  rejects dirty trees and missing or stale tags before reaching Cargo. ICRC
+  cursor normalization uses validated decimal text directly, and attempt reads
+  validate without discarding a normalized copy. SNS neuron pages use strict
+  ordering to reject duplicate ids, and ICRC history reuses disjoint-range
+  evidence instead of tracking resident ids again. Public Rust APIs, CLI grammar,
+  cache identities, and serialized shapes are unchanged; schemas remain `1`.
+
 - `0.45.11` rejects complete-cache row counts that exceed the declared page
   capacity and custom ICRC completion results beyond the requested page cap.
   SNS discovery records its actual inventory width; contradictory cached

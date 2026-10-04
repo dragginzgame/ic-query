@@ -149,11 +149,18 @@ fn sns_neurons_cached_sort_rejects_snapshot_identity_mismatch() {
     let _ = fs::remove_dir_all(root);
 }
 
-struct SkippingNeuronCursorSource;
+#[derive(Clone, Copy)]
+enum InvalidNeuronPage {
+    Cursor,
+    DuplicateIds,
+    DescendingIds,
+}
 
-delegate_sns_discovery!(SkippingNeuronCursorSource);
+struct InvalidNeuronPageSource(InvalidNeuronPage);
 
-impl SnsNeuronsSource for SkippingNeuronCursorSource {
+delegate_sns_discovery!(InvalidNeuronPageSource);
+
+impl SnsNeuronsSource for InvalidNeuronPageSource {
     fn fetch_sns_neurons(
         &self,
         _request: &SnsSourceRequest,
@@ -180,41 +187,58 @@ impl SnsNeuronsSource for SkippingNeuronCursorSource {
             owner_principal_id,
         )?;
         if start_page_at.is_some() {
-            page.last_cursor = Some(SnsNeuronId { id: vec![4; 32] });
+            match self.0 {
+                InvalidNeuronPage::Cursor => {
+                    page.last_cursor = Some(SnsNeuronId { id: vec![4; 32] });
+                }
+                InvalidNeuronPage::DuplicateIds => {
+                    page.neurons[0] = page.neurons[1].clone();
+                }
+                InvalidNeuronPage::DescendingIds => {
+                    page.neurons[0].neuron_id = "04".repeat(32);
+                }
+            }
         }
         Ok(page)
     }
 }
 
 #[test]
-fn invalid_neuron_cursor_preserves_complete_cache_and_records_failure() {
+fn invalid_neuron_page_preserves_complete_cache_and_records_failure() {
     let root = temp_dir("ic-query-sns-neurons-invalid-cursor");
     let request = sns_neurons_refresh_request(&root, None);
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource).unwrap();
     let path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let original = fs::read(&path).unwrap();
-    let error = refresh_sns_neurons_cache_with_source(&request, &SkippingNeuronCursorSource)
-        .expect_err("skipping cursor cannot prove completeness");
-    assert!(matches!(
-        error,
-        SnsHostError::InvalidSourceData {
-            capability: "SNS neuron page",
-            ..
-        }
-    ));
-    assert_eq!(fs::read(&path).unwrap(), original);
-    let attempt: serde_json::Value = serde_json::from_slice(
-        &fs::read(sns_neurons_refresh_attempt_path(
-            &root,
-            MAINNET_NETWORK,
-            ROOT_A,
-        ))
-        .unwrap(),
-    )
-    .unwrap();
-    assert_eq!(attempt["status"], "failed");
-    assert_eq!(attempt["pages_fetched"], 1);
-    assert_eq!(attempt["rows_fetched"], 2);
-    assert!(!sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A).exists());
+    for invalid_page in [
+        InvalidNeuronPage::Cursor,
+        InvalidNeuronPage::DuplicateIds,
+        InvalidNeuronPage::DescendingIds,
+    ] {
+        let error =
+            refresh_sns_neurons_cache_with_source(&request, &InvalidNeuronPageSource(invalid_page))
+                .expect_err("invalid page cannot prove completeness");
+        assert!(matches!(
+            error,
+            SnsHostError::InvalidSourceData {
+                capability: "SNS neuron page",
+                ..
+            }
+        ));
+        assert_eq!(fs::read(&path).unwrap(), original);
+        let attempt: serde_json::Value = serde_json::from_slice(
+            &fs::read(sns_neurons_refresh_attempt_path(
+                &root,
+                MAINNET_NETWORK,
+                ROOT_A,
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(attempt["status"], "failed");
+        assert_eq!(attempt["pages_fetched"], 1);
+        assert_eq!(attempt["rows_fetched"], 2);
+        assert!(!sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A).exists());
+    }
     fs::remove_dir_all(root).unwrap();
 }

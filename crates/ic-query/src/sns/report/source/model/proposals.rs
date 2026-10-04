@@ -91,12 +91,7 @@ fn validate_sns_proposal_source_rows(
     capability: &'static str,
 ) -> Result<(), SnsHostError> {
     let validator = SnsSourceValidator::new(capability);
-    if proposals.len() > requested_limit as usize {
-        return Err(validator.invalid(format!(
-            "returned {} rows for requested limit {requested_limit}",
-            proposals.len()
-        )));
-    }
+    validator.row_limit(proposals.len(), requested_limit)?;
     validate_sns_proposal_rows(proposals).map_err(|reason| validator.invalid(reason))
 }
 

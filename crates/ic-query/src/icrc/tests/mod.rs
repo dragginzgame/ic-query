@@ -714,7 +714,7 @@ fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
     )
     .with_index_canister_id(INDEX_CANISTER_ID)
     .with_subaccount_hex(UPPER_SUBACCOUNT_HEX)
-    .with_start("42");
+    .with_start("00042");
 
     let report = build_icrc_account_transaction_page_report_with_source(
         &request,
@@ -941,7 +941,7 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
         follow_archives: true,
     };
     let original = FixtureIcrcSource.fetch_transactions(&request).unwrap();
-    for case in 0..9 {
+    for case in 0..12 {
         let mut data = original.clone();
         match case {
             0 => data.archived_blocks[0].ranges[0].start = "99".into(),
@@ -955,6 +955,13 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
             6 => data.log_length = Some("100".into()),
             7 => data.log_length = Some("102".into()),
             8 => data.log_length = Some("not-decimal".into()),
+            9 => data.blocks.push(data.blocks[0].clone()),
+            10 => data.followed_archive_blocks[0].index = data.blocks[0].index.clone(),
+            11 => {
+                let mut duplicate = data.followed_archive_blocks[0].clone();
+                duplicate.index.insert(0, '0');
+                data.followed_archive_blocks.push(duplicate);
+            }
             _ => unreachable!(),
         }
         assert!(matches!(

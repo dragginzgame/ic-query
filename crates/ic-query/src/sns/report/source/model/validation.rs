@@ -1,8 +1,8 @@
 //! Module: sns::report::source::model::validation
 //!
-//! Responsibility: share capability-aware validation of common SNS source evidence.
+//! Responsibility: share capability-aware validation of common SNS source evidence and row limits.
 //! Does not own: capability-specific invariants, source DTOs, transport, or report projection.
-//! Boundary: preserves each capability label while validating canonical principals and exact values.
+//! Boundary: preserves each capability label while validating principals, exact values, and row limits.
 
 use crate::sns::report::SnsHostError;
 use candid::Principal;
@@ -28,6 +28,15 @@ impl SnsSourceValidator {
             capability: self.capability,
             reason,
         }
+    }
+
+    pub(super) fn row_limit(self, actual: usize, requested: u32) -> Result<(), SnsHostError> {
+        if actual > requested as usize {
+            return Err(self.invalid(format!(
+                "returned {actual} rows for requested limit {requested}"
+            )));
+        }
+        Ok(())
     }
 
     pub(super) fn exact(
