@@ -26,12 +26,9 @@ use crate::{
 };
 use clap::Command as ClapCommand;
 use clap::builder::{NonEmptyStringValueParser, RangedU64ValueParser};
-use ic_query::nns::proposals::{
-    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
-};
+use ic_query::nns::proposals::{DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE};
 
 const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
-const NNS_PROPOSAL_LIST_MAX_LIMIT: u64 = 100;
 const NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
 const NNS_PROPOSAL_ACTIVITY_HELP_AFTER: &str = "\
@@ -142,7 +139,10 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
                 .long("limit")
                 .value_name("count")
                 .default_value(NNS_PROPOSAL_LIST_DEFAULT_LIMIT)
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..=NNS_PROPOSAL_LIST_MAX_LIMIT))
+                .value_parser(
+                    RangedU64ValueParser::<u32>::new()
+                        .range(1..=u64::from(NNS_PROPOSAL_MAX_PAGE_SIZE)),
+                )
                 .help("Maximum NNS proposals to request from governance"),
         )
         .arg(
@@ -276,7 +276,7 @@ pub(in crate::nns) fn nns_proposal_refresh_command() -> ClapCommand {
         .arg(
             page_size_arg(
                 NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE,
-                NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
+                NNS_PROPOSAL_MAX_PAGE_SIZE,
             )
             .help("Maximum NNS proposals to request per governance page"),
         )

@@ -18,8 +18,8 @@ use crate::{
         },
         proposals::report::{
             NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-            NnsProposalActivityError, NnsProposalActivityRequest, NnsProposalHostError,
-            NnsProposalListRequest, NnsProposalRequest,
+            NnsProposalActivityError, NnsProposalActivityRequest, NnsProposalError,
+            NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
             cache::paths::nns_proposal_cache_paths,
             model::{
                 NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
@@ -149,22 +149,28 @@ fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProv
 #[test]
 fn nns_proposal_refresh_rejects_invalid_public_page_size() {
     let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
-    let request = NnsGovernanceRefreshRequest::new(
-        &root,
-        MAINNET_NETWORK,
-        DEFAULT_MAINNET_ENDPOINT,
-        1_700_000_000,
-        0,
-    );
-
-    let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
-        .expect_err("zero page size is invalid");
-
-    assert!(matches!(
-        err,
-        NnsProposalHostError::InvalidRefreshPageSize { page_size: 0, .. }
-    ));
-    let _ = fs::remove_dir_all(root);
+    for page_size in [0, 101] {
+        let request = NnsGovernanceRefreshRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            DEFAULT_MAINNET_ENDPOINT,
+            1_700_000_000,
+            page_size,
+        );
+        let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+            .expect_err("page size must be in 1..=100");
+        assert!(matches!(
+            err,
+            NnsProposalHostError::Proposal(NnsProposalError::InvalidLimit {
+                limit,
+                maximum: 100,
+            }) if limit == page_size
+        ));
+        assert!(
+            !root.exists(),
+            "invalid refresh must not create cache files"
+        );
+    }
 }
 
 #[test]

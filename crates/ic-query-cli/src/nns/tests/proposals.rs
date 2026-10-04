@@ -230,6 +230,23 @@ fn nns_proposal_refresh_parses_cache_options() {
 }
 
 #[test]
+fn nns_proposal_list_and_refresh_enforce_governance_page_bounds() {
+    for (command, option, field) in [
+        (nns_proposal_list_command(), "--limit", "limit"),
+        (nns_proposal_refresh_command(), "--page-size", "page-size"),
+    ] {
+        for (value, expected) in [("1", 1), ("100", 100)] {
+            let matches = parse_test_matches(command.clone(), &[option, value])
+                .expect("Governance page boundary is supported");
+            assert_eq!(matches.get_one::<u32>(field), Some(&expected));
+        }
+        for value in ["0", "101"] {
+            assert!(parse_test_matches(command.clone(), &[option, value]).is_err());
+        }
+    }
+}
+
+#[test]
 fn nns_proposal_cache_options_parse_json_format() {
     let list = parse_test_options(
         nns_proposal_cache_list_command(),

@@ -109,6 +109,7 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
 fn empty_complete_collection_produces_canonical_zero_distribution() {
     let report = build_nns_neuron_distribution_report(&complete_collection(0), &[])
         .expect("empty complete distribution");
+    validate_nns_neuron_distribution_report(&report).expect("validate empty distribution");
 
     assert_eq!(report.collected_neuron_count, 0);
     assert_eq!(report.total_effective_stake_e8s, 0);

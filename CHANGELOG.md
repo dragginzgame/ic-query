@@ -9,6 +9,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
 
+- `0.46.1` simplifies NNS analytics construction while retaining validation of
+  caller-supplied state, rows, and restored reports. Proposal queries and
+  refreshes now share one page-size validator and limit, also used by the CLI.
+  Removes both analytics `InvalidReport` variants,
+  `NnsProposalHostError::InvalidRefreshPageSize`, and
+  `NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE` as Rust API hard cuts; use the existing
+  wrapped `NnsProposalError::InvalidLimit` and `NNS_PROPOSAL_MAX_PAGE_SIZE`.
+  CLI grammar, accepted limits, report JSON, and cache shapes are unchanged;
+  schemas remain `1`.
+
 - `0.46.0` adds cache-only NNS proposal activity and public-neuron distribution
   commands using the existing pure library reports. Proposal activity supports
   a half-open creation-time window; both commands support text and raw JSON.

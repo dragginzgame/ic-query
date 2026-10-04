@@ -191,15 +191,6 @@ pub enum NnsProposalHostError {
         reason: String,
     },
 
-    /// Refresh requested a page size outside the supported range.
-    #[error("invalid NNS proposal refresh page size {page_size}; expected 1..={max_page_size}")]
-    InvalidRefreshPageSize {
-        /// Rejected per-page row limit.
-        page_size: u32,
-        /// Largest supported per-page row limit.
-        max_page_size: u32,
-    },
-
     /// A cache-only read could not find the required complete snapshot.
     #[error("NNS proposals cache is missing at {}\n\nRun `icq nns proposal refresh` to fetch a complete snapshot.", path.display())]
     MissingProposalCache {

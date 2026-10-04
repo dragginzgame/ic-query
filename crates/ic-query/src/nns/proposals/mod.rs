@@ -8,9 +8,9 @@ mod report;
 
 #[cfg(feature = "nns-host")]
 pub use report::{
-    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE,
-    NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalCacheSummary,
-    NnsProposalHostError, NnsProposalRefreshReport, advance_nns_proposal_collection,
+    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
+    NnsProposalCacheStatusReport, NnsProposalCacheSummary, NnsProposalHostError,
+    NnsProposalRefreshReport, advance_nns_proposal_collection,
     build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
     build_nns_proposal_list_report_from_cache, build_nns_proposal_report,

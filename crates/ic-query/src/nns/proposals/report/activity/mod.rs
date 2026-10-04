@@ -284,10 +284,6 @@ pub enum NnsProposalActivityError {
         /// Count or conversion that exceeded its representation.
         field: &'static str,
     },
-
-    /// The projected report failed its shared publication invariants.
-    #[error(transparent)]
-    InvalidReport(#[from] NnsProposalActivityValidationError),
 }
 
 /// Validate every activity-report invariant available without source rows or live host calls.
@@ -631,9 +627,7 @@ pub fn build_nns_proposal_activity_report(
             reason: "complete collection has no concrete source provenance".to_string(),
         }
     })?;
-    let report = activity.into_report(request, collection, expected, source);
-    validate_nns_proposal_activity_report(&report)?;
-    Ok(report)
+    Ok(activity.into_report(request, collection, expected, source))
 }
 
 struct ActivityAccumulator {
