@@ -1,6 +1,33 @@
 use super::*;
 use crate::cli::clap::render_help;
 
+#[test]
+fn nns_proposal_activity_parses_cache_only_window_and_json() {
+    let matches = parse_test_matches(nns_proposal_activity_command(), &[]).unwrap();
+    let defaults = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
+    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.request.from_proposal_timestamp_seconds, None);
+    assert_eq!(defaults.request.until_proposal_timestamp_seconds, None);
+    let matches = parse_test_matches(
+        nns_proposal_activity_command(),
+        &["--from", "1", "--until", "3", "--json"],
+    )
+    .unwrap();
+    let options = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
+    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.request.from_proposal_timestamp_seconds, Some(1));
+    assert_eq!(options.request.until_proposal_timestamp_seconds, Some(3));
+    for args in [
+        &["--from", "invalid"][..],
+        &["--until", "18446744073709551616"][..],
+    ] {
+        assert!(parse_test_matches(nns_proposal_activity_command(), args).is_err());
+    }
+    assert!(
+        render_help(nns_proposal_activity_command()).contains("does not make a network request")
+    );
+}
+
 fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
     let matches = parse_test_matches(nns_proposal_list_command(), args)?;
     NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
@@ -200,6 +227,23 @@ fn nns_proposal_refresh_parses_cache_options() {
     assert_eq!(options.source_endpoint, "https://icp-api.io");
     assert_eq!(options.page_size, 25);
     assert_eq!(options.max_pages, Some(2));
+}
+
+#[test]
+fn nns_proposal_list_and_refresh_enforce_governance_page_bounds() {
+    for (command, option, field) in [
+        (nns_proposal_list_command(), "--limit", "limit"),
+        (nns_proposal_refresh_command(), "--page-size", "page-size"),
+    ] {
+        for (value, expected) in [("1", 1), ("100", 100)] {
+            let matches = parse_test_matches(command.clone(), &[option, value])
+                .expect("Governance page boundary is supported");
+            assert_eq!(matches.get_one::<u32>(field), Some(&expected));
+        }
+        for value in ["0", "101"] {
+            assert!(parse_test_matches(command.clone(), &[option, value]).is_err());
+        }
+    }
 }
 
 #[test]

@@ -31,11 +31,11 @@ pub(super) fn publish_complete_neuron_cache(
     replaced_existing_cache: bool,
     complete: CompleteNeuronCollection,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
-    let CompleteNeuronCollection {
-        neurons,
-        page_count,
-        last_cursor,
-    } = complete;
+    let CompleteNeuronCollection { neurons, state } = complete;
+    let page_count = state.pages_fetched();
+    let last_cursor = state
+        .next_start_neuron_id()
+        .map(|cursor| cursor.to_string());
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
     let neuron_count = neurons.len();
     let cache = NnsNeuronCache {
@@ -55,7 +55,10 @@ pub(super) fn publish_complete_neuron_cache(
             neuron_count,
             false,
         ),
-        data: NnsNeuronCacheRows { neurons },
+        data: NnsNeuronCacheRows {
+            collection_state: state,
+            neurons,
+        },
     };
     let progress = SnapshotRefreshProgress::new(page_count, neuron_count, last_cursor);
     let attempt_finalization_error = publish_snapshot_with_attempt(

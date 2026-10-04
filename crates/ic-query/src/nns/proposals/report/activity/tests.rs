@@ -241,6 +241,7 @@ fn half_open_window_counts_both_exclusion_sides_and_empty_windows() {
         Some(86_400)
     );
     assert_eq!(report.day_counts[0].day_start_timestamp_seconds, 86_400);
+    validate_nns_proposal_activity_report(&report).expect("validate windowed activity report");
 
     let empty = build_nns_proposal_activity_report(
         &NnsProposalActivityRequest {
@@ -260,6 +261,7 @@ fn half_open_window_counts_both_exclusion_sides_and_empty_windows() {
     assert_eq!(empty.status_counts, Vec::new());
     assert_eq!(empty.reward_status_counts, Vec::new());
     assert_eq!(empty.day_counts, Vec::new());
+    validate_nns_proposal_activity_report(&empty).expect("validate empty activity window");
 }
 
 #[test]
@@ -397,6 +399,7 @@ fn empty_report_json_retains_raw_fields_and_text_retains_every_section() {
         &[proposal_row(1, 1, 4, 1, 3)],
     )
     .expect("empty activity projection");
+    validate_nns_proposal_activity_report(&report).expect("validate empty activity projection");
     let json = serde_json::to_value(&report).expect("serialize activity report");
 
     assert_eq!(json["schema_version"], 1);

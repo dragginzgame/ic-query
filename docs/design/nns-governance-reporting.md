@@ -95,6 +95,19 @@ not run restored-state validation again on the state it just constructed.
 Disk snapshots and caller-owned analytics inputs retain independent validation;
 proposal cache rows, like source pages, must have positive, unique ids.
 
+Bounded proposal queries, portable collection state, and native refresh share
+the proposal source module's page-size validator and `NNS_PROPOSAL_MAX_PAGE_SIZE`
+limit. The CLI uses that same constant for list and refresh bounds. Invalid
+native refresh sizes fail before cache mutation or source calls and surface
+`NnsProposalHostError::Proposal(NnsProposalError::InvalidLimit { .. })`.
+
+Native schema-1 proposal and neuron snapshots now retain the actual final
+`collection_state` beside their rows. Cache reads validate its agreement with
+the envelope's identity, replica provenance, timestamp, and completeness.
+Cache-only activity/distribution builders call the existing pure analytics
+over that evidence. Earlier snapshot shapes require explicit refresh; see
+[Cache-only NNS Analytics](0.46/0.46-design.md).
+
 ## CLI Contract
 
 ```bash

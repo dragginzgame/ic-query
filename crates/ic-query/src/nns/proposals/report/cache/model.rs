@@ -7,8 +7,9 @@
 use crate::{
     cache::CacheValidationStatus,
     nns::{
-        NnsGovernanceRefreshAttemptStatus, governance::NnsGovernanceCacheMetadata,
-        proposals::report::model::NnsProposalRow,
+        NnsGovernanceRefreshAttemptStatus,
+        governance::NnsGovernanceCacheMetadata,
+        proposals::report::{collection::NnsProposalCollectionState, model::NnsProposalRow},
     },
     snapshot_cache::SnapshotEnvelope,
 };
@@ -29,6 +30,7 @@ pub(super) const NNS_PROPOSAL_CACHE_FIELDS: &[&str] = &[
     "scope",
     "governance_canister_id",
     "completeness",
+    "collection_state",
     "proposals",
 ];
 
@@ -162,6 +164,7 @@ pub struct NnsProposalCacheSummary {
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub(super) struct NnsProposalCacheRows {
+    pub(super) collection_state: NnsProposalCollectionState,
     pub(super) proposals: Vec<NnsProposalRow>,
 }
 
@@ -174,6 +177,5 @@ pub(super) struct NnsProposalCacheRows {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct CompleteNnsProposalCollection {
     pub(super) proposals: Vec<NnsProposalRow>,
-    pub(super) page_count: u32,
-    pub(super) last_cursor: Option<String>,
+    pub(super) state: NnsProposalCollectionState,
 }

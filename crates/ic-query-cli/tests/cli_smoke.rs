@@ -1,9 +1,171 @@
+use ic_query::nns::{
+    NnsGovernanceRefreshRequest,
+    governance::{
+        NnsGovernanceRequest, NnsGovernanceSourceData, NnsGovernanceSourceProvenance,
+        NnsGovernanceSourceSelection,
+    },
+    neuron::{
+        NnsNeuronPage, NnsNeuronRow, NnsNeuronSource, NnsNeuronSourceFuture, nns_neuron_cache_path,
+        refresh_nns_neuron_cache_with_source,
+    },
+    proposals::{
+        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSource, NnsProposalSourceFuture,
+        NnsProposalStatusFilter, nns_proposal_cache_path, refresh_nns_proposal_cache_with_source,
+    },
+};
 use std::{
     fs,
     path::Path,
     process::{Command, Output},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+struct EmptyGovernanceSource;
+
+fn governance_fixture_data<T>(
+    request: &NnsGovernanceRequest,
+    value: T,
+) -> NnsGovernanceSourceData<T> {
+    let NnsGovernanceSourceSelection::ReplicaQuery {
+        endpoint,
+        fetched_by,
+    } = &request.source
+    else {
+        panic!("fixture requires replica provenance")
+    };
+    NnsGovernanceSourceData::new(
+        value,
+        NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: endpoint.clone(),
+            fetched_by: fetched_by.clone(),
+        },
+    )
+}
+
+impl NnsProposalSource for EmptyGovernanceSource {
+    fn fetch_proposals<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        _: u32,
+        _: Option<u64>,
+        _: NnsProposalStatusFilter,
+        _: NnsProposalRewardStatusFilter,
+    ) -> NnsProposalSourceFuture<'a, Vec<NnsProposalRow>> {
+        Box::pin(async move { Ok(governance_fixture_data(request, Vec::new())) })
+    }
+    fn fetch_proposal<'a>(
+        &'a self,
+        _: &'a NnsGovernanceRequest,
+        _: u64,
+    ) -> NnsProposalSourceFuture<'a, NnsProposalRow> {
+        panic!("collection fixture does not fetch detail")
+    }
+}
+
+impl NnsNeuronSource for EmptyGovernanceSource {
+    fn fetch_neuron_page<'a>(
+        &'a self,
+        request: &'a NnsGovernanceRequest,
+        _: Option<u64>,
+        _: u32,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronPage> {
+        Box::pin(async move {
+            Ok(governance_fixture_data(
+                request,
+                NnsNeuronPage {
+                    neurons: Vec::new(),
+                    next_start_neuron_id: None,
+                },
+            ))
+        })
+    }
+    fn fetch_neuron<'a>(
+        &'a self,
+        _: &'a NnsGovernanceRequest,
+        _: u64,
+    ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow> {
+        panic!("collection fixture does not fetch detail")
+    }
+}
+
+#[test]
+fn binary_nns_cached_analytics_emit_text_and_raw_json() {
+    let root = temp_cache_root("ic-query-cli-nns-analytics");
+    let request = NnsGovernanceRefreshRequest::new(
+        &root,
+        "ic",
+        "https://fixture.invalid",
+        1_700_000_000,
+        100,
+    );
+    refresh_nns_proposal_cache_with_source(&request, &EmptyGovernanceSource)
+        .expect("proposal fixture");
+    refresh_nns_neuron_cache_with_source(&request, &EmptyGovernanceSource).expect("neuron fixture");
+    for (family, operation, count, table, path) in [
+        (
+            "proposal",
+            "activity",
+            "collected_proposal_count",
+            "included_proposal_count: 0",
+            nns_proposal_cache_path(&root, "ic"),
+        ),
+        (
+            "neuron",
+            "distribution",
+            "collected_neuron_count",
+            "total_effective_stake_icp: 0.00",
+            nns_neuron_cache_path(&root, "ic"),
+        ),
+    ] {
+        let before = fs::read(&path).unwrap();
+        let text = run_icq_in_root(&root, &["nns", family, operation]);
+        assert_success(&text);
+        assert!(stdout_text(&text).contains(table), "{}", stdout_text(&text));
+        let output = run_icq_in_root(&root, &["nns", family, operation, "--json"]);
+        assert_success(&output);
+        let report: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("analytics JSON");
+        assert_eq!(report["schema_version"], 1);
+        assert_eq!(report[count], 0);
+        assert_eq!(report["collection_page_count"], 1);
+        assert_eq!(report["collection_started_at"], "2023-11-14T22:13:20Z");
+        assert_eq!(report["point_in_time_guaranteed"], false);
+        assert_eq!(report["source"]["endpoint"], "https://fixture.invalid");
+        assert_eq!(fs::read(&path).unwrap(), before);
+    }
+    let output = run_icq_in_root(
+        &root,
+        &[
+            "nns", "proposal", "activity", "--from", "10", "--until", "10",
+        ],
+    );
+    assert!(!output.status.success());
+    assert!(stderr_text(&output).contains("window"));
+    assert_eq!(output.stdout, Vec::<u8>::new());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn binary_nns_cached_analytics_fail_visibly_without_creating_cache_files() {
+    let root = temp_cache_root("ic-query-cli-nns-analytics-errors");
+    for (family, operation, path) in [
+        ("proposal", "activity", nns_proposal_cache_path(&root, "ic")),
+        ("neuron", "distribution", nns_neuron_cache_path(&root, "ic")),
+    ] {
+        let output = run_icq_in_root(&root, &["nns", family, operation, "--json"]);
+        assert!(!output.status.success());
+        assert!(stderr_text(&output).contains("refresh"));
+        assert_eq!(output.stdout, Vec::<u8>::new());
+        assert!(!root.exists());
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "{").unwrap();
+        let output = run_icq_in_root(&root, &["nns", family, operation]);
+        assert!(!output.status.success());
+        assert_eq!(output.stdout, Vec::<u8>::new());
+        assert_eq!(fs::read(&path).unwrap(), b"{");
+        fs::remove_dir_all(&root).unwrap();
+    }
+}
 
 fn run_icq(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_icq"))

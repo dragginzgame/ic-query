@@ -100,6 +100,13 @@ fn nns_neuron_help_advertises_collection_modes_and_commands() {
     assert!(family.contains("info"));
     assert!(family.contains("refresh"));
     assert!(family.contains("cache"));
+    assert!(family.contains("distribution"));
+    let matches = parse_test_matches(neuron_distribution_command(), &["--json"]).unwrap();
+    assert_eq!(
+        NnsNeuronCacheOptions::from_matches(&matches, MAINNET_NETWORK).format,
+        OutputFormat::Json
+    );
+    assert!(render_help(neuron_distribution_command()).contains("does not make a network request"));
     assert!(render_help(neuron_list_command()).contains("Cache-preferred read"));
     assert!(render_help(neuron_info_command()).contains("Cache-preferred read"));
     assert!(render_help(neuron_refresh_command()).contains("Forced live refresh"));

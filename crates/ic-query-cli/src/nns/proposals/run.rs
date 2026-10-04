@@ -5,7 +5,8 @@
 //! Boundary: maps parsed options into report requests and writes text or JSON output.
 
 use super::options::{
-    NnsProposalCacheOptions, NnsProposalListOptions, NnsProposalOptions, NnsProposalRefreshOptions,
+    NnsProposalActivityOptions, NnsProposalCacheOptions, NnsProposalListOptions,
+    NnsProposalOptions, NnsProposalRefreshOptions,
 };
 use crate::{
     cli::common::write_text_or_json,
@@ -14,10 +15,11 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::nns::proposals::{
-    NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_cache_list_report,
-    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
-    build_nns_proposal_list_report_from_cache, build_nns_proposal_report,
-    build_nns_proposal_report_from_cache, nns_proposal_cache_list_report_text,
+    NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_activity_report_from_cache,
+    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+    build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
+    build_nns_proposal_report, build_nns_proposal_report_from_cache,
+    nns_proposal_activity_report_text, nns_proposal_cache_list_report_text,
     nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
     nns_proposal_refresh_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
@@ -35,12 +37,20 @@ const PROPOSAL_REFRESH_COMMAND: &str = "refresh";
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
+        Some(("activity", matches)) => run_nns_proposal_activity(matches, network),
         Some((PROPOSAL_CACHE_COMMAND, matches)) => run_nns_proposal_cache(matches, network),
         Some((PROPOSAL_LIST_COMMAND, matches)) => run_nns_proposal_list(matches, network),
         Some((PROPOSAL_INFO_COMMAND, matches)) => run_nns_proposal_info(matches, network),
         Some((PROPOSAL_REFRESH_COMMAND, matches)) => run_nns_proposal_refresh(matches, network),
         _ => unreachable!("clap requires a known NNS proposal subcommand"),
     }
+}
+
+fn run_nns_proposal_activity(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+    let options = NnsProposalActivityOptions::from_matches(matches, network);
+    let cache_request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let report = build_nns_proposal_activity_report_from_cache(&cache_request, &options.request)?;
+    write_text_or_json(options.format, &report, nns_proposal_activity_report_text)
 }
 
 fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

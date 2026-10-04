@@ -134,11 +134,7 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
         proposals.sort_by_key(|proposal| Reverse(proposal.proposal_id));
         CompleteNnsProposalCollection {
             proposals,
-            page_count: self.collection_state.pages_fetched(),
-            last_cursor: self
-                .collection_state
-                .next_before_proposal_id()
-                .map(|cursor| cursor.to_string()),
+            state: self.collection_state,
         }
     }
 }

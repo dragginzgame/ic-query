@@ -150,6 +150,10 @@ pub enum NnsProposalError {
 #[cfg(feature = "nns-host")]
 #[derive(Debug, ThisError)]
 pub enum NnsProposalHostError {
+    /// Local activity input or aggregation failed.
+    #[error(transparent)]
+    Activity(#[from] super::NnsProposalActivityError),
+
     /// Portable proposal collection or validation failed.
     #[error(transparent)]
     Proposal(#[from] NnsProposalError),
@@ -185,15 +189,6 @@ pub enum NnsProposalHostError {
         rows_fetched: usize,
         /// Failure to establish a complete sequential collection.
         reason: String,
-    },
-
-    /// Refresh requested a page size outside the supported range.
-    #[error("invalid NNS proposal refresh page size {page_size}; expected 1..={max_page_size}")]
-    InvalidRefreshPageSize {
-        /// Rejected per-page row limit.
-        page_size: u32,
-        /// Largest supported per-page row limit.
-        max_page_size: u32,
     },
 
     /// A cache-only read could not find the required complete snapshot.

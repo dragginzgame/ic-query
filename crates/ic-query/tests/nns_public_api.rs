@@ -3425,7 +3425,22 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
                 "row_count": 1,
                 "point_in_time_guaranteed": false
             },
-            "proposals": [sample_nns_proposal_row()]
+            "proposals": [sample_nns_proposal_row()],
+            "collection_state": {
+                "schema_version": 1,
+                "network": "ic",
+                "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+                "requested_source": {"source_transport": "replica_query", "endpoint": DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, "fetched_by": "ic-query"},
+                "source": {"source_transport": "replica_query", "endpoint": DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, "fetched_by": "ic-query"},
+                "page_size": 100,
+                "max_pages": 1,
+                "pages_fetched": 1,
+                "proposals_fetched": 1,
+                "next_before_proposal_id": null,
+                "started_at": "2023-11-14T22:13:20Z",
+                "updated_at": "2023-11-14T22:13:20Z",
+                "status": "complete"
+            }
         }),
     );
 }

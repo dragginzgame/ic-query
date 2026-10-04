@@ -1,8 +1,9 @@
 use super::{
     refresh::refresh_nns_proposal_cache_with_source,
     reports::{
-        build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
-        build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
+        build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
+        build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
+        build_nns_proposal_report_from_cache,
     },
 };
 use crate::{
@@ -17,6 +18,7 @@ use crate::{
         },
         proposals::report::{
             NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
+            NnsProposalActivityError, NnsProposalActivityRequest, NnsProposalError,
             NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
             cache::paths::nns_proposal_cache_paths,
             model::{
@@ -147,22 +149,28 @@ fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProv
 #[test]
 fn nns_proposal_refresh_rejects_invalid_public_page_size() {
     let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
-    let request = NnsGovernanceRefreshRequest::new(
-        &root,
-        MAINNET_NETWORK,
-        DEFAULT_MAINNET_ENDPOINT,
-        1_700_000_000,
-        0,
-    );
-
-    let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
-        .expect_err("zero page size is invalid");
-
-    assert!(matches!(
-        err,
-        NnsProposalHostError::InvalidRefreshPageSize { page_size: 0, .. }
-    ));
-    let _ = fs::remove_dir_all(root);
+    for page_size in [0, 101] {
+        let request = NnsGovernanceRefreshRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            DEFAULT_MAINNET_ENDPOINT,
+            1_700_000_000,
+            page_size,
+        );
+        let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+            .expect_err("page size must be in 1..=100");
+        assert!(matches!(
+            err,
+            NnsProposalHostError::Proposal(NnsProposalError::InvalidLimit {
+                limit,
+                maximum: 100,
+            }) if limit == page_size
+        ));
+        assert!(
+            !root.exists(),
+            "invalid refresh must not create cache files"
+        );
+    }
 }
 
 #[test]
@@ -536,6 +544,89 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
         }
     }
     fs::remove_dir_all(root).expect("remove cache fixture");
+}
+
+#[test]
+fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries() {
+    let root = temp_dir("ic-query-nns-cached-activity");
+    let cache_request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
+    assert!(matches!(
+        build_nns_proposal_activity_report_from_cache(
+            &cache_request,
+            &NnsProposalActivityRequest::default()
+        ),
+        Err(NnsProposalHostError::MissingProposalCache { .. })
+    ));
+    assert!(!root.exists());
+    let path = refresh_fixture_nns_proposal_cache(&root);
+    let original = fs::read(&path).expect("read snapshot");
+    let report = build_nns_proposal_activity_report_from_cache(
+        &cache_request,
+        &NnsProposalActivityRequest {
+            from_proposal_timestamp_seconds: Some(1_700_000_002),
+            until_proposal_timestamp_seconds: Some(1_700_000_003),
+        },
+    )
+    .expect("cached activity");
+    assert_eq!(report.collected_proposal_count, 3);
+    assert_eq!(report.included_proposal_count, 1);
+    assert_eq!(report.excluded_before_from_count, 1);
+    assert_eq!(report.excluded_at_or_after_until_count, 1);
+    assert_eq!(report.collection_page_count, 2);
+    assert_eq!(report.collection_started_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.collection_updated_at, "2023-11-14T22:13:20Z");
+    assert_eq!(
+        report.source,
+        fixture_provenance(&proposal_governance_request(1_700_000_000))
+    );
+    assert!(!report.point_in_time_guaranteed);
+    assert_eq!(fs::read(&path).expect("read unchanged snapshot"), original);
+    assert!(matches!(
+        build_nns_proposal_activity_report_from_cache(
+            &cache_request,
+            &NnsProposalActivityRequest {
+                from_proposal_timestamp_seconds: Some(10),
+                until_proposal_timestamp_seconds: Some(10),
+            }
+        ),
+        Err(NnsProposalHostError::Activity(
+            NnsProposalActivityError::InvalidTimeWindow { .. }
+        ))
+    ));
+    fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
+fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
+    let root = temp_dir("ic-query-nns-cached-activity-invalid");
+    let path = refresh_fixture_nns_proposal_cache(&root);
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
+    for (field, value) in [
+        ("network", serde_json::json!("invalid")),
+        ("updated_at", serde_json::json!("2023-11-14T22:14:20Z")),
+        ("proposals_fetched", serde_json::json!(2)),
+        ("status", serde_json::json!("collecting")),
+        (
+            "source",
+            serde_json::json!({"source_transport": "replica_query", "endpoint": "https://example.com", "fetched_by": "ic-query"}),
+        ),
+    ] {
+        let mut cache = original.clone();
+        cache["collection_state"][field] = value;
+        fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
+        assert!(
+            matches!(
+                build_nns_proposal_activity_report_from_cache(
+                    &request,
+                    &NnsProposalActivityRequest::default()
+                ),
+                Err(NnsProposalHostError::InvalidCache { .. })
+            ),
+            "field {field}"
+        );
+    }
+    fs::remove_dir_all(root).expect("remove fixture");
 }
 
 #[test]

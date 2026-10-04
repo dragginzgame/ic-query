@@ -7,7 +7,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["host"] }
+ic-query = { version = "0.46", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -28,7 +28,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["canister"] }
+ic-query = { version = "0.46", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -154,6 +154,34 @@ are removed as a Rust API hard cut. Persisted state still uses schema `1`
 and the labels `ready`, `collecting`, `complete`, and `page_limit_reached`.
 Proposal and neuron cursor and exhaustion rules remain separate.
 
+With `nns-host`, the same pure analytics reports can be built directly from
+complete local snapshots:
+
+```rust,no_run
+use ic_query::nns::{
+    NnsGovernanceCacheRequest,
+    proposals::{NnsProposalActivityRequest, build_nns_proposal_activity_report_from_cache},
+    neuron::build_nns_neuron_distribution_report_from_cache,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cache = NnsGovernanceCacheRequest::new("/path/to/ic-query-cache", "ic");
+    let activity = build_nns_proposal_activity_report_from_cache(
+        &cache, &NnsProposalActivityRequest::default(),
+    )?;
+    let distribution = build_nns_neuron_distribution_report_from_cache(&cache)?;
+    Ok(())
+}
+```
+
+These functions make no network call or cache write. Missing and invalid
+snapshots return typed host errors. Starting with 0.46.0, complete proposal and
+neuron snapshots must retain their actual final `collection_state`; refresh
+existing snapshots explicitly to replace the schema-1 shape. No continuation,
+timestamp, or source provenance is reconstructed from incomplete metadata.
+The CLI exposes these builders as `nns proposal activity` and
+`nns neuron distribution`.
+
 Once a retained public-neuron walk is `complete`, project its rows locally
 without another call:
 
@@ -184,7 +212,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -202,7 +230,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -216,7 +244,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -229,7 +257,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -247,7 +275,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -255,7 +283,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -271,7 +299,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -289,7 +317,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -318,7 +346,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -334,7 +362,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -350,7 +378,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.46", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -457,7 +485,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.45", default-features = false }
+ic-query = { version = "0.46", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,

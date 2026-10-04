@@ -203,10 +203,6 @@ pub enum NnsNeuronDistributionError {
         /// Count or sum that exceeded its representation.
         field: &'static str,
     },
-
-    /// The projected report failed its shared publication invariants.
-    #[error(transparent)]
-    InvalidReport(#[from] NnsNeuronDistributionValidationError),
 }
 
 /// Build one deterministic distribution from a complete caller-retained public-neuron collection.
@@ -249,9 +245,7 @@ pub fn build_nns_neuron_distribution_report(
     for neuron in neurons {
         distribution.observe(neuron)?;
     }
-    let report = distribution.into_report(collection, expected, source);
-    validate_nns_neuron_distribution_report(&report)?;
-    Ok(report)
+    Ok(distribution.into_report(collection, expected, source))
 }
 
 /// Validate every distribution-report invariant available without source rows or live host calls.

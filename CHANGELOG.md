@@ -5,6 +5,38 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.46.x] - 2026-10-04 - Cache-only NNS analytics
+
+Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
+
+- `0.46.1` simplifies NNS analytics construction while retaining validation of
+  caller-supplied state, rows, and restored reports. Proposal queries and
+  refreshes now share one page-size validator and limit, also used by the CLI.
+  Removes both analytics `InvalidReport` variants,
+  `NnsProposalHostError::InvalidRefreshPageSize`, and
+  `NNS_PROPOSAL_REFRESH_MAX_PAGE_SIZE` as Rust API hard cuts; use the existing
+  wrapped `NnsProposalError::InvalidLimit` and `NNS_PROPOSAL_MAX_PAGE_SIZE`.
+  CLI grammar, accepted limits, report JSON, and cache shapes are unchanged;
+  schemas remain `1`.
+
+- `0.46.0` adds cache-only NNS proposal activity and public-neuron distribution
+  commands using the existing pure library reports. Proposal activity supports
+  a half-open creation-time window; both commands support text and raw JSON.
+  Neither command fetches or refreshes data.
+- NNS proposal and neuron snapshots now require the actual final
+  `collection_state`, bound to their stored identity, provenance, timestamps,
+  and completeness. This is a schema-1 cache hard cut: explicitly refresh
+  existing snapshots before using cache-backed reads. Adds host error variants
+  for activity, distribution, and missing neuron caches; downstream exhaustive
+  matches need updating. Existing pure analytics report shapes are unchanged.
+
+```bash
+icq nns proposal refresh
+icq nns proposal activity --from 1700000000 --until 1700100000 --json
+icq nns neuron refresh
+icq nns neuron distribution --json
+```
+
 ## [0.45.x] - 2026-10-04 - Cache and decoder bounds, validation, and cleanup
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)

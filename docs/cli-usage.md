@@ -414,6 +414,28 @@ does not expose a stable collection version, so complete proposal and neuron
 snapshots explicitly do not claim one point-in-time view. Public neuron
 reports do not expose authenticated owner-only state.
 
+Complete snapshots also support local analytics:
+
+```bash
+icq nns proposal activity
+icq nns proposal activity --from 1700000000 --until 1700100000 --json
+icq nns neuron distribution
+icq nns neuron distribution --json
+```
+
+These operations are cache-only: missing or invalid snapshots fail without a
+network call or cache write. Run the matching explicit `refresh` first when
+needed. Proposal activity counts retained proposals by topic, status, reward
+status, and UTC creation day; its Unix-second window includes `--from` and
+excludes `--until`. Neuron distribution reports public-neuron counts and raw
+stake/optional-field totals with coverage. JSON uses the existing pure report
+shapes, and source provenance describes the stored collection's transport.
+
+Starting with 0.46.0, proposal and neuron snapshots require the recorded final
+`collection_state`. Explicitly refresh existing snapshots before cache-backed
+reads; the schema remains `1`, with no migration or fallback reader. See
+[Cache-only NNS Analytics](design/0.46/0.46-design.md).
+
 ## System canisters
 
 Cycle Minting Canister reports are bounded live point queries:

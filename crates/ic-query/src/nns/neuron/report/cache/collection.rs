@@ -125,11 +125,7 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     fn into_complete(self) -> Self::Complete {
         CompleteNeuronCollection {
             neurons: self.neurons,
-            page_count: self.collection_state.pages_fetched(),
-            last_cursor: self
-                .collection_state
-                .next_start_neuron_id()
-                .map(|cursor| cursor.to_string()),
+            state: self.collection_state,
         }
     }
 }

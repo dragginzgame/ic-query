@@ -3,7 +3,8 @@ use super::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronError,
     NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
     NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
-    NnsNeuronVote, build_nns_neuron_cache_status_report, build_nns_neuron_info_report_from_cache,
+    NnsNeuronVote, build_nns_neuron_cache_status_report,
+    build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report_from_cache,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
     nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
@@ -170,6 +171,85 @@ fn run_ready<T>(future: impl Future<Output = T>) -> T {
         Poll::Ready(value) => value,
         Poll::Pending => panic!("fixture future unexpectedly returned Pending"),
     }
+}
+
+#[test]
+fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
+    let root = temp_dir("ic-query-nns-cached-distribution");
+    let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
+    assert!(matches!(
+        build_nns_neuron_distribution_report_from_cache(&request),
+        Err(NnsNeuronHostError::MissingNeuronCache { .. })
+    ));
+    assert!(!root.exists());
+    refresh_nns_neuron_cache_with_source(
+        &NnsGovernanceRefreshRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+            1_700_000_000,
+            2,
+        ),
+        &FixtureSource,
+    )
+    .expect("refresh fixture");
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    let original = fs::read(&path).unwrap();
+    let report =
+        build_nns_neuron_distribution_report_from_cache(&request).expect("cached distribution");
+    assert_eq!(report.collected_neuron_count, 3);
+    assert_eq!(report.total_effective_stake_e8s, 600_000_000);
+    assert_eq!(report.collection_page_count, 2);
+    assert_eq!(report.collection_started_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.collection_updated_at, "2023-11-14T22:13:20Z");
+    assert_eq!(
+        report.source,
+        fixture_source_data(&governance_request(1_700_000_000), ()).provenance
+    );
+    assert!(!report.point_in_time_guaranteed);
+    assert_eq!(fs::read(&path).unwrap(), original);
+    fs::remove_dir_all(root).expect("remove fixture");
+}
+
+#[test]
+fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
+    let root = temp_dir("ic-query-nns-cached-distribution-invalid");
+    refresh_nns_neuron_cache_with_source(
+        &NnsGovernanceRefreshRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+            1_700_000_000,
+            2,
+        ),
+        &FixtureSource,
+    )
+    .expect("refresh fixture");
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
+    for (field, value) in [
+        ("network", serde_json::json!("invalid")),
+        ("updated_at", serde_json::json!("2023-11-14T22:14:20Z")),
+        ("neurons_fetched", serde_json::json!(2)),
+        ("status", serde_json::json!("collecting")),
+        (
+            "source",
+            serde_json::json!({"source_transport": "replica_query", "endpoint": "https://example.com", "fetched_by": "ic-query"}),
+        ),
+    ] {
+        let mut cache = original.clone();
+        cache["collection_state"][field] = value;
+        fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
+        assert!(
+            matches!(
+                build_nns_neuron_distribution_report_from_cache(&request),
+                Err(NnsNeuronHostError::InvalidCache { .. })
+            ),
+            "field {field}"
+        );
+    }
+    fs::remove_dir_all(root).expect("remove fixture");
 }
 
 #[test]
@@ -455,6 +535,11 @@ fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
             NnsNeuronHostError::Neuron(NnsNeuronError::InvalidResponse { .. })
         ));
         assert_eq!(fs::read(&path).expect("preserved snapshot"), original);
+        let distribution = build_nns_neuron_distribution_report_from_cache(
+            &NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK),
+        )
+        .expect("last complete distribution survives failed refresh");
+        assert_eq!(distribution.collected_neuron_count, 3);
 
         let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
             &root,

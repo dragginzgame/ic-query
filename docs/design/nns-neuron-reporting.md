@@ -62,6 +62,13 @@ incoming-state validator. Native list and detail report construction derives
 cache origin from the optional cache path; the public `from_cache` field remains
 available in both Rust reports and JSON.
 
+The complete schema-1 snapshot retains this final continuation as
+`collection_state`. `build_nns_neuron_distribution_report_from_cache` and the
+cache-only `icq nns neuron distribution` command use its recorded evidence and
+the existing pure distribution builder. Readers reject disagreement between
+the state and snapshot metadata. Existing snapshot shapes require explicit
+refresh; see [Cache-only NNS Analytics](0.46/0.46-design.md).
+
 ## Portable Distribution Contract
 
 `build_nns_neuron_distribution_report` accepts a valid final collection state
@@ -75,9 +82,11 @@ coverage separate for optional staked maturity, deciding voting power, and
 potential voting power. Known-neuron metadata and Neurons' Fund join-timestamp
 presence are factual counts, not owner or membership inference.
 
-Fresh reports and restored caller-owned reports use the same pure validator.
-The validator checks both collection timestamps as well as page and row
-accounting before accepting a projected report.
+The builder validates caller-owned collection state and rows before aggregation,
+uses checked accounting, and emits ordered dimensions from its aggregate maps.
+It does not repeat validation on the report it constructs. Restored caller-owned
+reports retain a separate pure validator that checks both collection timestamps,
+page and row accounting, classifications, and aggregate consistency.
 API exhaustion and internally consistent aggregates do not authenticate the
 retained rows, recover private neuron fields, or establish an atomic
 Governance balance.

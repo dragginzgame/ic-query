@@ -2,7 +2,7 @@
 //!
 //! Responsibility: advance caller-persisted complete public-neuron walks one page at a time.
 //! Does not own: stable memory, filesystem caches, scheduling, retries, or publication.
-//! Boundary: validates resumable state before and after exactly one bounded source call.
+//! Boundary: validates resumable input and derives the next state from one admitted source page.
 
 #[cfg(feature = "nns-host")]
 use super::NnsNeuronHostError;
