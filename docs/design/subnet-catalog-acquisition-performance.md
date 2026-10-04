@@ -88,16 +88,19 @@ membership and tombstones and recomputes cumulative counters. Boundary-page
 mutations after that page's watermark remain ignored even when restoring for a
 later pin. No serialized membership map is accepted as sufficient evidence.
 
-This is **trusted local-owner query evidence**. The owner-private root and
-files use the existing no-symlink confinement and `0700`/`0600` rules. A SHA-256
-checksum binds the current schema, network, publication timestamp, identities,
-and transcripts against accidental corruption; it does not authenticate
-Registry responses or prove completeness against an owner who rewrites the
-transcript and checksum. Same-account malicious modification is outside this
-trust contract, as it is for ordinary catalog caches. Certification would
-require separately retained authenticated evidence. Restored prefixes never
-raise assurance, exempt freshness, seed another endpoint, or replace fresh
-pinned Subnet-list, routing-shard, and Subnet-record reads and endpoint agreement.
+This is **trusted local-owner query evidence**. The root and files use the
+existing no-symlink confinement and reject group or other write access.
+Readable `0755` directories and `0644` files are accepted without permission
+repair; newly created directories and files use `0700` and `0600`,
+respectively. A SHA-256 checksum binds the current schema, network, publication
+timestamp, identities, and transcripts against accidental corruption; it does
+not authenticate Registry responses or prove completeness against an owner who
+rewrites the transcript and checksum. Same-account malicious modification is
+outside this trust contract, as it is for ordinary catalog caches.
+Certification would require separately retained authenticated evidence.
+Restored prefixes never raise assurance, exempt freshness, seed another
+endpoint, or replace fresh pinned Subnet-list, routing-shard, and Subnet-record
+reads and endpoint agreement.
 
 Malformed, wrong-identity, unsupported-schema, oversized, checksum-invalid,
 or semantically invalid local content emits `HistoryCache::Rejected` progress
