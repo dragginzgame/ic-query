@@ -32,8 +32,8 @@ pub use classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, Nns
 #[cfg(feature = "nns-host")]
 pub use collection::advance_nns_neuron_collection;
 pub use collection::{
-    NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION, NnsNeuronCollectionState,
-    NnsNeuronCollectionStatus, NnsNeuronCollectionStep, advance_nns_neuron_collection_with_source,
+    NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION, NnsNeuronCollectionState, NnsNeuronCollectionStep,
+    advance_nns_neuron_collection_with_source,
 };
 pub use distribution::{
     NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NnsNeuronDistributionError,

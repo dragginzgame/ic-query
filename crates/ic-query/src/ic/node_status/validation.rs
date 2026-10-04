@@ -1,12 +1,66 @@
 //! Module: ic::node_status::validation
 //!
-//! Responsibility: shared observed node-row and scope validation.
+//! Responsibility: shared observed provenance, node-row, and scope validation.
 //! Does not own: source calls, cache policy, projections, or rendering.
 //! Boundary: canonicalizes new source rows but only validates persisted/report rows.
 
-use super::{IcNodeStatusRow, MAX_IC_NODE_STATUS_ROWS};
+use super::{
+    IC_NODE_STATUS_SCHEMA_VERSION, IcNodeStatusObservation, IcNodeStatusRow, IcNodeStatusScope,
+    MAX_IC_NODE_STATUS_ROWS,
+};
+use crate::{
+    http_endpoint::parse_http_endpoint,
+    ic::IC_DASHBOARD_AUTHORITY,
+    subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
+};
 use candid::Principal;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(feature = "dashboard-host")]
+use std::collections::HashSet;
+
+pub(super) fn validate_node_status_observation(
+    observation: &IcNodeStatusObservation,
+) -> Result<u64, String> {
+    let source = &observation.source;
+    if source.schema_version != IC_NODE_STATUS_SCHEMA_VERSION {
+        return Err(format!(
+            "schema_version is {}, expected {IC_NODE_STATUS_SCHEMA_VERSION}",
+            source.schema_version
+        ));
+    }
+    if source.network != MAINNET_NETWORK {
+        return Err(format!(
+            "network is {:?}, expected {MAINNET_NETWORK:?}",
+            source.network
+        ));
+    }
+    if source.certified || source.point_in_time_guaranteed {
+        return Err(
+            "Dashboard node observations cannot claim certification or point-in-time guarantees"
+                .to_string(),
+        );
+    }
+    if source.authority != IC_DASHBOARD_AUTHORITY {
+        return Err(format!(
+            "authority is {:?}, expected {IC_DASHBOARD_AUTHORITY:?}",
+            source.authority
+        ));
+    }
+    if observation.scope != IcNodeStatusScope::DashboardMainnetDefault
+        || observation.cloud_engine_nodes_included
+    {
+        return Err(
+            "observation does not describe the Dashboard default mainnet node scope".to_string(),
+        );
+    }
+    if source.source_endpoint.is_empty() || source.fetched_by.is_empty() {
+        return Err("source_endpoint and fetched_by must not be empty".to_string());
+    }
+    parse_http_endpoint(&source.source_endpoint)
+        .map_err(|reason| format!("invalid source_endpoint: {reason}"))?;
+    parse_utc_timestamp_secs(&source.fetched_at)
+        .ok_or_else(|| "fetched_at is not a canonical UTC timestamp".to_string())
+}
 
 #[cfg(feature = "dashboard-host")]
 pub(in crate::ic) fn canonicalize_node_status_rows(
@@ -23,6 +77,12 @@ pub fn canonicalize_node_status_rows_with_policy(
     require_nonempty: bool,
 ) -> Result<(), String> {
     validate_node_status_rows(nodes, max_rows, require_nonempty)?;
+    let mut seen = HashSet::with_capacity(nodes.len());
+    for node in nodes.iter() {
+        if !seen.insert(node.node_id.as_str()) {
+            return Err(format!("duplicate node id {:?}", node.node_id));
+        }
+    }
     nodes.sort_unstable_by(|left, right| left.node_id.cmp(&right.node_id));
     Ok(())
 }
@@ -68,7 +128,6 @@ fn validate_node_status_rows(
         ));
     }
 
-    let mut seen = HashSet::with_capacity(nodes.len());
     let mut provider_names = HashMap::new();
     for node in nodes {
         canonical_row_principal("node.node_id", &node.node_id)?;
@@ -79,9 +138,6 @@ fn validate_node_status_rows(
             "node.cloud_engine_subnet_id",
             node.cloud_engine_subnet_id.as_deref(),
         )?;
-        if !seen.insert(node.node_id.as_str()) {
-            return Err(format!("duplicate node id {:?}", node.node_id));
-        }
         if let Some(expected_name) = provider_names.insert(
             node.node_provider_id.as_str(),
             node.node_provider_name.as_str(),

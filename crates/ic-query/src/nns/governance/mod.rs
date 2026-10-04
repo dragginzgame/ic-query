@@ -34,8 +34,8 @@ pub use error::NnsGovernanceError;
 #[cfg(feature = "nns-host")]
 pub use error::NnsGovernanceHostError;
 pub use model::{
-    NnsGovernanceDecimal, NnsGovernanceEconomics, NnsGovernanceEconomicsReport,
-    NnsGovernanceExecutionAssurance, NnsGovernanceMaturityModulation,
+    NnsGovernanceCollectionStatus, NnsGovernanceDecimal, NnsGovernanceEconomics,
+    NnsGovernanceEconomicsReport, NnsGovernanceExecutionAssurance, NnsGovernanceMaturityModulation,
     NnsGovernanceMaturityModulationReport, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
     NnsGovernanceMetricsReport, NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage,
     NnsGovernanceProposalId, NnsGovernanceReportContext, NnsGovernanceRewardEvent,

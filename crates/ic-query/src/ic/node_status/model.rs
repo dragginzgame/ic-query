@@ -560,7 +560,7 @@ pub struct IcNodeProviderStatusReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, ThisError)]
 pub enum IcNodeStatusProjectionError {
-    /// Snapshot-level counts or canonical ordering do not match raw rows.
+    /// Observation provenance, raw rows, canonical ordering, or counts are invalid.
     #[error("invalid observed node-status snapshot: {reason}")]
     InvalidSnapshot {
         /// Deterministic validation failure.

@@ -5,7 +5,7 @@
 //! Boundary: projects complete public `NeuronInfo` evidence into portable distributions.
 
 use super::{
-    NnsNeuronCollectionState, NnsNeuronCollectionStatus,
+    NnsNeuronCollectionState,
     classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility},
     collection::validate_collection_state,
     model::NnsNeuronRow,
@@ -15,8 +15,8 @@ use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID,
         governance::{
-            NnsGovernanceSourceProvenance, validate_governance_report_source,
-            validate_governance_time_interval,
+            NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
+            validate_governance_report_source, validate_governance_time_interval,
         },
     },
     subnet_catalog::MAINNET_NETWORK,
@@ -176,7 +176,7 @@ pub enum NnsNeuronDistributionError {
     #[error("NNS neuron distribution requires a complete collection; state is {status}")]
     CollectionNotComplete {
         /// Current lifecycle of the otherwise valid collection state.
-        status: NnsNeuronCollectionStatus,
+        status: NnsGovernanceCollectionStatus,
     },
 
     /// The supplied rows do not match the collection's admitted-row accounting.

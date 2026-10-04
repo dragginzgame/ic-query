@@ -5,7 +5,7 @@
 //! Boundary: projects complete proposal evidence into deterministic portable activity reports.
 
 use super::{
-    NnsProposalCollectionState, NnsProposalCollectionStatus,
+    NnsProposalCollectionState,
     collection::validate_collection_state,
     model::{NnsProposalRewardStatus, NnsProposalRow, NnsProposalStatus, NnsProposalTopic},
 };
@@ -13,8 +13,8 @@ use crate::{
     nns::{
         MAINNET_GOVERNANCE_CANISTER_ID,
         governance::{
-            NnsGovernanceSourceProvenance, validate_governance_report_source,
-            validate_governance_time_interval,
+            NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
+            validate_governance_report_source, validate_governance_time_interval,
         },
     },
     subnet_catalog::MAINNET_NETWORK,
@@ -186,7 +186,7 @@ pub enum NnsProposalActivityError {
     #[error("NNS proposal activity requires a complete collection; state is {status}")]
     CollectionNotComplete {
         /// Current lifecycle of the otherwise valid collection state.
-        status: NnsProposalCollectionStatus,
+        status: NnsGovernanceCollectionStatus,
     },
 
     /// The requested half-open proposal time window is empty or reversed.

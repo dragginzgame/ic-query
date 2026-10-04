@@ -16,32 +16,39 @@ pub(super) fn topology_capacity_report_from_report(
     source_endpoint: String,
     node_operator_report: NnsNodeOperatorListReport,
 ) -> NnsTopologyCapacityReport {
-    let mut capacity = node_operator_report
-        .node_operators
-        .iter()
-        .map(capacity_row_from_operator)
-        .collect::<Vec<_>>();
-    sort_capacity_rows(&mut capacity);
-
-    let summary = capacity_summary(&capacity);
-
-    NnsTopologyCapacityReport {
+    let mut report = NnsTopologyCapacityReport {
         schema_version: NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION,
         network,
         source_endpoint,
-        status: summary.status,
+        status: NnsTopologyAssessmentStatus::Ok,
         node_operator_count: node_operator_report.node_operator_count,
-        total_node_allowance: summary.total_node_allowance,
-        assigned_node_count: summary.assigned_node_count,
-        unknown_node_count_operator_count: summary.unknown_node_count_operator_count,
-        available_node_slots: summary.available_node_slots,
-        over_assigned_operator_count: summary.over_assigned_operator_count,
-        over_assigned_node_count: summary.over_assigned_node_count,
-        capacity,
+        total_node_allowance: 0,
+        assigned_node_count: 0,
+        unknown_node_count_operator_count: 0,
+        available_node_slots: 0,
+        over_assigned_operator_count: 0,
+        over_assigned_node_count: 0,
+        capacity: Vec::with_capacity(node_operator_report.node_operators.len()),
+    };
+    for operator in node_operator_report.node_operators {
+        let row = capacity_row_from_operator(operator);
+        report.total_node_allowance += row.node_allowance;
+        report.assigned_node_count += row.assigned_node_count.unwrap_or(0);
+        report.unknown_node_count_operator_count += usize::from(row.assigned_node_count.is_none());
+        report.available_node_slots += row.available_node_slots.unwrap_or(0);
+        report.over_assigned_operator_count +=
+            usize::from(row.over_assigned_node_count.is_some_and(|count| count > 0));
+        report.over_assigned_node_count += row.over_assigned_node_count.unwrap_or(0);
+        report.capacity.push(row);
     }
+    report.status = NnsTopologyAssessmentStatus::from_ok(
+        report.over_assigned_operator_count == 0 && report.unknown_node_count_operator_count == 0,
+    );
+    sort_capacity_rows(&mut report.capacity);
+    report
 }
 
-fn capacity_row_from_operator(operator: &NnsNodeOperatorRow) -> NnsTopologyCapacityRow {
+fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapacityRow {
     let assigned_node_count = operator.node_count.map(u64::from);
     let available_node_slots =
         assigned_node_count.map(|node_count| operator.node_allowance.saturating_sub(node_count));
@@ -64,9 +71,9 @@ fn capacity_row_from_operator(operator: &NnsNodeOperatorRow) -> NnsTopologyCapac
     };
 
     NnsTopologyCapacityRow {
-        node_operator_principal: operator.node_operator_principal.clone(),
-        node_provider_principal: operator.node_provider_principal.clone(),
-        data_center_id: operator.data_center_id.clone(),
+        node_operator_principal: operator.node_operator_principal,
+        node_provider_principal: operator.node_provider_principal,
+        data_center_id: operator.data_center_id,
         node_allowance: operator.node_allowance,
         assigned_node_count,
         available_node_slots,
@@ -89,51 +96,4 @@ fn sort_capacity_rows(capacity: &mut [NnsTopologyCapacityRow]) {
                 right.node_operator_principal.as_str(),
             ))
     });
-}
-
-struct CapacitySummary {
-    status: NnsTopologyAssessmentStatus,
-    total_node_allowance: u64,
-    assigned_node_count: u64,
-    unknown_node_count_operator_count: usize,
-    available_node_slots: u64,
-    over_assigned_operator_count: usize,
-    over_assigned_node_count: u64,
-}
-
-fn capacity_summary(capacity: &[NnsTopologyCapacityRow]) -> CapacitySummary {
-    let total_node_allowance = capacity.iter().map(|row| row.node_allowance).sum();
-    let assigned_node_count = capacity
-        .iter()
-        .filter_map(|row| row.assigned_node_count)
-        .sum();
-    let unknown_node_count_operator_count = capacity
-        .iter()
-        .filter(|row| row.assigned_node_count.is_none())
-        .count();
-    let available_node_slots = capacity
-        .iter()
-        .filter_map(|row| row.available_node_slots)
-        .sum();
-    let over_assigned_operator_count = capacity
-        .iter()
-        .filter(|row| row.over_assigned_node_count.is_some_and(|count| count > 0))
-        .count();
-    let over_assigned_node_count = capacity
-        .iter()
-        .filter_map(|row| row.over_assigned_node_count)
-        .sum();
-    let status = NnsTopologyAssessmentStatus::from_ok(
-        over_assigned_operator_count == 0 && unknown_node_count_operator_count == 0,
-    );
-
-    CapacitySummary {
-        status,
-        total_node_allowance,
-        assigned_node_count,
-        unknown_node_count_operator_count,
-        available_node_slots,
-        over_assigned_operator_count,
-        over_assigned_node_count,
-    }
 }

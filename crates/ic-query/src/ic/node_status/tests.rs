@@ -268,6 +268,74 @@ fn target_resolution_supports_unique_prefixes_and_rejects_ambiguity() {
 }
 
 #[test]
+fn pure_projections_reject_invalid_observation_provenance() {
+    let view = IcNodeStatusView::attention().with_all(true);
+    for field in [
+        "schema_version",
+        "network",
+        "authority",
+        "certified",
+        "point_in_time_guaranteed",
+        "source_endpoint",
+        "fetched_at",
+        "fetched_by",
+        "cloud_engine_nodes_included",
+    ] {
+        let mut snapshot = fixture_snapshot();
+        let source = &mut snapshot.observation.source;
+        match field {
+            "schema_version" => source.schema_version = 99,
+            "network" => source.network = "other".to_string(),
+            "authority" => source.authority = "other".to_string(),
+            "certified" => source.certified = true,
+            "point_in_time_guaranteed" => source.point_in_time_guaranteed = true,
+            "source_endpoint" => source.source_endpoint = "invalid".to_string(),
+            "fetched_at" => source.fetched_at = "invalid".to_string(),
+            "fetched_by" => source.fetched_by.clear(),
+            "cloud_engine_nodes_included" => {
+                snapshot.observation.cloud_engine_nodes_included = true;
+            }
+            _ => unreachable!("fixture field"),
+        }
+        for result in [
+            ic_node_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+            ic_subnet_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+            ic_node_provider_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+        ] {
+            assert!(
+                matches!(
+                    result,
+                    Err(IcNodeStatusProjectionError::InvalidSnapshot { .. })
+                ),
+                "invalid {field}: {result:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn pure_projections_reject_duplicate_or_unordered_snapshot_rows() {
+    let mut duplicate = fixture_snapshot();
+    duplicate.nodes[1].node_id = duplicate.nodes[0].node_id.clone();
+    let mut unordered = fixture_snapshot();
+    unordered.nodes.swap(0, 1);
+    let view = IcNodeStatusView::attention().with_all(true);
+
+    for snapshot in [duplicate, unordered] {
+        for result in [
+            ic_node_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+            ic_subnet_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+            ic_node_provider_status_report_from_snapshot(&snapshot, &view).map(|_| ()),
+        ] {
+            assert!(matches!(
+                result,
+                Err(IcNodeStatusProjectionError::InvalidSnapshot { .. })
+            ));
+        }
+    }
+}
+
+#[test]
 fn pure_projections_reject_invalid_raw_relation_evidence() {
     let mut snapshot = fixture_snapshot();
     snapshot.nodes[0].node_type = "UNASSIGNED".to_string();
@@ -440,6 +508,77 @@ fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     assert_eq!(repaired.node_count, 1);
     assert_eq!(repair_source.calls.get(), 1);
 
+    fs::remove_dir_all(root).expect("remove fixture cache");
+}
+
+#[cfg(feature = "dashboard-host")]
+#[test]
+fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
+    let root = temp_dir("ic-node-status-cache-provenance");
+    let now = fixture_now();
+    let request = refresh_request(&root, now);
+    let source = FixtureSource::default();
+    refresh_ic_node_status_snapshot_with_source(&request, &source).expect("create cache");
+    let cache_path = ic_node_status_cache_path(&root, "ic");
+    let valid_cache: serde_json::Value =
+        serde_json::from_slice(&fs::read(&cache_path).expect("read fixture cache"))
+            .expect("parse fixture cache");
+
+    for (field, value) in [
+        ("certified", serde_json::json!(true)),
+        ("point_in_time_guaranteed", serde_json::json!(true)),
+        ("authority", serde_json::json!("other")),
+        ("source_endpoint", serde_json::json!("invalid")),
+        ("fetched_at", serde_json::json!("invalid")),
+        ("fetched_at", serde_json::json!("2099-01-01T00:00:00Z")),
+        ("fetched_by", serde_json::json!("")),
+        ("cloud_engine_nodes_included", serde_json::json!(true)),
+    ] {
+        let mut invalid_cache = valid_cache.clone();
+        invalid_cache[field] = value;
+        let bytes = serde_json::to_vec_pretty(&invalid_cache).expect("serialize invalid cache");
+        fs::write(&cache_path, &bytes).expect("write invalid cache");
+        let strict = load_cached_ic_node_status_snapshot(&request.cache, now);
+        assert!(
+            matches!(strict, Err(IcNodeStatusHostError::InvalidCache { .. })),
+            "invalid {field}: {strict:?}"
+        );
+        assert_eq!(fs::read(&cache_path).expect("read retained cache"), bytes);
+
+        let repair_source = FixtureSource::default();
+        let mut progress = IgnoreQueryProgress;
+        let repaired = load_or_refresh_missing_ic_node_status_snapshot_with_source(
+            &request,
+            &repair_source,
+            &mut progress,
+        )
+        .expect("read-through refreshes invalid observation");
+        assert_eq!(repair_source.calls.get(), 1);
+        assert_eq!(repaired.node_count, 1);
+        assert!(!repaired.observation.source.certified);
+        assert!(!repaired.observation.source.point_in_time_guaranteed);
+        assert!(
+            repaired
+                .observation
+                .cache
+                .expect("cache evidence")
+                .cache_fresh
+        );
+    }
+
+    let retained = fs::read(&cache_path).expect("read complete cache");
+    let failed_refresh =
+        refresh_ic_node_status_snapshot_with_source(&request, &RowsSource { nodes: Vec::new() });
+    assert!(matches!(
+        failed_refresh,
+        Err(IcNodeStatusHostError::Source(
+            IcHostError::InvalidSourceData { .. }
+        ))
+    ));
+    assert_eq!(
+        fs::read(&cache_path).expect("read retained complete cache"),
+        retained
+    );
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 

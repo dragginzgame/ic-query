@@ -258,7 +258,6 @@ pub const MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS: u64 = 1_000;
 
 #[cfg(feature = "dashboard-host")]
 pub(crate) const IC_DASHBOARD_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "dashboard-host")]
 pub(crate) const IC_DASHBOARD_AUTHORITY: &str = "official_ic_dashboard_api";
 #[cfg(feature = "dashboard-host")]
 pub(crate) const IC_DASHBOARD_NETWORK: &str = "ic";

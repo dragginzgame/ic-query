@@ -136,7 +136,7 @@ fn builder_rejects_incomplete_invalid_mismatched_and_malformed_inputs() {
     assert!(matches!(
         build_nns_neuron_distribution_report(&ready, &[]),
         Err(NnsNeuronDistributionError::CollectionNotComplete {
-            status: NnsNeuronCollectionStatus::Ready
+            status: NnsGovernanceCollectionStatus::Ready
         })
     ));
 
@@ -147,7 +147,7 @@ fn builder_rejects_incomplete_invalid_mismatched_and_malformed_inputs() {
             &[sample_neuron(1, 100, 1, Some(2), None, 100)]
         ),
         Err(NnsNeuronDistributionError::CollectionNotComplete {
-            status: NnsNeuronCollectionStatus::PageLimitReached
+            status: NnsGovernanceCollectionStatus::PageLimitReached
         })
     ));
 

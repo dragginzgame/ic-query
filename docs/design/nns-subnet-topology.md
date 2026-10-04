@@ -88,9 +88,16 @@ providers remain visible without Governance metadata. Governance and Registry
 node counts are separate observations. Spare slots and over-assignment are
 summed per operator, so spare capacity at one operator does not cancel another
 operator's deficit.
+Capacity diagnostics consume the operator inventory, move row identities,
+and accumulate totals while constructing rows. Unknown assigned counts remain
+unknown in the row and contribute no available slots to the capacity summary;
+provider diagnostics retain their separate missing-count policy. Final row
+ordering still follows capacity status, available slots, and operator id.
 
 Summary construction owns its join-coverage counts, while summary and gap
 reports share one relation-membership index.
+Kind counts and routing-range totals are collected in one Subnet pass and
+one node-kind pass, preserving all four classifications including unknown.
 
 Diagnostic builders share one sequential collector for node, provider,
 operator, and data-center inventories. Summary and versions read the Subnet

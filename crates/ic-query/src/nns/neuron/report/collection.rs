@@ -14,55 +14,17 @@ use super::{
 use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
-        NnsGovernanceRequest, NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
-        validate_governance_request, validate_governance_time_interval, validate_source_provenance,
+        NnsGovernanceCollectionStatus, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
+        NnsGovernanceSourceSelection, validate_governance_request,
+        validate_governance_time_interval, validate_source_provenance,
     },
 };
 #[cfg(feature = "nns-host")]
 use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// Version of the persistable resumable NNS neuron collection state.
 pub const NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION: u32 = 1;
-
-///
-/// NnsNeuronCollectionStatus
-///
-/// Lifecycle of a caller-owned resumable public-neuron collection.
-///
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum NnsNeuronCollectionStatus {
-    /// No source page has been admitted yet.
-    Ready,
-    /// Another bounded page may be requested.
-    Collecting,
-    /// Governance API exhaustion was observed.
-    Complete,
-    /// Another cursor exists, but the configured page ceiling was consumed.
-    PageLimitReached,
-}
-
-impl NnsNeuronCollectionStatus {
-    /// Return the stable JSON and display label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Ready => "ready",
-            Self::Collecting => "collecting",
-            Self::Complete => "complete",
-            Self::PageLimitReached => "page_limit_reached",
-        }
-    }
-}
-
-impl fmt::Display for NnsNeuronCollectionStatus {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
 
 ///
 /// NnsNeuronCollectionState
@@ -84,7 +46,7 @@ pub struct NnsNeuronCollectionState {
     next_start_neuron_id: Option<u64>,
     started_at: String,
     updated_at: String,
-    status: NnsNeuronCollectionStatus,
+    status: NnsGovernanceCollectionStatus,
 }
 
 impl NnsNeuronCollectionState {
@@ -112,7 +74,7 @@ impl NnsNeuronCollectionState {
             next_start_neuron_id: None,
             started_at: request.fetched_at.clone(),
             updated_at: request.fetched_at.clone(),
-            status: NnsNeuronCollectionStatus::Ready,
+            status: NnsGovernanceCollectionStatus::Ready,
         })
     }
 
@@ -190,14 +152,14 @@ impl NnsNeuronCollectionState {
 
     /// Return the collection lifecycle status.
     #[must_use]
-    pub const fn status(&self) -> NnsNeuronCollectionStatus {
+    pub const fn status(&self) -> NnsGovernanceCollectionStatus {
         self.status
     }
 
     /// Return whether Governance API exhaustion was observed.
     #[must_use]
     pub const fn is_complete(&self) -> bool {
-        matches!(self.status, NnsNeuronCollectionStatus::Complete)
+        matches!(self.status, NnsGovernanceCollectionStatus::Complete)
     }
 }
 
@@ -242,18 +204,18 @@ pub async fn advance_nns_neuron_collection_with_source(
         &request.fetched_at,
     )?;
     match state.status {
-        NnsNeuronCollectionStatus::Complete => {
+        NnsGovernanceCollectionStatus::Complete => {
             return Err(NnsNeuronError::CollectionComplete {
                 pages_fetched: state.pages_fetched,
             });
         }
-        NnsNeuronCollectionStatus::PageLimitReached => {
+        NnsGovernanceCollectionStatus::PageLimitReached => {
             return Err(NnsNeuronError::CollectionPageLimitReached {
                 pages_fetched: state.pages_fetched,
                 max_pages: state.max_pages,
             });
         }
-        NnsNeuronCollectionStatus::Ready | NnsNeuronCollectionStatus::Collecting => {}
+        NnsGovernanceCollectionStatus::Ready | NnsGovernanceCollectionStatus::Collecting => {}
     }
 
     let mut page_request = NnsNeuronListRequest::new(request.clone(), state.page_size);
@@ -280,11 +242,11 @@ pub async fn advance_nns_neuron_collection_with_source(
         .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
     let next_start_neuron_id = page.next_start_neuron_id;
     let status = if next_start_neuron_id.is_none() {
-        NnsNeuronCollectionStatus::Complete
+        NnsGovernanceCollectionStatus::Complete
     } else if pages_fetched == state.max_pages {
-        NnsNeuronCollectionStatus::PageLimitReached
+        NnsGovernanceCollectionStatus::PageLimitReached
     } else {
-        NnsNeuronCollectionStatus::Collecting
+        NnsGovernanceCollectionStatus::Collecting
     };
     let next_state = NnsNeuronCollectionState {
         source: Some(page.context.source.clone()),
@@ -383,26 +345,26 @@ pub(super) fn validate_collection_state(
     }
 
     let valid_lifecycle = match state.status {
-        NnsNeuronCollectionStatus::Ready => {
+        NnsGovernanceCollectionStatus::Ready => {
             state.pages_fetched == 0
                 && state.neurons_fetched == 0
                 && state.next_start_neuron_id.is_none()
                 && state.source.is_none()
         }
-        NnsNeuronCollectionStatus::Collecting => {
+        NnsGovernanceCollectionStatus::Collecting => {
             state.pages_fetched > 0
                 && state.pages_fetched < state.max_pages
                 && neurons_fetched == maximum_rows
                 && state.next_start_neuron_id.is_some()
                 && state.source.is_some()
         }
-        NnsNeuronCollectionStatus::Complete => {
+        NnsGovernanceCollectionStatus::Complete => {
             state.pages_fetched > 0
                 && neurons_fetched < maximum_rows
                 && state.next_start_neuron_id.is_none()
                 && state.source.is_some()
         }
-        NnsNeuronCollectionStatus::PageLimitReached => {
+        NnsGovernanceCollectionStatus::PageLimitReached => {
             state.pages_fetched == state.max_pages
                 && neurons_fetched == maximum_rows
                 && state.next_start_neuron_id.is_some()

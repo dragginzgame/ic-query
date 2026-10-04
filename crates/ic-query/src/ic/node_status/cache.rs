@@ -13,6 +13,7 @@ use super::{
     ic_node_provider_status_report_from_snapshot, ic_node_status_report_from_snapshot,
     ic_subnet_status_report_from_snapshot, node_status_group_counts,
     validate_canonical_node_status_rows, validate_default_node_scope,
+    validation::validate_node_status_observation,
 };
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
@@ -24,8 +25,8 @@ use crate::{
     },
     freshness::freshness_facts,
     ic::{
-        IC_DASHBOARD_AUTHORITY, IcDashboardReportProvenance, IcNodeStatusReport,
-        IcNodeStatusSource, LiveIcSource, build_ic_node_status_snapshot_with_source,
+        IcDashboardReportProvenance, IcNodeStatusReport, IcNodeStatusSource, LiveIcSource,
+        build_ic_node_status_snapshot_with_source,
     },
     network::enforce_mainnet_network_with,
     snapshot_cache::{
@@ -33,7 +34,6 @@ use crate::{
         SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
         with_locked_snapshot_refresh,
     },
-    subnet_catalog::parse_utc_timestamp_secs,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -77,9 +77,8 @@ struct NodeStatusCacheData {
 
 type NodeStatusCache = SnapshotEnvelope<NodeStatusCacheMetadata, NodeStatusCacheData>;
 
-struct LoadedNodeStatusCache {
-    path: PathBuf,
-    cache: NodeStatusCache,
+struct LoadedNodeStatusSnapshot {
+    snapshot: IcNodeStatusSnapshot,
     fetched_at_unix_secs: u64,
 }
 
@@ -100,10 +99,7 @@ pub fn load_cached_ic_node_status_snapshot(
     request: &IcNodeStatusCacheRequest,
     now_unix_secs: u64,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
-    Ok(loaded_snapshot(
-        load_node_status_cache(request, now_unix_secs)?,
-        now_unix_secs,
-    ))
+    Ok(load_node_status_cache(request, now_unix_secs)?.snapshot)
 }
 
 /// Load a complete snapshot, refreshing missing or recoverably invalid local content.
@@ -132,7 +128,7 @@ pub fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
             Ok(())
         },
     )?;
-    Ok(loaded_snapshot(snapshot, request.now_unix_secs))
+    Ok(snapshot.snapshot)
 }
 
 /// Load a complete snapshot, refreshing missing, invalid, or older-than-policy content.
@@ -161,7 +157,7 @@ pub fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
             Ok(())
         },
     )?;
-    Ok(loaded_snapshot(snapshot, request.now_unix_secs))
+    Ok(snapshot.snapshot)
 }
 
 /// Force one complete live observed node-status cache replacement.
@@ -319,7 +315,7 @@ fn read_snapshot(
 fn load_node_status_cache(
     request: &IcNodeStatusCacheRequest,
     now_unix_secs: u64,
-) -> Result<LoadedNodeStatusCache, IcNodeStatusHostError> {
+) -> Result<LoadedNodeStatusSnapshot, IcNodeStatusHostError> {
     enforce_network(&request.network)?;
     let path = ic_node_status_cache_path(&request.cache_root, &request.network);
     let key = status_key(&request.network);
@@ -345,23 +341,16 @@ fn load_node_status_cache(
         },
         |mismatch| identity_error(path.clone(), mismatch),
     )?;
-    let fetched_at_unix_secs = validate_cache(&path, &cache)?;
-    if fetched_at_unix_secs > now_unix_secs {
-        return Err(IcNodeStatusHostError::InvalidCache {
-            path,
-            reason: "fetched_at is in the future relative to the observation time".to_string(),
-        });
-    }
-    Ok(LoadedNodeStatusCache {
-        path,
-        cache,
-        fetched_at_unix_secs,
-    })
+    snapshot_from_cache(path, cache, now_unix_secs)
 }
 
-fn validate_cache(path: &Path, cache: &NodeStatusCache) -> Result<u64, IcNodeStatusHostError> {
+fn snapshot_from_cache(
+    path: PathBuf,
+    cache: NodeStatusCache,
+    now_unix_secs: u64,
+) -> Result<LoadedNodeStatusSnapshot, IcNodeStatusHostError> {
     let invalid = |reason| IcNodeStatusHostError::InvalidCache {
-        path: path.to_path_buf(),
+        path: path.clone(),
         reason,
     };
     validate_cache_collection_completeness(&cache.completeness, cache.data.nodes.len())
@@ -373,75 +362,54 @@ fn validate_cache(path: &Path, cache: &NodeStatusCache) -> Result<u64, IcNodeSta
                 .to_string(),
         ));
     }
-    if cache.completeness.point_in_time_guaranteed
-        || cache.metadata.point_in_time_guaranteed
-        || cache.metadata.certified
-    {
+    if cache.completeness.point_in_time_guaranteed {
         return Err(invalid(
             "Dashboard node observations cannot claim certification or point-in-time guarantees"
                 .to_string(),
         ));
     }
-    if cache.metadata.authority != IC_DASHBOARD_AUTHORITY {
-        return Err(invalid(format!(
-            "authority is {:?}, expected {IC_DASHBOARD_AUTHORITY:?}",
-            cache.metadata.authority
-        )));
-    }
-    if cache.metadata.node_scope != IcNodeStatusScope::DashboardMainnetDefault
-        || cache.metadata.cloud_engine_nodes_included
-    {
-        return Err(invalid(
-            "cache does not describe the Dashboard default mainnet node scope".to_string(),
-        ));
-    }
-    if cache.source_endpoint.is_empty() || cache.fetched_by.is_empty() {
-        return Err(invalid(
-            "source_endpoint and fetched_by must not be empty".to_string(),
-        ));
-    }
-    crate::http_endpoint::parse_http_endpoint(&cache.source_endpoint)
-        .map_err(|reason| invalid(format!("invalid source_endpoint: {reason}")))?;
-    let fetched_at = parse_utc_timestamp_secs(&cache.fetched_at)
-        .ok_or_else(|| invalid("fetched_at is not a canonical UTC timestamp".to_string()))?;
+    let mut observation = IcNodeStatusObservation {
+        source: IcDashboardReportProvenance {
+            schema_version: cache.schema_version,
+            network: cache.network,
+            authority: cache.metadata.authority,
+            source_endpoint: cache.source_endpoint,
+            fetched_at: cache.fetched_at,
+            fetched_by: cache.fetched_by,
+            certified: cache.metadata.certified,
+            point_in_time_guaranteed: cache.metadata.point_in_time_guaranteed,
+        },
+        scope: cache.metadata.node_scope,
+        cloud_engine_nodes_included: cache.metadata.cloud_engine_nodes_included,
+        cache: None,
+    };
+    let fetched_at_unix_secs = validate_node_status_observation(&observation).map_err(invalid)?;
     validate_canonical_node_status_rows(&cache.data.nodes)
         .map_err(|error| invalid(format!("invalid cached node rows: {error}")))?;
     validate_default_node_scope(&cache.data.nodes)
         .map_err(|error| invalid(format!("invalid cached node scope: {error}")))?;
-    Ok(fetched_at)
-}
-
-fn loaded_snapshot(loaded: LoadedNodeStatusCache, now_unix_secs: u64) -> IcNodeStatusSnapshot {
     let age_seconds = now_unix_secs
-        .checked_sub(loaded.fetched_at_unix_secs)
-        .expect("cache loading rejects future timestamps");
+        .checked_sub(fetched_at_unix_secs)
+        .ok_or_else(|| {
+            invalid("fetched_at is in the future relative to the observation time".to_string())
+        })?;
     let cache_fresh = age_seconds <= DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS;
-    let nodes = loaded.cache.data.nodes;
-    IcNodeStatusSnapshot {
-        observation: IcNodeStatusObservation {
-            source: IcDashboardReportProvenance {
-                schema_version: IC_NODE_STATUS_SCHEMA_VERSION,
-                network: loaded.cache.network,
-                authority: loaded.cache.metadata.authority,
-                source_endpoint: loaded.cache.source_endpoint,
-                fetched_at: loaded.cache.fetched_at,
-                fetched_by: loaded.cache.fetched_by,
-                certified: loaded.cache.metadata.certified,
-                point_in_time_guaranteed: loaded.cache.metadata.point_in_time_guaranteed,
-            },
-            scope: loaded.cache.metadata.node_scope,
-            cloud_engine_nodes_included: loaded.cache.metadata.cloud_engine_nodes_included,
-            cache: Some(IcNodeStatusCacheEvidence {
-                cache_path: loaded.path.display().to_string(),
-                cache_fresh,
-                age_seconds,
-                stale_after_seconds: DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
-            }),
+    observation.cache = Some(IcNodeStatusCacheEvidence {
+        cache_path: path.display().to_string(),
+        cache_fresh,
+        age_seconds,
+        stale_after_seconds: DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
+    });
+    let nodes = cache.data.nodes;
+    Ok(LoadedNodeStatusSnapshot {
+        snapshot: IcNodeStatusSnapshot {
+            observation,
+            node_count: nodes.len(),
+            counts: node_status_group_counts(nodes.iter()),
+            nodes,
         },
-        node_count: nodes.len(),
-        counts: node_status_group_counts(nodes.iter()),
-        nodes,
-    }
+        fetched_at_unix_secs,
+    })
 }
 
 fn cache_from_observation(
@@ -476,7 +444,7 @@ fn cache_from_observation(
     }
 }
 
-const fn node_status_cache_is_stale(cache: &LoadedNodeStatusCache, now_unix_secs: u64) -> bool {
+const fn node_status_cache_is_stale(cache: &LoadedNodeStatusSnapshot, now_unix_secs: u64) -> bool {
     freshness_facts(
         Some(cache.fetched_at_unix_secs),
         now_unix_secs,

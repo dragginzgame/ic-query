@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::subnet_catalog::SubnetKind;
 use crate::test_support::temp_dir;
 
 #[test]
@@ -37,6 +38,79 @@ fn topology_summary_counts_existing_reports() {
     assert_eq!(report.node_operators_with_known_data_center_count, 1);
     assert_eq!(report.node_operators_with_unknown_data_center_count, 1);
     assert_eq!(report.registry_versions.len(), 5);
+}
+
+#[test]
+fn topology_summary_preserves_all_kind_counts_and_routing_ranges() {
+    let mut subnets = subnet_report_fixture();
+    subnets.subnets = [
+        SubnetKind::Unknown,
+        SubnetKind::CloudEngine,
+        SubnetKind::Application,
+        SubnetKind::System,
+        SubnetKind::Unknown,
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, kind)| {
+        let mut row = subnets.subnets[0].clone();
+        row.subnet_principal = format!("subnet-{index}");
+        row.subnet_kind = kind;
+        row.range_count = index + 1;
+        row
+    })
+    .collect();
+    let mut nodes = node_report_fixture();
+    nodes.nodes = [
+        SubnetKind::Application,
+        SubnetKind::System,
+        SubnetKind::CloudEngine,
+        SubnetKind::Unknown,
+        SubnetKind::Application,
+        SubnetKind::CloudEngine,
+        SubnetKind::Application,
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, kind)| {
+        let mut row = nodes.nodes[0].clone();
+        row.node_principal = format!("node-{index}");
+        row.subnet_kind = kind;
+        row
+    })
+    .collect();
+    nodes.node_count = nodes.nodes.len();
+    let report = topology_summary_report_from_reports(
+        MAINNET_NETWORK.to_string(),
+        "https://icp-api.io".to_string(),
+        subnets,
+        nodes,
+        node_provider_report_fixture(),
+        node_operator_report_fixture(),
+        data_center_report_fixture(),
+    );
+
+    assert_eq!(report.subnet_count, 5);
+    assert_eq!(report.node_count, 7);
+    assert_eq!(report.routing_range_count, 15);
+    assert_eq!(
+        [
+            report.application_subnet_count,
+            report.cloud_engine_subnet_count,
+            report.system_subnet_count,
+            report.unknown_subnet_count
+        ],
+        [1, 1, 1, 2]
+    );
+    assert_eq!(
+        [
+            report.application_node_count,
+            report.cloud_engine_node_count,
+            report.system_node_count,
+            report.unknown_node_count
+        ],
+        [3, 2, 1, 1]
+    );
 }
 
 #[test]

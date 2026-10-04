@@ -1,6 +1,6 @@
 //! Module: nns::governance::model
 //!
-//! Responsibility: expose direct NNS Governance report models.
+//! Responsibility: expose shared NNS Governance report and collection models.
 //! Does not own: live transport, CLI parsing, caching, or text rendering.
 //! Boundary: preserves one explicit facade across native Governance report families.
 
@@ -9,6 +9,46 @@ mod events;
 mod metrics;
 
 use serde::{Deserialize as SerdeDeserialize, Serialize};
+use std::fmt;
+
+///
+/// NnsGovernanceCollectionStatus
+///
+/// Lifecycle of a caller-owned resumable NNS Governance collection.
+/// Each collection owns its cursor and API exhaustion rules.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NnsGovernanceCollectionStatus {
+    /// No source page has been admitted yet.
+    Ready,
+    /// Another bounded page may be requested.
+    Collecting,
+    /// Governance API exhaustion was observed.
+    Complete,
+    /// Another cursor exists, but the configured page ceiling was consumed.
+    PageLimitReached,
+}
+
+impl NnsGovernanceCollectionStatus {
+    /// Return the stable JSON and display label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::Collecting => "collecting",
+            Self::Complete => "complete",
+            Self::PageLimitReached => "page_limit_reached",
+        }
+    }
+}
+
+impl fmt::Display for NnsGovernanceCollectionStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
 
 ///
 /// NnsGovernanceExecutionAssurance
@@ -105,3 +145,34 @@ pub use metrics::{
     NnsGovernanceMetricBucket, NnsGovernanceMetrics, NnsGovernanceMetricsReport,
     NnsGovernanceNeuronSubsetMetrics,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::NnsGovernanceCollectionStatus;
+
+    #[test]
+    fn collection_status_json_and_display_use_the_supported_labels() {
+        for (status, label) in [
+            (NnsGovernanceCollectionStatus::Ready, "ready"),
+            (NnsGovernanceCollectionStatus::Collecting, "collecting"),
+            (NnsGovernanceCollectionStatus::Complete, "complete"),
+            (
+                NnsGovernanceCollectionStatus::PageLimitReached,
+                "page_limit_reached",
+            ),
+        ] {
+            let value = serde_json::json!(label);
+            assert_eq!(
+                serde_json::to_value(status).expect("serialize status"),
+                value
+            );
+            assert_eq!(
+                serde_json::from_value::<NnsGovernanceCollectionStatus>(value)
+                    .expect("deserialize status"),
+                status
+            );
+            assert_eq!(status.as_str(), label);
+            assert_eq!(status.to_string(), label);
+        }
+    }
+}

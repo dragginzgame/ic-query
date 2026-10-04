@@ -28,14 +28,32 @@ pub(super) fn topology_summary_report_from_reports(
     node_operator_report: NnsNodeOperatorListReport,
     data_center_report: NnsDataCenterListReport,
 ) -> NnsTopologySummaryReport {
-    let application_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::Application);
-    let cloud_engine_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::CloudEngine);
-    let system_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::System);
-    let unknown_subnet_count = subnet_count_by_kind(&subnet_report, SubnetKind::Unknown);
-    let application_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::Application);
-    let cloud_engine_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::CloudEngine);
-    let system_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::System);
-    let unknown_node_count = node_count_by_subnet_kind(&node_report, SubnetKind::Unknown);
+    let mut application_subnet_count = 0;
+    let mut cloud_engine_subnet_count = 0;
+    let mut system_subnet_count = 0;
+    let mut unknown_subnet_count = 0;
+    let mut routing_range_count = 0;
+    for subnet in &subnet_report.subnets {
+        match subnet.subnet_kind {
+            SubnetKind::Application => application_subnet_count += 1,
+            SubnetKind::CloudEngine => cloud_engine_subnet_count += 1,
+            SubnetKind::System => system_subnet_count += 1,
+            SubnetKind::Unknown => unknown_subnet_count += 1,
+        }
+        routing_range_count += subnet.range_count;
+    }
+    let mut application_node_count = 0;
+    let mut cloud_engine_node_count = 0;
+    let mut system_node_count = 0;
+    let mut unknown_node_count = 0;
+    for node in &node_report.nodes {
+        match node.subnet_kind {
+            SubnetKind::Application => application_node_count += 1,
+            SubnetKind::CloudEngine => cloud_engine_node_count += 1,
+            SubnetKind::System => system_node_count += 1,
+            SubnetKind::Unknown => unknown_node_count += 1,
+        }
+    }
     let join_coverage = topology_summary_join_coverage_counts(
         &node_report,
         &node_provider_report,
@@ -59,11 +77,7 @@ pub(super) fn topology_summary_report_from_reports(
         cloud_engine_subnet_count,
         system_subnet_count,
         unknown_subnet_count,
-        routing_range_count: subnet_report
-            .subnets
-            .iter()
-            .map(|subnet| subnet.range_count)
-            .sum(),
+        routing_range_count,
         node_count: node_report.node_count,
         application_node_count,
         cloud_engine_node_count,
@@ -98,20 +112,4 @@ pub(super) fn topology_summary_report_from_reports(
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         registry_versions,
     }
-}
-
-fn subnet_count_by_kind(report: &SubnetCatalogListReport, kind: SubnetKind) -> usize {
-    report
-        .subnets
-        .iter()
-        .filter(|subnet| subnet.subnet_kind == kind)
-        .count()
-}
-
-fn node_count_by_subnet_kind(report: &NnsNodeListReport, kind: SubnetKind) -> usize {
-    report
-        .nodes
-        .iter()
-        .filter(|node| node.subnet_kind == kind)
-        .count()
 }

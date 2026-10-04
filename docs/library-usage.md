@@ -145,6 +145,15 @@ retains explicitly incomplete progress. Exact neuron detail makes one
 continuation beneath its filesystem cache boundary, while canister scheduling,
 storage, and publication remain caller-owned.
 
+Both continuation states return
+`ic_query::nns::governance::NnsGovernanceCollectionStatus` from `status()`.
+Use this shared type when matching `Ready`, `Collecting`, `Complete`, or
+`PageLimitReached`, including the status carried by activity/distribution
+`CollectionNotComplete` errors. The family-specific collection status types
+are removed as a Rust API hard cut. Persisted state still uses schema `1`
+and the labels `ready`, `collecting`, `complete`, and `page_limit_reached`.
+Proposal and neuron cursor and exhaustion rules remain separate.
+
 Once a retained public-neuron walk is `complete`, project its rows locally
 without another call:
 
@@ -662,6 +671,14 @@ and source provenance. Supply authenticated evidence matching the request;
 the builder rejects mismatched provenance and invalid certification metadata.
 
 ## Official Dashboard Examples
+
+The public `ic_*_status_report_from_snapshot` projection functions validate
+caller-owned observation provenance as well as raw rows and counts. Snapshots
+must use schema `1`, network `ic`, Dashboard authority, the default scope,
+a valid explicit HTTP(S) endpoint, a canonical UTC collection timestamp, and
+a nonempty collector identity. Certification and point-in-time claims return
+`IcNodeStatusProjectionError::InvalidSnapshot`; status views cannot promote
+Dashboard observations to certified evidence.
 
 Native tools can build the same bounded official Dashboard report as
 `icq ic canister info` without spawning the CLI:

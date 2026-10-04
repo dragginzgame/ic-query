@@ -18,22 +18,22 @@ use ic_query::nns::data_center::{
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 use ic_query::nns::governance::CanisterNnsSource;
 use ic_query::nns::governance::{
-    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceError, NnsGovernanceMaturityModulation,
-    NnsGovernanceMaturityModulationReport, NnsGovernanceReportContext, NnsGovernanceRequest,
-    NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture,
-    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+    DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceCollectionStatus, NnsGovernanceError,
+    NnsGovernanceMaturityModulation, NnsGovernanceMaturityModulationReport,
+    NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSource, NnsGovernanceSourceData,
+    NnsGovernanceSourceFuture, NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
     build_nns_governance_economics_report_with_source,
     nns_governance_maturity_modulation_report_text,
 };
 use ic_query::nns::neuron::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
     NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
-    NnsNeuronCollectionState, NnsNeuronCollectionStatus, NnsNeuronCollectionStep,
-    NnsNeuronDistributionError, NnsNeuronDistributionReport, NnsNeuronDistributionValidationError,
-    NnsNeuronError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
-    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronStateDistribution,
-    NnsNeuronType, NnsNeuronTypeDistribution, NnsNeuronVisibility, NnsNeuronVisibilityDistribution,
-    NnsNeuronVote, advance_nns_neuron_collection_with_source, build_nns_neuron_distribution_report,
+    NnsNeuronCollectionState, NnsNeuronCollectionStep, NnsNeuronDistributionError,
+    NnsNeuronDistributionReport, NnsNeuronDistributionValidationError, NnsNeuronError,
+    NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
+    NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronStateDistribution, NnsNeuronType,
+    NnsNeuronTypeDistribution, NnsNeuronVisibility, NnsNeuronVisibilityDistribution, NnsNeuronVote,
+    advance_nns_neuron_collection_with_source, build_nns_neuron_distribution_report,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
     nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
     validate_nns_neuron_distribution_report,
@@ -102,12 +102,12 @@ use ic_query::nns::proposals::{
     NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
     NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
     NnsProposalActivityValidationError, NnsProposalBallotRow, NnsProposalCollectionState,
-    NnsProposalCollectionStatus, NnsProposalDayCount, NnsProposalError, NnsProposalListReport,
-    NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,
-    NnsProposalRewardStatus, NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter,
-    NnsProposalRow, NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture,
-    NnsProposalStatus, NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally,
-    NnsProposalTopic, NnsProposalTopicCount, NnsProposalTopicFilter, NnsProposalVote,
+    NnsProposalDayCount, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
+    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
+    NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter, NnsProposalRow,
+    NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
+    NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
+    NnsProposalTopicCount, NnsProposalTopicFilter, NnsProposalVote,
     advance_nns_proposal_collection_with_source, build_nns_proposal_activity_report,
     build_nns_proposal_list_report_with_source, build_nns_proposal_report_with_source,
     nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
@@ -367,7 +367,7 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     );
     assert_eq!(
         first.state.status(),
-        NnsProposalCollectionStatus::Collecting
+        NnsGovernanceCollectionStatus::Collecting
     );
     assert_eq!(first.state.pages_fetched(), 1);
     let proposals_fetched: u64 = first.state.proposals_fetched();
@@ -405,7 +405,10 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     .expect("final proposal collection page");
 
     assert_eq!(second.page.proposal_count, 1);
-    assert_eq!(second.state.status(), NnsProposalCollectionStatus::Complete);
+    assert_eq!(
+        second.state.status(),
+        NnsGovernanceCollectionStatus::Complete
+    );
     assert_eq!(second.state.pages_fetched(), 2);
     assert_eq!(second.state.proposals_fetched(), 3);
     assert_eq!(second.state.next_before_proposal_id(), None);
@@ -487,7 +490,7 @@ fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
 
     assert_eq!(
         step.state.status(),
-        NnsProposalCollectionStatus::PageLimitReached
+        NnsGovernanceCollectionStatus::PageLimitReached
     );
     assert_eq!(step.state.max_pages(), 1);
     assert!(!step.state.is_complete());
@@ -831,7 +834,10 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
         NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
         first.state.schema_version()
     );
-    assert_eq!(first.state.status(), NnsNeuronCollectionStatus::Collecting);
+    assert_eq!(
+        first.state.status(),
+        NnsGovernanceCollectionStatus::Collecting
+    );
     assert_eq!(first.state.pages_fetched(), 1);
     let neurons_fetched: u64 = first.state.neurons_fetched();
     assert_eq!(neurons_fetched, 2);
@@ -868,7 +874,10 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     .expect("final neuron collection page");
 
     assert_eq!(second.page.returned_neuron_count, 1);
-    assert_eq!(second.state.status(), NnsNeuronCollectionStatus::Complete);
+    assert_eq!(
+        second.state.status(),
+        NnsGovernanceCollectionStatus::Complete
+    );
     assert_eq!(second.state.pages_fetched(), 2);
     assert_eq!(second.state.neurons_fetched(), 3);
     assert_eq!(second.state.next_start_neuron_id(), None);
@@ -943,7 +952,7 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
 
     assert_eq!(
         step.state.status(),
-        NnsNeuronCollectionStatus::PageLimitReached
+        NnsGovernanceCollectionStatus::PageLimitReached
     );
     assert_eq!(step.state.max_pages(), 1);
     assert!(!step.state.is_complete());

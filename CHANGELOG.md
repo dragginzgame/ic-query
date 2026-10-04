@@ -9,6 +9,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.45.md](docs/changelog/0.45.md)
 
+- `0.45.7` rejects invalid provenance in caller-owned Dashboard node-status
+  snapshots, including certification and point-in-time claims, through the
+  same observation validation used by cache reads. Replaces proposal and neuron
+  collection status types with `nns::governance::NnsGovernanceCollectionStatus`
+  as a Rust API hard cut. Simplifies node uniqueness validation and topology
+  kind/capacity aggregation while preserving collection exhaustion rules,
+  ordering, unknown counts, and failed-refresh recovery. CLI grammar, cache
+  identities, serialized shapes, and status labels are unchanged;
+  schemas remain `1`.
+
 - `0.45.6` accepts readable managed cache directories/files (`0755`/`0644`),
   fixing failures on conventional user cache trees. Group/world-writable paths
   and symlinks remain rejected; new directories/files retain `0700`/`0600`.

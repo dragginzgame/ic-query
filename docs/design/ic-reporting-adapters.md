@@ -40,7 +40,11 @@ rendering. Complete NNS Governance proposal and neuron collections share
 `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 `NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError`, while each
 capability retains its own page validation, cache identity, report, and
-renderer. Direct Governance economics, metrics, latest reward-event, and
+renderer. Portable proposal and public-neuron continuations share
+`NnsGovernanceCollectionStatus` under Governance ownership, with one set of
+persisted labels and display rules. Each collector owns its state validation,
+cursor progression, and API exhaustion evidence.
+Direct Governance economics, metrics, latest reward-event, and
 maturity-modulation reports share one `NnsGovernanceSource` capability and the
 transport-aware `NnsGovernanceRequest`; its portable async sources select
 replica-query or replicated inter-canister collection. `LiveNnsSource` and
@@ -413,6 +417,14 @@ assurance.
   explicitly state that the observation is uncertified, not point-in-time,
   and excludes cloud-engine nodes under the Dashboard's default scope. No
   per-row follow-up call or Registry-version claim is introduced.
+  Cache admission and caller-owned snapshot projections share observation
+  validation: schema, network, Dashboard authority, scope, endpoint, canonical
+  timestamp, and collector identity must satisfy the same contract. Public
+  projections reject certification and point-in-time claims rather than
+  copying them into derived reports. Canonical-input validation proves node
+  uniqueness through strict ordering; unordered source admission checks
+  duplicates before sorting. Row-field validation precedes source duplicate
+  detection; canonical duplicate rows fail the strict ordering check.
 - Official Dashboard ICRC total-supply reporting identifies one canonical
   ledger principal and sends one explicit start/end/step request. It defaults
   to a 30-day daily window, caps requested and returned rows at 1,000,

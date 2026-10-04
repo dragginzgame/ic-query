@@ -274,7 +274,7 @@ fn builder_rejects_incomplete_invalid_and_mismatched_collection_inputs() {
     assert!(matches!(
         build_nns_proposal_activity_report(&NnsProposalActivityRequest::default(), &ready, &[]),
         Err(NnsProposalActivityError::CollectionNotComplete {
-            status: NnsProposalCollectionStatus::Ready
+            status: NnsGovernanceCollectionStatus::Ready
         })
     ));
 
@@ -286,7 +286,7 @@ fn builder_rejects_incomplete_invalid_and_mismatched_collection_inputs() {
             &[proposal_row(1, 1, 4, 1, 3)]
         ),
         Err(NnsProposalActivityError::CollectionNotComplete {
-            status: NnsProposalCollectionStatus::PageLimitReached
+            status: NnsGovernanceCollectionStatus::PageLimitReached
         })
     ));
 

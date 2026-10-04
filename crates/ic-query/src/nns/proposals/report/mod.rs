@@ -41,8 +41,7 @@ pub use cache::{
 pub use collection::advance_nns_proposal_collection;
 pub use collection::{
     NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION, NnsProposalCollectionState,
-    NnsProposalCollectionStatus, NnsProposalCollectionStep,
-    advance_nns_proposal_collection_with_source,
+    NnsProposalCollectionStep, advance_nns_proposal_collection_with_source,
 };
 pub use error::NnsProposalError;
 #[cfg(feature = "nns-host")]

@@ -7,9 +7,9 @@
 use super::{
     IcNodeCountComparison, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
     IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusProjectionError, IcNodeStatusReport,
-    IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
-    IcSubnetStatusReport, IcSubnetStatusRow, node_status_group_counts,
-    validate_canonical_node_status_rows, validate_default_node_scope,
+    IcNodeStatusRow, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
+    IcSubnetStatusRow, node_status_group_counts, validate_canonical_node_status_rows,
+    validate_default_node_scope, validation::validate_node_status_observation,
 };
 use std::collections::BTreeMap;
 
@@ -207,13 +207,8 @@ const fn increment_comparison(
 }
 
 fn validate_snapshot(snapshot: &IcNodeStatusSnapshot) -> Result<(), IcNodeStatusProjectionError> {
-    if snapshot.observation.scope != IcNodeStatusScope::DashboardMainnetDefault
-        || snapshot.observation.cloud_engine_nodes_included
-    {
-        return invalid_snapshot(
-            "snapshot does not describe the Dashboard default mainnet node scope",
-        );
-    }
+    validate_node_status_observation(&snapshot.observation)
+        .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
     validate_canonical_node_status_rows(&snapshot.nodes)
         .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
     validate_default_node_scope(&snapshot.nodes)
