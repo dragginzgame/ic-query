@@ -27,17 +27,18 @@
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
 
-The Internet Computer (IC) is a blockchain network designed to run
-applications and services. `ic-query` is a read-only explorer for its public
-information. You give it a question—such as which computers run part of the
-network, what a token ledger reports, or how a project is governed—and its
-`icq` command gathers the answer from the relevant public source.
+IC Query makes it easy to find answers about any part of the Internet Computer
+blockchain.
+
+You give it a question—such as which computers run part of the network, what a
+token ledger reports, or how a project is governed—and its `icq` command
+gathers the answer from the relevant public source.
 
 Each report says where its information came from, when it was retrieved, and
 what checks were possible. You can read the result in a terminal or save the
 complete data as JSON for further analysis.
 
-`ic-query` never changes anything on the network. It cannot submit proposals,
+IC Query never changes anything on the network. It cannot submit proposals,
 move tokens, manage neurons, deploy software, or modify applications.
 
 <p align="center">
@@ -120,9 +121,8 @@ these cached copies.
 | Check the ICP/XDR conversion rate | The current certified rate used by the IC to price cycles | `icq system xdr` |
 | Explore public CloudEngine infrastructure | Subnets, operators, providers, nodes, and published prices | `icq cloud-engine list` |
 
-Angle brackets mean “replace this with your own value.” For example,
-`<canister-id>` means the unique identifier of the application you want to
-inspect.
+In the example commands, `<canister-id>` and `<ledger-canister-id>` are
+placeholders. Replace them with the identifier you want to inspect.
 
 ## Install
 
