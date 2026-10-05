@@ -16,7 +16,7 @@ mkdir -p "${ci_gate_case}/bin"
 cat > "${ci_gate_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-[[ "${*: -1}" != "${FAIL_TARGET:-}" ]] || exit 43
+[[ "${!#}" != "${FAIL_TARGET:-}" ]] || exit 43
 [[ -z "${EXPECTED_CHANGELOG_VERSION:-}" \
   || "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION}" ]] || exit 42
 EOF
@@ -26,7 +26,6 @@ chmod +x "${ci_gate_case}/bin/make"
   TRACE_FILE="${ci_gate_case}/trace" \
     "${make_bin}" --no-print-directory MAKE="${ci_gate_case}/bin/make" ci
 ) >/dev/null
-mapfile -t ci_gate_trace < "${ci_gate_case}/trace"
 expected_ci_targets=(
   changelog-check
   actions-check
@@ -46,13 +45,10 @@ expected_ci_targets=(
   test
   package
 )
-[[ "${#ci_gate_trace[@]}" -eq "${#expected_ci_targets[@]}" ]] \
-  || fail "make ci ran an unexpected number of targets"
-for index in "${!expected_ci_targets[@]}"; do
-  expected_command="make --no-print-directory ${expected_ci_targets[index]}"
-  [[ "${ci_gate_trace[index]}" == "${expected_command}" ]] \
-    || fail "make ci did not run its targets sequentially"
-done
+printf 'make --no-print-directory %s\n' "${expected_ci_targets[@]}" \
+  > "${ci_gate_case}/expected-trace"
+cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
+  || fail "make ci ran an unexpected target sequence"
 
 for failed_target in changelog-check test; do
   : > "${ci_gate_case}/trace"
@@ -64,15 +60,12 @@ for failed_target in changelog-check test; do
   ) >/dev/null 2>&1; then
     fail "make ci accepted a failed ${failed_target}"
   fi
-  mapfile -t failed_ci_trace < "${ci_gate_case}/trace"
-  expected_count=0
   for target in "${expected_ci_targets[@]}"; do
-    expected_count=$((expected_count + 1))
+    printf 'make --no-print-directory %s\n' "${target}"
     [[ "${target}" != "${failed_target}" ]] || break
-  done
-  [[ "${#failed_ci_trace[@]}" -eq "${expected_count}" \
-    && "${failed_ci_trace[-1]}" == "make --no-print-directory ${failed_target}" ]] \
-    || fail "make ci continued after a failed ${failed_target} or lost the target changelog version"
+  done > "${ci_gate_case}/expected-failed-trace"
+  cmp -s "${ci_gate_case}/expected-failed-trace" "${ci_gate_case}/trace" \
+    || fail "make ci changed its sequence, continued after failed ${failed_target}, or lost the target changelog version"
 done
 
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
@@ -218,11 +211,8 @@ TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
   TRACE_FILE="${dependency_check_case}/trace" \
   bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null
-mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
-[[ "${dependency_check_trace[0]:-}" == "fetch" \
-  && "${dependency_check_trace[1]:-}" == "audit" \
-  && "${dependency_check_trace[2]:-}" == "machete" \
-  && "${#dependency_check_trace[@]}" -eq 3 ]] \
+printf '%s\n' fetch audit machete > "${dependency_check_case}/expected-trace"
+cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check did not run one isolated audit before cargo machete"
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the successful dependency check left its advisory database behind"
@@ -238,10 +228,8 @@ else
 fi
 [[ "${dependency_check_status}" -eq 52 ]] \
   || fail "the dependency check hid a failed cargo audit"
-mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
-[[ "${dependency_check_trace[0]:-}" == "fetch" \
-  && "${dependency_check_trace[1]:-}" == "audit" \
-  && "${#dependency_check_trace[@]}" -eq 2 ]] \
+printf '%s\n' fetch audit > "${dependency_check_case}/expected-trace"
+cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check continued after a failed cargo audit"
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the failed dependency check left its advisory database behind"
@@ -257,8 +245,8 @@ else
 fi
 [[ "${dependency_check_status}" -eq 53 ]] \
   || fail "the dependency check hid a failed database fetch"
-mapfile -t dependency_check_trace < "${dependency_check_case}/trace"
-[[ "${dependency_check_trace[*]}" == "fetch" ]] \
+printf '%s\n' fetch > "${dependency_check_case}/expected-trace"
+cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check continued after a failed database fetch"
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the failed fetch left its partial database behind"
@@ -306,11 +294,8 @@ chmod +x "${package_workspace_case}/bin/cargo"
 PATH="${package_workspace_case}/bin:${PATH}" \
   TRACE_FILE="${package_workspace_case}/trace" CARGO_PACKAGE_RETRIES=1 \
   bash "${repo_root}/scripts/ci/package-workspace.sh" >/dev/null
-mapfile -t package_workspace_trace < "${package_workspace_case}/trace"
-[[ "${package_workspace_trace[0]:-}" == "cargo package -p ic-query --locked" ]] \
-  || fail "the workspace package check did not package the library first"
 expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query"'
-[[ "${package_workspace_trace[1]:-}" == "${expected_cli_package}" ]] \
-  || fail "the workspace package check did not verify the CLI against the unpublished local library"
-[[ "${#package_workspace_trace[@]}" -eq 2 ]] \
-  || fail "the workspace package check ran unexpected Cargo commands"
+printf '%s\n' 'cargo package -p ic-query --locked' "${expected_cli_package}" \
+  > "${package_workspace_case}/expected-trace"
+cmp -s "${package_workspace_case}/expected-trace" "${package_workspace_case}/trace" \
+  || fail "the workspace package check did not package the library then verify the CLI against it"

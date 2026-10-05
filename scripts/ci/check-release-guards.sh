@@ -89,7 +89,7 @@ EOF
 cat > "${bump_case}/bin/make" <<'EOF'
 #!/bin/bash
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-case "${*: -1}" in
+case "${!#}" in
   ensure-clean) exit "${CLEAN_STATUS:-0}" ;;
   ci)
     [[ "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION:-0.8.1}" ]] || exit 42
@@ -119,13 +119,13 @@ set -e
   || fail "the bump script did not propagate a missing target changelog"
 [[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
   || fail "the bump script edited version metadata after a failed changelog gate"
-mapfile -t missing_changelog_trace < "${bump_case}/trace"
-[[ "${missing_changelog_trace[0]:-}" == "make --no-print-directory ensure-clean" \
-  && "${missing_changelog_trace[1]:-}" == "make --no-print-directory ci" \
-  && "${missing_changelog_trace[2]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
-  || fail "the bump script did not check the target-version changelog"
-[[ "${#missing_changelog_trace[@]}" -eq 3 ]] \
-  || fail "the bump script continued after a failed target changelog check"
+printf '%s\n' \
+  'make --no-print-directory ensure-clean' \
+  'make --no-print-directory ci' \
+  'changelog scripts/ci/check-changelog-version.sh 0.8.1' \
+  > "${bump_case}/expected-trace"
+cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
+  || fail "the bump script did not stop after the failed target changelog check"
 
 : > "${bump_case}/trace"
 set +e
@@ -139,15 +139,8 @@ set -e
 [[ "${bump_status}" -eq 23 ]] || fail "the bump script did not propagate a failing CI gate"
 [[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
   || fail "the bump script edited version metadata before CI passed"
-mapfile -t bump_trace < "${bump_case}/trace"
-[[ "${bump_trace[0]:-}" == "make --no-print-directory ensure-clean" ]] \
-  || fail "the bump script did not check cleanliness before CI"
-[[ "${bump_trace[1]:-}" == "make --no-print-directory ci" ]] \
-  || fail "the bump script did not run the complete CI gate after the cleanliness check"
-[[ "${bump_trace[2]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
-  || fail "the CI gate did not check the target-version changelog"
-[[ "${#bump_trace[@]}" -eq 3 ]] \
-  || fail "the bump script ran unexpected commands after a failed CI gate"
+cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
+  || fail "the bump script did not check cleanliness and the target changelog before stopping at failed CI"
 
 : > "${bump_case}/trace"
 if (
@@ -163,11 +156,9 @@ fi
   || fail "the bump script did not preserve a failed cleanliness check"
 [[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
   || fail "the bump script edited version metadata after a failed cleanliness check"
-mapfile -t dirty_bump_trace < "${bump_case}/trace"
-[[ "${dirty_bump_trace[0]:-}" == "make --no-print-directory ensure-clean" ]] \
-  || fail "the bump script did not run the cleanliness check"
-[[ "${#dirty_bump_trace[@]}" -eq 1 ]] \
-  || fail "the bump script ran CI after a failed cleanliness check"
+printf '%s\n' 'make --no-print-directory ensure-clean' > "${bump_case}/expected-clean-trace"
+cmp -s "${bump_case}/expected-clean-trace" "${bump_case}/trace" \
+  || fail "the bump script did not stop after the failed cleanliness check"
 
 : > "${bump_case}/trace"
 (
@@ -178,15 +169,8 @@ mapfile -t dirty_bump_trace < "${bump_case}/trace"
   || fail "the bump script rejected a successful CI gate"
 [[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.8.1"' ]] \
   || fail "the bump script did not update version metadata after CI passed"
-mapfile -t successful_bump_trace < "${bump_case}/trace"
-[[ "${successful_bump_trace[0]:-}" == "make --no-print-directory ensure-clean" ]] \
-  || fail "the successful bump did not check cleanliness before CI"
-[[ "${successful_bump_trace[1]:-}" == "make --no-print-directory ci" ]] \
-  || fail "the successful bump did not run the complete CI gate"
-[[ "${successful_bump_trace[2]:-}" == "changelog scripts/ci/check-changelog-version.sh 0.8.1" ]] \
-  || fail "the successful bump did not check the target-version changelog through CI"
-[[ "${#successful_bump_trace[@]}" -eq 3 ]] \
-  || fail "the successful bump ran unexpected commands"
+cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
+  || fail "the successful bump did not run cleanliness, CI, and the target changelog in order"
 
 : > "${bump_case}/trace"
 (
@@ -447,7 +431,7 @@ mkdir -p "${sequence_case}/bin"
 cat > "${sequence_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-step="${*: -1}"
+step="${!#}"
 printf '%s\n' "${step}" >> "${TRACE_FILE}"
 [[ "${step}" != "${FAIL_STEP:-}" ]] || exit 43
 EOF
@@ -458,19 +442,20 @@ for release_kind in patch minor major; do
   TRACE_FILE="${sequence_case}/trace" \
     "${make_bin}" --no-print-directory -j4 -f "${repo_root}/Makefile" \
       MAKE="${sequence_case}/bin/make" "release-${release_kind}" >/dev/null
-  mapfile -t actual_steps < "${sequence_case}/trace"
-  [[ "${actual_steps[*]}" == "${expected_steps[*]}" ]] \
+  printf '%s\n' "${expected_steps[@]}" > "${sequence_case}/expected-trace"
+  cmp -s "${sequence_case}/expected-trace" "${sequence_case}/trace" \
     || fail "release-${release_kind} did not execute its steps in order"
 
-  for failed_index in "${!expected_steps[@]}"; do
+  : > "${sequence_case}/expected-failed-trace"
+  for failed_step in "${expected_steps[@]}"; do
+    printf '%s\n' "${failed_step}" >> "${sequence_case}/expected-failed-trace"
     : > "${sequence_case}/trace"
-    if TRACE_FILE="${sequence_case}/trace" FAIL_STEP="${expected_steps[failed_index]}" \
+    if TRACE_FILE="${sequence_case}/trace" FAIL_STEP="${failed_step}" \
       "${make_bin}" --no-print-directory -j4 -f "${repo_root}/Makefile" \
         MAKE="${sequence_case}/bin/make" "release-${release_kind}" >/dev/null 2>&1; then
-      fail "release-${release_kind} hid a failure in ${expected_steps[failed_index]}"
+      fail "release-${release_kind} hid a failure in ${failed_step}"
     fi
-    mapfile -t actual_steps < "${sequence_case}/trace"
-    [[ "${actual_steps[*]}" == "${expected_steps[*]:0:failed_index+1}" ]] \
-      || fail "release-${release_kind} continued after ${expected_steps[failed_index]} failed"
+    cmp -s "${sequence_case}/expected-failed-trace" "${sequence_case}/trace" \
+      || fail "release-${release_kind} continued after ${failed_step} failed"
   done
 done
