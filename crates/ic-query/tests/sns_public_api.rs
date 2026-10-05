@@ -700,9 +700,13 @@ fn public_sns_token_api_is_constructible_and_renderable() {
     };
 
     let text = sns_token_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize SNS token report");
 
     assert!(text.contains("token_symbol: EXT"));
     assert!(text.contains("transfer_fee: 1.00"));
+    assert!(text.contains("total_supply: 10.00"));
+    assert_eq!(json["transfer_fee"], "100_000_000");
+    assert_eq!(json["total_supply"], "1_000_000_000");
     assert!(text.contains("ledger_index_error: not configured"));
     assert!(text.contains("ICRC-1"));
 }

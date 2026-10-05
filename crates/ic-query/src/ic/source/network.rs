@@ -121,7 +121,6 @@ fn validate_boundary_node_data_centers(
         ));
     }
 
-    let mut seen_ids = HashSet::with_capacity(rows.len());
     let mut total_node_count = 0_u64;
     for row in rows.iter() {
         for (field, value) in [
@@ -133,9 +132,6 @@ fn validate_boundary_node_data_centers(
             if value.is_empty() {
                 return invalid_source(format!("{field} must not be empty"));
             }
-        }
-        if !seen_ids.insert(row.dc_id.as_str()) {
-            return invalid_source(format!("duplicate data-center id {:?}", row.dc_id));
         }
         validate_coordinate("row.latitude", &row.latitude, -90.0, 90.0)?;
         validate_coordinate("row.longitude", &row.longitude, -180.0, 180.0)?;
@@ -157,6 +153,9 @@ fn validate_boundary_node_data_centers(
             .ok_or_else(|| invalid_source_value("boundary-node total overflows u64"))?;
     }
     rows.sort_unstable_by(|left, right| left.dc_id.cmp(&right.dc_id));
+    if let Some(pair) = rows.windows(2).find(|pair| pair[0].dc_id == pair[1].dc_id) {
+        return invalid_source(format!("duplicate data-center id {:?}", pair[0].dc_id));
+    }
     Ok(total_node_count)
 }
 
@@ -171,18 +170,12 @@ fn validate_daily_stats_rows(
         ));
     }
 
+    // Unique days bound to their timestamps' UTC dates also exclude repeated timestamps.
     let mut seen_days = HashSet::with_capacity(rows.len());
-    let mut seen_timestamps = HashSet::with_capacity(rows.len());
     for row in rows.iter() {
         if !(query.start_unix_secs..=query.end_unix_secs).contains(&row.timestamp_unix_secs) {
             return invalid_source(format!(
                 "daily-statistics timestamp {} is outside the requested window",
-                row.timestamp_unix_secs
-            ));
-        }
-        if !seen_timestamps.insert(row.timestamp_unix_secs) {
-            return invalid_source(format!(
-                "duplicate daily-statistics timestamp {}",
                 row.timestamp_unix_secs
             ));
         }

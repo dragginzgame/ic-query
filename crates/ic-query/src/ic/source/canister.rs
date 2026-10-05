@@ -281,16 +281,12 @@ fn validate_optional_match(
 }
 
 fn validate_page_rows(rows: &mut [IcCanisterPageRow]) -> Result<(), IcHostError> {
-    let mut seen_canisters = HashSet::with_capacity(rows.len());
     let mut seen_dashboard_ids = HashSet::with_capacity(rows.len());
     let mut previous_canister_id: Option<&str> = None;
 
     for row in rows {
         validate_canonical_principal("row.canister_id", &row.canister_id)?;
         validate_canonical_principal("row.subnet_id", &row.subnet_id)?;
-        if !seen_canisters.insert(row.canister_id.clone()) {
-            return invalid_source(format!("duplicate canister_id {}", row.canister_id));
-        }
         if !seen_dashboard_ids.insert(row.dashboard_id) {
             return invalid_source(format!("duplicate dashboard_id {}", row.dashboard_id));
         }

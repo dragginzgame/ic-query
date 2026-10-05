@@ -27,6 +27,38 @@ fn base_units_render_as_two_decimal_token_amounts() {
     assert_eq!(base_units_decimal_text("123", 2), "1.23");
     assert_eq!(base_units_decimal_text("999", 3), "1.00");
     assert_eq!(base_units_decimal_text("not-a-number", 8), "not-a-number");
+    for (value, decimals, expected) in [
+        ("000123", 0, "123.00"),
+        ("000123", 1, "12.30"),
+        ("000123", 2, "1.23"),
+        ("000999", 3, "1.00"),
+        ("000499999", 8, "0.00"),
+        ("000500000", 8, "0.01"),
+        ("00099999999", 8, "1.00"),
+        ("  000_123_500_000  ", 8, "1.24"),
+        ("___", 8, "0.00"),
+        ("0000", u8::MAX, "0.00"),
+        ("5", u8::MAX, "0.00"),
+        (
+            "340282366920938463463374607431768211456",
+            2,
+            "3402823669209384634633746074317682114.56",
+        ),
+    ] {
+        assert_eq!(base_units_decimal_text(value, decimals), expected);
+    }
+    assert_eq!(
+        base_units_decimal_text(&format!("5{}", "0".repeat(252)), u8::MAX),
+        "0.01"
+    );
+    assert_eq!(base_units_decimal_text(&"9".repeat(255), u8::MAX), "1.00");
+    assert_eq!(
+        base_units_decimal_text(&format!("{}500000", "0".repeat(4096)), 8),
+        "0.01"
+    );
+    for invalid in ["", "   ", "-123", "12.3", "12é", "  invalid  "] {
+        assert_eq!(base_units_decimal_text(invalid, 8), invalid);
+    }
 }
 
 #[test]

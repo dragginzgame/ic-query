@@ -5,8 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
 trap 'rm -rf -- "${work_dir}"' EXIT
 
-# Force a complete diagnostic set; cached docs can otherwise omit warnings.
-cargo clean --doc >"${work_dir}/stderr" 2>&1
+# Cargo replays cached diagnostics; the parser rejects an incomplete set.
 if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \
   cargo doc -p ic-query --all-features --no-deps --locked --message-format=json \
   >"${work_dir}/diagnostics.jsonl" 2>>"${work_dir}/stderr"; then

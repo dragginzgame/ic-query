@@ -100,9 +100,7 @@ pub(in crate::ic) fn icrc_token_value_report_from_source(
     }
 
     let returned_row_count = source.rows.len();
-    if returned_row_count > usize::from(query.limit)
-        || returned_row_count > usize::from(MAX_ICRC_TOKEN_VALUE_ROWS)
-    {
+    if returned_row_count > usize::from(query.limit) {
         return invalid_source(format!(
             "token-value series returned {returned_row_count} rows for a request limited to {}",
             query.limit

@@ -86,6 +86,10 @@ in strict canister-id order. Row principals, controller uniqueness, non-empty
 timestamps, optional module hashes, and boundary cursors are validated before
 projection.
 
+Strict canister-id order owns page canister uniqueness; there is no separate
+canister-id registry. Dashboard ids and per-row controllers retain independent
+uniqueness checks because their identities do not follow from that order.
+
 ## User-Facing Usage
 
 ```bash

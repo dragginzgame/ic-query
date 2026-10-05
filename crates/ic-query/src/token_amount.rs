@@ -9,8 +9,8 @@
 
 /// Renders a base-unit token amount with two decimal places.
 ///
-/// Non-digit input, other than `_` separators, is returned unchanged so callers can
-/// preserve upstream sentinel values.
+/// Numeric input may contain surrounding whitespace and `_` separators. Other
+/// input is returned unchanged so callers can preserve upstream sentinel values.
 #[must_use]
 pub fn base_units_decimal_text(value: &str, decimals: u8) -> String {
     let Some(digits) = normalized_base_unit_digits(value) else {
@@ -47,12 +47,12 @@ fn normalized_base_unit_digits(value: &str) -> Option<String> {
         }
     }
 
-    let digits = digits.trim_start_matches('0');
-    Some(if digits.is_empty() {
-        "0".to_string()
-    } else {
-        digits.to_string()
-    })
+    let leading_zero_count = digits.len() - digits.trim_start_matches('0').len();
+    digits.replace_range(..leading_zero_count, "");
+    if digits.is_empty() {
+        digits.push('0');
+    }
+    Some(digits)
 }
 
 fn scaled_hundredths(digits: &str, trailing_zero_count: usize) -> String {
@@ -67,25 +67,17 @@ fn rounded_hundredths(digits: &str, discarded_digit_count: usize) -> String {
     } else {
         ("0", digits)
     };
-    let discarded = left_pad_digits(discarded, discarded_digit_count);
-    if discarded
-        .as_bytes()
-        .first()
-        .is_some_and(|digit| *digit >= b'5')
+    // A shorter suffix has an implicit leading zero at the rounding position.
+    if discarded.len() == discarded_digit_count
+        && discarded
+            .as_bytes()
+            .first()
+            .is_some_and(|digit| *digit >= b'5')
     {
         increment_decimal_string(hundredths)
     } else {
         hundredths.to_string()
     }
-}
-
-fn left_pad_digits(digits: &str, width: usize) -> String {
-    if digits.len() >= width {
-        return digits.to_string();
-    }
-    let mut padded = "0".repeat(width - digits.len());
-    padded.push_str(digits);
-    padded
 }
 
 fn increment_decimal_string(digits: &str) -> String {

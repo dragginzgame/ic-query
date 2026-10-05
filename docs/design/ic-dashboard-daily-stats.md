@@ -59,6 +59,10 @@ days or timestamps, a day that does not match its timestamp's UTC date, empty
 or invalid rate text, negative or non-finite rates, more than 366 rows, a
 mismatched custom-source query, and mismatched source provenance.
 
+Day uniqueness and timestamp-to-UTC-date binding jointly enforce timestamp
+uniqueness; projection does not maintain a second timestamp set. Two different
+timestamps for one UTC day are still rejected.
+
 Rate strings are parsed only for finite/nonnegative validation and are not
 converted in the report. This preserves the Dashboard's precision and lexical
 representation for downstream consumers. The live decoder requires every

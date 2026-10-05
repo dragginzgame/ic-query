@@ -152,6 +152,18 @@ canister health fields. Candid's human-facing `Display` adds underscore grouping
 and is unsuitable for these
 raw fields or the history validator's decimal inputs.
 
+Human-facing cycle counts and decimal cycle rates share the unit table in
+`human_quantity`. Integer counts use bounded arithmetic; rates round borrowed
+decimal digits without limiting input to `u128`. Full decimal input validation
+and raw report values remain independent of display rounding. Byte quantities
+retain binary IEC units.
+
+Token base-unit display remains owned by `token_amount` across ICRC, SNS, and
+Governance reports. It normalizes ASCII digits in place, keeps scale and
+rounding arithmetic in decimal strings, and rounds from the discarded suffix
+without constructing a padded copy. Its fixed two-decimal display contract is
+distinct from cycle-unit scaling; both preserve raw report amounts.
+
 ### Candid subtype performance follow-up: 2026-10-03
 
 [Candid #603](https://github.com/dfinity/candid/issues/603) remains open for
@@ -528,6 +540,13 @@ assurance.
   The provider-to-node relation is evidence in each returned row, not an
   inferred join to provider aggregates. It remains off-chain, live-only, and
   separate from the cached Dashboard default scope.
+
+Dashboard builders validate requests before invoking a source. Reward/release
+page projections require an exact query echo before using those validated
+limits; token-value row admission uses the same request-bound ceiling. These
+projections validate returned evidence without revalidating an identical
+request. Live adapters retain independent input validation because their public
+source traits can also be called directly.
 
 These flows are report-specific orchestration. There is no generic fallback
 engine, dynamic Candid discovery, or implicit off-chain enrichment.

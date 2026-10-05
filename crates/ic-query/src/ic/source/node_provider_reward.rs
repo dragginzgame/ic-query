@@ -117,7 +117,6 @@ pub(in crate::ic) fn node_provider_reward_list_report_from_source(
             source.query
         ));
     }
-    validate_node_provider_reward_list_query(&source.query)?;
     if let Some(requested_maximum) = source.query.max_reward_index
         && source.resolved_max_reward_index > requested_maximum
     {
@@ -353,16 +352,18 @@ mod tests {
     #[test]
     fn invalid_requests_fail_before_custom_source_calls() {
         let source = FixtureSource::default();
-        let error = build_ic_node_provider_reward_list_report_with_source(
-            &IcNodeProviderRewardListRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_800_000_000,
-                IcNodeProviderRewardListQuery::new(0, 0, None),
-            ),
-            &source,
-        )
-        .expect_err("zero limit must fail");
-        assert!(matches!(error, IcHostError::InvalidRequest { .. }));
+        for limit in [0, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT + 1] {
+            let error = build_ic_node_provider_reward_list_report_with_source(
+                &IcNodeProviderRewardListRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_800_000_000,
+                    IcNodeProviderRewardListQuery::new(limit, 0, None),
+                ),
+                &source,
+            )
+            .expect_err("out-of-range limit must fail");
+            assert!(matches!(error, IcHostError::InvalidRequest { .. }));
+        }
 
         let error = build_ic_node_provider_reward_history_report_with_source(
             &IcNodeProviderRewardHistoryRequest::new(
@@ -394,6 +395,22 @@ mod tests {
         )
         .expect_err("duplicate ids must fail");
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+
+        for limit in [0, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT + 1] {
+            let error = node_provider_reward_list_report_from_source(
+                &request,
+                &query,
+                IcNodeProviderRewardListSourceData {
+                    source: request.clone(),
+                    query: IcNodeProviderRewardListQuery::new(limit, 0, None),
+                    resolved_max_reward_index: 2,
+                    total_reward_records: 2,
+                    rows: vec![reward_row(7_562)],
+                },
+            )
+            .expect_err("source must echo the requested query");
+            assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
+        }
 
         let history_query =
             IcNodeProviderRewardHistoryQuery::new(1_783_900_000, 1_784_300_000, 86_400);

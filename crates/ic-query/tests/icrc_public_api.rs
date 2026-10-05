@@ -607,9 +607,14 @@ fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
     };
 
     let text = icrc_token_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize ICRC token report");
 
     assert!(text.contains(&format!("ledger_canister_id: {LEDGER_CANISTER_ID}")));
     assert!(text.contains("token_symbol: ICP"));
+    assert!(text.contains("transfer_fee: 0.00"));
+    assert!(text.contains("total_supply: 1.00"));
+    assert_eq!(json["transfer_fee"], "10000");
+    assert_eq!(json["total_supply"], "100000000");
     assert!(text.contains("ICRC-1"));
 }
 

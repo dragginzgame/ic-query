@@ -15,15 +15,6 @@ const CYCLE_UNITS: &[(u128, &str)] = &[
     (1_000, "k"),
     (1, ""),
 ];
-const DECIMAL_CYCLE_UNITS: &[(usize, &str)] = &[
-    (18, "E"),
-    (15, "P"),
-    (12, "T"),
-    (9, "B"),
-    (6, "M"),
-    (3, "k"),
-    (0, ""),
-];
 const BYTE_UNITS: &[(u128, &str)] = &[
     (1_u128 << 60, "EiB"),
     (1_u128 << 50, "PiB"),
@@ -48,16 +39,16 @@ pub fn decimal_cycle_rate_text(value: &str) -> String {
     let Some((whole, fraction)) = decimal_parts(value) else {
         return sanitize_text(value);
     };
-    let mut unit_index = DECIMAL_CYCLE_UNITS
+    let mut unit_index = CYCLE_UNITS
         .iter()
-        .position(|(exponent, _)| whole.len() > *exponent)
-        .unwrap_or(DECIMAL_CYCLE_UNITS.len() - 1);
+        .position(|(divisor, _)| whole.len() > divisor.ilog10() as usize)
+        .unwrap_or(CYCLE_UNITS.len() - 1);
     let (mut rounded_whole, mut hundredths) =
-        rounded_decimal_parts(whole, fraction, DECIMAL_CYCLE_UNITS[unit_index].0);
+        rounded_decimal_parts(whole, fraction, CYCLE_UNITS[unit_index].0.ilog10() as usize);
     if rounded_whole == "1000" && unit_index > 0 {
         unit_index -= 1;
         (rounded_whole, hundredths) =
-            rounded_decimal_parts(whole, fraction, DECIMAL_CYCLE_UNITS[unit_index].0);
+            rounded_decimal_parts(whole, fraction, CYCLE_UNITS[unit_index].0.ilog10() as usize);
     }
 
     let number = match hundredths {
@@ -65,7 +56,7 @@ pub fn decimal_cycle_rate_text(value: &str) -> String {
         value if value.is_multiple_of(10) => format!("{rounded_whole}.{}", value / 10),
         value => format!("{rounded_whole}.{value:02}"),
     };
-    let unit = DECIMAL_CYCLE_UNITS[unit_index].1;
+    let unit = CYCLE_UNITS[unit_index].1;
     if unit.is_empty() {
         number
     } else {
@@ -123,7 +114,6 @@ fn decimal_parts(value: &str) -> Option<(&str, &str)> {
     if whole.is_empty()
         || !whole.bytes().all(|byte| byte.is_ascii_digit())
         || !fraction.bytes().all(|byte| byte.is_ascii_digit())
-        || fraction.contains('.')
     {
         return None;
     }
@@ -132,28 +122,25 @@ fn decimal_parts(value: &str) -> Option<(&str, &str)> {
 }
 
 fn rounded_decimal_parts(whole: &str, fraction: &str, exponent: usize) -> (String, u8) {
-    let (rounded_whole, mut scaled_fraction) = if whole.len() > exponent {
+    let (rounded_whole, integer_fraction) = if whole.len() > exponent {
         let split = whole.len() - exponent;
-        (whole[..split].to_string(), whole[split..].to_string())
+        (&whole[..split], &whole[split..])
     } else {
-        let mut scaled_fraction = "0".repeat(exponent - whole.len());
-        scaled_fraction.push_str(whole);
-        ("0".to_string(), scaled_fraction)
+        ("0", whole)
     };
-    scaled_fraction.push_str(fraction);
-    while scaled_fraction.len() < 3 {
-        scaled_fraction.push('0');
-    }
-
-    let bytes = scaled_fraction.as_bytes();
-    let mut hundredths = (bytes[0] - b'0') * 10 + (bytes[1] - b'0');
-    if bytes[2] >= b'5' {
+    let mut digits = std::iter::repeat_n(b'0', exponent.saturating_sub(whole.len()))
+        .chain(integer_fraction.bytes())
+        .chain(fraction.bytes());
+    let tenths = digits.next().unwrap_or(b'0') - b'0';
+    let hundredth = digits.next().unwrap_or(b'0') - b'0';
+    let mut hundredths = tenths * 10 + hundredth;
+    if digits.next().unwrap_or(b'0') >= b'5' {
         hundredths += 1;
     }
     if hundredths == 100 {
-        (increment_decimal(&rounded_whole), 0)
+        (increment_decimal(rounded_whole), 0)
     } else {
-        (rounded_whole, hundredths)
+        (rounded_whole.to_string(), hundredths)
     }
 }
 
@@ -190,6 +177,34 @@ mod tests {
         assert_eq!(decimal_cycle_rate_text("999999999999.9"), "1 T");
         assert_eq!(decimal_cycle_rate_text("0.125"), "0.13");
         assert_eq!(decimal_cycle_rate_text("not-a-number"), "not-a-number");
+        for (value, expected) in [
+            ("0", "0"),
+            ("0.004", "0"),
+            ("0.005", "0.01"),
+            ("0.1", "0.1"),
+            ("12.3", "12.3"),
+            ("999.994", "999.99"),
+            ("999.995", "1 k"),
+            ("999999.995", "1 M"),
+            ("000001000.0", "1 k"),
+            ("1000000000", "1 B"),
+            ("1000000000000", "1 T"),
+            ("1000000000000000", "1 P"),
+            ("1000000000000000000", "1 E"),
+            (
+                "340282366920938463463374607431768211456.789",
+                "340282366920938463463.37 E",
+            ),
+        ] {
+            assert_eq!(decimal_cycle_rate_text(value), expected);
+        }
+        assert_eq!(
+            decimal_cycle_rate_text(&format!("1.234{}", "9".repeat(4096))),
+            "1.23"
+        );
+        for invalid in ["1.2.3".to_string(), format!("1.234{}x", "9".repeat(4096))] {
+            assert_eq!(decimal_cycle_rate_text(&invalid), invalid);
+        }
     }
 
     #[test]

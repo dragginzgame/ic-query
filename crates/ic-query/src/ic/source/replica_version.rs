@@ -77,7 +77,6 @@ pub(in crate::ic) fn replica_version_list_report_from_source(
             source.query
         ));
     }
-    validate_replica_version_list_query(&source.query)?;
     if let Some(requested_maximum) = source.query.max_proposal_index
         && source.resolved_max_proposal_index > requested_maximum
     {
@@ -422,7 +421,7 @@ mod tests {
             source.rows[1].title.clear();
             source.rows[1].url.clear();
             match self.mutation.take() {
-                Some(Mutation::WrongQuery) => source.query.offset += 1,
+                Some(Mutation::WrongQuery) => source.query.limit = 0,
                 Some(Mutation::MaximumAboveRequest) => {
                     source.resolved_max_proposal_index = 439;
                 }

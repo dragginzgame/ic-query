@@ -115,11 +115,12 @@ python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 
 public_docs_case="${work_dir}/public-docs"
 mkdir -p "${public_docs_case}/bin"
+printf 'retained documentation evidence\n' > "${public_docs_case}/retained-doc"
 cat > "${public_docs_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
-  clean) ;;
+  clean) rm -f -- "${DOC_ARTIFACT}" ;;
   doc)
     python3 - "${REPO_ROOT}/scripts/ci/public-docs-baseline.json" <<'PYDOC'
 import json
@@ -137,10 +138,13 @@ chmod +x "${public_docs_case}/bin/cargo"
 if (
   cd "${repo_root}"
   PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
+    DOC_ARTIFACT="${public_docs_case}/retained-doc" \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
 ) >/dev/null 2>&1; then
   fail "the public documentation check accepted an incomplete diagnostic set"
 fi
+[[ -f "${public_docs_case}/retained-doc" ]] \
+  || fail "the public documentation check erased retained evidence on failure"
 
 feature_boundary_case="${work_dir}/feature-boundary"
 mkdir -p "${feature_boundary_case}/bin" "${feature_boundary_case}/tmp"

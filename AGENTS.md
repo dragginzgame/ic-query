@@ -3,6 +3,24 @@
 This file is normative for automated coding agents working in this repository.
 If code or habit conflicts with this file, this file wins.
 
+## Shared Baseline And Local Overlay
+
+- Adopt the [Shared Tooling engineering baseline](https://github.com/dragginzgame/shared-tooling/blob/5a65686d1da9e039b22b3e17694ea083d82cfa9e/AGENTS.md)
+  at reviewed revision `5a65686d1da9e039b22b3e17694ea083d82cfa9e`.
+  This file is the local overlay; a moving sibling checkout is not inherited
+  automatically. Review a new revision before changing this reference.
+- Retain these standing maintainer instructions as scoped exceptions:
+  numbered changelog drafts use the explicitly selected version or the next
+  patch, rather than an undecided `Draft`; repository-owned public-metadata
+  schemas remain `1` and breaking shapes use the hard-cut policy below, rather
+  than retaining a frozen older discriminator. The reasons are one numbered
+  release ledger and one current pre-1.0 metadata contract without migrations.
+  These exceptions do not authorize deleting caller-owned evidence or ignoring
+  external consumers; identify required explicit resets and coordinated updates.
+- Product authority, cache/network identities, supported features, numeric
+  limits, formatting, and exact validation/release commands remain local.
+  The stricter prohibition on agent-run release effects below remains in force.
+
 ## Session Handoff
 
 - At session start, read `README.md`, `CHANGELOG.md`, and relevant
@@ -22,6 +40,9 @@ If code or habit conflicts with this file, this file wins.
 
 ## Pre-1.0 Compatibility
 
+- Breaking public API or semantic changes require a minor release before 1.0.
+  Do not fit an incompatible change into an assigned patch release; schema-1
+  hard cuts do not waive release selection or consumer retirement obligations.
 - Before `1.0.0`, every current emitted or persisted schema version must remain
   `1`, including report, cache, sidecar, and lock schemas. Breaking shape
   changes replace the version-1 contract in place; do not increment a schema
@@ -128,12 +149,47 @@ If code or habit conflicts with this file, this file wins.
 ## Testing
 
 - Prefer targeted tests first; broaden when risk warrants it.
+- Run focused checks automatically. Broad workspace validation, full CI, and
+  release gates require an explicit request or their configured CI pipeline;
+  ordinary continuation and readiness requests do not authorize those gates.
+- Check for active builds before compilation or source edits. Do not change
+  source under validation or compete for its build lock. Preserve build and
+  evidence artifacts; do not run cleanup helpers that erase consumer outputs.
+  Helpers may remove their own exact temporary files.
+- Prepare the selected lockfile's offline cache explicitly before validation.
+  Keep validation locked/offline; report missing dependencies rather than
+  silently retrying online or changing versions.
 - Keep unit tests next to the code. Prefer `tests.rs` or `tests/mod.rs` for
   large groups; small inline `mod tests { ... }` blocks are fine.
 - Use fixture sources instead of live network calls in unit tests. Assert typed
   errors or observable behavior, not brittle full strings, unless exact CLI
   text is the contract.
 - Report which checks passed and which checks were not run.
+
+## Tooling And Feedback
+
+- Keep wrappers small and effects explicit. Use the maintained implementation
+  language for substantial tooling; do not add new Python tooling. Existing
+  consumer tools are not permission to introduce another implementation.
+- Keep CI/release shared tools as reviewed snapshots, never symlinks or mutable
+  sibling dependencies. Fix shared tooling upstream only when authorized; do
+  not patch a vendored copy in place.
+- GitHub issues in the owning repository are the sole feedback tracker. Search
+  before filing, and link issues from handoffs/designs without duplicating their
+  triage or status in local ledgers. Recording a finding does not authorize an
+  upstream message. Distinguish upstream acceptance from consumer adoption.
+
+## Host Support
+
+- Preserve required macOS support for dependency setup, native tools, builds,
+  tests, CI, and release tooling. Declare macOS versions, architectures, and
+  prerequisites in a local host matrix; isolate GNU/BSD and process differences
+  at their owning boundary. Portable scripts target Bash 3.2 unless an explicit
+  support-matrix decision changes that requirement.
+- Qualify affected workflows through native CI or recorded native execution.
+  Linux passes and installer branches do not qualify macOS. Report missing
+  host coverage and portability failures as gaps without weakening the support
+  requirement or claiming unexecuted checks passed.
 
 ## Security And Network
 

@@ -224,7 +224,11 @@ fn icrc_token_value_custom_source_contract_is_validated() {
             ..IcrcAnalyticsFixture::default()
         };
 
-        let error = build_icrc_token_value_report_with_source(&icrc_token_value_request(), &source)
+        let mut request = icrc_token_value_request();
+        if matches!(mutation, IcrcAnalyticsMutation::TokenTooManyRows) {
+            request.query.limit = MAX_ICRC_TOKEN_VALUE_ROWS;
+        }
+        let error = build_icrc_token_value_report_with_source(&request, &source)
             .expect_err("invalid token-value source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
@@ -340,8 +344,12 @@ fn boundary_node_custom_source_contract_is_validated() {
     for mutation in [
         BoundaryNetworkMutation::WrongEndpoint,
         BoundaryNetworkMutation::DuplicateId,
+        BoundaryNetworkMutation::NonAdjacentDuplicateId,
         BoundaryNetworkMutation::InvalidLatitude,
         BoundaryNetworkMutation::InvalidNodeCount,
+        BoundaryNetworkMutation::NoncanonicalNodeCount,
+        BoundaryNetworkMutation::TotalOverflow,
+        BoundaryNetworkMutation::TooManyRows,
     ] {
         let source = NetworkFixture {
             boundary_mutation: RefCell::new(Some(mutation)),
@@ -411,6 +419,9 @@ fn daily_stats_custom_source_contract_is_validated() {
     for mutation in [
         DailyStatsMutation::WrongQuery,
         DailyStatsMutation::DuplicateDay,
+        DailyStatsMutation::DuplicateRow,
+        DailyStatsMutation::SameDayDifferentTimestamp,
+        DailyStatsMutation::SameTimestampDifferentDay,
         DailyStatsMutation::MismatchedDay,
         DailyStatsMutation::OutsideWindow,
         DailyStatsMutation::InvalidRate,
@@ -952,6 +963,10 @@ fn canister_collection_filters_are_validated_before_source_calls() {
 fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
     for mutation in [
         PageSourceMutation::ReverseRows,
+        PageSourceMutation::DuplicateCanisterId,
+        PageSourceMutation::NonAdjacentDuplicateCanisterId,
+        PageSourceMutation::DuplicateDashboardId,
+        PageSourceMutation::DuplicateController,
         PageSourceMutation::WrongFilters,
         PageSourceMutation::WrongLimit,
     ] {
@@ -963,7 +978,7 @@ fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
             1_700_000_000,
         )
-        .with_limit(2);
+        .with_limit(3);
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
             .expect_err("invalid source page must fail");
@@ -1047,14 +1062,21 @@ fn daily_stats_request() -> IcDailyStatsRequest {
 enum BoundaryNetworkMutation {
     WrongEndpoint,
     DuplicateId,
+    NonAdjacentDuplicateId,
     InvalidLatitude,
     InvalidNodeCount,
+    NoncanonicalNodeCount,
+    TotalOverflow,
+    TooManyRows,
 }
 
 #[derive(Clone, Copy)]
 enum DailyStatsMutation {
     WrongQuery,
     DuplicateDay,
+    DuplicateRow,
+    SameDayDifferentTimestamp,
+    SameTimestampDifferentDay,
     MismatchedDay,
     OutsideWindow,
     InvalidRate,
@@ -1086,11 +1108,30 @@ impl IcNetworkSource for NetworkFixture {
                 data.source.endpoint = "https://example.com/api/v4".to_string();
             }
             Some(BoundaryNetworkMutation::DuplicateId) => data.rows[1].dc_id = "zh2".to_string(),
+            Some(BoundaryNetworkMutation::NonAdjacentDuplicateId) => {
+                data.rows.push(data.rows[0].clone());
+            }
             Some(BoundaryNetworkMutation::InvalidLatitude) => {
                 data.rows[0].latitude = "91".to_string();
             }
             Some(BoundaryNetworkMutation::InvalidNodeCount) => {
                 data.rows[0].total_nodes = "2.0".to_string();
+            }
+            Some(BoundaryNetworkMutation::NoncanonicalNodeCount) => {
+                data.rows[0].total_nodes = "02".to_string();
+            }
+            Some(BoundaryNetworkMutation::TotalOverflow) => {
+                data.rows[0].total_nodes = u64::MAX.to_string();
+                data.rows[1].total_nodes = "1".to_string();
+            }
+            Some(BoundaryNetworkMutation::TooManyRows) => {
+                data.rows = (0..=MAX_IC_BOUNDARY_NODE_DATA_CENTERS)
+                    .map(|index| {
+                        let mut row = data.rows[0].clone();
+                        row.dc_id = format!("dc-{index}");
+                        row
+                    })
+                    .collect();
             }
             None => {}
         }
@@ -1115,6 +1156,16 @@ impl IcNetworkSource for NetworkFixture {
             Some(DailyStatsMutation::WrongQuery) => data.query.start_unix_secs += 1,
             Some(DailyStatsMutation::DuplicateDay) => {
                 data.rows[1].day = "2026-07-31".to_string();
+            }
+            Some(DailyStatsMutation::DuplicateRow) => {
+                data.rows[1] = data.rows[0].clone();
+            }
+            Some(DailyStatsMutation::SameDayDifferentTimestamp) => {
+                data.rows[1].day = data.rows[0].day.clone();
+                data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs - 1;
+            }
+            Some(DailyStatsMutation::SameTimestampDifferentDay) => {
+                data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs;
             }
             Some(DailyStatsMutation::MismatchedDay) => {
                 data.rows[0].day = "2026-07-29".to_string();
@@ -1345,9 +1396,10 @@ impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
             Some(IcrcAnalyticsMutation::WrongLedger) => {
                 data.ledger_canister_id = CANISTER_ID.to_string();
             }
-            Some(IcrcAnalyticsMutation::TokenWrongQuery) => data.query.start_unix_secs += 1,
+            Some(IcrcAnalyticsMutation::TokenWrongQuery) => data.query.limit = 0,
             Some(IcrcAnalyticsMutation::TokenTooManyRows) => {
-                data.rows.push(row(ICRC_SUPPLY_END));
+                data.rows
+                    .resize_with(usize::from(query.limit) + 1, || row(ICRC_SUPPLY_END));
             }
             Some(IcrcAnalyticsMutation::TokenMissingTimestamp) => {
                 data.rows[0].timestamp_unix_secs = None;
@@ -1510,6 +1562,10 @@ impl IcCanisterSource for MutatingSource {
 #[derive(Clone, Copy)]
 enum PageSourceMutation {
     ReverseRows,
+    DuplicateCanisterId,
+    NonAdjacentDuplicateCanisterId,
+    DuplicateDashboardId,
+    DuplicateController,
     WrongFilters,
     WrongLimit,
 }
@@ -1547,10 +1603,27 @@ impl IcCanisterCollectionSource for CollectionFixture {
         let mut data = page_source_data(request, filters, limit, after, before);
         match self.page_mutation.borrow_mut().take() {
             Some(PageSourceMutation::ReverseRows) => data.rows.reverse(),
+            Some(PageSourceMutation::DuplicateCanisterId) => {
+                data.rows[1].canister_id = data.rows[0].canister_id.clone();
+            }
+            Some(PageSourceMutation::NonAdjacentDuplicateCanisterId) => {
+                let mut duplicate = data.rows[0].clone();
+                duplicate.dashboard_id = 2_000_000;
+                data.rows.push(duplicate);
+            }
+            Some(PageSourceMutation::DuplicateDashboardId) => {
+                data.rows[1].dashboard_id = data.rows[0].dashboard_id;
+            }
+            Some(PageSourceMutation::DuplicateController) => {
+                let mut duplicate = data.rows[0].controllers[0].clone();
+                duplicate.raw_metadata = Some("different metadata".to_string());
+                data.rows[0].controllers.push(duplicate);
+            }
             Some(PageSourceMutation::WrongFilters) => data.filters.has_name = Some(true),
             Some(PageSourceMutation::WrongLimit) => data.requested_limit += 1,
             None => {}
         }
+        data.next_cursor = data.rows.last().map(|row| row.canister_id.clone());
         Ok(data)
     }
 }

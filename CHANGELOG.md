@@ -9,6 +9,19 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
 
+- `0.46.4` simplifies exact cycle/token formatting, sharing cycle units and
+  removing temporary fraction/padding buffers. Dashboard validation derives
+  duplicate rejection from existing ordering and UTC-day binding instead of
+  redundant identity sets; independent identity checks, bounds, and checked
+  totals remain enforced. Dashboard reward/release pages and token values use
+  builder-validated request limits after checking the source's exact query
+  echo, removing repeated request checks. Exact rounding, arbitrary precision,
+  and raw JSON are preserved. Public documentation checks retain existing
+  artifacts and still reject incomplete diagnostics. Agent guidance pins a
+  reviewed Shared Tooling revision, including focused validation, artifact
+  preservation, and required macOS support. Public Rust APIs, CLI grammar,
+  reports, and cache shapes are unchanged; schemas remain `1`.
+
 - `0.46.3` fixes a panic on malformed Unicode ICRC subaccounts and rejects
   signed byte pairs that were accidentally accepted as hexadecimal. ICRC
   subaccounts and SNS neuron IDs use the existing shared hex decoder. ICRC

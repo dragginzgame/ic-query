@@ -41,6 +41,10 @@ Rows are canonically ordered by data-center id. Projection rejects more than
 are not finite decimal values in geographic range, non-canonical unsigned
 node-count text, and a node-count sum that overflows `u64`.
 
+Data-center id uniqueness is checked on adjacent rows after canonical sorting,
+without a second identity set. Row validation and checked count accumulation
+remain at the source boundary before a report is returned.
+
 Region text is deliberately not parsed, corrected, or normalized. It is
 off-chain Dashboard data and may contain labels that look surprising or
 internally inconsistent. Preserving that raw value is more honest than
