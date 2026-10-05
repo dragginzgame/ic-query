@@ -1,24 +1,26 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-readme-header.svg" alt="IC Query — Internet Computer helper library">
+</p>
+
 <!-- helper-navigation:start -->
 <p align="center">
-  <a href="https://github.com/dragginzgame/canic"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/canic.svg" width="18" height="18" alt=""> <strong>canic</strong></a>
+  <a href="https://github.com/dragginzgame/canic"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/canic.svg" width="18" height="18" alt=""> <strong>canic</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/icydb"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/icydb.svg" width="18" height="18" alt=""> <strong>icydb</strong></a>
+  <a href="https://github.com/dragginzgame/icydb"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/icydb.svg" width="18" height="18" alt=""> <strong>icydb</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-timers"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-timers.svg" width="18" height="18" alt=""> <strong>ic-timers</strong></a>
+  <a href="https://github.com/dragginzgame/ic-timers"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-timers.svg" width="18" height="18" alt=""> <strong>ic-timers</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-memory"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-memory.svg" width="18" height="18" alt=""> <strong>ic-memory</strong></a>
+  <a href="https://github.com/dragginzgame/ic-memory"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-memory.svg" width="18" height="18" alt=""> <strong>ic-memory</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-query"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-query.svg" width="18" height="18" alt=""> <strong>ic-query</strong></a>
+  <a href="https://github.com/dragginzgame/ic-query"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-query.svg" width="18" height="18" alt=""> <strong>ic-query</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-backup"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-backup.svg" width="18" height="18" alt=""> <strong>ic-backup</strong></a>
+  <a href="https://github.com/dragginzgame/ic-backup"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-backup.svg" width="18" height="18" alt=""> <strong>ic-backup</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-blob-storage"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-blob-storage.svg" width="18" height="18" alt=""> <strong>ic-blob-storage</strong></a>
+  <a href="https://github.com/dragginzgame/ic-blob-storage"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-blob-storage.svg" width="18" height="18" alt=""> <strong>ic-blob-storage</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/dragginzgame/ic-testkit"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/helper-icons/ic-testkit.svg" width="18" height="18" alt=""> <strong>ic-testkit</strong></a>
+  <a href="https://github.com/dragginzgame/ic-testkit"><img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/icons/ic-testkit.svg" width="18" height="18" alt=""> <strong>ic-testkit</strong></a>
 </p>
 <!-- helper-navigation:end -->
-
-# ic-query
 
 [![CI](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml/badge.svg)](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml)
 [![docs.rs](https://docs.rs/ic-query/badge.svg)](https://docs.rs/ic-query)
@@ -55,6 +57,10 @@ or equally current.
 
 ## How it works
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-how-it-works.svg" alt="How IC Query turns a question or command into a bounded text or JSON report">
+</p>
+
 1. You choose the thing you want to inspect, such as a canister, Subnet, SNS,
    ledger, or network metric.
 2. `icq` contacts the explicitly named authority for that report. Depending on
@@ -83,6 +89,10 @@ Angle brackets mean “replace this with your own value.” For example,
 `<canister-id>` means the principal of the canister you want to inspect.
 
 ## A few IC terms
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-conceptual-map.svg" alt="Simplified conceptual map of the relationships between the NNS, Registry, Subnets, nodes, canisters, SNS governance, and ICRC ledgers">
+</p>
 
 - A **canister** is a program and its stored state running on the Internet
   Computer.
