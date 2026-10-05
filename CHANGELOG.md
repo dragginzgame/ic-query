@@ -9,6 +9,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
 
+- `0.46.5` simplifies CI, release, and publication fixtures by comparing
+  complete command traces directly. Removes redundant trace arrays and Bash
+  features unavailable in the bundled macOS shell. Checks retain command
+  ordering, failure propagation, library-first publication, retry safety, and
+  release guards; failed CI sequences now check every preceding command.
+  Production release flow, CLI behavior, Rust APIs, and schema identifiers are
+  unchanged. Native macOS qualification remains pending.
+
 - `0.46.4` simplifies exact cycle/token formatting, sharing cycle units and
   removing temporary fraction/padding buffers. Dashboard validation derives
   duplicate rejection from existing ordering and UTC-day binding instead of

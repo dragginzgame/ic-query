@@ -53,20 +53,15 @@ current_version="$(sed -n 's/^version = "\(.*\)"/\1/p' "${repo_root}/Cargo.toml"
     CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
     bash scripts/release/publish-workspace.sh
 ) >/dev/null
-mapfile -t publish_trace < "${publish_case}/trace"
-expected_publish_trace=(
-  "cargo info ic-query@${current_version} --registry crates-io"
-  "cargo publish --locked --registry crates-io -p ic-query"
-  "cargo info ic-query@${current_version} --registry crates-io"
-  "cargo info ic-query-cli@${current_version} --registry crates-io"
-  "cargo publish --locked --registry crates-io -p ic-query-cli"
-)
-[[ "${#publish_trace[@]}" -eq "${#expected_publish_trace[@]}" ]] \
-  || fail "the workspace publisher ran an unexpected number of Cargo commands"
-for index in "${!expected_publish_trace[@]}"; do
-  [[ "${publish_trace[index]}" == "${expected_publish_trace[index]}" ]] \
-    || fail "the workspace publisher ran an unexpected Cargo command"
-done
+printf '%s\n' \
+  "cargo info ic-query@${current_version} --registry crates-io" \
+  'cargo publish --locked --registry crates-io -p ic-query' \
+  "cargo info ic-query@${current_version} --registry crates-io" \
+  "cargo info ic-query-cli@${current_version} --registry crates-io" \
+  'cargo publish --locked --registry crates-io -p ic-query-cli' \
+  > "${publish_case}/expected-trace"
+cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
+  || fail "the workspace publisher ran an unexpected Cargo command sequence"
 
 : > "${publish_case}/trace"
 (
@@ -76,12 +71,11 @@ done
     CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
     bash scripts/release/publish-workspace.sh
 ) >/dev/null
-mapfile -t republish_trace < "${publish_case}/trace"
-[[ "${republish_trace[0]:-}" == "cargo info ic-query@${current_version} --registry crates-io" ]] \
-  || fail "the workspace publisher did not check the existing library release"
-[[ "${republish_trace[1]:-}" == "cargo info ic-query-cli@${current_version} --registry crates-io" ]] \
-  || fail "the workspace publisher did not check the existing CLI release"
-[[ "${#republish_trace[@]}" -eq 2 ]] \
+printf '%s\n' \
+  "cargo info ic-query@${current_version} --registry crates-io" \
+  "cargo info ic-query-cli@${current_version} --registry crates-io" \
+  > "${publish_case}/expected-trace"
+cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
   || fail "the workspace publisher was not retry-safe for published crates"
 
 mkdir -p "${publish_case}/failure-state"
@@ -151,8 +145,7 @@ chmod +x "${make_case}/bin/git"
     make --no-print-directory -f "${repo_root}/Makefile" publish
 ) >/dev/null \
   || fail "make publish rejected a clean tagged release"
-mapfile -t make_publish_trace < "${make_case}/trace"
-[[ "${make_publish_trace[*]}" == "${republish_trace[*]}" ]] \
+cmp -s "${publish_case}/expected-trace" "${make_case}/trace" \
   || fail "make publish did not delegate once to the retry-safe workspace publisher"
 
 for invalid_release in dirty untracked stale-tag missing-tag; do
