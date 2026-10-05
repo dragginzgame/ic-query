@@ -1161,8 +1161,9 @@ impl IcNetworkSource for NetworkFixture {
                 data.rows[1] = data.rows[0].clone();
             }
             Some(DailyStatsMutation::SameDayDifferentTimestamp) => {
-                data.rows[1].day = data.rows[0].day.clone();
-                data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs - 1;
+                let (first, rest) = data.rows.split_at_mut(1);
+                rest[0].day.clone_from(&first[0].day);
+                rest[0].timestamp_unix_secs = first[0].timestamp_unix_secs - 1;
             }
             Some(DailyStatsMutation::SameTimestampDifferentDay) => {
                 data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs;
@@ -1604,7 +1605,8 @@ impl IcCanisterCollectionSource for CollectionFixture {
         match self.page_mutation.borrow_mut().take() {
             Some(PageSourceMutation::ReverseRows) => data.rows.reverse(),
             Some(PageSourceMutation::DuplicateCanisterId) => {
-                data.rows[1].canister_id = data.rows[0].canister_id.clone();
+                let (first, rest) = data.rows.split_at_mut(1);
+                rest[0].canister_id.clone_from(&first[0].canister_id);
             }
             Some(PageSourceMutation::NonAdjacentDuplicateCanisterId) => {
                 let mut duplicate = data.rows[0].clone();
