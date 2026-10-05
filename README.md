@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-readme-header.svg" alt="IC Query — Internet Computer helper library">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-readme-header.svg" alt="IC Query — a read-only Internet Computer explorer">
 </p>
 
 <!-- helper-navigation:start -->
@@ -27,66 +27,22 @@
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
 
-`ic-query` is a read-only tool for asking structured questions about the
-Internet Computer (IC). Its command is called `icq`.
+The Internet Computer (IC) is a blockchain network designed to run
+applications and services. `ic-query` is a read-only explorer for its public
+information. You give it a question—such as which computers run part of the
+network, what a token ledger reports, or how a project is governed—and its
+`icq` command gathers the answer from the relevant public source.
 
-Instead of visiting several dashboards, calling canisters by hand, and working
-out which source an answer came from, you can use one command to produce a
-human-readable report or machine-readable JSON. The report keeps the source,
-retrieval time, and important limits visible so that you can judge what the
-answer actually proves.
+Each report says where its information came from, when it was retrieved, and
+what checks were possible. You can read the result in a terminal or save the
+complete data as JSON for further analysis.
 
-`ic-query` never changes network state. It does not submit proposals, move
-tokens, manage neurons, or modify canisters.
-
-## Why use it?
-
-`ic-query` is useful when you want to:
-
-- inspect a canister, Subnet, node, token ledger, or governance system;
-- compare what the Registry says with what an operational dashboard observes;
-- investigate network topology, capacity, health, rewards, or release records;
-- save repeatable JSON evidence for analysis or monitoring; or
-- build another read-only tool on the same validated Rust reports.
-
-The important idea is that not every IC data source offers the same guarantee.
-Some answers are cryptographically certified, some are direct canister query
-responses, and some come from official off-chain analytics. `ic-query` labels
-those differences instead of presenting every answer as equally authoritative
-or equally current.
-
-## How it works
+`ic-query` never changes anything on the network. It cannot submit proposals,
+move tokens, manage neurons, deploy software, or modify applications.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-how-it-works.svg" alt="How IC Query turns a question or command into a bounded text or JSON report">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-where-it-fits.svg" alt="IC Query observes and reports, while tools such as dfx can deploy or change things">
 </p>
-
-1. You choose the thing you want to inspect, such as a canister, Subnet, SNS,
-   ledger, or network metric.
-2. `icq` contacts the explicitly named authority for that report. Depending on
-   the question, that may be certified IC state, a canister, the NNS Registry,
-   or an official analytics API.
-3. The response is bounded and validated before it becomes a report. Commands
-   that collect larger datasets make their limits and progress visible.
-4. You receive readable terminal output or raw JSON together with provenance
-   and freshness information. A local cache is used only when the command's
-   documented collection mode calls for one.
-
-## What can you investigate?
-
-| Question | Example command | What you get |
-| --- | --- | --- |
-| What is known about a canister? | `icq ic canister info <canister-id>` | Dashboard metadata, controllers, Subnet, module details, and recorded upgrades |
-| What is happening across the network? | `icq ic metrics ic-node-count` | A bounded time series from the official IC metrics service |
-| Which nodes and providers make up the network? | `icq nns topology summary` | A cached summary of joined Registry topology; related commands show capacity, geography, versions, and gaps |
-| What is the NNS governing? | `icq nns proposal list --limit 25` | Recent proposals and their status; related commands inspect public neurons, economics, and rewards |
-| Which SNS projects exist and how are they configured? | `icq sns list` | A deployed-project catalog; related commands inspect governance settings, canisters, proposals, neurons, and upgrades |
-| What does a token ledger report? | `icq icrc ledger token <ledger-canister-id>` | Current token metadata and supply; related commands inspect balances, transactions, archives, and index analytics |
-| What is the current certified ICP/XDR rate? | `icq system xdr` | The CMC rate with its certificate evidence |
-| What public CloudEngine infrastructure is visible? | `icq cloud-engine list` | Registry inventory plus separately identified control-plane and Dashboard observations |
-
-Angle brackets mean “replace this with your own value.” For example,
-`<canister-id>` means the principal of the canister you want to inspect.
 
 ## A few IC terms
 
@@ -94,23 +50,86 @@ Angle brackets mean “replace this with your own value.” For example,
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-conceptual-map.svg" alt="Simplified conceptual map of the relationships between the NNS, Registry, Subnets, nodes, canisters, SNS governance, and ICRC ledgers">
 </p>
 
-- A **canister** is a program and its stored state running on the Internet
-  Computer.
-- A **Subnet** is a group of machines that runs a set of canisters.
-- The **NNS** is the Network Nervous System, which governs and configures the IC.
-- An **SNS** is a governance system used by an individual decentralized
-  project.
-- **ICRC** names token and ledger standards used by many IC projects.
-- The **Registry** is the NNS-managed record of network configuration.
+- A **node** is a computer that participates in the Internet Computer network.
+- A **Subnet** is a group of nodes that work together to run applications.
+- A **canister** is an application or service, together with its stored data,
+  running on a Subnet.
+- The **Registry** is the network's official configuration record.
+- The **NNS** is the Network Nervous System, which governs and configures the
+  overall network.
+- An **SNS** is a governance system for an individual decentralized project.
+- A **neuron** represents staked tokens used to participate in NNS or SNS
+  governance.
+- A **ledger** records a token's balances and transactions. **ICRC** names
+  standards used by many IC token ledgers.
+- **Cycles** are the units applications spend for computation and storage on
+  the IC.
 
-You do not need to memorize these terms before using the tool. Start with
-`icq help`, then follow the command names that match the thing you want to
+You do not need to memorize these terms before using the tool. Start with a
+question that interests you and follow the matching command family.
+
+## When is it useful?
+
+`ic-query` can help you:
+
+- check what is publicly known about an application;
+- see which nodes and providers support part of the network;
+- follow governance proposals, voting activity, economics, and rewards;
+- inspect a token's supply, balances, or transaction history;
+- compare the network's official records with operational observations;
+- save a dated report for research, auditing, or monitoring; or
+- build another read-only tool from the same validated reports.
+
+Different questions are answered by different sources. `ic-query` identifies
+the source, retrieval time, and important limitations instead of presenting
+every answer as equally authoritative or equally current.
+
+## How it works
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-how-it-works.svg" alt="How IC Query turns your question into a readable answer with its source, retrieval time, and important limitations">
+</p>
+
+1. Start with something you want to learn about an application, project,
+   token, or the network itself.
+2. Run the matching `icq` command. It contacts the specific public source that
+   owns or observes that information.
+3. `ic-query` checks the response, applies safety limits, and records where and
+   when the information was obtained.
+4. It presents a readable answer in the terminal. Add `--json` when you need
+   the complete data for another tool.
+
+Some larger reports keep a local copy so they do not have to download the same
+information every time. Commands always state when they use or refresh one of
+these cached copies.
+
+## What can you investigate?
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-investigation-areas.svg" alt="Six IC Query investigation areas: applications, network and nodes, governance, projects, tokens, and rates and system data">
+</p>
+
+| You want to… | What `ic-query` can show | Try |
+| --- | --- | --- |
+| Learn about an application | Its name, Subnet, managing accounts, software details, and recorded upgrades | `icq ic canister info <canister-id>` |
+| See how the network is changing | Node counts and other network measurements over time | `icq ic metrics ic-node-count` |
+| Understand who supports the network | Nodes, providers, locations, capacity, software versions, and missing information | `icq nns topology summary` |
+| Follow network governance | Recent proposals and their status, plus public neuron, economics, and reward reports | `icq nns proposal list --limit 25` |
+| Explore governed projects | Deployed SNS projects, their applications, settings, proposals, neurons, and upgrades | `icq sns list` |
+| Inspect a token | Its name, symbol, fees, supply, balances, transactions, and available history | `icq icrc ledger token <ledger-canister-id>` |
+| Check the ICP/XDR conversion rate | The current certified rate used by the IC to price cycles | `icq system xdr` |
+| Explore public CloudEngine infrastructure | Subnets, operators, providers, nodes, and published prices | `icq cloud-engine list` |
+
+Angle brackets mean “replace this with your own value.” For example,
+`<canister-id>` means the unique identifier of the application you want to
 inspect.
 
 ## Install
 
-`icq` is a terminal application. The published install currently uses Cargo,
-so a Rust toolchain is required. Once Rust and Cargo are installed, run:
+You do not need to write a program to use `icq`, but you do need to be
+comfortable running commands in a terminal. The published installation
+currently uses Cargo, the package manager included with the Rust toolchain.
+Once Rust and Cargo are installed, run:
 
 ```bash
 cargo install ic-query-cli
@@ -132,7 +151,7 @@ The local install replaces an existing `icq` binary. Canister-adapter
 contributors should also read the
 [Governance canister smoke harness](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md).
 
-## A first session
+## Your first session
 
 After installation, try a report that does not require you to know an id:
 
@@ -140,7 +159,30 @@ After installation, try a report that does not require you to know an id:
 icq ic metrics ic-node-count
 ```
 
-Then list deployed SNS projects:
+The report contains both the answer and context about where it came from. A
+shortened response has this shape; counts and timestamps change over time:
+
+```text
+network: ic
+authority: official_ic_dashboard_api
+metric: ic-node-count
+returned_series_count: 2
+certified: no
+fetched_at: 2026-10-05T12:00:00Z
+
+total_nodes:
+  1791201600  1234
+
+up_nodes:
+  1791201600  1230
+```
+
+Here, `authority` identifies the source, `fetched_at` says when the report was
+collected, and `certified` states whether this particular source supplied
+cryptographic proof. The two sections contain the reported total and available
+node counts.
+
+Next, list deployed SNS-governed projects:
 
 ```bash
 icq sns list
@@ -165,7 +207,16 @@ contains the complete command map. The living
 [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
 records current coverage and remaining work.
 
-## Example command gallery
+If you only want to explore the IC from the terminal, the sections above and
+the CLI Usage guide are the best places to start. The remainder of this README
+documents advanced commands, evidence, caching, and use as a Rust library.
+
+## Technical reference
+
+The following sections are intended for people who need the complete command
+surface, precise evidence guarantees, cache behavior, or reusable Rust APIs.
+
+### Example command gallery
 
 ```bash
 # Official Dashboard canister metadata
@@ -272,16 +323,29 @@ subcommand, such as `icq sns reward`. Every
 cache behavior are documented in
 [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
 
-## How to read the evidence
+### How to read the evidence
 
-An answer can be accurate for its source without being a permanent fact about
-the whole network. In particular, “official” does not automatically mean
-cryptographically certified or captured at one exact moment.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-answer-evidence.svg" alt="Three evidence categories: verified certificate, direct network response, and official dashboard observation">
+</p>
+
+An answer can accurately repeat its source without being a permanent fact
+about the whole network. In particular, “official” does not automatically mean
+cryptographically verified or captured at one exact moment.
 
 Each report therefore records its **provenance**: where the data came from,
-when it was retrieved, and what validation was possible. The main source types
-are compared below. This section becomes more technical because these
-distinctions matter when a report is used as evidence.
+when it was retrieved, and what checks were possible. At a high level,
+`ic-query` distinguishes three kinds of evidence:
+
+| Kind | Plain-language meaning |
+| --- | --- |
+| Certificate-backed data | `ic-query` checked cryptographic proof that ties the response to the Internet Computer |
+| Direct network response | A canister or other network service answered the query directly, but the response did not include the same certificate proof |
+| Official dashboard observation | An official off-chain service reported what it observed at a particular time |
+
+None of these labels makes an answer timeless. Network state may change after
+a report is collected, and a source may describe only part of the network.
+The detailed source families and their limits are compared below.
 
 | Source | Evidence represented | Important limit |
 | --- | --- | --- |
@@ -303,7 +367,7 @@ in place without compatibility readers or automatic migrations.
 See [IC Reporting Adapters](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-reporting-adapters.md) for the
 authority model and follow-up query rules.
 
-## Command families
+### Command families
 
 ```text
 icq cache status
@@ -383,7 +447,7 @@ global `--network` option. Its `--source-endpoint` selects the mainnet IC API
 endpoint used for `read_state`; the report records that endpoint and the fixed
 Registry effective canister id used only to route the request.
 
-## Collection and cache behavior
+### Collection and cache behavior
 
 Every data-producing command follows one documented collection mode:
 
@@ -586,7 +650,7 @@ Subnet Catalog history transcripts and their writer lock appear as
 `nns/registry-history`. Their unmanaged age is separate from catalog freshness;
 full transcript validation occurs only during authorized live acquisition.
 
-## Rust library for developers
+### Rust library for developers
 
 Use `ic-query` for typed requests, reports, validation, cache behavior, source
 adapters, and renderers without spawning `icq`.
