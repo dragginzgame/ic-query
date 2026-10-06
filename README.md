@@ -1234,6 +1234,8 @@ guidance.
 - [Documentation index](https://github.com/dragginzgame/ic-query/blob/main/docs/README.md)
 - [CLI usage and collection modes](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
 - [Library usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
+- [Local developer tool setup](https://github.com/dragginzgame/ic-query/blob/main/docs/local-setup.md)
+- [Supported native hosts](https://github.com/dragginzgame/ic-query/blob/main/docs/supported-hosts.md)
 - [Governance canister smoke tests](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
 - [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
 - [Cache policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md)

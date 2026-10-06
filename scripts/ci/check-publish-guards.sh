@@ -127,6 +127,7 @@ ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
 cat > "${make_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+head_commit=1111111111111111111111111111111111111111
 case "$*" in
   'diff-index --quiet HEAD --') exit "${DIRTY_STATUS:-0}" ;;
   'ls-files --others --exclude-standard')
@@ -137,10 +138,11 @@ case "$*" in
     [[ -z "${MISSING_TAG:-}" ]] || exit 1
     printf '%s\n' "${TAG_TYPE:-tag}"
     ;;
-  "rev-parse refs/tags/v${RELEASE_VERSION}^{commit}")
-    printf '%s\n' "${TAG_COMMIT:-release}"
+  "rev-parse --verify refs/tags/v${RELEASE_VERSION}^{commit}")
+    printf '%s\n' "${TAG_COMMIT:-$head_commit}"
     ;;
-  'rev-parse HEAD') printf 'release\n' ;;
+  'rev-parse --verify HEAD') printf '%s\n' "$head_commit" ;;
+  "rev-parse --verify $head_commit^{commit}") printf '%s\n' "$head_commit" ;;
   *) exit 2 ;;
 esac
 EOF
@@ -171,7 +173,7 @@ for invalid_release in dirty untracked inventory-empty inventory-partial stale-t
       untracked) export UNTRACKED_PATH=unexpected.txt ;;
       inventory-empty) export INVENTORY_STATUS=9 ;;
       inventory-partial) export INVENTORY_STATUS=9 UNTRACKED_PATH=unexpected.txt ;;
-      stale-tag) export TAG_COMMIT=stale ;;
+      stale-tag) export TAG_COMMIT=2222222222222222222222222222222222222222 ;;
       missing-tag) export MISSING_TAG=1 ;;
       lightweight-tag) export TAG_TYPE=commit ;;
     esac

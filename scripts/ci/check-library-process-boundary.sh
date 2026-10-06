@@ -8,10 +8,8 @@ if ! command -v rg >/dev/null 2>&1; then
   exit 1
 fi
 
-set +e
-matches="$(rg -n "${pattern}" crates/ic-query/src --glob '*.rs')"
-status=$?
-set -e
+status=0
+matches="$(rg -n "${pattern}" crates/ic-query/src --glob '*.rs')" || status=$?
 
 case "${status}" in
   0)

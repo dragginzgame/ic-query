@@ -5,6 +5,40 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.2]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Captures Governance artifact-helper diagnostics in exceptions and failed
+  receipts, so expected rejection tests no longer produce misleading CI error
+  highlights. Actual failures retain their diagnostic and raw response evidence.
+
+- Adopts the reviewed Shared Tooling 0.1.6 snapshot for explicit repository-local
+  jq/yq and IC tool setup, including Quill. CI and canister commands select the
+  verified local tools; ordinary checks never install missing tools. Failed and
+  previous toolsets remain retained. ICP CLI stays at 1.6.0.
+  [#5](https://github.com/dragginzgame/ic-query/issues/5).
+- Removes the duplicate regex Actions guard in favor of the existing structured
+  dependency-pin gate, and packages each crate once while preserving Cargo's
+  network retries and original failure status.
+  [#6](https://github.com/dragginzgame/ic-query/issues/6),
+  [#7](https://github.com/dragginzgame/ic-query/issues/7).
+
+- Consolidates LOC reporting and annotated-tag verification through the reviewed
+  shared helpers. Consumer CI retains setup wiring and native tool verification;
+  installer regression suites remain upstream. Governance module verification
+  reuses bounded Wasm inspection and hashing through `ic-host-tools`. The smoke
+  harness uses the shared toolset's version policy and reuses Cargo's selected
+  artifact directory.
+
+```bash
+make install-tools
+make tools-check
+export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PATH"
+quill --version
+CARGO_NET_OFFLINE=true bash scripts/dev/cloc.sh "$PWD"
+```
+
 ## [0.47.1] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

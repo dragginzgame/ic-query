@@ -29,7 +29,7 @@ chmod +x "${ci_gate_case}/bin/make"
 expected_ci_targets=(
   changelog-check
   shared-tooling-check
-  actions-check
+  host-tools-check
   dependency-pins-check
   package-contents-check
   feature-boundary-check
@@ -108,50 +108,43 @@ chmod +x "${install_case}/bin/cargo"
   == "cargo install --locked --force --path crates/ic-query-cli --bin icq" ]] \
   || fail "make install does not replace an existing local icq binary"
 
-parser_case="${work_dir}/parser"
-mkdir -p "$parser_case/"{bin,ci,scripts/ci,scripts/dev}
-cp "$repo_root/ci/tool-versions.env" "$parser_case/ci/"
-cp "$repo_root/scripts/dev/install-yq.sh" "$parser_case/scripts/dev/"
-cat > "$parser_case/bin/uname" <<'EOF'
-#!/usr/bin/env bash
-case "$1" in
-  -s) printf '%s\n' "$PARSER_OS" ;;
-  -m) printf '%s\n' "$PARSER_ARCH" ;;
-  *) exit 2 ;;
-esac
-EOF
-cat > "$parser_case/scripts/ci/install-yq.sh" <<'EOF'
+tools_case="${work_dir}/tools"
+mkdir -p "$tools_case/scripts/dev"
+cp "$repo_root/Makefile" "$tools_case/Makefile"
+for family in host ic; do
+  cat > "$tools_case/scripts/dev/install-$family-tools.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$#" == 6 && "$1" == --version && "$2" == "$IC_QUERY_YQ_VERSION" \
-  && "$3" == --sha256 && "$4" == "$EXPECTED_CHECKSUM" \
-  && "$5" == --install-dir && "$6" == "$EXPECTED_DESTINATION" ]] || exit 72
-printf 'verified-parser-install\n' >> "$TRACE_FILE"
-exit "${PARSER_INSTALL_STATUS:-0}"
+family="${0##*/install-}"
+family="${family%-tools.sh}"
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:"* ]] || exit 71
+printf '%s %s\n' "$family" "$*" >> "$TRACE_FILE"
+[[ "$family" != "${FAIL_FAMILY:-}" ]] || exit 73
 EOF
-chmod +x "$parser_case/bin/uname"
-source "$repo_root/ci/tool-versions.env"
-export IC_QUERY_YQ_VERSION
-for host in Linux:x86_64 Darwin:x86_64 Darwin:arm64; do
-  case "$host" in
-    Linux:x86_64) checksum="$IC_QUERY_YQ_SHA256_LINUX_AMD64" ;;
-    Darwin:x86_64) checksum="$IC_QUERY_YQ_SHA256_DARWIN_AMD64" ;;
-    Darwin:arm64) checksum="$IC_QUERY_YQ_SHA256_DARWIN_ARM64" ;;
-  esac
-  PATH="$parser_case/bin:$PATH" PARSER_OS="${host%:*}" PARSER_ARCH="${host#*:}" \
-    EXPECTED_CHECKSUM="$checksum" EXPECTED_DESTINATION="$parser_case/tools" \
-    TRACE_FILE="$parser_case/trace" \
-    bash "$parser_case/scripts/dev/install-yq.sh" "$parser_case/tools" \
-    || fail "parser setup did not preserve the selected host version/digest/destination"
 done
-[[ "$(wc -l < "$parser_case/trace")" -eq 3 ]] || fail "parser setup skipped a supported host"
-if PATH="$parser_case/bin:$PATH" PARSER_OS=Darwin PARSER_ARCH=arm64 \
-  EXPECTED_CHECKSUM="$IC_QUERY_YQ_SHA256_DARWIN_ARM64" \
-  EXPECTED_DESTINATION="$parser_case/tools" TRACE_FILE="$parser_case/trace" \
-  PARSER_INSTALL_STATUS=73 \
-  bash "$parser_case/scripts/dev/install-yq.sh" "$parser_case/tools"; then
-  fail "parser setup hid a failed verification/installation"
-fi
+for mode in install check; do
+  : > "$tools_case/trace"
+  if [[ "$mode" == install ]]; then target=install-tools; suffix='';
+  else target=tools-check; suffix=' --check'; fi
+  TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+    MAKEFLAGS= MAKEOVERRIDES= IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null
+  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env$suffix" \
+    "ic --pins $tools_case/ci/ic-tools.tsv$suffix" > "$tools_case/expected"
+  cmp -s "$tools_case/expected" "$tools_case/trace" \
+    || fail "local tool setup/check changed ordering, pins or offline selection"
+  : > "$tools_case/trace"
+  if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY=host \
+    MAKEFLAGS= MAKEOVERRIDES= IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
+    fail "tool setup/check accepted a host failure"
+  fi
+  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env$suffix" > "$tools_case/expected"
+  cmp -s "$tools_case/expected" "$tools_case/trace" \
+    || fail "tool setup/check continued after a failed host command"
+done
 
 python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 
@@ -300,23 +293,6 @@ cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace
 [[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the failed fetch left its partial database behind"
 
-package_retry_case="${work_dir}/package-retry"
-mkdir -p "${package_retry_case}/bin"
-cat > "${package_retry_case}/bin/cargo" <<'EOF'
-#!/usr/bin/env bash
-exit 42
-EOF
-chmod +x "${package_retry_case}/bin/cargo"
-if PATH="${package_retry_case}/bin:${PATH}" CARGO_PACKAGE_RETRIES=1 \
-  bash "${repo_root}/scripts/ci/cargo-package-retry.sh" --workspace --locked \
-  >/dev/null 2>&1; then
-  package_status=0
-else
-  package_status="$?"
-fi
-[[ "${package_status}" -eq 42 ]] \
-  || fail "the package retry wrapper did not preserve Cargo's failure status"
-
 package_contents_case="${work_dir}/package-contents"
 mkdir -p "${package_contents_case}/bin"
 cat > "${package_contents_case}/bin/cargo" <<'EOF'
@@ -338,13 +314,32 @@ mkdir -p "${package_workspace_case}/bin"
 cat > "${package_workspace_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 printf 'cargo %s\n' "$*" >> "${TRACE_FILE}"
+[[ "$*" != *"-p ${FAIL_PACKAGE:-unset} "* ]] || exit 42
 EOF
 chmod +x "${package_workspace_case}/bin/cargo"
 PATH="${package_workspace_case}/bin:${PATH}" \
-  TRACE_FILE="${package_workspace_case}/trace" CARGO_PACKAGE_RETRIES=1 \
-  bash "${repo_root}/scripts/ci/package-workspace.sh" >/dev/null
-expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query"'
-printf '%s\n' 'cargo package -p ic-query --locked' "${expected_cli_package}" \
+  TRACE_FILE="${package_workspace_case}/trace" \
+  bash "${repo_root}/scripts/ci/package-workspace.sh" --offline >/dev/null
+expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query" --offline'
+printf '%s\n' 'cargo package -p ic-query --locked --offline' "${expected_cli_package}" \
   > "${package_workspace_case}/expected-trace"
 cmp -s "${package_workspace_case}/expected-trace" "${package_workspace_case}/trace" \
   || fail "the workspace package check did not package the library then verify the CLI against it"
+
+for failed_package in ic-query ic-query-cli; do
+  : > "${package_workspace_case}/trace"
+  if PATH="${package_workspace_case}/bin:${PATH}" \
+    TRACE_FILE="${package_workspace_case}/trace" FAIL_PACKAGE="$failed_package" \
+    bash "${repo_root}/scripts/ci/package-workspace.sh" --offline >/dev/null 2>&1; then
+    package_status=0
+  else
+    package_status="$?"
+  fi
+  [[ "$package_status" == 42 ]] || fail "workspace packaging lost Cargo failure status"
+  printf '%s\n' 'cargo package -p ic-query --locked --offline' > "${package_workspace_case}/expected-trace"
+  if [[ "$failed_package" == ic-query-cli ]]; then
+    printf '%s\n' "$expected_cli_package" >> "${package_workspace_case}/expected-trace"
+  fi
+  cmp -s "${package_workspace_case}/expected-trace" "${package_workspace_case}/trace" \
+    || fail "workspace packaging repeated a command or continued after failure"
+done

@@ -4,6 +4,7 @@
 import argparse
 from contextlib import contextmanager
 import datetime
+from functools import cache
 import hashlib
 import json
 import os
@@ -19,6 +20,7 @@ ARTIFACTS = ROOT / "target/canister-smoke"
 GOVERNANCE = "rrkah-fqaaa-aaaaa-aaaaq-cai"
 KINDS = ("economics", "metrics", "reward_event", "maturity_modulation")
 ARTIFACT_TOOL = None
+ICP = ROOT / ".tools/ic/bin/icp"
 
 
 class RunInterrupted(Exception):
@@ -53,9 +55,11 @@ def run(*args, capture=True, timeout=600, stderr=None, input=None):
         stdout=subprocess.PIPE if capture else None, stderr=stderr,
     ) as process:
         try:
-            stdout, _ = process.communicate(input=input, timeout=timeout)
+            stdout, diagnostic = process.communicate(input=input, timeout=timeout)
             if process.returncode:
-                raise subprocess.CalledProcessError(process.returncode, args, output=stdout)
+                raise subprocess.CalledProcessError(
+                    process.returncode, args, output=stdout, stderr=diagnostic,
+                )
         except BaseException:
             # Stop only this command's process group before network-level cleanup.
             try:
@@ -74,7 +78,7 @@ def run(*args, capture=True, timeout=600, stderr=None, input=None):
 
 
 def icp(*args, **kwargs):
-    return run("icp", "--project-root-override", str(PROJECT), *args, **kwargs)
+    return run(str(ICP), "--project-root-override", str(PROJECT), *args, **kwargs)
 
 
 def sha256(data):
@@ -117,20 +121,28 @@ def metadata_section(name, contents):
     return b"\x00" + leb128(len(payload)) + payload
 
 
+@cache
+def cargo_target_directory():
+    return Path(json.loads(run(
+        "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked", "--offline",
+    ))["target_directory"])
+
+
 def admit_artifact(*args, input=None):
     """Use the development-only shared host boundary; keep orchestration here."""
     global ARTIFACT_TOOL
     if ARTIFACT_TOOL is None:
         run("cargo", "build", "-p", "ic-query-cli", "--example", "governance_artifact",
             "--locked", "--offline", capture=False)
-        target = Path(json.loads(run(
-            "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked", "--offline",
-        ))["target_directory"])
-        ARTIFACT_TOOL = target / "debug/examples/governance_artifact"
+        ARTIFACT_TOOL = cargo_target_directory() / "debug/examples/governance_artifact"
     try:
-        return run(str(ARTIFACT_TOOL), *args, input=input)
+        return run(str(ARTIFACT_TOOL), *args, input=input, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as error:
-        raise ValueError("invalid Governance artifact evidence") from error
+        diagnostic = (error.stderr or "").strip()
+        message = "invalid Governance artifact evidence"
+        if diagnostic:
+            message += f": {diagnostic}"
+        raise ValueError(message) from error
 
 
 def decode_text_reply(response):
@@ -143,10 +155,7 @@ def build_wasm():
         "--target", "wasm32-unknown-unknown", "--release", "--no-default-features",
         "--features", "canister", "--locked", "--offline", capture=False,
     )
-    target = Path(json.loads(run(
-        "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked", "--offline",
-    ))["target_directory"])
-    wasm_path = target / "wasm32-unknown-unknown/release/examples/governance_probe.wasm"
+    wasm_path = cargo_target_directory() / "wasm32-unknown-unknown/release/examples/governance_probe.wasm"
     admitted_hash = admit_artifact("inspect-wasm", str(wasm_path))
     wasm = wasm_path.read_bytes()
     if sha256(wasm) != admitted_hash:
@@ -198,7 +207,9 @@ def verify(environment, canister, receipt, output):
     before = json.loads(icp(*status_args))
     receipt["canister_before"] = before
     save_receipt(output, receipt)
-    expected_hash = "0x" + sha256((ARTIFACTS / "governance_probe.wasm").read_bytes())
+    expected_hash = "0x" + admit_artifact(
+        "inspect-wasm", str(ARTIFACTS / "governance_probe.wasm"),
+    )
     if before["module_hash"] != expected_hash:
         raise ValueError("deployed module hash differs from the locally built probe")
     save_receipt(output, receipt, "checking_candid")
@@ -312,8 +323,8 @@ def main():
     if args.action == "build-wasm":
         build_wasm()
         return
-    if run("icp", "--version") != "icp 1.6.0":
-        parser.error("this harness requires ICP CLI 1.6.0")
+    run("bash", str(ROOT / "scripts/dev/install-ic-tools.sh"),
+        "--pins", os.environ.get("IC_TOOL_PINS", str(ROOT / "ci/ic-tools.tsv")), "--check")
     if args.action == "verify-mainnet" and not args.canister:
         parser.error("verify-mainnet requires --canister")
     if args.canister and args.action != "verify-mainnet":
@@ -335,7 +346,7 @@ def main():
     receipt = {
         "schema_version": 1, "status": "running", "environment": environment,
         "evidence_scope": "local_nns" if environment == "local" else "mainnet",
-        "icp": run("icp", "--version"), "rustc": run("rustc", "--version"),
+        "icp": run(str(ICP), "--version"), "rustc": run("rustc", "--version"),
         "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "point_in_time_guaranteed": False,
     }

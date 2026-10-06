@@ -25,16 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - host: ubuntu-24.04
-            icp_target: x86_64-unknown-linux-gnu
-            icp_sha256: 03fd43956307f993f2a4b84129cb9e305ffae99e26c65f608c713114607fb7a0
-          - host: macos-15
-            icp_target: aarch64-apple-darwin
-            icp_sha256: 31e27e3b2f679420e88c03f56f66f051c659ba2d99d1a43440f11a2f2f84fdf7
-          - host: macos-15-intel
-            icp_target: x86_64-apple-darwin
-            icp_sha256: 57c9b1fadd22935c2d11fea643963b958725dec683b1860f321c9335de87841a
+        host: [ubuntu-24.04, macos-15, macos-15-intel]
     runs-on: ${{ matrix.host }}
     timeout-minutes: 25
     steps:
@@ -48,19 +39,12 @@ jobs:
           components: clippy
       - name: Prepare the selected dependency cache
         run: cargo fetch --locked
-      - name: Install verified ICP CLI 1.6.0
+      - name: Install repository-local IC tools
+        shell: /bin/bash --noprofile --norc -eo pipefail {0}
+        run: PATH="/bin:$PATH" make install-ic-tools ic-tools-check
+      - name: Select repository-local tools
         shell: bash
-        env:
-          ICP_TARGET: ${{ matrix.icp_target }}
-          ICP_SHA256: ${{ matrix.icp_sha256 }}
-        run: |
-          mkdir -p target/icp-tools
-          curl --fail --location --retry 3 --output target/icp-tools/icp.tar.xz \
-            "https://github.com/dfinity/icp-cli/releases/download/v1.6.0/icp-cli-$ICP_TARGET.tar.xz"
-          bash scripts/ci/verify-file-checksum.sh sha256 "$ICP_SHA256" target/icp-tools/icp.tar.xz
-          tar -xJf target/icp-tools/icp.tar.xz --strip-components=1 -C target/icp-tools
-          test "$(target/icp-tools/icp --version)" = 'icp 1.6.0'
-          echo "$GITHUB_WORKSPACE/target/icp-tools" >> "$GITHUB_PATH"
+        run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/ic/bin" >> "$GITHUB_PATH"
       - name: Check receipt validation
         env:
           CARGO_NET_OFFLINE: 'true'
@@ -140,7 +124,11 @@ jobs:
       # Swatinem/rust-cache v2
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - name: Install development tools
-        run: make install-dev
+        shell: /bin/bash --noprofile --norc -eo pipefail {0}
+        run: PATH="/bin:$PATH" make install-dev
+      - name: Select repository-local host tools
+        shell: bash
+        run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/host/bin" >> "$GITHUB_PATH"
       - name: Select a physical temporary directory
         shell: bash
         run: printf 'TMPDIR=%s\n' "$(cd "${TMPDIR:-/tmp}" && pwd -P)" >> "$GITHUB_ENV"

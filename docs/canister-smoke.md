@@ -43,7 +43,9 @@ changing existing dependency versions or checksums.
 - Linux or macOS; interruption cleanup uses POSIX process groups.
 - Rust 1.99.0, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
-- ICP CLI **1.6.0** and Python 3.10 or later.
+- Python 3.10 or later and the verified repository-local IC toolset, including
+  ICP CLI **1.6.0**. Prepare it explicitly with `make install-ic-tools`;
+  `make ic-tools-check` verifies the installed set offline.
 - The selected workspace dependency cache, including the development-only
   `ic-host-tools` dependency. Prepare it explicitly with `cargo fetch --locked`;
   helper compilation and validation use locked/offline Cargo commands.
@@ -62,9 +64,17 @@ release artifacts. The library's supported minimum Rust version remains **1.91.0
 
 ```bash
 rustup target add wasm32-unknown-unknown
+make install-ic-tools
+make ic-tools-check
 make canister-build
 make canister-smoke
 ```
+
+The harness selects `.tools/ic/bin/icp` explicitly, verifies the installed set
+offline before ICP execution, and never installs tools implicitly. The check
+uses `IC_TOOL_PINS` when explicitly selected in Make or the environment, otherwise
+the snapshot matrix, which owns executable version qualification. Receipts record
+the observed ICP version. Direct invocation needs no global ICP selection.
 
 `canister-build` invokes `icp build -e local` against the isolated project in
 `tests/canister/`. It builds the example with only the `canister` feature and
@@ -93,6 +103,7 @@ cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
 deploys the probe there, and calls it once for each of economics, metrics,
 latest reward event, and maturity modulation. Each probe request performs
 one bounded replicated call to the fixed Governance principal. The runner
+uses the bounded `inspect-wasm` helper to admit and hash the local module, then
 checks the deployed module hash and Candid metadata before collecting,
 validates each report's schema, network identity, Governance principal,
 collector principal, timestamp, and replicated source, and checks the module
@@ -175,8 +186,9 @@ receipt gap remains documented in the [0.38 design](design/0.38/0.38-design.md).
 ## CI and retention
 
 The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
-and macOS 15 Intel. It installs each architecture's ICP CLI 1.6.0 archive with a
-pinned SHA-256 and checks the executable version, tests the receipt validator,
+and macOS 15 Intel. It explicitly installs and checks the common local IC set
+from the snapshot's single pin matrix, retaining ICP CLI 1.6.0 and its existing
+archive digests. It selects `.tools/ic/bin`, tests the receipt validator,
 runs the local smoke, and builds the bundle. It uploads receipts, the probe Wasm,
 and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
 failed runs. Identities and runtime state are excluded from uploads.

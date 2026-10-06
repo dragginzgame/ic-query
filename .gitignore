@@ -16,6 +16,7 @@ __pycache__/
 /deps/
 /.dfx/
 /.icp/
+/.tools/
 *.wasm
 
 # Local environment and scratch space

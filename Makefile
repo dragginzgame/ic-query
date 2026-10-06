@@ -1,8 +1,9 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
-	actions-check build changelog-check check ci ci-scripts-check clean clippy \
+	build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check ensure-clean feature-boundary-check fmt fmt-check help \
-	install install-dev library-process-boundary-check msrv package \
+	install install-dev install-tools tools-check install-host-tools host-tools-check \
+	install-ic-tools ic-tools-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check release-major release-minor release-patch release-resume \
 	release-version release-preflight release-verify release-prepare-version \
@@ -25,20 +26,22 @@ CARGO_MACHETE_VERSION ?= 0.9.2
 RIPGREP_VERSION ?= 15.1.0
 CARGO_HTTP_MULTIPLEXING ?= false
 CARGO_NET_RETRY ?= 10
-CARGO_PACKAGE_RETRIES ?= 3
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
-YQ ?= $(REPO_ROOT)target/ci-tools/yq
+HOST_TOOL_VERSIONS ?= $(REPO_ROOT)ci/tool-versions.env
+IC_TOOL_PINS ?= $(REPO_ROOT)ci/ic-tools.tsv
+YQ ?= $(REPO_ROOT).tools/host/bin/yq
+export IC_TOOL_PINS
+export PATH := $(REPO_ROOT).tools/host/bin:$(REPO_ROOT).tools/ic/bin:$(PATH)
 
-CI_TARGETS := changelog-check shared-tooling-check actions-check dependency-pins-check package-contents-check \
+CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
-export CARGO_PACKAGE_RETRIES
 export CARGO_PUBLISH_INDEX_ATTEMPTS
 export CARGO_PUBLISH_INDEX_DELAY_SECONDS
 
@@ -50,7 +53,6 @@ help:
 	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
 	@echo "  fmt        Format Rust code"
 	@echo "  fmt-check  Check Rust formatting"
-	@echo "  actions-check  Check GitHub Actions are pinned to commit SHAs"
 	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
@@ -72,6 +74,12 @@ help:
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dev  Install pinned tools required by the local CI gate"
+	@echo "  install-tools  Install the repository-local host and IC toolsets"
+	@echo "  tools-check  Verify both toolsets offline"
+	@echo "  install-host-tools  Install repository-local jq and Mike Farah yq"
+	@echo "  host-tools-check  Verify the host toolset offline"
+	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm, PocketIC and wasm-opt"
+	@echo "  ic-tools-check  Verify the IC toolset offline"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
@@ -104,9 +112,6 @@ fmt-check:
 
 check:
 	cargo check --workspace --all-targets --all-features --locked
-
-actions-check:
-	bash scripts/ci/check-github-actions-pinned.sh
 
 dependency-pins-check:
 	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh
@@ -177,8 +182,27 @@ ci:
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
-install-dev:
-	bash scripts/dev/install-yq.sh "$(REPO_ROOT)target/ci-tools"
+install-tools:
+	+$(MAKE) --no-print-directory install-host-tools
+	+$(MAKE) --no-print-directory install-ic-tools
+
+tools-check:
+	+$(MAKE) --no-print-directory host-tools-check
+	+$(MAKE) --no-print-directory ic-tools-check
+
+install-host-tools:
+	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)"
+
+host-tools-check:
+	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --check
+
+install-ic-tools:
+	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)"
+
+ic-tools-check:
+	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)" --check
+
+install-dev: install-host-tools
 	cargo install --locked ripgrep --version $(RIPGREP_VERSION)
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)

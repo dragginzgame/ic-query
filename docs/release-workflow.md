@@ -8,18 +8,24 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a7efade1a68e43f148252a1a73908a46c4cbe9e9`](https://github.com/dragginzgame/shared-tooling/tree/a7efade1a68e43f148252a1a73908a46c4cbe9e9) (0.1.5),
+[`a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3`](https://github.com/dragginzgame/shared-tooling/tree/a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3) (0.1.6),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a7efade1a68e43f148252a1a73908a46c4cbe9e9/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
-modes without a network request. This snapshot selects release mechanics and
-dependency-pin checking. The engineering baseline remains the separate revision
+modes without a network request. This snapshot selects release mechanics,
+publication tag checking, dependency-pin checking, repository-local tool setup
+and LOC reporting. The engineering baseline remains the separate revision
 pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
+
+The publication tag adapter selects this workspace's package version and exact
+HEAD commit, then delegates annotated-tag identity checks to the vendored
+`scripts/ci/check-release-tag.sh`. Consumer fixtures retain clean-worktree,
+selected-version, stale/missing/lightweight-tag and publication-order checks.
 
 ## Selections and preparation
 
@@ -40,8 +46,8 @@ examples and the Governance probe share that graph. Verify it with
 `cargo metadata --locked --offline --format-version 1` after preparation.
 Release cache fetching preserves the prepared selection.
 
-`make install-dev` prepares the checksum-verified yq parser alongside the existing
-development tools. `make dependency-pins-check` checks parsed Cargo/Action inputs
+`make install-dev` prepares the checksum-verified jq/yq pair under
+`.tools/host/bin`, alongside the existing development tools. `make dependency-pins-check` checks parsed Cargo/Action inputs
 and tracked workspace lockfiles offline; the complete CI and release gate includes
 it. The parser identities and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
@@ -157,7 +163,7 @@ including Apple's system Bash on both macOS architectures. A passing Linux
 fixture, added matrix, or available installer is not native macOS qualification.
 Record the matching native workflow run before claiming that qualification.
 
-The upstream [0.1.5 CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37443591873)
-for `a7efade1a68e43f148252a1a73908a46c4cbe9e9` passed Linux and both macOS
+The upstream [0.1.6 CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37450707625)
+for `a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3` passed Linux and both macOS
 architectures. Upstream checks do not qualify the consumer's parser setup or
 release adapters; matching IC Query native runs remain required.
