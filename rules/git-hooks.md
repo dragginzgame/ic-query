@@ -57,6 +57,11 @@ fmt-check:
 	cargo fmt --all -- --check
 ```
 
+Use the shared [formatter prerequisite check](../docs/verification-helpers.md#formatter-prerequisites)
+before both targets instead of duplicating version comparisons. It admits the
+consumer's exact cargo-sort pin and prepared rustfmt without installing tools.
+Consumer setup still owns installation and toolchain selection.
+
 For a separate `testing/` workspace, also run `cargo sort --workspace testing`
 before `cargo fmt --manifest-path testing/Cargo.toml --all`, with their `--check`
 equivalents in `fmt-check`. Pass one workspace root per `cargo sort --workspace`

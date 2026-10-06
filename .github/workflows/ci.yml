@@ -127,7 +127,10 @@ jobs:
         run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/host/bin" >> "$GITHUB_PATH"
       - name: Select a physical temporary directory
         shell: bash
-        run: printf 'TMPDIR=%s\n' "$(cd "${TMPDIR:-/tmp}" && pwd -P)" >> "$GITHUB_ENV"
+        run: |
+          mkdir -p "$RUNNER_TEMP/ic-query-validation"
+          validation_tmp="$(cd "$RUNNER_TEMP/ic-query-validation" && pwd -P)"
+          printf 'TMPDIR=%s\n' "$validation_tmp" >> "$GITHUB_ENV"
       - name: Prepare the selected dependency cache
         run: cargo fetch --locked
       - name: Select the native system Bash
@@ -142,3 +145,15 @@ jobs:
         env:
           CARGO_NET_OFFLINE: 'true'
         run: make ci
+      - name: Retain failed validation fixtures and logs
+        if: failure()
+        # actions/upload-artifact v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: validation-failures-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/ic-query-validation/
+            target/validation-failures/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30

@@ -14,7 +14,7 @@ if ! [[ "${index_delay_seconds}" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-version="$(perl "$(dirname "${BASH_SOURCE[0]}")/metadata.pl" version)"
+version="$(bash "$(dirname "${BASH_SOURCE[0]}")/../ci/read-cargo-workspace-version.sh" --stable Cargo.toml)" || exit 1
 version_observer="$(dirname "${BASH_SOURCE[0]}")/../ci/check-crates-io-version.sh"
 readonly version_observer
 

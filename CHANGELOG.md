@@ -5,6 +5,32 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.6]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Uses Shared Tooling's TOML-aware workspace version reader for version queries,
+  changelog checks, release preflight and publication/tag admission. Valid comments
+  are accepted; failed or malformed observations stop before release effects.
+  Metadata transformations and retained-source checks remain local.
+- Adopts Shared Tooling 0.1.11 and pinned Cargo sorting in `fmt`/`fmt-check`.
+  Both check prepared formatter tools offline before use; explicit development
+  setup installs the same cargo-sort 2.1.4 pin. Sorting preserves dependency selections.
+  [#10](https://github.com/dragginzgame/ic-query/issues/10).
+- Retains failed CI, release/publication fixture and feature/rustdoc diagnostic
+  directories, reporting their paths. Hosted CI uploads failed validation evidence
+  for 30 days on each supported host.
+- Keeps passing and ignored Rust tests out of CI error labels while preserving
+  failure context. Release changelog comparisons retain exact version ordering
+  for large components. The shared repair/reporting policy replaces local wording.
+
+```bash
+PATH="$PWD/.tools/host/bin:$PATH" bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml
+make format-tools-check
+make fmt
+make fmt-check
+```
+
 ## [0.47.5] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

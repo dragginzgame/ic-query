@@ -5,8 +5,11 @@ set -euo pipefail
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+export REAL_CARGO YQ
+REAL_CARGO="$(command -v cargo)"
+YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-metadata.XXXXXX")"
-trap 'rm -rf "$work_dir"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release metadata fixtures retained: $work_dir" >&2; fi' EXIT
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 
 # Reuse history and a real index. A synthetic source tree models validated
@@ -16,10 +19,11 @@ cd "$work_dir/repository"
 mkdir -p scripts/release scripts/ci "$work_dir/bin"
 cp "$repo_root/Makefile" Makefile
 cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,rewrite-local-lock-versions.pl} scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 [[ "$*" == 'metadata --locked --offline --no-deps --format-version 1' ]]
 printf '{}\n'
 STUB
@@ -27,7 +31,7 @@ chmod +x "$work_dir/bin/cargo"
 export PATH="$work_dir/bin:$PATH"
 export RELEASE_KIND=minor RELEASE_REMOTE=origin RELEASE_BRANCH=main RELEASE_DATE=2026-10-06
 export RELEASE_PREVIOUS RELEASE_VERSION RELEASE_SOURCE
-RELEASE_PREVIOUS="$(perl scripts/release/metadata.pl version)"
+RELEASE_PREVIOUS="$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)"
 RELEASE_VERSION="$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" "$RELEASE_KIND")"
 detail="docs/changelog/${RELEASE_VERSION%.*}.md"
 printf '# Changelog\n\n## [%s]\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > CHANGELOG.md
@@ -46,6 +50,7 @@ git add -- Makefile scripts/release/adapter.sh scripts/release/metadata.pl \
   scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk \
   scripts/ci/run-validation-targets.sh \
   scripts/ci/rewrite-local-lock-versions.pl \
+  scripts/ci/read-cargo-workspace-version.sh \
   Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"
 RELEASE_SOURCE="$(git write-tree)"
 evidence=".git/release-state/$RELEASE_VERSION.verify.real-git"

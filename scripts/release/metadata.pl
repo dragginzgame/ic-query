@@ -13,13 +13,6 @@ sub read_file {
     return <$file>;
 }
 
-sub package_version {
-    my ($text) = @_;
-    $text =~ /^\[workspace\.package\]\n(?:(?!^\[).)*?^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/ms
-        or die "missing canonical workspace package version\n";
-    return $1;
-}
-
 sub check_pending_heading {
     my ($path, $text, $heading) = @_;
     $text =~ /^## (.+)$/m && $1 eq $heading
@@ -27,10 +20,6 @@ sub check_pending_heading {
 }
 
 my $mode = shift @ARGV // '';
-if ($mode eq 'version') {
-    print package_version(read_file('Cargo.toml')), "\n";
-    exit;
-}
 my ($previous, $version, $date) = @ENV{qw(RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE)};
 for ($previous, $version) {
     defined && /\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\z/
@@ -56,7 +45,11 @@ if ($mode eq 'check-paths') {
     exit;
 }
 if ($mode eq 'preflight') {
-    package_version(read_file('Cargo.toml')) eq $previous
+    open my $reader, '-|', 'bash', 'scripts/ci/read-cargo-workspace-version.sh',
+        '--stable', 'Cargo.toml' or die "cannot run shared workspace version reader: $!\n";
+    my $current = do { local $/; <$reader> };
+    close $reader or die "workspace version observation failed\n";
+    $current eq "$previous\n"
         or die "manifest differs from the selected base version\n";
     check_pending_heading('CHANGELOG.md', read_file('CHANGELOG.md'), "[$version]");
     my $detail = "docs/changelog/$minor.md";
@@ -88,7 +81,6 @@ sub validated_before {
 sub expected {
     my ($path, $text) = @_;
     if ($path eq 'Cargo.toml') {
-        package_version($text) eq $previous or die "validated manifest has another base version\n";
         my $count = $text =~ s/(^\[workspace\.package\]\n(?:(?!^\[).)*?^version = ")\Q$previous\E("$)/$1$version$2/ms;
         $count == 1 or die "ambiguous workspace package version\n";
         $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;

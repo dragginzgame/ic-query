@@ -153,6 +153,15 @@ state local product contracts, commands and approved exceptions. Resolve local
 conflicts before claiming adoption. Do not edit a vendored shared document in
 place or attribute dirty upstream bytes to a committed revision.
 
+When adopting the local-repair and owning-repository issue workflow, refresh
+`DRAGGINZGAME.md` and `rules/agent-maintenance.md` together from the reviewed
+commit. Remove equivalent local instructions after checking their obligations;
+retain approved scoped exceptions and consumer release boundaries. Walk through
+an authorized local repair (apply in the working tree and run focused checks)
+and an upstream finding (search, report evidence in the owning issue, then adopt
+the committed correction). Reporting an issue neither applies the upstream fix
+nor verifies consumer adoption; broad validation authority stays unchanged.
+
 A revision-bound baseline reference remains an allowed alternative under the
 baseline. It must identify the exact source revision and document; a branch URL
 or moving sibling path does not establish which rules were reviewed. Snapshot

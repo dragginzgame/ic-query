@@ -12,9 +12,9 @@ homepage = "https://github.com/dragginzgame/ic-query"
 repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
+candid = { version = "0.10", default-features = false }
 cap-fs-ext = "4.0.2"
 cap-std = "4.0.2"
-candid = { version = "0.10", default-features = false }
 clap = { version = "4.6.1", features = ["derive"] }
 futures = "0.3"
 ic-agent = { version = "0.49.2", default-features = false }

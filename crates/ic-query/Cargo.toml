@@ -13,29 +13,6 @@ repository.workspace = true
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
-[dependencies]
-cap-fs-ext = { workspace = true, optional = true }
-cap-std = { workspace = true, optional = true }
-candid.workspace = true
-futures = { workspace = true, optional = true }
-ic-agent = { workspace = true, optional = true }
-ic-host-tools = { workspace = true, optional = true }
-prost = { workspace = true, optional = true }
-reqwest = { workspace = true, features = [
-    "rustls",
-], optional = true }
-serde.workspace = true
-serde_cbor = { workspace = true, optional = true }
-serde_json.workspace = true
-sha2 = { workspace = true, optional = true }
-thiserror.workspace = true
-tokio = { workspace = true, features = ["rt", "time"], optional = true }
-unicode-width.workspace = true
-url.workspace = true
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-ic-cdk = { workspace = true, optional = true }
-
 [features]
 default = []
 canister = ["dep:ic-cdk"]
@@ -48,19 +25,9 @@ host = [
     "nns-host",
     "sns-host",
 ]
-cloud-engine-host = [
-    "dep:ic-agent",
-    "dep:tokio",
-]
-cmc-host = [
-    "dep:ic-agent",
-    "dep:serde_cbor",
-    "dep:tokio",
-]
-certified-subnet-catalog-host = [
-    "subnet-catalog-host",
-    "dep:serde_cbor",
-]
+cloud-engine-host = ["dep:ic-agent", "dep:tokio"]
+cmc-host = ["dep:ic-agent", "dep:serde_cbor", "dep:tokio"]
+certified-subnet-catalog-host = ["subnet-catalog-host", "dep:serde_cbor"]
 dashboard-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
@@ -68,10 +35,7 @@ dashboard-host = [
     "dep:reqwest",
     "dep:tokio",
 ]
-ic-state-host = [
-    "dep:ic-agent",
-    "dep:tokio",
-]
+ic-state-host = ["dep:ic-agent", "dep:tokio"]
 icrc-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
@@ -102,6 +66,29 @@ subnet-catalog-host = [
     "dep:sha2",
     "dep:tokio",
 ]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+ic-cdk = { workspace = true, optional = true }
+
+[dependencies]
+candid.workspace = true
+cap-fs-ext = { workspace = true, optional = true }
+cap-std = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+ic-agent = { workspace = true, optional = true }
+ic-host-tools = { workspace = true, optional = true }
+prost = { workspace = true, optional = true }
+reqwest = { workspace = true, features = [
+    "rustls",
+], optional = true }
+serde.workspace = true
+serde_cbor = { workspace = true, optional = true }
+serde_json.workspace = true
+sha2 = { workspace = true, optional = true }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "time"], optional = true }
+unicode-width.workspace = true
+url.workspace = true
 
 [[test]]
 name = "ic_public_api"

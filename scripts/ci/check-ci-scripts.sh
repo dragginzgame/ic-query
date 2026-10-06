@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 make_bin="$(command -v make)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-scripts.XXXXXX")"
-trap 'rm -rf -- "${work_dir}"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "CI script fixtures retained: $work_dir" >&2; fi' EXIT
 
 fail() {
   echo "error: $*" >&2
@@ -16,7 +16,13 @@ mkdir -p "${ci_gate_case}/bin"
 cat > "${ci_gate_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-[[ "${!#}" != "${FAIL_TARGET:-}" ]] || exit 43
+if [[ "${!#}" == test ]]; then
+  printf '%s\n' 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'
+fi
+if [[ "${!#}" == "${FAIL_TARGET:-}" ]]; then
+  echo 'error: fixture validation diagnostic' >&2
+  exit 43
+fi
 [[ -z "${EXPECTED_CHANGELOG_VERSION:-}" \
   || "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION}" ]] || exit 42
 EOF
@@ -25,7 +31,11 @@ chmod +x "${ci_gate_case}/bin/make"
   cd "${repo_root}"
   PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
     "${make_bin}" --no-print-directory ci
-) >/dev/null
+) > "${ci_gate_case}/passed-output" 2>&1
+for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'; do
+  grep -Fxq "$line" "${ci_gate_case}/passed-output" \
+    || fail 'make ci labelled a successful or ignored namespaced test as an error'
+done
 expected_ci_targets=(
   changelog-check
   shared-tooling-check
@@ -62,7 +72,7 @@ for failed_target in changelog-check dependency-pins-check doc-links-check test;
       EXPECTED_CHANGELOG_VERSION=0.8.1 CHANGELOG_VERSION=0.8.1 \
       VALIDATION_FAILURE_LOG_DIR="${ci_gate_case}/failure-logs" \
       "${make_bin}" --no-print-directory ci
-  ) >/dev/null 2>&1; then
+  ) > "${ci_gate_case}/failed-output" 2>&1; then
     fail "make ci accepted a failed ${failed_target}"
   fi
   for target in "${expected_ci_targets[@]}"; do
@@ -71,6 +81,12 @@ for failed_target in changelog-check dependency-pins-check doc-links-check test;
   done > "${ci_gate_case}/expected-failed-trace"
   cmp -s "${ci_gate_case}/expected-failed-trace" "${ci_gate_case}/trace" \
     || fail "make ci changed its sequence, continued after failed ${failed_target}, or lost the target changelog version"
+  grep -Fq "[ERR:$failed_target] error: fixture validation diagnostic" "${ci_gate_case}/failed-output" \
+    || fail 'make ci lost a real validation diagnostic'
+done
+for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'; do
+  grep -Fxq "[test] $line" "${ci_gate_case}/failure-logs/latest-errors.log" \
+    || fail 'make ci discarded or mislabelled namespaced test failure context'
 done
 
 pin_check_case="${work_dir}/pin-check"
@@ -92,6 +108,71 @@ if EXPECTED_YQ="$repo_root/.tools/host/bin/yq" FAIL_PIN_CHECK=yes \
   YQ="$repo_root/.tools/host/bin/yq" >/dev/null 2>&1; then
   fail "dependency-pins-check accepted a failed inheritance check"
 fi
+
+version_case="$work_dir/version-read"
+mkdir -p "$version_case/scripts/ci" "$version_case/bin"
+cp "$repo_root/Makefile" "$version_case/Makefile"
+cp "$repo_root/scripts/ci/read-cargo-workspace-version.sh" "$version_case/scripts/ci/"
+printf '[workspace.package]\nversion = "0.1.2" # fixture comment\n[workspace.metadata.fixture]\nversion = "9.9.9"\n' > "$version_case/Cargo.toml"
+version_parser="${YQ:-$repo_root/.tools/host/bin/yq}"
+actual="$("$make_bin" --no-print-directory -s -C "$version_case" version YQ="$version_parser")" \
+  || fail "make version rejected the shared reader's valid manifest"
+[[ "$actual" == 0.1.2 && ! -e "$version_case/Cargo.lock" ]] \
+  || fail "make version selected another field or resolved dependencies"
+cp "$version_case/Cargo.toml" "$version_case/original.toml"
+cat > "$version_case/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" == locate-project ]]; then
+  [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 53
+  if [[ "$FAIL_VERSION_CARGO" == yes ]]; then printf '%s\n' "$PWD/Cargo.toml"; exit 52; fi
+  exec "$VERSION_REAL_CARGO" "$@"
+fi
+echo cargo-effect >> "$VERSION_EFFECTS"
+exit 43
+EOF
+cat > "$version_case/failed-parser" <<'EOF'
+#!/usr/bin/env bash
+printf '{"workspace":{"package":{"version":"0.1.2"}}}\n'
+exit 51
+EOF
+for tool in git curl; do
+  cat > "$version_case/bin/$tool" <<'EOF'
+#!/usr/bin/env bash
+echo external-effect >> "$VERSION_EFFECTS"
+exit 43
+EOF
+done
+chmod +x "$version_case/bin/"* "$version_case/failed-parser"
+version_fake_path="$version_case/bin:$PATH"
+for failure in cargo parser malformed; do
+  cp "$version_case/original.toml" "$version_case/Cargo.toml"
+  selected_parser="$version_parser"
+  [[ "$failure" != parser ]] || selected_parser="$version_case/failed-parser"
+  [[ "$failure" != malformed ]] || printf 'version = "0.1.3"\n' >> "$version_case/Cargo.toml"
+  for boundary in make tag publish preflight; do
+    if (
+      cd "$version_case"
+      export VERSION_REAL_CARGO VERSION_EFFECTS FAIL_VERSION_CARGO YQ
+      VERSION_REAL_CARGO="$(command -v cargo)"
+      VERSION_EFFECTS="$version_case/effects"
+      FAIL_VERSION_CARGO=no
+      [[ "$failure" != cargo ]] || FAIL_VERSION_CARGO=yes
+      YQ="$selected_parser"
+      case "$boundary" in
+        make) PATH="$version_fake_path" "$make_bin" --no-print-directory -s version ;;
+        tag) PATH="$version_fake_path" bash "$repo_root/scripts/release/check-tag-at-head.sh" ;;
+        publish) PATH="$version_fake_path" bash "$repo_root/scripts/release/publish-workspace.sh" ;;
+        preflight) PATH="$version_fake_path" RELEASE_PREVIOUS=0.1.2 RELEASE_VERSION=0.1.3 RELEASE_DATE=2026-10-06 \
+          perl "$repo_root/scripts/release/metadata.pl" preflight ;;
+      esac
+    ) > "$version_case/stdout" 2> "$version_case/stderr"; then
+      fail "$boundary accepted a failed $failure version observation"
+    fi
+    [[ ! -s "$version_case/stdout" && ! -e "$version_case/effects" ]] \
+      || fail "$boundary emitted an accepted version or reached effects after failed $failure observation"
+  done
+done
 
 offline_validation_case="${work_dir}/offline-validation"
 mkdir -p "$offline_validation_case/bin" "$offline_validation_case/scripts/ci"
@@ -206,10 +287,68 @@ for mode in install check; do
     || fail "tool setup/check continued after a failed host command"
 done
 
+format_case="$work_dir/format"
+mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format_case/scripts/dev"
+cp "$repo_root/Makefile" "$format_case/Makefile"
+cp "$repo_root/scripts/ci/check-format-tools.sh" "$format_case/scripts/ci/"
+printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/tool-versions.env"
+cat > "$format_case/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$1" != install ]]; then
+  [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 79
+fi
+printf '%s\n' "$*" >> "$TRACE_FILE"
+case "$*" in
+  'sort --version') echo 'cargo-sort 9.8.7' ;;
+  'fmt --version') echo rustfmt ;;
+esac
+[[ "$*" != "${FAIL_FORMAT_COMMAND:-}" ]] || exit 78
+EOF
+cat > "$format_case/scripts/dev/install-host-tools.sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'host setup %s\n' "$*" >> "$TRACE_FILE"
+EOF
+chmod +x "$format_case/bin/cargo"
+for target in fmt fmt-check; do
+  : > "$format_case/trace"
+  PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
+    CARGO_NET_OFFLINE=false RUSTUP_AUTO_INSTALL=1 MAKEFLAGS='' MAKEOVERRIDES='' \
+    HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$format_case" "$target" >/dev/null
+  if [[ "$target" == fmt ]]; then sort_command='sort --workspace'; fmt_command='fmt --all';
+  else sort_command='sort --workspace --check'; fmt_command='fmt --all -- --check'; fi
+  printf '%s\n' 'sort --version' 'fmt --version' "$sort_command" "$fmt_command" > "$format_case/expected"
+  cmp "$format_case/expected" "$format_case/trace" \
+    || fail "$target changed formatter order, check flags or the selected setup pin"
+  for command in 'sort --version' 'fmt --version' "$sort_command" "$fmt_command"; do
+    : > "$format_case/trace"
+    if PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" FAIL_FORMAT_COMMAND="$command" \
+      MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+      "$make_bin" --no-print-directory -C "$format_case" "$target" >/dev/null 2>&1; then
+      fail "$target accepted a failed $command"
+    fi
+    awk -v stop="$command" '{print; if ($0 == stop) exit}' "$format_case/expected" > "$format_case/expected-failure"
+    cmp "$format_case/expected-failure" "$format_case/trace" \
+      || fail "$target continued after failed formatter admission or execution"
+  done
+done
+: > "$format_case/trace"
+PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
+  MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+  "$make_bin" --no-print-directory -C "$format_case" install-dev \
+  CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null
+printf '%s\n' "host setup --versions $format_case/ci/tool-versions.env --with-ripgrep" \
+  'install --locked cargo-sort --version 9.8.7' \
+  'install --locked cargo-audit --version 8.7.6' \
+  'install --locked cargo-machete --version 7.6.5' > "$format_case/expected"
+cmp "$format_case/expected" "$format_case/trace" \
+  || fail 'install-dev did not share the formatter pin or changed development setup ordering'
+
 python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 
 public_docs_case="${work_dir}/public-docs"
-mkdir -p "${public_docs_case}/bin"
+mkdir -p "${public_docs_case}/bin" "${public_docs_case}/tmp"
 printf 'retained documentation evidence\n' > "${public_docs_case}/retained-doc"
 cat > "${public_docs_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
@@ -235,7 +374,8 @@ chmod +x "${public_docs_case}/bin/cargo"
 # A missing diagnostic set must fail rather than passing by warning count.
 if (
   cd "${repo_root}"
-  PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
+  TMPDIR="${public_docs_case}/tmp" PATH="${public_docs_case}/bin:${PATH}" \
+    CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
     DOC_ARTIFACT="${public_docs_case}/retained-doc" \
     TRACE_FILE="${public_docs_case}/trace" CARGO_NET_OFFLINE=false \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
@@ -246,6 +386,9 @@ fi
   || fail "the public documentation check erased retained evidence on failure"
 [[ -f "${public_docs_case}/trace" ]] \
   || fail "the public documentation check did not select locked/offline Cargo validation"
+doc_diagnostics=("${public_docs_case}/tmp/"ic-query-public-docs.*/diagnostics.jsonl)
+[[ "${#doc_diagnostics[@]}" == 1 && -s "${doc_diagnostics[0]}" ]] \
+  || fail "the failed public documentation check discarded its Cargo diagnostics"
 
 feature_boundary_case="${work_dir}/feature-boundary"
 mkdir -p "${feature_boundary_case}/bin" "${feature_boundary_case}/tmp"
@@ -270,8 +413,9 @@ TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}
 [[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the successful feature-boundary check left temporary files"
 for failed_command in check test tree; do
+  mkdir "${feature_boundary_case}/tmp/$failed_command"
   : > "${feature_boundary_case}/trace"
-  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  if TMPDIR="${feature_boundary_case}/tmp/$failed_command" PATH="${feature_boundary_case}/bin:${PATH}" \
     FAIL_FEATURE_COMMAND="$failed_command" TRACE_FILE="${feature_boundary_case}/trace" \
     CARGO_NET_OFFLINE=false \
     bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
@@ -286,8 +430,45 @@ for failed_command in check test tree; do
     || fail "the feature-boundary check continued after failed $failed_command"
   grep -Fq 'fixture Cargo diagnostic' "${feature_boundary_case}/failure.log" \
     || fail "the feature-boundary check discarded the Cargo diagnostic"
-  [[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
-    || fail "the failed feature-boundary check left temporary files"
+  feature_diagnostics=("${feature_boundary_case}/tmp/$failed_command/"ic-query-feature-boundary.*)
+  [[ "${#feature_diagnostics[@]}" == 1 && -d "${feature_diagnostics[0]}" ]] \
+    || fail "the failed feature-boundary check discarded its diagnostics directory"
+  if [[ "$failed_command" == check ]]; then
+    grep -Fq 'fixture Cargo diagnostic' "${feature_diagnostics[0]}"/check.* \
+      || fail "the failed compilation discarded its retained Cargo log"
+  fi
+done
+
+retention_case="$work_dir/fixture-retention"
+mkdir -p "$retention_case/bin"
+export RETENTION_REAL_CP
+RETENTION_REAL_CP="$(command -v cp)"
+cat > "$retention_case/bin/cp" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+reject() { echo 'fixture copy diagnostic' >&2; exit 23; }
+case "$PWD" in "$RETENTION_TMP"/ic-query-*) reject ;; esac
+for argument in "$@"; do
+  case "$argument" in "$RETENTION_TMP"/ic-query-*) reject ;; esac
+done
+exec "$RETENTION_REAL_CP" "$@"
+EOF
+chmod +x "$retention_case/bin/cp"
+for fixture in release-metadata publish-guards release-guards; do
+  mkdir "$retention_case/$fixture"
+  printf 'caller evidence\n' > "$retention_case/$fixture/evidence"
+  status=0
+  TMPDIR="$retention_case/$fixture" RETENTION_TMP="$retention_case/$fixture" \
+    PATH="$retention_case/bin:$PATH" bash "$repo_root/scripts/ci/check-$fixture.sh" \
+    > "$retention_case/$fixture.log" 2>&1 || status=$?
+  [[ "$status" == 23 ]] || fail "$fixture lost the failed fixture setup status"
+  retained=("$retention_case/$fixture/"ic-query-*)
+  [[ "${#retained[@]}" == 1 && -d "${retained[0]}" ]] \
+    || fail "$fixture discarded its failed setup"
+  grep -Fq "retained: ${retained[0]}" "$retention_case/$fixture.log" \
+    || fail "$fixture did not identify its retained evidence"
+  grep -Fxq 'caller evidence' "$retention_case/$fixture/evidence" \
+    || fail "$fixture changed caller-owned evidence"
 done
 
 dependency_check_case="${work_dir}/dependency-check"

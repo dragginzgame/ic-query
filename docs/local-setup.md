@@ -77,6 +77,7 @@ the cargo-sort version in `ci/tool-versions.env`; prepare it explicitly:
 ```bash
 source ci/tool-versions.env
 cargo install cargo-sort --version "$SHARED_TOOLING_CARGO_SORT_VERSION" --locked
+bash scripts/ci/check-format-tools.sh "$SHARED_TOOLING_CARGO_SORT_VERSION"
 ```
 
 ShellCheck, actionlint and Gitleaks use the existing explicit CI installers and

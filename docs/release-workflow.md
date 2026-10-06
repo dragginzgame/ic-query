@@ -8,14 +8,15 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`](https://github.com/dragginzgame/shared-tooling/tree/d957d1f8801885c5b69e4a9ef900155f5f2a8a9d) (0.1.8),
+[`46c02774a8335cb3949d6f04284c4f53375353c1`](https://github.com/dragginzgame/shared-tooling/tree/46c02774a8335cb3949d6f04284c4f53375353c1) (0.1.11),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/d957d1f8801885c5b69e4a9ef900155f5f2a8a9d/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/46c02774a8335cb3949d6f04284c4f53375353c1/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
-modes without a network request. This snapshot selects release mechanics,
+modes without a network request. This snapshot selects read-only workspace
+version checking and release mechanics,
 lockfile transformation, publication tag and registry checking, dependency-pin
 and documentation-link checking, isolated RustSec preparation, repository-local
-tool setup and LOC reporting. The engineering baseline
+tool setup, formatter prerequisites and LOC reporting. The engineering baseline
 remains the separate revision pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
@@ -27,6 +28,15 @@ The publication tag adapter selects this workspace's package version and exact
 HEAD commit, then delegates annotated-tag identity checks to the vendored
 `scripts/ci/check-release-tag.sh`. Consumer fixtures retain clean-worktree,
 selected-version, stale/missing/lightweight-tag and publication-order checks.
+
+Make's `version`/`release-version`, changelog defaults, release preflight and
+publication/tag admission use the shared workspace version reader with an
+explicit `Cargo.toml` path and `--stable`. It requires the prepared Cargo
+toolchain and jq/yq, validates TOML offline without dependency resolution and
+rejects failed observations before Git or publication effects. Valid TOML
+comments are accepted by the reader. Consumer-owned metadata transformations
+still require the exact canonical release payload and authenticate retained
+inputs against the selected source; reading does not normalize that payload.
 
 Publication checks the exact stable package version through the shared
 [crates.io observer](verification-helpers.md#exact-cratesio-version-observation).
@@ -76,6 +86,13 @@ target dependencies inherit their owning workspace catalog. The parser identitie
 and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
+
+`make install-dev` also installs cargo-sort 2.1.4 from `ci/tool-versions.env`.
+`make format-tools-check` checks that exact pin and prepared rustfmt offline.
+Both `fmt` and `fmt-check` require it, then sort/check the one Cargo workspace
+before formatting/checking Rust. They never install missing tools. The complete
+CI/release gate retains `fmt-check`; formatting is explicit source preparation
+before committing and freezing the release payload.
 
 `make doc-links-check` runs the shared Perl checker over `README.md`, `AGENTS.md`,
 the root changelog, and Markdown files directly under `docs/`, `docs/design/`
@@ -138,6 +155,9 @@ failure logs under its attempt directory's `validation-failures/`. Ordinary CI
 retains failures in `target/validation-failures/`. Retries preserve earlier raw
 logs; `latest.log` is a convenience copy. If the configured destination fails,
 the logger preserves and reports its temporary logs instead of deleting them.
+Successful or ignored tests with `error::` names remain ordinary output. Real
+diagnostics and failed tests use error labels; surrounding failure context uses
+neutral target labels in console excerpts and retained highlighted logs.
 
 A normal target rerun first reconciles an unfinished release at its saved
 candidate. An unchanged same-kind retry finishes only that release. After its
@@ -181,6 +201,12 @@ atomic push scope, retained artifacts/logs, occupied locks, and recovery after
 lost preparation/push replies. `make ci-scripts-check` checks the complete CI
 target sequence; `make publish-guards-check` checks separate publication behavior.
 These focused fixtures perform no real commits, tags, pushes or publication.
+Failed CI, publication and release fixture directories retain their inputs and
+diagnostics and print their paths. Feature-boundary and public rustdoc checks
+retain their diagnostics on failure too; successful checks remove their own
+temporary files. Hosted CI puts validation scratch files in a physical,
+job-owned directory and uploads failed fixtures, hidden metadata and complete
+validation logs as `validation-failures-<host>` artifacts for 30 days.
 The shared `check-release-commands.sh` checks actual Make routing with a substitute
 runner, including all conflicting command pairs and failure propagation. Its
 temporary Makefile needs no extra parse-time inputs for this workspace; consumer

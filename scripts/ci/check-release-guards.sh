@@ -5,10 +5,13 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
-trap 'rm -rf "$work_dir"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release guard fixtures retained: $work_dir" >&2; fi' EXIT
 export REAL_MAKE REAL_GIT
+export REAL_CARGO YQ
 REAL_MAKE="$(command -v make)"
 REAL_GIT="$(command -v git)"
+REAL_CARGO="$(command -v cargo)"
+YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 fixture_native_path="$PATH"
 mkdir -p "$work_dir/bin"
 cat > "$work_dir/bin/git" <<'STUB'
@@ -144,6 +147,7 @@ STUB
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 printf 'cargo %s\n' "$*" >> events
 case "$*" in
   'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
@@ -176,7 +180,7 @@ new_fixture() {
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
@@ -231,7 +235,7 @@ check_complete() {
   local candidate minor expected_lock
   candidate="$(cat candidate)"
   minor="${candidate%.*}"
-  [[ "$(perl scripts/release/metadata.pl version)" == "$candidate" && "$(cat tag)" == "$candidate" ]]
+  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$candidate" && "$(cat tag)" == "$candidate" ]]
   [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]]
   [[ "$(tail -n 1 ".release-state/$candidate.plan")" == complete && ! -e .release-state/lock ]]
   [[ -f target/original-artifact && -f target/retained-output ]]
@@ -244,7 +248,7 @@ check_complete() {
 }
 commit_fix() {
   local kind="$1" previous candidate minor fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-  previous="$(perl scripts/release/metadata.pl version)"
+  previous="$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)"
   candidate="$(bash scripts/ci/next-release-version.sh "$previous" "$kind")"
   minor="${candidate%.*}"
   printf '%s\n' "$candidate" > candidate
@@ -316,12 +320,12 @@ for next_kind in patch minor major resume; do
     cp Cargo.lock original-lock
     if [[ "$next_kind" == resume ]]; then
       run_release resume 0.47.0 || { cat output; fail 'descendant exact resume'; }
-      [[ "$(perl scripts/release/metadata.pl version)" == 0.47.0 && "$(count_event validate)" == 1 ]]
+      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.47.0 && "$(count_event validate)" == 1 ]]
       [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]]
       [[ ! -e .release-state/0.47.1.plan ]]
     else
       run_release "$next_kind" || { cat output; fail 'descendant ordinary increment'; }
-      [[ "$(perl scripts/release/metadata.pl version)" == "$(cat candidate)" ]]
+      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]]
       [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
       [[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]]
       sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
@@ -429,7 +433,7 @@ for failure in gate missing-dependency dirty untracked; do
     dirty) FIXTURE_DIRTY=yes expect_failure patch ;;
     untracked) FIXTURE_UNTRACKED=caller-owned.txt expect_failure patch ;;
   esac
-  [[ "$(perl scripts/release/metadata.pl version)" == 0.46.5 && ! -e tag && ! -e remote-head ]]
+  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.46.5 && ! -e tag && ! -e remote-head ]]
   cmp original-lock Cargo.lock
   [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]]
   if [[ "$failure" == gate ]]; then

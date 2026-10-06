@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-public-docs.XXXXXX")"
-trap 'rm -rf -- "${work_dir}"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Public documentation diagnostics retained: $work_dir" >&2; fi' EXIT
 
 # Cargo replays cached diagnostics; the parser rejects an incomplete set.
 if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \

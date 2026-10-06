@@ -2,7 +2,7 @@
 set -euo pipefail
 
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-feature-boundary.XXXXXX")"
-trap 'rm -rf -- "${work_dir}"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Feature boundary diagnostics retained: $work_dir" >&2; fi' EXIT
 
 forbidden_pure_library_dependencies=(
   clap

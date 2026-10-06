@@ -26,7 +26,8 @@ qualified by this matrix.
   utilities. macOS needs Xcode Command Line Tools for its compiler, Git and Make.
   Release/checksum helpers support both GNU `sha256sum` and macOS `shasum`.
 - `make install-dev` explicitly installs the exact Cargo Audit and Cargo Machete
-  versions declared in `Makefile`, plus common jq 1.8.2, Mike Farah yq 4.47.2 and
+  versions declared in `Makefile`, cargo-sort 2.1.4 from `ci/tool-versions.env`,
+  plus common jq 1.8.2, Mike Farah yq 4.47.2 and
   ripgrep 15.2.0 with PCRE2 under `.tools/host/bin`. Host versions and native
   binary/archive digests have one owner in the immutable `ci/tool-versions.env` snapshot.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
@@ -88,8 +89,8 @@ though the extracted executable is identical. Restoring the original archive
 bytes passes with Bash 5 and 3.2. This isolates a fixture defect for the
 [upstream host-tool owner](https://github.com/dragginzgame/shared-tooling/issues/17);
 it does not identify the exact native macOS failing command.
-Complete native macOS qualification remains outstanding.
-The selected 0.1.8 revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`
+That revision did not qualify native macOS support.
+The prior 0.1.8 revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`
 retains those fixes and adds Cargo inheritance checks. Its
 [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37484175750)
 passed Linux and lint/security; both macOS jobs failed at the same host-tool
@@ -97,6 +98,32 @@ fixture stage. IC Host Tools 0.2.0's
 [CI](https://github.com/dragginzgame/ic-host-tools/actions/runs/37483358223)
 passed Linux and MSRV; both macOS jobs failed at the host-tool installer fixture
 stage. Native qualification of the adopted dependency remains outstanding.
+The prior Shared Tooling 0.1.9 revision
+`b32d3038c850a7c53470c326b0f7f11263b31669` restores authenticated archive bytes
+in its host-tool fixture and retains installation diagnostics. Its
+[native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37489483879)
+passed Linux, both macOS architectures and lint/security, including formatter
+admission, portable regression fixtures and pinned native IC executables.
+The corrected host fixture also passes Linux PAX substitutions under Bash 5 and
+3.2; those substitutions remain focused evidence rather than native qualification.
+The prior 0.1.10 revision `21f3ec3dd97f2968c9f0b08924451bb2f71770d1`
+retains the same host installers and formatter checker while adding upstream
+fixture retention and unrelated compiler-cache/tag-maintenance support. Its
+[native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37491682760)
+passed Linux and lint/security; both macOS jobs passed host/IC installer,
+version-reader, formatter and hook fixtures, then failed the new retention test.
+Retained diagnostics from both hosts show BSD `sed` joined its substitute launcher's shebang
+to the next line, yielding an invalid `/bin/bashcase` interpreter. That test is
+outside the selected snapshot, whose runtime helper bytes remain unchanged from
+0.1.9. Complete native qualification of 0.1.10 remains outstanding under the
+[upstream fixture-retention owner](https://github.com/dragginzgame/shared-tooling/issues/21).
+The selected 0.1.11 revision `46c02774a8335cb3949d6f04284c4f53375353c1`
+generates that launcher directly with `printf` and adds exact changelog comparisons,
+corrected validation error labels and the shared repair/reporting workflow.
+Focused retention, logger and changelog fixtures pass under Linux Bash 5 and 3.2.
+Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37500153922)
+passed Linux, Apple Silicon macOS and lint/security. Intel macOS is still running
+at this review; complete upstream native qualification remains pending.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 
@@ -107,6 +134,8 @@ qualification does not establish consumer execution or deployment compatibility.
 | Host setup and offline verification | Bash, curl for setup, tar/gzip for ripgrep, Perl, SHA-256 backend, reviewed `ci/tool-versions.env` |
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
+| Workspace version queries, changelog defaults and release/publication version admission | Prepared Cargo toolchain, local jq/yq; offline manifest validation without dependency resolution |
+| Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; installed explicitly by `install-dev` |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
@@ -124,6 +153,10 @@ artifact-helper Rust unit tests through `test`, which selects all targets,
 including examples. Receipt tests build the helper with the prepared
 locked/offline cache. The separate `canister` matrix owns live local-network
 smoke execution and bundle construction on each declared host.
+Failed `checks` jobs upload their job-owned temporary validation directories
+and complete validation logs as `validation-failures-<host>` artifacts for
+30 days, including hidden fixture metadata. Successful helper invocations remove
+their own temporary directories; failed local checks print retained paths too.
 
 ## Development LOC reports
 
@@ -145,5 +178,6 @@ method identity; compare them only after checking file selection and counting
 rules. This command discovers workspace metadata and counts files; it does not
 compile tests or run a broad gate.
 
-Shared Tooling's own regression suite also uses cargo-sort. It remains outside
-IC Query's gate prerequisites.
+IC Query's formatting gate now requires the same reviewed cargo-sort pin used
+by explicit development setup. `fmt-check` checks dependency order before Rust
+formatting and preserves source, the Git index, lockfiles and unrelated edits.

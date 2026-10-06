@@ -8,7 +8,7 @@ fi
 
 version="${1:-}"
 if [[ -z "${version}" ]]; then
-  version="$(perl "$(dirname "${BASH_SOURCE[0]}")/../release/metadata.pl" version)"
+  version="$(bash "$(dirname "${BASH_SOURCE[0]}")/read-cargo-workspace-version.sh" --stable Cargo.toml)" || exit 1
 fi
 
 if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

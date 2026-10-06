@@ -20,10 +20,11 @@ If code or habit conflicts with this file, this file wins.
 - Product authority, cache/network identities, supported features, numeric
   limits, formatting, and exact validation/release commands remain local.
   The stricter prohibition on agent-run release effects below remains in force.
-- Release execution and lockfile transformation, publication tag and registry
+- Read-only workspace version checking, release execution and lockfile
+  transformation, publication tag and registry
   checking, dependency-pin and documentation-link checking, isolated RustSec
-  preparation, local tool setup and LOC reporting adopt Shared Tooling at reviewed
-  revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`; the selected
+  preparation, formatter prerequisites, local tool setup and LOC reporting adopt
+  Shared Tooling at reviewed revision `46c02774a8335cb3949d6f04284c4f53375353c1`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -195,10 +196,12 @@ If code or habit conflicts with this file, this file wins.
 - Keep CI/release shared tools as reviewed snapshots, never symlinks or mutable
   sibling dependencies. Fix shared tooling upstream only when authorized; do
   not patch a vendored copy in place.
-- GitHub issues in the owning repository are the sole feedback tracker. Search
-  before filing, and link issues from handoffs/designs without duplicating their
-  triage or status in local ledgers. Recording a finding does not authorize an
-  upstream message. Distinguish upstream acceptance from consumer adoption.
+- Apply the [shared repair and owning-repository feedback workflow](rules/agent-maintenance.md)
+  and the Scope and authorization / Feedback and handoff sections in
+  `DRAGGINZGAME.md` from the reviewed snapshot above. This scoped adoption carries
+  the maintainer's standing issue-reporting authorization and replaces the local
+  workflow duplication; the separately pinned engineering baseline and local
+  release boundaries remain authoritative for other obligations.
 
 ## Host Support
 

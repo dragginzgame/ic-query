@@ -53,7 +53,7 @@ FAILURE_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 RUNNER_DEPTH="${VALIDATION_RUNNER_DEPTH:-0}"
 export VALIDATION_RUNNER_DEPTH="$((RUNNER_DEPTH + 1))"
 MAX_FAILURE_DETAIL_LINES=160
-FAILURE_PATTERN='---- .* stdout ----|^test .* \.\.\. FAILED$|failures:|test result: FAILED|error(\[[A-Z0-9]+\])?:|target failed|make(\[[0-9]+\])?: \*\*\*'
+FAILURE_PATTERN='---- .* stdout ----|^test .* \.\.\. FAILED$|failures:|test result: FAILED|error(\[[A-Z0-9]+\])?:([^:]|$)|target failed|make(\[[0-9]+\])?: \*\*\*'
 
 failed_targets=()
 targets=()
@@ -88,7 +88,8 @@ is_live_failure_line() {
     local line="$1"
 
     case "$line" in
-        *"error:"* | *"error["* | *"rustc-LLVM ERROR"* | \
+        # Rust paths such as error::tests are names, not diagnostics.
+        *"error:"[!:]* | *"error:" | *"error["* | *"rustc-LLVM ERROR"* | \
             *"test result: FAILED"* | test\ *" ... FAILED" | *"fatal:"* | \
             *"FAILED:"* | *"Target failed:"* | *"No such file or directory"* | \
             *"❌"* | *"🚨"* | \
@@ -162,7 +163,12 @@ print_failure_detail() {
     fi
 
     while IFS= read -r line; do
-        print_error_line "$target" "$line"
+        if is_live_failure_line "$line"; then
+            print_error_line "$target" "$line"
+        else
+            # Retain useful context without labelling it as an error.
+            printf '[%s] %s\n' "$target" "$line"
+        fi
     done < <(printf '%s\n' "$details" | tail -n "$((MAX_FAILURE_DETAIL_LINES - 1))")
 }
 

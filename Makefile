@@ -1,7 +1,7 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
-	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check fmt fmt-check help \
+	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check fmt fmt-check format-tools-check help \
 	install install-dev install-tools tools-check install-host-tools host-tools-check \
 	install-ic-tools ic-tools-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
@@ -50,8 +50,9 @@ help:
 	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.6.0"
 	@echo "  canister-bundle  Bundle the probe for explicit mainnet-smoke deployment"
 	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
-	@echo "  fmt        Format Rust code"
-	@echo "  fmt-check  Check Rust formatting"
+	@echo "  fmt        Sort Cargo manifests and format Rust code"
+	@echo "  fmt-check  Check Cargo dependency order and Rust formatting"
+	@echo "  format-tools-check  Check prepared cargo-sort and rustfmt offline"
 	@echo "  changelog-check  Check changelog entries for the package version"
 	@echo "  package-contents-check  Check crate package excludes internal files"
 	@echo "  feature-boundary-check  Check library default/no-default feature boundaries"
@@ -99,16 +100,23 @@ ensure-clean:
 	fi
 
 version release-version:
-	@perl "$(REPO_ROOT)scripts/release/metadata.pl" version
+	@YQ="$(YQ)" bash "$(REPO_ROOT)scripts/ci/read-cargo-workspace-version.sh" --stable Cargo.toml
 
 tags:
 	@git tag --sort=-version:refname | head -10
 
+format-tools-check:
+	@. "$(HOST_TOOL_VERSIONS)" && bash "$(REPO_ROOT)scripts/ci/check-format-tools.sh" "$$SHARED_TOOLING_CARGO_SORT_VERSION"
+
+fmt fmt-check: format-tools-check
+
 fmt:
-	cargo fmt --all
+	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo sort --workspace
+	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo fmt --all
 
 fmt-check:
-	cargo fmt --all -- --check
+	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo sort --workspace --check
+	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo fmt --all -- --check
 
 check:
 	cargo check --workspace --all-targets --all-features --locked --offline
@@ -207,6 +215,7 @@ ic-tools-check:
 	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)" --check
 
 install-dev: install-host-tools
+	@. "$(HOST_TOOL_VERSIONS)" && cargo install --locked cargo-sort --version "$$SHARED_TOOLING_CARGO_SORT_VERSION"
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 

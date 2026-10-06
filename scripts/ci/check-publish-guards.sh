@@ -5,8 +5,11 @@ set -euo pipefail
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export REAL_CARGO YQ
+REAL_CARGO="$(command -v cargo)"
+YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
-trap 'rm -rf -- "${work_dir}"' EXIT
+trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Publication guard fixtures retained: $work_dir" >&2; fi' EXIT
 
 fail() {
   echo "error: $*" >&2
@@ -18,6 +21,7 @@ mkdir -p "${publish_case}/bin" "${publish_case}/state"
 cat > "${publish_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 printf 'cargo %s\n' "$*" >> "${TRACE_FILE}"
 case "${1:-}" in
   info)
@@ -62,7 +66,7 @@ fi
 if [[ -e "$STATE_DIR/$package" ]]; then printf 200; else printf 404; fi
 EOF
 chmod +x "${publish_case}/bin/"*
-current_version="$(cd "${repo_root}" && perl scripts/release/metadata.pl version)"
+current_version="$(bash "$repo_root/scripts/ci/read-cargo-workspace-version.sh" --stable "$repo_root/Cargo.toml")"
 (
   cd "${repo_root}"
   PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/trace" \
@@ -168,8 +172,7 @@ make_case="${work_dir}/make-publish"
 mkdir -p "${make_case}/bin" "${make_case}/scripts/release" "${make_case}/scripts/ci"
 printf '[fixture]\nversion = "9.9.9"\n[workspace.package]\nversion = "%s"\n' \
   "${current_version}" > "${make_case}/Cargo.toml"
-cp "${repo_root}/scripts/release/metadata.pl" "${make_case}/scripts/release/metadata.pl"
-cp "${repo_root}/scripts/ci/check-crates-io-version.sh" "${make_case}/scripts/ci/"
+cp "${repo_root}/scripts/ci/"{check-crates-io-version.sh,read-cargo-workspace-version.sh} "${make_case}/scripts/ci/"
 ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
   "${make_case}/scripts/release/publish-workspace.sh"
 cat > "${make_case}/bin/git" <<'EOF'

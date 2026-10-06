@@ -44,7 +44,13 @@ Consumer choices described in those guides remain subject to this baseline.
 - An explicit instruction is sufficient for its named action. Carry established
   authorization forward; do not require magic phrases or repeated confirmation.
   Complete authorized preparation so any required approval concerns a concrete
-  result. Recording feedback does not authorize upstream messages or writes.
+  result. Apply authorized current-repository fixes directly to the working tree
+  and run the appropriate focused checks; a detached patch alone does not complete
+  a local repair. Inspection remains distinct from repair authorization.
+  The maintainer grants standing authorization to file or update owning-repository
+  GitHub issues for findings from authorized work, following the feedback rules
+  below. This does not authorize sibling source edits, issue assignment/closure,
+  unrelated messages or release effects.
 
 ## Ownership and simplification
 
@@ -270,7 +276,11 @@ Consumer choices described in those guides remain subject to this baseline.
   and the smallest useful verification.
 - Track upstream acceptance separately from verified consumer adoption. Resolve
   product-specific feedback locally instead of promoting it to universal policy.
-  Submit feedback or change another repository only within explicit authority.
+  For another repository's finding, search its issues and file or update the
+  matching issue under the standing authorization above. Include a concrete fix
+  or patch where feasible and its actual validation results. Keep shared snapshots
+  intact; repair at the source owner and adopt a reviewed committed revision.
+  Other cross-repository changes retain their separate authority.
   If issue access or a remote is unavailable, report the finding and blocker to
   the maintainer without inventing an issue URL or creating a local tracker.
 - Report the outcome, changed files, relevant verification, skipped checks,
