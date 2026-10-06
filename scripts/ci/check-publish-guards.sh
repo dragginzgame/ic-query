@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Fixture Make invocations own their selections, independently of the caller.
+unset MAKEFLAGS MFLAGS MAKEOVERRIDES
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
 trap 'rm -rf -- "${work_dir}"' EXIT

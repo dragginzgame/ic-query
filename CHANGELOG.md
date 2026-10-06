@@ -24,6 +24,8 @@ Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
 - Adopts Shared Tooling 0.1.4 staging and logging checks: rejects conflicting
   pending notes before validation, checks the exact staged release payload, and
   retains raw failed-validation logs across retries and logging failures.
+- Publication fixtures isolate inherited Make overrides so release validation
+  uses the fixture's selected version and simulated tag.
 
 ## [0.46.x] - 2026-10-04 - Cache-only NNS analytics
 
