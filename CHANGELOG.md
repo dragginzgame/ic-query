@@ -14,6 +14,8 @@ Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
   features unavailable in the bundled macOS shell. Checks retain command
   ordering, failure propagation, library-first publication, retry safety, and
   release guards; failed CI sequences now check every preceding command.
+  The second-pass cache-write limit fixture now uses managed publication to
+  avoid permission failures caused by a group-writable shell umask.
   Production release flow, CLI behavior, Rust APIs, and schema identifiers are
   unchanged. Native macOS qualification remains pending.
 

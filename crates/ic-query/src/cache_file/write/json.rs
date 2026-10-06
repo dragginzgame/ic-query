@@ -319,8 +319,8 @@ mod tests {
 
         let root = temp_dir("ic-query-json-second-pass-limit");
         let path = root.join("full.json");
-        fs::create_dir_all(&root).unwrap();
-        fs::write(&path, b"original").unwrap();
+        write_managed_file_atomically(&root, &path, |file| file.write_all(b"original"))
+            .expect("seed managed cache");
         let error = write_managed_json_pretty_atomically(
             &root,
             &path,
