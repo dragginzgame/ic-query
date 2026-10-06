@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This fixture owns its Make selections and nested logger's checkout identity.
+unset MAKEFLAGS MFLAGS MAKEOVERRIDES VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-metadata.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT
@@ -96,7 +99,8 @@ for attempt in first second; do
   fi
 done
 [[ "${#failed_logs[@]}" == 2 ]]
-grep -Fq release-gate-failure-marker "$first_log"
+grep -Fq release-gate-failure-marker "$first_log" \
+  || fail 'validation logger did not run the fixture gate'
 cmp "$first_log" "$work_dir/first-retained.log"
 printf '%s\n' "$evidence" > "$work_dir/expected-binding"
 cmp "$work_dir/expected-binding" ".git/release-state/$RELEASE_VERSION.validation"

@@ -132,6 +132,9 @@ conflicts. Old plans, tags, validated inputs and logs remain unchanged.
 index and synthetic source tree derived from existing history, without new
 commits. It exercises hidden staged changes, stale index payloads, conflicting
 headings and the actual release adapter/logger across two failed Make gates.
+It isolates inherited Make overrides and logger checkout identity. A distinct
+parent checkout runs this fixture through the actual shared logger and rejects
+gate execution in the parent, covering invocation from release validation.
 
 Native CI qualification is configured for the [supported host matrix](supported-hosts.md),
 including Apple's system Bash on both macOS architectures. A passing Linux

@@ -471,4 +471,22 @@ echo caller-owned > .release-state/lock/owner
 expect_failure patch
 [[ "$(cat .release-state/lock/owner)" == caller-owned && ! -e events ]]
 echo 'IC Query release adapter and runner fixtures passed'
-PATH="$fixture_native_path" bash "$repo_root/scripts/ci/check-release-metadata.sh"
+
+# A distinct parent checkout catches leaked logger identity without running CI.
+metadata_context="$work_dir/metadata-context"
+mkdir -p "$metadata_context"
+cat > "$metadata_context/Makefile" <<'MAKE'
+.PHONY: metadata-check ci
+metadata-check:
+	@bash "$(FIXTURE_REPOSITORY_ROOT)/scripts/ci/check-release-metadata.sh"
+ci:
+	@echo 'error: metadata fixture reached its parent gate' >&2
+	@echo parent-gate-reached > parent-routing.log
+	@exit 7
+MAKE
+PATH="$fixture_native_path" FIXTURE_REPOSITORY_ROOT="$repo_root" \
+  VALIDATION_REPOSITORY_ROOT="$metadata_context" \
+  VALIDATION_FAILURE_LOG_DIR="$metadata_context/failures" \
+  bash "$repo_root/scripts/ci/run-validation-targets.sh" --fail-fast metadata-check
+[[ ! -e "$metadata_context/parent-routing.log" ]] \
+  || fail 'metadata fixture validation escaped its checkout'
