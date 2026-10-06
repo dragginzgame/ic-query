@@ -45,7 +45,7 @@ case "${1:-}" in
 esac
 EOF
 chmod +x "${publish_case}/bin/cargo"
-current_version="$(sed -n 's/^version = "\(.*\)"/\1/p' "${repo_root}/Cargo.toml" | head -n 1)"
+current_version="$(cd "${repo_root}" && perl scripts/release/metadata.pl version)"
 (
   cd "${repo_root}"
   PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/trace" \
@@ -116,7 +116,9 @@ fi
 
 make_case="${work_dir}/make-publish"
 mkdir -p "${make_case}/bin" "${make_case}/scripts/release"
-printf 'version = "%s"\n' "${current_version}" > "${make_case}/Cargo.toml"
+printf '[fixture]\nversion = "9.9.9"\n[workspace.package]\nversion = "%s"\n' \
+  "${current_version}" > "${make_case}/Cargo.toml"
+cp "${repo_root}/scripts/release/metadata.pl" "${make_case}/scripts/release/metadata.pl"
 ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
   "${make_case}/scripts/release/publish-workspace.sh"
 cat > "${make_case}/bin/git" <<'EOF'
@@ -126,9 +128,13 @@ case "$*" in
   'diff-index --quiet HEAD --') exit "${DIRTY_STATUS:-0}" ;;
   'ls-files --others --exclude-standard')
     [[ -z "${UNTRACKED_PATH:-}" ]] || printf '%s\n' "${UNTRACKED_PATH}"
+    exit "${INVENTORY_STATUS:-0}"
     ;;
-  "rev-parse v${RELEASE_VERSION}^{}")
+  "cat-file -t refs/tags/v${RELEASE_VERSION}")
     [[ -z "${MISSING_TAG:-}" ]] || exit 1
+    printf '%s\n' "${TAG_TYPE:-tag}"
+    ;;
+  "rev-parse refs/tags/v${RELEASE_VERSION}^{commit}")
     printf '%s\n' "${TAG_COMMIT:-release}"
     ;;
   'rev-parse HEAD') printf 'release\n' ;;
@@ -138,6 +144,8 @@ EOF
 chmod +x "${make_case}/bin/git"
 
 # Already-published fixtures exercise Make's entry checks without registry IO.
+[[ "$(cd "${make_case}" && make --no-print-directory -s -f "${repo_root}/Makefile" version)" == "${current_version}" ]] \
+  || fail "make version did not select the canonical workspace version"
 (
   cd "${make_case}"
   PATH="${make_case}/bin:${publish_case}/bin:${PATH}" RELEASE_VERSION="${current_version}" \
@@ -148,7 +156,7 @@ chmod +x "${make_case}/bin/git"
 cmp -s "${publish_case}/expected-trace" "${make_case}/trace" \
   || fail "make publish did not delegate once to the retry-safe workspace publisher"
 
-for invalid_release in dirty untracked stale-tag missing-tag; do
+for invalid_release in dirty untracked inventory-empty inventory-partial stale-tag missing-tag lightweight-tag; do
   : > "${make_case}/trace"
   if (
     cd "${make_case}"
@@ -158,8 +166,11 @@ for invalid_release in dirty untracked stale-tag missing-tag; do
     case "${invalid_release}" in
       dirty) export DIRTY_STATUS=1 ;;
       untracked) export UNTRACKED_PATH=unexpected.txt ;;
+      inventory-empty) export INVENTORY_STATUS=9 ;;
+      inventory-partial) export INVENTORY_STATUS=9 UNTRACKED_PATH=unexpected.txt ;;
       stale-tag) export TAG_COMMIT=stale ;;
       missing-tag) export MISSING_TAG=1 ;;
+      lightweight-tag) export TAG_TYPE=commit ;;
     esac
     make --no-print-directory -f "${repo_root}/Makefile" publish
   ) >/dev/null 2>&1; then

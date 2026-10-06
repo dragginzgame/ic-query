@@ -21,4 +21,5 @@ __pycache__/
 # Local environment and scratch space
 .env
 /.tmp/
+/.shared-tooling-refresh.*/
 /.codex/

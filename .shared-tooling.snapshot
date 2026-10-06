@@ -1,0 +1,22 @@
+# Shared Tooling snapshot v1
+format	1
+source	https://github.com/dragginzgame/shared-tooling.git
+revision	cb86188c5956866564de4fb6ec6be67b27981ab9
+file	3a36efbfd50a75d252b533f5dccb0c0447b833a315fe1badb1e9c9be2e37bf86	-	DRAGGINZGAME.md
+file	9c95f254c59a1ef312d37981dcd8af2dadf4eda34cf9026cfeda4092a2716858	-	rules/changelogs.md
+file	b8ed357e3cf12e1fd8262273beb2e25244c1f6ea83cefb6b800f8229921c632e	-	rules/cargo-dependencies.md
+file	9a95588444f9bbe4c6adc3dd01a84886ab45a763ec514d6a92dac40b0bbc60e9	-	rules/git-hooks.md
+file	07e75e3b90c93df7b62404dd231440a076cc2a1627d04dc57347892f3d6dc368	-	docs/releases.md
+file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
+file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
+file	56701aba8ce851ac4cce32fb55ce721698a94218b1e46636818f6b43debcb719	-	docs/principles/reviewable-changes.md
+file	7e5fd8a3c3b1dc5a829a19ad1a4933fdc17792c8e923871da1e9f36586baff41	-	docs/principles/rust-code-hygiene.md
+file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
+file	4ae88467505c9141d9269f3983eb5592dae52e058eff0a1a4628c1dab5dc2aaf	-	docs/consuming-snapshots.md
+file	cffa84575afcd74836f59f9d8db4be083010048de03c338ec2448857d85dab5e	x	scripts/ci/run-release.sh
+file	37e028e2d9fee271ffdc06d06fc15d7a148ec524def3d9ed2afcd9910c0ec642	x	scripts/ci/next-release-version.sh
+file	a0f5d6f4639e5a62b8e4d34aef573f982441b85214e4e58e60149f10d72d0137	-	scripts/ci/finalize-release-changelog.awk
+file	99de53db4bbe7af00d2da5591b18f65e6022d474769d1e3b9a8424010e0eccf6	x	scripts/ci/verify-file-checksum.sh
+file	4024efa6850788102bbfa97c471ea3b45d760e547a31b11e7c6a91a79e3eaca8	x	scripts/ci/verify-shared-tooling-snapshot.sh
+file	0de19d6eb5b3dea57d46cd6412dc49ce6a1b5fb591b551dbec16cdb25ee181df	-	rules/agent-maintenance.md
+file	4dedff3e569c06ac379696bd520a85a4831474b3e0543c16c455bfeb913e5e9d	x	scripts/ci/run-validation-targets.sh

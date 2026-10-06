@@ -8,11 +8,7 @@ fi
 
 version="${1:-}"
 if [[ -z "${version}" ]]; then
-  version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
-fi
-if [[ -z "${version}" ]]; then
-  echo "error: failed to read package version from Cargo.toml" >&2
-  exit 1
+  version="$(perl "$(dirname "${BASH_SOURCE[0]}")/../release/metadata.pl" version)"
 fi
 
 if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -24,6 +20,7 @@ minor="${version%.*}"
 detail_changelog="docs/changelog/${minor}.md"
 root_version_marker="- \`${version}\`"
 version_pattern="${version//./\\.}"
+root_heading_pattern="^## \\[${version_pattern}\\]( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$"
 
 if [[ ! -f "${detail_changelog}" ]]; then
   echo "error: missing detailed changelog ${detail_changelog} for version ${version}" >&2
@@ -40,12 +37,14 @@ if ! head_root_changelog="$(git show HEAD:CHANGELOG.md 2>/dev/null)"; then
   exit 1
 fi
 
-if ! grep -Fq -- "${root_version_marker}" CHANGELOG.md; then
+if ! grep -Fq -- "${root_version_marker}" CHANGELOG.md \
+  && ! grep -Eq -- "${root_heading_pattern}" CHANGELOG.md; then
   echo "error: CHANGELOG.md has no release-ledger entry for package version ${version}" >&2
   exit 1
 fi
 
-if ! grep -Fq -- "${root_version_marker}" <<<"${head_root_changelog}"; then
+if ! grep -Fq -- "${root_version_marker}" <<<"${head_root_changelog}" \
+  && ! grep -Eq -- "${root_heading_pattern}" <<<"${head_root_changelog}"; then
   echo "error: CHANGELOG.md in HEAD has no release-ledger entry for package version ${version}" >&2
   exit 1
 fi

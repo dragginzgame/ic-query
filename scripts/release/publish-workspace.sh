@@ -14,11 +14,7 @@ if ! [[ "${index_delay_seconds}" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
-if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "error: failed to read a release version from Cargo.toml" >&2
-  exit 1
-fi
+version="$(perl "$(dirname "${BASH_SOURCE[0]}")/metadata.pl" version)"
 
 crate_is_available() {
   local package="$1"

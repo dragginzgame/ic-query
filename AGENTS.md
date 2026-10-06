@@ -20,6 +20,14 @@ If code or habit conflicts with this file, this file wins.
 - Product authority, cache/network identities, supported features, numeric
   limits, formatting, and exact validation/release commands remain local.
   The stricter prohibition on agent-run release effects below remains in force.
+- Release execution separately adopts the Shared Tooling runner at reviewed
+  revision `cb86188c5956866564de4fb6ec6be67b27981ab9`; the selected immutable
+  helpers are recorded in `.shared-tooling.snapshot`. This is release-tooling
+  adoption, not an upgrade of the engineering baseline reference above.
+  Apply the runner contract in `docs/releases.md` and local adapters described
+  in `docs/release-workflow.md`. `DRAGGINZGAME.md` and linked snapshot guides
+  accompany that release contract; they do not silently replace the explicitly
+  pinned engineering baseline or activate unrelated hook/tooling adoption.
 
 ## Session Handoff
 
@@ -31,10 +39,12 @@ If code or habit conflicts with this file, this file wins.
 ## Git And Release Boundaries
 
 - Automated agents must never run `git commit`, `git tag`, `git push`, or
-  release/version-bump targets or scripts, including `make patch`,
-  `make minor`, `make major`, `make release-patch`, `make release-minor`,
-  `make release-major`, `make release-stage`, `make release-commit`, and
-  `make release-push`.
+  release/version-bump targets or scripts, including `make release-patch`,
+  `make release-minor`, `make release-major`, `make release-resume`, and the
+  `release-prepare-version` adapter. Isolated fixtures may prepare Git indexes
+  and trees and simulate release effects with command stubs; they must never
+  create real commits, tags or pushes, or change this repository's package
+  metadata or index.
 - Prepare working-tree changes only; the maintainer handles commits, tags,
   version bumps, releases, and pushes.
 
@@ -86,6 +96,9 @@ If code or habit conflicts with this file, this file wins.
 - Detailed patch breakdowns live in `docs/changelog/<major>.<minor>.md`; link
   the detailed file from the matching minor line in root `CHANGELOG.md` when
   present.
+- New pending batches use one numbered, undated `## [X.Y.Z]` root heading
+  and matching detailed heading. Release preparation finalizes the selected
+  root heading with its UTC date. Preserve historical minor-line indexes.
 - When a patch introduces any new CLI surface, include a fenced `bash` example
   in both root `CHANGELOG.md` and the matching detailed changelog file. "New
   CLI surface" includes commands, subcommands, options, option values, and new
@@ -96,11 +109,12 @@ If code or habit conflicts with this file, this file wins.
 
 ## Code Boundaries
 
-- Ownership: CLI parsing and dispatch live under `src/*/mod.rs` and
-  `src/cli/`; report construction, host calls, cache reads, and text rendering
-  belong in the relevant report module; reusable cache mechanics belong in
-  `src/cache_file.rs`; reusable formatting belongs in small shared modules
-  such as `src/table.rs`, `src/duration.rs`, and token amount helpers.
+- Ownership: CLI parsing and dispatch live under `crates/ic-query-cli/src/`.
+  Report construction, host calls, cache reads, and text rendering belong in
+  the relevant report module under `crates/ic-query/src/`; reusable cache
+  mechanics belong in its `cache_file/` module; reusable formatting belongs
+  in small shared modules such as `table.rs`, `duration.rs`, and token amount
+  helpers.
 - Process arguments, stdout/stderr, terminal detection, and progress rendering
   belong exclusively to `ic-query-cli`. The reusable library may emit typed
   progress events, but it must never select or write to a process output sink.

@@ -2,13 +2,22 @@
 	canister-build canister-bundle canister-smoke \
 	actions-check build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check ensure-clean feature-boundary-check fmt fmt-check help \
-	install install-dev library-process-boundary-check major minor msrv package \
-	package-contents-check patch public-docs-check publish publish-guards-check \
-	release-commit \
-	release-guards-check release-major release-minor release-patch release-push \
-	release-stage release-tag-check schema-version-check tags test type-docs-check version
+	install install-dev library-process-boundary-check msrv package \
+	package-contents-check public-docs-check publish publish-guards-check \
+	release-guards-check release-major release-minor release-patch release-resume \
+	release-version release-preflight release-verify release-prepare-version \
+	release-prepared-check release-files release-commit-check release-committed-check \
+	release-tagged-check release-push-check release-tag-check shared-tooling-check \
+	schema-version-check tags test type-docs-check version
 
+.DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+RELEASE_REMOTE ?= origin
+RELEASE_BRANCH ?= main
+
+ifneq ($(word 2,$(filter release-patch release-minor release-major release-resume,$(MAKECMDGOALS))),)
+$(error Select exactly one release target)
+endif
 
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
@@ -21,7 +30,7 @@ CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 
-CI_TARGETS := changelog-check actions-check package-contents-check \
+CI_TARGETS := changelog-check shared-tooling-check actions-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
@@ -48,6 +57,7 @@ help:
 	@echo "  ci-scripts-check  Check CI helper-script failure and environment handling"
 	@echo "  publish-guards-check  Check workspace publication fails closed and resumes safely"
 	@echo "  release-guards-check  Check release automation fails closed"
+	@echo "  shared-tooling-check  Verify the pinned release-tooling snapshot"
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
@@ -63,25 +73,23 @@ help:
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
-	@echo "  patch      Run release gate and bump patch version files, retaining build artifacts"
-	@echo "  minor      Run release gate and bump minor version files, retaining build artifacts"
-	@echo "  major      Run release gate and bump major version files, retaining build artifacts"
 	@echo "  release-patch  Bump, stage, commit, tag, and push a patch release"
 	@echo "  release-minor  Bump, stage, commit, tag, and push a minor release"
 	@echo "  release-major  Bump, stage, commit, tag, and push a major release"
-	@echo "  release-stage  Stage release version files after review"
-	@echo "  release-commit Commit and tag the staged release"
-	@echo "  release-push   Push the release commit and tags after the pre-bump gate"
+	@echo "  release-resume  Reconcile a retained release with VERSION=X.Y.Z"
 	@echo "  clean      Remove build artifacts"
 
 ensure-clean:
-	@if ! git diff-index --quiet HEAD -- || test -n "$$(git ls-files --others --exclude-standard)"; then \
+	@untracked="$$(git ls-files --others --exclude-standard)" || { \
+		echo "error: cannot inventory untracked source" >&2; exit 1; \
+	}; \
+	if ! git diff-index --quiet HEAD -- || test -n "$$untracked"; then \
 		echo "error: working directory is not clean; commit or stash changes first" >&2; \
 		exit 1; \
 	fi
 
-version:
-	@sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1
+version release-version:
+	@perl "$(REPO_ROOT)scripts/release/metadata.pl" version
 
 tags:
 	@git tag --sort=-version:refname | head -10
@@ -115,6 +123,9 @@ library-process-boundary-check:
 
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
+
+shared-tooling-check:
+	bash scripts/ci/verify-shared-tooling-snapshot.sh
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
@@ -155,9 +166,7 @@ package: ensure-clean
 	bash scripts/ci/package-workspace.sh
 
 ci:
-	+@set -e; for target in $(CI_TARGETS); do \
-		$(MAKE) --no-print-directory "$$target"; \
-	done
+	+@bash "$(REPO_ROOT)scripts/ci/run-validation-targets.sh" --fail-fast $(CI_TARGETS)
 
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
@@ -170,32 +179,25 @@ install-dev:
 publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh
 
-patch:
-	bash scripts/release/bump-version.sh patch
-
-minor:
-	bash scripts/release/bump-version.sh minor
-
-major:
-	bash scripts/release/bump-version.sh major
-
 release-patch release-minor release-major:
-	+$(MAKE) --no-print-directory $(patsubst release-%,%,$@)
-	+$(MAKE) --no-print-directory release-stage
-	+$(MAKE) --no-print-directory release-commit
-	+$(MAKE) --no-print-directory release-push
+	+@bash "$(REPO_ROOT)scripts/ci/run-release.sh" "$(@:release-%=%)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
 
-release-stage:
-	git add Cargo.toml Cargo.lock README.md docs/library-usage.md
+release-resume:
+	+@bash "$(REPO_ROOT)scripts/ci/run-release.sh" resume "$(VERSION)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
 
-release-commit:
-	bash "$(REPO_ROOT)scripts/release/commit-version.sh"
+export RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH
+
+release-files:
+	@bash "$(REPO_ROOT)scripts/release/adapter.sh" files
+
+release-preflight release-verify release-prepared-check release-commit-check release-committed-check release-tagged-check release-push-check:
+	@bash "$(REPO_ROOT)scripts/release/adapter.sh" "$(@:release-%=%)"
+
+release-prepare-version:
+	@bash "$(REPO_ROOT)scripts/release/adapter.sh" prepare
 
 release-tag-check:
 	bash "$(REPO_ROOT)scripts/release/check-tag-at-head.sh"
-
-release-push: ensure-clean release-tag-check
-	git push --follow-tags
 
 build:
 	cargo build --workspace --all-targets --all-features --locked

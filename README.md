@@ -1266,6 +1266,8 @@ guidance.
 - [SNS Root canister inventory and health](https://github.com/dragginzgame/ic-query/blob/main/docs/design/sns-root-canister-reporting.md)
 - [Certified CMC system reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cmc-system-reporting.md)
 - [Release ledger](https://github.com/dragginzgame/ic-query/blob/main/CHANGELOG.md)
+- [Maintainer release workflow](docs/release-workflow.md)
+- [Supported native hosts and prerequisites](docs/supported-hosts.md)
 
 ## Scope
 

@@ -23,11 +23,12 @@ EOF
 chmod +x "${ci_gate_case}/bin/make"
 (
   cd "${repo_root}"
-  TRACE_FILE="${ci_gate_case}/trace" \
-    "${make_bin}" --no-print-directory MAKE="${ci_gate_case}/bin/make" ci
+  PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
+    "${make_bin}" --no-print-directory ci
 ) >/dev/null
 expected_ci_targets=(
   changelog-check
+  shared-tooling-check
   actions-check
   package-contents-check
   feature-boundary-check
@@ -45,8 +46,9 @@ expected_ci_targets=(
   test
   package
 )
-printf 'make --no-print-directory %s\n' "${expected_ci_targets[@]}" \
-  > "${ci_gate_case}/expected-trace"
+for target in "${expected_ci_targets[@]}"; do
+  printf 'make --no-print-directory -C %s %s\n' "${repo_root}" "${target}"
+done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
@@ -54,14 +56,15 @@ for failed_target in changelog-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
-    TRACE_FILE="${ci_gate_case}/trace" FAIL_TARGET="${failed_target}" \
+    PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" FAIL_TARGET="${failed_target}" \
       EXPECTED_CHANGELOG_VERSION=0.8.1 CHANGELOG_VERSION=0.8.1 \
-      "${make_bin}" --no-print-directory MAKE="${ci_gate_case}/bin/make" ci
+      VALIDATION_FAILURE_LOG_DIR="${ci_gate_case}/failure-logs" \
+      "${make_bin}" --no-print-directory ci
   ) >/dev/null 2>&1; then
     fail "make ci accepted a failed ${failed_target}"
   fi
   for target in "${expected_ci_targets[@]}"; do
-    printf 'make --no-print-directory %s\n' "${target}"
+    printf 'make --no-print-directory -C %s %s\n' "${repo_root}" "${target}"
     [[ "${target}" != "${failed_target}" ]] || break
   done > "${ci_gate_case}/expected-failed-trace"
   cmp -s "${ci_gate_case}/expected-failed-trace" "${ci_gate_case}/trace" \

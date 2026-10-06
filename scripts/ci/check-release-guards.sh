@@ -1,461 +1,474 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-make_bin="$(command -v make)"
+# Release effects are file-backed stubs, never real Git mutations.
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
-trap 'rm -rf -- "${work_dir}"' EXIT
-
-fail() {
-  echo "error: $*" >&2
-  exit 1
-}
-
-changelog_case="${work_dir}/changelog"
-mkdir -p "${changelog_case}/bin" "${changelog_case}/docs/changelog"
-printf 'version = "0.8.0"\n' > "${changelog_case}/Cargo.toml"
-printf -- "- \`0.8.1\` release\n" > "${changelog_case}/CHANGELOG.md"
-printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
-printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
-printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/docs/library-usage.md"
-cat > "${changelog_case}/bin/git" <<'EOF'
+trap 'rm -rf "$work_dir"' EXIT
+export REAL_MAKE REAL_GIT
+REAL_MAKE="$(command -v make)"
+REAL_GIT="$(command -v git)"
+fixture_native_path="$PATH"
+mkdir -p "$work_dir/bin"
+cat > "$work_dir/bin/git" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "${1:-}" != "show" ]]; then
-  exit 2
-fi
-case "${2:-}" in
-  HEAD:CHANGELOG.md)
-    cat CHANGELOG.md
-    ;;
-  HEAD:docs/changelog/0.8.md)
-    cat docs/changelog/0.8.md
-    ;;
-  *)
-    exit 1
-    ;;
-esac
-EOF
-chmod +x "${changelog_case}/bin/git"
-(
-  cd "${changelog_case}"
-  PATH="${changelog_case}/bin:${PATH}" \
-    bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
-) || fail "the changelog check rejected an explicit target version"
-
-printf '## 0.8.1 - Unreleased\n' > "${changelog_case}/docs/changelog/0.8.md"
-(
-  cd "${changelog_case}"
-  PATH="${changelog_case}/bin:${PATH}" \
-    bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
-) || fail "the changelog check rejected an Unreleased target-version heading"
-printf '## 0.8.1\n' > "${changelog_case}/docs/changelog/0.8.md"
-
-printf 'ic-query = { version = "0.7" }\n' > "${changelog_case}/README.md"
-(
-  cd "${changelog_case}"
-  PATH="${changelog_case}/bin:${PATH}" \
-    bash "${repo_root}/scripts/ci/check-changelog-version.sh" 0.8.1
-) || fail "the changelog check still requires pre-bumped dependency examples"
-printf 'ic-query = { version = "0.8" }\n' > "${changelog_case}/README.md"
-
-cat > "${changelog_case}/bin/bash" <<'EOF'
-#!/bin/bash
-printf '%s\n' "$*" > "${TRACE_FILE}"
-EOF
-chmod +x "${changelog_case}/bin/bash"
-(
-  cd "${changelog_case}"
-  PATH="${changelog_case}/bin:${PATH}" TRACE_FILE="${changelog_case}/make-trace" \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
-      CHANGELOG_VERSION=0.8.1 changelog-check
-) || fail "the Make changelog target rejected an explicit target version"
-[[ "$(<"${changelog_case}/make-trace")" \
-    == "scripts/ci/check-changelog-version.sh 0.8.1" ]] \
-  || fail "the Make changelog target did not forward the explicit target version"
-
-bump_case="${work_dir}/bump"
-mkdir -p "${bump_case}/bin" "${bump_case}/docs"
-printf 'version = "0.8.0"\n' > "${bump_case}/Cargo.toml"
-printf 'ic-query = { version = "0.8", default-features = false }\n' \
-  > "${bump_case}/README.md"
-printf 'ic-query = { version = "0.8", features = ["host"] }\n' \
-  > "${bump_case}/docs/library-usage.md"
-cat > "${bump_case}/bin/bash" <<'EOF'
-#!/bin/bash
-printf 'changelog %s\n' "$*" >> "${TRACE_FILE}"
-exit "${CHANGELOG_STATUS:-0}"
-EOF
-cat > "${bump_case}/bin/make" <<'EOF'
-#!/bin/bash
-printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-case "${!#}" in
-  ensure-clean) exit "${CLEAN_STATUS:-0}" ;;
-  ci)
-    [[ "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION:-0.8.1}" ]] || exit 42
-    bash scripts/ci/check-changelog-version.sh "${CHANGELOG_VERSION}" || exit "$?"
-    exit "${CI_STATUS:-23}"
-    ;;
+source_sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+release_sha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+tag_sha=cccccccccccccccccccccccccccccccccccccccc
+resolve() { if [[ "$1" == HEAD ]]; then cat head; else printf '%s\n' "$1"; fi; }
+ancestor() {
+  local cursor
+  cursor="$(resolve "$2")"
+  while [[ "$cursor" != "$1" ]]; do
+    [[ -f "commits/$cursor/parent" ]] || return 1
+    cursor="$(cat "commits/$cursor/parent")"
+  done
+}
+snapshot() {
+  mkdir -p "commits/$1/files"
+  cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$1/files/"
+  cp -R docs "commits/$1/files/"
+}
+case "$1" in
+  check-ref-format) [[ "$2" == refs/heads/main ]] ;;
+  symbolic-ref) echo main ;;
+  remote) echo "${FIXTURE_DESTINATION:-https://example.invalid/ic-query}" ;;
+  hash-object) exec "$REAL_GIT" hash-object --stdin ;;
+  rev-parse)
+    case "${!#}" in
+      --show-toplevel) pwd ;;
+      release-state) echo .release-state ;;
+      HEAD) cat head ;;
+      *'^{tree}') name="${!#}"; name="$(resolve "${name%\^\{tree\}}")"; cat "commits/$name/tree" ;;
+      refs/tags/*'^{commit}') name="${!#}"; cat "tags/${name#refs/tags/}" ;;
+      refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]]; echo "$tag_sha" ;;
+      *) exit 2 ;;
+    esac ;;
+  diff-index) [[ "${FIXTURE_DIRTY:-}" != yes ]] ;;
+  diff)
+    case "$2" in
+      --binary) cat Cargo.toml Cargo.lock CHANGELOG.md ;;
+      --cached) [[ -z "${FIXTURE_CHANGED_PATH:-}" ]] || printf '%s\0' "$FIXTURE_CHANGED_PATH" ;;
+      --name-only)
+        [[ -z "${FIXTURE_CHANGED_PATH:-}" ]] || printf '%s\0' "$FIXTURE_CHANGED_PATH"
+        if [[ "$#" == 5 && "$4" == "$source_sha" && -f descendant ]]; then
+          printf 'scripts/release/callback-fix.txt\0'
+        fi ;;
+      --quiet) [[ "${FIXTURE_DIRTY:-}" != yes ]] ;;
+      *) exit 2 ;;
+    esac ;;
+  ls-files)
+    if [[ "${FIXTURE_INVENTORY_FAIL:-}" == yes && "$(cat head)" != "$source_sha" ]]; then
+      [[ -z "${FIXTURE_INVENTORY_OUTPUT:-}" ]] || echo "$FIXTURE_INVENTORY_OUTPUT"
+      exit 9
+    fi
+    [[ -z "${FIXTURE_UNTRACKED:-}" ]] || echo "$FIXTURE_UNTRACKED" ;;
+  write-tree) echo dddddddddddddddddddddddddddddddddddddddd ;;
+  rev-list)
+    range="${!#}"; base="${range%..HEAD}"; cursor="$(cat head)"; history=""
+    while [[ "$cursor" != "$base" ]]; do
+      [[ -f "commits/$cursor/parent" ]] || exit 1
+      history="$cursor${history:+$'\n'$history}"
+      cursor="$(cat "commits/$cursor/parent")"
+    done
+    [[ -z "$history" ]] || printf '%s\n' "$history" ;;
+  merge-base) ancestor "$3" "$4" ;;
+  log)
+    case "$3" in
+      --format=%P) cat "commits/$4/parent" ;;
+      --format=%s) cat "commits/$4/subject" ;;
+      *) exit 2 ;;
+    esac ;;
+  tag)
+    case "$2" in
+      --list) if [[ -f "tags/$3^{commit}" ]]; then printf '%s\n' "$3"; fi ;;
+      -a)
+        [[ "$#" == 6 && -f "commits/$4/parent" && "$5" == -m && "$6" == "Release ${3#v}" ]]
+        mkdir -p tags
+        printf '%s\n' "$4" > "tags/$3^{commit}"
+        printf '%s\n' "${3#v}" > tag
+        echo tag >> events ;;
+      *) exit 2 ;;
+    esac ;;
+  cat-file) [[ -f tag ]]; echo tag ;;
+  ls-remote)
+    [[ "${FIXTURE_REMOTE_FAIL:-}" != yes ]] || exit 47
+    for ref in "$@"; do
+      case "$ref" in
+        refs/heads/main) if [[ -f remote-head ]]; then printf '%s\t%s\n' "$(cat remote-head)" "$ref"; fi ;;
+        refs/tags/*) if [[ -f remote-tag && "$(cat remote-tag-name)" == "$ref" ]]; then printf '%s\t%s\n' "$(cat remote-tag)" "$ref"; fi ;;
+      esac
+    done ;;
+  add)
+    [[ "$#" == 8 && "$2" == -- && "$3" == Cargo.toml && "$4" == Cargo.lock && "$5" == README.md \
+      && "$6" == docs/library-usage.md && "$7" == CHANGELOG.md \
+      && "$8" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]]
+    mkdir -p index
+    cp Cargo.toml Cargo.lock README.md CHANGELOG.md index/
+    cp -R docs index/
+    echo stage >> events ;;
+  commit)
+    [[ "$#" == 3 && "$2" == -m && "$3" == "Release $(cat candidate)" ]]
+    if [[ -d "commits/$release_sha" ]]; then
+      release_sha="$(printf '%s\n' "$3" "$(cat head)" | "$REAL_GIT" hash-object --stdin)"
+    fi
+    snapshot "$release_sha"
+    cp head "commits/$release_sha/parent"
+    printf '%s\n' "$3" > "commits/$release_sha/subject"
+    echo dddddddddddddddddddddddddddddddddddddddd > "commits/$release_sha/tree"
+    echo "$release_sha" > head
+    echo commit >> events ;;
+  push)
+    [[ "$#" == 6 && "$2" == --no-follow-tags && "$3" == --atomic && "$4" == origin \
+      && "$5" == *:refs/heads/main && "$6" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]]
+    push_head="$(resolve "${5%:refs/heads/main}")"
+    if [[ -f remote-head ]]; then ancestor "$(cat remote-head)" "$push_head"; fi
+    printf '%s %s\n' "$push_head" "$(cat tag)" >> pushes
+    echo push >> events
+    [[ "${FIXTURE_ATOMIC_UNSUPPORTED:-}" != yes ]] || exit 47
+    [[ "${FIXTURE_BEFORE_PUSH:-}" != yes ]] || exit 47
+    echo "$push_head" > remote-head
+    echo "$tag_sha" > remote-tag
+    printf 'refs/tags/v%s\n' "$(cat tag)" > remote-tag-name
+    [[ "${FIXTURE_LOST_PUSH_REPLY:-}" != yes ]] || exit 47 ;;
+  show)
+    if [[ "$2" == :* ]]; then cat "index/${2#*:}"; exit; fi
+    name="$(resolve "${2%%:*}")"
+    printf '%s %s\n' "$name" "${2#*:}" >> reads
+    cat "commits/$name/files/${2#*:}" ;;
   *) exit 2 ;;
 esac
-EOF
-cat > "${bump_case}/bin/cargo" <<'EOF'
-#!/bin/bash
-version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
-printf 'cargo %s version=%s\n' "$*" "${version}" >> "${TRACE_FILE}"
-exit 2
-EOF
-chmod +x "${bump_case}/bin/bash" "${bump_case}/bin/make" "${bump_case}/bin/cargo"
-before_bump="$(<"${bump_case}/Cargo.toml")"
-set +e
-(
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CHANGELOG_STATUS=29 \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
-) >/dev/null 2>&1
-changelog_status="$?"
-set -e
-[[ "${changelog_status}" -eq 29 ]] \
-  || fail "the bump script did not propagate a missing target changelog"
-[[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
-  || fail "the bump script edited version metadata after a failed changelog gate"
-printf '%s\n' \
-  'make --no-print-directory ensure-clean' \
-  'make --no-print-directory ci' \
-  'changelog scripts/ci/check-changelog-version.sh 0.8.1' \
-  > "${bump_case}/expected-trace"
-cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
-  || fail "the bump script did not stop after the failed target changelog check"
-
-: > "${bump_case}/trace"
-set +e
-(
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
-) >/dev/null 2>&1
-bump_status="$?"
-set -e
-[[ "${bump_status}" -eq 23 ]] || fail "the bump script did not propagate a failing CI gate"
-[[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
-  || fail "the bump script edited version metadata before CI passed"
-cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
-  || fail "the bump script did not check cleanliness and the target changelog before stopping at failed CI"
-
-: > "${bump_case}/trace"
-if (
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CLEAN_STATUS=31 \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
-) >/dev/null 2>&1; then
-  dirty_bump_status=0
-else
-  dirty_bump_status="$?"
-fi
-[[ "${dirty_bump_status}" -eq 31 ]] \
-  || fail "the bump script did not preserve a failed cleanliness check"
-[[ "$(<"${bump_case}/Cargo.toml")" == "${before_bump}" ]] \
-  || fail "the bump script edited version metadata after a failed cleanliness check"
-printf '%s\n' 'make --no-print-directory ensure-clean' > "${bump_case}/expected-clean-trace"
-cmp -s "${bump_case}/expected-clean-trace" "${bump_case}/trace" \
-  || fail "the bump script did not stop after the failed cleanliness check"
-
-: > "${bump_case}/trace"
-(
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" patch
-) >/dev/null 2>&1 \
-  || fail "the bump script rejected a successful CI gate"
-[[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.8.1"' ]] \
-  || fail "the bump script did not update version metadata after CI passed"
-cmp -s "${bump_case}/expected-trace" "${bump_case}/trace" \
-  || fail "the successful bump did not run cleanliness, CI, and the target changelog in order"
-
-: > "${bump_case}/trace"
-(
-  cd "${bump_case}"
-  PATH="${bump_case}/bin:${PATH}" TRACE_FILE="${bump_case}/trace" CI_STATUS=0 \
-    EXPECTED_CHANGELOG_VERSION=0.9.0 \
-    /bin/bash "${repo_root}/scripts/release/bump-version.sh" minor
-) >/dev/null 2>&1 \
-  || fail "the bump script failed to automate dependency example versions"
-[[ "$(<"${bump_case}/Cargo.toml")" == 'version = "0.9.0"' ]] \
-  || fail "the minor bump did not update version metadata"
-grep -Fq 'ic-query = { version = "0.9", default-features = false }' \
-  "${bump_case}/README.md" \
-  || fail "the minor bump did not update the README dependency example"
-grep -Fq 'ic-query = { version = "0.9", features = ["host"] }' \
-  "${bump_case}/docs/library-usage.md" \
-  || fail "the minor bump did not update the library dependency example"
-
-clean_case="${work_dir}/clean"
-mkdir -p "${clean_case}/bin"
-cat > "${clean_case}/bin/git" <<'EOF'
-#!/usr/bin/env bash
-case "${1:-}" in
-  diff-index)
-    exit 0
-    ;;
-  ls-files)
-    printf 'untracked-release-note.md\n'
-    exit 0
-    ;;
-  *)
-    exit 2
-    ;;
-esac
-EOF
-chmod +x "${clean_case}/bin/git"
-set +e
-(
-  cd "${clean_case}"
-  PATH="${clean_case}/bin:${PATH}" \
-    make --no-print-directory -f "${repo_root}/Makefile" ensure-clean
-) >/dev/null 2>&1
-clean_status="$?"
-set -e
-[[ "${clean_status}" -ne 0 ]] || fail "ensure-clean accepted an untracked file"
-
-stage_case="${work_dir}/stage"
-mkdir -p "${stage_case}/bin"
-cat > "${stage_case}/bin/git" <<'EOF'
-#!/usr/bin/env bash
-printf 'git %s\n' "$*" > "${TRACE_FILE}"
-EOF
-chmod +x "${stage_case}/bin/git"
-(
-  cd "${stage_case}"
-  PATH="${stage_case}/bin:${PATH}" TRACE_FILE="${stage_case}/trace" \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-stage
-) >/dev/null
-expected_stage='git add Cargo.toml Cargo.lock README.md docs/library-usage.md'
-[[ "$(<"${stage_case}/trace")" == "${expected_stage}" ]] \
-  || fail "release-stage omitted a file generated by the version bump"
-
-commit_case="${work_dir}/commit"
-mkdir -p "${commit_case}/bin"
-printf 'version = "0.8.1"\n' > "${commit_case}/Cargo.toml"
-cat > "${commit_case}/bin/git" <<'EOF'
+STUB
+cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-
-case "${1:-}" in
-  rev-parse)
-    exit 1
-    ;;
-  diff)
-    case "$*" in
-      'diff --quiet --')
-        exit "${UNSTAGED_STATUS:-0}"
-        ;;
-      'diff --cached --quiet --')
-        exit 1
-        ;;
-      'diff --cached --name-only --diff-filter=ACDMRTUXB --')
-        printf '%s\n' "${STAGED_PATH:-Cargo.toml}"
-        ;;
-      *)
-        exit 2
-        ;;
-    esac
-    ;;
-  diff-index)
-    exit "${POST_COMMIT_DIRTY_STATUS:-0}"
-    ;;
-  ls-files)
-    [[ -z "${UNTRACKED_PATH:-}" ]] || printf '%s\n' "${UNTRACKED_PATH}"
-    ;;
-  commit)
-    : > "${COMMIT_MARKER}"
-    exit "${COMMIT_STATUS:-0}"
-    ;;
-  tag)
-    : > "${TAG_MARKER}"
-    exit 0
-    ;;
-  *)
-    exit 2
-    ;;
+printf 'cargo %s\n' "$*" >> events
+case "$*" in
+  'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
+  'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
+  generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
+  *) exit 2 ;;
 esac
-EOF
-chmod +x "${commit_case}/bin/git"
-
-if (
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" COMMIT_STATUS=37 \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null 2>&1; then
-  commit_status=0
-else
-  commit_status="$?"
-fi
-[[ "${commit_status}" -ne 0 ]] || fail "release-commit hid a failed commit"
-[[ -e "${commit_case}/committed" ]] || fail "release-commit did not reach the failing commit"
-[[ ! -e "${commit_case}/tagged" ]] || fail "release-commit tagged after a failed commit"
-
-rm -f "${commit_case}/committed" "${commit_case}/tagged"
-if (
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" UNSTAGED_STATUS=1 \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null 2>&1; then
-  fail "release-commit accepted unstaged changes"
-fi
-[[ ! -e "${commit_case}/committed" ]] \
-  || fail "release-commit committed while unstaged changes remained"
-
-if (
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" UNTRACKED_PATH=release-notes.tmp \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null 2>&1; then
-  fail "release-commit accepted an untracked file"
-fi
-[[ ! -e "${commit_case}/committed" ]] \
-  || fail "release-commit committed while an untracked file remained"
-
-if (
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" STAGED_PATH=unrelated.txt \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null 2>&1; then
-  fail "release-commit accepted an unexpected staged path"
-fi
-[[ ! -e "${commit_case}/committed" ]] \
-  || fail "release-commit committed an unexpected staged path"
-
-if (
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" POST_COMMIT_DIRTY_STATUS=1 \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null 2>&1; then
-  fail "release-commit accepted post-commit working-tree changes"
-fi
-[[ -e "${commit_case}/committed" ]] \
-  || fail "the post-commit cleanliness guard ran before the commit"
-[[ ! -e "${commit_case}/tagged" ]] \
-  || fail "release-commit tagged a commit that left working-tree changes"
-
-rm -f "${commit_case}/committed" "${commit_case}/tagged"
-(
-  cd "${commit_case}"
-  PATH="${commit_case}/bin:${PATH}" COMMIT_MARKER="${commit_case}/committed" \
-    TAG_MARKER="${commit_case}/tagged" \
-    STAGED_PATH=$'Cargo.toml\nCargo.lock\nREADME.md\ndocs/library-usage.md' \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" release-commit
-) >/dev/null \
-  || fail "release-commit rejected a complete clean staged release"
-[[ -e "${commit_case}/committed" && -e "${commit_case}/tagged" ]] \
-  || fail "release-commit did not commit and tag the complete release"
-
-push_case="${work_dir}/push"
-mkdir -p "${push_case}/bin"
-printf 'version = "0.8.1"\n' > "${push_case}/Cargo.toml"
-cat > "${push_case}/bin/git" <<'EOF'
-#!/usr/bin/env bash
-case "${1:-}" in
-  diff-index)
-    exit 0
-    ;;
-  ls-files)
-    exit 0
-    ;;
-  rev-parse)
-    case "${2:-}" in
-      'v0.8.1^{}') printf '%s\n' "${TAG_COMMIT}" ;;
-      HEAD) printf '%s\n' "${HEAD_COMMIT}" ;;
-      *) exit 2 ;;
-    esac
-    ;;
-  push)
-    : > "${PUSH_MARKER}"
-    exit "${PUSH_STATUS:-0}"
-    ;;
-  *)
-    exit 2
-    ;;
-esac
-EOF
-chmod +x "${push_case}/bin/git"
-cat > "${push_case}/bin/make" <<'EOF'
-#!/usr/bin/env bash
-exit 83
-EOF
-chmod +x "${push_case}/bin/make"
-set +e
-(
-  cd "${push_case}"
-  PATH="${push_case}/bin:${PATH}" PUSH_MARKER="${push_case}/pushed" \
-    PUSH_STATUS=41 TAG_COMMIT=release HEAD_COMMIT=release \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
-      MAKE="${push_case}/bin/make" release-push
-) >/dev/null 2>&1
-push_status="$?"
-set -e
-[[ "${push_status}" -ne 0 ]] || fail "release-push hid a failed push"
-[[ -e "${push_case}/pushed" ]] || fail "release-push did not push a validated release"
-
-rm -f "${push_case}/pushed"
-set +e
-(
-  cd "${push_case}"
-  PATH="${push_case}/bin:${PATH}" PUSH_MARKER="${push_case}/pushed" \
-    TAG_COMMIT=stale HEAD_COMMIT=current \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
-      MAKE="${push_case}/bin/make" release-push
-) >/dev/null 2>&1
-stale_tag_status="$?"
-set -e
-[[ "${stale_tag_status}" -ne 0 ]] || fail "release-push accepted a stale release tag"
-[[ ! -e "${push_case}/pushed" ]] || fail "release-push pushed a stale release tag"
-
-(
-  cd "${push_case}"
-  PATH="${push_case}/bin:${PATH}" PUSH_MARKER="${push_case}/pushed" \
-    TAG_COMMIT=release HEAD_COMMIT=release \
-    "${make_bin}" --no-print-directory -f "${repo_root}/Makefile" \
-      MAKE="${push_case}/bin/make" release-push
-) >/dev/null \
-  || fail "release-push rejected a validated release or ran an extra gate"
-[[ -e "${push_case}/pushed" ]] \
-  || fail "release-push did not push the validated release"
-
-sequence_case="${work_dir}/sequence"
-mkdir -p "${sequence_case}/bin"
-cat > "${sequence_case}/bin/make" <<'EOF'
+STUB
+cat > "$work_dir/bin/make" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-step="${!#}"
-printf '%s\n' "${step}" >> "${TRACE_FILE}"
-[[ "${step}" != "${FAIL_STEP:-}" ]] || exit 43
-EOF
-chmod +x "${sequence_case}/bin/make"
-for release_kind in patch minor major; do
-  expected_steps=("${release_kind}" release-stage release-commit release-push)
-  : > "${sequence_case}/trace"
-  TRACE_FILE="${sequence_case}/trace" \
-    "${make_bin}" --no-print-directory -j4 -f "${repo_root}/Makefile" \
-      MAKE="${sequence_case}/bin/make" "release-${release_kind}" >/dev/null
-  printf '%s\n' "${expected_steps[@]}" > "${sequence_case}/expected-trace"
-  cmp -s "${sequence_case}/expected-trace" "${sequence_case}/trace" \
-    || fail "release-${release_kind} did not execute its steps in order"
+for argument in "$@"; do
+  [[ "$argument" != "${FIXTURE_FAIL_TARGET:-}" ]] || exit 43
+  if [[ "$argument" == ci ]]; then
+    echo validate >> events
+    printf 'retained build output\n' > target/retained-output
+    [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
+    [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
+    exit
+  fi
+done
+"$REAL_MAKE" "$@"
+if [[ "${FIXTURE_LOST_PREPARE_REPLY:-}" == yes && "$*" == *release-prepare-version* ]]; then exit 43; fi
+STUB
+chmod +x "$work_dir/bin/"*
+export PATH="$work_dir/bin:$PATH"
+fail() { echo "release fixture failed: $*" >&2; exit 1; }
+new_fixture() {
+  local name="$1" kind="$2" candidate minor
+  mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
+  cd "$work_dir/$name"
+  cp "$repo_root/Makefile" Makefile
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk} scripts/ci/
+  cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
+  cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
+  candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
+  minor="${candidate%.*}"
+  printf '%s\n' "$candidate" > candidate
+  printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n' > 'head'
+  cat > Cargo.toml <<'MANIFEST'
+[workspace.package]
+version = "0.46.5"
+[workspace.dependencies]
+ic-query = { path = "crates/ic-query", version = "0.46.5", default-features = false }
+MANIFEST
+  cat > Cargo.lock <<'LOCK'
+version = 4
 
-  : > "${sequence_case}/expected-failed-trace"
-  for failed_step in "${expected_steps[@]}"; do
-    printf '%s\n' "${failed_step}" >> "${sequence_case}/expected-failed-trace"
-    : > "${sequence_case}/trace"
-    if TRACE_FILE="${sequence_case}/trace" FAIL_STEP="${failed_step}" \
-      "${make_bin}" --no-print-directory -j4 -f "${repo_root}/Makefile" \
-        MAKE="${sequence_case}/bin/make" "release-${release_kind}" >/dev/null 2>&1; then
-      fail "release-${release_kind} hid a failure in ${failed_step}"
+[[package]]
+name = "external-fixture"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "retained-checksum"
+
+[[package]]
+name = "ic-query"
+version = "0.46.5"
+dependencies = ["external-fixture"]
+
+[[package]]
+name = "ic-query-cli"
+version = "0.46.5"
+dependencies = ["ic-query"]
+LOCK
+  printf 'ic-query = { version = "0.46", default-features = false }\n' > README.md
+  cp README.md docs/library-usage.md
+  printf "# Changelog\n\n## [%s]\n\n- Current batch.\n\n## [0.46.x] - 2026-10-04\n\n- \`0.46.5\` historical release.\n" "$candidate" > CHANGELOG.md
+  printf '# %s Changelog\n\n## %s\n\n- Current batch.\n' "$minor" "$candidate" > "docs/changelog/$minor.md"
+  cp Cargo.lock original-lock
+  mkdir -p commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files
+  cp Cargo.toml Cargo.lock README.md CHANGELOG.md commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
+  cp -R docs commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
+  printf 'retained artifact\n' > target/original-artifact
+}
+run_release() {
+  if [[ "$1" == resume ]]; then
+    "$REAL_MAKE" --no-print-directory release-resume "VERSION=$2" > output 2>&1
+  else
+    "$REAL_MAKE" --no-print-directory "release-$1" > output 2>&1
+  fi
+}
+expect_failure() { if run_release "$@"; then fail "unexpected successful $*"; fi; }
+count_event() { awk -v event="$1" '$0 == event { count++ } END { print count+0 }' events; }
+check_complete() {
+  local candidate minor expected_lock
+  candidate="$(cat candidate)"
+  minor="${candidate%.*}"
+  [[ "$(perl scripts/release/metadata.pl version)" == "$candidate" && "$(cat tag)" == "$candidate" ]]
+  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]]
+  [[ "$(tail -n 1 ".release-state/$candidate.plan")" == complete && ! -e .release-state/lock ]]
+  [[ -f target/original-artifact && -f target/retained-output ]]
+  grep -Fxq "## [$candidate] - $(date -u +%F)" CHANGELOG.md
+  grep -Fxq "## $candidate - $(date -u +%F)" "docs/changelog/$minor.md"
+  grep -Fq -- "- \`0.46.5\` historical release." CHANGELOG.md
+  expected_lock="$(sed "s/0.46.5/$candidate/g" original-lock)"
+  [[ "$(cat Cargo.lock)" == "$expected_lock" ]] || fail 'dependency selection changed'
+  bash scripts/ci/check-changelog-version.sh "$candidate"
+}
+commit_fix() {
+  local kind="$1" previous candidate minor fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  previous="$(perl scripts/release/metadata.pl version)"
+  candidate="$(bash scripts/ci/next-release-version.sh "$previous" "$kind")"
+  minor="${candidate%.*}"
+  printf '%s\n' "$candidate" > candidate
+  printf '# Changelog\n\n## [%s]\n\n- Reviewed callback fix.\n\n' "$candidate" > pending-notes
+  cat CHANGELOG.md >> pending-notes
+  mv pending-notes CHANGELOG.md
+  if [[ -f "docs/changelog/$minor.md" ]]; then
+    printf '# %s Changelog\n\n## %s\n\n- Reviewed callback fix.\n\n' "$minor" "$candidate" > pending-notes
+    cat "docs/changelog/$minor.md" >> pending-notes
+    mv pending-notes "docs/changelog/$minor.md"
+  else
+    printf '# %s Changelog\n\n## %s\n\n- Reviewed callback fix.\n' "$minor" "$candidate" > "docs/changelog/$minor.md"
+  fi
+  printf 'Reviewed later source change\n' >> README.md
+  mkdir -p "commits/$fix/files"
+  cp head "commits/$fix/parent"
+  printf 'Fix release callback\n' > "commits/$fix/subject"
+  printf '%s\n' "$fix" > "commits/$fix/tree"
+  cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$fix/files/"
+  cp -R docs "commits/$fix/files/"
+  printf '%s\n' "$fix" > 'head'
+  : > descendant
+}
+save_old_evidence() {
+  head -n 10 .release-state/0.47.0.plan > original-plan
+  cp .release-state/0.47.0.validation original-binding
+  cp -R .release-state/0.47.0.verify.* original-evidence
+  if [[ -f 'tags/v0.47.0^{commit}' ]]; then cp 'tags/v0.47.0^{commit}' original-tag; fi
+}
+check_old_evidence() {
+  head -n 10 .release-state/0.47.0.plan > reconciled-plan
+  cmp original-plan reconciled-plan
+  cmp original-binding .release-state/0.47.0.validation
+  if [[ -f original-tag ]]; then cmp original-tag 'tags/v0.47.0^{commit}'; fi
+  [[ "$(cat 'tags/v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]]
+  diff -r original-evidence .release-state/0.47.0.verify.*
+  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
+  grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
+}
+for kind in patch minor major; do
+  new_fixture "success-$kind" "$kind"
+  FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \
+    || { cat output; fail "$kind"; }
+  check_complete
+  awk '/^(validate|stage|commit|tag|push)$/ { print }' events > observed
+  printf '%s\n' validate stage commit tag push > expected
+  cmp expected observed
+  new_fixture "lost-push-$kind" "$kind"
+  FIXTURE_LOST_PUSH_REPLY=yes expect_failure "$kind"
+  cp Cargo.lock saved-lock
+  run_release "$kind" || { cat output; fail 'push reconciliation'; }
+  check_complete
+  cmp saved-lock Cargo.lock
+  new_fixture "lost-prepare-$kind" "$kind"
+  FIXTURE_LOST_PREPARE_REPLY=yes expect_failure "$kind"
+  run_release "$kind" || { cat output; fail 'preparation reconciliation'; }
+  check_complete
+  [[ "$(count_event validate)" == 1 ]] || fail 'validation was replayed after preparation'
+done
+for next_kind in patch minor major resume; do
+  for outcome in before-push lost-reply; do
+    new_fixture "descendant-$next_kind-$outcome" minor
+    case "$outcome" in
+      before-push) FIXTURE_BEFORE_PUSH=yes expect_failure minor ;;
+      lost-reply) FIXTURE_LOST_PUSH_REPLY=yes expect_failure minor ;;
+    esac
+    save_old_evidence
+    if [[ "$next_kind" == resume ]]; then commit_fix patch; else commit_fix "$next_kind"; fi
+    cp Cargo.lock original-lock
+    if [[ "$next_kind" == resume ]]; then
+      run_release resume 0.47.0 || { cat output; fail 'descendant exact resume'; }
+      [[ "$(perl scripts/release/metadata.pl version)" == 0.47.0 && "$(count_event validate)" == 1 ]]
+      [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]]
+      [[ ! -e .release-state/0.47.1.plan ]]
+    else
+      run_release "$next_kind" || { cat output; fail 'descendant ordinary increment'; }
+      [[ "$(perl scripts/release/metadata.pl version)" == "$(cat candidate)" ]]
+      [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
+      [[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]]
+      sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
+      cmp expected-lock Cargo.lock
+      next_evidence="$(cat ".release-state/$(cat candidate).validation")"
+      [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]]
+      bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
     fi
-    cmp -s "${sequence_case}/expected-failed-trace" "${sequence_case}/trace" \
-      || fail "release-${release_kind} continued after ${failed_step} failed"
+    check_old_evidence
+    if [[ "$outcome" == before-push ]]; then
+      [[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]]
+    elif [[ "$next_kind" == resume ]]; then
+      [[ "$(count_event push)" == 1 ]]
+    else
+      [[ "$(count_event push)" == 2 ]]
+    fi
+    [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]]
   done
 done
+for target in release-committed-check release-tagged-check; do
+  new_fixture "descendant-late-$target" minor
+  FIXTURE_FAIL_TARGET="$target" expect_failure minor
+  [[ "$(count_event commit)" == 1 && "$(count_event push)" == 0 ]]
+  save_old_evidence
+  commit_fix patch
+  run_release patch || { cat output; fail 'historical late callback retry'; }
+  check_old_evidence
+  [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
+  [[ "$(cat tag)" == 0.47.1 && "$(tail -n 1 .release-state/0.47.1.plan)" == complete ]]
+done
+new_fixture descendant-gate-retry minor
+FIXTURE_BEFORE_PUSH=yes expect_failure minor
+save_old_evidence
+commit_fix patch
+FIXTURE_GATE_FAILURE=yes expect_failure patch
+check_old_evidence
+[[ "$(count_event commit)" == 1 && ! -e .release-state/0.47.1.plan ]]
+failed_next_evidence=(.release-state/0.47.1.verify.*)
+cp "${failed_next_evidence[0]}/validation.log" failed-next-log
+run_release patch || { cat output; fail 'descendant new gate retry'; }
+cmp failed-next-log "${failed_next_evidence[0]}/validation.log"
+[[ "$(count_event validate)" == 3 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
+check_old_evidence
+new_fixture descendant-remote-tip minor
+FIXTURE_BEFORE_PUSH=yes expect_failure minor
+save_old_evidence
+commit_fix patch
+cp head remote-head
+run_release resume 0.47.0 || { cat output; fail 'confirmed remote descendant'; }
+[[ "$(cat remote-head)" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]]
+[[ "$(sed -n '2p' pushes)" == 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee 0.47.0' ]]
+check_old_evidence
+for output in empty partial; do
+  new_fixture "inventory-$output" patch
+  if [[ "$output" == partial ]]; then
+    FIXTURE_INVENTORY_FAIL=yes FIXTURE_INVENTORY_OUTPUT=caller-owned.txt expect_failure patch
+  else
+    FIXTURE_INVENTORY_FAIL=yes expect_failure patch
+  fi
+  [[ "$(count_event commit)" == 1 && ! -e tag && ! -e remote-head ]]
+  [[ "$(tail -n 1 .release-state/0.46.6.plan)" == commit ]]
+  run_release patch || { cat output; fail 'inventory recovery'; }
+  check_complete
+done
+for conflict in payload history tag destination remote-unavailable remote-diverged inventory; do
+  new_fixture "descendant-conflict-$conflict" minor
+  FIXTURE_BEFORE_PUSH=yes expect_failure minor
+  commit_fix patch
+  cp .release-state/0.47.0.plan saved-plan
+  case "$conflict" in
+    payload) printf 'conflicting release payload\n' >> commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/files/README.md ;;
+    history) printf 'Unexpected subject\n' > commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/subject ;;
+    tag) printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n' > 'tags/v0.47.0^{commit}' ;;
+    destination) export FIXTURE_DESTINATION=https://example.invalid/other ;;
+    remote-unavailable) export FIXTURE_REMOTE_FAIL=yes ;;
+    remote-diverged) printf 'ffffffffffffffffffffffffffffffffffffffff\n' > remote-head ;;
+    inventory) export FIXTURE_INVENTORY_FAIL=yes ;;
+  esac
+  expect_failure patch
+  cmp saved-plan .release-state/0.47.0.plan
+  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]]
+  [[ "$(count_event validate)" == 1 && ! -e .release-state/0.47.1.plan ]]
+  unset FIXTURE_DESTINATION FIXTURE_REMOTE_FAIL FIXTURE_INVENTORY_FAIL
+done
+new_fixture explicit-resume patch
+FIXTURE_LOST_PUSH_REPLY=yes expect_failure patch
+run_release resume 0.46.6 || { cat output; fail 'explicit resume'; }
+check_complete
+new_fixture conflicting-selections patch
+if "$REAL_MAKE" --no-print-directory release-patch release-minor > output 2>&1; then
+  fail 'conflicting release selections were accepted'
+fi
+[[ ! -e events && ! -e .release-state && ! -e tag ]]
+cmp original-lock Cargo.lock
+for notes in root detail; do
+  new_fixture "candidate-mismatch-$notes" patch
+  if [[ "$notes" == root ]]; then notes_path=CHANGELOG.md; else notes_path=docs/changelog/0.46.md; fi
+  printf '# Changelog\n\n## [9.9.9]\n' > "$notes_path"
+  cp "$notes_path" "commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/$notes_path"
+  cp "$notes_path" conflicting-notes
+  expect_failure patch
+  cmp conflicting-notes "$notes_path"
+  cmp original-lock Cargo.lock
+  [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]]
+done
+for failure in gate missing-dependency dirty untracked; do
+  new_fixture "failure-$failure" patch
+  case "$failure" in
+    gate) FIXTURE_GATE_FAILURE=yes expect_failure patch ;;
+    missing-dependency) FIXTURE_MISSING_DEPENDENCY=yes expect_failure patch ;;
+    dirty) FIXTURE_DIRTY=yes expect_failure patch ;;
+    untracked) FIXTURE_UNTRACKED=caller-owned.txt expect_failure patch ;;
+  esac
+  [[ "$(perl scripts/release/metadata.pl version)" == 0.46.5 && ! -e tag && ! -e remote-head ]]
+  cmp original-lock Cargo.lock
+  [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]]
+  if [[ "$failure" == gate ]]; then
+    failed_logs=(.release-state/0.46.6.verify.*/validation.log)
+    [[ -f "${failed_logs[0]}" ]] || fail 'failed gate log was discarded'
+    run_release patch || { cat output; fail 'fresh gate retry'; }
+    [[ -f "${failed_logs[0]}" && "$(count_event validate)" == 2 ]]
+    check_complete
+  fi
+done
+for conflict in payload dependency identity retained-inputs unrelated; do
+  new_fixture "conflict-$conflict" patch
+  FIXTURE_LOST_PREPARE_REPLY=yes expect_failure patch
+  case "$conflict" in
+    payload) echo 'unvalidated edit' >> README.md ;;
+    dependency) sed 's/1.0.0/2.0.0/' Cargo.lock > changed; mv changed Cargo.lock ;;
+    identity) echo invalid > .release-state/0.46.6.verify.*/identity ;;
+    retained-inputs) echo 'changed evidence' >> .release-state/0.46.6.verify.*/before/Cargo.lock ;;
+    unrelated) export FIXTURE_CHANGED_PATH=src/unrelated.rs ;;
+  esac
+  expect_failure patch
+  [[ ! -e tag && ! -e remote-head && -f target/retained-output ]]
+  unset FIXTURE_CHANGED_PATH
+done
+new_fixture atomic-refusal patch
+FIXTURE_ATOMIC_UNSUPPORTED=yes expect_failure patch
+[[ ! -e remote-head && -f tag && -f target/retained-output ]]
+[[ "$(tail -n 1 .release-state/0.46.6.plan)" == push ]]
+FIXTURE_REMOTE_FAIL=yes expect_failure patch
+[[ "$(count_event push)" == 1 ]] || fail 'uncertain remote state replayed a push'
+new_fixture occupied-lock patch
+mkdir -p .release-state/lock
+echo caller-owned > .release-state/lock/owner
+expect_failure patch
+[[ "$(cat .release-state/lock/owner)" == caller-owned && ! -e events ]]
+echo 'IC Query release adapter and runner fixtures passed'
+PATH="$fixture_native_path" bash "$repo_root/scripts/ci/check-release-metadata.sh"

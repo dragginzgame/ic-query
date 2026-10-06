@@ -64,7 +64,11 @@ jobs:
 
   msrv:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [ubuntu-24.04, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.host }}
     steps:
       # actions/checkout v6
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -77,12 +81,20 @@ jobs:
         run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_MSRV" >> "$GITHUB_ENV"
       # Swatinem/rust-cache v2
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
+      - name: Prepare the selected dependency cache
+        run: cargo fetch --locked
       - name: Check MSRV
+        env:
+          CARGO_NET_OFFLINE: 'true'
         run: make msrv
 
   checks:
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [ubuntu-24.04, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.host }}
     steps:
       # actions/checkout v6
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -102,5 +114,20 @@ jobs:
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - name: Install development tools
         run: make install-dev
+      - name: Select a physical temporary directory
+        shell: bash
+        run: printf 'TMPDIR=%s\n' "$(cd "${TMPDIR:-/tmp}" && pwd -P)" >> "$GITHUB_ENV"
+      - name: Prepare the selected dependency cache
+        run: cargo fetch --locked
+      - name: Select the native system Bash
+        if: runner.os == 'macOS'
+        shell: /bin/bash --noprofile --norc -eo pipefail {0}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ic-query-system-bash"
+          ln -s /bin/bash "$RUNNER_TEMP/ic-query-system-bash/bash"
+          /bin/bash --version
+          printf '%s\n' "$RUNNER_TEMP/ic-query-system-bash" >> "$GITHUB_PATH"
       - name: Run complete CI gate
+        env:
+          CARGO_NET_OFFLINE: 'true'
         run: make ci

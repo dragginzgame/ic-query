@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.0]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Replaces the separate bump/stage/commit/push interface with one reviewed
+  release workflow. Maintainers use `make release-patch`, `make release-minor`,
+  or `make release-major`; retry reconciles the saved release, including after
+  committed fixes, then validates the requested next increment. Preserves
+  dependency selection, stages the selected release notes, retains artifacts
+  and evidence, and atomically pushes only the selected branch and tag.
+  [#2](https://github.com/dragginzgame/ic-query/issues/2),
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+- Breaking maintainer workflow change: separate bump/stage/commit/push Make
+  targets are retired, and publication requires the current version's annotated
+  tag at HEAD. CLI and Rust APIs are unchanged. Adds native macOS CI coverage
+  configuration; qualification remains pending its workflow runs.
+- Adopts Shared Tooling 0.1.4 staging and logging checks: rejects conflicting
+  pending notes before validation, checks the exact staged release payload, and
+  retains raw failed-validation logs across retries and logging failures.
+
 ## [0.46.x] - 2026-10-04 - Cache-only NNS analytics
 
 Detailed release notes: [docs/changelog/0.46.md](docs/changelog/0.46.md)
