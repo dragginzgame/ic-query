@@ -1074,7 +1074,7 @@ fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
 #[cfg(feature = "nns-host")]
 #[test]
 fn public_nns_neuron_host_api_exposes_cache_requests() {
-    let root = PathBuf::from("/tmp/ic-query-public-neuron-api");
+    let root = temp_root("public-neuron-api");
     let refresh = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
@@ -3655,7 +3655,9 @@ fn request_report_api_accepts_public_types<Request, Report, Error>(
 #[cfg(feature = "nns-host")]
 #[must_use]
 fn temp_root(name: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
+    let mut path = std::env::temp_dir()
+        .canonicalize()
+        .expect("physical temporary directory");
     path.push(format!("ic-query-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&path);
     path

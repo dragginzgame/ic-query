@@ -20,6 +20,11 @@ if [[ "${VALIDATION_RUNNER_SNAPSHOT_PATH:-}" != "$RUNNER_SOURCE" ]]; then
     exit "$snapshot_status"
 fi
 
+# These values identify only this runner's temporary source snapshot. Targets
+# may invoke a logger in another checkout; let that invocation choose its root.
+# Keep release selections, failure-log policy and nesting depth inherited.
+unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
+
 FAIL_FAST=false
 if [[ "${1:-}" == "--fail-fast" ]]; then
     FAIL_FAST=true

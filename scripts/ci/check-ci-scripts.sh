@@ -30,6 +30,7 @@ expected_ci_targets=(
   changelog-check
   shared-tooling-check
   actions-check
+  dependency-pins-check
   package-contents-check
   feature-boundary-check
   library-process-boundary-check
@@ -52,7 +53,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in changelog-check test; do
+for failed_target in changelog-check dependency-pins-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
@@ -106,6 +107,51 @@ chmod +x "${install_case}/bin/cargo"
 [[ "$(<"${install_case}/trace")" \
   == "cargo install --locked --force --path crates/ic-query-cli --bin icq" ]] \
   || fail "make install does not replace an existing local icq binary"
+
+parser_case="${work_dir}/parser"
+mkdir -p "$parser_case/"{bin,ci,scripts/ci,scripts/dev}
+cp "$repo_root/ci/tool-versions.env" "$parser_case/ci/"
+cp "$repo_root/scripts/dev/install-yq.sh" "$parser_case/scripts/dev/"
+cat > "$parser_case/bin/uname" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  -s) printf '%s\n' "$PARSER_OS" ;;
+  -m) printf '%s\n' "$PARSER_ARCH" ;;
+  *) exit 2 ;;
+esac
+EOF
+cat > "$parser_case/scripts/ci/install-yq.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$#" == 6 && "$1" == --version && "$2" == "$IC_QUERY_YQ_VERSION" \
+  && "$3" == --sha256 && "$4" == "$EXPECTED_CHECKSUM" \
+  && "$5" == --install-dir && "$6" == "$EXPECTED_DESTINATION" ]] || exit 72
+printf 'verified-parser-install\n' >> "$TRACE_FILE"
+exit "${PARSER_INSTALL_STATUS:-0}"
+EOF
+chmod +x "$parser_case/bin/uname"
+source "$repo_root/ci/tool-versions.env"
+export IC_QUERY_YQ_VERSION
+for host in Linux:x86_64 Darwin:x86_64 Darwin:arm64; do
+  case "$host" in
+    Linux:x86_64) checksum="$IC_QUERY_YQ_SHA256_LINUX_AMD64" ;;
+    Darwin:x86_64) checksum="$IC_QUERY_YQ_SHA256_DARWIN_AMD64" ;;
+    Darwin:arm64) checksum="$IC_QUERY_YQ_SHA256_DARWIN_ARM64" ;;
+  esac
+  PATH="$parser_case/bin:$PATH" PARSER_OS="${host%:*}" PARSER_ARCH="${host#*:}" \
+    EXPECTED_CHECKSUM="$checksum" EXPECTED_DESTINATION="$parser_case/tools" \
+    TRACE_FILE="$parser_case/trace" \
+    bash "$parser_case/scripts/dev/install-yq.sh" "$parser_case/tools" \
+    || fail "parser setup did not preserve the selected host version/digest/destination"
+done
+[[ "$(wc -l < "$parser_case/trace")" -eq 3 ]] || fail "parser setup skipped a supported host"
+if PATH="$parser_case/bin:$PATH" PARSER_OS=Darwin PARSER_ARCH=arm64 \
+  EXPECTED_CHECKSUM="$IC_QUERY_YQ_SHA256_DARWIN_ARM64" \
+  EXPECTED_DESTINATION="$parser_case/tools" TRACE_FILE="$parser_case/trace" \
+  PARSER_INSTALL_STATUS=73 \
+  bash "$parser_case/scripts/dev/install-yq.sh" "$parser_case/tools"; then
+  fail "parser setup hid a failed verification/installation"
+fi
 
 python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 

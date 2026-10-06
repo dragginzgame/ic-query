@@ -26,7 +26,10 @@ these commands must reject ambiguous or unsupported version inputs.
    still have different staged content. Check pending changelog/candidate
    agreement here, before the validation gate or saved preparation intent. Prepare
    the selected dependency cache before an offline gate without changing the
-   lockfile selection. Never infer a deployment destination or credentials.
+   lockfile selection. Authorized dependency changes must already have
+   [prepared every affected independent lockfile](../rules/cargo-dependencies.md#preparing-authorized-dependency-changes);
+   cache fetching stays locked and does not repair stale dependency graphs.
+   Never infer a deployment destination or credentials.
 2. **Validate.** Run the repository's documented complete release gate against
    the selected source and dependencies. Patch, minor and major use the same
    gate. Stop before version mutation if validation fails; retain failure logs
@@ -175,6 +178,29 @@ than equating it with HEAD. The current maintained adapter code runs the checks;
 the runner does not reconstruct an old checkout or substitute new validation for
 the older release. Update receipt verifier arguments and their source/tree/tag
 bindings together during adoption. A failed consumer check still stops recovery.
+
+## Nested validation and adoption fixtures
+
+Release selections propagate through Make command-line variables, including
+`MAKEFLAGS` and `MAKEOVERRIDES`. Preserve them in normal adapters and same-checkout
+nested validation. An independently configured fixture owns its own selections:
+clear inherited `MAKEFLAGS`, `MFLAGS` and `MAKEOVERRIDES` before its Make calls,
+then supply the fixture's intended release variables explicitly.
+
+The validation logger's `VALIDATION_REPOSITORY_ROOT` and
+`VALIDATION_RUNNER_SNAPSHOT_PATH` bind its temporary source snapshot. They stop
+at that runner's dispatch boundary; dispatched targets retain release selections,
+failure-log policy and nesting depth. An independent fixture must establish its
+own checkout and log destination, clearing inherited logger checkout/snapshot
+identity when it can also run under older snapshots. Do not globally strip
+release selections in the release runner to accommodate a fixture.
+
+Qualify adoption fixtures through actual Make release overrides and the actual
+logger in a distinct parent checkout, as well as standalone invocation. Use a
+cheap parent gate sentinel to catch routing errors without starting a real gate;
+verify that nested validation reaches its intended checkout, preserves selected
+release identity and retains distinct failed-attempt logs. Keep consumer fixes
+outside immutable shared snapshots until adopting a reviewed upstream revision.
 
 ## Authority and recovery
 

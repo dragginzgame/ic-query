@@ -1,7 +1,7 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
 	actions-check build changelog-check check ci ci-scripts-check clean clippy \
-	dependency-check ensure-clean feature-boundary-check fmt fmt-check help \
+	dependency-check dependency-pins-check ensure-clean feature-boundary-check fmt fmt-check help \
 	install install-dev library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check release-major release-minor release-patch release-resume \
@@ -29,8 +29,9 @@ CARGO_PACKAGE_RETRIES ?= 3
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
+YQ ?= $(REPO_ROOT)target/ci-tools/yq
 
-CI_TARGETS := changelog-check shared-tooling-check actions-check package-contents-check \
+CI_TARGETS := changelog-check shared-tooling-check actions-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
@@ -61,6 +62,7 @@ help:
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
+	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
@@ -106,6 +108,9 @@ check:
 actions-check:
 	bash scripts/ci/check-github-actions-pinned.sh
 
+dependency-pins-check:
+	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh
+
 changelog-check:
 	bash scripts/ci/check-changelog-version.sh $(CHANGELOG_VERSION)
 
@@ -129,6 +134,7 @@ shared-tooling-check:
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
+	cargo test -p ic-query-cli --example governance_artifact --locked --offline
 	python3 -m unittest discover -s scripts/canister -p 'test_*.py'
 
 canister-build:
@@ -172,6 +178,7 @@ install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
 install-dev:
+	bash scripts/dev/install-yq.sh "$(REPO_ROOT)target/ci-tools"
 	cargo install --locked ripgrep --version $(RIPGREP_VERSION)
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)

@@ -42,7 +42,7 @@ class ReceiptTests(unittest.TestCase):
     def test_accepts_exact_text_reply_and_preserves_raw_report(self):
         text = json.dumps(self.payload).encode()
         raw = b"DIDL\x00\x01\x71" + smoke.leb128(len(text)) + text
-        decoded = smoke.decode_text_reply({"response_bytes": raw.hex()})
+        decoded = smoke.decode_text_reply(json.dumps({"response_bytes": raw.hex()}))
         report = smoke.validate_report("economics", decoded, "aaaaa-aa")
         self.assertEqual(report["economics"]["transaction_fee_e8s"], 10_000)
 
@@ -50,7 +50,7 @@ class ReceiptTests(unittest.TestCase):
         for raw in (b"DIDL\x00\x01\x71\x05{}", b"DIDL\x00\x01\x71\x02{}x",
                     b"DIDL\x00\x01\x71\x80", b"DIDL\x00\x01\x7e\x00"):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
-                smoke.decode_text_reply({"response_bytes": raw.hex()})
+                smoke.decode_text_reply(json.dumps({"response_bytes": raw.hex()}))
 
     def test_rejects_wrong_collector_transport_and_identity(self):
         for key, value in (("network", "unknown"), ("schema_version", 0),

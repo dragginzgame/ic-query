@@ -24,5 +24,8 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+ic-host-tools.workspace = true
+
 [lints]
 workspace = true

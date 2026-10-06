@@ -26,8 +26,13 @@
 
 The harness exercises the four direct NNS Governance reports through
 `CanisterNnsSource` in a deployed Wasm canister. It uses the existing
-`ic-query` package's `governance_probe` example, with no additional crate,
-production command, persistence policy, or host dependency.
+`ic-query` package's `governance_probe` example and the development-only
+`governance_artifact` helper in `ic-query-cli`. The helper adopts `ic-host-tools`;
+it adds no production CLI operation or canister-runtime dependency.
+The adoption reviews released `ic-host-tools` 0.1.9 at
+[`200afa4`](https://github.com/dragginzgame/ic-host-tools/tree/200afa4a22099eb255899a01f9e464de8f0e51c1).
+The workspace lockfile selects the registry package and `tar` 0.4.46 without
+changing existing dependency versions or checksums.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
@@ -39,6 +44,9 @@ production command, persistence policy, or host dependency.
 - Rust 1.99.0, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
 - ICP CLI **1.6.0** and Python 3.10 or later.
+- The selected workspace dependency cache, including the development-only
+  `ic-host-tools` dependency. Prepare it explicitly with `cargo fetch --locked`;
+  helper compilation and validation use locked/offline Cargo commands.
 - Internet access for the first local-runtime download and enough resources
   to run the local NNS/SNS network.
 
@@ -63,6 +71,23 @@ make canister-smoke
 embeds public `candid:service` and `ic-query:build` metadata. The latter records
 the compiler, lockfile hash, and source-input hash. The final Wasm is retained
 at `target/canister-smoke/governance_probe.wasm`.
+
+The shared host helper admits core Wasm framing under a 64 MiB artifact limit,
+10,000 sections/exports and 1,000 custom sections. The builder checks the admitted
+digest again before attaching consumer-owned metadata. Inspection is structural;
+it does not replace the compiler or replica's Wasm validation. Response admission
+bounds the complete ICP JSON envelope to 8 MiB and decoded Candid bytes to 2 MiB,
+requires one Candid text value without trailing arguments/bytes, and returns that
+text unchanged for report validation. These limits apply to helper admission;
+the existing Python subprocess capture and process-group deadlines remain its
+owner's contract. Receipts retain the response before admission fails.
+
+The development-only helper can inspect an existing artifact without modifying it:
+
+```bash
+cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
+  inspect-wasm target/canister-smoke/governance_probe.wasm
+```
 
 `canister-smoke` starts a loopback-only local network with NNS canisters,
 deploys the probe there, and calls it once for each of economics, metrics,
@@ -149,10 +174,14 @@ receipt gap remains documented in the [0.38 design](design/0.38/0.38-design.md).
 
 ## CI and retention
 
-The separate `canister` CI job installs ICP CLI 1.6.0 with a pinned SHA-256,
-tests the receipt validator, runs the local smoke, and builds the bundle. It
-uploads receipts, the probe Wasm, and the bundle for 30 days, including receipts
-from failed runs. Identities and runtime state are excluded from uploads.
+The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
+and macOS 15 Intel. It installs each architecture's ICP CLI 1.6.0 archive with a
+pinned SHA-256 and checks the executable version, tests the receipt validator,
+runs the local smoke, and builds the bundle. It uploads receipts, the probe Wasm,
+and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
+failed runs. Identities and runtime state are excluded from uploads.
+The newly configured macOS runtime jobs require matching native runs before
+claiming qualification.
 Retain a reviewed receipt separately if it must outlive that retention window.
 
 The ordinary feature-boundary gate compile-checks the Wasm example. The normal

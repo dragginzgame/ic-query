@@ -8,6 +8,7 @@ forbidden_pure_library_dependencies=(
   clap
   futures
   ic-agent
+  ic-host-tools
   reqwest
   tokio
 )
@@ -24,6 +25,7 @@ forbidden_canister_dependencies=(
   clap
   futures
   ic-agent
+  ic-host-tools
   prost
   reqwest
   tokio

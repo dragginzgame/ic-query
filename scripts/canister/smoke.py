@@ -18,6 +18,7 @@ PROJECT = ROOT / "tests/canister"
 ARTIFACTS = ROOT / "target/canister-smoke"
 GOVERNANCE = "rrkah-fqaaa-aaaaa-aaaaq-cai"
 KINDS = ("economics", "metrics", "reward_event", "maturity_modulation")
+ARTIFACT_TOOL = None
 
 
 class RunInterrupted(Exception):
@@ -45,13 +46,14 @@ def handle_interrupts():
             signal.signal(item, handler)
 
 
-def run(*args, capture=True, timeout=600, stderr=None):
+def run(*args, capture=True, timeout=600, stderr=None, input=None):
     with subprocess.Popen(
         args, cwd=ROOT, text=True, start_new_session=True,
+        stdin=subprocess.PIPE if input is not None else None,
         stdout=subprocess.PIPE if capture else None, stderr=stderr,
     ) as process:
         try:
-            stdout, _ = process.communicate(timeout=timeout)
+            stdout, _ = process.communicate(input=input, timeout=timeout)
             if process.returncode:
                 raise subprocess.CalledProcessError(process.returncode, args, output=stdout)
         except BaseException:
@@ -115,42 +117,46 @@ def metadata_section(name, contents):
     return b"\x00" + leb128(len(payload)) + payload
 
 
-def decode_text_reply(envelope):
-    """Decode exactly the probe's one-text Candid response, rejecting extra data."""
-    raw = bytes.fromhex(envelope["response_bytes"])
-    if not raw.startswith(b"DIDL\x00\x01\x71"):
-        raise ValueError("probe must return exactly one Candid text value")
-    offset, size, shift = 7, 0, 0
-    while True:
-        if offset >= len(raw) or shift > 63:
-            raise ValueError("invalid Candid text length")
-        byte = raw[offset]
-        offset += 1
-        size |= (byte & 127) << shift
-        if byte < 128:
-            break
-        shift += 7
-    if len(raw) - offset != size:
-        raise ValueError("Candid text length does not match response")
-    return json.loads(raw[offset:].decode())
+def admit_artifact(*args, input=None):
+    """Use the development-only shared host boundary; keep orchestration here."""
+    global ARTIFACT_TOOL
+    if ARTIFACT_TOOL is None:
+        run("cargo", "build", "-p", "ic-query-cli", "--example", "governance_artifact",
+            "--locked", "--offline", capture=False)
+        target = Path(json.loads(run(
+            "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked", "--offline",
+        ))["target_directory"])
+        ARTIFACT_TOOL = target / "debug/examples/governance_artifact"
+    try:
+        return run(str(ARTIFACT_TOOL), *args, input=input)
+    except subprocess.CalledProcessError as error:
+        raise ValueError("invalid Governance artifact evidence") from error
+
+
+def decode_text_reply(response):
+    return json.loads(admit_artifact("decode-response", input=response))
 
 
 def build_wasm():
     run(
         "cargo", "build", "-p", "ic-query", "--example", "governance_probe",
         "--target", "wasm32-unknown-unknown", "--release", "--no-default-features",
-        "--features", "canister", "--locked", capture=False,
+        "--features", "canister", "--locked", "--offline", capture=False,
     )
     target = Path(json.loads(run(
-        "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked",
+        "cargo", "metadata", "--format-version", "1", "--no-deps", "--locked", "--offline",
     ))["target_directory"])
-    wasm = (target / "wasm32-unknown-unknown/release/examples/governance_probe.wasm").read_bytes()
-    if wasm[:8] != b"\x00asm\x01\x00\x00\x00":
-        raise ValueError("build output is not a core Wasm module")
+    wasm_path = target / "wasm32-unknown-unknown/release/examples/governance_probe.wasm"
+    admitted_hash = admit_artifact("inspect-wasm", str(wasm_path))
+    wasm = wasm_path.read_bytes()
+    if sha256(wasm) != admitted_hash:
+        raise ValueError("build output changed after Wasm inspection")
     paths = sorted(set(
         [ROOT / name for name in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml")]
         + list((ROOT / "crates/ic-query").rglob("*.rs"))
-        + [ROOT / "crates/ic-query/Cargo.toml", PROJECT / "probe.did", Path(__file__).resolve()]
+        + [ROOT / "crates/ic-query/Cargo.toml", ROOT / "crates/ic-query-cli/Cargo.toml",
+           ROOT / "crates/ic-query-cli/examples/governance_artifact.rs",
+           PROJECT / "probe.did", Path(__file__).resolve()]
     ))
     sources = hashlib.sha256()
     for path in paths:
@@ -211,14 +217,14 @@ def verify(environment, canister, receipt, output):
     for kind in KINDS:
         print(f"Collecting {kind} ({environment})", flush=True)
         save_receipt(output, receipt, f"collecting_{kind}")
-        envelope = json.loads(icp(
+        response = icp(
             "canister", "call", canister, "report", f'("{kind}")',
             "--candid", str(PROJECT / "probe.did"), "--json", *selection,
-        ))
-        entry = {"response": envelope}
+        )
+        entry = {"response": json.loads(response)}
         receipt["reports"][kind] = entry
         save_receipt(output, receipt, f"validating_{kind}")
-        entry["report"] = validate_report(kind, decode_text_reply(envelope), before["id"])
+        entry["report"] = validate_report(kind, decode_text_reply(response), before["id"])
         save_receipt(output, receipt, f"collected_{kind}")
     save_receipt(output, receipt, "checking_final_module")
     after = json.loads(icp(*status_args))

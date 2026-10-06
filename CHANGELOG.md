@@ -5,6 +5,31 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.1]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Adopts Shared Tooling 0.1.5: confines logger checkout identity to its invocation
+  and adds offline dependency-pin checks to CI/release validation. Development
+  setup installs a checksum-verified parser for each supported native host.
+  [Shared Tooling #6](https://github.com/dragginzgame/shared-tooling/issues/6),
+  [#7](https://github.com/dragginzgame/shared-tooling/issues/7).
+- Configures native Governance smoke and bundle CI on Linux and both macOS
+  architectures with verified ICP CLI 1.6.0 archives and executable version
+  checks. Retains host-specific evidence; new native qualification is pending.
+- Uses a physical temporary root in NNS public API fixtures, avoiding macOS
+  `/tmp` symlink rejection while preserving managed-cache confinement checks.
+- Adopts `ic-host-tools` 0.1.9 in a development-only Governance artifact helper for
+  bounded Wasm inspection and ICP response admission. Candid decoding uses its
+  canonical Rust decoder and preserves report text without numeric conversion.
+
+```bash
+make install-dev
+make dependency-pins-check
+cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
+  inspect-wasm target/canister-smoke/governance_probe.wasm
+```
+
 ## [0.47.0] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

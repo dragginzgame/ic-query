@@ -8,12 +8,13 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`cb86188c5956866564de4fb6ec6be67b27981ab9`](https://github.com/dragginzgame/shared-tooling/tree/cb86188c5956866564de4fb6ec6be67b27981ab9),
+[`a7efade1a68e43f148252a1a73908a46c4cbe9e9`](https://github.com/dragginzgame/shared-tooling/tree/a7efade1a68e43f148252a1a73908a46c4cbe9e9) (0.1.5),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/cb86188c5956866564de4fb6ec6be67b27981ab9/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a7efade1a68e43f148252a1a73908a46c4cbe9e9/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
-modes without a network request. This snapshot selects release mechanics only;
-the engineering baseline remains the separate revision pinned in `AGENTS.md`.
+modes without a network request. This snapshot selects release mechanics and
+dependency-pin checking. The engineering baseline remains the separate revision
+pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
@@ -33,6 +34,18 @@ checks root and detailed candidate headings before validation or saved intent,
 prepares its cache with `cargo fetch --locked --offline`, and rejects missing
 dependencies without an online retry. Explicitly prepare missing cached inputs
 under separate network authority before retrying; do not regenerate the lockfile.
+Authorized dependency changes prepare every affected independent graph before
+release validation. IC Query currently has one workspace and one root lockfile;
+examples and the Governance probe share that graph. Verify it with
+`cargo metadata --locked --offline --format-version 1` after preparation.
+Release cache fetching preserves the prepared selection.
+
+`make install-dev` prepares the checksum-verified yq parser alongside the existing
+development tools. `make dependency-pins-check` checks parsed Cargo/Action inputs
+and tracked workspace lockfiles offline; the complete CI and release gate includes
+it. The parser identities and native setup are documented in
+[supported hosts](supported-hosts.md). This declaration check does not qualify
+runtime behavior or replace locked compilation and tests.
 
 Pending notes use one undated `## [X.Y.Z]` root heading, linked to the matching
 `docs/changelog/<major>.<minor>.md` heading. Preserve historical minor-line
@@ -135,15 +148,16 @@ headings and the actual release adapter/logger across two failed Make gates.
 It isolates inherited Make overrides and logger checkout identity. A distinct
 parent checkout runs this fixture through the actual shared logger and rejects
 gate execution in the parent, covering invocation from release validation.
+The 0.1.5 logger keeps its temporary checkout/snapshot identity within its own
+dispatch. Release selections, failure-log policy and nesting depth still reach
+nested targets. Independent fixtures retain their own explicit selections.
 
 Native CI qualification is configured for the [supported host matrix](supported-hosts.md),
 including Apple's system Bash on both macOS architectures. A passing Linux
 fixture, added matrix, or available installer is not native macOS qualification.
 Record the matching native workflow run before claiming that qualification.
 
-The upstream [0.1.4 CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37431805988)
-for `cb86188c5956866564de4fb6ec6be67b27981ab9` passed Ubuntu and lint/security,
-but both macOS snapshot-distribution fixtures failed with `source is not a Git
-checkout`. Their validation-log runner fixtures passed before that failure.
-This upstream run does not qualify the consumer's release adapters; matching
-IC Query native runs remain required.
+The upstream [0.1.5 CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37443591873)
+for `a7efade1a68e43f148252a1a73908a46c4cbe9e9` passed Linux and both macOS
+architectures. Upstream checks do not qualify the consumer's parser setup or
+release adapters; matching IC Query native runs remain required.
