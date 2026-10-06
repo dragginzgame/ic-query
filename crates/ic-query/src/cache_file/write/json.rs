@@ -12,19 +12,13 @@
     test
 ))]
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
+use ic_host_tools::artifact::BoundedWriter;
 use serde::Serialize;
 #[cfg(feature = "subnet-catalog-host")]
 use sha2::{Digest, Sha256};
 use std::io;
 
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    test
-))]
+#[cfg(any(feature = "certified-subnet-catalog-host", test))]
 use std::io::Write;
 
 #[cfg(any(
@@ -46,9 +40,9 @@ pub fn canonical_json_serialized_len<T>(value: &T) -> Result<u64, serde_json::Er
 where
     T: Serialize + ?Sized,
 {
-    let mut writer = CountingWriter::default();
+    let mut writer = BoundedWriter::new(io::sink(), u64::MAX);
     serde_json::to_writer(&mut writer, value)?;
-    Ok(writer.bytes)
+    Ok(writer.bytes_written())
 }
 
 /// Hash the canonical compact JSON encoding without retaining encoded bytes.
@@ -57,24 +51,9 @@ pub fn canonical_json_sha256<T>(value: &T) -> Result<[u8; 32], serde_json::Error
 where
     T: Serialize + ?Sized,
 {
-    let mut writer = JsonDigestWriter(Sha256::new());
+    let mut writer = Sha256::new();
     serde_json::to_writer(&mut writer, value)?;
-    Ok(writer.0.finalize().into())
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-struct JsonDigestWriter(Sha256);
-
-#[cfg(feature = "subnet-catalog-host")]
-impl Write for JsonDigestWriter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.0.update(bytes);
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
+    Ok(writer.finalize().into())
 }
 
 /// Return whether `bytes` are the exact canonical compact JSON encoding of `value`.
@@ -115,9 +94,9 @@ pub fn write_managed_json_pretty_atomically<T, Error>(
 where
     T: Serialize,
 {
-    let mut counter = LimitedJsonWriter::new(io::sink(), maximum_bytes);
+    let mut counter = BoundedWriter::new(io::sink(), maximum_bytes);
     if let Err(source) = serde_json::to_writer_pretty(&mut counter, value) {
-        if counter.exceeded {
+        if counter.limit_exceeded() {
             return Err(write_error(CacheFileError::WriteLimitExceeded {
                 path: path.to_path_buf(),
                 maximum: maximum_bytes,
@@ -126,103 +105,10 @@ where
         return Err(serialize_error(path.to_path_buf(), source));
     }
     write_managed_file_atomically(cache_root, path, |file| {
-        serde_json::to_writer_pretty(LimitedJsonWriter::new(file, maximum_bytes), value)
+        serde_json::to_writer_pretty(BoundedWriter::new(file, maximum_bytes), value)
             .map_err(json_error_to_io)
     })
     .map_err(write_error)
-}
-
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
-struct LimitedJsonWriter<W> {
-    writer: W,
-    maximum: u64,
-    bytes: u64,
-    exceeded: bool,
-}
-
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
-impl<W> LimitedJsonWriter<W> {
-    const fn new(writer: W, maximum: u64) -> Self {
-        Self {
-            writer,
-            maximum,
-            bytes: 0,
-            exceeded: false,
-        }
-    }
-}
-
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
-impl<W: Write> Write for LimitedJsonWriter<W> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        let length = u64::try_from(buffer.len()).map_err(io::Error::other)?;
-        if self
-            .bytes
-            .checked_add(length)
-            .is_none_or(|bytes| bytes > self.maximum)
-        {
-            self.exceeded = true;
-            return Err(io::Error::other(
-                "serialized JSON exceeds the cache write byte limit",
-            ));
-        }
-        let written = self.writer.write(buffer)?;
-        self.bytes += u64::try_from(written).map_err(io::Error::other)?;
-        Ok(written)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
-}
-
-#[derive(Default)]
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    test
-))]
-struct CountingWriter {
-    bytes: u64,
-}
-
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    test
-))]
-impl Write for CountingWriter {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        let length = u64::try_from(buffer.len())
-            .map_err(|_| io::Error::other("canonical JSON byte count exceeds u64"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("canonical JSON byte count exceeds u64"))?;
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
 }
 
 #[cfg(any(feature = "certified-subnet-catalog-host", test))]

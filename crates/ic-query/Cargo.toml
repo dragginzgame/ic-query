@@ -19,6 +19,7 @@ cap-std = { workspace = true, optional = true }
 candid.workspace = true
 futures = { workspace = true, optional = true }
 ic-agent = { workspace = true, optional = true }
+ic-host-tools = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, features = [
     "rustls",
@@ -63,6 +64,7 @@ certified-subnet-catalog-host = [
 dashboard-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
+    "dep:ic-host-tools",
     "dep:reqwest",
     "dep:tokio",
 ]
@@ -75,6 +77,7 @@ icrc-host = [
     "dep:cap-std",
     "dep:futures",
     "dep:ic-agent",
+    "dep:ic-host-tools",
     "dep:serde_cbor",
     "dep:sha2",
     "dep:tokio",
@@ -86,6 +89,7 @@ sns-host = [
     "dep:cap-std",
     "dep:futures",
     "dep:ic-agent",
+    "dep:ic-host-tools",
     "dep:tokio",
 ]
 subnet-catalog-host = [
@@ -93,6 +97,7 @@ subnet-catalog-host = [
     "dep:cap-std",
     "dep:futures",
     "dep:ic-agent",
+    "dep:ic-host-tools",
     "dep:prost",
     "dep:sha2",
     "dep:tokio",

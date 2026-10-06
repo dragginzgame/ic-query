@@ -94,19 +94,12 @@ sub expected {
         $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;
         $count == 1 or die "missing owned workspace dependency version\n";
     } elsif ($path eq 'Cargo.lock') {
-        my %owned;
-        $text =~ s{(^\[\[package\]\]\n(?:(?!^\[\[package\]\]).)*)}{
-            my $block = $1;
-            if ($block =~ /^name = "(ic-query(?:-cli)?)"$/m) {
-                my $name = $1;
-                ++$owned{$name} == 1 or die "duplicate owned lockfile package $name\n";
-                ($block =~ s/^version = "\Q$previous\E"$/version = "$version"/m) == 1
-                    or die "owned lockfile package $name has another base version\n";
-            }
-            $block;
-        }gmse;
-        ($owned{'ic-query'} // 0) == 1 && ($owned{'ic-query-cli'} // 0) == 1
-            or die "missing owned lockfile packages\n";
+        open my $lock, '-|', $^X, 'scripts/ci/rewrite-local-lock-versions.pl',
+            "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli'
+            or die "cannot run shared lockfile transformer: $!\n";
+        local $/;
+        $text = <$lock>;
+        close $lock or die "local lockfile transformation failed\n";
     } elsif ($path eq 'README.md' || $path eq 'docs/library-usage.md') {
         ($text =~ s/(^ic-query = \{ version = ")\Q$previous_minor\E(")/$1$minor$2/gm) > 0
             or die "missing current dependency examples in $path\n";

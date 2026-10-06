@@ -57,6 +57,7 @@ forbidden_direct_dashboard_host_dependencies=(
 forbidden_ic_state_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-tools
   prost
 )
 
@@ -82,12 +83,14 @@ forbidden_direct_icrc_host_dependencies=(
 forbidden_cmc_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-tools
   prost
 )
 
 forbidden_cloud_engine_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-tools
   prost
 )
 
@@ -140,7 +143,7 @@ check_tree_absent() {
   shift
 
   local tree
-  tree="$(cargo tree "$@" -e features --locked --offline)"
+  tree="$(cargo tree "$@" -e features --locked --offline)" || return "$?"
 
   local failed=0
   for dependency in "${dependencies[@]}"; do
@@ -160,12 +163,15 @@ run_quiet() {
   local label="$1"
   shift
 
-  local log
+  local log status
   log="$(mktemp "${work_dir}/check.XXXXXX")"
-  if ! "$@" >"${log}" 2>&1; then
+  if "$@" >"${log}" 2>&1; then
+    return 0
+  else
+    status="$?"
     echo "error: ${label} failed" >&2
     cat "${log}" >&2
-    return 1
+    return "${status}"
   fi
 }
 
@@ -182,37 +188,37 @@ check_public_api() {
   cargo "${arguments[@]}"
 }
 
-cargo check -p ic-query --locked
-cargo check -p ic-query --no-default-features --locked
-cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked
+cargo check -p ic-query --locked --offline
+cargo check -p ic-query --no-default-features --locked --offline
+cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked --offline
 run_quiet "ic-query wasm32-unknown-unknown --features canister" \
-  cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --features canister --locked
+  cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
 run_quiet "ic-query deployable Governance probe" \
-  cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked
+  cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
 run_quiet "ic-query nns canister public API" \
-  cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked
+  cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
 run_quiet "ic-query --features host" \
-  cargo check -p ic-query --no-default-features --features host --locked
+  cargo check -p ic-query --no-default-features --features host --locked --offline
 run_quiet "ic-query --features dashboard-host" \
-  cargo check -p ic-query --no-default-features --features dashboard-host --locked
+  cargo check -p ic-query --no-default-features --features dashboard-host --locked --offline
 run_quiet "ic-query --features ic-state-host" \
-  cargo check -p ic-query --no-default-features --features ic-state-host --locked
+  cargo check -p ic-query --no-default-features --features ic-state-host --locked --offline
 run_quiet "ic-query --features icrc-host" \
-  cargo check -p ic-query --no-default-features --features icrc-host --locked
+  cargo check -p ic-query --no-default-features --features icrc-host --locked --offline
 run_quiet "ic-query --features subnet-catalog-host" \
-  cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked
+  cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked --offline
 run_quiet "ic-query --features certified-subnet-catalog-host" \
-  cargo check -p ic-query --no-default-features --features certified-subnet-catalog-host --locked
+  cargo check -p ic-query --no-default-features --features certified-subnet-catalog-host --locked --offline
 run_quiet "ic-query --features nns-topology-host" \
-  cargo check -p ic-query --no-default-features --features nns-topology-host --locked
+  cargo check -p ic-query --no-default-features --features nns-topology-host --locked --offline
 run_quiet "ic-query --features nns-host" \
-  cargo check -p ic-query --no-default-features --features nns-host --locked
+  cargo check -p ic-query --no-default-features --features nns-host --locked --offline
 run_quiet "ic-query --features sns-host" \
-  cargo check -p ic-query --no-default-features --features sns-host --locked
+  cargo check -p ic-query --no-default-features --features sns-host --locked --offline
 run_quiet "ic-query --features cmc-host" \
-  cargo check -p ic-query --no-default-features --features cmc-host --locked
+  cargo check -p ic-query --no-default-features --features cmc-host --locked --offline
 run_quiet "ic-query --features cloud-engine-host" \
-  cargo check -p ic-query --no-default-features --features cloud-engine-host --locked
+  cargo check -p ic-query --no-default-features --features cloud-engine-host --locked --offline
 common_public_api_tests=(
   downstream_usage
   icrc_public_api
@@ -236,7 +242,7 @@ check_public_api sns-host sns_public_api
 check_public_api subnet-catalog-host subnet_catalog_public_api subnet_topology_public_api
 check_public_api nns-topology-host subnet_topology_public_api
 check_public_api cmc-host system_public_api
-cargo check -p ic-query-cli --locked
+cargo check -p ic-query-cli --locked --offline
 
 check_tree_absent "ic-query --no-default-features" \
   "${forbidden_pure_library_dependencies[@]}" \

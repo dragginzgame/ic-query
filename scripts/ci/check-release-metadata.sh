@@ -16,7 +16,7 @@ cd "$work_dir/repository"
 mkdir -p scripts/release scripts/ci "$work_dir/bin"
 cp "$repo_root/Makefile" Makefile
 cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh} scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,rewrite-local-lock-versions.pl} scripts/ci/
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -45,6 +45,7 @@ done
 git add -- Makefile scripts/release/adapter.sh scripts/release/metadata.pl \
   scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk \
   scripts/ci/run-validation-targets.sh \
+  scripts/ci/rewrite-local-lock-versions.pl \
   Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"
 RELEASE_SOURCE="$(git write-tree)"
 evidence=".git/release-state/$RELEASE_VERSION.verify.real-git"

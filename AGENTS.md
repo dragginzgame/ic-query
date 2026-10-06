@@ -20,9 +20,10 @@ If code or habit conflicts with this file, this file wins.
 - Product authority, cache/network identities, supported features, numeric
   limits, formatting, and exact validation/release commands remain local.
   The stricter prohibition on agent-run release effects below remains in force.
-- Release execution, publication tag and registry checking, dependency-pin and
-  documentation-link checking, local tool setup and LOC reporting adopt Shared
-  Tooling at reviewed revision `47cd2ccaf0e8b428f06e6db0262df76cfc1581de`; the selected
+- Release execution and lockfile transformation, publication tag and registry
+  checking, dependency-pin and documentation-link checking, isolated RustSec
+  preparation, local tool setup and LOC reporting adopt Shared Tooling at reviewed
+  revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described

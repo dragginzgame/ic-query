@@ -73,6 +73,65 @@ for failed_target in changelog-check dependency-pins-check doc-links-check test;
     || fail "make ci changed its sequence, continued after failed ${failed_target}, or lost the target changelog version"
 done
 
+pin_check_case="${work_dir}/pin-check"
+mkdir -p "$pin_check_case/scripts/ci"
+cp "$repo_root/Makefile" "$pin_check_case/Makefile"
+cat > "$pin_check_case/scripts/ci/check-dependency-pins.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$#" == 1 && "$1" == --cargo-inheritance ]] || exit 56
+[[ "$YQ" == "$EXPECTED_YQ" ]] || exit 56
+[[ "${FAIL_PIN_CHECK:-no}" != yes ]] || exit 55
+EOF
+EXPECTED_YQ="$repo_root/.tools/host/bin/yq" \
+  "$make_bin" --no-print-directory -C "$pin_check_case" dependency-pins-check \
+  YQ="$repo_root/.tools/host/bin/yq" >/dev/null \
+  || fail "dependency-pins-check did not select inheritance checks and the local parser"
+if EXPECTED_YQ="$repo_root/.tools/host/bin/yq" FAIL_PIN_CHECK=yes \
+  "$make_bin" --no-print-directory -C "$pin_check_case" dependency-pins-check \
+  YQ="$repo_root/.tools/host/bin/yq" >/dev/null 2>&1; then
+  fail "dependency-pins-check accepted a failed inheritance check"
+fi
+
+offline_validation_case="${work_dir}/offline-validation"
+mkdir -p "$offline_validation_case/bin" "$offline_validation_case/scripts/ci"
+cp "$repo_root/Makefile" "$offline_validation_case/Makefile"
+cp "$repo_root/scripts/ci/package-workspace.sh" "$offline_validation_case/scripts/ci/"
+cat > "$offline_validation_case/bin/git" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  'ls-files --others --exclude-standard' | 'diff-index --quiet HEAD --') exit 0 ;;
+  *) exit 59 ;;
+esac
+EOF
+cat > "$offline_validation_case/bin/cargo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
+case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
+printf 'cargo %s\n' "$*" >> "$TRACE_FILE"
+[[ "${FAIL_CARGO:-}" != yes ]] || exit 57
+EOF
+chmod +x "$offline_validation_case/bin/"{git,cargo}
+for target in build check clippy test msrv package; do
+  : > "$offline_validation_case/trace"
+  PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
+    CARGO_NET_OFFLINE=false MAKEFLAGS='' MAKEOVERRIDES='' \
+    "$make_bin" --no-print-directory -C "$offline_validation_case" "$target" >/dev/null \
+    || fail "$target did not select locked/offline Cargo validation"
+  case "$target" in clippy | package) expected_invocations=2 ;; *) expected_invocations=1 ;; esac
+  [[ "$(wc -l < "$offline_validation_case/trace")" -eq "$expected_invocations" ]] \
+    || fail "$target changed its Cargo validation coverage"
+  : > "$offline_validation_case/trace"
+  if PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
+    CARGO_NET_OFFLINE=false FAIL_CARGO=yes MAKEFLAGS='' MAKEOVERRIDES='' \
+    "$make_bin" --no-print-directory -C "$offline_validation_case" "$target" >/dev/null 2>&1; then
+    fail "$target accepted failed Cargo validation"
+  fi
+  [[ "$(wc -l < "$offline_validation_case/trace")" -eq 1 ]] \
+    || fail "$target continued after failed Cargo validation"
+done
+
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
@@ -131,7 +190,7 @@ for mode in install check; do
     MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null
-  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env$suffix" \
+  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env --with-ripgrep$suffix" \
     "ic --pins $tools_case/ci/ic-tools.tsv$suffix" > "$tools_case/expected"
   cmp -s "$tools_case/expected" "$tools_case/trace" \
     || fail "local tool setup/check changed ordering, pins or offline selection"
@@ -142,7 +201,7 @@ for mode in install check; do
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
     fail "tool setup/check accepted a host failure"
   fi
-  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env$suffix" > "$tools_case/expected"
+  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env --with-ripgrep$suffix" > "$tools_case/expected"
   cmp -s "$tools_case/expected" "$tools_case/trace" \
     || fail "tool setup/check continued after a failed host command"
 done
@@ -158,6 +217,9 @@ set -euo pipefail
 case "${1:-}" in
   clean) rm -f -- "${DOC_ARTIFACT}" ;;
   doc)
+    case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
+    case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
+    printf 'doc\n' > "$TRACE_FILE"
     python3 - "${REPO_ROOT}/scripts/ci/public-docs-baseline.json" <<'PYDOC'
 import json
 import sys
@@ -175,34 +237,58 @@ if (
   cd "${repo_root}"
   PATH="${public_docs_case}/bin:${PATH}" CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
     DOC_ARTIFACT="${public_docs_case}/retained-doc" \
+    TRACE_FILE="${public_docs_case}/trace" CARGO_NET_OFFLINE=false \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
 ) >/dev/null 2>&1; then
   fail "the public documentation check accepted an incomplete diagnostic set"
 fi
 [[ -f "${public_docs_case}/retained-doc" ]] \
   || fail "the public documentation check erased retained evidence on failure"
+[[ -f "${public_docs_case}/trace" ]] \
+  || fail "the public documentation check did not select locked/offline Cargo validation"
 
 feature_boundary_case="${work_dir}/feature-boundary"
 mkdir -p "${feature_boundary_case}/bin" "${feature_boundary_case}/tmp"
 cat > "${feature_boundary_case}/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
-if [[ -n "${FAIL_FEATURE_CHECK:-}" && "$*" == *"--features host"* ]]; then
-  exit 51
+set -euo pipefail
+case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
+case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
+printf '%s\n' "$1" >> "$TRACE_FILE"
+if [[ "${FAIL_FEATURE_COMMAND:-}" == "$1" ]]; then
+  if [[ "$1" != check || "$*" == *"--features host"* ]]; then
+    echo 'fixture Cargo diagnostic' >&2
+    exit 51
+  fi
 fi
 EOF
 chmod +x "${feature_boundary_case}/bin/cargo"
 TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  TRACE_FILE="${feature_boundary_case}/trace" CARGO_NET_OFFLINE=false \
   bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" >/dev/null \
   || fail "the feature-boundary check rejected successful Cargo commands"
 [[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
   || fail "the successful feature-boundary check left temporary files"
-if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
-  FAIL_FEATURE_CHECK=1 \
-  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" >/dev/null 2>&1; then
-  fail "the feature-boundary check hid a failed Cargo command"
-fi
-[[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
-  || fail "the failed feature-boundary check left temporary files"
+for failed_command in check test tree; do
+  : > "${feature_boundary_case}/trace"
+  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FAIL_FEATURE_COMMAND="$failed_command" TRACE_FILE="${feature_boundary_case}/trace" \
+    CARGO_NET_OFFLINE=false \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/failure.log" 2>&1; then
+    feature_boundary_status=0
+  else
+    feature_boundary_status="$?"
+  fi
+  [[ "$feature_boundary_status" == 51 ]] \
+    || fail "the feature-boundary check lost the failed $failed_command status"
+  [[ "$(tail -n 1 "${feature_boundary_case}/trace")" == "$failed_command" ]] \
+    || fail "the feature-boundary check continued after failed $failed_command"
+  grep -Fq 'fixture Cargo diagnostic' "${feature_boundary_case}/failure.log" \
+    || fail "the feature-boundary check discarded the Cargo diagnostic"
+  [[ -z "$(find "${feature_boundary_case}/tmp" -mindepth 1 -print -quit)" ]] \
+    || fail "the failed feature-boundary check left temporary files"
+done
 
 dependency_check_case="${work_dir}/dependency-check"
 mkdir -p "${dependency_check_case}/bin" "${dependency_check_case}/tmp"
@@ -210,12 +296,16 @@ cat > "${dependency_check_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ "${GIT_TERMINAL_PROMPT:-}" == 0 ]] || exit 67
-[[ "$*" == "-c http.lowSpeedLimit=1024 -c http.lowSpeedTime=30 clone --depth 1 --single-branch --no-tags --progress https://github.com/RustSec/advisory-db.git "* ]] || exit 68
+if [[ "$1" == -C ]]; then
+  printf '1111111111111111111111111111111111111111\n'
+  exit 0
+fi
 advisory_db="${!#}"
-[[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/advisory-db ]] || exit 69
+[[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/rustsec/db ]] || exit 69
 [[ ! -e "${advisory_db}" ]] || exit 70
 mkdir -p "${advisory_db}"
 printf 'fetch\n' >> "${TRACE_FILE}"
+echo 'fixture clone diagnostic' >&2
 [[ -z "${FAIL_FETCH:-}" ]] || exit 53
 EOF
 chmod +x "${dependency_check_case}/bin/git"
@@ -231,9 +321,10 @@ case "${1:-}" in
     [[ "${1:-}" == "--db" ]] || exit 61
     advisory_db="${2:-}"
     shift 2
-    [[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/advisory-db ]] \
+    [[ "${advisory_db}" == "${EXPECTED_TMP_ROOT}"/ic-query-dependency-check.*/rustsec/db ]] \
       || exit 62
     [[ -d "${advisory_db}" ]] || exit 63
+    [[ "$(cat "${advisory_db}/../revision")" == 1111111111111111111111111111111111111111 ]] || exit 63
     [[ "$*" == "--deny warnings --ignore RUSTSEC-2021-0127 --ignore RUSTSEC-2024-0436" ]] \
       || exit 64
     printf 'audit\n' >> "${TRACE_FILE}"
@@ -241,6 +332,7 @@ case "${1:-}" in
     ;;
   machete)
     shift
+    [[ "${CARGO_NET_OFFLINE:-}" == true ]] || exit 65
     [[ "$*" == "--with-metadata" ]] || exit 65
     printf 'machete\n' >> "${TRACE_FILE}"
     ;;
@@ -274,8 +366,9 @@ fi
 printf '%s\n' fetch audit > "${dependency_check_case}/expected-trace"
 cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check continued after a failed cargo audit"
-[[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
-  || fail "the failed dependency check left its advisory database behind"
+audit_evidence=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rustsec/revision)
+[[ "${#audit_evidence[@]}" == 1 && -f "${audit_evidence[0]}" ]] \
+  || fail "the failed audit discarded its selected database identity"
 
 : > "${dependency_check_case}/trace"
 if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
@@ -286,13 +379,16 @@ if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PA
 else
   dependency_check_status="$?"
 fi
-[[ "${dependency_check_status}" -eq 53 ]] \
+[[ "${dependency_check_status}" -ne 0 ]] \
   || fail "the dependency check hid a failed database fetch"
 printf '%s\n' fetch > "${dependency_check_case}/expected-trace"
 cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check continued after a failed database fetch"
-[[ -z "$(find "${dependency_check_case}/tmp" -mindepth 1 -print -quit)" ]] \
-  || fail "the failed fetch left its partial database behind"
+preparation_logs=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rustsec/prepare.log)
+[[ "${#preparation_logs[@]}" == 2 ]] || fail "the failed fetch discarded its preparation log"
+for log in "${preparation_logs[@]}"; do
+  grep -Fq 'fixture clone diagnostic' "$log" || fail "the retained preparation log lost its diagnostic"
+done
 
 package_contents_case="${work_dir}/package-contents"
 mkdir -p "${package_contents_case}/bin"

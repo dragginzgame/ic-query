@@ -1353,9 +1353,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-tools"
-version = "0.1.14"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1276e52058f6ef8e3ca3bdf118a18e8f2d79440bfa34a6a080b2f5fead3a0b6a"
+checksum = "6491f3e87d4d7b72c7ffddae3360170c65fe0dbd26eaf1a1f0a3d2a04a029dc6"
 dependencies = [
  "flate2",
  "rustix",
@@ -1376,6 +1376,7 @@ dependencies = [
  "futures",
  "ic-agent",
  "ic-cdk",
+ "ic-host-tools",
  "prost",
  "reqwest",
  "serde",
@@ -3067,9 +3068,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.253.0"
+version = "0.261.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19db11f87d2486580e1e8b6f494c54df7e0566b87d0b599db843c24019667339"
+checksum = "4f20f20e44f7e8aeb6744823ea9d869ede51e51be4fdaedede2852282e54d2d8"
 dependencies = [
  "bitflags",
  "indexmap",

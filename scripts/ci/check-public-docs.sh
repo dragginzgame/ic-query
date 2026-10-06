@@ -7,7 +7,7 @@ trap 'rm -rf -- "${work_dir}"' EXIT
 
 # Cargo replays cached diagnostics; the parser rejects an incomplete set.
 if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \
-  cargo doc -p ic-query --all-features --no-deps --locked --message-format=json \
+  cargo doc -p ic-query --all-features --no-deps --locked --offline --message-format=json \
   >"${work_dir}/diagnostics.jsonl" 2>>"${work_dir}/stderr"; then
   cat "${work_dir}/stderr" "${work_dir}/diagnostics.jsonl" >&2
   exit 1

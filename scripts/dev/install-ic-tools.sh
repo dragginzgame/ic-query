@@ -145,11 +145,11 @@ while IFS=$'\t' read -r tool version selected_host digest; do
         gzip) gzip -dc "$archive" > "$stage/bin/$tool" ;;
         xz)
             tar -xJf "$archive" -C "$scratch" "$member"
-            [[ -f "$scratch/$member" && ! -L "$scratch/$member" ]]
+            [[ -f "$scratch/$member" && ! -L "$scratch/$member" ]] || exit 1
             cp "$scratch/$member" "$stage/bin/$tool" ;;
         binaryen)
             tar -xzf "$archive" -C "$scratch" "$member/bin/wasm-opt" "$member/lib"
-            [[ -f "$scratch/$member/bin/wasm-opt" && ! -L "$scratch/$member/bin/wasm-opt" ]]
+            [[ -f "$scratch/$member/bin/wasm-opt" && ! -L "$scratch/$member/bin/wasm-opt" ]] || exit 1
             cp "$scratch/$member/bin/wasm-opt" "$stage/bin/wasm-opt"
             cp -R "$scratch/$member/lib/." "$stage/lib/" ;;
     esac

@@ -23,7 +23,6 @@ endif
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
-RIPGREP_VERSION ?= 15.1.0
 CARGO_HTTP_MULTIPLEXING ?= false
 CARGO_NET_RETRY ?= 10
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
@@ -67,7 +66,7 @@ help:
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
 	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
-	@echo "  check      Run cargo check with locked dependencies"
+	@echo "  check      Run cargo check with locked/offline dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
 	@echo "  msrv       Check the crate with the declared MSRV"
@@ -77,7 +76,7 @@ help:
 	@echo "  install-dev  Install pinned tools required by the local CI gate"
 	@echo "  install-tools  Install the repository-local host and IC toolsets"
 	@echo "  tools-check  Verify both toolsets offline"
-	@echo "  install-host-tools  Install repository-local jq and Mike Farah yq"
+	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq and ripgrep with PCRE2"
 	@echo "  host-tools-check  Verify the host toolset offline"
 	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm, PocketIC and wasm-opt"
 	@echo "  ic-tools-check  Verify the IC toolset offline"
@@ -112,10 +111,10 @@ fmt-check:
 	cargo fmt --all -- --check
 
 check:
-	cargo check --workspace --all-targets --all-features --locked
+	cargo check --workspace --all-targets --all-features --locked --offline
 
 dependency-pins-check:
-	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh
+	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh --cargo-inheritance
 
 changelog-check:
 	bash scripts/ci/check-changelog-version.sh $(CHANGELOG_VERSION)
@@ -169,17 +168,17 @@ dependency-check:
 	bash scripts/ci/check-dependencies.sh
 
 clippy:
-	cargo clippy -p ic-query --all-targets --no-default-features --locked -- -D warnings
-	cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+	cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings
+	cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings
 
 test:
-	cargo test --workspace --all-targets --all-features --locked
+	cargo test --workspace --all-targets --all-features --locked --offline
 
 msrv:
-	cargo +$(MSRV) check --workspace --all-targets --all-features --locked
+	cargo +$(MSRV) check --workspace --all-targets --all-features --locked --offline
 
 package: ensure-clean
-	bash scripts/ci/package-workspace.sh
+	bash scripts/ci/package-workspace.sh --offline
 
 ci:
 	+@bash "$(REPO_ROOT)scripts/ci/run-validation-targets.sh" --fail-fast $(CI_TARGETS)
@@ -196,10 +195,10 @@ tools-check:
 	+$(MAKE) --no-print-directory ic-tools-check
 
 install-host-tools:
-	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)"
+	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --with-ripgrep
 
 host-tools-check:
-	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --check
+	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --with-ripgrep --check
 
 install-ic-tools:
 	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)"
@@ -208,7 +207,6 @@ ic-tools-check:
 	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)" --check
 
 install-dev: install-host-tools
-	cargo install --locked ripgrep --version $(RIPGREP_VERSION)
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 
@@ -236,7 +234,7 @@ release-tag-check:
 	bash "$(REPO_ROOT)scripts/release/check-tag-at-head.sh"
 
 build:
-	cargo build --workspace --all-targets --all-features --locked
+	cargo build --workspace --all-targets --all-features --locked --offline
 
 clean:
 	cargo clean

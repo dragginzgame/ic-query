@@ -5,6 +5,38 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.5]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Makes local builds, tests, linting, rustdoc and package validation explicitly
+  locked/offline, reporting missing cached dependencies without downloading them
+  or changing the selected lockfile. Dependency setup remains explicit.
+- Preserves Cargo's failure status and diagnostics in feature-boundary checks,
+  stopping before later checks after a failed compilation, API test or tree read.
+- Refreshes the committed Shared Tooling 0.1.8 snapshot with explicit Bash 3.2 failure
+  guards, shared release-command checks, lockfile rewriting and RustSec preparation.
+  Failed dependency checks retain preparation evidence and admitted database identity.
+- Enforces workspace version and dependency inheritance through the shared
+  declaration checker in the existing CI/release pin gate.
+  [#9](https://github.com/dragginzgame/ic-query/issues/9).
+- Installs pinned ripgrep 15.2.0 with PCRE2 through the shared host toolset,
+  replacing the separate Cargo installation and verifying its archive offline.
+- Adopts IC Host Tools 0.2.0 for bounded JSON cache writing and byte counting,
+  removing duplicate writers while preserving cache bytes, limits and atomic
+  replacement. Pure-library and canister builds retain their dependency boundary.
+  [Shared adoption](https://github.com/dragginzgame/ic-host-tools/issues/5).
+
+```bash
+bash scripts/dev/install-host-tools.sh --with-ripgrep --check
+bash scripts/ci/check-release-commands.sh "$PWD"
+PATH="$PWD/.tools/host/bin:$PATH" bash scripts/ci/check-dependency-pins.sh --cargo-inheritance
+perl scripts/ci/rewrite-local-lock-versions.pl Cargo.lock 0.47.4 0.47.5 \
+  ic-query ic-query-cli > /tmp/ic-query-0.47.5.candidate.lock
+# Explicit local advisory checkout and a new destination whose parent exists:
+bash scripts/ci/prepare-rustsec-db.sh local /path/to/advisory-db /tmp/new-rustsec-attempt
+```
+
 ## [0.47.4] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

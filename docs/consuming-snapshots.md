@@ -71,6 +71,18 @@ source revision. Verify the completed snapshot before resuming validation.
 To change the declared file set, edit or recreate the manifest as an explicit
 reviewed consumer change; ordinary refresh does not silently widen it.
 
+When refreshing `install-actionlint.sh`, `install-shellcheck.sh` or
+`install-gitleaks.sh`, also declare `scripts/ci/install-ci-tool.sh` and the existing
+`scripts/ci/verify-file-checksum.sh`. The three entry points now share that
+implementation; refreshing only an entry point leaves an incomplete installation.
+Pins and command arguments remain consumer-owned and unchanged.
+
+Cargo inheritance adoption refreshes `check-dependency-pins.sh` and
+`dependency-pins.jq` together, then adds `--cargo-inheritance` to the consumer's
+CI/release invocation. The workspace-version reader is independently available as
+`scripts/ci/read-cargo-workspace-version.sh`. Include
+`docs/verification-helpers.md` for their dependencies and boundary contracts.
+
 ## Drift verification
 
 Consumers that vendor the verifier and checksum helper can check their snapshot

@@ -136,6 +136,11 @@ same byte ceiling as the owner's reader; an oversized refresh returns
 pass remains bounded if serialization changes between passes. An explicit
 caller-selected export may retain one encoded string when the same bytes must
 also be published to cache.
+The cache-bearing native host features use IC Host Tools' `BoundedWriter` for
+byte counting and output budgets. Encoding, typed cache errors, confinement and
+publication stay with IC Query. Canonical hashes stream into SHA-256's existing
+writer. Pure-library, canister and host features without caches do not enable
+IC Host Tools.
 Certified Registry archive objects and certified Subnet Catalog caches retain
 their caller-selected read ceilings through the shared confined reader.
 Ordinary Subnet Catalog refreshes stream through the bounded JSON writer;

@@ -25,11 +25,11 @@ qualified by this matrix.
   Python 3 for the maintained documentation/canister tools, and standard Unix
   utilities. macOS needs Xcode Command Line Tools for its compiler, Git and Make.
   Release/checksum helpers support both GNU `sha256sum` and macOS `shasum`.
-- `make install-dev` explicitly installs the exact Cargo Audit, Cargo Machete,
-  and ripgrep versions declared in `Makefile`, plus the common jq 1.8.2 and
-  Mike Farah yq 4.47.2 pair under `.tools/host/bin`. Parser versions and native
-  binary digests have one owner in the immutable `ci/tool-versions.env` snapshot.
-  `make host-tools-check` verifies both hashes before executing version checks;
+- `make install-dev` explicitly installs the exact Cargo Audit and Cargo Machete
+  versions declared in `Makefile`, plus common jq 1.8.2, Mike Farah yq 4.47.2 and
+  ripgrep 15.2.0 with PCRE2 under `.tools/host/bin`. Host versions and native
+  binary/archive digests have one owner in the immutable `ci/tool-versions.env` snapshot.
+  `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
 - `make install-tools` prepares host tools followed by the complete IC set:
@@ -41,12 +41,16 @@ qualified by this matrix.
   See [local setup](local-setup.md) and [IC tools](ic-tools.md) for bootstrap
   packages, complete-set activation, locks and retained failed/previous sets.
   curl, tar with xz/gzip support and a SHA-256 backend are required. dfx is
-  excluded. Linux ARM64 has a parser mapping but no complete IC set and remains
+  excluded. Linux ARM64 has a host-tool mapping but no complete IC set and remains
   outside the qualified consumer matrix.
 - Explicitly prepare the selected dependency cache before a gate. Hosted CI
   uses `cargo fetch --locked`, then runs the gate with `CARGO_NET_OFFLINE=true`.
   Local release preflight uses `cargo fetch --locked --offline`, reporting missing
   inputs without fetching or changing their versions.
+  Local build, check, Clippy, test, MSRV, rustdoc and package validation also
+  select locked/offline access explicitly. They report missing inputs even if
+  the ambient Cargo setting permits downloads. Cargo Machete's metadata scan
+  is offline; the separate RustSec database refresh remains a live Git fetch.
 - Publication additionally requires separately authorized crates.io credentials.
   Release pushes require an explicitly selected Git remote and branch; neither
   dependency setup nor fixture testing supplies publication authority.
@@ -71,10 +75,28 @@ them automatically.
 
 The prior Shared Tooling 0.1.6 snapshot passed its native provisioning CI on
 [Linux and both macOS hosts](https://github.com/dragginzgame/shared-tooling/actions/runs/37450707625).
-The current 0.1.7 upstream CI [failed](https://github.com/dragginzgame/shared-tooling/actions/runs/37458968809).
-The tracked [Bash 3.2 failure-handling finding](https://github.com/dragginzgame/shared-tooling/issues/14)
-includes adopted IC installer and release-tag guards; qualification of those
-boundaries requires a corrected committed snapshot and native execution.
+The initial 0.1.7 upstream CI [failed](https://github.com/dragginzgame/shared-tooling/actions/runs/37458968809).
+The prior committed revision `9f8c7c768793f4ce8f25be9e88282c0f63a06e7f`
+includes the [Bash 3.2 failure-handling fixes](https://github.com/dragginzgame/shared-tooling/issues/14)
+for IC installer and release-tag guards. Its [CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37479591040)
+passed Linux provisioning and lint/security jobs; native macOS qualification
+failed on both architectures at the host-tool regression fixture stage, after
+the IC installer fixtures passed. The logs do not identify the failing subcase.
+Linux PAX-archive substitution reproduces a fixture failure when the corruption
+test rebuilds a pinned archive: access-time metadata changes its digest even
+though the extracted executable is identical. Restoring the original archive
+bytes passes with Bash 5 and 3.2. This isolates a fixture defect for the
+[upstream host-tool owner](https://github.com/dragginzgame/shared-tooling/issues/17);
+it does not identify the exact native macOS failing command.
+Complete native macOS qualification remains outstanding.
+The selected 0.1.8 revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`
+retains those fixes and adds Cargo inheritance checks. Its
+[native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37484175750)
+passed Linux and lint/security; both macOS jobs failed at the same host-tool
+fixture stage. IC Host Tools 0.2.0's
+[CI](https://github.com/dragginzgame/ic-host-tools/actions/runs/37483358223)
+passed Linux and MSRV; both macOS jobs failed at the host-tool installer fixture
+stage. Native qualification of the adopted dependency remains outstanding.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 
@@ -82,13 +104,14 @@ qualification does not establish consumer execution or deployment compatibility.
 
 | Workflow | Explicit prerequisites |
 | --- | --- |
-| Host setup and offline verification | Bash, curl for setup, Perl, SHA-256 backend, reviewed `ci/tool-versions.env` |
+| Host setup and offline verification | Bash, curl for setup, tar/gzip for ripgrep, Perl, SHA-256 backend, reviewed `ci/tool-versions.env` |
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
+| RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
 | Artifact-helper and receipt tests | Selected Rust toolchain and locked/offline dependency cache, Python 3, POSIX process groups |
-| Complete gate | Declared Rust toolchain, local host pair, Cargo Audit/Machete, ripgrep and ordinary utilities |
+| Complete gate | Declared Rust toolchain, local jq/yq/ripgrep set, Cargo Audit/Machete and ordinary utilities |
 | Governance integration | Verified local IC set, Wasm Rust target, Python 3 and explicit local-runtime network access |
 
 Installer implementation regression suites stay in Shared Tooling. This

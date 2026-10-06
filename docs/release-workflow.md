@@ -8,13 +8,14 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`47cd2ccaf0e8b428f06e6db0262df76cfc1581de`](https://github.com/dragginzgame/shared-tooling/tree/47cd2ccaf0e8b428f06e6db0262df76cfc1581de) (0.1.7),
+[`d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`](https://github.com/dragginzgame/shared-tooling/tree/d957d1f8801885c5b69e4a9ef900155f5f2a8a9d) (0.1.8),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/47cd2ccaf0e8b428f06e6db0262df76cfc1581de/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/d957d1f8801885c5b69e4a9ef900155f5f2a8a9d/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects release mechanics,
-publication tag and registry checking, dependency-pin and documentation-link
-checking, repository-local tool setup and LOC reporting. The engineering baseline
+lockfile transformation, publication tag and registry checking, dependency-pin
+and documentation-link checking, isolated RustSec preparation, repository-local
+tool setup and LOC reporting. The engineering baseline
 remains the separate revision pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
@@ -55,10 +56,24 @@ examples and the Governance probe share that graph. Verify it with
 `cargo metadata --locked --offline --format-version 1` after preparation.
 Release cache fetching preserves the prepared selection.
 
-`make install-dev` prepares the checksum-verified jq/yq pair under
+The ordinary build, check, lint, test, MSRV, rustdoc and package checks also
+select locked/offline dependency access explicitly. A missing cache is a
+preparation failure, not permission for validation to download or resolve a
+different selection. Cargo Machete's metadata scan uses the prepared cache;
+the dependency gate's explicit RustSec database refresh remains a live Git fetch.
+The shared [RustSec preparer](verification-helpers.md#isolated-rustsec-database-preparation)
+selects one isolated committed database. Preparation failure stops before audit;
+failed preparation retains its log, and audit failures also retain the admitted
+database and revision.
+The consumer keeps advisory exemptions, warning policy and subsequent Machete
+ordering. Successful checks remove only their own temporary database.
+
+`make install-dev` prepares checksum-verified jq/yq and ripgrep with PCRE2 under
 `.tools/host/bin`, alongside the existing development tools. `make dependency-pins-check` checks parsed Cargo/Action inputs
 and tracked workspace lockfiles offline; the complete CI and release gate includes
-it. The parser identities and native setup are documented in
+it with `--cargo-inheritance`. Member versions and normal, development, build and
+target dependencies inherit their owning workspace catalog. The parser identities
+and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
 
@@ -84,6 +99,12 @@ checksums remain byte-for-byte unchanged. The release file set is exactly:
 - `Cargo.toml` and `Cargo.lock`;
 - `README.md` and `docs/library-usage.md`;
 - `CHANGELOG.md` and the selected minor-line detailed changelog.
+
+The shared [lockfile transformer](verification-helpers.md#local-cargolock-versions)
+produces the candidate for exactly `ic-query` and `ic-query-cli`; registry/Git
+packages and source-qualified references keep their identities. The consumer
+still selects the roster, authenticates retained inputs, validates the candidate
+offline and owns atomic replacement and release recovery.
 
 One metadata helper owns both this file set and the canonical workspace version
 used by Make, changelog checks, tag checks, and publication. The shared runner
@@ -160,6 +181,10 @@ atomic push scope, retained artifacts/logs, occupied locks, and recovery after
 lost preparation/push replies. `make ci-scripts-check` checks the complete CI
 target sequence; `make publish-guards-check` checks separate publication behavior.
 These focused fixtures perform no real commits, tags, pushes or publication.
+The shared `check-release-commands.sh` checks actual Make routing with a substitute
+runner, including all conflicting command pairs and failure propagation. Its
+temporary Makefile needs no extra parse-time inputs for this workspace; consumer
+metadata, staging and recovery fixtures remain local.
 The real consumer Make callbacks also cover an interrupted minor release followed
 by committed fixes and patch/minor/major or exact resume, fresh-gate failure and
 retry, historical metadata binding, failed Git inventory, and history/tag/remote

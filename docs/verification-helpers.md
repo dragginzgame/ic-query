@@ -6,6 +6,54 @@ policy. They require Perl core modules or Bash 3.2+, as noted below, and run on
 Linux and macOS. The portable regression suite includes offline fixtures;
 native CI qualifies each supported host separately.
 
+## Cargo inheritance and workspace version
+
+```bash
+bash scripts/ci/check-dependency-pins.sh --consumer /path/to/repo --cargo-inheritance
+bash scripts/ci/read-cargo-workspace-version.sh --stable /path/to/repo/Cargo.toml
+```
+
+The additive `--cargo-inheritance` check reuses the pin checker's Git inventory,
+TOML parser and offline Cargo workspace discovery. It checks every inventoried
+Cargo manifest against its owning root: member package versions inherit
+`workspace.package.version`; ordinary, development, build and target dependencies
+inherit catalog entries by alias. Root packages also inherit their dependencies.
+Child dependencies may select only `features`, `optional` and `default-features`
+alongside `workspace = true`. Versions, paths, Git/registry sources and renamed
+package identities stay in the root catalog. Both inline and ordinary TOML tables
+are parsed structurally. Existing pin-only callers retain their current scope.
+
+Nested workspace discovery does not approve a governance exception: consumers
+must still document their authorized independent roots. Ignored files are outside
+the Git inventory. Product dependency bans, lock graph constraints and feature
+qualification remain local. Adopt the option in CI/release callers before
+retiring their equivalent inheritance checks.
+
+The version reader requires Cargo, jq and Mike Farah yq v4.47.2+. It accepts one
+explicit `Cargo.toml` path and prints its `workspace.package.version` as canonical
+SemVer, including prerelease/build components unless `--stable` is selected.
+It rejects missing/non-string versions and malformed manifests, with no accepted
+version on failure. Cargo's offline `locate-project --workspace` validates the
+manifest first, including duplicate keys that yq alone accepts. It neither
+resolves dependencies nor builds; the selected Cargo toolchain must be prepared.
+Keep root-package targets available when reading an exported manifest, since
+Cargo also checks package structure. The reader never chooses a Git commit,
+updates a version or lockfile, or finalizes release notes. Consumers own selection
+of working versus committed sources and their release/preparation transactions.
+
+## CI binary installers
+
+The actionlint, ShellCheck and gitleaks entry points delegate to
+`scripts/ci/install-ci-tool.sh`. Their existing version, SHA-256 and installation
+directory arguments are unchanged. The implementation shares host selection,
+HTTPS download, checksum admission, extraction, exact version admission and
+publication. Asset names and version-output formats remain explicit per tool.
+Staging lives on the destination filesystem; failures retain the candidate and
+leave the installed executable intact. Successful installation removes its own
+staging files. This does not merge repository-local host/IC bundle activation
+or change any consumer's pins. Include the internal helper and checksum verifier
+in snapshots with any of these three entry points.
+
 ## Local documentation links
 
 ```sh
@@ -102,6 +150,10 @@ Post-publication waiting, time budgets and package ordering stay in the caller;
 an inconclusive result must stop that flow rather than trigger publication.
 
 ## Snapshot adoption
+
+The additional lockfile transformer and formatting adoption checker below are
+optional snapshot files too. They retain consumer policy at their input boundary;
+do not vendor their upstream fixtures as product tests.
 
 After these files have a reviewed committed revision, adopt each desired helper
 and this guide through the [snapshot workflow](consuming-snapshots.md). The
@@ -203,3 +255,66 @@ and Git, with no shared-script dependencies. `test-rustsec-db.sh` covers simulat
 online/failure cases and real local isolation using existing Git history; it
 neither creates commits nor performs a live vulnerability audit. Consumer tests
 must retain policy/order checks and prove audit cannot run after preparation fails.
+
+## Local Cargo.lock versions
+
+```sh
+perl scripts/ci/rewrite-local-lock-versions.pl Cargo.lock 0.1.0 0.1.1 my-crate helper-crate > candidate.lock
+```
+
+The Perl/core-only transformer reads a regular Cargo-generated LF lockfile in
+format 3 or 4 and emits a complete candidate on stdout. Supply canonical stable
+versions and the exact local package roster selected by the consumer's Cargo
+metadata. Each selected package must appear exactly once without a `source`
+field and have the previous version. Missing, duplicate or mismatched identities
+fail without emitting a partial candidate. The input file is never written.
+
+Only selected local versions and their exact unqualified dependency references
+change. Registry/Git identities, source-qualified references, checksums, unrelated
+versions, whitespace and comments stay unchanged. This is a narrow transformation
+of Cargo's generated layout, not a general TOML parser or resolver. The caller
+must check exit status before replacing its lockfile, retain failed candidates,
+and run Cargo's locked offline validation against the prepared manifests.
+Selecting independent lockfiles, discovering packages, metadata writes and
+release recovery remain consumer responsibilities. Do not redirect output onto
+the input file, invoke dependency resolution online, or use this to repair an
+already inconsistent graph. The upstream fixture includes independent real-Cargo
+locked/offline validation with local-only dependencies.
+
+## Consumer formatting-hook adoption
+
+```sh
+bash scripts/ci/check-formatting-hooks.sh "$PWD" crates/example/src/lib.rs \
+  crates/example/Cargo.toml /tmp/example-unsorted.toml ci/tool-versions.env
+```
+
+The first two relative paths select an existing Rust module and Cargo manifest.
+The fourth argument is a consumer-prepared unsorted copy of that manifest: change
+only dependency ordering, so the real formatter restores the selected sorted
+bytes exactly. For a consumer with no dependency tables, pass the explicit
+`--no-dependency-tables` argument instead. This caller-owned assertion omits only
+the dependency-order perturbation; the real `fmt-check` still runs, and manifest
+preservation and partial-staging rejection remain checked. The helper does not
+infer or parse dependency absence, and that mode supplies no sorting-perturbation
+proof. Never add synthetic dependencies to qualify a dependency-free consumer.
+Remaining relative arguments explicitly overlay additional current
+files needed by the consumer's formatter (other manifests, source, lockfiles,
+configuration or Make includes). The checker exports existing HEAD, overlays
+the named inputs plus Makefile/hook/installer, and stages them only in temporary
+repositories. It never creates commits or activates the real checkout's hook.
+README.md must exist as an unrelated-edit preservation input. Tracked files must
+be regular files, matching the shared hook's support contract.
+
+Review the consumer's Makefile and formatting commands before execution. This
+helper executes those commands; it is not a sandbox for arbitrary Make code.
+Prerequisites must already be installed. Cargo is forced offline, rustup auto
+installation is disabled, and inherited Git/Make/logger checkout selections are
+cleared. The baseline must pass its real `fmt-check` before perturbation.
+
+Checks cover selected Rust refresh and manifest sorting, idempotence, partial
+Rust/manifest staging, malformed Rust formatter failure, preservation of selected
+lockfiles and unrelated edits, and installer alias/conflict handling. Failed
+exports and logs are retained; successful helper-owned scratch is removed.
+Consumer-specific formatter stages and runtime obligations still need their local
+tests. Shared Tooling exercises this helper against its real nested Cargo fixture;
+that does not qualify a consumer's formatter or establish native macOS adoption.

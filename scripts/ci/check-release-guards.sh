@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT
 export REAL_MAKE REAL_GIT
@@ -175,7 +176,7 @@ new_fixture() {
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
@@ -409,12 +410,6 @@ new_fixture explicit-resume patch
 FIXTURE_LOST_PUSH_REPLY=yes expect_failure patch
 run_release resume 0.46.6 || { cat output; fail 'explicit resume'; }
 check_complete
-new_fixture conflicting-selections patch
-if "$REAL_MAKE" --no-print-directory release-patch release-minor > output 2>&1; then
-  fail 'conflicting release selections were accepted'
-fi
-[[ ! -e events && ! -e .release-state && ! -e tag ]]
-cmp original-lock Cargo.lock
 for notes in root detail; do
   new_fixture "candidate-mismatch-$notes" patch
   if [[ "$notes" == root ]]; then notes_path=CHANGELOG.md; else notes_path=docs/changelog/0.46.md; fi

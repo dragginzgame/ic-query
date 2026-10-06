@@ -71,6 +71,29 @@ This record acknowledges sources; it does not make any consumer's local
 governance authoritative here. Git history remains the exact source history,
 and current repository documents own the maintained shared contract.
 
+## Cargo metadata and CI installer convergence
+
+The 2026-10-06 follow-up compared Canic's workspace inheritance test at
+`d815abfc661d791ecf72afc5b1e4b6a990f37a91` plus its working-tree edits with
+IcyDB's unchanged dependency graph guard at
+`db8a0cc4419a7e0ae0ba419793ae5fea75b1cca7`. The structured inheritance option
+replaces their common rule without copying product dependency bans, role
+discovery or qualification policy. Its fixture covers the ordinary dependency
+table form missed by IcyDB's line-oriented check.
+
+Workspace-version readers were inspected in IC Testkit
+`827157434eb8b2d6c13c4b8e47493bd6a38678b9`, IC Timers
+`902323a9e896ce3771044fdc23a7a2d03d49cf28`, IC Host Tools
+`1e018097a35c48fbc2bbe15c4ffef55d5e3d2e20` and the Canic revision above.
+The shared reader uses Cargo's validation and yq/jq projection rather than
+promoting a consumer's text parser. Version mutation remains local.
+
+CI installer consolidation reuses Shared Tooling's three existing entry points
+at `9f8c7c768793f4ce8f25be9e88282c0f63a06e7f`. Asset mappings, versions and
+checksum contracts are unchanged; the shared implementation stages on the
+destination filesystem and retains failed candidates. Consumers must review
+the expanded snapshot dependency set before refreshing the entry points.
+
 ## Documentation, release entry points and registry observation
 
 The local documentation-link checker and exact crates.io observation derive
@@ -97,3 +120,35 @@ RustSec preparation extracts the isolation mechanics from Canic's
 destination selection, recorded commit identity and retained preparation
 diagnostics. It does not adopt either consumer's advisory acceptance policy or
 claim that either consumer has migrated its audit invocation.
+
+## Lockfile versions, formatting adoption and ripgrep
+
+The lockfile transformer consolidates Canic's `retain-lock-selection.pl` at
+`e1a211a00f01568ccc99bedc494c62a7141444dd`, IC Timers' `update-local-lock.sh` at
+`98c4b296d7461525c15a01e30adbe33b75bcfa38`, and IC Blob Storage's release-data
+transformation inspected at `ee7eed5` before concurrent adoption work advanced
+that checkout. Consumer package discovery and recovery remain local.
+
+The formatting adoption checker shares the mechanical cases inspected in IC
+Host Tools, IC Metrics, IC Backup and IC Blob Storage. Those inspections included
+working-tree adoption changes; they are not attributed wholesale to committed
+releases. Consumer formatter inputs remain explicit rather than promoted into a
+universal workspace layout.
+
+Ripgrep's archive matrix comes from Toko Miner `061cfb6e3702a7075ab3c118bfaf315d7d2b0053`.
+The four SHA-256 values were checked against official 15.2.0 release metadata.
+Canic's working-tree installer at base `e1a211a` supplies the PCRE2 requirement.
+Shared host setup reuses its existing activation/retention owner instead of
+copying Toko's standalone installation flow. These implementations do not imply
+that the consumers have adopted their committed snapshots.
+
+## Explicit tag maintenance
+
+The Perl helper replaces the duplicated mechanics reviewed in Canic's
+`scripts/dev/delete-github-tags-up-to.sh` at `e1a211a00f01568ccc99bedc494c62a7141444dd`
+and IcyDB's matching script at `1f4737a9486fa2d0fb0f72927c92b15b6da4d0d4`, recorded
+in [#11](https://github.com/dragginzgame/shared-tooling/issues/11). Both source
+scripts remained locally unchanged when re-inspected. The shared implementation
+requires an explicit cutoff, retains saved object identities for retries, and
+delegates conditional updates to Git. It does not copy either product's cutoff
+defaults or promote their broad tag-deletion commands into the release flow.
