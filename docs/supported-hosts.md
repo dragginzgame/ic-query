@@ -81,7 +81,7 @@ qualification does not establish consumer execution or deployment compatibility.
 | Host setup and offline verification | Bash, curl for setup, Perl, SHA-256 backend, reviewed `ci/tool-versions.env` |
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
-| Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs except the separately selected artifact-helper tests |
+| Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
 | Artifact-helper and receipt tests | Selected Rust toolchain and locked/offline dependency cache, Python 3, POSIX process groups |
 | Complete gate | Declared Rust toolchain, local host pair, Cargo Audit/Machete, ripgrep and ordinary utilities |
 | Governance integration | Verified local IC set, Wasm Rust target, Python 3 and explicit local-runtime network access |
@@ -90,6 +90,12 @@ Installer implementation regression suites stay in Shared Tooling. This
 consumer's gate exercises Make ordering, explicit pin selection, local PATH and
 failure propagation, verifies the immutable snapshot and installed host tools,
 and requires actual setup qualification in the configured native CI jobs.
+
+The native `checks` matrix runs receipt tests through `ci-scripts-check` and
+artifact-helper Rust unit tests through `test`, which selects all targets,
+including examples. Receipt tests build the helper with the prepared
+locked/offline cache. The separate `canister` matrix owns live local-network
+smoke execution and bundle construction on each declared host.
 
 ## Development LOC reports
 

@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.3]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Groups public API tests by feature configuration in the feature-boundary gate,
+  reducing repeated Cargo invocations while preserving the existing coverage.
+  Dependency-tree inspection now explicitly uses the selected lockfile offline.
+- Runs Governance receipt and artifact-helper unit suites once per native host
+  in CI, retaining the separate live smoke and bundle jobs. Package-content
+  inspection now uses locked/offline dependencies too.
+
 ## [0.47.2] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

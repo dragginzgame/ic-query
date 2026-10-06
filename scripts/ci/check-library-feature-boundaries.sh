@@ -140,7 +140,7 @@ check_tree_absent() {
   shift
 
   local tree
-  tree="$(cargo tree "$@" -e features)"
+  tree="$(cargo tree "$@" -e features --locked --offline)"
 
   local failed=0
   for dependency in "${dependencies[@]}"; do
@@ -167,6 +167,19 @@ run_quiet() {
     cat "${log}" >&2
     return 1
   fi
+}
+
+check_public_api() {
+  local feature="$1" test
+  shift
+  local -a arguments=(test -p ic-query --no-default-features --locked --offline)
+  if [[ "$feature" != none ]]; then
+    arguments+=(--features "$feature")
+  fi
+  for test in "$@"; do
+    arguments+=(--test "$test")
+  done
+  cargo "${arguments[@]}"
 }
 
 cargo check -p ic-query --locked
@@ -200,36 +213,29 @@ run_quiet "ic-query --features cmc-host" \
   cargo check -p ic-query --no-default-features --features cmc-host --locked
 run_quiet "ic-query --features cloud-engine-host" \
   cargo check -p ic-query --no-default-features --features cloud-engine-host --locked
-cargo test -p ic-query --test downstream_usage --no-default-features --locked
-cargo test -p ic-query --test downstream_usage --no-default-features --features host --locked
-cargo test -p ic-query --test icrc_public_api --no-default-features --locked
-cargo test -p ic-query --test icrc_public_api --no-default-features --features icrc-host --locked
-cargo test -p ic-query --test icrc_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test ic_public_api --no-default-features --locked
-cargo test -p ic-query --test ic_public_api --no-default-features --features dashboard-host --locked
-cargo test -p ic-query --test ic_public_api --no-default-features --features ic-state-host --locked
-cargo test -p ic-query --test ic_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test cloud_engine_public_api --no-default-features --locked
-cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features dashboard-host --locked
-cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features cloud-engine-host --locked
-cargo test -p ic-query --test cloud_engine_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test nns_public_api --no-default-features --locked
-cargo test -p ic-query --test certified_subnet_catalog_public_api --no-default-features --features certified-subnet-catalog-host --locked
-cargo test -p ic-query --test nns_public_api --no-default-features --features nns-host --locked
-cargo test -p ic-query --test nns_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test sns_public_api --no-default-features --locked
-cargo test -p ic-query --test sns_public_api --no-default-features --features sns-host --locked
-cargo test -p ic-query --test sns_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --locked
-cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features subnet-catalog-host --locked
-cargo test -p ic-query --test subnet_catalog_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test subnet_topology_public_api --no-default-features --locked
-cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features subnet-catalog-host --locked
-cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features nns-topology-host --locked
-cargo test -p ic-query --test subnet_topology_public_api --no-default-features --features host --locked
-cargo test -p ic-query --test system_public_api --no-default-features --locked
-cargo test -p ic-query --test system_public_api --no-default-features --features cmc-host --locked
-cargo test -p ic-query --test system_public_api --no-default-features --features host --locked
+common_public_api_tests=(
+  downstream_usage
+  icrc_public_api
+  ic_public_api
+  cloud_engine_public_api
+  nns_public_api
+  sns_public_api
+  subnet_catalog_public_api
+  subnet_topology_public_api
+  system_public_api
+)
+check_public_api none "${common_public_api_tests[@]}"
+check_public_api host "${common_public_api_tests[@]}"
+check_public_api icrc-host icrc_public_api
+check_public_api dashboard-host ic_public_api cloud_engine_public_api
+check_public_api ic-state-host ic_public_api
+check_public_api cloud-engine-host cloud_engine_public_api
+check_public_api certified-subnet-catalog-host certified_subnet_catalog_public_api
+check_public_api nns-host nns_public_api
+check_public_api sns-host sns_public_api
+check_public_api subnet-catalog-host subnet_catalog_public_api subnet_topology_public_api
+check_public_api nns-topology-host subnet_topology_public_api
+check_public_api cmc-host system_public_api
 cargo check -p ic-query-cli --locked
 
 check_tree_absent "ic-query --no-default-features" \

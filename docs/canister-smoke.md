@@ -188,17 +188,19 @@ receipt gap remains documented in the [0.38 design](design/0.38/0.38-design.md).
 The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
 and macOS 15 Intel. It explicitly installs and checks the common local IC set
 from the snapshot's single pin matrix, retaining ICP CLI 1.6.0 and its existing
-archive digests. It selects `.tools/ic/bin`, tests the receipt validator,
-runs the local smoke, and builds the bundle. It uploads receipts, the probe Wasm,
+archive digests. It selects `.tools/ic/bin`, runs the local smoke, and builds
+the bundle. It uploads receipts, the probe Wasm,
 and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
 failed runs. Identities and runtime state are excluded from uploads.
 The newly configured macOS runtime jobs require matching native runs before
 claiming qualification.
 Retain a reviewed receipt separately if it must outlive that retention window.
 
-The ordinary feature-boundary gate compile-checks the Wasm example. The normal
-CI script checks also exercise malformed-reply and provenance rejection
-without a network. `make ci` does not start a local network; use
+The ordinary feature-boundary gate compile-checks the Wasm example. The native
+`checks` matrix runs receipt, interruption, malformed-reply and provenance tests
+through `make ci-scripts-check`. Artifact-helper Rust unit tests run through
+`make test`, whose all-target selection includes examples. Each unit suite has
+one owner in the complete CI gate. `make ci` does not start a local network; use
 `make canister-smoke` for the separate runtime gate.
 
 Upstream contracts: [ICP 1.6.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.6.0)

@@ -45,10 +45,6 @@ jobs:
       - name: Select repository-local tools
         shell: bash
         run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/ic/bin" >> "$GITHUB_PATH"
-      - name: Check receipt validation
-        env:
-          CARGO_NET_OFFLINE: 'true'
-        run: python3 -m unittest discover -s scripts/canister -p 'test_*.py'
       - name: Lint the canister example
         env:
           CARGO_NET_OFFLINE: 'true'

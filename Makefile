@@ -139,7 +139,6 @@ shared-tooling-check:
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
-	cargo test -p ic-query-cli --example governance_artifact --locked --offline
 	python3 -m unittest discover -s scripts/canister -p 'test_*.py'
 
 canister-build:

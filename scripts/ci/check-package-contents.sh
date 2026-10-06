@@ -5,7 +5,7 @@ failed=0
 packages=(ic-query ic-query-cli)
 
 for package in "${packages[@]}"; do
-  if package_files="$(cargo package -p "${package}" --list --allow-dirty)"; then
+  if package_files="$(cargo package -p "${package}" --list --allow-dirty --locked --offline)"; then
     :
   else
     status="$?"
