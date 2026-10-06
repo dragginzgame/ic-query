@@ -1353,9 +1353,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-tools"
-version = "0.1.12"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bab59e3414ce35a7bfea837752dffe680cb957c6796ba9daf0b0b763c3786f0"
+checksum = "1276e52058f6ef8e3ca3bdf118a18e8f2d79440bfa34a6a080b2f5fead3a0b6a"
 dependencies = [
  "flate2",
  "rustix",

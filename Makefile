@@ -1,7 +1,7 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
-	dependency-check dependency-pins-check ensure-clean feature-boundary-check fmt fmt-check help \
+	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check fmt fmt-check help \
 	install install-dev install-tools tools-check install-host-tools host-tools-check \
 	install-ic-tools ic-tools-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
@@ -37,7 +37,7 @@ export PATH := $(REPO_ROOT).tools/host/bin:$(REPO_ROOT).tools/ic/bin:$(PATH)
 
 CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
-	publish-guards-check release-guards-check type-docs-check public-docs-check dependency-check \
+	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
 
 export CARGO_HTTP_MULTIPLEXING
@@ -62,6 +62,7 @@ help:
 	@echo "  release-guards-check  Check release automation fails closed"
 	@echo "  shared-tooling-check  Verify the pinned release-tooling snapshot"
 	@echo "  type-docs-check  Check cross-module type documentation blocks"
+	@echo "  doc-links-check  Check local links in current guides and contracts"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
 	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
@@ -155,6 +156,11 @@ publish-guards-check:
 
 type-docs-check:
 	perl scripts/ci/check-type-docs.pl
+
+doc-links-check:
+	perl "$(REPO_ROOT)scripts/ci/check-documentation-links.pl" --root "$(REPO_ROOT)" \
+		"$(REPO_ROOT)README.md" "$(REPO_ROOT)AGENTS.md" "$(REPO_ROOT)CHANGELOG.md" \
+		"$(REPO_ROOT)docs/"*.md "$(REPO_ROOT)docs/design/"*.md "$(REPO_ROOT)docs/roadmap/"*.md
 
 public-docs-check:
 	bash scripts/ci/check-public-docs.sh

@@ -15,16 +15,22 @@ if ! [[ "${index_delay_seconds}" =~ ^[0-9]+$ ]]; then
 fi
 
 version="$(perl "$(dirname "${BASH_SOURCE[0]}")/metadata.pl" version)"
+version_observer="$(dirname "${BASH_SOURCE[0]}")/../ci/check-crates-io-version.sh"
+readonly version_observer
 
-crate_is_available() {
-  local package="$1"
-  cargo info "${package}@${version}" --registry "${registry}" >/dev/null 2>&1
+crate_is_published() {
+  local status=0
+  bash "${version_observer}" "$1" "${version}" || status=$?
+  case "$status" in
+    0|1) return "$status" ;;
+    *) exit 2 ;;
+  esac
 }
 
 wait_for_library_index() {
   local attempt
   for ((attempt = 1; attempt <= index_attempts; attempt++)); do
-    if crate_is_available ic-query; then
+    if cargo info "ic-query@${version}" --registry "${registry}" >/dev/null 2>&1; then
       echo "ic-query ${version} is available from ${registry}"
       return 0
     fi
@@ -37,15 +43,14 @@ wait_for_library_index() {
   done
 }
 
-if crate_is_available ic-query; then
+if crate_is_published ic-query; then
   echo "ic-query ${version} is already published; skipping"
 else
   cargo publish --locked --registry "${registry}" -p ic-query
-  wait_for_library_index
 fi
-
-if crate_is_available ic-query-cli; then
+if crate_is_published ic-query-cli; then
   echo "ic-query-cli ${version} is already published; skipping"
 else
+  wait_for_library_index
   cargo publish --locked --registry "${registry}" -p ic-query-cli
 fi

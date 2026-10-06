@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.4]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Adopts the reviewed Shared Tooling 0.1.7 snapshot. Publication now stops when
+  the registry cannot establish whether the exact version exists; only a confirmed
+  absent version admits publication. Retains library-first ordering and registry
+  index readiness checks. [#8](https://github.com/dragginzgame/ic-query/issues/8).
+- Shares portable digest generation between checksum verification and local IC
+  tool receipts, with failed hash commands and unrepresentable filenames rejected.
+- Adds the shared local-link checker to CI for current guides and contracts,
+  stopping the gate when a referenced local file is missing.
+
+```bash
+bash scripts/ci/verify-file-checksum.sh --print sha256 Cargo.lock
+bash scripts/ci/check-crates-io-version.sh ic-query "$(make -s version)"
+make doc-links-check
+```
+
 ## [0.47.3] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

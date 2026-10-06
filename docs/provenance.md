@@ -70,3 +70,30 @@ separate from preparation of these shared owners.
 This record acknowledges sources; it does not make any consumer's local
 governance authoritative here. Git history remains the exact source history,
 and current repository documents own the maintained shared contract.
+
+## Documentation, release entry points and registry observation
+
+The local documentation-link checker and exact crates.io observation derive
+from IcyDB's `scripts/ci/check-documentation.pl` and
+`scripts/ci/publish-workspace.sh` at
+`1f4737a9486fa2d0fb0f72927c92b15b6da4d0d4` (both source files clean).
+The release-command checker consolidates the common Make adapter checks in
+Canic, IC Timers, IcyDB and IC Metrics, including IC Metrics' nested Make/logger
+isolation. These extractions add explicit inputs, retained smoke-check failures
+and offline regression coverage. Product-specific documentation, receipt and
+publication behavior remains with the consumers. See the
+[maintained contracts](verification-helpers.md) for scope and adoption.
+
+Portable digest generation extends the existing checksum verifier, informed by
+IcyDB's `wasm_report_sha256` in `scripts/ci/wasm-report-common.sh` at the same
+revision. Shared Tooling's IC receipt writer and snapshot refresh now use that
+owner; consumer Wasm schemas and stream/tree hashes remain local.
+
+RustSec preparation extracts the isolation mechanics from Canic's
+`scripts/ci/check-dependency-risk-inventory.sh` at
+`e1a211a00f01568ccc99bedc494c62a7141444dd` and IC Query's
+`scripts/ci/check-dependencies.sh` at
+`af8d50235b926a6a10d8bf37fba87ea574867a92`. The helper adds explicit source and
+destination selection, recorded commit identity and retained preparation
+diagnostics. It does not adopt either consumer's advisory acceptance policy or
+claim that either consumer has migrated its audit invocation.

@@ -69,8 +69,12 @@ The general gate and MSRV checks run natively on each host.
 Build and validation evidence remain consumer-owned; release flows do not clean
 them automatically.
 
-The reviewed Shared Tooling 0.1.6 snapshot passed its native provisioning CI on
+The prior Shared Tooling 0.1.6 snapshot passed its native provisioning CI on
 [Linux and both macOS hosts](https://github.com/dragginzgame/shared-tooling/actions/runs/37450707625).
+The current 0.1.7 upstream CI [failed](https://github.com/dragginzgame/shared-tooling/actions/runs/37458968809).
+The tracked [Bash 3.2 failure-handling finding](https://github.com/dragginzgame/shared-tooling/issues/14)
+includes adopted IC installer and release-tag guards; qualification of those
+boundaries requires a corrected committed snapshot and native execution.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 
@@ -81,6 +85,7 @@ qualification does not establish consumer execution or deployment compatibility.
 | Host setup and offline verification | Bash, curl for setup, Perl, SHA-256 backend, reviewed `ci/tool-versions.env` |
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
+| Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
 | Artifact-helper and receipt tests | Selected Rust toolchain and locked/offline dependency cache, Python 3, POSIX process groups |
 | Complete gate | Declared Rust toolchain, local host pair, Cargo Audit/Machete, ripgrep and ordinary utilities |

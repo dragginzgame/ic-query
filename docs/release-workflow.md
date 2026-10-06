@@ -8,14 +8,14 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3`](https://github.com/dragginzgame/shared-tooling/tree/a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3) (0.1.6),
+[`47cd2ccaf0e8b428f06e6db0262df76cfc1581de`](https://github.com/dragginzgame/shared-tooling/tree/47cd2ccaf0e8b428f06e6db0262df76cfc1581de) (0.1.7),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/47cd2ccaf0e8b428f06e6db0262df76cfc1581de/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects release mechanics,
-publication tag checking, dependency-pin checking, repository-local tool setup
-and LOC reporting. The engineering baseline remains the separate revision
-pinned in `AGENTS.md`.
+publication tag and registry checking, dependency-pin and documentation-link
+checking, repository-local tool setup and LOC reporting. The engineering baseline
+remains the separate revision pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
@@ -26,6 +26,15 @@ The publication tag adapter selects this workspace's package version and exact
 HEAD commit, then delegates annotated-tag identity checks to the vendored
 `scripts/ci/check-release-tag.sh`. Consumer fixtures retain clean-worktree,
 selected-version, stale/missing/lightweight-tag and publication-order checks.
+
+Publication checks the exact stable package version through the shared
+[crates.io observer](verification-helpers.md#exact-cratesio-version-observation).
+Only an HTTP 404 admits publication; transport failures, throttling and other
+unavailable observations stop immediately. An existing version skips its
+publication. The adapter separately waits for Cargo to resolve the library
+from the registry index before publishing the CLI, including on retry.
+API presence alone does not prove index readiness. Consumer fixtures cover
+unknown observations at both package boundaries without live registry effects.
 
 ## Selections and preparation
 
@@ -52,6 +61,14 @@ and tracked workspace lockfiles offline; the complete CI and release gate includ
 it. The parser identities and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
+
+`make doc-links-check` runs the shared Perl checker over `README.md`, `AGENTS.md`,
+the root changelog, and Markdown files directly under `docs/`, `docs/design/`
+and `docs/roadmap/`. The complete gate includes this current guide and contract
+roster. Historical changelog breakdowns, numbered designs and audits are outside
+that automatic roster. The checker verifies supported local references exist;
+it does not check anchors or make network requests. Its parsing scope is described
+in the [shared verification guide](verification-helpers.md#local-documentation-links).
 
 Pending notes use one undated `## [X.Y.Z]` root heading, linked to the matching
 `docs/changelog/<major>.<minor>.md` heading. Preserve historical minor-line

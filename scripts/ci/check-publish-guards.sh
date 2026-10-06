@@ -37,8 +37,8 @@ case "${1:-}" in
       shift
     done
     [[ -n "${package}" ]] || exit 2
-    if [[ "${package}" == "ic-query" && -n "${LIBRARY_PUBLISH_STATUS:-}" ]]; then
-      exit "${LIBRARY_PUBLISH_STATUS}"
+    if [[ "${package}" == "${PUBLISH_ERROR_PACKAGE:-}" ]]; then
+      exit "${PUBLISH_ERROR_STATUS:-47}"
     fi
     : > "${STATE_DIR}/${package}"
     ;;
@@ -47,7 +47,21 @@ case "${1:-}" in
     ;;
 esac
 EOF
-chmod +x "${publish_case}/bin/cargo"
+cat > "${publish_case}/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+url="${!#}"
+version="${url##*/}"
+package="${url%/*}"
+package="${package##*/}"
+printf 'observe %s@%s\n' "$package" "$version" >> "$TRACE_FILE"
+if [[ "$package" == "${REGISTRY_ERROR_PACKAGE:-}" ]]; then
+  printf '%s' "${REGISTRY_HTTP:-503}"
+  exit "${REGISTRY_TRANSPORT:-0}"
+fi
+if [[ -e "$STATE_DIR/$package" ]]; then printf 200; else printf 404; fi
+EOF
+chmod +x "${publish_case}/bin/"*
 current_version="$(cd "${repo_root}" && perl scripts/release/metadata.pl version)"
 (
   cd "${repo_root}"
@@ -57,10 +71,10 @@ current_version="$(cd "${repo_root}" && perl scripts/release/metadata.pl version
     bash scripts/release/publish-workspace.sh
 ) >/dev/null
 printf '%s\n' \
-  "cargo info ic-query@${current_version} --registry crates-io" \
+  "observe ic-query@${current_version}" \
   'cargo publish --locked --registry crates-io -p ic-query' \
+  "observe ic-query-cli@${current_version}" \
   "cargo info ic-query@${current_version} --registry crates-io" \
-  "cargo info ic-query-cli@${current_version} --registry crates-io" \
   'cargo publish --locked --registry crates-io -p ic-query-cli' \
   > "${publish_case}/expected-trace"
 cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
@@ -75,53 +89,87 @@ cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
     bash scripts/release/publish-workspace.sh
 ) >/dev/null
 printf '%s\n' \
-  "cargo info ic-query@${current_version} --registry crates-io" \
-  "cargo info ic-query-cli@${current_version} --registry crates-io" \
+  "observe ic-query@${current_version}" \
+  "observe ic-query-cli@${current_version}" \
   > "${publish_case}/expected-trace"
 cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
   || fail "the workspace publisher was not retry-safe for published crates"
 
-mkdir -p "${publish_case}/failure-state"
-if (
-  cd "${repo_root}"
-  PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/failure-trace" \
-    STATE_DIR="${publish_case}/failure-state" LIBRARY_PUBLISH_STATUS=47 \
-    CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-    bash scripts/release/publish-workspace.sh
-) >/dev/null 2>&1; then
+for package in ic-query ic-query-cli; do
+  state="$publish_case/publish-failure-$package"
+  mkdir -p "$state"
   failed_publish_status=0
-else
-  failed_publish_status="$?"
-fi
-[[ "${failed_publish_status}" -eq 47 ]] \
-  || fail "the workspace publisher did not preserve a library publish failure"
-[[ ! -e "${publish_case}/failure-state/ic-query-cli" ]] \
-  || fail "the workspace publisher published the CLI after a library failure"
+  (
+    cd "$repo_root"
+    PATH="$publish_case/bin:$PATH" TRACE_FILE="$state/trace" STATE_DIR="$state" \
+      PUBLISH_ERROR_PACKAGE="$package" PUBLISH_ERROR_STATUS=47 \
+      CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
+      bash scripts/release/publish-workspace.sh
+  ) > "$state/output" 2>&1 || failed_publish_status=$?
+  [[ "$failed_publish_status" == 47 ]] \
+    || fail "the workspace publisher lost the $package publish failure"
+  [[ ! -e "$state/ic-query-cli" ]] || fail 'the CLI was published after a Cargo failure'
+  if [[ "$package" == ic-query ]]; then
+    [[ ! -e "$state/ic-query" ]] || fail 'the failed library publish was treated as successful'
+  else
+    [[ -e "$state/ic-query" ]] || fail 'the CLI publish preceded the library'
+  fi
+done
 
 mkdir -p "${publish_case}/hidden-index-state"
-if (
-  cd "${repo_root}"
-  PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/hidden-index-trace" \
-    STATE_DIR="${publish_case}/hidden-index-state" HIDE_LIBRARY_INFO=1 \
-    CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-    bash scripts/release/publish-workspace.sh
-) >/dev/null 2>&1; then
-  hidden_index_status=0
-else
-  hidden_index_status="$?"
-fi
-[[ "${hidden_index_status}" -ne 0 ]] \
-  || fail "the workspace publisher accepted a library missing from the registry index"
-[[ -e "${publish_case}/hidden-index-state/ic-query" ]] \
-  || fail "the workspace publisher did not publish the missing library"
-[[ ! -e "${publish_case}/hidden-index-state/ic-query-cli" ]] \
-  || fail "the workspace publisher published the CLI before the library was indexed"
+for index_attempt in initial retry; do
+  if (
+    cd "${repo_root}"
+    PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/hidden-index-trace" \
+      STATE_DIR="${publish_case}/hidden-index-state" HIDE_LIBRARY_INFO=1 \
+      CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
+      bash scripts/release/publish-workspace.sh
+  ) >/dev/null 2>&1; then
+    hidden_index_status=0
+  else
+    hidden_index_status="$?"
+  fi
+  [[ "${hidden_index_status}" -ne 0 ]] \
+    || fail "the workspace publisher accepted an unindexed library on $index_attempt"
+  [[ -e "${publish_case}/hidden-index-state/ic-query" ]] \
+    || fail "the workspace publisher did not publish the missing library"
+  [[ ! -e "${publish_case}/hidden-index-state/ic-query-cli" ]] \
+    || fail "the workspace publisher published the CLI before the library was indexed"
+done
+
+for package in ic-query ic-query-cli; do
+  for failure in http transport; do
+    state="$publish_case/unavailable-$package-$failure"
+    mkdir -p "$state"
+    : > "$state/ic-query"
+    transport=0
+    http=503
+    if [[ "$failure" == transport ]]; then transport=28; http=404; fi
+    status=0
+    (
+      cd "$repo_root"
+      PATH="$publish_case/bin:$PATH" TRACE_FILE="$state/trace" STATE_DIR="$state" \
+        REGISTRY_ERROR_PACKAGE="$package" REGISTRY_HTTP="$http" \
+        REGISTRY_TRANSPORT="$transport" CARGO_PUBLISH_INDEX_ATTEMPTS=2 \
+        CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 bash scripts/release/publish-workspace.sh
+    ) > "$state/output" 2>&1 || status=$?
+    [[ "$status" == 2 ]] || fail 'unavailable registry observation did not stop publication'
+    printf '%s\n' "observe ic-query@$current_version" > "$state/expected"
+    if [[ "$package" == ic-query-cli ]]; then
+      printf '%s\n' "observe ic-query-cli@$current_version" >> "$state/expected"
+    fi
+    cmp -s "$state/expected" "$state/trace" \
+      || fail 'unavailable registry observation was retried or reached publication'
+    [[ ! -e "$state/ic-query-cli" ]] || fail 'unavailable observation published the CLI'
+  done
+done
 
 make_case="${work_dir}/make-publish"
-mkdir -p "${make_case}/bin" "${make_case}/scripts/release"
+mkdir -p "${make_case}/bin" "${make_case}/scripts/release" "${make_case}/scripts/ci"
 printf '[fixture]\nversion = "9.9.9"\n[workspace.package]\nversion = "%s"\n' \
   "${current_version}" > "${make_case}/Cargo.toml"
 cp "${repo_root}/scripts/release/metadata.pl" "${make_case}/scripts/release/metadata.pl"
+cp "${repo_root}/scripts/ci/check-crates-io-version.sh" "${make_case}/scripts/ci/"
 ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
   "${make_case}/scripts/release/publish-workspace.sh"
 cat > "${make_case}/bin/git" <<'EOF'
@@ -182,5 +230,5 @@ for invalid_release in dirty untracked inventory-empty inventory-partial stale-t
     fail "make publish accepted a ${invalid_release} release"
   fi
   [[ ! -s "${make_case}/trace" ]] \
-    || fail "make publish reached Cargo for a ${invalid_release} release"
+    || fail "make publish reached the registry or Cargo for a ${invalid_release} release"
 done

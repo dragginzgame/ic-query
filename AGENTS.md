@@ -20,14 +20,17 @@ If code or habit conflicts with this file, this file wins.
 - Product authority, cache/network identities, supported features, numeric
   limits, formatting, and exact validation/release commands remain local.
   The stricter prohibition on agent-run release effects below remains in force.
-- Release execution, publication tag checking, dependency-pin checking, local
-  tool setup and LOC reporting adopt Shared Tooling at reviewed revision `a37771f1b6b5fc9a88ed6ab3b705bdda35cd8fa3`; the selected
+- Release execution, publication tag and registry checking, dependency-pin and
+  documentation-link checking, local tool setup and LOC reporting adopt Shared
+  Tooling at reviewed revision `47cd2ccaf0e8b428f06e6db0262df76cfc1581de`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
   in `docs/release-workflow.md`, and dependency rules in
   `rules/dependency-pinning.md` with local setup in `docs/local-setup.md`,
-  `docs/ic-tools.md` and the consumer host matrix in `docs/supported-hosts.md`.
+  `docs/ic-tools.md`, registry observation and local link checks in
+  `docs/verification-helpers.md`,
+  and the consumer host matrix in `docs/supported-hosts.md`.
   `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
   they do not silently replace the explicitly
   pinned engineering baseline or activate unrelated hook/tooling adoption.

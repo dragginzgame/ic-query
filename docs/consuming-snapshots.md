@@ -122,6 +122,7 @@ the required verifiers, adding any selected tools to the same command:
   --file docs/principles/simplicity-and-maintainability.md \
   --file docs/consuming-snapshots.md \
   --file docs/provenance.md \
+  --file docs/verification-helpers.md \
   --file docs/ic-tools.md \
   --file docs/local-setup.md \
   --file ci/ic-tools.tsv \
@@ -248,3 +249,20 @@ The evidence-manifest helper can also be adopted independently with the existing
 checksum verifier. The nonempty Cargo test helper and exact release-tag checker
 have no shared helper dependencies. Consumers keep test arguments, manifest
 selection and publication/release authority in their adapters.
+
+The documentation-link, release-command and crates.io observation helpers also
+have no shared helper dependencies. Follow their explicit input and failure
+contracts in [verification helpers](verification-helpers.md), include that
+document and each selected helper in the snapshot, and move callers before
+deleting duplicated code. Keep product-specific checks and publication policy
+local. Adoption must wait for a reviewed committed source revision; local
+upstream tests do not establish that consumers have refreshed their snapshots.
+
+File-digest generation uses the checksum verifier's additive `--print` interface,
+so its existing snapshot file set is sufficient. Refresh that verifier before
+changing local hash callers. Advisory database preparation is independently
+available as `scripts/ci/prepare-rustsec-db.sh` with no shared-script dependencies;
+include it and `docs/verification-helpers.md` when adopting it. Replace only
+database acquisition/isolation, retain consumer audit policy and failure evidence,
+and pass `--no-fetch` when auditing the prepared database so its identity stays
+bound to the recorded commit.

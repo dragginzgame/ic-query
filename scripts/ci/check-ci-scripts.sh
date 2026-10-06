@@ -38,6 +38,7 @@ expected_ci_targets=(
   publish-guards-check
   release-guards-check
   type-docs-check
+  doc-links-check
   public-docs-check
   dependency-check
   schema-version-check
@@ -53,7 +54,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in changelog-check dependency-pins-check test; do
+for failed_target in changelog-check dependency-pins-check doc-links-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
@@ -127,7 +128,7 @@ for mode in install check; do
   if [[ "$mode" == install ]]; then target=install-tools; suffix='';
   else target=tools-check; suffix=' --check'; fi
   TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
-    MAKEFLAGS= MAKEOVERRIDES= IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null
   printf '%s\n' "host --versions $tools_case/ci/tool-versions.env$suffix" \
@@ -136,7 +137,7 @@ for mode in install check; do
     || fail "local tool setup/check changed ordering, pins or offline selection"
   : > "$tools_case/trace"
   if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY=host \
-    MAKEFLAGS= MAKEOVERRIDES= IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
     fail "tool setup/check accepted a host failure"
