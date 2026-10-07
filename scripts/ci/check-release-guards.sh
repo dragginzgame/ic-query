@@ -4,6 +4,7 @@ set -euo pipefail
 # Release effects are file-backed stubs, never real Git mutations.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk
+bash "$repo_root/scripts/ci/test-release-runner.sh"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
 trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release guard fixtures retained: $work_dir" >&2; fi' EXIT
 export REAL_MAKE REAL_GIT
@@ -101,9 +102,6 @@ case "$1" in
   ls-remote)
     [[ "${FIXTURE_REMOTE_FAIL:-}" != yes ]] || exit 47
     [[ "$2" == --refs && "$3" == -- && "$4" == https://example.invalid/ic-query ]]
-    if [[ "${FIXTURE_DRIFT_TARGET:-}" == remote-observation && -f tag ]]; then
-      printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
-    fi
     for ref in "$@"; do
       case "$ref" in
         refs/heads/main) if [[ -f remote-head ]]; then printf '%s\t%s\n' "$(cat remote-head)" "$ref"; fi ;;
@@ -137,7 +135,6 @@ case "$1" in
     if [[ -f remote-head ]]; then ancestor "$(cat remote-head)" "$push_head"; fi
     printf '%s %s\n' "$push_head" "$(cat tag)" >> pushes
     echo push >> events
-    [[ "${FIXTURE_ATOMIC_UNSUPPORTED:-}" != yes ]] || exit 47
     [[ "${FIXTURE_BEFORE_PUSH:-}" != yes ]] || exit 47
     echo "$push_head" > remote-head
     echo "$tag_sha" > remote-tag
@@ -169,17 +166,11 @@ set -euo pipefail
 if [[ "${2:-}" == -f && "${3:-}" == - ]]; then exec "$REAL_MAKE" "$@"; fi
 for argument in "$@"; do
   [[ "$argument" != "${FIXTURE_FAIL_TARGET:-}" ]] || exit 43
-  if [[ "$argument" == release-push-check && "${FIXTURE_DRIFT_TARGET:-}" == push-check ]]; then
-    printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
-  fi
   if [[ "$argument" == ci ]]; then
     echo validate >> events
     printf 'retained build output\n' > target/retained-output
     [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
-    if [[ "${FIXTURE_DRIFT_TARGET:-}" == validate ]]; then
-      printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
-    fi
     exit
   fi
 done
@@ -304,61 +295,6 @@ check_old_evidence() {
   [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
-check_destination_changes() {
-  local phase drift
-  new_fixture destination-stable patch
-  run_release patch || { cat output; fail 'captured destination'; }
-  check_complete
-  for phase in validate push-check remote-observation; do
-    for drift in replaced additional; do
-      new_fixture "destination-$phase-$drift" patch
-      export FIXTURE_DRIFT_TARGET="$phase"
-      export FIXTURE_DRIFT_URL=https://example.invalid/other
-      if [[ "$drift" == additional ]]; then
-        FIXTURE_DRIFT_URL=$'https://example.invalid/ic-query\nhttps://example.invalid/other'
-      fi
-      expect_failure patch
-      [[ "$(count_event push)" == 0 && ! -e .release-state/lock ]]
-      if [[ "$phase" == validate ]]; then
-        [[ ! -e .release-state/0.46.6.plan && "$(count_event commit)" == 0 && ! -e tag ]]
-      else
-        [[ "$(tail -n 1 .release-state/0.46.6.plan)" == push && "$(count_event commit)" == 1 ]]
-      fi
-      unset FIXTURE_DRIFT_TARGET FIXTURE_DRIFT_URL
-      rm destination
-      run_release patch || { cat output; fail 'restored destination retry'; }
-      check_complete
-    done
-  done
-}
-
-check_release_execution_modes() {
-  local release_kind mode status
-  local arguments
-  for release_kind in patch minor major resume; do
-    for mode in i n t q v --ignore-errors --dry-run --version; do
-      new_fixture "execution-$release_kind-$mode" patch
-      if [[ "$release_kind" == resume ]]; then
-        arguments=(resume 0.46.6 origin main)
-      else
-        arguments=("$release_kind" origin main)
-      fi
-      status=0
-      env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-        MAKEFLAGS="$mode" RELEASE_MAKE="$REAL_MAKE" \
-        bash scripts/ci/run-release.sh "${arguments[@]}" > output 2>&1 || status=$?
-      [[ "$status" != 0 && ! -e .release-state && ! -e events ]] \
-        || fail "release $release_kind admitted inherited mode $mode"
-      grep -Fq 'requires recipe execution and failure propagation' output \
-        || fail 'release execution admission diagnostic missing'
-      cmp original-lock Cargo.lock || fail 'execution admission changed the lockfile'
-      [[ "$(cat head)" == aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-        && -f target/original-artifact && ! -e pushes && ! -e tag ]] \
-        || fail 'execution admission changed source or artifacts'
-    done
-  done
-}
-
 for kind in patch minor major; do
   new_fixture "success-$kind" "$kind"
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \
@@ -367,20 +303,14 @@ for kind in patch minor major; do
   awk '/^(validate|stage|commit|tag|push)$/ { print }' events > observed
   printf '%s\n' validate stage commit tag push > expected
   cmp expected observed
-  new_fixture "lost-push-$kind" "$kind"
-  FIXTURE_LOST_PUSH_REPLY=yes expect_failure "$kind"
-  cp Cargo.lock saved-lock
-  run_release "$kind" || { cat output; fail 'push reconciliation'; }
-  check_complete
-  cmp saved-lock Cargo.lock
-  new_fixture "lost-prepare-$kind" "$kind"
-  FIXTURE_LOST_PREPARE_REPLY=yes expect_failure "$kind"
-  run_release "$kind" || { cat output; fail 'preparation reconciliation'; }
-  check_complete
-  [[ "$(count_event validate)" == 1 ]] || fail 'validation was replayed after preparation'
 done
-check_destination_changes
-check_release_execution_modes
+new_fixture prepared-payload-retry patch
+FIXTURE_LOST_PREPARE_REPLY=yes expect_failure patch
+cp Cargo.lock saved-lock
+run_release patch || { cat output; fail 'prepared Query payload retry'; }
+check_complete
+cmp saved-lock Cargo.lock
+[[ "$(count_event validate)" == 1 ]] || fail 'prepared Query payload required new validation'
 for next_kind in patch minor major resume; do
   for outcome in before-push lost-reply; do
     new_fixture "descendant-$next_kind-$outcome" minor
@@ -483,10 +413,6 @@ for conflict in payload history tag destination remote-unavailable remote-diverg
   [[ "$(count_event validate)" == 1 && ! -e .release-state/0.47.1.plan ]]
   unset FIXTURE_DESTINATION FIXTURE_REMOTE_FAIL FIXTURE_INVENTORY_FAIL
 done
-new_fixture explicit-resume patch
-FIXTURE_LOST_PUSH_REPLY=yes expect_failure patch
-run_release resume 0.46.6 || { cat output; fail 'explicit resume'; }
-check_complete
 for notes in root detail; do
   new_fixture "candidate-mismatch-$notes" patch
   if [[ "$notes" == root ]]; then notes_path=CHANGELOG.md; else notes_path=docs/changelog/0.46.md; fi
@@ -531,18 +457,7 @@ for conflict in payload dependency identity retained-inputs unrelated; do
   [[ ! -e tag && ! -e remote-head && -f target/retained-output ]]
   unset FIXTURE_CHANGED_PATH
 done
-new_fixture atomic-refusal patch
-FIXTURE_ATOMIC_UNSUPPORTED=yes expect_failure patch
-[[ ! -e remote-head && -f tag && -f target/retained-output ]]
-[[ "$(tail -n 1 .release-state/0.46.6.plan)" == push ]]
-FIXTURE_REMOTE_FAIL=yes expect_failure patch
-[[ "$(count_event push)" == 1 ]] || fail 'uncertain remote state replayed a push'
-new_fixture occupied-lock patch
-mkdir -p .release-state/lock
-echo caller-owned > .release-state/lock/owner
-expect_failure patch
-[[ "$(cat .release-state/lock/owner)" == caller-owned && ! -e events ]]
-echo 'IC Query release adapter and runner fixtures passed'
+echo 'IC Query release adapter fixtures passed'
 
 # A distinct parent checkout catches leaked logger identity without running CI.
 metadata_context="$work_dir/metadata-context"

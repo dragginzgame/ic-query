@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`bfb50bd0884b5e6c5ee9592056531c6108f96d73`](https://github.com/dragginzgame/shared-tooling/tree/bfb50bd0884b5e6c5ee9592056531c6108f96d73) (0.1.15),
+[`b69507367d45e3db9543359e689e1fcba0467ff4`](https://github.com/dragginzgame/shared-tooling/tree/b69507367d45e3db9543359e689e1fcba0467ff4) (0.1.16),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/bfb50bd0884b5e6c5ee9592056531c6108f96d73/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/b69507367d45e3db9543359e689e1fcba0467ff4/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,7 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 52 shared files. Its governance selection keeps the linked
+The snapshot contains 54 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -165,6 +165,21 @@ commits; newer committed fixes are validated by their own next-release gate.
 Publication separately requires the current
 version's annotated tag at HEAD before contacting the registry.
 
+Release fixture ownership follows the shared
+[consumer adoption contract](releases.md#fixture-ownership):
+
+| Boundary | Fixture owner |
+| --- | --- |
+| Generic runner phases, lost replies, destination changes, execution admission, locks and atomic refusal | Reviewed `scripts/ci/test-release-runner.sh`, invoked by the local release-guard suite |
+| Query metadata, exact stage roster, source-bound evidence and older-release recovery with newer source | Local `scripts/ci/check-release-guards.sh` |
+| Actual index admission and retained metadata inputs | Local `scripts/ci/check-release-metadata.sh` |
+| Publication ordering and registry observations | Local `scripts/ci/check-publish-guards.sh` |
+| Consumer Make wiring, selections and validation evidence | Local `scripts/ci/check-ci-scripts.sh` |
+
+Keep shared runner scenarios upstream; local assertions must exercise a Query
+adapter or consumer-owned evidence contract. Isolated command substitutes model
+release effects; fixture indexes and trees never create real commits or tags.
+
 Prepared checks compare every file with transformations of the saved validated
 inputs, and check Cargo metadata with `--locked --offline`. An unrelated changed
 path, untracked source, conflicting payload, or missing validation evidence stops
@@ -190,6 +205,18 @@ the logger preserves and reports its temporary logs instead of deleting them.
 Successful or ignored tests with `error::` names remain ordinary output. Real
 diagnostics and failed tests use error labels; surrounding failure context uses
 neutral target labels in console excerpts and retained highlighted logs.
+
+To retain successful target output and timings as well, explicitly select a
+diagnostic directory:
+
+```bash
+VALIDATION_LOG_DIR="$PWD/target/validation-runs" make ci
+```
+
+Each invocation creates and reports a unique subdirectory with raw logs and
+`timings.tsv`; nested invocations and retries preserve earlier evidence.
+Interrupted runs retain completed target evidence. This optional selection does
+not replace failure logs or enable additional validation targets.
 
 A normal target rerun first reconciles an unfinished release at its saved
 candidate. An unchanged same-kind retry finishes only that release. After its

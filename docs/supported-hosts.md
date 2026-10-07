@@ -132,11 +132,14 @@ The prior 0.1.14 revision `25e7ce83149e081e4dcc52c55c33724e44153f2a`
 adds isolated Make execution admission and selected-target LOC exclusion. Its
 [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37586649650)
 passed Linux, both macOS architectures and lint/security.
-The selected 0.1.15 revision `bfb50bd0884b5e6c5ee9592056531c6108f96d73`
+The prior 0.1.15 revision `bfb50bd0884b5e6c5ee9592056531c6108f96d73`
 adds the common Make include, pinned local cloc and sibling tooling inventory.
 Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37593142226)
-passed Linux, both macOS architectures and lint/security. Matching consumer
-native coverage remains outstanding.
+passed Linux, both macOS architectures and lint/security.
+The selected 0.1.16 revision `b69507367d45e3db9543359e689e1fcba0467ff4`
+adds retained validation timings, selected-manifest LOC and corrected snapshot
+classification. Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37598153506)
+and the prepared consumer 0.47.9 adoption still require completed qualification.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
@@ -145,7 +148,7 @@ The prior IC Host Tooling 0.3.1 registry crates were reviewed at
 IC Query 0.47.7's [native CI](https://github.com/dragginzgame/ic-query/actions/runs/37588946717)
 failed on both macOS hosts at the consumer's Make-mode fixture: GNU Make 3.81 placed
 `-i` after the first flag word, so the consumer parse guard admitted execution.
-The prepared correction reads all short invocation flags from `MFLAGS`;
+The released 0.47.8 correction reads all short invocation flags from `MFLAGS`;
 Linux checks with GNU Make 3.81 and 4.3 do not replace native qualification.
 The prior IC Host Tooling 0.3.2 registry crates were reviewed at
 `c7c0d85765054909c05d86f6d3fd2c9965510335`, including published package provenance.
@@ -160,8 +163,9 @@ compares each host's native canonicalization result, including missing-prefix
 rewind, while production resolution is unchanged. This resolves the upstream
 qualification failure reported in
 [Host #1](https://github.com/dragginzgame/ic-host-tooling/issues/1).
-The prepared 0.47.8 resolver, archive hashing and response-only adoption requires
-matching consumer native CI; local Linux fixtures do not establish it.
+The released 0.47.8 resolver, archive hashing and response-only adoption awaits
+completed matching [consumer CI](https://github.com/dragginzgame/ic-query/actions/runs/37597823342);
+local Linux fixtures do not establish native qualification.
 
 ## Tool-specific dependencies
 
@@ -204,6 +208,7 @@ workspace from the checkout root:
 ```bash
 make install-host-tools host-tools-check
 make cloc
+make cloc CLOC_MANIFEST=Cargo.toml
 ```
 
 The reporter selects Cargo workspace members and uses the same Rust file lists
@@ -215,12 +220,12 @@ rules. This command discovers workspace metadata and counts files; it does not
 compile tests or run a broad gate.
 
 `make cloc-tooling` inventories sibling CI and tooling without invoking consumer
-commands or Cargo. `CLOC_PARENT` selects another parent directory. Its 0.1.15
-snapshot interpretation has a known limitation for custom manifest locations
-and SSH source identities, tracked in
+commands or Cargo. `CLOC_PARENT` selects another parent directory. The selected
+0.1.16 snapshot fixes custom-manifest roots and SSH source identities under
 [Shared Tooling #39](https://github.com/dragginzgame/shared-tooling/issues/39).
-This repository's root manifest uses the supported HTTPS identity. Do not treat
-unqualified custom-layout ownership counts as consolidation evidence.
+`--snapshot-root MANIFEST ROOT` explicitly selects another ownership root;
+without that override, custom manifests use their owning Git root. Classification
+requires exact hashes and modes; modified shared files count as local drift.
 
 IC Query's formatting gate now requires the same reviewed cargo-sort pin used
 by explicit development setup. `fmt-check` checks dependency order before Rust

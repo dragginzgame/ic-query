@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.9]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Adopts Shared Tooling 0.1.16 and its canonical release-runner fixture,
+  removing repeated local runner scenarios while retaining Query's metadata,
+  staging and recovery checks.
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+- Adds optional retained validation logs and timings, preserving Make failure
+  status. LOC reports accept a selected Cargo manifest; tooling inventory
+  recognizes custom snapshot manifests and SSH source identities.
+  [#15](https://github.com/dragginzgame/ic-query/issues/15).
+
+```bash
+make cloc CLOC_MANIFEST=Cargo.toml
+perl scripts/dev/cloc-tooling.pl --json --snapshot-root .shared-tooling.snapshot "$PWD"
+VALIDATION_LOG_DIR="$PWD/target/validation-runs" make ci
+```
+
 ## [0.47.8] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

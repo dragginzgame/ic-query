@@ -24,7 +24,7 @@ check_make_execution_modes() {
   copy_makefile "$fixture"
   cat >> "$fixture/Makefile" <<'MAKE'
 
-.PHONY: execution-validate execution-probe execution-child
+.PHONY: execution-validate execution-probe execution-child evidence-success evidence-failure
 execution-validate:
 	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(LOGGER)" execution-probe
 execution-probe:
@@ -32,6 +32,11 @@ execution-probe:
 	+$(MAKE) --no-print-directory execution-child
 execution-child:
 	@printf '%s\n' '$(RELEASE_REMOTE)' >> "$${TRACE_FILE}"
+evidence-success:
+	@echo retained-success-marker
+evidence-failure:
+	@echo 'error: retained-failure-marker'
+	@exit 7
 MAKE
   for mode in -i -n -t -q -kin --ignore-errors --dry-run --just-print --recon --touch --question; do
     status=0
@@ -63,6 +68,29 @@ MAKE
       fail 'Validation lost the inherited Make jobserver'
     fi
     rm "$fixture/trace"
+  done
+  local selected_directory prior_directory record_target record_result target seconds log
+  for target in evidence-success evidence-failure; do
+    status=0
+    VALIDATION_REPOSITORY_ROOT="$fixture" VALIDATION_LOG_DIR="$fixture/logs" \
+      VALIDATION_FAILURE_LOG_DIR="$fixture/failures" \
+      bash "$repo_root/scripts/ci/run-validation-targets.sh" "$target" \
+      > "$fixture/evidence-output" 2>&1 || status=$?
+    selected_directory="$(sed -n 's/^Validation logs and timings: //p' "$fixture/evidence-output")"
+    IFS=$'\t' read -r record_target record_result seconds log < <(sed -n '2p' "$selected_directory/timings.tsv")
+    [[ "$record_target" == "$target" && "$seconds" =~ ^[0-9]+$ && -f "$log" ]] \
+      || fail 'selected validation evidence lost target, timing or raw log'
+    if [[ "$target" == evidence-success ]]; then
+      [[ "$status" == 0 && "$record_result" == PASS ]] || fail 'passing validation lost its timing result'
+      grep -Fxq retained-success-marker "$log" || fail 'passing validation lost its raw output'
+      prior_directory="$selected_directory"
+      cp "$log" "$fixture/previous-success.log"
+    else
+      [[ "$status" == 2 && "$record_result" == FAIL ]] || fail 'validation lost Make failure status'
+      grep -Fq retained-failure-marker "$log" || fail 'failed validation lost its raw output'
+      cmp "$fixture/previous-success.log" "$prior_directory/0.log" \
+        || fail 'later validation changed earlier success evidence'
+    fi
   done
   mkdir -p "$fixture/failures"
   printf 'retained prior validation\n' > "$fixture/failures/latest.log"
@@ -377,6 +405,11 @@ TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
   "$make_bin" --no-print-directory -C "$tools_case" cloc CLOC_ROOT="$tools_case/selected root" >/dev/null
 printf 'cloc %s\n' "$tools_case/selected root" > "$tools_case/expected"
 cmp "$tools_case/expected" "$tools_case/trace" || fail 'LOC report lost its selected root'
+: > "$tools_case/trace"
+TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+  "$make_bin" --no-print-directory -C "$tools_case" cloc CLOC_MANIFEST="$tools_case/selected manifest.toml" >/dev/null
+printf 'cloc --manifest %s %s\n' "$tools_case/selected manifest.toml" "$tools_case" > "$tools_case/expected"
+cmp "$tools_case/expected" "$tools_case/trace" || fail 'LOC report lost its selected manifest'
 if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" CLOC_RESULT=73 \
   "$make_bin" --no-print-directory -C "$tools_case" cloc >/dev/null 2>&1; then
   fail 'Make accepted a failed LOC report'
