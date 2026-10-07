@@ -32,11 +32,11 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The prepared adoption selects published IC Host Tooling 0.4.3 at
-[`644d49c`](https://github.com/dragginzgame/ic-host-tooling/tree/644d49c096ae05c2e17e1b6aacf14770988c5cf6).
-Its native macOS compile defect needs a corrected release before qualification;
-see the [host matrix](supported-hosts.md#tool-specific-dependencies) and
-[Host #18](https://github.com/dragginzgame/ic-host-tooling/issues/18).
+The prepared adoption selects published IC Host Tooling 0.4.6 at
+[`0fb05f9`](https://github.com/dragginzgame/ic-host-tooling/tree/0fb05f9e18f032425188d68e1d69317a0f0127d5).
+It includes the Darwin compilation repair and passes the owner's native host
+matrix. Query's repaired selection requires its own native smoke qualification;
+see the [host matrix](supported-hosts.md#tool-specific-dependencies).
 The helper uses retained bounded file-read, durable publication and response
 APIs; it has no callers of the removed durable/private readers or lock wrapper.
 The workspace lockfile selects registry packages; archive support is unnecessary

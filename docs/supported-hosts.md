@@ -163,7 +163,7 @@ native qualification: the
 passed all nine checks, MSRV and canister jobs across Linux and both macOS hosts.
 The [tag run](https://github.com/dragginzgame/ic-query/actions/runs/37636399265)
 passed all three native checks and skips MSRV/canister under the configured policy.
-The prepared 0.48.0 snapshot selects Shared Tooling 0.1.20,
+The released 0.48.0 snapshot selects Shared Tooling 0.1.20,
 `3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934`. Its
 [exact-source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37641211708)
 passed Linux, macOS Intel/ARM and lint/security. The selected runtime helpers
@@ -221,16 +221,30 @@ is tracked in [Host #6](https://github.com/dragginzgame/ic-host-tooling/issues/6
 Native owner qualification and the consumer's adoption qualification remain
 separate requirements.
 
-The prepared 0.48.0 selection uses published Host 0.4.3 at
+The released 0.48.0 selection uses published Host 0.4.3 at
 `644d49c096ae05c2e17e1b6aacf14770988c5cf6`; package sources and original manifests
 match that commit. Its [exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37639415895)
 passes Linux and MSRV, but both native macOS jobs fail compilation: the durable
-writer passes `u32` permissions to Darwin's `u16` raw-mode API. The owner has a
-proposed checked-conversion repair with 58 Linux filesystem tests and strict
-Clippy evidence in [Host #18](https://github.com/dragginzgame/ic-host-tooling/issues/18).
-The published dependency must be corrected before this consumer slice can qualify
-native macOS. Git release 0.4.4 adds gzip helpers but retains the failing expression;
-a Git release alone establishes neither registry availability nor this repair.
+writer passes `u32` permissions to Darwin's `u16` raw-mode API. Query's exact-source
+[branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37646652323) and
+[tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37646652181) pass their
+Linux jobs and fail native macOS jobs at the same dependency compiler expression.
+The tag workflow skips MSRV/canister by configuration; the branch failures cover
+those native workflows too.
+
+The prepared 0.48.1 selection uses published Host 0.4.6 at
+`0fb05f9e18f032425188d68e1d69317a0f0127d5`; package provenance, Rust sources and
+original manifests match that commit. Host 0.4.5 repairs the Darwin conversion
+without truncating unvalidated permissions, closing
+[Host #18](https://github.com/dragginzgame/ic-host-tooling/issues/18). Host 0.4.6
+also corrects the non-UTF-8 filename fixture to follow independently observed
+native filesystem admission, preserving typed failure and cleanup evidence;
+production publication behavior remains unchanged.
+[Exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37648086908)
+passes Linux, both macOS architectures and MSRV. Query requires filesystem
+version 0.4.5 or newer for downstream builds and selects 0.4.6 in its lockfile.
+Matching consumer native qualification remains required; upstream passes do not
+qualify these uncommitted dependency changes.
 
 ## Tool-specific dependencies
 
@@ -258,8 +272,8 @@ output or harness runtime state, without moving existing keys. See the
 Released 0.47.11 passed all nine [exact-source branch CI jobs](https://github.com/dragginzgame/ic-query/actions/runs/37636399405),
 including complete checks, MSRV and canister smoke on Linux and both macOS
 architectures. That qualifies its persistent identity-home and Shared Tooling
-0.1.19 adoptions. The prepared 0.48.0 descriptor publication and Shared Tooling
-0.1.20 adoption require their own matching native consumer qualification.
+0.1.19 adoptions. The 0.48 descriptor publication and Shared Tooling 0.1.20 adoption
+require successful matching native consumer qualification with the repaired Host selection.
 
 Installer implementation regression suites are owned by Shared Tooling. This
 consumer runs the reviewed canonical Rust-tool fixture with substitute Cargo;

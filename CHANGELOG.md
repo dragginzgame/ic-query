@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.48.1]
+
+Detailed release notes: [docs/changelog/0.48.md](docs/changelog/0.48.md)
+
+- Selects IC Host Tooling 0.4.6, repairing managed-cache and Governance helper
+  compilation on Intel and Apple Silicon macOS. The filesystem dependency now
+  requires at least 0.4.5 so downstream builds receive the Darwin repair.
+  [#19](https://github.com/dragginzgame/ic-query/issues/19).
+
 ## [0.48.0] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.48.md](docs/changelog/0.48.md)
