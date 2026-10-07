@@ -48,12 +48,12 @@ def handle_interrupts():
             signal.signal(item, handler)
 
 
-def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1):
+def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None):
     with subprocess.Popen(
         args, cwd=ROOT, text=True, start_new_session=True,
         stdin=subprocess.PIPE if input is not None else None,
         stdout=subprocess.PIPE if capture else None, stderr=stderr,
-        umask=umask,
+        umask=umask, env=env,
     ) as process:
         try:
             stdout, diagnostic = process.communicate(input=input, timeout=timeout)
@@ -79,7 +79,26 @@ def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1):
 
 
 def icp(*args, **kwargs):
-    return run(str(ICP), "--project-root-override", str(PROJECT), *args, **kwargs)
+    return run(str(ICP), "--project-root-override", str(PROJECT), *args,
+               env=icp_environment(), **kwargs)
+
+
+def icp_environment():
+    """Keep ICP global state outside build/runtime resets, scoped to its child."""
+    environment = os.environ.copy()
+    selected = environment.get("ICP_HOME", str(ROOT / ".icp-smoke-home"))
+    if not selected:
+        raise ValueError("ICP_HOME must select persistent storage outside build/runtime state")
+    identity_home = (ROOT / selected).resolve()
+    disposable = (ROOT / "target", cargo_target_directory(), PROJECT / ".icp")
+    if any(identity_home.is_relative_to(path.resolve()) for path in disposable):
+        raise ValueError("ICP_HOME must select persistent storage outside build/runtime state")
+    environment["ICP_HOME"] = selected
+    environment["DO_NOT_TRACK"] = "1"
+    # Explicit project/network arguments own these selections in the child.
+    for name in ("ICP_NETWORK", "ICP_ENVIRONMENT", "ICP_PROJECT_ROOT"):
+        environment.pop(name, None)
+    return environment
 
 
 def sha256(data):
@@ -300,11 +319,6 @@ def run_attempt(environment, canister, receipt, output):
 
 
 def main():
-    # Keep tool settings, identities, and launcher downloads inside the checkout.
-    for name, directory in (("XDG_DATA_HOME", "data"), ("XDG_CACHE_HOME", "cache"),
-                            ("XDG_CONFIG_HOME", "config")):
-        os.environ[name] = str(ARTIFACTS / directory)
-    os.environ["DO_NOT_TRACK"] = "1"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("build-wasm", "build", "bundle", "local", "verify-mainnet"))
     parser.add_argument("--canister", help="existing mainnet probe principal; no deployment is performed")
@@ -318,9 +332,6 @@ def main():
         parser.error("verify-mainnet requires --canister")
     if args.canister and args.action != "verify-mainnet":
         parser.error("--canister is only valid for verify-mainnet")
-    # Explicit selections below must not inherit a caller's network override.
-    for name in ("ICP_NETWORK", "ICP_ENVIRONMENT", "ICP_PROJECT_ROOT"):
-        os.environ.pop(name, None)
     if args.action in ("build", "bundle"):
         if args.action == "build":
             icp("build", "-e", "local", capture=False)

@@ -156,6 +156,7 @@ shared-tooling-check:
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
+	bash scripts/ci/test-rust-tools.sh
 	python3 -m unittest discover -s scripts/canister -p 'test_*.py'
 
 canister-build:

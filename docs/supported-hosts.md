@@ -145,11 +145,21 @@ adoption passed all three native [release-check jobs](https://github.com/draggin
 Its [branch run](https://github.com/dragginzgame/ic-query/actions/runs/37603344957)
 passed MSRV and canister smoke on all three hosts; the ARM checks job was
 cancelled, so that branch run is not a completed green gate.
-The selected 0.1.18 revision `a3430b34b32a60f3b245a2b4f7e2f5321556fe56`
+The prior 0.1.18 revision `a3430b34b32a60f3b245a2b4f7e2f5321556fe56`
 adds validation-goal admission, physical-target LOC exclusion and an optional
 local Rust-tool installer. Its [CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37604299590)
-passed Linux, both macOS architectures and lint/security. The prepared consumer
-0.47.10 adoption still requires matching native CI after commit.
+passed Linux, both macOS architectures and lint/security. Released consumer
+0.47.10's [matching branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37619655814)
+has passed all three MSRV and canister jobs, plus Linux checks; the macOS checks
+remain in progress. Its [tag run](https://github.com/dragginzgame/ic-query/actions/runs/37619656675)
+has completed successfully with all three native check jobs passing; MSRV and
+canister jobs are skipped by the configured tag workflow. The branch run has
+not completed as a green gate yet.
+The selected 0.1.19 revision `a06e4719e3839b8eefcfb88ec8923aa88eb63ccc`
+adds Rust-tool path admission, release-note EOF preservation, combined failure
+logs and portable temporary-root fixture handling. No matching upstream CI run
+was available at adoption review. Focused Linux fixtures do not qualify macOS;
+the prepared 0.47.11 consumer changes require matching native CI after commit.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
@@ -176,13 +186,27 @@ qualification failure reported in
 The released 0.47.8 resolver, archive hashing and response-only adoption passed
 all nine [consumer branch-CI jobs](https://github.com/dragginzgame/ic-query/actions/runs/37597823342),
 including complete checks, MSRV and canister smoke on all three native hosts.
-The selected IC Host Tooling 0.4.0 registry crates record published VCS revision
+The prior IC Host Tooling 0.4.0 registry crates record published VCS revision
 `6b171744def811882ba6c71d50135efa898302a9`; their packaged Rust sources match
 that committed owner. Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37602699181)
 passed Linux, macOS Intel/ARM and MSRV. Query uses retained APIs and does not
-re-export the host crates. The prepared 0.47.10 dependency adoption requires
-matching consumer native CI; upstream coverage and focused Linux checks do not
-qualify this working tree on macOS.
+re-export the host crates.
+The prior 0.4.1 registry crates record published VCS revision
+`ce2dd57cedc5000b44bb6a9ff5194f7d65a42c38`; their packaged Rust sources match
+the committed owner. Its [CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37614534197)
+passed Linux and MSRV, but both macOS jobs stopped in the shared tool-command
+fixture before Rust checks. The TMPDIR spelling defect and shared repair
+are tracked in [Host #6](https://github.com/dragginzgame/ic-host-tooling/issues/6)
+and [Shared Tooling #56](https://github.com/dragginzgame/shared-tooling/issues/56).
+The released consumer 0.47.10 selects these packages; upstream 0.4.0 coverage
+does not qualify 0.4.1. Consumer native CI remains required separately.
+The selected 0.4.2 registry crates record published VCS revision
+`6501d0e9fa7ba0439ec7a4010ca7bf0205e1d712`; their packaged Rust sources and
+original manifests match the committed owner. Its
+[matching CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37624014360)
+has passed Linux and MSRV; both macOS jobs remain queued. The shared fixture
+repair is committed, but native qualification and the consumer's adoption
+qualification remain incomplete.
 
 ## Tool-specific dependencies
 
@@ -201,10 +225,21 @@ qualify this working tree on macOS.
 | Complete gate | Declared Rust toolchain, local jq/yq/ripgrep/cloc set, Cargo Audit/Machete and ordinary utilities |
 | Governance integration | Verified local IC set, Wasm Rust target, Python 3 and explicit local-runtime network access |
 
-Installer implementation regression suites stay in Shared Tooling. This
-consumer's gate exercises Make ordering, explicit pin selection, local PATH and
-failure propagation, verifies the immutable snapshot and installed host tools,
-and requires actual setup qualification in the configured native CI jobs.
+The Governance harness selects a persistent `ICP_HOME` only for ICP children,
+using the same override on Linux and macOS. Identities, settings and launcher
+packages share that home; build receipts and local runtime output retain their
+separate owners. It refuses identity homes beneath standard/configured Cargo
+output or harness runtime state, without moving existing keys. See the
+[home selection and recovery procedure](canister-smoke.md#identity-storage-and-cleanup).
+The prepared 0.47.11 repair requires native consumer smoke qualification after
+commit; Linux sentinel/process fixtures do not establish macOS execution.
+
+Installer implementation regression suites are owned by Shared Tooling. This
+consumer runs the reviewed canonical Rust-tool fixture with substitute Cargo;
+the wider owner suites remain upstream. The consumer gate also exercises Make
+ordering, explicit pin selection, local PATH and failure propagation, verifies
+the immutable snapshot and installed host tools, and requires actual setup
+qualification in the configured native CI jobs.
 
 The native `checks` matrix runs receipt tests through `ci-scripts-check` and
 artifact-helper Rust unit tests through `test`, which selects all targets,

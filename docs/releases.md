@@ -314,6 +314,14 @@ already dated differently are conflicts. The helper also understands the older
 `Draft` input, but maintained notes follow the numbered-draft rules. With no
 draft it creates the selected heading; it does not invent release-note content.
 
+Horizontal spaces and tabs in headings are normalized only for classification;
+an already-dated target with extra separator whitespace cannot become a second
+release entry. Retained content keeps its original bytes, including a historical
+body without a terminal newline. A draft moved from EOF gains only the separator
+needed before the following history. The helper reads the document as one awk
+record using regular-expression `RS`, supported by the system awks on the host
+matrix; it does not depend on GNU awk's `RT` extension.
+
 The optional `-v allow_finalized=1` admits exactly one already-finalized target
 at the top with the same date and no pending candidate. Select it only where
 the adapter's recovery contract admits that exact state; it does not establish

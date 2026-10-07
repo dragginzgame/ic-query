@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.11]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Keeps Governance smoke-harness identities and ICP settings outside disposable
+  build/runtime state. Home selection is scoped to ICP children, preserves an
+  explicit persistent `ICP_HOME`, and rejects homes inside output directories.
+  [#16](https://github.com/dragginzgame/ic-query/issues/16).
+- Adopts Shared Tooling 0.1.19: Rust-tool setup rejects redirected installation
+  paths before execution, release notes preserve historical end-of-file bytes,
+  and validation retains one combined log of the current attempt's failures.
+  [#17](https://github.com/dragginzgame/ic-query/issues/17),
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+- Updates the selected IC Host artifacts, filesystem and response helpers to
+  0.4.2, retaining Query's current APIs and dependency profiles.
+
 ## [0.47.10] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
@@ -21,7 +37,7 @@ make install-rust-tools
 make rust-tools-check
 ```
 
-- Adopts published IC Host Tooling 0.4.0 for bounded cache streams, export-path
+- Adopts published IC Host Tooling 0.4.1 for bounded cache streams, export-path
   resolution, archive hashing and the Governance development helper. Query uses
   retained APIs; cache confinement, byte limits, archive identities and the
   response-only dependency profile remain unchanged.

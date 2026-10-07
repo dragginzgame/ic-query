@@ -32,8 +32,8 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The adoption reviews published IC Host Tooling 0.4.0 at
-[`6b17174`](https://github.com/dragginzgame/ic-host-tooling/tree/6b171744def811882ba6c71d50135efa898302a9).
+The adoption reviews published IC Host Tooling 0.4.2 at
+[`6501d0e`](https://github.com/dragginzgame/ic-host-tooling/tree/6501d0e9fa7ba0439ec7a4010ca7bf0205e1d712).
 The helper uses retained bounded file-read, durable publication and response
 APIs; it has no callers of the removed durable/private readers or lock wrapper.
 The workspace lockfile selects registry packages; archive support is unnecessary
@@ -60,16 +60,40 @@ default features, excluding Candid extraction and its process execution edge.
 
 The managed runtime is pinned to network launcher **16.0.0** in `icp.yaml`.
 ICP CLI 1.6.0 bundles launcher **16.0.0-2026-09-18-03-28**; the project pin
-keeps local NNS execution on the existing stable runtime. Tool settings,
-identities, and download caches live under `target/canister-smoke/`. Runtime
-state lives in `tests/canister/.icp/`. Neither directory belongs in commits or
-release artifacts. The library's supported minimum Rust version remains **1.91.0**;
+keeps local NNS execution on the existing stable runtime. ICP identities,
+settings and launcher packages use the persistent ignored `.icp-smoke-home/`
+by default. Receipts, Wasm and bundles live under `target/canister-smoke/`;
+runtime state lives in `tests/canister/.icp/`. These directories belong outside
+commits and release artifacts. The library's supported minimum Rust version remains **1.91.0**;
 `make msrv` verifies it separately from the development toolchain.
 
-The harness's XDG data/config homes are currently disposable build state.
-Preserve any required identities before `cargo clean`; persistent identity
-storage outside that tree is tracked in
-[#16](https://github.com/dragginzgame/ic-query/issues/16).
+## Identity storage and cleanup
+
+The pinned [ICP CLI 1.6.0 home implementation](https://github.com/dfinity/icp-cli/blob/18435e1747162447fca231548b74d97e4cf48888/crates/icp-app/src/directories.rs)
+places identities, settings and launcher packages beneath one `ICP_HOME` on
+Linux and macOS. The harness selects that home only for ICP children; it
+preserves the parent environment and caller XDG settings. An explicit
+`ICP_HOME` keeps its selection, including a relative path resolved from this
+repository's root. Empty values or homes beneath `target/`, Cargo's configured
+target directory, or `tests/canister/.icp/` are rejected before ICP dispatch.
+Resolved symlink aliases follow the same admission rule.
+
+`cargo clean` removes Cargo output; it does not remove `.icp-smoke-home/`.
+Local network reset affects runtime state, not the selected identity home.
+Back up any required identities through ICP's
+[identity backup procedure](https://github.com/dfinity/icp-cli/blob/18435e1747162447fca231548b74d97e4cf48888/docs/guides/managing-identities.md)
+before deleting a persistent home or the entire checkout. A shared
+or funded identity home should be selected deliberately for development use.
+
+Previous harness versions selected XDG data/config/cache roots beneath
+`target/canister-smoke/`. Existing files are preserved in place. Before cleaning
+old output, inspect and back up any required identity metadata and keys;
+macOS's platform directory behavior and explicit `ICP_HOME` overrides may have
+selected another location. Set `ICP_HOME` to an existing persistent home or
+explicitly restore required identities into one. The new default begins with
+ICP's anonymous identity until the maintainer explicitly selects another.
+There is no automatic copy, migration, reset or deletion of existing state.
+This repair is tracked in [#16](https://github.com/dragginzgame/ic-query/issues/16).
 
 ## Build and local execution
 

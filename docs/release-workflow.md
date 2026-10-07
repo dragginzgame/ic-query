@@ -200,7 +200,10 @@ CI uses the pinned `run-validation-targets.sh` with fail-fast ordering. Release
 validation uses that same logger around the complete gate and retains unique raw
 failure logs under its attempt directory's `validation-failures/`. Ordinary CI
 retains failures in `target/validation-failures/`. Retries preserve earlier raw
-logs; `latest.log` is a convenience copy. If the configured destination fails,
+logs; `latest.log` is a convenience copy of the last failed target. Each failing
+invocation also retains a unique `combined.log` containing only that attempt's
+raw failed-target logs in dispatch order. `latest-combined.log` is updated
+atomically after the complete combined log is written. If the configured destination fails,
 the logger preserves and reports its temporary logs instead of deleting them.
 Successful or ignored tests with `error::` names remain ordinary output. Real
 diagnostics and failed tests use error labels; surrounding failure context uses

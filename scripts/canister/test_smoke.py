@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -40,12 +41,97 @@ class ReceiptTests(unittest.TestCase):
         }
 
     def test_icp_uses_repository_local_executable_and_project(self):
-        with patch.object(smoke, "run", return_value="running") as command:
+        with patch.dict(os.environ, {}, clear=True), \
+                patch.object(smoke, "cargo_target_directory", return_value=smoke.ROOT / "target"), \
+                patch.object(smoke, "run", return_value="running") as command:
             self.assertEqual(smoke.icp("network", "status", "local", timeout=30), "running")
         command.assert_called_once_with(
             str(smoke.ROOT / ".tools/ic/bin/icp"), "--project-root-override",
             str(smoke.PROJECT), "network", "status", "local", timeout=30,
+            env={"ICP_HOME": str(smoke.ROOT / ".icp-smoke-home"), "DO_NOT_TRACK": "1"},
         )
+
+    def test_icp_home_is_scoped_and_survives_disposable_state_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "consumer with spaces"
+            project = root / "tests/canister"
+            target = root / "configured Cargo output"
+            project.mkdir(parents=True)
+            tool = root / "icp-fixture"
+            tool.write_text(f"#!{sys.executable}\n" + r'''
+import json, os
+from pathlib import Path
+identity = Path(os.environ["ICP_HOME"]) / "identity/sentinel"
+identity.parent.mkdir(parents=True, exist_ok=True)
+identity.write_text("non-secret identity sentinel")
+print(json.dumps({name: os.environ.get(name) for name in
+                 ("ICP_HOME", "DO_NOT_TRACK", "XDG_DATA_HOME", "XDG_CONFIG_HOME",
+                  "ICP_NETWORK", "ICP_ENVIRONMENT", "ICP_PROJECT_ROOT")}))
+''')
+            tool.chmod(0o700)
+            caller = {"DO_NOT_TRACK": "0", "XDG_DATA_HOME": "caller data",
+                      "XDG_CONFIG_HOME": "caller config", "ICP_NETWORK": "caller network",
+                      "ICP_ENVIRONMENT": "caller environment", "ICP_PROJECT_ROOT": "caller project"}
+            with patch.dict(os.environ, caller, clear=True), \
+                    patch.object(smoke, "ROOT", root), patch.object(smoke, "PROJECT", project), \
+                    patch.object(smoke, "ICP", tool), \
+                    patch.object(smoke, "cargo_target_directory", return_value=target):
+                result = json.loads(smoke.icp("network", "status", "local"))
+                self.assertEqual(dict(os.environ), caller)
+            self.assertEqual(result, {**caller, "DO_NOT_TRACK": "1",
+                                      "ICP_HOME": str(root / ".icp-smoke-home"),
+                                      "ICP_NETWORK": None, "ICP_ENVIRONMENT": None,
+                                      "ICP_PROJECT_ROOT": None})
+            for output in (root / "target", target, project / ".icp"):
+                output.mkdir(parents=True)
+                (output / "build-sentinel").write_text("disposable")
+                shutil.rmtree(output)
+            self.assertEqual((root / ".icp-smoke-home/identity/sentinel").read_text(),
+                             "non-secret identity sentinel")
+
+    def test_icp_preserves_explicit_persistent_home(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            selected = "persistent identity home"
+            sentinel = root / selected / "identity/sentinel"
+            sentinel.parent.mkdir(parents=True)
+            sentinel.write_text("caller-owned sentinel")
+            caller = {"ICP_HOME": selected, "DO_NOT_TRACK": "0"}
+            with patch.dict(os.environ, caller, clear=True), \
+                    patch.object(smoke, "ROOT", root), \
+                    patch.object(smoke, "cargo_target_directory", return_value=root / "target"):
+                self.assertEqual(smoke.icp_environment(), {**caller, "DO_NOT_TRACK": "1"})
+                self.assertEqual(dict(os.environ), caller)
+            self.assertEqual(sentinel.read_text(), "caller-owned sentinel")
+            self.assertFalse((root / ".icp-smoke-home").exists())
+
+    def test_icp_refuses_disposable_home_before_executable_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / "project"
+            target = root / "configured Cargo output"
+            (root / "output alias").symlink_to(root / "target", target_is_directory=True)
+            selections = ("", "target", "target/missing identity home", "output alias/identity",
+                          str(target / "identity"), str(project / ".icp/identity"))
+            for selected in selections:
+                with self.subTest(selected=selected), \
+                        patch.dict(os.environ, {"ICP_HOME": selected}, clear=True), \
+                        patch.object(smoke, "ROOT", root), patch.object(smoke, "PROJECT", project), \
+                        patch.object(smoke, "cargo_target_directory", return_value=target), \
+                        patch.object(smoke, "run") as command:
+                    with self.assertRaisesRegex(ValueError, "persistent storage"):
+                        smoke.icp("build", "-e", "local")
+                    command.assert_not_called()
+            self.assertFalse(target.exists())
+
+    def test_build_wasm_preserves_caller_environment(self):
+        caller = {"ICP_HOME": "caller home", "XDG_DATA_HOME": "caller data"}
+        with patch.dict(os.environ, caller, clear=True), \
+                patch.object(sys, "argv", ["smoke.py", "build-wasm"]), \
+                patch.object(smoke, "build_wasm") as build:
+            smoke.main()
+            build.assert_called_once_with()
+            self.assertEqual(dict(os.environ), caller)
 
     def test_build_checks_the_selected_toolset_before_icp(self):
         selected_pins = str(smoke.ROOT / "ci/ic-tools.tsv")
