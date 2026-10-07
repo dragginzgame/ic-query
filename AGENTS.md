@@ -23,8 +23,9 @@ If code or habit conflicts with this file, this file wins.
 - Read-only workspace version checking, release execution and lockfile
   transformation, publication tag and registry
   checking, dependency-pin and documentation-link checking, isolated RustSec
-  preparation, formatter prerequisites, local tool setup and LOC reporting adopt
-  Shared Tooling at reviewed revision `46c02774a8335cb3949d6f04284c4f53375353c1`; the selected
+  preparation, formatter prerequisites, local tool setup, LOC reporting,
+  exact-commit CI inspection and the standard Rust workspace layout adopt
+  Shared Tooling at reviewed revision `25e7ce83149e081e4dcc52c55c33724e44153f2a`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -36,6 +37,9 @@ If code or habit conflicts with this file, this file wins.
   `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
   they do not silently replace the explicitly
   pinned engineering baseline or activate unrelated hook/tooling adoption.
+  The root virtual workspace and packages under `crates/` follow
+  `rules/rust-workspaces.md`; `docs/supported-hosts.md` remains the consumer-owned
+  host matrix rather than a shared snapshot file.
 
 ## Session Handoff
 

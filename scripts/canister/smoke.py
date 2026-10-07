@@ -48,11 +48,12 @@ def handle_interrupts():
             signal.signal(item, handler)
 
 
-def run(*args, capture=True, timeout=600, stderr=None, input=None):
+def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1):
     with subprocess.Popen(
         args, cwd=ROOT, text=True, start_new_session=True,
         stdin=subprocess.PIPE if input is not None else None,
         stdout=subprocess.PIPE if capture else None, stderr=stderr,
+        umask=umask,
     ) as process:
         try:
             stdout, diagnostic = process.communicate(input=input, timeout=timeout)
@@ -90,20 +91,8 @@ def save_receipt(output, receipt, phase=None):
     if phase is not None:
         receipt["phase"] = phase
     receipt["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=output.parent, prefix=".receipt-", delete=False,
-        ) as stream:
-            temporary = Path(stream.name)
-            json.dump(receipt, stream, indent=2, allow_nan=False)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, output)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+    contents = json.dumps(receipt, indent=2, allow_nan=False) + "\n"
+    admit_artifact("write-receipt", str(output), input=contents)
 
 
 def leb128(number):
@@ -136,7 +125,7 @@ def admit_artifact(*args, input=None):
             "--locked", "--offline", capture=False)
         ARTIFACT_TOOL = cargo_target_directory() / "debug/examples/governance_artifact"
     try:
-        return run(str(ARTIFACT_TOOL), *args, input=input, stderr=subprocess.PIPE)
+        return run(str(ARTIFACT_TOOL), *args, input=input, stderr=subprocess.PIPE, umask=0o077)
     except subprocess.CalledProcessError as error:
         diagnostic = (error.stderr or "").strip()
         message = "invalid Governance artifact evidence"

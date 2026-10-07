@@ -90,9 +90,14 @@ for their actual validation commands, not just simulated fixture evidence.
 The common runner uses exactly this push shape with its saved selections:
 
 ```bash
-git push --no-follow-tags --atomic "$remote" \
+git push --no-follow-tags --atomic -- "$destination" \
   "$push_source:refs/heads/$branch" "refs/tags/v$candidate:refs/tags/v$candidate"
 ```
+
+`destination` is the sole push URL captured from the selected remote at entry.
+The runner rechecks that selection after validation and before push, rejecting
+changed or additional URLs. Observation and dispatch both use the captured URL,
+so a later remote-name change cannot redirect the push.
 
 `--no-follow-tags` disables implicit annotated-tag publication, including a
 configured `push.followTags`. Both refspecs are explicit: push the selected branch
@@ -187,7 +192,15 @@ bindings together during adoption. A failed consumer check still stops recovery.
 
 Release selections propagate through Make command-line variables, including
 `MAKEFLAGS` and `MAKEOVERRIDES`. Preserve them in normal adapters and same-checkout
-nested validation. An independently configured fixture owns its own selections:
+nested validation. The release runner, validation logger and formatting hook use
+`scripts/ci/check-make-execution.sh` to reject inherited ignore-errors, dry-run,
+question, touch and version-only modes before dispatch. An isolated Make probe
+must execute a harmless failing recipe and report its failure; it loads no consumer
+Makefile. Ordinary release variables and jobserver settings remain inherited by
+the actual targets. Rerun without the rejected mode. Consumer
+recipes must still propagate failures and execute their declared gate.
+
+An independently configured fixture owns its own selections:
 clear inherited `MAKEFLAGS`, `MFLAGS` and `MAKEOVERRIDES` before its Make calls,
 then supply the fixture's intended release variables explicitly.
 
@@ -291,7 +304,8 @@ The Makefile pattern specifies a contract; adding this document does not install
 helpers or prove consumer adoption. Consumers implement or align their targets,
 vendor a clean reviewed Shared Tooling revision with this document,
 `scripts/ci/run-release.sh`, `scripts/ci/next-release-version.sh` and any selected
-changelog helper in the [governance snapshot](consuming-snapshots.md), and qualify the workflow on their
+changelog helper, together with `scripts/ci/check-make-execution.sh`, in the
+[governance snapshot](consuming-snapshots.md), and qualify the workflow on their
 declared Linux and macOS hosts. Report upstream policy changes separately from
 verified consumer adoption.
 

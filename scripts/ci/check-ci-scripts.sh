@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 make_bin="$(command -v make)"
+export CI_FIXTURE_REAL_MAKE="$make_bin"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-scripts.XXXXXX")"
 trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "CI script fixtures retained: $work_dir" >&2; fi' EXIT
 
@@ -11,10 +12,78 @@ fail() {
   exit 1
 }
 
+check_make_execution_modes() {
+  local fixture="$work_dir/make-execution" mode status
+  mkdir -p "$fixture"
+  cp "$repo_root/Makefile" "$fixture/Makefile"
+  cat >> "$fixture/Makefile" <<'MAKE'
+
+.PHONY: execution-validate execution-probe execution-child
+execution-validate:
+	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(LOGGER)" execution-probe
+execution-probe:
+	@printf '%s\n' '$(RELEASE_REMOTE)' >> "$${TRACE_FILE}"
+	+$(MAKE) --no-print-directory execution-child
+execution-child:
+	@printf '%s\n' '$(RELEASE_REMOTE)' >> "$${TRACE_FILE}"
+MAKE
+  for mode in -i -n -t -q -kin --ignore-errors --dry-run --just-print --recon --touch --question; do
+    status=0
+    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+      TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
+      "$mode" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted execution mode $mode"
+  done
+  for mode in i n t q '--no-print-directory -i'; do
+    status=0
+    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+      MAKEFLAGS="$mode" TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory \
+      -C "$fixture" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted inherited MAKEFLAGS=$mode"
+  done
+  status=0
+  env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+    TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
+    -i MAKEFLAGS=--no-print-directory execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+  [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail 'MAKEFLAGS override hid invocation mode'
+  for mode in --no-print-directory -j2; do
+    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+      TRACE_FILE="$fixture/trace" "$make_bin" -C "$fixture" "$mode" \
+      RELEASE_REMOTE=fixture-origin LOGGER="$repo_root/scripts/ci/run-validation-targets.sh" \
+      execution-validate > "$fixture/executed.log" 2>&1
+    printf '%s\n' fixture-origin fixture-origin > "$fixture/expected"
+    cmp "$fixture/expected" "$fixture/trace" || fail 'Make lost nested selections or execution'
+    if grep -Ei 'jobserver unavailable|jobserver.*forced' "$fixture/executed.log"; then
+      fail 'Validation lost the inherited Make jobserver'
+    fi
+    rm "$fixture/trace"
+  done
+  mkdir -p "$fixture/failures"
+  printf 'retained prior validation\n' > "$fixture/failures/latest.log"
+  cp "$fixture/failures/latest.log" "$fixture/previous.log"
+  for mode in i n t q v --ignore-errors --dry-run --touch --question --version; do
+    status=0
+    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS MAKEFLAGS="$mode" \
+      VALIDATION_REPOSITORY_ROOT="$fixture" VALIDATION_FAILURE_LOG_DIR="$fixture/failures" \
+      TRACE_FILE="$fixture/trace" bash "$repo_root/scripts/ci/run-validation-targets.sh" \
+      --fail-fast execution-probe > "$fixture/validation-$mode.log" 2>&1 || status=$?
+    [[ "$status" != 0 && ! -e "$fixture/trace" ]] \
+      || fail "Validation admitted inherited mode $mode"
+    grep -Fq 'requires recipe execution and failure propagation' "$fixture/validation-$mode.log" \
+      || fail "Validation lost its execution admission diagnostic for $mode"
+    cmp "$fixture/previous.log" "$fixture/failures/latest.log" \
+      || fail 'Execution admission changed prior validation evidence'
+  done
+}
+
+check_make_execution_modes
+
 ci_gate_case="${work_dir}/ci-gate"
 mkdir -p "${ci_gate_case}/bin"
 cat > "${ci_gate_case}/bin/make" <<'EOF'
 #!/usr/bin/env bash
+set -euo pipefail
+if [[ "${2:-}" == -f && "${3:-}" == - ]]; then exec "$CI_FIXTURE_REAL_MAKE" "$@"; fi
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
 if [[ "${!#}" == test ]]; then
   printf '%s\n' 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'
@@ -404,6 +473,12 @@ if [[ "${FAIL_FEATURE_COMMAND:-}" == "$1" ]]; then
     exit 51
   fi
 fi
+if [[ "$1" == tree && -n "${FEATURE_TREE_LINE:-}" ]]; then
+  if [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
+    || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* ]]; then
+    printf '%s\n' "$FEATURE_TREE_LINE"
+  fi
+fi
 EOF
 chmod +x "${feature_boundary_case}/bin/cargo"
 TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
@@ -437,6 +512,22 @@ for failed_command in check test tree; do
     grep -Fq 'fixture Cargo diagnostic' "${feature_diagnostics[0]}"/check.* \
       || fail "the failed compilation discarded its retained Cargo log"
   fi
+done
+
+for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools \
+  'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
+  'ic-host-artifacts feature "wasm"'; do
+  scope=host
+  [[ "$dependency" != ic-host-artifacts ]] || scope=pure
+  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
+    TRACE_FILE="${feature_boundary_case}/trace" \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/dependency-failure.log" 2>&1; then
+    fail "the $scope feature boundary accepted $dependency"
+  fi
+  grep -Fq "unexpectedly includes $dependency" "${feature_boundary_case}/dependency-failure.log" \
+    || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
 done
 
 retention_case="$work_dir/fixture-retention"

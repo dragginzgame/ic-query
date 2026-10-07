@@ -158,16 +158,34 @@ class ReceiptTests(unittest.TestCase):
             self.assertEqual(saved["phase"], "checking_module")
             self.assertEqual(saved["canister_before"]["id"], "aaaaa-aa")
 
-    def test_failed_atomic_publication_preserves_the_previous_snapshot(self):
+    def test_failed_receipt_encoding_or_publication_preserves_the_previous_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "receipt.json"
             receipt = {"schema_version": 1, "status": "running"}
             smoke.save_receipt(output, receipt, "starting_network")
             original = output.read_bytes()
-            with patch.object(smoke.os, "replace", side_effect=OSError("disk failure")):
-                with self.assertRaisesRegex(OSError, "disk failure"):
+            with patch.object(smoke, "admit_artifact") as publish:
+                with self.assertRaises(ValueError):
+                    smoke.save_receipt(output, dict(receipt, invalid=float("nan")), "deploying")
+                publish.assert_not_called()
+            with patch.object(smoke, "admit_artifact", side_effect=ValueError("disk failure")):
+                with self.assertRaisesRegex(ValueError, "disk failure"):
                     smoke.save_receipt(output, receipt, "deploying")
             self.assertEqual(output.read_bytes(), original)
+            self.assertEqual(list(Path(directory).iterdir()), [output])
+
+    def test_receipt_replacement_remains_private_under_a_permissive_parent_umask(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "receipt.json"
+            receipt = {"schema_version": 1, "status": "running"}
+            smoke.save_receipt(output, receipt, "starting")
+            previous_umask = os.umask(0)
+            try:
+                smoke.save_receipt(output, dict(receipt, status="passed"), "finished")
+            finally:
+                os.umask(previous_umask)
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads(output.read_text())["status"], "passed")
             self.assertEqual(list(Path(directory).iterdir()), [output])
 
     def test_previous_report_and_invalid_reply_are_retained_before_validation(self):

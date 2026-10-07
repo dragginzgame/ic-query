@@ -65,7 +65,11 @@ gh run view RUN_ID --repo "$repository" --verbose
 gh run view RUN_ID --repo "$repository" --log-failed
 ```
 
-The existing `scripts/dev/gh-ci.sh` can inspect an already-selected run using
+The existing `scripts/dev/gh-ci.sh --commit HEAD --all-workflows --limit 100`
+lists runs across workflows for the resolved local commit without an implicit
+branch restriction. This is a bounded inventory, not an automatic green gate;
+expand it when necessary and apply the workflow/source checks above. It can
+inspect an already-selected run using
 `GH_REPO="$repository" bash scripts/dev/gh-ci.sh --run RUN_ID --logs` when available.
 Its `--failed` option finds a historical failed run; use the run listing above to
 establish whether that failure is still current.
@@ -88,12 +92,14 @@ establish whether that failure is still current.
 - For a finding owned by another repository, search its issues first, then file
   an issue or update the matching issue with the reviewed revision, affected
   owner, reproduction/evidence, concrete fix or patch where feasible, and actual
-  validation results. These reports and matching issue comments have standing
-  maintainer authorization; do not ask again merely because the owner is upstream.
+  validation results. Relevant issue creation, comments, updates, assignment,
+  closure and reopening have standing maintainer authorization across repositories;
+  do not ask for separate permission. Search for duplicates and base status
+  changes on evidence, keeping unresolved consumer work in its own tracker.
   Distinguish committed and dirty source, local checks and native qualification,
   upstream acceptance and consumer adoption. Keep immutable snapshots intact.
-- That reporting authorization does not authorize sibling source edits, unrelated
-  messages, issue assignment/closure, commits or release effects. A check request
+- That issue authorization does not authorize sibling file edits, unrelated
+  messages, commits or release effects. A check request
   remains inspection; it does not authorize applying newly found local repairs.
   If another contributor owns an active edit or validation, coordinate before
   changing its source; retain a proposed patch as evidence until it can be applied.

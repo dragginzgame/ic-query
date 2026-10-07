@@ -6,12 +6,14 @@ usage() {
 }
 
 RUNNER_SOURCE="${BASH_SOURCE[0]}"
+bash "$(dirname "$RUNNER_SOURCE")/check-make-execution.sh"
 REPOSITORY_ROOT="${VALIDATION_REPOSITORY_ROOT:-$(cd "$(dirname "$RUNNER_SOURCE")/../.." && pwd)}"
 if [[ "${VALIDATION_RUNNER_SNAPSHOT_PATH:-}" != "$RUNNER_SOURCE" ]]; then
     RUNNER_SNAPSHOT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/validation-runner.XXXXXX")"
     RUNNER_SNAPSHOT="$RUNNER_SNAPSHOT_DIR/run-validation-targets.sh"
     trap 'rm -rf "$RUNNER_SNAPSHOT_DIR"' EXIT
     cp "$RUNNER_SOURCE" "$RUNNER_SNAPSHOT"
+    cp "$(dirname "$RUNNER_SOURCE")/check-make-execution.sh" "$RUNNER_SNAPSHOT_DIR/"
     bash -n "$RUNNER_SNAPSHOT"
     snapshot_status=0
     VALIDATION_REPOSITORY_ROOT="$REPOSITORY_ROOT" \

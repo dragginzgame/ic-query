@@ -8,21 +8,30 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`46c02774a8335cb3949d6f04284c4f53375353c1`](https://github.com/dragginzgame/shared-tooling/tree/46c02774a8335cb3949d6f04284c4f53375353c1) (0.1.11),
+[`25e7ce83149e081e4dcc52c55c33724e44153f2a`](https://github.com/dragginzgame/shared-tooling/tree/25e7ce83149e081e4dcc52c55c33724e44153f2a) (0.1.14),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/46c02774a8335cb3949d6f04284c4f53375353c1/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/25e7ce83149e081e4dcc52c55c33724e44153f2a/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
 lockfile transformation, publication tag and registry checking, dependency-pin
 and documentation-link checking, isolated RustSec preparation, repository-local
-tool setup, formatter prerequisites and LOC reporting. The engineering baseline
+tool setup, formatter prerequisites, LOC reporting, exact-commit CI inspection
+and the standard virtual-root Rust workspace layout. The engineering baseline
 remains the separate revision pinned in `AGENTS.md`.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
+
+The snapshot contains 50 shared files. Its governance selection keeps the linked
+workspace and tag-maintenance guides available offline. The consumer's host
+matrix remains local in `docs/supported-hosts.md`; the shared governance file list
+is an initial selection guide, not automatic ownership of consumer overlays.
+Generic provisioning/provenance guides retain their exact upstream bytes;
+the current split host-crate ownership is documented locally in
+[canister smoke testing](canister-smoke.md).
 
 The publication tag adapter selects this workspace's package version and exact
 HEAD commit, then delegates annotated-tag identity checks to the vendored
@@ -53,6 +62,29 @@ The default destination is `RELEASE_REMOTE=origin`, `RELEASE_BRANCH=main`.
 Override both explicitly when using another named remote or branch. The branch
 must be checked out, and the remote must have exactly one push URL. Select only
 one release target per Make invocation. The default Make target prints help.
+IC Query requires real Make execution with recipe errors enforced. Ignore-errors
+(`-i`), dry-run (`-n`), touch (`-t`) and question (`-q`) modes are rejected while
+reading the Makefile, including their long forms and inherited effective flags.
+This applies before any target recipe; normal selections and parallel jobserver
+behavior remain supported. The runner and validation logger also use the selected
+`check-make-execution.sh` to qualify actual execution and error propagation before
+Git recovery or logging mutations. This covers direct calls, including version-only
+Make settings that never read the consumer Makefile, and preserves prior evidence.
+See [Shared Tooling #30](https://github.com/dragginzgame/shared-tooling/issues/30).
+The runner captures that URL at entry, checks it again after validation and
+before dispatch, and uses the captured URL for remote observations and the atomic
+push. Replacing it or adding another URL stops the attempt; restore the recorded
+destination before retrying.
+
+For read-only CI inspection of the exact local commit across workflows, use:
+
+```bash
+bash scripts/dev/gh-ci.sh --commit HEAD --all-workflows --limit 100
+```
+
+The listing is bounded and describes committed source. Pending working-tree
+changes need their own qualification; a historical failure search is labelled
+separately and does not establish the latest status.
 
 Commit reviewed source and the numbered pending notes before invoking a release.
 The initial preflight requires a clean worktree and an existing lockfile,

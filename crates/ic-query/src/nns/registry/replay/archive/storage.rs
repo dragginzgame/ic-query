@@ -24,9 +24,10 @@ use crate::{
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
+use ic_host_artifacts::artifact::BoundedWriter;
 use sha2::{Digest, Sha256};
 use std::{
-    io::{self, Write},
+    io,
     path::{Path, PathBuf},
 };
 use thiserror::Error as ThisError;
@@ -606,7 +607,13 @@ fn write_manifest(
     }
     write_managed_file_atomically(cache_root, &path, |file| {
         let mut writer = BoundedWriter::new(file, max_manifest_bytes);
-        serde_json::to_writer(&mut writer, manifest).map_err(json_error_to_io)
+        serde_json::to_writer(&mut writer, manifest).map_err(|source| {
+            if writer.limit_exceeded() {
+                io::Error::new(io::ErrorKind::FileTooLarge, source)
+            } else {
+                json_error_to_io(source)
+            }
+        })
     })
     .map_err(file_operation)
 }
@@ -683,44 +690,4 @@ fn archive_batch_object_path(
 
 const fn file_operation(source: CacheFileError) -> NnsCertifiedRegistryArchiveStorageError {
     NnsCertifiedRegistryArchiveStorageError::FileOperation { source }
-}
-
-struct BoundedWriter<'a> {
-    writer: &'a mut cap_std::fs::File,
-    maximum: u64,
-    bytes: u64,
-}
-
-impl<'a> BoundedWriter<'a> {
-    const fn new(writer: &'a mut cap_std::fs::File, maximum: u64) -> Self {
-        Self {
-            writer,
-            maximum,
-            bytes: 0,
-        }
-    }
-}
-
-impl Write for BoundedWriter<'_> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        let length = u64::try_from(buffer.len())
-            .map_err(|_| io::Error::other("archive write length exceeds u64"))?;
-        let candidate = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("archive write length exceeds u64"))?;
-        if candidate > self.maximum {
-            return Err(io::Error::new(
-                io::ErrorKind::FileTooLarge,
-                "archive file exceeds its explicit byte ceiling",
-            ));
-        }
-        self.writer.write_all(buffer)?;
-        self.bytes = candidate;
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
 }

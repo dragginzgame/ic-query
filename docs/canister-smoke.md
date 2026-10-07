@@ -27,12 +27,15 @@
 The harness exercises the four direct NNS Governance reports through
 `CanisterNnsSource` in a deployed Wasm canister. It uses the existing
 `ic-query` package's `governance_probe` example and the development-only
-`governance_artifact` helper in `ic-query-cli`. The helper adopts `ic-host-tools`;
+`governance_artifact` helper in `ic-query-cli`. The helper adopts
+`ic-host-artifacts` for bounded streams, digesting and Wasm inspection,
+`ic-host-fs` for artifact file reads and atomic receipt publication, and
+`ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The adoption reviews released `ic-host-tools` 0.1.9 at
-[`200afa4`](https://github.com/dragginzgame/ic-host-tools/tree/200afa4a22099eb255899a01f9e464de8f0e51c1).
-The workspace lockfile selects the registry package and `tar` 0.4.46 without
-changing existing dependency versions or checksums.
+The adoption reviews the published IC Host Tooling 0.3.0 split at
+[`efd402e`](https://github.com/dragginzgame/ic-host-tooling/tree/efd402e0063ccbbf8a143cc970be52ab41b1766d).
+The workspace lockfile selects registry packages; archive support is unnecessary
+for this helper and remains disabled.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
@@ -47,7 +50,7 @@ changing existing dependency versions or checksums.
   ICP CLI **1.6.0**. Prepare it explicitly with `make install-ic-tools`;
   `make ic-tools-check` verifies the installed set offline.
 - The selected workspace dependency cache, including the development-only
-  `ic-host-tools` dependency. Prepare it explicitly with `cargo fetch --locked`;
+  IC Host Tooling dependencies. Prepare it explicitly with `cargo fetch --locked`;
   helper compilation and validation use locked/offline Cargo commands.
 - Internet access for the first local-runtime download and enough resources
   to run the local NNS/SNS network.
@@ -118,6 +121,14 @@ and does not invoke Governance mutations.
 Each attempt writes a unique
 `target/canister-smoke/receipt-*/receipt.json` before starting network work,
 then atomically replaces it as work proceeds, including on handled failures.
+The harness serializes complete strict JSON before sending it to the
+development helper's `write-receipt` operation. The helper streams stdin through
+`ic-host-fs::durable::write_with` without buffering another complete receipt;
+an input failure leaves the prior complete file intact. Shared filesystem publication
+owns the same-directory temporary file, file synchronization, replacement and
+parent-directory synchronization. The helper runs with an explicit child-only
+umask of 077 so replacement receipts remain mode 0600. Receipt schema, lifecycle,
+timestamps, paths and retained evidence remain harness-owned.
 Receipts retain the environment, timestamps, tool versions, network details,
 module evidence, build metadata, raw Candid replies, and decoded reports.
 Receipts record the active `phase` and `updated_at`; raw replies are saved

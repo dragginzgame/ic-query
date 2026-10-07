@@ -13,8 +13,9 @@ use super::{
 use crate::{
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, RefreshLockRequest, canonical_json_matches,
-        canonical_json_serialized_len, create_managed_parent_directory, json_error_to_io,
-        read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
+        canonical_json_serialized_len, canonical_json_sha256, create_managed_parent_directory,
+        json_error_to_io, read_bounded_managed_file, with_refresh_lock,
+        write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{
@@ -22,7 +23,6 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use thiserror::Error as ThisError;
 
@@ -602,16 +602,12 @@ fn cache_envelope<'a>(
     let catalog = authority.catalog().raw();
     Ok(CertifiedCatalogCacheEnvelopeRef {
         schema_version: NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION,
-        archive_manifest_sha256: canonical_sha256(manifest)?,
+        archive_manifest_sha256: hex_bytes(
+            &canonical_json_sha256(manifest)
+                .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?,
+        ),
         catalog,
     })
-}
-
-fn canonical_sha256(value: &impl Serialize) -> Result<String, NnsCertifiedSubnetCatalogCacheError> {
-    let mut digest = Sha256::new();
-    serde_json::to_writer(&mut digest, value)
-        .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
-    Ok(hex_bytes(&digest.finalize()))
 }
 
 fn read_bounded_cache(

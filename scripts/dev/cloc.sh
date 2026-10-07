@@ -71,6 +71,11 @@ if [[ -z "${crate_rows}" ]]; then
     exit 1
 fi
 
+if ! target_path="$(jq -er '.target_directory | select(type == "string" and startswith("/"))' <<<"$metadata")"; then
+    echo 'error: Cargo metadata has no absolute target directory' >&2
+    exit 1
+fi
+
 FILE_LIST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/shared-tooling-cloc.XXXXXX")"
 trap 'rm -rf "$FILE_LIST_DIR"' EXIT
 
@@ -136,18 +141,23 @@ count_test_fns() {
 for crate_row in "${crates[@]}"; do
     IFS=$'\t' read -r crate_name crate_path <<<"${crate_row}"
 
-    # Each member owns its subtree, excluding any nested workspace members.
+    # Cargo owns the build-output identity, including configured target paths.
+    # Prune it before either LOC or test counting, even inside a package.
     find_args=("$crate_path")
+    excluded_paths=("$target_path")
     for member_row in "${crates[@]}"; do
         IFS=$'\t' read -r _ member_path <<<"$member_row"
         if [[ "$member_path" == "$crate_path/"* ]]; then
-            # find's -path takes a glob; escape literal path metacharacters.
-            member_pattern="${member_path//\\/\\\\}"
-            member_pattern="${member_pattern//\*/\\*}"
-            member_pattern="${member_pattern//\?/\\?}"
-            member_pattern="${member_pattern//\[/\\[}"
-            find_args+=(-path "$member_pattern" -prune -o)
+            excluded_paths+=("$member_path")
         fi
+    done
+    for excluded_path in "${excluded_paths[@]}"; do
+        # find's -path takes a glob; escape literal path metacharacters.
+        excluded_pattern="${excluded_path//\\/\\\\}"
+        excluded_pattern="${excluded_pattern//\*/\\*}"
+        excluded_pattern="${excluded_pattern//\?/\\?}"
+        excluded_pattern="${excluded_pattern//\[/\\[}"
+        find_args+=(-path "$excluded_pattern" -prune -o)
     done
     find "${find_args[@]}" -type f -name '*.rs' -print0 >"$FILE_LIST_DIR/files"
     : >"$FILE_LIST_DIR/runtime"

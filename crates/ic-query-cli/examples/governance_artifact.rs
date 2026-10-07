@@ -1,10 +1,11 @@
-//! Development-only admission of Governance probe artifacts and ICP responses.
+//! Development-only Governance artifact admission, response decoding and receipt publication.
 
-use ic_host_tools::{
+use ic_host_artifacts::{
     artifact::{self, Sha256Digest},
-    response::{self, ResponseFormat, ResponseLimits},
     wasm::{self, InspectionLimits},
 };
+use ic_host_fs::{durable::write_with, read::read_file};
+use ic_host_tools::response::{self, ResponseFormat, ResponseLimits};
 use std::{
     env,
     error::Error,
@@ -16,8 +17,13 @@ const WASM_BYTES: usize = 64 * 1024 * 1024;
 const RESPONSE_INPUT_BYTES: usize = 8 * 1024 * 1024;
 const RESPONSE_DECODED_BYTES: usize = 2 * 1024 * 1024;
 
+fn write_receipt(path: &Path, mut input: impl io::Read) -> io::Result<()> {
+    write_with(path, |file| io::copy(&mut input, file))?;
+    Ok(())
+}
+
 fn inspect_wasm(path: &Path) -> Result<Sha256Digest, Box<dyn Error>> {
-    let bytes = artifact::read_file(path, WASM_BYTES)?;
+    let bytes = read_file(path, WASM_BYTES)?;
     wasm::inspect(
         &bytes,
         InspectionLimits {
@@ -70,10 +76,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             let input = artifact::read_reader(io::stdin().lock(), RESPONSE_INPUT_BYTES)?;
             output.write_all(decode_response(&input)?.as_bytes())?;
         }
+        (Some("write-receipt"), Some(path)) => {
+            write_receipt(Path::new(&path), io::stdin().lock())?;
+        }
         _ => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "expected inspect-wasm <path> or decode-response with JSON stdin",
+                "expected inspect-wasm <path>, decode-response or write-receipt <path>",
             )
             .into());
         }
@@ -86,6 +95,38 @@ mod tests {
     use super::*;
     use ic_host_tools::response::ResponseError;
     use std::fmt::Write as _;
+    use std::io::Read as _;
+
+    #[test]
+    fn receipt_stream_failure_preserves_the_previous_complete_bytes() {
+        struct FailingReader;
+
+        impl io::Read for FailingReader {
+            fn read(&mut self, _buffer: &mut [u8]) -> io::Result<usize> {
+                Err(io::Error::from(io::ErrorKind::BrokenPipe))
+            }
+        }
+
+        let directory = env::temp_dir().join(format!(
+            "ic-query-receipt-stream-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("receipt.json");
+        let bytes = br#"{"schema_version":1,"status":"running"}
+"#;
+        write_receipt(&path, bytes.as_slice()).expect("publish complete receipt");
+        let error = write_receipt(&path, io::repeat(b'x').take(20_000).chain(FailingReader))
+            .expect_err("failed source cannot publish a partial receipt");
+        assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 1);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     fn envelope(bytes: &[u8]) -> Vec<u8> {
         let mut hex = String::new();

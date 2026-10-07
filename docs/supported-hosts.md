@@ -94,10 +94,10 @@ The prior 0.1.8 revision `d957d1f8801885c5b69e4a9ef900155f5f2a8a9d`
 retains those fixes and adds Cargo inheritance checks. Its
 [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37484175750)
 passed Linux and lint/security; both macOS jobs failed at the same host-tool
-fixture stage. IC Host Tools 0.2.0's
+fixture stage. The prior IC Host Tools 0.2.0's
 [CI](https://github.com/dragginzgame/ic-host-tools/actions/runs/37483358223)
 passed Linux and MSRV; both macOS jobs failed at the host-tool installer fixture
-stage. Native qualification of the adopted dependency remains outstanding.
+stage. That dependency revision did not qualify native macOS support.
 The prior Shared Tooling 0.1.9 revision
 `b32d3038c850a7c53470c326b0f7f11263b31669` restores authenticated archive bytes
 in its host-tool fixture and retains installation diagnostics. Its
@@ -117,15 +117,28 @@ to the next line, yielding an invalid `/bin/bashcase` interpreter. That test is
 outside the selected snapshot, whose runtime helper bytes remain unchanged from
 0.1.9. Complete native qualification of 0.1.10 remains outstanding under the
 [upstream fixture-retention owner](https://github.com/dragginzgame/shared-tooling/issues/21).
-The selected 0.1.11 revision `46c02774a8335cb3949d6f04284c4f53375353c1`
+The prior 0.1.11 revision `46c02774a8335cb3949d6f04284c4f53375353c1`
 generates that launcher directly with `printf` and adds exact changelog comparisons,
 corrected validation error labels and the shared repair/reporting workflow.
 Focused retention, logger and changelog fixtures pass under Linux Bash 5 and 3.2.
 Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37500153922)
-passed Linux, Apple Silicon macOS and lint/security. Intel macOS is still running
-at this review; complete upstream native qualification remains pending.
+passed Linux, both macOS architectures and lint/security.
+The prior 0.1.13 revision `e378671d90afa237ff63a4b0e3b9551eb2c222b6`
+includes captured release destinations, independent snapshot checksums,
+exact-commit CI inspection and the standard Rust workspace guide. Its
+[native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37581058940)
+passed Linux, both macOS architectures and lint/security.
+The selected 0.1.14 revision `25e7ce83149e081e4dcc52c55c33724e44153f2a`
+adds isolated Make execution admission and selected-target LOC exclusion. Its
+[native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37586649650)
+passed Linux, both macOS architectures and lint/security.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
+The selected IC Host Tooling 0.3.1 registry crates were reviewed at
+`38a2a5127be064014e6d39d72d0300ffb2cf20be`. That exact published source passed
+[Linux, both macOS architectures and MSRV CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37580017649).
+The split dependency, shared stream and receipt adoption in IC Query 0.47.7 requires
+consumer native qualification; local Linux fixtures do not establish it.
 
 ## Tool-specific dependencies
 

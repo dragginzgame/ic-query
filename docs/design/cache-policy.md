@@ -136,11 +136,20 @@ same byte ceiling as the owner's reader; an oversized refresh returns
 pass remains bounded if serialization changes between passes. An explicit
 caller-selected export may retain one encoded string when the same bytes must
 also be published to cache.
-The cache-bearing native host features use IC Host Tools' `BoundedWriter` for
-byte counting and output budgets. Encoding, typed cache errors, confinement and
+The cache-bearing native host features use `ic-host-artifacts`' `BoundedWriter` for
+byte counting and output budgets, and `read_reader` for bounded, fallibly allocated
+byte collection from already-confined handles. Its `MatchingWriter` compares
+canonical JSON without retaining another encoded copy; the JSON producer must
+succeed before a complete match can be accepted. Metadata admission, observed
+overflow lengths, aggregate charging, encoding, typed cache errors, confinement and
 publication stay with IC Query. Canonical hashes stream into SHA-256's existing
-writer. Pure-library, canister and host features without caches do not enable
-IC Host Tools.
+writer. Its default features stay disabled: cache writes do not enable archive,
+gzip, Wasm inspection, process execution or ordinary-path filesystem helpers.
+Pure-library, canister and host features without caches do not enable any IC Host
+Tooling crate. The development-only Governance artifact helper selects Wasm
+inspection and artifact file reads separately from production library dependencies.
+Stream allocation failures return a read error with `OutOfMemory` rather than
+panicking while preallocating a metadata-sized buffer.
 Certified Registry archive objects and certified Subnet Catalog caches retain
 their caller-selected read ceilings through the shared confined reader.
 Ordinary Subnet Catalog refreshes stream through the bounded JSON writer;

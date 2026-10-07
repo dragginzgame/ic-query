@@ -37,7 +37,9 @@ snapshot() {
 case "$1" in
   check-ref-format) [[ "$2" == refs/heads/main ]] ;;
   symbolic-ref) echo main ;;
-  remote) echo "${FIXTURE_DESTINATION:-https://example.invalid/ic-query}" ;;
+  remote)
+    if [[ -f destination ]]; then cat destination
+    else echo "${FIXTURE_DESTINATION:-https://example.invalid/ic-query}"; fi ;;
   hash-object) exec "$REAL_GIT" hash-object --stdin ;;
   rev-parse)
     case "${!#}" in
@@ -98,6 +100,10 @@ case "$1" in
   cat-file) [[ -f tag ]]; echo tag ;;
   ls-remote)
     [[ "${FIXTURE_REMOTE_FAIL:-}" != yes ]] || exit 47
+    [[ "$2" == --refs && "$3" == -- && "$4" == https://example.invalid/ic-query ]]
+    if [[ "${FIXTURE_DRIFT_TARGET:-}" == remote-observation && -f tag ]]; then
+      printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
+    fi
     for ref in "$@"; do
       case "$ref" in
         refs/heads/main) if [[ -f remote-head ]]; then printf '%s\t%s\n' "$(cat remote-head)" "$ref"; fi ;;
@@ -124,9 +130,10 @@ case "$1" in
     echo "$release_sha" > head
     echo commit >> events ;;
   push)
-    [[ "$#" == 6 && "$2" == --no-follow-tags && "$3" == --atomic && "$4" == origin \
-      && "$5" == *:refs/heads/main && "$6" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]]
-    push_head="$(resolve "${5%:refs/heads/main}")"
+    [[ "$#" == 7 && "$2" == --no-follow-tags && "$3" == --atomic && "$4" == -- \
+      && "$5" == https://example.invalid/ic-query && "$6" == *:refs/heads/main \
+      && "$7" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]]
+    push_head="$(resolve "${6%:refs/heads/main}")"
     if [[ -f remote-head ]]; then ancestor "$(cat remote-head)" "$push_head"; fi
     printf '%s %s\n' "$push_head" "$(cat tag)" >> pushes
     echo push >> events
@@ -159,13 +166,20 @@ STUB
 cat > "$work_dir/bin/make" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ "${2:-}" == -f && "${3:-}" == - ]]; then exec "$REAL_MAKE" "$@"; fi
 for argument in "$@"; do
   [[ "$argument" != "${FIXTURE_FAIL_TARGET:-}" ]] || exit 43
+  if [[ "$argument" == release-push-check && "${FIXTURE_DRIFT_TARGET:-}" == push-check ]]; then
+    printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
+  fi
   if [[ "$argument" == ci ]]; then
     echo validate >> events
     printf 'retained build output\n' > target/retained-output
     [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
+    if [[ "${FIXTURE_DRIFT_TARGET:-}" == validate ]]; then
+      printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
+    fi
     exit
   fi
 done
@@ -180,7 +194,7 @@ new_fixture() {
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
@@ -288,6 +302,61 @@ check_old_evidence() {
   [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
+check_destination_changes() {
+  local phase drift
+  new_fixture destination-stable patch
+  run_release patch || { cat output; fail 'captured destination'; }
+  check_complete
+  for phase in validate push-check remote-observation; do
+    for drift in replaced additional; do
+      new_fixture "destination-$phase-$drift" patch
+      export FIXTURE_DRIFT_TARGET="$phase"
+      export FIXTURE_DRIFT_URL=https://example.invalid/other
+      if [[ "$drift" == additional ]]; then
+        FIXTURE_DRIFT_URL=$'https://example.invalid/ic-query\nhttps://example.invalid/other'
+      fi
+      expect_failure patch
+      [[ "$(count_event push)" == 0 && ! -e .release-state/lock ]]
+      if [[ "$phase" == validate ]]; then
+        [[ ! -e .release-state/0.46.6.plan && "$(count_event commit)" == 0 && ! -e tag ]]
+      else
+        [[ "$(tail -n 1 .release-state/0.46.6.plan)" == push && "$(count_event commit)" == 1 ]]
+      fi
+      unset FIXTURE_DRIFT_TARGET FIXTURE_DRIFT_URL
+      rm destination
+      run_release patch || { cat output; fail 'restored destination retry'; }
+      check_complete
+    done
+  done
+}
+
+check_release_execution_modes() {
+  local release_kind mode status
+  local arguments
+  for release_kind in patch minor major resume; do
+    for mode in i n t q v --ignore-errors --dry-run --version; do
+      new_fixture "execution-$release_kind-$mode" patch
+      if [[ "$release_kind" == resume ]]; then
+        arguments=(resume 0.46.6 origin main)
+      else
+        arguments=("$release_kind" origin main)
+      fi
+      status=0
+      env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+        MAKEFLAGS="$mode" RELEASE_MAKE="$REAL_MAKE" \
+        bash scripts/ci/run-release.sh "${arguments[@]}" > output 2>&1 || status=$?
+      [[ "$status" != 0 && ! -e .release-state && ! -e events ]] \
+        || fail "release $release_kind admitted inherited mode $mode"
+      grep -Fq 'requires recipe execution and failure propagation' output \
+        || fail 'release execution admission diagnostic missing'
+      cmp original-lock Cargo.lock || fail 'execution admission changed the lockfile'
+      [[ "$(cat head)" == aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+        && -f target/original-artifact && ! -e pushes && ! -e tag ]] \
+        || fail 'execution admission changed source or artifacts'
+    done
+  done
+}
+
 for kind in patch minor major; do
   new_fixture "success-$kind" "$kind"
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \
@@ -308,6 +377,8 @@ for kind in patch minor major; do
   check_complete
   [[ "$(count_event validate)" == 1 ]] || fail 'validation was replayed after preparation'
 done
+check_destination_changes
+check_release_execution_modes
 for next_kind in patch minor major resume; do
   for outcome in before-push lost-reply; do
     new_fixture "descendant-$next_kind-$outcome" minor

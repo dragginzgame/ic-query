@@ -23,6 +23,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_artifacts::artifact::BoundedWriter;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
@@ -767,35 +768,33 @@ struct CanonicalReportEncoding {
     sha256: [u8; 32],
 }
 
+///
+/// DigestingWriter
+///
+/// Hash accepted archive bytes while the shared writer owns counting and output allowance.
+///
+
 struct DigestingWriter<Writer> {
-    writer: Writer,
+    writer: BoundedWriter<Writer>,
     hasher: Sha256,
-    bytes: u64,
 }
 
 impl<Writer> DigestingWriter<Writer> {
     fn new(writer: Writer) -> Self {
         Self {
-            writer,
+            writer: BoundedWriter::new(writer, u64::MAX),
             hasher: Sha256::new(),
-            bytes: 0,
         }
     }
 
     fn finish(self) -> (u64, [u8; 32]) {
-        (self.bytes, self.hasher.finalize().into())
+        (self.writer.bytes_written(), self.hasher.finalize().into())
     }
 }
 
 impl<Writer: Write> Write for DigestingWriter<Writer> {
     fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
         self.writer.write_all(buffer)?;
-        let length = u64::try_from(buffer.len())
-            .map_err(|_| io::Error::other("buffer length exceeds u64"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(length)
-            .ok_or_else(|| io::Error::other("encoded report length exceeds u64"))?;
         self.hasher.update(buffer);
         Ok(buffer.len())
     }

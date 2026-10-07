@@ -51,17 +51,17 @@ and both macOS architectures; mapping Linux ARM64 is not native qualification.
 
 Use the host package manager for the shell, Git, GNU Make, curl, archive tools,
 Perl and ordinary utilities. For Linux Mint/Ubuntu, the following explicit
-system setup also prepares the shared regression suite's cloc and ripgrep:
+system setup also prepares the shared regression suite's cloc:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y bash git make curl ca-certificates tar gzip xz-utils perl cloc ripgrep
+sudo apt-get install -y bash git make curl ca-certificates tar gzip xz-utils perl cloc
 ```
 
 On macOS, with Xcode Command Line Tools and Homebrew already installed:
 
 ```bash
-brew install make curl xz cloc ripgrep
+brew install make curl xz cloc
 ```
 
 macOS supplies Bash, Git (through Command Line Tools), tar, gzip, Perl and shasum.
@@ -69,6 +69,7 @@ Homebrew GNU Make is available as `gmake`; use it where the system Make does not
 meet a consumer's requirements. These system packages follow the host's package
 manager updates; they are not claimed to be checksum-pinned shared binaries.
 Shared setup never invokes sudo or installs a package manager implicitly.
+The pinned local host set supplies ripgrep; it is not a bootstrap dependency.
 
 Rust repositories separately prepare their declared Rust toolchain, rustfmt and
 pinned cargo-sort. Shared Tooling's portable fixtures also require Cargo and
@@ -79,6 +80,15 @@ source ci/tool-versions.env
 cargo install cargo-sort --version "$SHARED_TOOLING_CARGO_SORT_VERSION" --locked
 bash scripts/ci/check-format-tools.sh "$SHARED_TOOLING_CARGO_SORT_VERSION"
 ```
+
+Before starting portable fixtures, `test-portable-tools.sh` checks the required
+commands on PATH (including cloc, shasum, jq, Mike Farah yq and ripgrep) and reuses
+the offline formatter check above. Run this admission independently with
+`bash scripts/ci/check-portable-prerequisites.sh`. It reports missing commands
+together and points back here; it never installs tools or replaces the individual
+fixtures' version, feature and behavior checks. Standard Unix utilities from the
+bootstrap environment are still required. This is Shared Tooling's own suite
+setup, not a new prerequisite gate for every consumer.
 
 ShellCheck, actionlint and Gitleaks use the existing explicit CI installers and
 pins; GitHub maintenance needs an installed, authenticated `gh`. Consumer-owned

@@ -5,6 +5,42 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.7]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Uses IC Host Tooling 0.3.1's smaller artifact crate for bounded cache streams
+  and exact canonical JSON comparison.
+  Production cache features exclude artifact parsers, process execution and
+  ordinary-path filesystem helpers; cache bytes, limits and atomic replacement
+  remain unchanged. Cache reads allocate fallibly rather than preallocating
+  from file metadata. Governance development helpers adopt the split crates.
+- Removes the remaining archive byte-limit writer and duplicate canonical JSON
+  hashing. Governance receipts use shared atomic filesystem publication with
+  owner-only permissions, file and parent-directory synchronization. Receipt
+  publication streams stdin without buffering another complete copy.
+- Adopts Shared Tooling 0.1.14: release attempts stay bound to their recorded
+  destination, and snapshot verification hashes files independently of the
+  inspected checksum helper. Adds exact-commit CI inspection across workflows
+  and keeps the shared guides unchanged through reviewed exports.
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+- Rejects Make's ignore-errors, dry-run, touch and question modes before recipes
+  can run, preventing false validation success while preserving normal nested
+  commands and parallel execution. Direct release and validation scripts also
+  reject non-executing modes before changing recovery state or retained logs.
+- Excludes Cargo's selected build directory from LOC reports, including custom
+  directories inside a package.
+
+```bash
+printf '%s\n' '{"schema_version":1,"status":"running"}' | (
+  umask 077
+  cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
+    write-receipt /tmp/ic-query-receipt.json
+)
+
+bash scripts/dev/gh-ci.sh --commit HEAD --all-workflows --limit 100
+```
+
 ## [0.47.6] - 2026-10-06
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

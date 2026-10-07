@@ -13,6 +13,7 @@ Run the refresh helper from a clean Shared Tooling checkout:
   --consumer /path/to/consumer \
   --file scripts/ci/verify-file-checksum.sh \
   --file scripts/ci/verify-shared-tooling-snapshot.sh \
+  --file scripts/ci/check-make-execution.sh \
   --file scripts/ci/run-validation-targets.sh
 ```
 
@@ -71,9 +72,13 @@ source revision. Verify the completed snapshot before resuming validation.
 To change the declared file set, edit or recreate the manifest as an explicit
 reviewed consumer change; ordinary refresh does not silently widen it.
 
-When refreshing `install-actionlint.sh`, `install-shellcheck.sh` or
-`install-gitleaks.sh`, also declare `scripts/ci/install-ci-tool.sh` and the existing
-`scripts/ci/verify-file-checksum.sh`. The three entry points now share that
+The release runner, validation logger and formatting hook require
+`scripts/ci/check-make-execution.sh`. Include it when adding or refreshing any of
+those entrypoints; existing manifests need that explicit file-set addition.
+
+When refreshing `install-actionlint.sh`, `install-shellcheck.sh`, `install-gitleaks.sh`,
+`install-sccache.sh` or `install-yq.sh`, also declare `scripts/ci/install-ci-tool.sh`
+and the existing `scripts/ci/verify-file-checksum.sh`. These entry points share that
 implementation; refreshing only an entry point leaves an incomplete installation.
 Pins and command arguments remain consumer-owned and unchanged.
 
@@ -93,8 +98,13 @@ bash scripts/ci/verify-shared-tooling-snapshot.sh
 ```
 
 The verifier fails when a declared file is absent, symlinked, has different
-content, or changes executable state. It validates local snapshot integrity;
-the source commit and normal review establish provenance.
+content, or changes executable state. It hashes files directly through the host's
+`sha256sum` or `shasum`, without executing the inspected snapshot's checksum helper
+or any other declared file. This independent bootstrap is deliberate: shared
+checksum code cannot establish its own integrity. Invoke a trusted copy of the
+verifier; this is local integrity checking, not signed provenance or protection
+against replacement of the verifier and manifest themselves. The source commit
+and normal review establish provenance.
 
 ## Shared baseline and local instructions
 
@@ -103,46 +113,24 @@ Vendor it with its linked guides so the complete rule set remains readable
 offline. Keep the consumer's `AGENTS.md` as its entry point and local overlay;
 do not copy Shared Tooling's `AGENTS.md` over it.
 
-For a new governance snapshot, use this complete documentation file set with
-the required verifiers, adding any selected tools to the same command:
+For a new governance snapshot, use the canonical
+[governance file list](../scripts/distribution/governance-files.txt), including
+linked guides and required helpers. Add selected tools explicitly to the command:
 
 ```bash
-/path/to/shared-tooling/scripts/distribution/refresh-consumer.sh \
-  --consumer /path/to/consumer \
-  --file DRAGGINZGAME.md \
-  --file rules/changelogs.md \
-  --file rules/cargo-dependencies.md \
-  --file rules/dependency-pinning.md \
-  --file rules/git-hooks.md \
-  --file rules/agent-maintenance.md \
-  --file audits/README.md \
-  --file audits/code-hygiene.md \
-  --file audits/flow-convergence-and-duplication.md \
-  --file audits/complexity-and-technical-debt.md \
-  --file audits/module-surface-hardening.md \
-  --file audits/module-cleanup.md \
-  --file docs/releases.md \
-  --file scripts/ci/run-release.sh \
-  --file scripts/ci/next-release-version.sh \
-  --file scripts/ci/finalize-release-changelog.awk \
-  --file scripts/ci/check-dependency-pins.sh \
-  --file scripts/ci/dependency-pins.jq \
-  --file docs/principles/README.md \
-  --file docs/principles/decision-artifact-discipline.md \
-  --file docs/principles/reviewable-changes.md \
-  --file docs/principles/rust-code-hygiene.md \
-  --file docs/principles/simplicity-and-maintainability.md \
-  --file docs/consuming-snapshots.md \
-  --file docs/provenance.md \
-  --file docs/verification-helpers.md \
-  --file docs/ic-tools.md \
-  --file docs/local-setup.md \
-  --file ci/ic-tools.tsv \
-  --file ci/tool-versions.env \
-  --file docs/supported-hosts.md \
-  --file scripts/ci/verify-file-checksum.sh \
-  --file scripts/ci/verify-shared-tooling-snapshot.sh
+shared_tooling=/path/to/shared-tooling
+files=()
+while IFS= read -r file; do
+  files+=(--file "$file")
+done < "$shared_tooling/scripts/distribution/governance-files.txt"
+bash "$shared_tooling/scripts/distribution/refresh-consumer.sh" \
+  --consumer /path/to/consumer "${files[@]}"
 ```
+
+The distribution fixture exports this list and checks its Markdown links inside
+the isolated consumer. The source checkout's link check alone cannot establish
+that exported documentation is complete. Keep the list current when adding guides.
+It is an initial selection, not hidden inheritance or automatic manifest widening.
 
 For an existing snapshot, update its declared file set through the reviewed
 manifest procedure above, including all shared rule files. Include
@@ -162,14 +150,23 @@ and an upstream finding (search, report evidence in the owning issue, then adopt
 the committed correction). Reporting an issue neither applies the upstream fix
 nor verifies consumer adoption; broad validation authority stays unchanged.
 
+Consumers using the maintenance rule's exact-commit CI inspection command also
+refresh `scripts/dev/gh-ci.sh` from that reviewed revision. It remains a read-only
+interactive helper using the consumer checkout and authenticated GitHub CLI.
+The portable-suite prerequisite check is Shared Tooling's own test setup, not a
+required consumer gate. If vendoring the complete portable suite, include its
+new `scripts/ci/check-portable-prerequisites.sh`, `scripts/ci/test-portable-prerequisites.sh`
+and `scripts/ci/test-gh-ci.sh` dependencies along with the existing suite inputs.
+
 A revision-bound baseline reference remains an allowed alternative under the
 baseline. It must identify the exact source revision and document; a branch URL
 or moving sibling path does not establish which rules were reviewed. Snapshot
 integrity checks detect changes to declared files; they do not prove that a
 consumer has adopted the newest policy or resolved its local instruction conflicts.
-Rust consumers also add `.githooks/pre-commit` and
-`scripts/dev/install-git-hooks.sh` to the declared file set, align their formatting
-targets with the [hook contract](../rules/git-hooks.md), and enable the hook through
+Rust consumers also add `.githooks/pre-commit`,
+`scripts/dev/install-git-hooks.sh` and `scripts/ci/check-make-execution.sh` to the
+declared file set, align their formatting targets with the
+[hook contract](../rules/git-hooks.md), and enable the hook through
 `make install-hooks`. Refresh preserves executable modes but does not activate
 hooks or replace Git configuration. Review existing local hooks before declaring
 their paths for replacement; preserve and reconcile their obligations.
@@ -180,14 +177,15 @@ check alone does not verify those behaviors.
 Pinning adoption also requires the checker and its jq module, prepared Git/jq/yq
 tools (and Cargo for Rust workspaces), a CI/release invocation, and consumer-owned
 qualification for locked builds and external inputs. Consumers may also vendor
-`scripts/ci/install-yq.sh` with the checksum helper; choose and record their own
-reviewed version and platform digests. Resolve existing exceptions under the
+`scripts/ci/install-yq.sh` with `scripts/ci/install-ci-tool.sh` and the checksum
+helper; choose and record their own reviewed version and platform digests.
+Resolve existing exceptions under the
 [pinning policy](../rules/dependency-pinning.md) before claiming adoption.
 
 ## Audit method adoption
 
-Include the complete `audits/` file set above when adopting this baseline, so
-its method links work offline. The snapshot's reviewed source revision identifies
+Include the complete `audits/` file set in the governance list when adopting this
+baseline, so its method links work offline. The snapshot's reviewed source revision identifies
 the common contract; do not read methods from a moving sibling checkout or copy
 uncommitted documents and attribute them to an older revision.
 

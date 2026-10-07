@@ -8,6 +8,9 @@ forbidden_pure_library_dependencies=(
   clap
   futures
   ic-agent
+  ic-host-artifacts
+  ic-host-fs
+  ic-host-process
   ic-host-tools
   reqwest
   tokio
@@ -25,6 +28,9 @@ forbidden_canister_dependencies=(
   clap
   futures
   ic-agent
+  ic-host-artifacts
+  ic-host-fs
+  ic-host-process
   ic-host-tools
   prost
   reqwest
@@ -33,6 +39,12 @@ forbidden_canister_dependencies=(
 
 forbidden_host_dependencies=(
   clap
+  ic-host-fs
+  ic-host-process
+  ic-host-tools
+  'ic-host-artifacts feature "archive"'
+  'ic-host-artifacts feature "gzip"'
+  'ic-host-artifacts feature "wasm"'
 )
 
 forbidden_direct_registry_host_dependencies=(
@@ -57,6 +69,9 @@ forbidden_direct_dashboard_host_dependencies=(
 forbidden_ic_state_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-artifacts
+  ic-host-fs
+  ic-host-process
   ic-host-tools
   prost
 )
@@ -83,6 +98,9 @@ forbidden_direct_icrc_host_dependencies=(
 forbidden_cmc_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-artifacts
+  ic-host-fs
+  ic-host-process
   ic-host-tools
   prost
 )
@@ -90,6 +108,9 @@ forbidden_cmc_host_dependencies=(
 forbidden_cloud_engine_host_dependencies=(
   cap-fs-ext
   cap-std
+  ic-host-artifacts
+  ic-host-fs
+  ic-host-process
   ic-host-tools
   prost
 )

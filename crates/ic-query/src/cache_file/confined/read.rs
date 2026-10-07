@@ -5,6 +5,7 @@
 //! Boundary: opens only validated regular files beneath a capability root.
 
 use super::{CacheFileError, ConfinedCacheRoot, ConfinedManagedPath};
+use ic_host_artifacts::artifact::{ArtifactError, read_reader};
 use std::{
     io::{self, Read},
     path::{Path, PathBuf},
@@ -191,7 +192,7 @@ fn read_opened_file_bounded(
 }
 
 pub fn read_bounded_stream(
-    mut reader: impl Read,
+    reader: impl Read,
     metadata_length: u64,
     target_path: &Path,
     maximum: u64,
@@ -203,35 +204,53 @@ pub fn read_bounded_stream(
             maximum,
         });
     }
-    let capacity =
-        usize::try_from(metadata_length).map_err(|_| BoundedManagedFileReadError::Accounting {
-            path: target_path.to_path_buf(),
-        })?;
-    let mut data = Vec::with_capacity(capacity);
-    Read::by_ref(&mut reader)
-        .take(maximum.saturating_add(1))
-        .read_to_end(&mut data)
-        .map_err(|source| BoundedManagedFileReadError::Read {
+    let accounting = || BoundedManagedFileReadError::Accounting {
+        path: target_path.to_path_buf(),
+    };
+    usize::try_from(metadata_length).map_err(|_| accounting())?;
+    // An unbounded u64 allowance still admits small streams on smaller hosts.
+    let host_maximum = usize::try_from(maximum).unwrap_or(usize::MAX);
+    read_reader(reader, host_maximum).map_err(|error| match error {
+        ArtifactError::Io(source) => BoundedManagedFileReadError::Read {
             path: target_path.to_path_buf(),
             source,
-        })?;
-    let actual =
-        u64::try_from(data.len()).map_err(|_| BoundedManagedFileReadError::Accounting {
+        },
+        ArtifactError::Allocation(source) => BoundedManagedFileReadError::Read {
             path: target_path.to_path_buf(),
-        })?;
-    if actual > maximum {
-        return Err(BoundedManagedFileReadError::LimitExceeded {
-            path: target_path.to_path_buf(),
-            actual,
-            maximum,
-        });
-    }
-    Ok(data)
+            source: io::Error::new(io::ErrorKind::OutOfMemory, source),
+        },
+        ArtifactError::LimitExceeded { limit } => match limit.checked_add(1) {
+            Some(actual) if actual > maximum => BoundedManagedFileReadError::LimitExceeded {
+                path: target_path.to_path_buf(),
+                actual,
+                maximum,
+            },
+            _ => accounting(),
+        },
+        source @ (ArtifactError::NotRegularFile | ArtifactError::DigestMismatch { .. }) => {
+            BoundedManagedFileReadError::Read {
+                path: target_path.to_path_buf(),
+                source: io::Error::new(io::ErrorKind::InvalidData, source),
+            }
+        }
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct InterruptedOnce<R>(bool, R);
+
+    impl<R: Read> Read for InterruptedOnce<R> {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            if !self.0 {
+                self.0 = true;
+                return Err(io::ErrorKind::Interrupted.into());
+            }
+            self.1.read(buffer)
+        }
+    }
 
     struct FailsAfterBytes(bool);
     impl Read for FailsAfterBytes {
@@ -315,5 +334,61 @@ mod tests {
             }
         ));
         assert_eq!(reader.position(), 9, "read stops at maximum plus one");
+    }
+
+    #[test]
+    fn metadata_overflow_is_rejected_before_reading() {
+        let mut reader = io::Cursor::new(b"fixture");
+        assert!(matches!(
+            read_bounded_stream(&mut reader, 10, Path::new("snapshot.json"), 8),
+            Err(BoundedManagedFileReadError::LimitExceeded {
+                actual: 10,
+                maximum: 8,
+                ..
+            })
+        ));
+        assert_eq!(reader.position(), 0);
+    }
+
+    #[test]
+    fn stream_reads_accept_exact_zero_and_unbounded_ceilings() {
+        let path = Path::new("snapshot.json");
+        assert_eq!(read_bounded_stream(io::empty(), 0, path, 0).unwrap(), b"");
+        assert_eq!(
+            read_bounded_stream(io::Cursor::new(b"1234"), 0, path, 4).unwrap(),
+            b"1234"
+        );
+        assert!(matches!(
+            read_bounded_stream(io::Cursor::new(b"x"), 0, path, 0),
+            Err(BoundedManagedFileReadError::LimitExceeded {
+                actual: 1,
+                maximum: 0,
+                ..
+            })
+        ));
+        assert_eq!(
+            read_bounded_stream(io::Cursor::new(b"1234"), 0, path, u64::MAX).unwrap(),
+            b"1234"
+        );
+        let mut reader = io::Cursor::new(b"x");
+        let result = read_bounded_stream(&mut reader, u64::MAX, path, u64::MAX);
+        if usize::try_from(u64::MAX).is_ok() {
+            assert_eq!(result.unwrap(), b"x");
+        } else {
+            assert!(matches!(
+                result,
+                Err(BoundedManagedFileReadError::Accounting { .. })
+            ));
+            assert_eq!(reader.position(), 0);
+        }
+    }
+
+    #[test]
+    fn interrupted_stream_reads_retry_without_losing_bytes() {
+        let reader = InterruptedOnce(false, io::Cursor::new(b"fixture"));
+        assert_eq!(
+            read_bounded_stream(reader, 7, Path::new("snapshot.json"), 7).unwrap(),
+            b"fixture"
+        );
     }
 }

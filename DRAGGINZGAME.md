@@ -33,8 +33,15 @@ Consumer choices described in those guides remain subject to this baseline.
 ## Scope and authorization
 
 - Work within the authorized repositories and preserve unrelated dirty work.
-  Re-read dirty files before editing. Inspection does not authorize mutation;
-  siblings are read-only unless a named mutation is explicitly authorized.
+  Re-read dirty files before editing. Agents working in one repository must not
+  edit code or other files in any other repository unless the maintainer expressly
+  authorizes that target repository and the intended change. This includes Shared
+  Tooling, upstream dependencies and downstream consumers, whether edits are made
+  directly, by delegated agents, or through scripts, formatters and generators.
+  Changing directories, shared ownership, dependency fixes, inspection requests
+  and issue-reporting authority do not grant cross-repository edit permission.
+  Without that authorization, keep other repositories read-only and report the
+  proposed fix in the owning repository's GitHub issue.
 - Never create or amend Git commits, directly or through helpers. The maintainer
   owns commits. Inspect scripts before invoking targets that may commit.
 - Agents may execute package/manifest version changes, tags, pushes, publication,
@@ -47,9 +54,10 @@ Consumer choices described in those guides remain subject to this baseline.
   result. Apply authorized current-repository fixes directly to the working tree
   and run the appropriate focused checks; a detached patch alone does not complete
   a local repair. Inspection remains distinct from repair authorization.
-  The maintainer grants standing authorization to file or update owning-repository
-  GitHub issues for findings from authorized work, following the feedback rules
-  below. This does not authorize sibling source edits, issue assignment/closure,
+  Relevant GitHub issue work is always authorized across repositories: create,
+  comment, update, assign, close or reopen issues as warranted by the evidence,
+  following the feedback rules below. No separate permission is required for
+  those issue actions. This does not authorize cross-repository file edits,
   unrelated messages or release effects.
 
 ## Ownership and simplification
@@ -207,6 +215,13 @@ Consumer choices described in those guides remain subject to this baseline.
   verified tool downloads, and explicitly qualified sibling or moving inputs.
   Run the declaration checker in CI and release gates; consumers own the chosen
   versions, approved exceptions and runtime qualification evidence.
+- Use the [standard Rust workspace layout](rules/rust-workspaces.md): a virtual
+  repository-root workspace, including single-package repositories. Maintained
+  packages use `crates/<package-name>/` or application-owned `apps/<app-name>/`
+  trees, including component packages grouped beneath an App. Both inherit from
+  the same root. Approved independent workspaces use those shapes relative to
+  their own roots; other layouts need explicit exceptions.
+  Repositories without Rust packages do not need a Cargo workspace.
 - Cargo workspace members inherit package versions from the root. Apply the
   [Cargo dependency rules](rules/cargo-dependencies.md): every direct dependency
   is declared in root `[workspace.dependencies]`, and every child manifest uses
@@ -216,8 +231,9 @@ Consumer choices described in those guides remain subject to this baseline.
   without an established need and appropriate validation.
 - Follow the [Rust hygiene baseline](docs/principles/rust-code-hygiene.md): narrow
   visibility, documented APIs/invariants, ordinary module discovery, bounded
-  fallible decoding and typed errors. Exact edition, layout and lint choices stay
-  local. Do not fake platform behavior with production cfg(test) paths.
+  fallible decoding and typed errors. Exact edition, internal module layout and
+  lint choices stay local within the workspace rules. Do not fake platform
+  behavior with production cfg(test) paths.
 - Rust repositories adopt the [standard formatting hook](rules/git-hooks.md):
   `make install-hooks` enables a reviewed repository-local pre-commit hook that
   auto-formats and refreshes only selected files, rejects partial staging and

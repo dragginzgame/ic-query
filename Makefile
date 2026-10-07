@@ -16,6 +16,13 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 RELEASE_REMOTE ?= origin
 RELEASE_BRANCH ?= main
 
+# GNU Make normalizes execution modes into the first flag word. MFLAGS also
+# preserves invocation options when a caller overrides MAKEFLAGS explicitly.
+override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(firstword $(MFLAGS)))
+ifneq ($(strip $(foreach mode,i n t q,$(findstring $(mode),$(icq_make_execution_flags)))),)
+$(error IC Query requires execution with errors enforced; remove ignore-errors, dry-run, touch and question modes)
+endif
+
 ifneq ($(word 2,$(filter release-patch release-minor release-major release-resume,$(MAKECMDGOALS))),)
 $(error Select exactly one release target)
 endif
