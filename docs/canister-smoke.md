@@ -32,8 +32,10 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The adoption reviews published IC Host Tooling 0.3.3 at
-[`3d18ca9`](https://github.com/dragginzgame/ic-host-tooling/tree/3d18ca9a9ed0ac5935a16c5bac99694d8e9a7d0a).
+The adoption reviews published IC Host Tooling 0.4.0 at
+[`6b17174`](https://github.com/dragginzgame/ic-host-tooling/tree/6b171744def811882ba6c71d50135efa898302a9).
+The helper uses retained bounded file-read, durable publication and response
+APIs; it has no callers of the removed durable/private readers or lock wrapper.
 The workspace lockfile selects registry packages; archive support is unnecessary
 for this helper and remains disabled. The response-only tools profile disables
 default features, excluding Candid extraction and its process execution edge.

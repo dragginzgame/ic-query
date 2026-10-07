@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.10]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Adopts published IC Host Tooling 0.4.0 for bounded cache streams, export-path
+  resolution, archive hashing and the Governance development helper. Query uses
+  retained APIs; cache confinement, byte limits, archive identities and the
+  response-only dependency profile remain unchanged.
+
 ## [0.47.9] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

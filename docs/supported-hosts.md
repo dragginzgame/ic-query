@@ -138,8 +138,10 @@ Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/3759
 passed Linux, both macOS architectures and lint/security.
 The selected 0.1.16 revision `b69507367d45e3db9543359e689e1fcba0467ff4`
 adds retained validation timings, selected-manifest LOC and corrected snapshot
-classification. Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37598153506)
-and the prepared consumer 0.47.9 adoption still require completed qualification.
+classification. Its [CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37598153506)
+passed Linux and lint/security; both macOS jobs were cancelled, so exact-revision
+macOS qualification remains incomplete. The released consumer 0.47.9 adoption
+also awaits completed matching [native CI](https://github.com/dragginzgame/ic-query/actions/runs/37603344957).
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
@@ -155,7 +157,7 @@ The prior IC Host Tooling 0.3.2 registry crates were reviewed at
 Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37589678525)
 passed Linux and MSRV, but both macOS jobs failed the resolver's directory-traversal
 test: `file/..` returned a resolved path where the test expected `NotADirectory`.
-The selected IC Host Tooling 0.3.3 registry crates record published VCS revision
+The prior IC Host Tooling 0.3.3 registry crates record published VCS revision
 `3d18ca9a9ed0ac5935a16c5bac99694d8e9a7d0a`; their Rust sources match that commit.
 Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37595113180)
 passed Linux, both macOS architectures and MSRV. The corrected traversal fixture
@@ -163,9 +165,16 @@ compares each host's native canonicalization result, including missing-prefix
 rewind, while production resolution is unchanged. This resolves the upstream
 qualification failure reported in
 [Host #1](https://github.com/dragginzgame/ic-host-tooling/issues/1).
-The released 0.47.8 resolver, archive hashing and response-only adoption awaits
-completed matching [consumer CI](https://github.com/dragginzgame/ic-query/actions/runs/37597823342);
-local Linux fixtures do not establish native qualification.
+The released 0.47.8 resolver, archive hashing and response-only adoption passed
+all nine [consumer branch-CI jobs](https://github.com/dragginzgame/ic-query/actions/runs/37597823342),
+including complete checks, MSRV and canister smoke on all three native hosts.
+The selected IC Host Tooling 0.4.0 registry crates record published VCS revision
+`6b171744def811882ba6c71d50135efa898302a9`; their packaged Rust sources match
+that committed owner. Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37602699181)
+passed Linux, macOS Intel/ARM and MSRV. Query uses retained APIs and does not
+re-export the host crates. The prepared 0.47.10 dependency adoption requires
+matching consumer native CI; upstream coverage and focused Linux checks do not
+qualify this working tree on macOS.
 
 ## Tool-specific dependencies
 
