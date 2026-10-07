@@ -9,6 +9,18 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
 
+- Adopts Shared Tooling 0.1.18. Validation rejects Make options and assignments
+  before running any target; LOC reports exclude both selected build-directory
+  aliases and their physical paths.
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+- Adds explicit repository-local setup and offline checks for the optional
+  shared Cargo-tool set. The normal development setup retains its current tools.
+
+```bash
+make install-rust-tools
+make rust-tools-check
+```
+
 - Adopts published IC Host Tooling 0.4.0 for bounded cache streams, export-path
   resolution, archive hashing and the Governance development helper. Query uses
   retained APIs; cache confinement, byte limits, archive identities and the

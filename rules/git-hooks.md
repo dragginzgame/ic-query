@@ -110,6 +110,10 @@ Markdown and YAML are selected; Prettier owns configuration and ignore behavior.
 Generated files may be ignored only when the consumer's generation checks own
 their correctness. Symlink inputs are refused. No Git staging or tool install
 occurs in the helper, and formatter failures propagate.
+Explicit checks/writes reject a missing scope directory, and a failed version
+probe is rejected even if it prints the expected version. A hook selection with
+no remaining frontend files is a valid no-op, including deletion of the last
+frontend file; it does not require the prepared executable.
 
 This is a reference for prepared executables and built-in parsers. A consumer
 needing plugins or additional extensions owns their explicit prepared resolution

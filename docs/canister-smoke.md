@@ -66,6 +66,11 @@ state lives in `tests/canister/.icp/`. Neither directory belongs in commits or
 release artifacts. The library's supported minimum Rust version remains **1.91.0**;
 `make msrv` verifies it separately from the development toolchain.
 
+The harness's XDG data/config homes are currently disposable build state.
+Preserve any required identities before `cargo clean`; persistent identity
+storage outside that tree is tracked in
+[#16](https://github.com/dragginzgame/ic-query/issues/16).
+
 ## Build and local execution
 
 ```bash

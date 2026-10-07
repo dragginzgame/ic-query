@@ -111,6 +111,13 @@ if ! target_path="$(jq -er '.target_directory | select(type == "string" and star
     echo 'error: Cargo metadata has no absolute target directory' >&2
     exit 1
 fi
+target_paths=("$target_path")
+# Cargo preserves a configured alias. find does not follow source symlinks, but
+# can reach the existing output through its physical path elsewhere in a member.
+# A target that has never been built need not exist.
+if [[ -d "$target_path" ]]; then
+    target_paths+=("$(cd "$target_path" && pwd -P)")
+fi
 
 FILE_LIST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/shared-tooling-cloc.XXXXXX")"
 trap 'rm -rf "$FILE_LIST_DIR"' EXIT
@@ -180,7 +187,7 @@ for crate_row in "${crates[@]}"; do
     # Cargo owns the build-output identity, including configured target paths.
     # Prune it before either LOC or test counting, even inside a package.
     find_args=("$crate_path")
-    excluded_paths=("$target_path")
+    excluded_paths=("${target_paths[@]}")
     for member_row in "${crates[@]}"; do
         IFS=$'\t' read -r _ member_path <<<"$member_row"
         if [[ "$member_path" == "$crate_path/"* ]]; then

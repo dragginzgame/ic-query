@@ -38,6 +38,18 @@ if [[ $# -eq 0 ]]; then
     exit 2
 fi
 
+# Admit the complete goal list before creating logs or running any target.
+# Make still interprets assignments after --; neither assignments nor options
+# are validation goals. The caller's normal exported variables remain intact.
+for target in "$@"; do
+    case "$target" in
+        ''|-*|*=*|*$'\t'*|*$'\n'*|*$'\r'*)
+            echo 'validation requires named Make targets, not options, assignments or control characters' >&2
+            exit 2
+            ;;
+    esac
+done
+
 retain_all_logs=false
 if [[ -n "${VALIDATION_LOG_DIR:-}" ]]; then
     # One directory per invocation, including nested invocations. Never replace a
@@ -251,10 +263,6 @@ write_github_summary() {
 }
 
 for target in "$@"; do
-    if [[ "$target" == *$'\t'* || "$target" == *$'\n'* || "$target" == *$'\r'* ]]; then
-        echo 'validation target must not contain tabs or newlines' >&2
-        exit 2
-    fi
     log="$LOG_DIR/${#targets[@]}.log"
     start="$SECONDS"
     if [[ "${GITHUB_ACTIONS:-}" == "true" && "$RUNNER_DEPTH" == "0" ]]; then
@@ -263,7 +271,7 @@ for target in "$@"; do
         printf '\n==> %s\n' "$target"
     fi
 
-    if make --no-print-directory -C "$REPOSITORY_ROOT" "$target" 2>&1 |
+    if make --no-print-directory -C "$REPOSITORY_ROOT" -- "$target" 2>&1 |
         tee "$log" |
         annotate_live_output "$target"; then
         result="PASS"

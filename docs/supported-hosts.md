@@ -136,12 +136,20 @@ The prior 0.1.15 revision `bfb50bd0884b5e6c5ee9592056531c6108f96d73`
 adds the common Make include, pinned local cloc and sibling tooling inventory.
 Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37593142226)
 passed Linux, both macOS architectures and lint/security.
-The selected 0.1.16 revision `b69507367d45e3db9543359e689e1fcba0467ff4`
+The prior 0.1.16 revision `b69507367d45e3db9543359e689e1fcba0467ff4`
 adds retained validation timings, selected-manifest LOC and corrected snapshot
 classification. Its [CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37598153506)
 passed Linux and lint/security; both macOS jobs were cancelled, so exact-revision
-macOS qualification remains incomplete. The released consumer 0.47.9 adoption
-also awaits completed matching [native CI](https://github.com/dragginzgame/ic-query/actions/runs/37603344957).
+macOS qualification remains incomplete upstream. The released consumer 0.47.9
+adoption passed all three native [release-check jobs](https://github.com/dragginzgame/ic-query/actions/runs/37603344473).
+Its [branch run](https://github.com/dragginzgame/ic-query/actions/runs/37603344957)
+passed MSRV and canister smoke on all three hosts; the ARM checks job was
+cancelled, so that branch run is not a completed green gate.
+The selected 0.1.18 revision `a3430b34b32a60f3b245a2b4f7e2f5321556fe56`
+adds validation-goal admission, physical-target LOC exclusion and an optional
+local Rust-tool installer. Its [CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37604299590)
+passed Linux, both macOS architectures and lint/security. The prepared consumer
+0.47.10 adoption still requires matching native CI after commit.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
@@ -185,6 +193,7 @@ qualify this working tree on macOS.
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
 | Workspace version queries, changelog defaults and release/publication version admission | Prepared Cargo toolchain, local jq/yq; offline manifest validation without dependency resolution |
 | Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; installed explicitly by `install-dev` |
+| Optional shared Cargo-tool set | Prepared Cargo toolchain and native compilation prerequisites; explicit `install-rust-tools` / offline `rust-tools-check`, using the three pins in `ci/tool-versions.env` |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
@@ -239,3 +248,13 @@ requires exact hashes and modes; modified shared files count as local drift.
 IC Query's formatting gate now requires the same reviewed cargo-sort pin used
 by explicit development setup. `fmt-check` checks dependency order before Rust
 formatting and preserves source, the Git index, lockfiles and unrelated edits.
+
+The shared Cargo-tool set is optional for Query. `make install-rust-tools`
+prepares cargo-sort, cargo-sort-derives and candid-extractor under `.tools/rust`;
+`make rust-tools-check` verifies that complete local set offline. Query does not
+need the latter two executables for its current workflows, so `install-tools`,
+`tools-check` and `install-dev` retain their existing selections. The shared
+Make include adds `.tools/rust/bin` to PATH; if this optional set is prepared,
+its cargo-sort must satisfy the same formatter pin. Installer substitution
+tests establish dispatch and failure handling, not native compilation of these
+optional executables in this consumer.

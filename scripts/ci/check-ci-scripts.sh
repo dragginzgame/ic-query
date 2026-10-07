@@ -162,7 +162,7 @@ expected_ci_targets=(
   package
 )
 for target in "${expected_ci_targets[@]}"; do
-  printf 'make --no-print-directory -C %s %s\n' "${repo_root}" "${target}"
+  printf 'make --no-print-directory -C %s -- %s\n' "${repo_root}" "${target}"
 done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
@@ -179,7 +179,7 @@ for failed_target in changelog-check dependency-pins-check doc-links-check test;
     fail "make ci accepted a failed ${failed_target}"
   fi
   for target in "${expected_ci_targets[@]}"; do
-    printf 'make --no-print-directory -C %s %s\n' "${repo_root}" "${target}"
+    printf 'make --no-print-directory -C %s -- %s\n' "${repo_root}" "${target}"
     [[ "${target}" != "${failed_target}" ]] || break
   done > "${ci_gate_case}/expected-failed-trace"
   cmp -s "${ci_gate_case}/expected-failed-trace" "${ci_gate_case}/trace" \
@@ -190,6 +190,21 @@ done
 for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'; do
   grep -Fxq "[test] $line" "${ci_gate_case}/failure-logs/latest-errors.log" \
     || fail 'make ci discarded or mislabelled namespaced test failure context'
+done
+
+# Validate the consumer's configurable goal list before dispatching any recipe.
+for invalid_goal in -n --ignore-errors MAKEFLAGS=i VALUE=1; do
+  : > "${ci_gate_case}/trace"
+  if PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
+    VALIDATION_LOG_DIR="${ci_gate_case}/refused-logs" \
+    "${make_bin}" --no-print-directory -C "${repo_root}" ci \
+    "CI_TARGETS=changelog-check ${invalid_goal}" > "${ci_gate_case}/refused-output" 2>&1; then
+    fail 'make ci accepted a goal list containing Make controls'
+  fi
+  [[ ! -s "${ci_gate_case}/trace" && ! -e "${ci_gate_case}/refused-logs" ]] \
+    || fail 'make ci dispatched part of an invalid goal list or created run evidence'
+  grep -Fq 'validation requires named Make targets' "${ci_gate_case}/refused-output" \
+    || fail 'make ci lost goal admission diagnostics'
 done
 
 pin_check_case="${work_dir}/pin-check"
@@ -355,7 +370,7 @@ chmod +x "${install_case}/bin/cargo"
 tools_case="${work_dir}/tools"
 mkdir -p "$tools_case/scripts/dev"
 copy_makefile "$tools_case"
-for family in host ic; do
+for family in host ic rust; do
   cat > "$tools_case/scripts/dev/install-$family-tools.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -394,6 +409,23 @@ done
 TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
   "$make_bin" --no-print-directory -C "$tools_case" >/dev/null
 [[ ! -s "$tools_case/trace" ]] || fail 'default Make goal installed tools'
+for target in install-rust-tools rust-tools-check; do
+  : > "$tools_case/trace"
+  suffix=''
+  [[ "$target" != rust-tools-check ]] || suffix=' --check'
+  TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+    "$make_bin" --no-print-directory -C "$tools_case" "$target" \
+    RUST_TOOL_VERSIONS="$tools_case/selected Rust pins.env" >/dev/null
+  printf 'rust --consumer %s --versions %s%s\n' "$tools_case" \
+    "$tools_case/selected Rust pins.env" "$suffix" > "$tools_case/expected"
+  cmp "$tools_case/expected" "$tools_case/trace" \
+    || fail 'optional Rust setup/check lost its selected catalog or offline mode'
+  if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY=rust \
+    "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
+    fail 'optional Rust setup/check accepted installer failure'
+  fi
+done
+: > "$tools_case/trace"
 cat > "$tools_case/scripts/dev/cloc.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail

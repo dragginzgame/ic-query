@@ -86,6 +86,8 @@ help:
 	@echo "  host-tools-check  Verify the host toolset offline"
 	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm, PocketIC and wasm-opt"
 	@echo "  ic-tools-check  Verify the IC toolset offline"
+	@echo "  install-rust-tools  Install the optional shared Cargo-tool set locally"
+	@echo "  rust-tools-check  Verify that optional Cargo-tool set offline"
 	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
 	@echo "  cloc-tooling  Inventory sibling CI/tooling and shared snapshot ownership"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
