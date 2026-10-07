@@ -122,7 +122,14 @@ fn streamed_atomic_write_failure_preserves_existing_file() {
     })
     .expect_err("streamed replacement failure");
 
-    assert!(matches!(error, CacheFileError::WriteTemp { .. }));
+    assert!(matches!(
+        error,
+        CacheFileError::PublishManagedFile {
+            published: false,
+            cleanup_error: None,
+            ..
+        }
+    ));
     assert_eq!(
         read_bounded_managed_file(&root, &path, 1024, None).expect("preserved managed file"),
         Some(b"complete".to_vec())
@@ -135,6 +142,107 @@ fn streamed_atomic_write_failure_preserves_existing_file() {
         "failed temporary file is removed"
     );
     let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(unix)]
+#[test]
+fn managed_publication_stays_with_the_admitted_parent_after_path_replacement() {
+    let root = temp_dir("ic-query-confined-parent-move");
+    let path = root.join("parent/report.json");
+    write_managed_text_atomically(&root, &path, "complete").expect("initial managed file");
+    let moved = root.join("moved");
+    write_managed_file_atomically(&root, &path, |file| {
+        fs::rename(root.join("parent"), &moved)?;
+        fs::create_dir(root.join("parent"))?;
+        fs::write(&path, "replacement evidence")?;
+        file.write_all(b"new complete")
+    })
+    .expect("publish through held parent");
+
+    assert_eq!(
+        fs::read_to_string(moved.join("report.json")).unwrap(),
+        "new complete"
+    );
+    assert_eq!(fs::read_to_string(&path).unwrap(), "replacement evidence");
+    assert_eq!(fs::read_dir(&moved).unwrap().count(), 1);
+    assert_eq!(fs::read_dir(root.join("parent")).unwrap().count(), 1);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_managed_publication_cleans_only_the_admitted_parent_after_path_replacement() {
+    let root = temp_dir("ic-query-confined-parent-move-failure");
+    let path = root.join("parent/report.json");
+    write_managed_text_atomically(&root, &path, "complete").expect("initial managed file");
+    let moved = root.join("moved");
+    let error = write_managed_file_atomically(&root, &path, |file| {
+        fs::rename(root.join("parent"), &moved)?;
+        fs::create_dir(root.join("parent"))?;
+        fs::write(&path, "replacement evidence")?;
+        file.write_all(b"partial")?;
+        Err(io::Error::from_raw_os_error(5))
+    })
+    .expect_err("producer failure");
+
+    assert!(matches!(error, CacheFileError::PublishManagedFile {
+        path: failed_path,
+        published: false,
+        source,
+        cleanup_error: None,
+    } if failed_path == path && source.raw_os_error() == Some(5)));
+    assert_eq!(
+        fs::read_to_string(moved.join("report.json")).unwrap(),
+        "complete"
+    );
+    assert_eq!(fs::read_to_string(&path).unwrap(), "replacement evidence");
+    assert_eq!(fs::read_dir(&moved).unwrap().count(), 1);
+    assert_eq!(fs::read_dir(root.join("parent")).unwrap().count(), 1);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(unix)]
+#[test]
+fn publication_errors_retain_cleanup_evidence_and_visibility() {
+    let path = Path::new("report.json");
+    let error = managed_publication_error(
+        path,
+        NamedWriteError::Producer {
+            source: serde_json::from_str::<String>("invalid").unwrap_err(),
+            cleanup_error: Some(io::Error::from_raw_os_error(13)),
+        },
+    );
+    assert!(matches!(error, CacheFileError::PublishManagedFile {
+        published: false, source, cleanup_error: Some(cleanup), ..
+    } if source.kind() == io::ErrorKind::InvalidData
+        && source.get_ref().unwrap().is::<serde_json::Error>()
+        && cleanup.raw_os_error() == Some(13)));
+
+    let error = managed_publication_error(
+        path,
+        NamedWriteError::<io::Error>::BeforePublication {
+            source: io::Error::from_raw_os_error(5),
+            cleanup_error: Some(io::Error::from_raw_os_error(13)),
+        },
+    );
+    assert!(matches!(error, CacheFileError::PublishManagedFile {
+        published: false, source, cleanup_error: Some(cleanup), ..
+    } if source.raw_os_error() == Some(5) && cleanup.raw_os_error() == Some(13)));
+
+    let error = managed_publication_error(
+        path,
+        NamedWriteError::<io::Error>::AfterPublication {
+            source: io::Error::from_raw_os_error(5),
+        },
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("reconcile the destination before retrying")
+    );
+    assert!(matches!(error, CacheFileError::PublishManagedFile {
+        published: true, source, cleanup_error: None, ..
+    } if source.raw_os_error() == Some(5)));
 }
 
 #[test]

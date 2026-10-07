@@ -14,9 +14,12 @@ use std::{
     ffi::{OsStr, OsString},
     io,
     path::{Component, Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
-    time::{SystemTime, UNIX_EPOCH},
 };
+
+#[cfg(unix)]
+use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_at_with};
+#[cfg(unix)]
+use std::os::fd::AsFd;
 
 #[cfg(any(feature = "subnet-catalog-host", test))]
 use std::io::Write;
@@ -65,8 +68,6 @@ const MANAGED_DIRECTORY_MODE: u32 = 0o700;
 const MANAGED_FILE_MODE: u32 = 0o600;
 const OWNER_ONLY_WRITE_MODE: &str = "no group or other write access";
 
-static ATOMIC_WRITE_COUNTER: AtomicU64 = AtomicU64::new(0);
-
 /// Create and validate the managed parent directory beneath `cache_root`.
 pub fn create_managed_parent_directory(
     cache_root: &Path,
@@ -102,67 +103,13 @@ pub fn write_managed_text_atomically(
 }
 
 /// Atomically publish a streamed managed file through a confined same-directory temporary file.
-pub fn write_managed_file_atomically(
+pub fn write_managed_file_atomically<E: Into<io::Error>>(
     cache_root: &Path,
     target_path: &Path,
-    write: impl FnOnce(&mut cap_std::fs::File) -> io::Result<()>,
+    write: impl FnOnce(&mut std::fs::File) -> Result<(), E>,
 ) -> Result<(), CacheFileError> {
-    let root = ConfinedCacheRoot::open(cache_root, true)?.ok_or_else(|| {
-        open_managed_path_error(
-            cache_root,
-            target_path,
-            io::Error::new(io::ErrorKind::NotFound, "cache root was not created"),
-        )
-    })?;
-    let target = root.resolve_parent(target_path, true)?.ok_or_else(|| {
-        open_managed_path_error(
-            cache_root,
-            target_path,
-            io::Error::new(io::ErrorKind::NotFound, "cache parent was not created"),
-        )
-    })?;
-    target.validate_existing_target()?;
-    let temp_name = atomic_temp_name(target.file_name());
-    let temp_path = target.display_parent.join(&temp_name);
-    let write_result = (|| {
-        let mut options = OpenOptions::new();
-        options.write(true).create_new(true);
-        options.follow(FollowSymlinks::No);
-        #[cfg(unix)]
-        options.mode(MANAGED_FILE_MODE);
-        let mut temp = target
-            .parent
-            .open_with(&temp_name, &options)
-            .map_err(|source| CacheFileError::WriteTemp {
-                path: temp_path.clone(),
-                source,
-            })?;
-        validate_managed_file_mode(&temp_path, &temp)?;
-        write(&mut temp).map_err(|source| CacheFileError::WriteTemp {
-            path: temp_path.clone(),
-            source,
-        })?;
-        temp.sync_all().map_err(|source| CacheFileError::SyncTemp {
-            path: temp_path.clone(),
-            source,
-        })
-    })();
-    if let Err(error) = write_result {
-        let _ = target.parent.remove_file(&temp_name);
-        return Err(error);
-    }
-    if let Err(source) = target
-        .parent
-        .rename(&temp_name, &target.parent, target.file_name())
-    {
-        let _ = target.parent.remove_file(&temp_name);
-        return Err(CacheFileError::Replace {
-            temp_path,
-            target_path: target_path.to_path_buf(),
-            source,
-        });
-    }
-    sync_directory(&target.parent, &target.display_parent)
+    let target = managed_path_for_create(cache_root, target_path)?;
+    target.write_atomically(write)
 }
 
 pub(super) fn managed_path_for_create(
@@ -338,6 +285,44 @@ pub(super) struct ConfinedManagedPath {
 }
 
 impl ConfinedManagedPath {
+    fn write_atomically<E: Into<io::Error>>(
+        &self,
+        write: impl FnOnce(&mut std::fs::File) -> Result<(), E>,
+    ) -> Result<(), CacheFileError> {
+        self.validate_existing_target()?;
+        #[cfg(unix)]
+        {
+            // cap-std may hold an O_PATH descriptor; publication needs a syncable
+            // handle opened relative to that same admitted directory capability.
+            let parent = self.parent.open(Path::new(".")).map_err(|source| {
+                managed_publication_error(
+                    &self.display_path,
+                    NamedWriteError::<io::Error>::BeforePublication {
+                        source,
+                        cleanup_error: None,
+                    },
+                )
+            })?;
+            write_at_with(
+                parent.as_fd(),
+                self.file_name(),
+                WriteOptions {
+                    mode: PublicationMode::Replace,
+                    permissions: MANAGED_FILE_MODE,
+                },
+                write,
+            )
+            .map_err(|error| managed_publication_error(&self.display_path, error))
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = write;
+            Err(CacheFileError::UnsupportedConfinementPlatform {
+                platform: std::env::consts::OS,
+            })
+        }
+    }
+
     pub(super) fn file_name(&self) -> &OsStr {
         &self.file_name
     }
@@ -531,19 +516,28 @@ fn sync_directory(dir: &Dir, display_path: &Path) -> Result<(), CacheFileError> 
         })
 }
 
-fn atomic_temp_name(target_file: &OsStr) -> OsString {
-    let now_nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |duration| duration.as_nanos());
-    let counter = ATOMIC_WRITE_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let mut name = target_file.to_os_string();
-    name.push(format!(
-        ".tmp.{}.{}.{}",
-        std::process::id(),
-        now_nanos,
-        counter
-    ));
-    name
+#[cfg(unix)]
+fn managed_publication_error<E: Into<io::Error>>(
+    path: &Path,
+    error: NamedWriteError<E>,
+) -> CacheFileError {
+    let (source, published, cleanup_error) = match error {
+        NamedWriteError::Producer {
+            source,
+            cleanup_error,
+        } => (source.into(), false, cleanup_error),
+        NamedWriteError::BeforePublication {
+            source,
+            cleanup_error,
+        } => (source, false, cleanup_error),
+        NamedWriteError::AfterPublication { source } => (source, true, None),
+    };
+    CacheFileError::PublishManagedFile {
+        path: path.to_path_buf(),
+        published,
+        source,
+        cleanup_error,
+    }
 }
 
 fn confinement_error(root: &Path, path: &Path, reason: impl Into<String>) -> CacheFileError {

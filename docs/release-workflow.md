@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`b69507367d45e3db9543359e689e1fcba0467ff4`](https://github.com/dragginzgame/shared-tooling/tree/b69507367d45e3db9543359e689e1fcba0467ff4) (0.1.16),
+[`3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934`](https://github.com/dragginzgame/shared-tooling/tree/3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934) (0.1.20),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/b69507367d45e3db9543359e689e1fcba0467ff4/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,10 +25,16 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 54 shared files. Its governance selection keeps the linked
+The snapshot contains 58 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
+An explicit contribution PR request includes its topic branch, scoped commits,
+branch push and PR creation/update under the reviewed
+[contribution rules](../rules/contributions.md). Ordinary repair requests remain
+local work. The stricter local `AGENTS.md` release boundary retains maintainer-run
+version bumps, release commits/tags and release pushes; PR delivery does not
+authorize merge, integration pushes, publication or release execution.
 Generic provisioning/provenance guides retain their exact upstream bytes;
 the current split host-crate ownership is documented locally in
 [canister smoke testing](canister-smoke.md).

@@ -5,6 +5,23 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.48.0]
+
+Detailed release notes: [docs/changelog/0.48.md](docs/changelog/0.48.md)
+
+- Uses IC Host Tooling's descriptor-based durable writer for managed caches,
+  removing the local staging and publication pipeline. Cache confinement,
+  serialization budgets and schema-1 bytes remain unchanged.
+  [#19](https://github.com/dragginzgame/ic-query/issues/19).
+- Hard-cuts the public cache publication error contract: `PublishManagedFile`
+  replaces `SyncTemp` and `Replace`, identifies whether the new output is visible,
+  and retains staging cleanup failures. Library callers must update error matches;
+  visible output requires reconciliation before retrying.
+- Adopts Shared Tooling 0.1.20's contribution rules: an explicitly requested PR
+  includes its topic branch, scoped commits and branch push. Releases remain
+  maintainer-run under the local policy.
+  [#18](https://github.com/dragginzgame/ic-query/issues/18).
+
 ## [0.47.11] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)

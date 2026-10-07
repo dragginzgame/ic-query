@@ -27,6 +27,8 @@ mod tests;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use json::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]
+pub use json::canonical_json_serialized_len;
+#[cfg(feature = "subnet-catalog-host")]
 pub use json::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
@@ -35,8 +37,6 @@ pub use json::canonical_json_sha256;
     feature = "sns-host"
 ))]
 pub use json::write_managed_json_pretty_atomically;
-#[cfg(feature = "subnet-catalog-host")]
-pub use json::{canonical_json_serialized_len, json_error_to_io};
 #[cfg(feature = "subnet-catalog-host")]
 pub use output::{validate_output_path, write_text_output};
 #[cfg(feature = "nns-host")]

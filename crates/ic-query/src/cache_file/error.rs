@@ -203,24 +203,23 @@ pub enum CacheFileError {
         source: io::Error,
     },
 
-    /// Synchronizing the temporary cache file failed.
-    #[error("failed to sync cache temp file at {}: {source}", path.display())]
-    SyncTemp {
-        /// Temporary cache path.
+    /// Managed publication failed, preserving visibility and staging cleanup evidence.
+    #[error(
+        "failed to complete managed cache publication at {} (published={published}): {source}{}{}",
+        path.display(),
+        if *published { "; reconcile the destination before retrying" } else { "" },
+        .cleanup_error.as_ref().map(|error| format!("; staging cleanup failed: {error}")).unwrap_or_default()
+    )]
+    PublishManagedFile {
+        /// Selected managed destination; staging names are owned by the filesystem helper.
         path: PathBuf,
-        /// Underlying filesystem error.
+        /// Whether the new output is visible despite incomplete final durability.
+        /// Reconcile the destination before retrying when true.
+        published: bool,
+        /// Original filesystem error, or serializer cause converted at this boundary.
         source: io::Error,
-    },
-
-    /// Atomically replacing the final cache file failed.
-    #[error("failed to replace cache at {} from {}: {source}", target_path.display(), temp_path.display())]
-    Replace {
-        /// Fully written temporary cache path.
-        temp_path: PathBuf,
-        /// Final cache path.
-        target_path: PathBuf,
-        /// Underlying filesystem error.
-        source: io::Error,
+        /// Failure to remove this attempt's still-owned staging entry, if any.
+        cleanup_error: Option<io::Error>,
     },
 
     /// Synchronizing the parent cache directory failed.

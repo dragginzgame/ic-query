@@ -22,6 +22,8 @@ This note describes the shared cache behavior expected across `ic-query`.
   lifecycle filtering, verbosity, and text formatting must not create separate
   complete snapshots.
 - Failed refreshes should not replace a previously complete cache.
+- Failed exclusive staging creation preserves the entry that refused creation;
+  cleanup begins only after this attempt has created its temporary file.
 - Operators should be able to inspect every known complete cache and refresh
   lock, including age, size, and applicable stale policy, without making a
   network request.
@@ -110,8 +112,13 @@ are never automatically changed.
 Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
 errors. Cache-only operations report them directly, and read-through policies
 must not reinterpret them as invalid content that authorizes a live refresh.
-Publication uses a same-directory exclusively created temporary file, syncs the
-file, atomically renames it, and syncs its parent directory. Explicit
+Publication passes the admitted parent descriptor and final filename to
+`ic-host-fs::durable::write_at_with`, with replace mode and `0600` staging.
+The shared engine owns exclusive staging, file sync, rename, owned cleanup and
+parent sync. Effects stay beneath the held parent when its original path moves
+or is replaced; Query retains root, parent and final-target admission. Callers
+must exclude concurrent namespace writers throughout publication; admission and
+rename do not provide compare-and-swap against a hostile directory writer. Explicit
 caller-selected exports are not managed cache files. Refresh exports must not
 alias the operation's managed cache or refresh lock, even during a dry run.
 Subnet Catalog exports also protect the managed Registry history transcript
@@ -127,9 +134,14 @@ Group/world-writable paths remain errors; there is no permission repair,
 deletion, or migration for them.
 
 Atomic replacement is not rollback. A parent-directory sync error after rename
-is returned as a durability failure even though the new snapshot is already
-visible. Source, validation, and temporary-write failures before replacement
-leave the previous snapshot intact.
+is returned as `CacheFileError::PublishManagedFile` with `published: true` even
+though the new snapshot is already visible. Reconcile the destination before
+retrying. Producer or filesystem failure before replacement has `published: false`
+and leaves the previous snapshot intact. The error retains the selected path,
+original I/O identity or serializer cause, and any separate staging cleanup error;
+staging names belong to the shared helper. The 0.48 public error hard cut requires
+library consumers to update their error matches; persisted schema-1 caches need
+no reset or migration.
 
 Managed pretty-JSON publication validates serialization before filesystem
 mutation and then streams directly through the atomic temporary file, avoiding
@@ -145,10 +157,11 @@ byte collection from already-confined handles. Its `MatchingWriter` compares
 canonical JSON without retaining another encoded copy; the JSON producer must
 succeed before a complete match can be accepted. Metadata admission, observed
 overflow lengths, aggregate charging, encoding, typed cache errors, confinement and
-publication stay with IC Query. Canonical hashes stream into SHA-256's existing
+publication error projection stay with IC Query. Canonical hashes stream into SHA-256's existing
 writer. Its default features stay disabled: cache writes do not enable archive,
 gzip, Wasm inspection or process execution. Cache-host features also select
-`ic-host-fs` for explicit export-path comparison; managed IO stays capability-confined.
+`ic-host-fs` for explicit export-path comparison and descriptor-based managed
+publication; managed IO stays capability-confined.
 Certified archive serialization uses the shared `HashingWriter`, accepting its
 byte count and raw SHA-256 only after serialization succeeds.
 Pure-library, canister and host features without caches do not enable any IC Host

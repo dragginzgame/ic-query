@@ -69,14 +69,6 @@ where
     Ok(writer.is_complete_match())
 }
 
-/// Preserve an underlying writer error kind when adapting JSON serialization to atomic IO.
-pub fn json_error_to_io(error: serde_json::Error) -> io::Error {
-    match error.io_error_kind() {
-        Some(kind) => io::Error::new(kind, error),
-        None => io::Error::other(error),
-    }
-}
-
 /// Serialize pretty JSON without retaining a complete encoded copy and publish it atomically.
 #[cfg(any(
     feature = "dashboard-host",
@@ -108,7 +100,6 @@ where
     }
     write_managed_file_atomically(cache_root, path, |file| {
         serde_json::to_writer_pretty(BoundedWriter::new(file, maximum_bytes), value)
-            .map_err(json_error_to_io)
     })
     .map_err(write_error)
 }
@@ -180,9 +171,17 @@ mod tests {
         assert!(matches!(
             error,
             crate::HostCacheError::Operation {
-                source: CacheFileError::WriteTemp { .. },
+                source: CacheFileError::PublishManagedFile {
+                    published: false,
+                    source,
+                    cleanup_error: None,
+                    ..
+                },
                 ..
-            }
+            } if matches!(
+                source.get_ref().and_then(|error| error.downcast_ref::<ic_host_artifacts::artifact::WriterError>()),
+                Some(ic_host_artifacts::artifact::WriterError::LimitExceeded { limit: 16 })
+            )
         ));
         assert_eq!(fs::read(&path).unwrap(), b"original");
         assert_eq!(fs::read_dir(&root).unwrap().count(), 1);

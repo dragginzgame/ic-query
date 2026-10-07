@@ -47,7 +47,7 @@ these commands must reject ambiguous or unsupported version inputs.
    metadata change before staging.
 4. **Stage.** Stage the explicit release file set. Do not use an indiscriminate
    `git add -A` or include unrelated work.
-5. **Commit and tag.** Create the maintainer-owned release commit with subject
+5. **Commit and tag.** Create the explicitly authorized release commit with subject
    `Release X.Y.Z` and an annotated `vX.Y.Z` tag on that exact commit. The
    declared release files, candidate version and validation evidence must agree.
    Before creating the commit, verify that the entire index contains only
@@ -65,7 +65,7 @@ entry under the [automatic next-version rules](../rules/changelogs.md).
 
 Agents maintain that proposed changelog version during ordinary development.
 The proposal does not bump package metadata or execute a release. Select the
-matching release kind when invoking the maintainer-owned command; its computed
+matching release kind when invoking the explicitly authorized command; its computed
 candidate must agree with the pending heading and the complete batch's
 compatibility impact before finalization.
 
@@ -244,12 +244,22 @@ not a deletion target. Existing adoption work is tracked in
 [IC Backup #18](https://github.com/dragginzgame/ic-backup/issues/18) and
 [IC Blob Storage #22](https://github.com/dragginzgame/ic-blob-storage/issues/22).
 
-### Maintainer effects
+### Authorized release effects
 
-The maintainer invokes the one-shot commands. Agents never run them, even when a
-push or version change has been authorized, because commits remain
-maintainer-owned under the [engineering baseline](../DRAGGINZGAME.md). Agents
-may use separate read-only or preparation phases within existing authorization.
+The maintainer may invoke a one-shot command or explicitly ask an agent to run
+the selected release for the identified repository and destination. That request
+covers the documented complete gate, version preparation, release commit, tag
+and atomic branch/tag push. Permission to fix code, create a commit, open a PR,
+push a topic branch or change a version alone is not permission to run this flow.
+Agents may use separate read-only or preparation phases within existing scope.
+
+Ordinary contributions follow the [PR rules](../rules/contributions.md). The
+current runner directly pushes its selected release branch and tag; it does not
+open or merge a release PR. Respect branch protections and required reviews:
+PR-gated release support is tracked in
+[#42](https://github.com/dragginzgame/shared-tooling/issues/42), and is not supplied
+by relaxing agent commit authority. Publication, deployment and cleanup remain
+separate effects.
 
 Once version preparation may have started, rerun a normal target to
 automatically reconcile the unfinished release at its saved version. The runner

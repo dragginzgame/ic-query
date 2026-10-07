@@ -66,6 +66,8 @@ pub use confined::write_managed_file_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]
+pub use write::canonical_json_serialized_len;
+#[cfg(feature = "subnet-catalog-host")]
 pub use write::canonical_json_sha256;
 #[cfg(any(
     feature = "dashboard-host",
@@ -74,8 +76,6 @@ pub use write::canonical_json_sha256;
     feature = "sns-host"
 ))]
 pub use write::write_managed_json_pretty_atomically;
-#[cfg(feature = "subnet-catalog-host")]
-pub use write::{canonical_json_serialized_len, json_error_to_io};
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;

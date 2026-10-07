@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `a06e4719e3839b8eefcfb88ec8923aa88eb63ccc`; the selected
+  Shared Tooling at reviewed revision `3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -40,6 +40,11 @@ If code or habit conflicts with this file, this file wins.
   The root virtual workspace and packages under `crates/` follow
   `rules/rust-workspaces.md`; `docs/supported-hosts.md` remains the consumer-owned
   host matrix rather than a shared snapshot file.
+- Contribution and PR authority adopts `rules/contributions.md` and the
+  corresponding Scope and authorization guidance at that same reviewed revision.
+  This scoped adoption replaces the older baseline's blanket agent-commit ban;
+  the engineering baseline remains separately pinned. The local prohibition on
+  agent-run release effects below remains stricter than the shared release rule.
 
 ## Session Handoff
 
@@ -50,15 +55,20 @@ If code or habit conflicts with this file, this file wins.
 
 ## Git And Release Boundaries
 
-- Automated agents must never run `git commit`, `git tag`, `git push`, or
-  release/version-bump targets or scripts, including `make release-patch`,
+- Ordinary fixes and continuation prepare working-tree changes only. An explicit
+  commit request authorizes a scoped local commit; an explicit PR request includes
+  its topic branch, scoped commits, branch push and PR creation/update under
+  [the contribution rules](rules/contributions.md). PR delivery does not authorize
+  merging, direct integration-branch pushes or rewriting shared history.
+- Automated agents must never run release/version-bump targets or scripts,
+  create release tags, or push release refs, including `make release-patch`,
   `make release-minor`, `make release-major`, `make release-resume`, and the
   `release-prepare-version` adapter. Isolated fixtures may prepare Git indexes
   and trees and simulate release effects with command stubs; they must never
   create real commits, tags or pushes, or change this repository's package
   metadata or index.
-- Prepare working-tree changes only; the maintainer handles commits, tags,
-  version bumps, releases, and pushes.
+- The maintainer handles version bumps, releases, release commits/tags and
+  release pushes. Contribution authority does not override this release boundary.
 
 ## Pre-1.0 Compatibility
 

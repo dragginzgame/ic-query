@@ -162,6 +162,18 @@ state local product contracts, commands and approved exceptions. Resolve local
 conflicts before claiming adoption. Do not edit a vendored shared document in
 place or attribute dirty upstream bytes to a committed revision.
 
+When adopting PR contribution authority, add `rules/contributions.md` explicitly
+and refresh the baseline, changelog/maintenance rules, release guidance and
+reviewable-changes guide together. Remove blanket agent-commit prohibitions from
+the consumer's `AGENTS.md`, `CLAUDE.md` and other active overlays so an authorized
+PR can include commits and a topic-branch push. Retain required reviews/checks,
+branch protections and separate merge/release authority. Historical audit reports
+remain evidence of their reviewed revision. Test the instruction interpretation
+against a scoped fix, an explicit PR request and a release request; reading or
+adopting these rules does not itself authorize Git writes or a release. Policy
+adoption requires no native builds. Existing pinned snapshots do not update
+automatically; preserve their bytes until a reviewed refresh is authorized.
+
 When adopting the local-repair and owning-repository issue workflow, refresh
 `DRAGGINZGAME.md` and `rules/agent-maintenance.md` together from the reviewed
 commit. Remove equivalent local instructions after checking their obligations;

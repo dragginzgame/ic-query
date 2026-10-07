@@ -14,8 +14,7 @@ use crate::{
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, RefreshLockRequest, canonical_json_matches,
         canonical_json_serialized_len, canonical_json_sha256, create_managed_parent_directory,
-        json_error_to_io, read_bounded_managed_file, with_refresh_lock,
-        write_managed_file_atomically,
+        read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{
@@ -487,7 +486,7 @@ fn publish_cache_with_disposition<'a>(
         file_operation,
         || {
             write_managed_file_atomically(&location.cache_root, &cache_path, |file| {
-                serde_json::to_writer(file, &envelope).map_err(json_error_to_io)
+                serde_json::to_writer(file, &envelope)
             })
             .map_err(file_operation)
         },

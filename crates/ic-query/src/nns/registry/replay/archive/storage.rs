@@ -12,7 +12,7 @@ use super::{
 use crate::{
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, canonical_json_serialized_len,
-        json_error_to_io, read_bounded_managed_file as read_shared_bounded_managed_file,
+        read_bounded_managed_file as read_shared_bounded_managed_file,
         write_managed_file_atomically,
     },
     hex::hex_bytes,
@@ -575,7 +575,7 @@ fn write_report_object(
     let path = archive_batch_object_path(archive_root, descriptor);
     write_managed_file_atomically(cache_root, &path, |file| {
         let mut writer = HashingWriter::new(file, u64::MAX);
-        serde_json::to_writer(&mut writer, report).map_err(json_error_to_io)?;
+        serde_json::to_writer(&mut writer, report).map_err(io::Error::from)?;
         let (_, identity) = writer.into_parts();
         if identity.bytes != descriptor.report_bytes
             || hex_bytes(identity.sha256.as_bytes()) != descriptor.report_sha256
@@ -613,7 +613,7 @@ fn write_manifest(
             if writer.limit_exceeded() {
                 io::Error::new(io::ErrorKind::FileTooLarge, source)
             } else {
-                json_error_to_io(source)
+                source.into()
             }
         })
     })

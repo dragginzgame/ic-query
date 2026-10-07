@@ -9,8 +9,7 @@ use crate::{
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, HostCacheError, RefreshLockRequest,
         canonical_json_serialized_len, canonical_json_sha256, create_managed_parent_directory,
-        json_error_to_io, read_bounded_managed_file, with_refresh_lock,
-        write_managed_file_atomically,
+        read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
     subnet_catalog::{
@@ -309,7 +308,7 @@ impl RegistryHistoryCache {
         }
         document.digest = history_digest(&document).map_err(|error| self.serialize_error(error))?;
         write_managed_file_atomically(&self.root, &self.path, |file| {
-            serde_json::to_writer(file, &document).map_err(json_error_to_io)
+            serde_json::to_writer(file, &document)
         })
         .map_err(operation)?;
         Ok(HistoryCacheObservation {
