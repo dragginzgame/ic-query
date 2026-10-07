@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"
+export PATH="$ROOT/.tools/host/bin:$PATH"
+
 usage() {
     cat <<'EOF'
 Usage: cloc.sh [repository]
+       cloc.sh --check-tools
 
 Report Rust runtime/test lines and test-function totals for each Cargo
 workspace member. The repository defaults to the current working directory.
+Prepared host tools beside this script's checkout take precedence over PATH.
+--check-tools checks prerequisites without inspecting a workspace or installing.
 EOF
+}
+
+check_tools() {
+    local tool missing=""
+    for tool in cargo cloc jq; do
+        if ! command -v "$tool" >/dev/null 2>&1; then missing="$missing $tool"; fi
+    done
+    if [[ -n "$missing" ]]; then
+        echo "error: missing LOC tools:$missing" >&2
+        echo "Run make install-host-tools in $ROOT; prepare the Cargo toolchain separately if missing." >&2
+        return 1
+    fi
 }
 
 if [[ "$#" -gt 1 ]]; then
@@ -17,6 +35,10 @@ fi
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     usage
+    exit 0
+fi
+if [[ "${1:-}" == --check-tools ]]; then
+    check_tools
     exit 0
 fi
 
@@ -36,17 +58,13 @@ if [[ ! -f "${manifest_path}" ]]; then
     exit 1
 fi
 
-for command in cargo cloc jq; do
-    if ! command -v "${command}" >/dev/null 2>&1; then
-        echo "error: ${command} not found in PATH" >&2
-        exit 1
-    fi
-done
+check_tools
 
 if ! metadata="$(
-    cargo metadata \
+    RUSTUP_AUTO_INSTALL=0 cargo metadata \
         --format-version 1 \
         --manifest-path "${manifest_path}" \
+        --locked --offline \
         --no-deps
 )"; then
     echo "error: unable to resolve Cargo workspace metadata" >&2

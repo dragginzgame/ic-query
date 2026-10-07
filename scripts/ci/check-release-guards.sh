@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root"
+bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
 trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release guard fixtures retained: $work_dir" >&2; fi' EXIT
 export REAL_MAKE REAL_GIT
@@ -194,6 +194,8 @@ new_fixture() {
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
+  mkdir -p make
+  cp "$repo_root/make/tools.mk" make/
   cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/

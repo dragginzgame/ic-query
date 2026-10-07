@@ -2,7 +2,7 @@ use super::{validate_output_path, write_text_output};
 use crate::{cache_file::CacheFileError, test_support::temp_dir};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
-use std::{fs, path::Path};
+use std::{fs, io, path::Path};
 
 fn assert_alias(output: &Path, managed: &Path) {
     let error = write_text_output(output, "replacement", &[managed])
@@ -88,6 +88,55 @@ fn output_rejects_dangling_symlink_aliases_before_creating_managed_files() {
     symlink("cache", &parent_link).expect("dangling parent symlink");
     assert_alias(&parent_link.join("catalog.json"), &managed);
     assert!(!managed.exists());
+    assert!(!managed.parent().expect("cache directory").exists());
+    fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[cfg(unix)]
+#[test]
+fn output_bounds_nested_missing_symlinks_before_filesystem_mutation() {
+    let root = temp_dir("ic-query-output-symlink-budget");
+    fs::create_dir_all(&root).expect("directory");
+    let managed = root.join("cache/catalog.json");
+    for index in 0..64 {
+        symlink(
+            format!("missing/../link-{}", index + 1),
+            root.join(format!("link-{index}")),
+        )
+        .expect("nested dangling link");
+    }
+    symlink("cache/catalog.json", root.join("link-64")).expect("final dangling link");
+    assert_alias(&root.join("link-1"), &managed);
+    let error = write_text_output(&root.join("link-0"), "replacement", &[&managed])
+        .expect_err("65 active missing-target expansions exceed the allowance");
+    assert!(matches!(
+        error,
+        CacheFileError::WriteOutput { source, .. }
+            if source.kind() == io::ErrorKind::InvalidInput
+    ));
+    assert!(!managed.parent().expect("cache directory").exists());
+    fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn output_preserves_directory_traversal_errors_before_filesystem_mutation() {
+    let root = temp_dir("ic-query-output-directory-traversal");
+    fs::create_dir_all(&root).expect("directory");
+    fs::write(root.join("file"), "original").expect("regular file");
+    let managed = root.join("cache/catalog.json");
+    for path in ["file/child", "missing/../file/child"] {
+        let error = write_text_output(&root.join(path), "replacement", &[&managed])
+            .expect_err("regular files cannot be traversed as directories");
+        assert!(matches!(
+            error,
+            CacheFileError::WriteOutput { source, .. }
+                if source.kind() == io::ErrorKind::NotADirectory
+        ));
+    }
+    assert_eq!(
+        fs::read_to_string(root.join("file")).expect("regular file"),
+        "original"
+    );
     assert!(!managed.parent().expect("cache directory").exists());
     fs::remove_dir_all(root).expect("cleanup");
 }

@@ -118,6 +118,9 @@ Subnet Catalog exports also protect the managed Registry history transcript
 and its writer lock, including a caller-owned source's configured history paths.
 Compare resolved paths before creating managed directories or acquiring the lock,
 including missing targets and symlink aliases, then check again when writing.
+Explicit exports use `ic-host-fs`' missing-target path resolver with one captured
+base for relative paths and a 64 active symlink expansion allowance. This primitive
+does not own managed-cache confinement or replace the following identity checks.
 On Unix, also compare file identities to reject hard links; open exports without
 truncation and check their opened identity before clearing their contents.
 Group/world-writable paths remain errors; there is no permission repair,
@@ -144,7 +147,10 @@ succeed before a complete match can be accepted. Metadata admission, observed
 overflow lengths, aggregate charging, encoding, typed cache errors, confinement and
 publication stay with IC Query. Canonical hashes stream into SHA-256's existing
 writer. Its default features stay disabled: cache writes do not enable archive,
-gzip, Wasm inspection, process execution or ordinary-path filesystem helpers.
+gzip, Wasm inspection or process execution. Cache-host features also select
+`ic-host-fs` for explicit export-path comparison; managed IO stays capability-confined.
+Certified archive serialization uses the shared `HashingWriter`, accepting its
+byte count and raw SHA-256 only after serialization succeeds.
 Pure-library, canister and host features without caches do not enable any IC Host
 Tooling crate. The development-only Governance artifact helper selects Wasm
 inspection and artifact file reads separately from production library dependencies.

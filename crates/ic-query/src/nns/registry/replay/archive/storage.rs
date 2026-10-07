@@ -5,7 +5,7 @@
 //! Boundary: a manifest becomes usable only after every retained object is reauthenticated.
 
 use super::{
-    DigestingWriter, NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
+    NnsCertifiedRegistryArchiveBatchDescriptor, NnsCertifiedRegistryArchiveError,
     NnsCertifiedRegistryArchiveLimits, NnsCertifiedRegistryArchiveManifest,
     NnsCertifiedRegistryArchiveManifestBuilder,
 };
@@ -24,7 +24,7 @@ use crate::{
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
-use ic_host_artifacts::artifact::BoundedWriter;
+use ic_host_artifacts::artifact::{BoundedWriter, HashingWriter};
 use sha2::{Digest, Sha256};
 use std::{
     io,
@@ -574,10 +574,12 @@ fn write_report_object(
 ) -> Result<(), NnsCertifiedRegistryArchiveStorageError> {
     let path = archive_batch_object_path(archive_root, descriptor);
     write_managed_file_atomically(cache_root, &path, |file| {
-        let mut writer = DigestingWriter::new(file);
+        let mut writer = HashingWriter::new(file, u64::MAX);
         serde_json::to_writer(&mut writer, report).map_err(json_error_to_io)?;
-        let (bytes, digest) = writer.finish();
-        if bytes != descriptor.report_bytes || hex_bytes(&digest) != descriptor.report_sha256 {
+        let (_, identity) = writer.into_parts();
+        if identity.bytes != descriptor.report_bytes
+            || hex_bytes(identity.sha256.as_bytes()) != descriptor.report_sha256
+        {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "canonical report encoding changed after manifest admission",

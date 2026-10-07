@@ -18,9 +18,9 @@ the independent, non-mutating formatting gate.
   `fmt` runs `cargo sort --workspace` before `cargo fmt --all` for each workspace;
   `fmt-check` uses `cargo sort --workspace --check` and
   `cargo fmt --all -- --check`. This sorts the root and every member's Cargo.toml,
-  including members under both `crates/` and `apps/`, the root dependency catalog
-  and inherited child tables. Explicitly cover standalone/excluded manifests
-  outside that workspace's member set.
+  including members under `crates/`, `apps/` and approved layout trees, the root
+  dependency catalog and inherited child tables. Explicitly cover
+  standalone/excluded manifests outside that workspace's member set.
   Independent workspaces and their locations follow the
   [workspace layout rules](rust-workspaces.md); formatter coverage does not
   itself grant a layout exception.

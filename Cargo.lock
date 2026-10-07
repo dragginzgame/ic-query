@@ -1326,9 +1326,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6d9330517c7596c8fa43c40c1a95fc584578f66afcb966a144b5b27e63c02c9"
+checksum = "5042523db74e4ddced46afe71cb4ce1784866de09e9e1c5c397ac9103df6051c"
 dependencies = [
  "sha2 0.10.9",
  "wasmparser",
@@ -1336,34 +1336,20 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a69ee91e296dbf938000e0a72ab4a50ffcd2f58352048eff21ed1a6cc9a128d2"
+checksum = "f840a2a3db8922b0e0b1559d16fe54511809cac5c246427937fb3d8ca690569e"
 dependencies = [
  "ic-host-artifacts",
- "rustix",
-]
-
-[[package]]
-name = "ic-host-process"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b2eecf7bc6e99344bbdf32ff123c2e4653506f09f2edea8918aa0978955c557"
-dependencies = [
- "ic-host-artifacts",
- "ic-host-fs",
  "rustix",
 ]
 
 [[package]]
 name = "ic-host-tools"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e72b6f926e666bb00a04e8f5795bed21a8473541d9d03833e0edebb9e3837d4d"
+checksum = "5ddad8025b267157fadbd7ec29372719f68491f7b9ab6b3c6e97c6d4b985a13d"
 dependencies = [
- "ic-host-artifacts",
- "ic-host-fs",
- "ic-host-process",
  "serde",
  "serde_json",
 ]
@@ -1379,6 +1365,7 @@ dependencies = [
  "ic-agent",
  "ic-cdk",
  "ic-host-artifacts",
+ "ic-host-fs",
  "prost",
  "reqwest",
  "serde",

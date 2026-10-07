@@ -23,10 +23,9 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use ic_host_artifacts::artifact::BoundedWriter;
+use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::io::{self, Write};
+use std::io;
 use thiserror::Error as ThisError;
 
 #[cfg(test)]
@@ -272,7 +271,7 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
                 response_bytes,
                 applied_mutation_count,
                 report_bytes: report_encoding.bytes,
-                report_sha256: hex_bytes(&report_encoding.sha256),
+                report_sha256: hex_bytes(report_encoding.sha256.as_bytes()),
             });
         self.total_report_bytes = candidate_total_report_bytes;
         Ok(progress)
@@ -752,56 +751,15 @@ impl ManifestTotals {
 
 fn canonical_report_encoding(
     report: &NnsCertifiedRegistryDeltaBatchReport,
-) -> Result<CanonicalReportEncoding, NnsCertifiedRegistryArchiveError> {
-    let mut writer = DigestingWriter::new(io::sink());
+) -> Result<ArtifactIdentity, NnsCertifiedRegistryArchiveError> {
+    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
     serde_json::to_writer(&mut writer, report).map_err(|error| {
         NnsCertifiedRegistryArchiveError::ReportEncoding {
             reason: error.to_string(),
         }
     })?;
-    let (bytes, sha256) = writer.finish();
-    Ok(CanonicalReportEncoding { bytes, sha256 })
-}
-
-struct CanonicalReportEncoding {
-    bytes: u64,
-    sha256: [u8; 32],
-}
-
-///
-/// DigestingWriter
-///
-/// Hash accepted archive bytes while the shared writer owns counting and output allowance.
-///
-
-struct DigestingWriter<Writer> {
-    writer: BoundedWriter<Writer>,
-    hasher: Sha256,
-}
-
-impl<Writer> DigestingWriter<Writer> {
-    fn new(writer: Writer) -> Self {
-        Self {
-            writer: BoundedWriter::new(writer, u64::MAX),
-            hasher: Sha256::new(),
-        }
-    }
-
-    fn finish(self) -> (u64, [u8; 32]) {
-        (self.writer.bytes_written(), self.hasher.finalize().into())
-    }
-}
-
-impl<Writer: Write> Write for DigestingWriter<Writer> {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
-        self.writer.write_all(buffer)?;
-        self.hasher.update(buffer);
-        Ok(buffer.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
+    let (_, identity) = writer.into_parts();
+    Ok(identity)
 }
 
 fn required_session_value<T>(

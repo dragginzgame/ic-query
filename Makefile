@@ -2,8 +2,7 @@
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check fmt fmt-check format-tools-check help \
-	install install-dev install-tools tools-check install-host-tools host-tools-check \
-	install-ic-tools ic-tools-check library-process-boundary-check msrv package \
+	install install-dev library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check release-major release-minor release-patch release-resume \
 	release-version release-preflight release-verify release-prepare-version \
@@ -16,9 +15,9 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 RELEASE_REMOTE ?= origin
 RELEASE_BRANCH ?= main
 
-# GNU Make normalizes execution modes into the first flag word. MFLAGS also
+# GNU Make 3.81 can put short flags after long options in MFLAGS. MFLAGS also
 # preserves invocation options when a caller overrides MAKEFLAGS explicitly.
-override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(firstword $(MFLAGS)))
+override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(MFLAGS))
 ifneq ($(strip $(foreach mode,i n t q,$(findstring $(mode),$(icq_make_execution_flags)))),)
 $(error IC Query requires execution with errors enforced; remove ignore-errors, dry-run, touch and question modes)
 endif
@@ -35,11 +34,10 @@ CARGO_NET_RETRY ?= 10
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
-HOST_TOOL_VERSIONS ?= $(REPO_ROOT)ci/tool-versions.env
-IC_TOOL_PINS ?= $(REPO_ROOT)ci/ic-tools.tsv
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
+SHARED_TOOLING_ROOT := $(REPO_ROOT)
+include $(REPO_ROOT)make/tools.mk
 export IC_TOOL_PINS
-export PATH := $(REPO_ROOT).tools/host/bin:$(REPO_ROOT).tools/ic/bin:$(PATH)
 
 CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
@@ -84,10 +82,12 @@ help:
 	@echo "  install-dev  Install pinned tools required by the local CI gate"
 	@echo "  install-tools  Install the repository-local host and IC toolsets"
 	@echo "  tools-check  Verify both toolsets offline"
-	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq and ripgrep with PCRE2"
+	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
 	@echo "  host-tools-check  Verify the host toolset offline"
 	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm, PocketIC and wasm-opt"
 	@echo "  ic-tools-check  Verify the IC toolset offline"
+	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
+	@echo "  cloc-tooling  Inventory sibling CI/tooling and shared snapshot ownership"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
@@ -200,26 +200,6 @@ ci:
 
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
-
-install-tools:
-	+$(MAKE) --no-print-directory install-host-tools
-	+$(MAKE) --no-print-directory install-ic-tools
-
-tools-check:
-	+$(MAKE) --no-print-directory host-tools-check
-	+$(MAKE) --no-print-directory ic-tools-check
-
-install-host-tools:
-	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --with-ripgrep
-
-host-tools-check:
-	bash scripts/dev/install-host-tools.sh --versions "$(HOST_TOOL_VERSIONS)" --with-ripgrep --check
-
-install-ic-tools:
-	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)"
-
-ic-tools-check:
-	bash scripts/dev/install-ic-tools.sh --pins "$(IC_TOOL_PINS)" --check
 
 install-dev: install-host-tools
 	@. "$(HOST_TOOL_VERSIONS)" && cargo install --locked cargo-sort --version "$$SHARED_TOOLING_CARGO_SORT_VERSION"

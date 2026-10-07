@@ -6,25 +6,38 @@
 
 use super::path::create_output_parent_directory;
 use crate::cache_file::CacheFileError;
+use ic_host_fs::path::canonicalize_allow_missing_with_symlink_limit;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::{
     fs,
     io::{self, Write},
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
 };
+
+const OUTPUT_SYMLINK_LIMIT: usize = 64;
 
 pub fn validate_output_path(
     output_path: &Path,
     managed_paths: &[&Path],
 ) -> Result<(), CacheFileError> {
+    let base = if output_path.is_relative() || managed_paths.iter().any(|path| path.is_relative()) {
+        fs::canonicalize(".").map_err(|source| output_error(output_path, source))?
+    } else {
+        PathBuf::new()
+    };
     let resolved_output =
-        resolve_output_path(output_path, 0).map_err(|source| output_error(output_path, source))?;
+        canonicalize_allow_missing_with_symlink_limit(output_path, &base, OUTPUT_SYMLINK_LIMIT)
+            .map_err(|source| output_error(output_path, source))?;
     let output_metadata =
         optional_metadata(output_path).map_err(|source| output_error(output_path, source))?;
     for &managed_path in managed_paths {
-        let resolved_managed = resolve_output_path(managed_path, 0)
-            .map_err(|source| output_error(output_path, source))?;
+        let resolved_managed = canonicalize_allow_missing_with_symlink_limit(
+            managed_path,
+            &base,
+            OUTPUT_SYMLINK_LIMIT,
+        )
+        .map_err(|source| output_error(output_path, source))?;
         let managed_metadata =
             optional_metadata(managed_path).map_err(|source| output_error(output_path, source))?;
         if resolved_output == resolved_managed
@@ -100,53 +113,6 @@ fn same_file(left: &fs::Metadata, right: &fs::Metadata) -> bool {
         let _ = (left, right);
         false
     }
-}
-
-fn resolve_output_path(path: &Path, symlink_depth: usize) -> io::Result<PathBuf> {
-    let path = if path.as_os_str().is_empty() {
-        Path::new(".")
-    } else {
-        path
-    };
-    match fs::canonicalize(path) {
-        Ok(resolved) => return Ok(resolved),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error),
-    }
-    // Also resolve dangling links and missing targets before directories or locks exist.
-    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_symlink()) {
-        if symlink_depth >= 64 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "too many output symlinks",
-            ));
-        }
-        let target = fs::read_link(path)?;
-        let target = if target.is_absolute() {
-            target
-        } else {
-            path.parent().unwrap_or_else(|| Path::new(".")).join(target)
-        };
-        return resolve_output_path(&target, symlink_depth + 1);
-    }
-    let parent = path
-        .parent()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "output path has no parent"))?;
-    let mut resolved = resolve_output_path(parent, symlink_depth)?;
-    match path.components().next_back() {
-        Some(Component::Normal(name)) => resolved.push(name),
-        Some(Component::ParentDir) => {
-            resolved.pop();
-        }
-        Some(Component::CurDir) => {}
-        _ => {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "invalid output path",
-            ));
-        }
-    }
-    Ok(resolved)
 }
 
 fn output_alias_error(output_path: &Path, managed_path: &Path) -> CacheFileError {

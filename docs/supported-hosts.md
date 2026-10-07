@@ -28,8 +28,8 @@ qualified by this matrix.
 - `make install-dev` explicitly installs the exact Cargo Audit and Cargo Machete
   versions declared in `Makefile`, cargo-sort 2.1.4 from `ci/tool-versions.env`,
   plus common jq 1.8.2, Mike Farah yq 4.47.2 and
-  ripgrep 15.2.0 with PCRE2 under `.tools/host/bin`. Host versions and native
-  binary/archive digests have one owner in the immutable `ci/tool-versions.env` snapshot.
+  ripgrep 15.2.0 with PCRE2 and cloc 2.10 under `.tools/host/bin`. Host versions
+  and payload digests have one owner in the immutable `ci/tool-versions.env` snapshot.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
@@ -128,17 +128,40 @@ includes captured release destinations, independent snapshot checksums,
 exact-commit CI inspection and the standard Rust workspace guide. Its
 [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37581058940)
 passed Linux, both macOS architectures and lint/security.
-The selected 0.1.14 revision `25e7ce83149e081e4dcc52c55c33724e44153f2a`
+The prior 0.1.14 revision `25e7ce83149e081e4dcc52c55c33724e44153f2a`
 adds isolated Make execution admission and selected-target LOC exclusion. Its
 [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37586649650)
 passed Linux, both macOS architectures and lint/security.
+The selected 0.1.15 revision `bfb50bd0884b5e6c5ee9592056531c6108f96d73`
+adds the common Make include, pinned local cloc and sibling tooling inventory.
+Its [native CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37593142226)
+passed Linux, both macOS architectures and lint/security. Matching consumer
+native coverage remains outstanding.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
-The selected IC Host Tooling 0.3.1 registry crates were reviewed at
+The prior IC Host Tooling 0.3.1 registry crates were reviewed at
 `38a2a5127be064014e6d39d72d0300ffb2cf20be`. That exact published source passed
 [Linux, both macOS architectures and MSRV CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37580017649).
-The split dependency, shared stream and receipt adoption in IC Query 0.47.7 requires
-consumer native qualification; local Linux fixtures do not establish it.
+IC Query 0.47.7's [native CI](https://github.com/dragginzgame/ic-query/actions/runs/37588946717)
+failed on both macOS hosts at the consumer's Make-mode fixture: GNU Make 3.81 placed
+`-i` after the first flag word, so the consumer parse guard admitted execution.
+The prepared correction reads all short invocation flags from `MFLAGS`;
+Linux checks with GNU Make 3.81 and 4.3 do not replace native qualification.
+The prior IC Host Tooling 0.3.2 registry crates were reviewed at
+`c7c0d85765054909c05d86f6d3fd2c9965510335`, including published package provenance.
+Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37589678525)
+passed Linux and MSRV, but both macOS jobs failed the resolver's directory-traversal
+test: `file/..` returned a resolved path where the test expected `NotADirectory`.
+The selected IC Host Tooling 0.3.3 registry crates record published VCS revision
+`3d18ca9a9ed0ac5935a16c5bac99694d8e9a7d0a`; their Rust sources match that commit.
+Its [native CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37595113180)
+passed Linux, both macOS architectures and MSRV. The corrected traversal fixture
+compares each host's native canonicalization result, including missing-prefix
+rewind, while production resolution is unchanged. This resolves the upstream
+qualification failure reported in
+[Host #1](https://github.com/dragginzgame/ic-host-tooling/issues/1).
+The prepared 0.47.8 resolver, archive hashing and response-only adoption requires
+matching consumer native CI; local Linux fixtures do not establish it.
 
 ## Tool-specific dependencies
 
@@ -153,7 +176,7 @@ consumer native qualification; local Linux fixtures do not establish it.
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
 | Artifact-helper and receipt tests | Selected Rust toolchain and locked/offline dependency cache, Python 3, POSIX process groups |
-| Complete gate | Declared Rust toolchain, local jq/yq/ripgrep set, Cargo Audit/Machete and ordinary utilities |
+| Complete gate | Declared Rust toolchain, local jq/yq/ripgrep/cloc set, Cargo Audit/Machete and ordinary utilities |
 | Governance integration | Verified local IC set, Wasm Rust target, Python 3 and explicit local-runtime network access |
 
 Installer implementation regression suites stay in Shared Tooling. This
@@ -173,14 +196,14 @@ their own temporary directories; failed local checks print retained paths too.
 
 ## Development LOC reports
 
-The maintained shared `scripts/dev/cloc.sh` needs Cargo, cloc, jq, Bash and
-ordinary Unix utilities. Install cloc through the explicit host bootstrap in
-[local setup](local-setup.md); it is not an additional complete-gate prerequisite.
-Select the repository root explicitly, or run from the checkout root:
+The immutable `make/tools.mk` include owns setup, offline verification and LOC
+commands. The maintained workspace reporter needs Cargo, cloc, jq, Bash and
+ordinary Unix utilities. Prepare cloc with the pinned host set, then report this
+workspace from the checkout root:
 
 ```bash
-CARGO_NET_OFFLINE=true PATH="$PWD/.tools/host/bin:$PATH" \
-  bash scripts/dev/cloc.sh "$PWD"
+make install-host-tools host-tools-check
+make cloc
 ```
 
 The reporter selects Cargo workspace members and uses the same Rust file lists
@@ -190,6 +213,14 @@ pass an explicit root when invoking the script from elsewhere. Historical measur
 method identity; compare them only after checking file selection and counting
 rules. This command discovers workspace metadata and counts files; it does not
 compile tests or run a broad gate.
+
+`make cloc-tooling` inventories sibling CI and tooling without invoking consumer
+commands or Cargo. `CLOC_PARENT` selects another parent directory. Its 0.1.15
+snapshot interpretation has a known limitation for custom manifest locations
+and SSH source identities, tracked in
+[Shared Tooling #39](https://github.com/dragginzgame/shared-tooling/issues/39).
+This repository's root manifest uses the supported HTTPS identity. Do not treat
+unqualified custom-layout ownership counts as consolidation evidence.
 
 IC Query's formatting gate now requires the same reviewed cargo-sort pin used
 by explicit development setup. `fmt-check` checks dependency order before Rust

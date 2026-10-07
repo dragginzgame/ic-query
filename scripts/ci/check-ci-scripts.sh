@@ -12,10 +12,16 @@ fail() {
   exit 1
 }
 
+copy_makefile() {
+  mkdir -p "$1/make"
+  cp "$repo_root/Makefile" "$1/Makefile"
+  cp "$repo_root/make/tools.mk" "$1/make/"
+}
+
 check_make_execution_modes() {
   local fixture="$work_dir/make-execution" mode status
   mkdir -p "$fixture"
-  cp "$repo_root/Makefile" "$fixture/Makefile"
+  copy_makefile "$fixture"
   cat >> "$fixture/Makefile" <<'MAKE'
 
 .PHONY: execution-validate execution-probe execution-child
@@ -160,7 +166,7 @@ done
 
 pin_check_case="${work_dir}/pin-check"
 mkdir -p "$pin_check_case/scripts/ci"
-cp "$repo_root/Makefile" "$pin_check_case/Makefile"
+copy_makefile "$pin_check_case"
 cat > "$pin_check_case/scripts/ci/check-dependency-pins.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -180,7 +186,7 @@ fi
 
 version_case="$work_dir/version-read"
 mkdir -p "$version_case/scripts/ci" "$version_case/bin"
-cp "$repo_root/Makefile" "$version_case/Makefile"
+copy_makefile "$version_case"
 cp "$repo_root/scripts/ci/read-cargo-workspace-version.sh" "$version_case/scripts/ci/"
 printf '[workspace.package]\nversion = "0.1.2" # fixture comment\n[workspace.metadata.fixture]\nversion = "9.9.9"\n' > "$version_case/Cargo.toml"
 version_parser="${YQ:-$repo_root/.tools/host/bin/yq}"
@@ -245,7 +251,7 @@ done
 
 offline_validation_case="${work_dir}/offline-validation"
 mkdir -p "$offline_validation_case/bin" "$offline_validation_case/scripts/ci"
-cp "$repo_root/Makefile" "$offline_validation_case/Makefile"
+copy_makefile "$offline_validation_case"
 cp "$repo_root/scripts/ci/package-workspace.sh" "$offline_validation_case/scripts/ci/"
 cat > "$offline_validation_case/bin/git" <<'EOF'
 #!/usr/bin/env bash
@@ -320,7 +326,7 @@ chmod +x "${install_case}/bin/cargo"
 
 tools_case="${work_dir}/tools"
 mkdir -p "$tools_case/scripts/dev"
-cp "$repo_root/Makefile" "$tools_case/Makefile"
+copy_makefile "$tools_case"
 for family in host ic; do
   cat > "$tools_case/scripts/dev/install-$family-tools.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -340,8 +346,8 @@ for mode in install check; do
     MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null
-  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env --with-ripgrep$suffix" \
-    "ic --pins $tools_case/ci/ic-tools.tsv$suffix" > "$tools_case/expected"
+  printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env --with-ripgrep --with-cloc$suffix" \
+    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" > "$tools_case/expected"
   cmp -s "$tools_case/expected" "$tools_case/trace" \
     || fail "local tool setup/check changed ordering, pins or offline selection"
   : > "$tools_case/trace"
@@ -351,14 +357,34 @@ for mode in install check; do
     "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
     fail "tool setup/check accepted a host failure"
   fi
-  printf '%s\n' "host --versions $tools_case/ci/tool-versions.env --with-ripgrep$suffix" > "$tools_case/expected"
+  printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env --with-ripgrep --with-cloc$suffix" > "$tools_case/expected"
   cmp -s "$tools_case/expected" "$tools_case/trace" \
     || fail "tool setup/check continued after a failed host command"
 done
 
+: > "$tools_case/trace"
+TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+  "$make_bin" --no-print-directory -C "$tools_case" >/dev/null
+[[ ! -s "$tools_case/trace" ]] || fail 'default Make goal installed tools'
+cat > "$tools_case/scripts/dev/cloc.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:"* ]] || exit 71
+printf 'cloc %s\n' "$*" >> "$TRACE_FILE"
+exit "${CLOC_RESULT:-0}"
+EOF
+TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+  "$make_bin" --no-print-directory -C "$tools_case" cloc CLOC_ROOT="$tools_case/selected root" >/dev/null
+printf 'cloc %s\n' "$tools_case/selected root" > "$tools_case/expected"
+cmp "$tools_case/expected" "$tools_case/trace" || fail 'LOC report lost its selected root'
+if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" CLOC_RESULT=73 \
+  "$make_bin" --no-print-directory -C "$tools_case" cloc >/dev/null 2>&1; then
+  fail 'Make accepted a failed LOC report'
+fi
+
 format_case="$work_dir/format"
 mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format_case/scripts/dev"
-cp "$repo_root/Makefile" "$format_case/Makefile"
+copy_makefile "$format_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$format_case/scripts/ci/"
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/tool-versions.env"
 cat > "$format_case/bin/cargo" <<'EOF'
@@ -407,7 +433,7 @@ PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
   MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
   "$make_bin" --no-print-directory -C "$format_case" install-dev \
   CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null
-printf '%s\n' "host setup --versions $format_case/ci/tool-versions.env --with-ripgrep" \
+printf '%s\n' "host setup --consumer $format_case --versions $format_case/ci/tool-versions.env --with-ripgrep --with-cloc" \
   'install --locked cargo-sort --version 9.8.7' \
   'install --locked cargo-audit --version 8.7.6' \
   'install --locked cargo-machete --version 7.6.5' > "$format_case/expected"
@@ -518,7 +544,7 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools \
   'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
   'ic-host-artifacts feature "wasm"'; do
   scope=host
-  [[ "$dependency" != ic-host-artifacts ]] || scope=pure
+  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs ]] || scope=pure
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \
@@ -529,6 +555,12 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools \
   grep -Fq "unexpectedly includes $dependency" "${feature_boundary_case}/dependency-failure.log" \
     || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
 done
+
+TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE=ic-host-fs TRACE_FILE="${feature_boundary_case}/trace" \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+    >"${feature_boundary_case}/filesystem-accepted.log" 2>&1 \
+    || fail 'the cache host feature boundary rejected its current filesystem dependency'
 
 retention_case="$work_dir/fixture-retention"
 mkdir -p "$retention_case/bin"

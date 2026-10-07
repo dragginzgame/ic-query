@@ -39,7 +39,6 @@ forbidden_canister_dependencies=(
 
 forbidden_host_dependencies=(
   clap
-  ic-host-fs
   ic-host-process
   ic-host-tools
   'ic-host-artifacts feature "archive"'

@@ -32,10 +32,11 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The adoption reviews the published IC Host Tooling 0.3.0 split at
-[`efd402e`](https://github.com/dragginzgame/ic-host-tooling/tree/efd402e0063ccbbf8a143cc970be52ab41b1766d).
+The adoption reviews published IC Host Tooling 0.3.3 at
+[`3d18ca9`](https://github.com/dragginzgame/ic-host-tooling/tree/3d18ca9a9ed0ac5935a16c5bac99694d8e9a7d0a).
 The workspace lockfile selects registry packages; archive support is unnecessary
-for this helper and remains disabled.
+for this helper and remains disabled. The response-only tools profile disables
+default features, excluding Candid extraction and its process execution edge.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">

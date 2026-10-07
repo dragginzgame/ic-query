@@ -5,6 +5,32 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.47.8]
+
+Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
+
+- Adopts Shared Tooling 0.1.15's common Make commands, removing duplicate setup
+  recipes and provisioning pinned local cloc with the host set. Adds workspace
+  Rust LOC and sibling tooling inventory commands.
+  [#15](https://github.com/dragginzgame/ic-query/issues/15).
+
+```bash
+make install-host-tools host-tools-check
+make cloc
+make cloc-tooling
+```
+
+- Uses published IC Host Tooling 0.3.3 for export-path resolution and archive
+  hashing, removing the private resolver and hashing writer. Retains export alias
+  protection, symlink limits, canonical bytes and confined atomic cache publication.
+  [#13](https://github.com/dragginzgame/ic-query/issues/13),
+  [#14](https://github.com/dragginzgame/ic-query/issues/14).
+- Uses the response-only tools profile for the Governance development helper,
+  excluding Candid extraction and process execution from its normal dependency graph.
+- Fixes Make-mode admission on macOS's GNU Make 3.81, where short execution
+  flags may follow long options. Keeps inherited selections and parallel execution.
+  [#3](https://github.com/dragginzgame/ic-query/issues/3).
+
 ## [0.47.7] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.47.md](docs/changelog/0.47.md)
