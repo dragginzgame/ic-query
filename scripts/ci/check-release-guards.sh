@@ -37,6 +37,7 @@ snapshot() {
   cp -R docs "commits/$1/files/"
 }
 case "$1" in
+  for-each-ref) printf '\n' ;;
   check-ref-format) [[ "$2" == refs/heads/main ]] ;;
   symbolic-ref) echo main ;;
   remote)

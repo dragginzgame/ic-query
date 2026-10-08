@@ -313,7 +313,7 @@ released Query `a05ec4d2a30569ed738363f60e3fa71678d84cb3` passed all nine
 [matching tag checks](https://github.com/dragginzgame/ic-query/actions/runs/37767619965).
 That qualifies the released 0.49.1 cleanup repair, separately from dirty 0.50.0.
 
-The pending 0.50.0 smoke hard cut uses `ic-agent` for certified state reads and
+The released 0.50.0 smoke hard cut uses `ic-agent` for certified state reads and
 typed Candid update calls in the development helper. Host artifact and filesystem
 dependencies select published 0.7.1 in the updated workspace; `ic-host-tools` is
 removed. The helper explicitly limits response bodies, preserves binary replies
@@ -338,18 +338,52 @@ registry Host 0.7.1 dependencies compiles with exactly one artifact identity
 and one filesystem identity. This is not published Query consumer evidence; consumers pinned to
 Host 0.6 require a coordinated upgrade, tracked in
 [Query #24](https://github.com/dragginzgame/ic-query/issues/24).
-Query retains its existing
-TERM grace and bounded reaping by maintainer decision; Host's current process
-owner cannot preserve those requirements.
+Query 0.50.0 retains its existing
+TERM grace and bounded reaping by maintainer decision; Host's 0.7.1 process
+owner could not preserve those requirements.
 Full local CI, fresh MSRV, live canister smoke and macOS execution
 have not been run for this dirty selection. Earlier consumer and owner runs do
 not qualify the new helper protocol path. CI retains the binary reply files
 alongside their receipts on both successful and failed smoke runs.
 
+Released Query 0.50.0 `bd583e2b6baa7570be363b2948345c57582c3f31` passes Linux
+checks, MSRV and live canister smoke in its
+[exact-source branch run](https://github.com/dragginzgame/ic-query/actions/runs/37789118978).
+Both macOS MSRV and live smoke jobs, plus Apple Silicon checks, also pass;
+Intel checks remain in progress at inspection. All three native checks pass in
+the [matching tag run](https://github.com/dragginzgame/ic-query/actions/runs/37789118881).
+Those results cover the release,
+not the following working-tree integration.
+
+The pending 0.50.1 selection uses published Host 0.8.2 at
+`92bd2fecc71124b562e227a32a67644e1e5e34b7`, including the development-only
+process crate. The helper now uses Host's command communication and owned-group
+cleanup with five seconds each for TERM grace and bounded reaping. Local socket
+EOF requests cancellation; Python retains harness lifecycle and receipt policy.
+Successful background startup explicitly hands off after output admission.
+The selected locked/offline cache was explicitly prepared. Focused Linux checks
+pass all 37 Python fixtures through the actual Host runner, 55 cache-file tests,
+six artifact-helper tests, strict process-helper Clippy, manifest ordering,
+formatting and changed-document link checks. Direct script bootstrap help also
+passes. The canister-only normal dependency tree contains no Host, agent, Tokio
+or Reqwest dependency. Both development helpers compile with actual Rust 1.91.0
+against this selected graph, locked/offline. Full local CI, the complete MSRV
+gate, live smoke and native macOS execution have not been run for this working tree.
+
+Host 0.8.0 failed its cleanup-evidence fixture on both macOS architectures
+because `/bin/true` was absent; 0.8.1 retained that fixture. Published 0.8.2
+implements the portable `/bin/sh -c 'exit 0'` repair reported in
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5), without a
+production runtime change. Its
+[exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37801871391)
+passes Linux and MSRV; both macOS jobs remain queued. The selected graph passes
+the focused consumer checks above. Owner qualification and matching native
+Query process acceptance remain separate.
+
 Shared Tooling 0.1.26 was reviewed at
 `75a8a60f49cec11d3f6aecab5c977029c42cc549`, followed by 0.1.27 at
-`b866d41041a1986eeec95bde9af4c6ba0853d2e3`. Query retains its 0.1.23 snapshot:
-the new shared runner suite unconditionally performs real Git release effects
+`b866d41041a1986eeec95bde9af4c6ba0853d2e3`. Those reviews retained 0.1.23:
+the then-current shared runner suite unconditionally performed real Git release effects
 in scratch repositories, contrary to the local simulation-only fixture rule.
 [Shared #70](https://github.com/dragginzgame/shared-tooling/issues/70) requests a
 separate admissible fixture selection without weakening the owner's native
@@ -360,6 +394,22 @@ relative/absolute invocation, inherited CDPATH and newline checkout paths.
 Its runner changes only path resolution and retains the incompatible native
 tracking block. Shared's exact 0.1.27 owner CI was queued at inspection and does
 not establish native qualification or consumer adoption.
+
+Pending Query 0.50.1 now adopts committed Shared Tooling 0.1.28 at
+`1872ed2c20f6c70689bb2249050b1d673c60bfa0`. Canonical export verifies all 73
+selected files, including the linked task catalog and schedule templates; no
+schedule is activated. The consumer runner fixture delegates only inert Git
+hashing, and native tracking/race tests remain in the owner's separate suite.
+The engineering baseline remains independently pinned. Focused Linux validation
+passes the actual Query simulation/adapter/recovery and metadata fixtures, CI
+script fixtures, canonical Rust-tool tests with substitute Cargo, installed
+host/IC offline checks, dependency declarations, documentation links and snapshot
+integrity. No real release effect or full local CI was executed.
+[Exact-source Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37799837183)
+passes Linux and Apple Silicon regression and lint/security; Intel regression
+is queued. This is local consumer adoption, not committed
+consumer native qualification. [Query #25](https://github.com/dragginzgame/ic-query/issues/25)
+retains that acceptance work.
 
 ## Tool-specific dependencies
 

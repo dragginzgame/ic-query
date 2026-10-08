@@ -4,6 +4,8 @@ These methods apply the [engineering baseline](../DRAGGINZGAME.md) to a named
 review scope. Shared Tooling owns the common questions and evidence contract;
 consumers own product invariants, source roots, focused commands and report
 locations. Adopting these files does not schedule audits or add release gates.
+The [task catalog](../tasks/README.md) selects bounded recurring audit work and
+links these methods; it does not maintain a second set of audit questions.
 
 ## Choose a method
 

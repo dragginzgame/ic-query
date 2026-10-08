@@ -30,10 +30,12 @@ The harness exercises the four direct NNS Governance reports through
 `governance_artifact` helper in `ic-query-cli`. The helper adopts
 `ic-host-artifacts` for bounded streams, digesting and Wasm inspection,
 `ic-host-fs` for artifact file reads, raw reply evidence and atomic receipt
-publication, and `ic-agent` for direct protocol IO;
+publication, and `ic-agent` for direct protocol IO. The companion
+`governance_process` helper adopts `ic-host-process` for command IO,
+process-group ownership and cleanup;
 it adds no production CLI operation or canister-runtime dependency.
-The current workspace selection uses published IC Host Tooling 0.7.1 at
-[`410fee7`](https://github.com/dragginzgame/ic-host-tooling/tree/410fee7c309e781edf6a361f0e480d71b7c11e5a).
+The current workspace selection uses published IC Host Tooling 0.8.2 at
+[`92bd2fe`](https://github.com/dragginzgame/ic-host-tooling/tree/92bd2fecc71124b562e227a32a67644e1e5e34b7).
 The selected registry dependency cache has been prepared explicitly and the
 helper uses its bounded file-read and durable publication APIs. This consumer
 selection requires its own matching native smoke qualification;
@@ -127,7 +129,7 @@ saves the original binary reply before requiring exactly one Candid text value
 without trailing arguments/bytes. It returns that text unchanged for report
 validation, without ICP response wrapping or hex decoding. Each agent operation,
 including local root-key fetching and update polling, has a 590-second deadline;
-the Python process deadline remains 600 seconds. Existing process-group cleanup
+the Host command deadline remains 600 seconds. Process-group cleanup
 and receipt publication still own interruption and failure handling.
 
 Agent state reads verify certificates. Local calls fetch a root key only from
@@ -193,6 +195,19 @@ migration or automatic cleanup of the old contract is supplied.
 network cleanup to succeed. A missing optional maturity value is a valid
 successful response.
 
+The harness and `make ci-scripts-check` launch Python through the development
+process helper. Direct script invocations bootstrap it with locked/offline Cargo.
+Each command uses private request/result files and a short local Unix socket;
+inherited stdout/stderr remain separate from control traffic. Closing the socket
+requests Host cancellation. Host alone communicates with command pipes, owns the
+command group and reaps its leader. The Python transport waits with finite bounds
+for Host cleanup and retains transport failures separately.
+
+```bash
+cargo run -p ic-query-cli --example governance_process --locked --offline -- \
+  python python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+```
+
 SIGINT and SIGTERM attempt to stop the active command's process group and trigger local
 network cleanup, including when startup has not returned yet. Further
 termination signals are ignored during that interruption's cleanup. A failed
@@ -202,7 +217,10 @@ command cleanup before network cleanup. Group escalation reserves the unreaped
 leader PID through the five-second TERM grace period and KILL signal; an already
 reaped leader is not used to address a process group. Refused group KILL falls
 back to killing the leader directly, and reaping has a five-second deadline.
-Escaped descendants are outside the command group and may need manual cleanup.
+Successful background network startup explicitly hands off after command
+completion and output admission; subsequent runtime ownership remains with
+`icp network stop`. Other successful commands clean up their remaining command
+group. Escaped descendants are outside the command group and may need manual cleanup.
 
 An operation failure remains the raised error if network cleanup or subsequent
 receipt publication also fails. Failed receipts retain available command stdout

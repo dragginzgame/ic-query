@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `0ba0ad00ed94848e54ecc82629b6b7873b7284c0`; the selected
+  Shared Tooling at reviewed revision `1872ed2c20f6c70689bb2249050b1d673c60bfa0`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -37,6 +37,10 @@ If code or habit conflicts with this file, this file wins.
   `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
   they do not silently replace the explicitly
   pinned engineering baseline or activate unrelated hook/tooling adoption.
+  The linked `tasks/` catalog and local schedule templates are available offline;
+  their adoption does not activate scheduled execution. Consumer release tests
+  select the simulation-only `scripts/ci/test-release-runner.sh`; native tracking,
+  PR and owner metadata fixtures remain outside that selection.
   The root virtual workspace and packages under `crates/` follow
   `rules/rust-workspaces.md`; `docs/supported-hosts.md` remains the consumer-owned
   host matrix rather than a shared snapshot file.

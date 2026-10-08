@@ -157,7 +157,8 @@ shared-tooling-check:
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
 	bash scripts/ci/test-rust-tools.sh
-	python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+	cargo run -p ic-query-cli --example governance_process --locked --offline -- \
+		python python3 -m unittest discover -s scripts/canister -p 'test_*.py'
 
 canister-build:
 	python3 scripts/canister/smoke.py build
@@ -177,7 +178,8 @@ type-docs-check:
 doc-links-check:
 	perl "$(REPO_ROOT)scripts/ci/check-documentation-links.pl" --root "$(REPO_ROOT)" \
 		"$(REPO_ROOT)README.md" "$(REPO_ROOT)AGENTS.md" "$(REPO_ROOT)CHANGELOG.md" \
-		"$(REPO_ROOT)docs/"*.md "$(REPO_ROOT)docs/design/"*.md "$(REPO_ROOT)docs/roadmap/"*.md
+		"$(REPO_ROOT)docs/"*.md "$(REPO_ROOT)docs/design/"*.md "$(REPO_ROOT)docs/roadmap/"*.md \
+		"$(REPO_ROOT)tasks/"*.md
 
 public-docs-check:
 	bash scripts/ci/check-public-docs.sh

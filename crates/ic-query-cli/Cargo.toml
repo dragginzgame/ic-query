@@ -28,6 +28,7 @@ thiserror.workspace = true
 ic-agent.workspace = true
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs.workspace = true
+ic-host-process.workspace = true
 reqwest.workspace = true
 tokio = { workspace = true, features = ["rt", "time"] }
 url.workspace = true

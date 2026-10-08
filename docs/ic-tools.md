@@ -67,6 +67,10 @@ Failed or interrupted attempts retain their candidate directory and leave the
 prior selected set intact; retries create a fresh candidate. Previous sets and
 downloads are not automatically deleted. Cleanup is an explicit local action.
 
+Setup and offline checks admit the literal `.tools/ic` link target. Malformed
+managed names, including trailing newlines, are refused before tool execution
+or downloads; the existing link and bundles remain intact.
+
 A directory lock prevents competing installers. After an abrupt kill, inspect
 `.tools/.ic-tools.lock/owner` and confirm the process has stopped before removing
 that exact stale lock. Never steal an active installation lock. The offline

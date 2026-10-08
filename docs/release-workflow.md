@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`0ba0ad00ed94848e54ecc82629b6b7873b7284c0`](https://github.com/dragginzgame/shared-tooling/tree/0ba0ad00ed94848e54ecc82629b6b7873b7284c0) (0.1.23),
+[`1872ed2c20f6c70689bb2249050b1d673c60bfa0`](https://github.com/dragginzgame/shared-tooling/tree/1872ed2c20f6c70689bb2249050b1d673c60bfa0) (0.1.28),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/0ba0ad00ed94848e54ecc82629b6b7873b7284c0/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/1872ed2c20f6c70689bb2249050b1d673c60bfa0/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,7 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 59 shared files. Its governance selection keeps the linked
+The snapshot contains 73 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -38,6 +38,17 @@ authorize merge, integration pushes, publication or release execution.
 Generic provisioning/provenance guides retain their exact upstream bytes;
 the current split host-crate ownership is documented locally in
 [canister smoke testing](canister-smoke.md).
+
+The release guard fixtures select the shared simulation-only runner entrypoint.
+It refuses native Git effects except inert hashing; actual tracking/race tests
+remain in Shared Tooling's owner suite. The linked maintenance task catalog and
+schedule templates are retained offline, without enabling a timer or recurring
+agent execution.
+
+After confirmed URL-form release delivery, the runner refreshes an eligible
+matching local upstream tracking ref without fetching or repeating the push.
+It preserves symbolic refs, changed destinations and concurrent observations;
+failed or ineligible reconciliation asks the maintainer to fetch.
 
 The publication tag adapter selects this workspace's package version and exact
 HEAD commit, then delegates annotated-tag identity checks to the vendored

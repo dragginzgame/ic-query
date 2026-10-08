@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
+# Shared companions: scripts/ci/dependency-pins.jq
 set -euo pipefail
 
 # Read-only, offline checks; requires Git, jq and Mike Farah yq v4.47.2+.
 # Cargo is needed only when Cargo manifests are present (workspace discovery).
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+SCRIPT_DIR="${BASH_SOURCE[0]}"
+[[ "$SCRIPT_DIR" == /* ]] || SCRIPT_DIR="$PWD/$SCRIPT_DIR"
+SCRIPT_DIR="$(cd -P "${SCRIPT_DIR%/*}" && printf '%s/.' "$PWD")"
+SCRIPT_DIR="${SCRIPT_DIR%/.}"
+ROOT="$(cd -P "$SCRIPT_DIR/../.." && printf '%s/.' "$PWD")"
+ROOT="${ROOT%/.}"
 YQ="${YQ:-yq}"
 inheritance=false
 usage() { echo 'usage: check-dependency-pins.sh [--consumer <repository>] [--cargo-inheritance]' >&2; }
@@ -17,9 +22,11 @@ while [[ $# -gt 0 ]]; do
         *) usage; exit 2 ;;
     esac
 done
-ROOT="$(cd "$ROOT" && pwd -P)"
+[[ "$ROOT" == /* ]] || ROOT="$PWD/$ROOT"
+ROOT="$(cd -P "$ROOT" && printf '%s/.' "$PWD")"
+ROOT="${ROOT%/.}"
 cd "$ROOT"
-[[ "$(cd "$(git rev-parse --show-toplevel)" && pwd -P)" == "$ROOT" ]] || fail 'consumer must be the Git checkout root'
+repository_prefix="$(git rev-parse --show-prefix)" && [[ -z "$repository_prefix" ]] || fail 'consumer must be the Git checkout root'
 command -v jq >/dev/null || fail 'jq is required'
 parser_version="$("$YQ" --version)"
 [[ "$parser_version" == 'yq (https://github.com/mikefarah/yq/) version v4.'* ]] || fail 'Mike Farah yq v4.47.2+ is required'
@@ -63,7 +70,9 @@ while IFS= read -r -d '' path; do
         *) continue ;;
     esac
     [[ -f "$path" && ! -L "$path" && "$path" != *$'\n'* && "$path" != *$'\t'* ]] || fail "metadata must be a regular file with a single-line path: $path"
-    case "$(cd "$(dirname "$path")" && pwd -P)/" in
+    metadata_parent="$ROOT"
+    [[ "$path" != */* ]] || metadata_parent="$ROOT/${path%/*}"
+    case "$(cd -P "$metadata_parent" && printf '%s/' "$PWD")" in
         "$ROOT/"*) ;;
         *) fail "metadata escapes consumer through a symlink: $path" ;;
     esac
@@ -76,7 +85,8 @@ while IFS= read -r -d '' path; do
     if [[ "$kind" == cargo ]]; then
         command -v cargo >/dev/null || fail 'Cargo is required for workspace discovery'
         workspace="$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo locate-project --workspace --message-format plain --manifest-path "$path")" || fail "cannot locate Cargo workspace for $path; prepare its selected toolchain explicitly"
-        workspace_root="$(cd "$(dirname "$workspace")" && pwd -P)"
+        workspace_root="$(cd -P "${workspace%/*}" && printf '%s/.' "$PWD")"
+        workspace_root="${workspace_root%/.}"
         case "$workspace_root/" in "$ROOT/"*) ;; *) fail "workspace root escapes consumer: $path" ;; esac
         printf '%s\n' "$workspace_root" >> "$temporary/workspaces"
         if [[ "$inheritance" == true ]]; then
@@ -97,7 +107,9 @@ while IFS= read -r -d '' path; do
                 /*) dependency_path="$selected_path" ;;
                 *) dependency_path="$(dirname "$path")/$selected_path" ;;
             esac
-            resolved="$(cd "$dependency_path" && pwd -P)" || fail "dependency path is unavailable: $path: $name: $selected_path"
+            [[ "$dependency_path" == /* ]] || dependency_path="$ROOT/$dependency_path"
+            resolved="$(cd -P "$dependency_path" && printf '%s/.' "$PWD")" || fail "dependency path is unavailable: $path: $name: $selected_path"
+            resolved="${resolved%/.}"
             case "$resolved/" in
                 "$ROOT/"*) ;;
                 *) jq -cn --arg file "$path" --arg subject "$name" --arg value "$selected_path" \

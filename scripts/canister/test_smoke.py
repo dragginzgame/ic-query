@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import smoke
 
@@ -632,36 +632,6 @@ except smoke.RunInterrupted as error:
             with self.assertRaises(ProcessLookupError):
                 os.kill(int(marker.read_text()), 0)
 
-    def test_command_cleanup_failures_preserve_the_operation_error(self):
-        for failure in (subprocess.TimeoutExpired("probe", 1, output=b"partial"),
-                        smoke.RunInterrupted(signal.SIGTERM)):
-            with self.subTest(error=type(failure).__name__):
-                process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
-                process.communicate.side_effect = failure
-                process.wait.side_effect = OSError("reap refused")
-                process.kill.side_effect = PermissionError("leader signal refused")
-                with patch.object(smoke.subprocess, "Popen", return_value=process), \
-                        patch.object(smoke.os, "killpg", side_effect=PermissionError("group signal refused")):
-                    with self.assertRaises(type(failure)) as raised:
-                        smoke.run("probe", timeout=1)
-                self.assertIs(raised.exception, failure)
-                self.assertEqual(len(failure.command_cleanup_errors), 4)
-                self.assertTrue(failure.command_cleanup_errors[0].startswith("SIGTERM:"))
-                self.assertTrue(failure.command_cleanup_errors[1].startswith("SIGKILL:"))
-                process.wait.assert_called_once_with(timeout=5)
-
-    def test_group_escalation_precedes_reaping_the_leader(self):
-        events = []
-        process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
-        process.communicate.side_effect = subprocess.TimeoutExpired("probe", 1)
-        process.wait.side_effect = lambda **_kwargs: events.append("reap")
-        with patch.object(smoke.subprocess, "Popen", return_value=process), \
-                patch.object(smoke.os, "killpg", side_effect=lambda _pid, sig: events.append(sig)), \
-                patch.object(smoke.time, "sleep", side_effect=lambda seconds: events.append(seconds)):
-            with self.assertRaises(subprocess.TimeoutExpired):
-                smoke.run("probe", timeout=1)
-        self.assertEqual(events, [signal.SIGTERM, 5, signal.SIGKILL, "reap"])
-
     def test_escalation_stops_descendants_after_the_leader_exits(self):
         with tempfile.TemporaryDirectory() as directory:
             heartbeat = Path(directory) / "heartbeat"
@@ -698,31 +668,25 @@ signal.pause()
                     except ProcessLookupError:
                         pass
 
-    def test_reaped_failure_does_not_signal_an_unreserved_process_group(self):
-        process = Mock(pid=123, returncode=7, stdin=None, stdout=None, stderr=None)
-        process.communicate.return_value = ("output", "diagnostic")
-        with patch.object(smoke.subprocess, "Popen", return_value=process), \
-                patch.object(smoke.os, "killpg") as group_signal:
-            with self.assertRaises(subprocess.CalledProcessError) as raised:
-                smoke.run("probe")
-        self.assertEqual(raised.exception.returncode, 7)
-        self.assertEqual(raised.exception.output, "output")
-        group_signal.assert_not_called()
-
-    def test_group_signal_refusal_is_retained_in_the_failed_receipt(self):
+    def test_shared_cleanup_failures_are_retained_in_the_failed_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "receipt.json"
-            failure = subprocess.TimeoutExpired("probe", 1, output=b"partial")
-            process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
-            process.communicate.side_effect = failure
+            failure = None
+            errors = ["SIGTERM: refused", "SIGKILL: refused", "kill leader: refused", "reap leader: timed out"]
+            outcome = {"failure": "timeout", "diagnostic": "deadline expired", "code": None,
+                       "signal": None, "stdout": list(b"partial"), "stderr": None, "cleanup_errors": errors}
 
             def command(*args, **_kwargs):
+                nonlocal failure
                 if args[:2] == ("network", "status"):
                     raise subprocess.CalledProcessError(1, args)
                 if args[:2] == ("network", "start"):
-                    with patch.object(smoke.subprocess, "Popen", return_value=process), \
-                            patch.object(smoke.os, "killpg", side_effect=PermissionError("group signal refused")):
-                        smoke.run("probe", timeout=1)
+                    with patch.object(smoke, "process_outcome", return_value=outcome):
+                        try:
+                            smoke.run("probe", timeout=1)
+                        except subprocess.TimeoutExpired as error:
+                            failure = error
+                            raise
                 else:
                     self.assertEqual(args, ("network", "stop", "local"))
                     saved = json.loads(output.read_text())
@@ -733,6 +697,7 @@ signal.pause()
                 with self.assertRaises(subprocess.TimeoutExpired) as raised:
                     smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
             self.assertIs(raised.exception, failure)
+            self.assertEqual(failure.command_cleanup_errors, errors)
             self.assertEqual(json.loads(output.read_text())["network_cleanup"], "stopped")
 
     def test_piped_input_and_both_outputs_are_drained_concurrently(self):
@@ -827,6 +792,50 @@ print("leader exited", flush=True)
             smoke.run(sys.executable, "-c", "import os,signal; os.write(1, b'prefix\\xff'); signal.pause()",
                       timeout=1)
         self.assertTrue(raised.exception.output.startswith(b"prefix"))
+
+    def test_successful_command_admits_text_and_normalizes_newlines(self):
+        self.assertEqual(smoke.run(sys.executable, "-c", "import os; os.write(1, b'first\\r\\nsecond\\r')",
+                                   strip=False), "first\nsecond\n")
+        with self.assertRaises(UnicodeDecodeError):
+            smoke.run(sys.executable, "-c", "import os; os.write(2, b'\\xff')", stderr=subprocess.PIPE)
+
+    def test_failed_text_admission_cleans_up_before_background_handoff(self):
+        launcher = r'''
+import os, sys, time
+from pathlib import Path
+path = Path(sys.argv[1])
+(path / "child").write_text(str(os.getpid()))
+while True:
+    (path / "heartbeat").write_text(str(time.monotonic_ns()))
+    time.sleep(0.01)
+'''
+        start = r'''
+import os, subprocess, sys, time
+from pathlib import Path
+subprocess.Popen([sys.executable, "-c", sys.argv[1], sys.argv[2]],
+                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+while not (Path(sys.argv[2]) / "heartbeat").exists():
+    time.sleep(0.01)
+os.write(int(sys.argv[3]), b'prefix\xff')
+'''
+        for descriptor in (1, 2):
+            with self.subTest(descriptor=descriptor), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory)
+                try:
+                    with self.assertRaisesRegex(RuntimeError, "invalid command text") as raised:
+                        smoke.run(sys.executable, "-c", start, launcher, directory, str(descriptor),
+                                  stderr=subprocess.PIPE, handoff=True, timeout=10)
+                    evidence = raised.exception.output if descriptor == 1 else raised.exception.stderr
+                    self.assertEqual(evidence, "prefix\ufffd")
+                    heartbeat = (path / "heartbeat").read_bytes()
+                    time.sleep(0.1)
+                    self.assertEqual((path / "heartbeat").read_bytes(), heartbeat)
+                finally:
+                    if (path / "child").exists():
+                        try:
+                            os.kill(int((path / "child").read_text()), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
 
     def test_hard_termination_preserves_the_last_complete_snapshot(self):
         script = r'''

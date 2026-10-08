@@ -16,6 +16,8 @@ Recognize these requests and equivalent natural-language instructions:
 | `check CI` | Inspect relevant GitHub Actions runs and diagnose current failures. |
 | `check issues` | Review open issues and recommend actionable work. |
 | `check for work` | Finish the accepted task, check CI, then review issues and recommend the next useful work. |
+| `run task TASK for REPOSITORIES` | Read the [task catalog](../tasks/README.md) and selected definition, then perform that scoped check and report its evidence. |
+| `run the maintenance pass for REPOSITORIES` | Run the catalog's routine checks and one bounded audit, coordinating findings through owning issues. |
 | `after each task, check CI; when there's nothing else to do, check issues` | Enable those inspections after each completed work batch for the current session. |
 | `fix CI` or `work on issue #N` | Inspect the selected problem, implement the local fix and run appropriate focused checks. |
 | `open a PR for this fix` | Complete the branch, scoped commits, branch push and PR under the [contribution rules](contributions.md); no separate commit instruction is needed. |
@@ -34,6 +36,11 @@ Do not repeatedly check the same unchanged state after reporting it. These check
 run while the agent is handling work; future timed runs require a separately
 requested schedule. Report an access or authentication failure as unavailable
 evidence, and continue independent authorized work.
+
+Shared Tooling owns repeatable task definitions in `tasks/`; use their common
+run contract instead of copying prompts into each consumer. An explicitly enabled
+local schedule can invoke those same definitions. Its cadence does not expand
+repair authority, and adopting task files does not activate a schedule.
 
 ## CI inspection
 

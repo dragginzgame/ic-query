@@ -255,11 +255,16 @@ Consumer choices described in those guides remain subject to this baseline.
   is declared in root `[workspace.dependencies]`, and every child manifest uses
   `workspace = true`, including development, build and target-specific tables.
   Keep version/source selections in the root; children select target conditions,
-  features and publication policy. Do not upgrade a toolchain or raise MSRV
-  without an established need and appropriate validation.
+  features and publication policy. Keep the
+  [minimum supported Rust version](rules/cargo-dependencies.md#minimum-supported-rust-version-msrv)
+  as low as the qualified package dependency path permits, independently of the
+  development toolchain. CI must explicitly check each advertised floor;
+  documented package groups may have different floors. Do not upgrade a toolchain
+  or raise MSRV without an established need and appropriate validation.
 - Follow the [Rust hygiene baseline](docs/principles/rust-code-hygiene.md): narrow
   visibility, documented APIs/invariants, ordinary module discovery, bounded
-  fallible decoding and typed errors. Exact edition, internal module layout and
+  fallible decoding, typed errors and `std` paths in code that requires `std`,
+  preserving documented `no_std` support. Exact edition, internal module layout and
   lint choices stay local within the workspace rules. Do not fake platform
   behavior with production cfg(test) paths.
 - Rust repositories adopt the [standard formatting hook](rules/git-hooks.md):
@@ -303,6 +308,10 @@ Consumer choices described in those guides remain subject to this baseline.
 
 ## Feedback and handoff
 
+- Use the [repeatable task catalog](tasks/README.md) for named maintenance checks
+  and bounded recurring audits. Shared Tooling owns the procedures; consumers
+  own local inputs and validation contracts. Scheduled execution requires explicit
+  activation and retains the task's inspection/repair boundaries.
 - Follow the [user-triggered agent maintenance rules](rules/agent-maintenance.md)
   when asked to check CI, review issues or inspect for work after completing a
   task. Session activation carries forward within its scope; inspection and

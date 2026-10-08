@@ -103,6 +103,20 @@ The runner rechecks that selection after validation and before push, rejecting
 changed or additional URLs. Observation and dispatch both use the captured URL,
 so a later remote-name change cannot redirect the push.
 
+URL-form push does not refresh named remote-tracking refs. After direct delivery
+or completed resume verifies the exact remote tag and branch history, the runner
+refreshes the selected branch's matching configured upstream from that observation.
+Git derives the mapping, including custom fetch refspecs; fetch and push destinations
+must agree. The conditional local update preserves newer/divergent or concurrently
+changed tracking values. It prepares a Git ref transaction, checks that the ref is
+direct while Git holds its lock, and only then commits the observation. A concurrent
+symbolic replacement is preserved even when it resolves to the captured old commit;
+the runner never dereferences or overwrites it. Other upstreams remain untouched.
+This optional refresh uses core Perl IPC and Git's `update-ref --stdin` transaction
+protocol. Failed preparation or type inspection aborts the optional update. Local
+refresh failures report a fetch remedy without repeating commit, tag or push;
+they do not undo confirmed delivery.
+
 `--no-follow-tags` disables implicit annotated-tag publication, including a
 configured `push.followTags`. Both refspecs are explicit: push the selected branch
 and this release's tag, without publishing other local tags. `--atomic` requires
@@ -313,7 +327,8 @@ the actual targets. Rerun without the rejected mode. Consumer
 recipes must still propagate failures and execute their declared gate.
 
 An independently configured fixture owns its own selections:
-clear inherited `MAKEFLAGS`, `MFLAGS` and `MAKEOVERRIDES` before its Make calls,
+clear inherited `MAKEFLAGS`, `MFLAGS`, `MAKEOVERRIDES`, `GNUMAKEFLAGS` and
+`MAKEFILES` before its Make calls,
 then supply the fixture's intended release variables explicitly, including
 `RELEASE_DELIVERY`. Direct fixtures must not inherit an enclosing PR selection.
 
@@ -337,6 +352,18 @@ outside immutable shared snapshots until adopting a reviewed upstream revision.
 ### Fixture ownership
 
 Consumer adoption runs the canonical `scripts/ci/test-release-runner.sh` suite.
+It simulates repository and release effects; its native Git delegate accepts only
+`hash-object --stdin`, without object writes. Any attempted real Git operation
+fails the suite even if a negative case consumes its immediate failure status.
+
+`scripts/ci/test-release-tracking.sh` separately owns real-Git tracking and lock
+races in disposable repositories, including commits, tags and local bare pushes.
+The complete Shared Tooling portable suite runs both entrypoints on Linux and
+both macOS hosts. Consumers whose fixture authority excludes those effects can
+select the simulation suite without vendoring or invoking the native suite.
+The PR and metadata owner fixtures also use real disposable Git histories; this
+split does not make the entire portable suite simulation-only.
+
 Keep consumer tests for their own contracts, using this ownership map before
 deleting duplicate scenarios or extracting test support:
 

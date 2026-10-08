@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.50.1]
+
+Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)
+
+- Selects IC Host Tooling 0.8.2 and moves smoke-command IO and process-group
+  cleanup to its shared runner. Preserves five-second TERM grace, bounded
+  reaping, failed-command evidence and successful background-network handoff.
+  [Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5).
+- Adopts Shared Tooling 0.1.28, including simulation-only release fixtures,
+  safe local tracking-ref reconciliation and literal installer-path handling.
+  Keeps the maintenance catalog available without activating a schedule.
+  [#25](https://github.com/dragginzgame/ic-query/issues/25).
+- The development process helper launches the harness and its fixture suite;
+  the optional maintenance runner can check its prerequisites:
+
+```bash
+cargo run -p ic-query-cli --example governance_process --locked --offline -- \
+  python python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+bash scripts/dev/run-maintenance.sh --check "$PROJECTS_ROOT" "$MAINTENANCE_STATE"
+```
+
 ## [0.50.0] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)

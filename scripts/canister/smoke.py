@@ -10,10 +10,10 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
-import time
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "tests/canister"
@@ -22,6 +22,7 @@ GOVERNANCE = "rrkah-fqaaa-aaaaa-aaaaq-cai"
 KINDS = ("economics", "metrics", "reward_event", "maturity_modulation")
 ARTIFACT_TOOL = None
 ICP = ROOT / ".tools/ic/bin/icp"
+PROCESS_TOOL = os.environ.get("IC_QUERY_PROCESS_TOOL")
 
 
 class RunInterrupted(Exception):
@@ -49,62 +50,86 @@ def handle_interrupts():
             signal.signal(item, handler)
 
 
-def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None, strip=True):
-    process = subprocess.Popen(
-        args, cwd=ROOT, text=True, start_new_session=True,
-        stdin=subprocess.PIPE if input is not None else None,
-        stdout=subprocess.PIPE if capture else None, stderr=stderr,
-        umask=umask, env=env,
-    )
-    operation_error = None
+def retain_process_evidence(error, outcome):
+    for name in ("stdout", "stderr"):
+        value = outcome[name]
+        if value is not None:
+            raw = bytes(value)
+            setattr(error, "output" if name == "stdout" else name,
+                    raw if isinstance(error, subprocess.TimeoutExpired) else raw.decode("utf-8", errors="replace"))
+    if outcome["cleanup_errors"]:
+        error.command_cleanup_errors = getattr(error, "command_cleanup_errors", []) + outcome["cleanup_errors"]
 
-    def cleanup_failure(stage, error):
-        message = f"{stage}: {str(error) or type(error).__name__}"
-        if not hasattr(operation_error, "command_cleanup_errors"):
-            operation_error.command_cleanup_errors = []
-        operation_error.command_cleanup_errors.append(message)
 
-    try:
-        stdout, diagnostic = process.communicate(input=input, timeout=timeout)
-        if process.returncode:
-            raise subprocess.CalledProcessError(
-                process.returncode, args, output=stdout, stderr=diagnostic,
-            )
-    except BaseException as error:
-        operation_error = error
-        # A reaped leader no longer reserves its PID for safe group signalling.
-        if process.returncode is None:
-            for signum in (signal.SIGTERM, signal.SIGKILL):
-                try:
-                    os.killpg(process.pid, signum)
-                    if signum == signal.SIGTERM:
-                        # Retain the leader's PID through escalation, even if it exits.
-                        time.sleep(5)
-                except ProcessLookupError:
-                    pass
-                except BaseException as cleanup_error:
-                    cleanup_failure(signal.Signals(signum).name, cleanup_error)
-                    if signum == signal.SIGKILL:
-                        try:
-                            process.kill()
-                        except BaseException as kill_error:
-                            cleanup_failure("kill leader", kill_error)
+def process_outcome(request, umask, env):
+    if not PROCESS_TOOL:
+        raise RuntimeError("launch the harness/tests through governance_process python")
+    # /tmp keeps Unix socket names within macOS's pathname limit, even with a long TMPDIR.
+    with tempfile.TemporaryDirectory(prefix="icq-command-", dir="/tmp") as directory, \
+            socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as listener:
+        path = Path(directory)
+        (path / "request.json").write_text(json.dumps(request, allow_nan=False))
+        result_path = path / "result.json"
+        listener.bind(str(path / "cancel"))
+        listener.listen(1)
+        listener.settimeout(10)
+        process = subprocess.Popen([PROCESS_TOOL, "run", str(path / "request.json"),
+                                    str(result_path), str(path / "cancel")],
+                                   start_new_session=True, umask=umask, env=env)
+        control = None
+        try:
+            control, _ = listener.accept()
+            process.wait(timeout=request["timeout"] + 15)
+        except BaseException as error:
+            listener.close()
+            if control is not None:
+                control.close()
             try:
-                process.wait(timeout=5)
+                process.wait(timeout=15)
             except BaseException as cleanup_error:
-                cleanup_failure("reap leader", cleanup_error)
-        raise
-    finally:
-        # Do not drain inherited pipes or perform an unbounded context-manager wait.
-        for pipe in (process.stdin, process.stdout, process.stderr):
-            if pipe is not None:
+                error.command_cleanup_errors = [f"process bridge: {cleanup_error}"]
                 try:
-                    pipe.close()
-                except BaseException as cleanup_error:
-                    if operation_error is None:
-                        raise
-                    cleanup_failure("close command pipe", cleanup_error)
-    return (stdout.strip() if strip else stdout) if capture else None
+                    process.kill()
+                    process.wait(timeout=5)
+                except BaseException as bridge_error:
+                    error.command_cleanup_errors.append(f"reap process bridge: {bridge_error}")
+            if result_path.exists():
+                try:
+                    retain_process_evidence(error, json.loads(result_path.read_text()))
+                except BaseException as evidence_error:
+                    error.command_cleanup_errors = getattr(error, "command_cleanup_errors", []) + [
+                        f"process evidence: {evidence_error}"]
+            raise
+        finally:
+            if control is not None:
+                control.close()
+        if process.returncode:
+            raise subprocess.CalledProcessError(process.returncode, request["args"])
+        return json.loads(result_path.read_text())
+
+
+def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None, strip=True, handoff=False):
+    outcome = process_outcome({"args": args, "cwd": str(ROOT), "input": input, "capture": capture,
+                               "handoff": handoff, "stderr": {None: "inherit", subprocess.PIPE: "capture",
+                                                              subprocess.DEVNULL: "discard"}[stderr], "timeout": timeout},
+                              umask, env)
+    if outcome["failure"] == "timeout":
+        error = subprocess.TimeoutExpired(args, timeout)
+    elif outcome["failure"]:
+        error = RuntimeError(outcome["diagnostic"])
+    elif outcome["signal"] or outcome["code"]:
+        error = subprocess.CalledProcessError(outcome["code"] or -outcome["signal"], args)
+    elif outcome["cleanup_errors"]:
+        error = RuntimeError("command cleanup failed")
+    else:
+        if outcome["stderr"] is not None:
+            bytes(outcome["stderr"]).decode("utf-8")
+        if not capture:
+            return None
+        stdout = bytes(outcome["stdout"]).decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        return stdout.strip() if strip else stdout
+    retain_process_evidence(error, outcome)
+    raise error
 
 
 def icp(*args, **kwargs):
@@ -202,6 +227,7 @@ def build_wasm():
         + list((ROOT / "crates/ic-query").rglob("*.rs"))
         + [ROOT / "crates/ic-query/Cargo.toml", ROOT / "crates/ic-query-cli/Cargo.toml",
            ROOT / "crates/ic-query-cli/examples/governance_artifact.rs",
+           ROOT / "crates/ic-query-cli/examples/governance_process.rs",
            PROJECT / "probe.did", Path(__file__).resolve()]
     ))
     sources = hashlib.sha256()
@@ -295,7 +321,7 @@ def run_attempt(environment, canister, receipt, output):
             save_receipt(output, receipt, "starting_network")
             # Startup can create a background launcher before returning to us.
             startup_attempted = True
-            icp("network", "start", "local", "--background", capture=False, timeout=900)
+            icp("network", "start", "local", "--background", capture=False, timeout=900, handoff=True)
             save_receipt(output, receipt, "reading_network")
             receipt["network"] = json.loads(icp("network", "status", "local", "--json"))
             receipt["api_endpoint"] = receipt["network"]["api_url"]
@@ -405,6 +431,10 @@ def main():
 
 
 if __name__ == "__main__":
+    if not PROCESS_TOOL:
+        os.execvp("cargo", ["cargo", "run", "--manifest-path", str(ROOT / "Cargo.toml"),
+                           "-p", "ic-query-cli", "--example", "governance_process", "--locked", "--offline",
+                           "--", "python", sys.executable, *sys.argv])
     try:
         with handle_interrupts():
             main()

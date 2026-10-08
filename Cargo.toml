@@ -19,8 +19,9 @@ clap = { version = "4.6.1", features = ["derive"] }
 futures = "0.3"
 ic-agent = { version = "0.49.2", default-features = false }
 ic-cdk = "0.20.2"
-ic-host-artifacts = { version = "0.7", default-features = false }
-ic-host-fs = { version = "0.7", default-features = false }
+ic-host-artifacts = { version = "0.8", default-features = false }
+ic-host-fs = { version = "0.8", default-features = false }
+ic-host-process = { version = "0.8", default-features = false }
 ic-query = { path = "crates/ic-query", version = "0.50.0", default-features = false }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }

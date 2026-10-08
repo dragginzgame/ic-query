@@ -97,6 +97,10 @@ inspect `.tools/.host-tools.lock/owner` and confirm its process has stopped befo
 removing an abandoned lock. Cleanup remains explicit. The `--versions` option
 selects a reviewed shell file, which is executable code like a Makefile.
 
+Setup and offline checks admit the literal `.tools/host` link target. Malformed
+managed names, including trailing newlines, are refused before tool execution
+or downloads; the existing link and bundles remain intact.
+
 The shared Make include selects the installer's `--with-ripgrep` flag in both
 installation and offline checks. Consumers adopting it add `SHARED_TOOLING_RIPGREP_VERSION`
 and the four `SHARED_TOOLING_RIPGREP_SHA256_*` archive digests to their reviewed
