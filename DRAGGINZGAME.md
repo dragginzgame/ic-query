@@ -41,7 +41,7 @@ Consumer choices described in those guides remain subject to this baseline.
   Changing directories, shared ownership, dependency fixes, inspection requests
   and issue-reporting authority do not grant cross-repository edit permission.
   Without that authorization, keep other repositories read-only and report the
-  proposed fix in the owning repository's GitHub issue.
+  proposed fix under the GitHub issue authorization below.
 - Follow the [contribution rules](rules/contributions.md): ordinary contributions
   from people and agents use branches and pull requests. Agents may create
   scoped commits when asked to commit or deliver a PR. A PR request includes the
@@ -63,11 +63,14 @@ Consumer choices described in those guides remain subject to this baseline.
   result. Apply authorized current-repository fixes directly to the working tree
   and run the appropriate focused checks; a detached patch alone does not complete
   a local repair. Inspection remains distinct from repair authorization.
-  Relevant GitHub issue work is always authorized across repositories: create,
-  comment, update, assign, close or reopen issues as warranted by the evidence,
-  following the feedback rules below. No separate permission is required for
-  those issue actions. This does not authorize cross-repository file edits,
-  unrelated messages or release effects.
+  Relevant GitHub issue work has standing authorization only in repositories
+  owned by `dragginzgame`: create, comment, update, assign, close or reopen issues
+  as warranted by the evidence, following the feedback rules below. Verify the
+  actual GitHub owner before writing. Issue actions in any other GitHub repository
+  require explicit maintainer authorization for that destination and action;
+  searching and reading issues remain permitted. Prepare external issue content
+  for review before requesting authorization. This does not authorize
+  cross-repository file edits, unrelated messages or release effects.
 
 ## Ownership and simplification
 
@@ -330,8 +333,8 @@ Consumer choices described in those guides remain subject to this baseline.
 - Track upstream acceptance separately from verified consumer adoption. Resolve
   product-specific feedback locally instead of promoting it to universal policy.
   For another repository's finding, search its issues and file or update the
-  matching issue under the standing authorization above. Include a concrete fix
-  or patch where feasible and its actual validation results. Keep shared snapshots
+  matching issue under the issue authorization above. Include a concrete fix or
+  patch where feasible and its actual validation results. Keep shared snapshots
   intact; repair at the source owner and adopt a reviewed committed revision.
   Other cross-repository changes retain their separate authority.
   If issue access or a remote is unavailable, report the finding and blocker to

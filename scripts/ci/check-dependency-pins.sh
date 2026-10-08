@@ -12,16 +12,35 @@ ROOT="$(cd -P "$SCRIPT_DIR/../.." && printf '%s/.' "$PWD")"
 ROOT="${ROOT%/.}"
 YQ="${YQ:-yq}"
 inheritance=false
-usage() { echo 'usage: check-dependency-pins.sh [--consumer <repository>] [--cargo-inheritance]' >&2; }
+npm_root='' node_version='' npm_version=''
+usage() { echo 'usage: check-dependency-pins.sh [--consumer <repository>] [--cargo-inheritance] [--npm-root RELATIVE-DIR --node-version X.Y.Z --npm-version X.Y.Z]' >&2; }
 fail() { echo "dependency pin check failed: $*" >&2; exit 1; }
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --consumer) [[ $# -ge 2 ]] || { usage; exit 2; }; ROOT="$2"; shift 2 ;;
         --cargo-inheritance) inheritance=true; shift ;;
+        --npm-root|--node-version|--npm-version)
+            [[ $# -ge 2 && -n "$2" ]] || { usage; exit 2; }
+            case "$1" in
+                --npm-root) [[ -z "$npm_root" ]] || { usage; exit 2; }; npm_root="$2" ;;
+                --node-version) node_version="$2" ;;
+                --npm-version) npm_version="$2" ;;
+            esac
+            shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) usage; exit 2 ;;
     esac
 done
+if [[ -n "$npm_root$node_version$npm_version" ]]; then
+    [[ -n "$npm_root" ]] || { usage; exit 2; }
+    node_version="${node_version#v}"
+    for version in "$node_version" "$npm_version"; do
+        [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || fail 'npm checking requires exact stable Node and npm versions'
+    done
+    if [[ "$npm_root" != . ]]; then
+        case "/$npm_root/" in //*|*/../*|*/./*|*//*) fail 'npm root must be a relative directory inside the checkout' ;; esac
+    fi
+fi
 [[ "$ROOT" == /* ]] || ROOT="$PWD/$ROOT"
 ROOT="$(cd -P "$ROOT" && printf '%s/.' "$PWD")"
 ROOT="${ROOT%/.}"
@@ -51,7 +70,7 @@ jq -e '
     type == "object" and
     (keys == ["evidence", "file", "reason", "rule", "subject", "value"]) and
     all(.[]; type == "string" and length > 0) and
-    (.rule == "cargo-exact" or .rule == "cargo-external-path" or .rule == "checkout-ref") and
+    (.rule == "cargo-exact" or .rule == "cargo-external-path" or .rule == "checkout-ref" or .rule == "npm-external-path") and
     (.file | startswith("/") or contains("..") | not) and
     (.evidence | startswith("/") or contains("..") | not)) and
   (length == (unique_by([.file,.rule,.subject,.value]) | length))
@@ -125,6 +144,42 @@ while IFS= read -r workspace_root; do
     git --literal-pathspecs ls-files --error-unmatch -- "${lock#"$ROOT/"}" >/dev/null || fail "Cargo lockfile is not tracked: $lock"
 done < "$temporary/unique-workspaces"
 
+if [[ -n "$npm_root" ]]; then
+    npm_prefix="$npm_root/"; [[ "$npm_root" != . ]] || npm_prefix=''
+    manifest="${npm_prefix}package.json"
+    lock="${npm_prefix}package-lock.json"
+    [[ "$npm_root" != *$'\n'* && "$npm_root" != *$'\t'* && -d "$npm_root" ]] || fail 'npm root must be an existing single-line directory'
+    npm_physical="$(cd -P "$npm_root" && printf '%s/.' "$PWD")"
+    npm_physical="${npm_physical%/.}"
+    case "$npm_physical/" in "$ROOT/"*) ;; *) fail 'npm root escapes consumer through a symlink' ;; esac
+    [[ ! -e "${npm_prefix}npm-shrinkwrap.json" && ! -L "${npm_prefix}npm-shrinkwrap.json" ]] || fail 'npm-shrinkwrap.json takes precedence; this checker supports package-lock.json roots only'
+    for path in "$manifest" "$lock"; do
+        [[ -f "$path" && ! -L "$path" ]] || fail "npm input must be a regular file: $path"
+        git --literal-pathspecs ls-files --error-unmatch -- "$path" >/dev/null || fail "npm input must be tracked: $path"
+        jq -se 'length == 1 and (.[0] | type == "object")' "$path" >/dev/null || fail "expected one JSON object: $path"
+    done
+    jq -c -L "$SCRIPT_DIR" --arg file "$manifest" --arg node "$node_version" --arg npm "$npm_version" \
+        --slurpfile lock "$lock" 'include "dependency-pins"; npm_checks($file; $lock[0]; $node; $npm)' \
+        "$manifest" >> "$temporary/findings"
+    jq -c -L "$SCRIPT_DIR" 'include "dependency-pins"; npm_dependencies | select(.spec | npm_local)' \
+        "$manifest" > "$temporary/npm-paths"
+    while IFS= read -r dependency; do
+        name="$(jq -r '.name' <<< "$dependency")"
+        selected_path="$(jq -r '.spec' <<< "$dependency")"
+        dependency_path="${selected_path#file:}"
+        [[ -n "$dependency_path" ]] || fail "npm file input requires a directory: $manifest: $name"
+        [[ "$dependency_path" != /* ]] || fail "npm absolute file input is unsupported: $manifest: $name"
+        [[ "$dependency_path" != *$'\n'* && "$dependency_path" != *$'\t'* ]] || fail "npm file input requires a single-line path: $manifest: $name"
+        resolved="$(cd -P "$npm_physical/$dependency_path" && printf '%s/.' "$PWD")" || fail "npm file dependency directory is unavailable: $manifest: $name"
+        resolved="${resolved%/.}"
+        case "$resolved/" in
+            "$ROOT/"*) ;;
+            *) jq -cn --arg file "$manifest" --arg subject "$name" --arg value "$selected_path" \
+                '{file:$file,rule:"npm-external-path",subject:$subject,value:$value,message:"dependency outside the repository requires a documented development/qualification boundary"}' >> "$temporary/findings" ;;
+        esac
+    done < "$temporary/npm-paths"
+fi
+
 jq -s --slurpfile exceptions "$temporary/exceptions.json" '
   unique_by([.file,.rule,.subject,.value]) |
   map(. as $finding | select(any($exceptions[0][];
@@ -135,4 +190,5 @@ if [[ "$(jq length "$temporary/rejected.json")" != 0 ]]; then
     jq -r '.[] | "\(.file): [\(.rule)] \(.subject) = \(.value): \(.message)"' "$temporary/rejected.json" >&2
     exit 1
 fi
+[[ -z "$npm_root" ]] || printf 'npm root declarations passed: %s (Node %s; npm %s; resolution and runtime qualification remain consumer-owned)\n' "$npm_root" "$node_version" "$npm_version"
 echo 'dependency pins passed (declarations and tracked lockfiles; runtime qualification remains consumer-owned)'

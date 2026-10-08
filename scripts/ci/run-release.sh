@@ -323,7 +323,7 @@ while true; do
         case "$phase" in
             preflight)
                 assert_source
-                hook release-preflight
+                hook release-preflight || fail 'preflight refused; this attempt has not started validation or version preparation'
                 [[ "$delivery" != pr ]] || pr_preflight
                 local_tags="$(git tag --list "v$candidate")"
                 [[ -z "$local_tags" ]] || fail 'candidate tag already exists'

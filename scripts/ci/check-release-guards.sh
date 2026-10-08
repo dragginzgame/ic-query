@@ -47,6 +47,7 @@ case "$1" in
   rev-parse)
     case "${!#}" in
       --show-toplevel) pwd ;;
+      --show-prefix) printf '\n' ;;
       release-state) echo .release-state ;;
       HEAD) cat head ;;
       *'^{tree}') name="${!#}"; name="$(resolve "${name%\^\{tree\}}")"; cat "commits/$name/tree" ;;
@@ -54,7 +55,16 @@ case "$1" in
       refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]]; echo "$tag_sha" ;;
       *) exit 2 ;;
     esac ;;
-  diff-index) [[ "${FIXTURE_DIRTY:-}" != yes ]] ;;
+  status)
+    [[ "$*" == 'status --porcelain=v1 -z --untracked-files=all' ]]
+    if [[ "${FIXTURE_STATUS_FAIL:-}" == yes ]]; then
+      echo 'fixture Git status observation failed' >&2
+      exit 9
+    fi
+    [[ "${FIXTURE_DIRTY:-}" != yes ]] || printf ' M Cargo.lock\0'
+    [[ "${FIXTURE_STAGED:-}" != yes ]] || printf 'MM README.md\0'
+    [[ -z "${FIXTURE_UNTRACKED:-}" ]] || printf '?? %s\0' "$FIXTURE_UNTRACKED"
+    exit 0 ;;
   diff)
     case "$2" in
       --binary) cat Cargo.toml Cargo.lock CHANGELOG.md ;;
@@ -189,7 +199,7 @@ new_fixture() {
   cp "$repo_root/Makefile" Makefile
   mkdir -p make
   cp "$repo_root/make/tools.mk" make/
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
@@ -435,17 +445,37 @@ for notes in root detail; do
   cmp original-lock Cargo.lock
   [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]]
 done
-for failure in gate missing-dependency dirty untracked; do
+for failure in gate missing-dependency dirty staged untracked unusual observation; do
   new_fixture "failure-$failure" patch
   case "$failure" in
     gate) FIXTURE_GATE_FAILURE=yes expect_failure patch ;;
     missing-dependency) FIXTURE_MISSING_DEPENDENCY=yes expect_failure patch ;;
     dirty) FIXTURE_DIRTY=yes expect_failure patch ;;
+    staged) FIXTURE_STAGED=yes expect_failure patch ;;
     untracked) FIXTURE_UNTRACKED=caller-owned.txt expect_failure patch ;;
+    unusual) FIXTURE_UNTRACKED=$'caller-owned\nfile.txt' expect_failure patch ;;
+    observation) FIXTURE_STATUS_FAIL=yes expect_failure patch ;;
   esac
   [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.46.5 && ! -e tag && ! -e remote-head ]]
   cmp original-lock Cargo.lock
   [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]]
+  case "$failure" in
+    dirty|staged|untracked|unusual|observation)
+      [[ ! -e events && ! -e .release-state/0.46.6.validation ]]
+      grep -Fq 'this attempt has not started validation or version preparation' output
+      case "$failure" in
+        dirty) grep -Fq 'unstaged: Cargo.lock' output ;;
+        staged) grep -Fq 'staged: README.md' output; grep -Fq 'unstaged: README.md' output ;;
+        untracked) grep -Fq 'untracked: caller-owned.txt' output ;;
+        unusual)
+          printf '  untracked: %q\n' $'caller-owned\nfile.txt' > expected-diagnostic
+          grep -Fx -f expected-diagnostic output > /dev/null ;;
+        observation)
+          grep -Fq 'fixture Git status observation failed' output
+          grep -Fq 'cannot inspect release-source status' output
+          if grep -Fq 'uncommitted paths' output; then fail 'Git failure labelled dirty source'; fi ;;
+      esac ;;
+  esac
   if [[ "$failure" == gate ]]; then
     failed_logs=(.release-state/0.46.6.verify.*/validation.log)
     [[ -f "${failed_logs[0]}" ]] || fail 'failed gate log was discarded'
@@ -469,6 +499,42 @@ for conflict in payload dependency identity retained-inputs unrelated; do
   unset FIXTURE_CHANGED_PATH
 done
 echo 'IC Query release adapter fixtures passed'
+
+# Exercise the shared observation on inherited history without new commits.
+source_context="$work_dir/source-context"
+PATH="$fixture_native_path" "$REAL_GIT" clone --quiet --shared --no-checkout "$repo_root" "$source_context"
+(
+  export PATH="$fixture_native_path"
+  cd "$source_context"
+  git read-tree HEAD
+  git checkout-index --all
+  check_source() { bash "$repo_root/scripts/ci/check-release-source.sh" > "$work_dir/source-output" 2>&1; }
+  refuse_source() { if check_source; then fail 'changed source admitted'; fi; }
+  check_source
+  cp .git/index "$work_dir/source-index"
+  printf '\n' >> Cargo.lock
+  cp Cargo.lock "$work_dir/source-lock"
+  refuse_source
+  grep -Fq 'unstaged: Cargo.lock' "$work_dir/source-output"
+  cmp .git/index "$work_dir/source-index"
+  cmp Cargo.lock "$work_dir/source-lock"
+  git checkout-index --force -- Cargo.lock
+
+  replacement="$(git rev-parse HEAD:AGENTS.md)"
+  git update-index --cacheinfo "100644,$replacement,README.md"
+  git diff --quiet HEAD -- README.md
+  unusual=$'caller-owned\nfile.txt'
+  printf 'caller evidence\n' > "$unusual"
+  cp .git/index "$work_dir/source-index"
+  refuse_source
+  grep -Fq 'staged: README.md' "$work_dir/source-output"
+  grep -Fq 'unstaged: README.md' "$work_dir/source-output"
+  printf '  untracked: %q\n' "$unusual" > "$work_dir/source-expected"
+  grep -Fx -f "$work_dir/source-expected" "$work_dir/source-output" > /dev/null
+  cmp .git/index "$work_dir/source-index"
+  [[ "$(cat "$unusual")" == 'caller evidence' ]]
+)
+echo 'IC Query real-Git source diagnostics and preservation fixtures passed'
 
 # A distinct parent checkout catches leaked logger identity without running CI.
 metadata_context="$work_dir/metadata-context"

@@ -64,9 +64,7 @@ case "$operation" in
       admit_paths "$RELEASE_SOURCE"
       metadata admit "$evidence"
     else
-      git diff-index --quiet HEAD -- || fail 'commit the reviewed source and pending notes before release'
-      untracked="$(git ls-files --others --exclude-standard)"
-      [[ -z "$untracked" ]] || fail 'untracked source remains'
+      bash scripts/ci/check-release-source.sh
       metadata preflight
       cargo fetch --locked --offline
     fi

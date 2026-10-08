@@ -31,6 +31,7 @@ docs/releases.md
 scripts/ci/run-release.sh
 scripts/ci/release-pr.sh
 scripts/ci/check-make-execution.sh
+scripts/ci/check-release-source.sh
 scripts/ci/next-release-version.sh
 scripts/ci/finalize-release-changelog.awk
 scripts/ci/check-dependency-pins.sh

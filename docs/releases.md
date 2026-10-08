@@ -206,6 +206,32 @@ Consumer Make targets provide these adapters:
 | `release-tagged-check` | Check or record exact tag-bound evidence for `RELEASE_COMMIT` without another Git effect. |
 | `release-push-check` | Check the selected `RELEASE_COMMIT`, tag, evidence and destination before dispatch/reconciliation. |
 
+### Source admission diagnostics
+
+When refusing uncommitted source, report the staged, unstaged and untracked
+paths that violate the consumer's policy. Quote unusual path bytes and report
+all observed violations. A failed Git observation must preserve its error and
+be distinguished from a successfully observed dirty checkout. Never repair,
+stage or commit a file or lockfile merely to make admission succeed.
+
+Shell adapters can delegate to
+[`check-release-source.sh`](../scripts/ci/check-release-source.sh) from the
+checkout root. With no arguments it requires clean source. Repeat
+`--allow RELATIVE-PATH` for exact consumer-owned release metadata exceptions;
+these are literal paths, not globs. Shared Tooling allows `VERSION` and
+`CHANGELOG.md`. The helper separately observes index, worktree and untracked
+paths without writing the index, and rejects observation failures before
+reporting admission. Existing native-language owners may implement the same
+contract using their existing Git observation rather than adding a wrapper.
+
+The calling adapter owns phase context. An initial preflight refusal should say
+validation and version preparation have not started for that attempt. A later
+prepared, committed or resumed check must describe its actual phase instead;
+the reusable helper makes no blanket claim that validation never ran. Add the
+helper explicitly when refreshing a shell adapter's snapshot. Qualify clean,
+lock-only, hidden staged, unstaged, untracked and unusual-name cases, Git errors,
+and unchanged file/index bytes; consumer release metadata allowances stay local.
+
 The runner passes `RELEASE_KIND`, `RELEASE_PREVIOUS`, `RELEASE_VERSION`,
 `RELEASE_DATE`, `RELEASE_SOURCE`, `RELEASE_COMMIT`, `RELEASE_BRANCH`, `RELEASE_REMOTE`,
 `RELEASE_DELIVERY`, `RELEASE_PREPARATION_SOURCE` and `RELEASE_PREPARED_COMMIT` as Make

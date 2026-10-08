@@ -21,9 +21,12 @@ relevant scope from retained reports; do not maintain another work queue.
 Work sequentially, avoid active builds, and report unavailable evidence rather
 than waiting indefinitely or treating a missing check as success.
 
-Search issues and PRs before filing. Create or update owning issues for actionable
-new evidence, respect other sessions' ownership, and avoid unchanged duplicate
-comments. Keep proposed source repairs with their owners.
+Search issues and PRs before filing. Verify the GitHub owner before writing:
+create or update owning issues in `dragginzgame/*` for actionable new evidence.
+Issue actions in other GitHub repositories require explicit authorization for
+the destination and action; otherwise include the prepared proposal in the run
+report without posting. Respect other sessions' ownership and avoid unchanged
+duplicate comments. Keep proposed source repairs with their owners.
 
 Return a concise report with per-task/repository results and evidence, the most
 useful findings and issue links, blockers, audit scope, and remaining unreviewed

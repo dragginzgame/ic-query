@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`1872ed2c20f6c70689bb2249050b1d673c60bfa0`](https://github.com/dragginzgame/shared-tooling/tree/1872ed2c20f6c70689bb2249050b1d673c60bfa0) (0.1.28),
+[`1a54fb625d6e47efa64c4384808ecbc87be84e7e`](https://github.com/dragginzgame/shared-tooling/tree/1a54fb625d6e47efa64c4384808ecbc87be84e7e) (0.1.29),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/1872ed2c20f6c70689bb2249050b1d673c60bfa0/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/1a54fb625d6e47efa64c4384808ecbc87be84e7e/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,7 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 73 shared files. Its governance selection keeps the linked
+The snapshot contains 74 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -110,8 +110,14 @@ changes need their own qualification; a historical failure search is labelled
 separately and does not establish the latest status.
 
 Commit reviewed source and the numbered pending notes before invoking a release.
-The initial preflight requires a clean worktree and an existing lockfile,
-checks root and detailed candidate headings before validation or saved intent,
+The initial preflight requires a clean worktree and an existing lockfile.
+The shared read-only source check names staged, unstaged and untracked
+paths, including quoted unusual filenames. Failed Git observations remain
+distinct from dirty-source refusals. No metadata paths are exempted at this
+initial boundary. A refused initial preflight states that this attempt has not
+started validation or version preparation; saved-evidence recovery keeps its
+separate exact metadata and receipt checks.
+Initial admission checks root and detailed candidate headings before validation or saved intent,
 prepares its cache with `cargo fetch --locked --offline`, and rejects missing
 dependencies without an online retry. Explicitly prepare missing cached inputs
 under separate network authority before retrying; do not regenerate the lockfile.

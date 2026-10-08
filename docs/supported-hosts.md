@@ -34,7 +34,7 @@ qualified by this matrix.
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
 - `make install-tools` prepares host tools followed by the complete IC set:
-  Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1, PocketIC 16.0.0 and
+  Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1, PocketIC 16.1.0 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
   owner in `ci/ic-tools.tsv`; `make tools-check` verifies both sets offline.
   Make selects the local paths; interactive shells use
@@ -349,13 +349,13 @@ alongside their receipts on both successful and failed smoke runs.
 Released Query 0.50.0 `bd583e2b6baa7570be363b2948345c57582c3f31` passes Linux
 checks, MSRV and live canister smoke in its
 [exact-source branch run](https://github.com/dragginzgame/ic-query/actions/runs/37789118978).
-Both macOS MSRV and live smoke jobs, plus Apple Silicon checks, also pass;
-Intel checks remain in progress at inspection. All three native checks pass in
+All nine native checks, MSRV and live smoke jobs pass across Linux and both
+macOS architectures. All three native checks pass in
 the [matching tag run](https://github.com/dragginzgame/ic-query/actions/runs/37789118881).
 Those results cover the release,
 not the following working-tree integration.
 
-The pending 0.50.1 selection uses published Host 0.8.2 at
+The released 0.50.1 selection uses published Host 0.8.2 at
 `92bd2fecc71124b562e227a32a67644e1e5e34b7`, including the development-only
 process crate. The helper now uses Host's command communication and owned-group
 cleanup with five seconds each for TERM grace and bounded reaping. Local socket
@@ -376,7 +376,7 @@ implements the portable `/bin/sh -c 'exit 0'` repair reported in
 [Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5), without a
 production runtime change. Its
 [exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37801871391)
-passes Linux and MSRV; both macOS jobs remain queued. The selected graph passes
+passes Linux, MSRV and both native macOS jobs. The selected graph passes
 the focused consumer checks above. Owner qualification and matching native
 Query process acceptance remain separate.
 
@@ -395,7 +395,7 @@ Its runner changes only path resolution and retains the incompatible native
 tracking block. Shared's exact 0.1.27 owner CI was queued at inspection and does
 not establish native qualification or consumer adoption.
 
-Pending Query 0.50.1 now adopts committed Shared Tooling 0.1.28 at
+Released Query 0.50.1 adopts committed Shared Tooling 0.1.28 at
 `1872ed2c20f6c70689bb2249050b1d673c60bfa0`. Canonical export verifies all 73
 selected files, including the linked task catalog and schedule templates; no
 schedule is activated. The consumer runner fixture delegates only inert Git
@@ -407,9 +407,39 @@ host/IC offline checks, dependency declarations, documentation links and snapsho
 integrity. No real release effect or full local CI was executed.
 [Exact-source Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37799837183)
 passes Linux and Apple Silicon regression and lint/security; Intel regression
-is queued. This is local consumer adoption, not committed
-consumer native qualification. [Query #25](https://github.com/dragginzgame/ic-query/issues/25)
+was cancelled before execution. Query's matching
+[branch](https://github.com/dragginzgame/ic-query/actions/runs/37808359391) and
+[tag](https://github.com/dragginzgame/ic-query/actions/runs/37808359543) CI at
+`cf26d09e3c0acb861ff7566331531b14e6a17dc3` remain queued at inspection.
+Linux MSRV and live smoke pass; Linux checks are in progress and all macOS
+jobs remain queued.
+[Query #25](https://github.com/dragginzgame/ic-query/issues/25)
 retains that acceptance work.
+
+Pending Query 0.50.2 selects Shared Tooling 0.1.29 at
+`1a54fb625d6e47efa64c4384808ecbc87be84e7e`, including the shared read-only
+source-admission helper in its 74-file snapshot and PocketIC 16.1.0 pins.
+Initial adapter admission uses no metadata exceptions; saved-evidence recovery
+retains its separate contract. The
+[exact-source owner CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37806453080)
+passes Linux regression and lint/security; both macOS regressions remain queued.
+Native consumer qualification is not supplied by these owner results or the
+earlier Query release. [Query #26](https://github.com/dragginzgame/ic-query/issues/26)
+owns the new admission behavior's acceptance.
+Focused Linux checks pass the consumer simulation/adapter/recovery fixtures,
+actual Git source/index preservation cases, nested metadata/log fixtures, CI
+script fixtures, snapshot integrity, ShellCheck, dependency declarations and
+documentation links. Actual source checks also pass with Bash 3.2.57 on Linux.
+PocketIC 16.1.0 and the complete selected IC set are authenticated and verified
+offline after explicit installation; the previous bundle is retained. Full
+local CI, real release execution and native macOS qualification were not run.
+
+A fresh ordinary-registry consumer selects non-yanked Query 0.50.1 plus Host
+artifact/filesystem 0.8.2, with exactly one identity for each Host package and
+no path overrides or registry patches. Complete locked/offline metadata and
+compilation pass on Linux. This verifies published-manifest convergence;
+coordinated downstream adoption remains consumer-owned under
+[Query #24](https://github.com/dragginzgame/ic-query/issues/24).
 
 ## Tool-specific dependencies
 

@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.50.2]
+
+Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)
+
+- Names staged, unstaged and untracked files when release preflight refuses
+  changed source, and distinguishes failed Git observations. Preserves source
+  and index bytes without automatic repair.
+  [#26](https://github.com/dragginzgame/ic-query/issues/26).
+- Adopts Shared Tooling 0.1.29, including the shared source check and reviewed
+  PocketIC 16.1.0 tool pins.
+
+```bash
+bash scripts/ci/check-release-source.sh
+```
+
 ## [0.50.1] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)

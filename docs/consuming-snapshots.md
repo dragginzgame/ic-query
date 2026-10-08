@@ -226,9 +226,13 @@ When adopting the local-repair and owning-repository issue workflow, refresh
 commit. Remove equivalent local instructions after checking their obligations;
 retain approved scoped exceptions and consumer release boundaries. Walk through
 an authorized local repair (apply in the working tree and run focused checks)
-and an upstream finding (search, report evidence in the owning issue, then adopt
-the committed correction). Reporting an issue neither applies the upstream fix
-nor verifies consumer adoption; broad validation authority stays unchanged.
+and an upstream finding (search, confirm issue authority for the GitHub owner,
+report evidence in the authorized owning issue, then adopt the committed
+correction). Standing issue permission covers only `dragginzgame/*`; other
+GitHub destinations require explicit authorization. Remove broader local issue
+permissions when adopting this rule, and refresh scheduled prompts that repeat
+them. Reporting an issue neither applies the upstream fix nor verifies consumer
+adoption; broad validation authority stays unchanged.
 
 Consumers using the maintenance rule's exact-commit CI inspection command also
 refresh `scripts/dev/gh-ci.sh` from that reviewed revision. It remains a read-only

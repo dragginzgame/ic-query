@@ -34,7 +34,7 @@ GitHub release asset metadata on 2026-10-06.
 | `icp` | 1.6.0 | [ICP CLI](https://github.com/dfinity/icp-cli/releases/tag/v1.6.0) |
 | `didc` | 0.6.2 | [Candid tools](https://github.com/dfinity/candid/releases/tag/didc-v0.6.2) |
 | `ic-wasm` | 0.11.1 | [ic-wasm](https://github.com/dfinity/ic-wasm/releases/tag/0.11.1) |
-| `pocket-ic` | 16.0.0 | [PocketIC](https://github.com/dfinity/pocketic/releases/tag/16.0.0) |
+| `pocket-ic` | 16.1.0 | [PocketIC](https://github.com/dfinity/pocketic/releases/tag/16.1.0) |
 | `wasm-opt` | 132 | [Binaryen](https://github.com/WebAssembly/binaryen/releases/tag/version_132) |
 
 The complete set has native assets for Linux x86-64, macOS Intel and macOS

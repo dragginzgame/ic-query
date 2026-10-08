@@ -372,6 +372,10 @@ for kind in patch minor major; do
         expect_failure "$kind" origin main
         [[ ! -e ".release-state/$candidate.plan" && ! -e .release-state/lock ]]
         cp output failed-output
+        if [[ "$target" == release-preflight ]]; then
+            grep -F 'this attempt has not started validation or version preparation' failed-output > /dev/null
+            [[ "$(count_event release-verify)" == 0 && "$(count_event release-prepare-version)" == 0 ]]
+        fi
         if [[ "$target" == release-verify ]]; then
             cp validation.1.log failed-log
             cp build.1.evidence failed-evidence

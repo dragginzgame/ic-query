@@ -61,7 +61,9 @@ rather than assuming all Rust packages live in `crates/`.
    releases, deploys, cleans artifacts or fixes its own findings. Issue work
    follows the [maintenance rules](../rules/agent-maintenance.md): search existing
    issues/PRs, respect active owners, and file or update the owning issue with
-   new evidence. Avoid duplicate issues and unchanged recurring comments.
+   new evidence within `dragginzgame/*`. Issue actions elsewhere on GitHub need
+   explicit authorization; otherwise report a prepared proposal for review.
+   Avoid duplicate issues and unchanged recurring comments.
 5. Preserve command results and failed/incomplete logs. Reuse prior proof only
    when its source, graph, toolchain, scope and assertions still match, linking
    its original run. Freshness tasks must observe current remote state each run;
