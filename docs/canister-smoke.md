@@ -34,8 +34,8 @@ publication, and `ic-agent` for direct protocol IO. The companion
 `governance_process` helper adopts `ic-host-process` for command IO,
 process-group ownership and cleanup;
 it adds no production CLI operation or canister-runtime dependency.
-The current workspace selection uses published IC Host Tooling 0.8.2 at
-[`92bd2fe`](https://github.com/dragginzgame/ic-host-tooling/tree/92bd2fecc71124b562e227a32a67644e1e5e34b7).
+The current workspace selection uses published IC Host Tooling 0.8.4 at
+[`97187b2`](https://github.com/dragginzgame/ic-host-tooling/tree/97187b2a46d6f8a6964224a36a133d858ef0d223).
 The selected registry dependency cache has been prepared explicitly and the
 helper uses its bounded file-read and durable publication APIs. This consumer
 selection requires its own matching native smoke qualification;

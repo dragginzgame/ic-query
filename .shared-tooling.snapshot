@@ -1,7 +1,7 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	1a54fb625d6e47efa64c4384808ecbc87be84e7e
+revision	4e274a2219c0b0cc3af68ec65658b373253518fb
 file	554907477c03b57a727cc4aa12915c051b3e42b0d7f6505b21e3ba0575f5a1ef	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	6f10d8bfaaa5641f47ca6638c38be056b01d00b5b22ccbd381e8df076767c3e1	-	rules/cargo-dependencies.md
@@ -23,7 +23,7 @@ file	49ec78ab63a587a2f74f0f7da3e06d9f9942f831129b9201cba5bcd0698548fe	x	scripts/
 file	f114e128d2d3ab1cd4fae4c8eb89866990063cd5cd4a6dbafde49872f0a02af1	-	rules/dependency-pinning.md
 file	c50a0e7c23ad9bbace12c9e8fa9aa8e6c5bc97151a9c76cf5d371f18922a0b94	x	scripts/ci/check-dependency-pins.sh
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq
-file	7182b923e6270f7a01b2fa5b2866ec7b829f496ff1ff6a64706c35e006c0bb27	-	docs/local-setup.md
+file	98a199fcc8890d743076dc03a46cf1130554f2488d01d79e9b869edf91cb786c	-	docs/local-setup.md
 file	758cd0977502a54d2ebfb28bb58a5c2ff6691da85f7b5dab0cef4c231ec234d8	-	docs/ic-tools.md
 file	1a0d1d6f2a87a0d77378fdda605f5700cc7e2ca8c8dfac79418248da30b7e657	-	docs/provenance.md
 file	85d200ddcb31d17d2a281a273504e6a39a628b77fcfbeab8995b3fe69352e169	-	ci/ic-tools.tsv

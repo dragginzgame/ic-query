@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`1a54fb625d6e47efa64c4384808ecbc87be84e7e`](https://github.com/dragginzgame/shared-tooling/tree/1a54fb625d6e47efa64c4384808ecbc87be84e7e) (0.1.29),
+[`4e274a2219c0b0cc3af68ec65658b373253518fb`](https://github.com/dragginzgame/shared-tooling/tree/4e274a2219c0b0cc3af68ec65658b373253518fb) (0.1.30),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/1a54fb625d6e47efa64c4384808ecbc87be84e7e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/4e274a2219c0b0cc3af68ec65658b373253518fb/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -108,6 +108,10 @@ bash scripts/dev/gh-ci.sh --commit HEAD --all-workflows --limit 100
 The listing is bounded and describes committed source. Pending working-tree
 changes need their own qualification; a historical failure search is labelled
 separately and does not establish the latest status.
+Pushed commits have separate CI concurrency groups so a newer release does not
+cancel or displace an older commit's native qualification. PR revisions share
+their PR group and supersede older checks. This retains execution evidence;
+it does not change runner capacity or establish a passing gate before execution.
 
 Commit reviewed source and the numbered pending notes before invoking a release.
 The initial preflight requires a clean worktree and an existing lockfile.

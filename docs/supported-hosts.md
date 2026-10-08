@@ -416,7 +416,7 @@ jobs remain queued.
 [Query #25](https://github.com/dragginzgame/ic-query/issues/25)
 retains that acceptance work.
 
-Pending Query 0.50.2 selects Shared Tooling 0.1.29 at
+Released Query 0.50.2 selects Shared Tooling 0.1.29 at
 `1a54fb625d6e47efa64c4384808ecbc87be84e7e`, including the shared read-only
 source-admission helper in its 74-file snapshot and PocketIC 16.1.0 pins.
 Initial adapter admission uses no metadata exceptions; saved-evidence recovery
@@ -433,6 +433,44 @@ documentation links. Actual source checks also pass with Bash 3.2.57 on Linux.
 PocketIC 16.1.0 and the complete selected IC set are authenticated and verified
 offline after explicit installation; the previous bundle is retained. Full
 local CI, real release execution and native macOS qualification were not run.
+
+Released Query 0.50.1's branch macOS jobs were cancelled before execution when
+the next release superseded that run. Its matching tag checks pass on Linux and
+both macOS architectures. Those complete checks qualify the adopted release
+fixtures and artifact/filesystem cases; native MSRV/live smoke remain gaps for
+that source. Released
+0.50.2 at `7f1866d8b5c6026371e23c303e02e37af3f07d01` passes Linux checks,
+MSRV and live smoke in its
+[branch run](https://github.com/dragginzgame/ic-query/actions/runs/37817468555),
+and Linux checks in its
+[tag run](https://github.com/dragginzgame/ic-query/actions/runs/37817469555).
+Intel macOS checks are in progress; its other macOS jobs remain queued. Cancellation and queued jobs do
+not qualify the consumer's required native coverage.
+
+Pending 0.50.3 preserves the selected registry Host 0.8.4 graph at
+`97187b2a46d6f8a6964224a36a133d858ef0d223`, with defaults disabled and process
+support development-only. Its
+[owner CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37818647474)
+passes Linux and MSRV; both macOS jobs remain queued. The selected cache was
+prepared explicitly after offline fetch reported the missing filesystem crate.
+The 74-file Shared Tooling snapshot now records 0.1.30 at
+`4e274a2219c0b0cc3af68ec65658b373253518fb`; only setup guidance changes within
+that selection. The owner-only Cargo installation assessment and manual workflow
+are not selected or executed here. Shared's
+[matching CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37809818114)
+passes Linux regression and lint/security; both macOS jobs remain queued.
+These owner runs and older Query results do not qualify the new dirty selection.
+Focused locked/offline Linux validation passes 55 cache-file tests, six artifact
+helper tests, 37 smoke-command fixtures through the actual Host runner, and strict
+process-helper Clippy. Snapshot integrity, dependency declarations, documentation
+links and existing CI script fixtures also pass. Cache preparation and checks
+preserve the maintainer's selected lockfile bytes. Full local CI, complete MSRV,
+live IC smoke and native macOS execution for this selection were not run.
+The pending CI policy groups pushed commits by ref and source SHA, preserving
+their queued/running qualification across later pushes. PR revisions retain
+automatic cancellation. The affected workflow passes actionlint; actual native
+execution and consecutive-push qualification of this policy remain unrun under
+[#27](https://github.com/dragginzgame/ic-query/issues/27).
 
 A fresh ordinary-registry consumer selects non-yanked Query 0.50.1 plus Host
 artifact/filesystem 0.8.2, with exactly one identity for each Host package and

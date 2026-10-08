@@ -167,6 +167,41 @@ successfully. They do not authenticate installed bytes or replace product/native
 host qualification. A matching set is reused without invoking Cargo. Formatting
 still requires rustfmt and the [formatter check](verification-helpers.md#formatter-prerequisites).
 
+## Cargo installation assessment
+
+Before extending the fixed Rust tool set to consumer-selected binaries/examples,
+run `scripts/ci/qualify-cargo-install.sh` in Shared Tooling to exercise Cargo's
+native installation contract in a new disposable evidence directory:
+
+```bash
+mkdir -p .tools
+CARGO_NET_OFFLINE=true bash scripts/ci/qualify-cargo-install.sh "$PWD/.tools/cargo-install-assessment"
+```
+
+The offline command requires the registry packages and their locked dependencies
+to be prepared already. Explicit online qualification may omit
+`CARGO_NET_OFFLINE=true`; it installs only into the new evidence root and retains
+builds and logs on both success and failure. It never cleans or changes an
+existing installation. The fixture selects published `ic-blob-storage 0.15.1`'s
+`prepare_upload` example and the existing reviewed cargo-sort version. Those are
+assessment inputs, not defaults for consumer applications. Both use the debug
+profile; no product MSRV or Canic CLI selection is qualified by this fixture.
+
+It checks Cargo receipt package/registry/version/target/profile identity, offline
+reuse, missing-target refusal, concurrent offline installation and preservation
+of the executable and receipts after an injected compiler failure. It records
+local executable digests and rejects changed bytes using the shared checksum
+owner. Those digests detect changes to an observed build; they are not publisher
+signatures, and a Cargo receipt alone does not authenticate executable bytes.
+
+The manually triggered **Cargo installation qualification** workflow runs this
+assessment on Linux and both macOS architectures with separate finite budgets
+and failure evidence collection. It does not add registry builds to the default
+portable gate. Native results, consumer-specific versions and an actual shared
+installer's path/receipt/lock refusal still need qualification before extraction
+under [#65](https://github.com/dragginzgame/shared-tooling/issues/65). The current
+fixed Rust installer remains the supported setup contract.
+
 ## Bootstrap prerequisites
 
 Use the host package manager for the shell, Git, GNU Make, curl, archive tools,

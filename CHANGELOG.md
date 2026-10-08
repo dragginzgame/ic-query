@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.50.3]
+
+Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)
+
+- Selects published Host 0.8.4 while retaining the optional library features and
+  development-only process helper.
+- Refreshes Shared Tooling 0.1.30's setup guidance. Runtime helpers and Query's
+  tool-installation workflow remain unchanged.
+- Preserves native CI runs for each pushed commit when a later release arrives;
+  newer revisions still supersede earlier PR checks.
+  [#27](https://github.com/dragginzgame/ic-query/issues/27).
+
 ## [0.50.2] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)
