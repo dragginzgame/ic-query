@@ -5,6 +5,30 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.49.0]
+
+Detailed release notes: [docs/changelog/0.49.md](docs/changelog/0.49.md)
+
+- Hard-cuts the public refresh-attempt Rust contract: `status` now uses
+  `CacheRefreshAttemptStatus`, and `validate_snapshot_refresh_attempt` returns
+  `Result<(), String>`. Callers must use the enum field directly. Schema-1 JSON
+  labels remain unchanged; unsupported labels now produce parsing errors.
+  [#22](https://github.com/dragginzgame/ic-query/issues/22).
+- Adopts Shared Tooling 0.1.23's release runner and governance snapshot.
+  Query retains direct, maintainer-run releases and refuses unqualified PR
+  delivery before its adapter changes release state. Shared runner fixtures
+  explicitly select direct delivery, including under an enclosing PR selection.
+  Final checks reject changed release payloads and tag objects; completed resume
+  reconciles local and remote release identities without repeating effects.
+  [#20](https://github.com/dragginzgame/ic-query/issues/20).
+- Selects published IC Host Tooling 0.5.1 for retained cache, archive and
+  Governance artifact APIs. The update preserves dependency profiles and retained
+  APIs; owned process-group integration remains separate work.
+- Keeps the original Governance smoke failure when network cleanup or receipt
+  publication also fails, and retains available command diagnostics in failed
+  receipts. Host process adoption still needs a successful background-runtime
+  handoff contract. [Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5).
+
 ## [0.48.1] - 2026-10-07
 
 Detailed release notes: [docs/changelog/0.48.md](docs/changelog/0.48.md)

@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934`](https://github.com/dragginzgame/shared-tooling/tree/3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934) (0.1.20),
+[`0ba0ad00ed94848e54ecc82629b6b7873b7284c0`](https://github.com/dragginzgame/shared-tooling/tree/0ba0ad00ed94848e54ecc82629b6b7873b7284c0) (0.1.23),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/3ecc48e579f6cf6e6ab01a6645d8a250fc8c6934/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/0ba0ad00ed94848e54ecc82629b6b7873b7284c0/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,7 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 58 shared files. Its governance selection keeps the linked
+The snapshot contains 59 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -63,6 +63,12 @@ API presence alone does not prove index readiness. Consumer fixtures cover
 unknown observations at both package boundaries without live registry effects.
 
 ## Selections and preparation
+
+Query selects direct release delivery and refuses other `RELEASE_DELIVERY`
+values at its adapter boundary before validation state is created. The shared
+runner's optional PR delivery is included as an upstream dependency, but requires
+a consumer `release-merged-preflight` adapter and complete merged-source evidence
+qualification before adoption. Refreshing the runner does not select that workflow.
 
 The default destination is `RELEASE_REMOTE=origin`, `RELEASE_BRANCH=main`.
 Override both explicitly when using another named remote or branch. The branch
@@ -185,6 +191,8 @@ Release fixture ownership follows the shared
 Keep shared runner scenarios upstream; local assertions must exercise a Query
 adapter or consumer-owned evidence contract. Isolated command substitutes model
 release effects; fixture indexes and trees never create real commits or tags.
+The canonical runner fixture explicitly selects direct delivery; the separate
+real-Git PR fixture remains upstream and is not invoked by Query's suite.
 
 Prepared checks compare every file with transformations of the saved validated
 inputs, and check Cargo metadata with `--locked --offline`. An unrelated changed
@@ -269,6 +277,8 @@ atomic push scope, retained artifacts/logs, occupied locks, and recovery after
 lost preparation/push replies. `make ci-scripts-check` checks the complete CI
 target sequence; `make publish-guards-check` checks separate publication behavior.
 These focused fixtures perform no real commits, tags, pushes or publication.
+Agents may run `bash scripts/ci/check-release-guards.sh` for focused qualification;
+full CI and release gates retain their separate authorization requirements.
 Failed CI, publication and release fixture directories retain their inputs and
 diagnostics and print their paths. Feature-boundary and public rustdoc checks
 retain their diagnostics on failure too; successful checks remove their own

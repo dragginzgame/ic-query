@@ -1,10 +1,6 @@
 macro_rules! impl_nns_leaf_reports {
     (
         $reports:ident,
-        cache = $cache:ty,
-        list_request = $list_request:ty,
-        info_request = $info_request:ty,
-        refresh_request = $refresh_request:ty,
         list_report = $list_report:ty,
         info_report = $info_report:ty,
         refresh_report = $refresh_report:ty,
@@ -21,10 +17,6 @@ macro_rules! impl_nns_leaf_reports {
         pub(super) struct $reports;
 
         impl leaf::NnsLeafReports for $reports {
-            type Cache = $cache;
-            type ListRequest = $list_request;
-            type InfoRequest = $info_request;
-            type RefreshRequest = $refresh_request;
             type ListReport = $list_report;
             type InfoReport = $info_report;
             type RefreshReport = $refresh_report;
@@ -32,26 +24,29 @@ macro_rules! impl_nns_leaf_reports {
 
             fn build_list_report(
                 &self,
-                request: &Self::ListRequest,
+                request: &ic_query::nns::NnsInventoryListRequest,
             ) -> Result<Self::ListReport, Self::HostError> {
                 $build_list(request)
             }
 
             fn build_info_report(
                 &self,
-                request: &Self::InfoRequest,
+                request: &ic_query::nns::NnsInventoryInfoRequest,
             ) -> Result<Self::InfoReport, Self::HostError> {
                 $build_info(request)
             }
 
             fn refresh_report(
                 &self,
-                request: &Self::RefreshRequest,
+                request: &ic_query::nns::NnsInventoryRefreshRequest,
             ) -> Result<Self::RefreshReport, Self::HostError> {
                 $refresh(request)
             }
 
-            fn cache_path(&self, cache: &Self::Cache) -> std::path::PathBuf {
+            fn cache_path(
+                &self,
+                cache: &ic_query::nns::NnsInventoryCacheRequest,
+            ) -> std::path::PathBuf {
                 $cache_path(&cache.cache_root, &cache.network)
             }
 

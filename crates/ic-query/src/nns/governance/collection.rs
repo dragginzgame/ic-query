@@ -186,10 +186,9 @@ pub(in crate::nns) fn validate_governance_cache_metadata(
 #[must_use]
 pub(in crate::nns) fn governance_refresh_attempt_status<Metadata>(
     attempt: SnapshotRefreshAttempt<Metadata>,
-    status: CacheRefreshAttemptStatus,
 ) -> NnsGovernanceRefreshAttemptStatus {
     NnsGovernanceRefreshAttemptStatus {
-        status,
+        status: attempt.status,
         started_at: attempt.started_at,
         updated_at: attempt.updated_at,
         page_size: attempt.page_size,
@@ -218,13 +217,8 @@ pub(in crate::nns) fn read_governance_refresh_attempt(
     path: &Path,
     expected_network: &str,
     cache_component: &'static str,
-) -> Result<
-    Option<(
-        SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
-        CacheRefreshAttemptStatus,
-    )>,
-    NnsGovernanceAttemptReadError,
-> {
+) -> Result<Option<SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>>, NnsGovernanceAttemptReadError>
+{
     let attempt = read_snapshot_refresh_attempt_strict::<
         SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
     >(
@@ -254,10 +248,9 @@ pub(in crate::nns) fn read_governance_refresh_attempt(
                 path: path.to_path_buf(),
                 reason,
             };
-            let status =
-                validate_snapshot_refresh_attempt(&attempt, expected_network).map_err(invalid)?;
+            validate_snapshot_refresh_attempt(&attempt, expected_network).map_err(invalid)?;
             validate_governance_cache_metadata(&attempt.metadata).map_err(invalid)?;
-            Ok((attempt, status))
+            Ok(attempt)
         })
         .transpose()
 }
@@ -269,11 +262,8 @@ pub(in crate::nns) fn read_governance_refresh_attempt_status(
     expected_network: &str,
     cache_component: &'static str,
 ) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsGovernanceAttemptReadError> {
-    read_governance_refresh_attempt(cache_root, path, expected_network, cache_component).map(
-        |attempt| {
-            attempt.map(|(attempt, status)| governance_refresh_attempt_status(attempt, status))
-        },
-    )
+    read_governance_refresh_attempt(cache_root, path, expected_network, cache_component)
+        .map(|attempt| attempt.map(governance_refresh_attempt_status))
 }
 
 /// Construct and write one validated-shape NNS Governance refresh-attempt sidecar.
@@ -293,7 +283,7 @@ fn write_governance_refresh_attempt(
         started_at: started_at.clone(),
         updated_at: current_attempt_timestamp(&started_at),
         metadata: mainnet_governance_cache_metadata(),
-        status: status.to_string(),
+        status,
         page_size: request.page_size,
         pages_fetched: progress.pages_fetched,
         rows_fetched: progress.rows_fetched,
@@ -375,7 +365,7 @@ pub(in crate::nns) fn write_failed_governance_refresh_attempt(
     )
     .ok()
     .flatten()
-    .map(|(attempt, _status)| governance_refresh_progress(attempt))
+    .map(governance_refresh_progress)
     .unwrap_or_default();
     write_governance_refresh_attempt(
         path,

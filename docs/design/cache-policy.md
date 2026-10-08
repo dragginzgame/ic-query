@@ -54,6 +54,12 @@ cache-only reads reject them. A refresh with an unrepresentable interval fails
 before replacing the previous snapshot. Refresh-attempt update timestamps
 remain local wall-clock observations, separate from this collection interval.
 
+Refresh-attempt records carry `CacheRefreshAttemptStatus` directly. Schema-1 JSON
+uses `running`, `complete`, or `failed`; other labels fail deserialization.
+Validation still rejects errors on running/complete attempts and requires a
+nonblank error on failed attempts, alongside network, timestamp and progress
+checks. Family owners independently validate their metadata identities and cursors.
+
 Account-history cursors share unsigned ASCII-decimal validation. Request
 normalization strips leading zeroes directly from validated text; native index
 queries convert to Candid `Nat` only for wire arguments. Attempt reads validate

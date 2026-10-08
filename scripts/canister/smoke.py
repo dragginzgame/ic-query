@@ -256,6 +256,7 @@ def verify(environment, canister, receipt, output):
 def run_attempt(environment, canister, receipt, output):
     startup_attempted = False
     verified = False
+    operation_error = None
     save_receipt(output, receipt, "starting")
     print(f"Receipt: {output}", flush=True)
     try:
@@ -282,12 +283,23 @@ def run_attempt(environment, canister, receipt, output):
         verify(environment, canister, receipt, output)
         verified = True
     except BaseException as error:
+        operation_error = error
         receipt["status"] = "failed"
         receipt["error"] = str(error) or type(error).__name__
         receipt["failed_phase"] = receipt["phase"]
         if isinstance(error, RunInterrupted):
             receipt["interrupted_by"] = signal.Signals(error.signum).name
-        save_receipt(output, receipt)
+        for name in ("output", "stderr"):
+            value = getattr(error, name, None)
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", errors="replace")
+            if value is not None:
+                receipt["command_stdout" if name == "output" else "command_stderr"] = value
+        try:
+            save_receipt(output, receipt)
+        except BaseException as storage_error:
+            receipt.setdefault("receipt_errors", []).append(str(storage_error) or type(storage_error).__name__)
+            error.receipt_errors = receipt["receipt_errors"]
         raise
     finally:
         try:
@@ -310,12 +322,20 @@ def run_attempt(environment, canister, receipt, output):
             if isinstance(error, RunInterrupted):
                 receipt["interrupted_by"] = signal.Signals(error.signum).name
             receipt["cleanup_error"] = str(error) or type(error).__name__
-            raise
+            if operation_error is None:
+                operation_error = error
+                raise
         finally:
             if verified and receipt["status"] == "running":
                 receipt["status"] = "passed"
             receipt["finished_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            save_receipt(output, receipt, "finished")
+            try:
+                save_receipt(output, receipt, "finished")
+            except BaseException as storage_error:
+                if operation_error is None:
+                    raise
+                receipt.setdefault("receipt_errors", []).append(str(storage_error) or type(storage_error).__name__)
+                operation_error.receipt_errors = receipt["receipt_errors"]
 
 
 def main():

@@ -1,0 +1,28 @@
+{
+  "name": "ic-host-artifacts",
+  "vers": "0.5.1",
+  "yanked": false,
+  "rust_version": "1.88.0",
+  "cksum": "d977cc396ef40cf34d71943dc1ec7abc8418b254487472a400cc536cef10f88d"
+}
+{
+  "name": "ic-host-fs",
+  "vers": "0.5.1",
+  "yanked": false,
+  "rust_version": "1.88.0",
+  "cksum": "f53d155b1e8b76fb6c332bc696b5736865911cdda8a32e97af8019f80d5af03b"
+}
+{
+  "name": "ic-host-process",
+  "vers": "0.5.1",
+  "yanked": false,
+  "rust_version": "1.88.0",
+  "cksum": "59bc69d49f91a3d716487fc4a72fca5e9beb9b5a1159c2dbdcd2c0c6f818fb8d"
+}
+{
+  "name": "ic-host-tools",
+  "vers": "0.5.1",
+  "yanked": false,
+  "rust_version": "1.88.0",
+  "cksum": "e3176d7e19c1d37c8ae6a37e8eda5ea06e41a25e6724915357af0bd6910ca14d"
+}

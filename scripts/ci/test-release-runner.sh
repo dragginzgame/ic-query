@@ -3,6 +3,7 @@ set -euo pipefail
 
 # This fixture owns its Make controls; production admission is tested below.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS MAKEFILES
+export RELEASE_DELIVERY=direct
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/release-runner-test.XXXXXX")"
@@ -47,6 +48,14 @@ case "$target" in
     release-committed-check|release-tagged-check|release-push-check)
         [[ -n "$RELEASE_COMMIT" ]]
         [[ "$(cat "commits/$RELEASE_COMMIT.subject")" == "Release $RELEASE_VERSION" ]]
+        if [[ "$target" == release-push-check ]]; then
+            case "${FIXTURE_PUSH_MUTATION:-}" in
+                tag) printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n' > "tags/v$RELEASE_VERSION" ;;
+                tag-object) printf 'ffffffffffffffffffffffffffffffffffffffff\n' > tag-object ;;
+                index) touch dirty-index ;;
+                worktree) touch dirty-worktree ;;
+            esac
+        fi
         ;;
     *) exit 2 ;;
 esac
@@ -90,12 +99,14 @@ case "$1" in
                 name="${*: -1}"; name="${name#refs/tags/}"; name="${name%\^\{commit\}}"
                 if [[ -n "${FIXTURE_TAG_COMMIT:-}" ]]; then echo "$FIXTURE_TAG_COMMIT"; elif [[ -f "tags/$name" ]]; then cat "tags/$name"; else [[ -f tag ]]; echo "$release_sha"; fi
                 ;;
-            refs/tags/*) [[ -f tag ]]; echo "$tag_sha" ;;
+            refs/tags/*) [[ -f tag ]] || exit 1; if [[ -f tag-object ]]; then cat tag-object; else echo "$tag_sha"; fi ;;
             *) exit 2 ;;
         esac
         ;;
     diff)
-        if [[ "$2" == --quiet ]]; then [[ "${FIXTURE_DIRTY:-}" != yes ]]; else cat version; fi
+        if [[ "$2" == --cached ]]; then [[ ! -e dirty-index ]];
+        elif [[ "$2" == --quiet ]]; then [[ "${FIXTURE_DIRTY:-}" != yes && ! -e dirty-worktree ]];
+        else cat version; fi
         ;;
     ls-files)
         [[ "${FIXTURE_INVENTORY_FAIL:-}" != yes ]] || exit 9
@@ -135,7 +146,7 @@ case "$1" in
             *) exit 2 ;;
         esac
         ;;
-    cat-file) [[ -f tag ]]; echo "${FIXTURE_TAG_TYPE:-tag}" ;;
+    cat-file) [[ -f tag ]] || exit 1; echo "${FIXTURE_TAG_TYPE:-tag}" ;;
     ls-remote)
         [[ "${FIXTURE_REMOTE_FAIL:-}" != yes ]] || exit 9
         if [[ "${FIXTURE_DRIFT_TARGET:-}" == remote-observation && -f tag ]]; then
@@ -173,7 +184,7 @@ case "$1" in
         echo push >> events
         [[ "${FIXTURE_FAIL_EFFECT:-}" != before-push ]] || exit 9
         echo "$push_head" > remote-head
-        echo "$tag_sha" > remote-tag
+        if [[ -f tag-object ]]; then cat tag-object > remote-tag; else echo "$tag_sha" > remote-tag; fi
         cat tag > remote-tag-name
         if [[ "${FIXTURE_FAIL_EFFECT:-}" == push && ! -f lost-push ]]; then touch lost-push; exit 9; fi
         ;;
@@ -206,6 +217,42 @@ expect_failure() {
         exit 1
     fi
 }
+
+for mutation in tag tag-object index worktree; do
+    new_fixture "push-check-mutation-$mutation"
+    FIXTURE_PUSH_MUTATION="$mutation" expect_failure patch origin main
+    [[ "$(tail -n 1 .release-state/0.1.1.plan)" == push ]]
+    [[ "$(count_event push)" == 0 && "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]]
+    # Explicitly repair the fixture's changed state and retry its saved release.
+    cat head > tags/v0.1.1
+    rm -f dirty-index dirty-worktree tag-object
+    bash "$ROOT/scripts/ci/run-release.sh" patch origin main > recovered-output
+    [[ "$(count_event push)" == 1 && "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event release-verify)" == 1 ]]
+done
+
+for conflict in local-tag-missing local-tag-commit local-tag-type remote-tag-missing remote-tag-changed remote-branch-missing remote-branch-diverged remote-unavailable; do
+    new_fixture "completed-conflict-$conflict"
+    bash "$ROOT/scripts/ci/run-release.sh" patch origin main > output
+    cp events completed-events
+    cp .release-state/0.1.1.plan completed-plan
+    bash "$ROOT/scripts/ci/run-release.sh" resume 0.1.1 origin main > resumed-output
+    cmp events completed-events
+    case "$conflict" in
+        local-tag-missing) rm tag ;;
+        local-tag-commit) printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n' > tags/v0.1.1 ;;
+        local-tag-type) export FIXTURE_TAG_TYPE=commit ;;
+        remote-tag-missing) rm remote-tag ;;
+        remote-tag-changed) printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n' > remote-tag ;;
+        remote-branch-missing) rm remote-head ;;
+        remote-branch-diverged) printf 'ffffffffffffffffffffffffffffffffffffffff\n' > remote-head ;;
+        remote-unavailable) export FIXTURE_REMOTE_FAIL=yes ;;
+    esac
+    expect_failure resume 0.1.1 origin main
+    cmp events completed-events
+    cmp .release-state/0.1.1.plan completed-plan
+    [[ ! -e .release-state/lock ]]
+    unset FIXTURE_TAG_TYPE FIXTURE_REMOTE_FAIL
+done
 
 for kind in patch minor major; do
     for flags in '' i n q t v; do
@@ -440,6 +487,17 @@ commit_fix() {
     printf '%s\n' "$fix" > "commits/$fix.tree"
     printf '%s\n' "$fix" > 'head'
 }
+new_fixture completed-remote-descendant
+bash "$ROOT/scripts/ci/run-release.sh" patch origin main > output
+commit_fix
+cp head remote-head
+cp events completed-events
+cp .release-state/0.1.1.plan completed-plan
+bash "$ROOT/scripts/ci/run-release.sh" resume 0.1.1 origin main > resumed-output
+cmp events completed-events
+cmp .release-state/0.1.1.plan completed-plan
+[[ "$(cat remote-head)" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]]
+
 for next_kind in patch minor major resume; do
     for outcome in before-push push; do
         new_fixture "descendant-$next_kind-$outcome"

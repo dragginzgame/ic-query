@@ -1326,9 +1326,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.4.6"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7578ed93643474eeaf7b2ae40ae32bfd014f67551c8d58d36d208e9767e6de0b"
+checksum = "d977cc396ef40cf34d71943dc1ec7abc8418b254487472a400cc536cef10f88d"
 dependencies = [
  "sha2 0.10.9",
  "wasmparser",
@@ -1336,9 +1336,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.4.6"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f920e1a667af1cdaa9a9fd9322347bdbc163714d74fef2700e223a5f036f7a9"
+checksum = "f53d155b1e8b76fb6c332bc696b5736865911cdda8a32e97af8019f80d5af03b"
 dependencies = [
  "ic-host-artifacts",
  "rustix",
@@ -1346,9 +1346,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-tools"
-version = "0.4.6"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92f231540f1c1c4d6f6416041ecacebeef3341ad75e7f51f2ee964ea08237018"
+checksum = "e3176d7e19c1d37c8ae6a37e8eda5ea06e41a25e6724915357af0bd6910ca14d"
 dependencies = [
  "serde",
  "serde_json",

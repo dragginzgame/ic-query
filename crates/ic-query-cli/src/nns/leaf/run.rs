@@ -1,8 +1,5 @@
 use super::{
-    model::{
-        NnsLeafCacheRequest, NnsLeafCommandSpec, NnsLeafInfoRequest, NnsLeafListRequest,
-        NnsLeafRefreshRequest, NnsLeafReports,
-    },
+    model::{NnsLeafCommandSpec, NnsLeafReports},
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
@@ -11,6 +8,10 @@ use crate::{
     progress::announce_missing_mainnet_cache,
 };
 use clap::ArgMatches;
+use ic_query::nns::{
+    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
+    NnsInventoryRefreshRequest,
+};
 
 pub(in crate::nns) fn run_cached_leaf<Reports>(
     matches: &ArgMatches,
@@ -29,18 +30,15 @@ where
     }
 }
 
-struct LeafRuntimeParts<Cache> {
-    cache: Cache,
+struct LeafRuntimeParts {
+    cache: NnsInventoryCacheRequest,
     now_unix_secs: u64,
 }
 
-fn leaf_runtime_parts<Cache>(network: &str) -> Result<LeafRuntimeParts<Cache>, NnsCommandError>
-where
-    Cache: NnsLeafCacheRequest,
-{
+fn leaf_runtime_parts(network: &str) -> Result<LeafRuntimeParts, NnsCommandError> {
     let cache_root = command_cache_root()?;
     Ok(LeafRuntimeParts {
-        cache: Cache::from_root_network(&cache_root, network),
+        cache: NnsInventoryCacheRequest::new(cache_root, network),
         now_unix_secs: now_unix_secs()?,
     })
 }
@@ -55,18 +53,15 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
-    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
+    let parts = leaf_runtime_parts(&options.network)?;
     announce_missing_leaf_cache(
         &parts.cache,
         reports,
         spec.command_name,
         &options.source_endpoint,
     );
-    let request = <Reports::ListRequest as NnsLeafListRequest>::from_leaf_parts(
-        parts.cache,
-        options.source_endpoint,
-        parts.now_unix_secs,
-    );
+    let request =
+        NnsInventoryListRequest::new(parts.cache, options.source_endpoint, parts.now_unix_secs);
     let report = reports.build_list_report(&request).map_err(Into::into)?;
     write_text_or_json_verbose(
         options.format,
@@ -87,14 +82,14 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
-    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
+    let parts = leaf_runtime_parts(&options.network)?;
     announce_missing_leaf_cache(
         &parts.cache,
         reports,
         spec.command_name,
         &options.source_endpoint,
     );
-    let request = <Reports::InfoRequest as NnsLeafInfoRequest>::from_leaf_parts(
+    let request = NnsInventoryInfoRequest::new(
         parts.cache,
         options.source_endpoint,
         options.input,
@@ -116,15 +111,17 @@ where
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
-    let parts = leaf_runtime_parts::<Reports::Cache>(&options.network)?;
-    let request = <Reports::RefreshRequest as NnsLeafRefreshRequest>::from_leaf_parts(
+    let parts = leaf_runtime_parts(&options.network)?;
+    let mut request = NnsInventoryRefreshRequest::new(
         parts.cache,
         options.source_endpoint,
         parts.now_unix_secs,
         options.lock_stale_after_seconds,
-        options.dry_run,
-        options.output_path,
-    );
+    )
+    .with_dry_run(options.dry_run);
+    if let Some(output_path) = options.output_path {
+        request = request.with_output_path(output_path);
+    }
     let report = reports.refresh_report(&request).map_err(Into::into)?;
     write_text_or_json(format, &report, |report| {
         reports.refresh_report_text(report)
@@ -132,7 +129,7 @@ where
 }
 
 fn announce_missing_leaf_cache<Reports>(
-    cache: &Reports::Cache,
+    cache: &NnsInventoryCacheRequest,
     reports: &Reports,
     component: &str,
     source_endpoint: &str,
@@ -140,5 +137,5 @@ fn announce_missing_leaf_cache<Reports>(
     Reports: NnsLeafReports,
 {
     let path = reports.cache_path(cache);
-    announce_missing_mainnet_cache(cache.network(), component, &path, source_endpoint);
+    announce_missing_mainnet_cache(&cache.network, component, &path, source_endpoint);
 }

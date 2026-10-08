@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     QueryProgressEvent, QueryProgressState,
-    cache::CacheCollectionCompleteness,
+    cache::{CacheCollectionCompleteness, CacheRefreshAttemptStatus},
     cache_file::{CacheFileError, HostCacheError, LoadJsonCacheRequest},
     test_support::temp_dir,
 };
@@ -256,7 +256,7 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
         metadata: Metadata {
             root_canister_id: "root".to_string(),
         },
-        status: "running".to_string(),
+        status: CacheRefreshAttemptStatus::Running,
         page_size: 100,
         pages_fetched: 1,
         rows_fetched: 25,
@@ -271,25 +271,40 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
     assert!(value.get("metadata").is_none());
 
     for (status, last_error) in [
-        ("running", None),
-        ("complete", None),
-        ("failed", Some("source failed".to_string())),
+        (CacheRefreshAttemptStatus::Running, None),
+        (CacheRefreshAttemptStatus::Complete, None),
+        (
+            CacheRefreshAttemptStatus::Failed,
+            Some("source failed".to_string()),
+        ),
     ] {
         let mut candidate = attempt.clone();
-        candidate.status = status.to_string();
+        candidate.status = status;
         candidate.last_error = last_error;
         assert!(validate_snapshot_refresh_attempt(&candidate, "ic").is_ok());
     }
 
-    let mut unknown = attempt.clone();
-    unknown.status = "unknown".to_string();
-    assert_eq!(
-        validate_snapshot_refresh_attempt(&unknown, "ic"),
-        Err("unsupported attempt status unknown".to_string())
-    );
+    let mut unknown = value;
+    unknown["status"] = serde_json::json!("unknown");
+    assert!(serde_json::from_value::<SnapshotRefreshAttempt<Metadata>>(unknown).is_err());
+
+    for status in [
+        CacheRefreshAttemptStatus::Running,
+        CacheRefreshAttemptStatus::Complete,
+    ] {
+        let mut with_error = attempt.clone();
+        with_error.status = status;
+        with_error.last_error = Some("source failed".to_string());
+        assert!(validate_snapshot_refresh_attempt(&with_error, "ic").is_err());
+    }
+
+    let mut blank_error = attempt.clone();
+    blank_error.status = CacheRefreshAttemptStatus::Failed;
+    blank_error.last_error = Some(" \t".to_string());
+    assert!(validate_snapshot_refresh_attempt(&blank_error, "ic").is_err());
 
     let mut failed_without_error = attempt;
-    failed_without_error.status = "failed".to_string();
+    failed_without_error.status = CacheRefreshAttemptStatus::Failed;
     assert_eq!(
         validate_snapshot_refresh_attempt(&failed_without_error, "ic"),
         Err("failed attempt must contain last_error".to_string())

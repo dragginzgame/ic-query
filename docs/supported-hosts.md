@@ -171,6 +171,22 @@ retain their 0.1.19 bytes; this refresh adds contribution-policy and linked
 governance guidance. The existing engineering baseline remains separately pinned.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
+The prepared 0.49.0 snapshot selects Shared Tooling 0.1.23,
+`0ba0ad00ed94848e54ecc82629b6b7873b7284c0`. Its
+[exact-source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37746567888)
+has passed Linux, Intel/Apple Silicon macOS and lint/security.
+The prior 0.1.21 Intel job exceeded its 10-minute execution limit. The 0.1.22
+owner workflow allows 25 minutes including setup and evidence upload, with a
+separate 15-minute regression limit. It also normalizes temporary paths in the
+owner LOC fixtures. The matching owner run qualifies those corrections; Query
+retains its existing CI matrix and complete gate.
+Query's stub-based adapter and real-index metadata checks pass locally on Linux.
+The exact committed owner's LOC context fixture also passes locally with
+enclosing configuration and physical/aliased trailing-slash temporary roots.
+The canonical runner fixture selects direct delivery and keeps release effects
+stubbed; the separate real-Git PR fixture remains upstream. These pending
+consumer changes have no matching native CI qualification yet; direct release
+delivery remains selected.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
 `38a2a5127be064014e6d39d72d0300ffb2cf20be`. That exact published source passed
 [Linux, both macOS architectures and MSRV CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37580017649).
@@ -232,7 +248,7 @@ Linux jobs and fail native macOS jobs at the same dependency compiler expression
 The tag workflow skips MSRV/canister by configuration; the branch failures cover
 those native workflows too.
 
-The prepared 0.48.1 selection uses published Host 0.4.6 at
+The released 0.48.1 selection uses published Host 0.4.6 at
 `0fb05f9e18f032425188d68e1d69317a0f0127d5`; package provenance, Rust sources and
 original manifests match that commit. Host 0.4.5 repairs the Darwin conversion
 without truncating unvalidated permissions, closing
@@ -241,10 +257,36 @@ also corrects the non-UTF-8 filename fixture to follow independently observed
 native filesystem admission, preserving typed failure and cleanup evidence;
 production publication behavior remains unchanged.
 [Exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37648086908)
-passes Linux, both macOS architectures and MSRV. Query requires filesystem
-version 0.4.5 or newer for downstream builds and selects 0.4.6 in its lockfile.
-Matching consumer native qualification remains required; upstream passes do not
-qualify these uncommitted dependency changes.
+passes Linux, both macOS architectures and MSRV. Released 0.48.1 requires
+filesystem version 0.4.5 or newer for downstream builds and selects 0.4.6 in its
+lockfile; its matching consumer native qualification is recorded below.
+
+The pending 0.49.0 selection uses published Host 0.5.1 at
+`81f9809861159def2fd0987fcb7961cda4afd969`. All four owner crates are published
+and non-yanked; Query's three selected lockfile checksums match the official
+registry. Committed Host crate files are unchanged from 0.5.0; 0.5.1 adopts the
+owner's release-tooling corrections. Its
+[exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37750135927)
+passes Linux, Intel/ARM macOS and Rust 1.88. The earlier 113 focused Linux tests
+used Host 0.5.0 and do not qualify this new lockfile selection. No process, gzip
+or IC limit-report dependency profile is added. Matching native consumer CI,
+fresh local MSRV and full local CI were not run for this dirty graph; the prior
+0.48.1 results do not qualify it.
+
+The prepared 0.49.0 typed-attempt and private CLI cleanup now passes 95 focused
+library tests and 12 CLI leaf tests on Linux with Host 0.5.1, locked/offline
+after explicit cache preparation. Strict Clippy for both affected packages and
+the library's no-default-features check also pass. These local results cover the
+changed ownership boundaries; they are not native macOS or full consumer CI proof.
+
+The pending smoke failure-precedence repair passes 33 focused Python receipt and
+process tests on Linux, including successful background lifetime handoff,
+SIGINT/SIGTERM descendant cleanup and timeout diagnostics. A separate attempted
+Host process bridge failed the successful background handoff fixture and was
+withdrawn; no process dependency was adopted. Native consumer qualification and
+live network smoke execution were not run for these dirty changes.
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6055899595)
+records the remaining shared lifetime requirement.
 
 ## Tool-specific dependencies
 
@@ -272,8 +314,20 @@ output or harness runtime state, without moving existing keys. See the
 Released 0.47.11 passed all nine [exact-source branch CI jobs](https://github.com/dragginzgame/ic-query/actions/runs/37636399405),
 including complete checks, MSRV and canister smoke on Linux and both macOS
 architectures. That qualifies its persistent identity-home and Shared Tooling
-0.1.19 adoptions. The 0.48 descriptor publication and Shared Tooling 0.1.20 adoption
-require successful matching native consumer qualification with the repaired Host selection.
+0.1.19 adoptions. Released 0.48.1's repaired Host selection now qualifies the
+0.48 descriptor publication and Shared Tooling 0.1.20 adoption. Its
+[exact-source branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37652231894)
+has passed all nine checks, MSRV and canister smoke jobs across the
+three supported hosts. All three native checks also passed in the matching
+[tag run](https://github.com/dragginzgame/ic-query/actions/runs/37652231990). The
+[Apple Silicon MSRV job](https://github.com/dragginzgame/ic-query/actions/runs/37652231894/job/112898231130)
+failed before running any steps because GitHub could not acquire a runner after
+five attempts; its annotation identifies ARM runner capacity constraints.
+This was unavailable native execution, not an observed compiler failure. The
+maintainer requested a fix and the failed-job retry passed for the same
+release SHA in its [MSRV job](https://github.com/dragginzgame/ic-query/actions/runs/37652231894/job/112933559853).
+This completes released 0.48.1's native branch qualification. The pending 0.49.0
+snapshot and adapter changes still need matching committed consumer CI.
 
 Installer implementation regression suites are owned by Shared Tooling. This
 consumer runs the reviewed canonical Rust-tool fixture with substitute Cargo;

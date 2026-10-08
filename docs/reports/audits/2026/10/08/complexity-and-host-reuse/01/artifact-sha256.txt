@@ -1,0 +1,17 @@
+a0980c4b0c80111e478ec9b2c4dc921d783651914dff6d14e78a707bc9fc208a  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/report.md
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/host-050-to-051-crates.diff
+55f8cb03b7f6c563c5864bcb51bdc1b9353c799ba008190c57732cc65ff53aec  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/host-release-ci.json
+74ed1846e957de49333f28e089755cd6aef6c1c6c7df048cc8d61c5d3079476c  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/host-worktree.txt
+0f22d3a4f4f7f35ee56ed7b5c61a13376b24093edf30c86469eb44652e2655cd  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/registry-observation.json
+7ffb6ebd68783c6863435bbe27856293c0be3c39ac3fc5c30ae41ebc18c5a611  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/report-links.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/report-whitespace.log
+6f6fbf5fdd864cfd9fa87cd83f02f771d811c69b84dfd18809462dfa62add0f6  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-process-candidate-failure.log
+887c212562a27cde36092cfd845a34cf385961fa6b3d29adb425dc3230fa0f7d  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-process-candidate-provenance.md
+2385d528d2df33d47789c413185b6dc4b545236ac473c87f3e8ea1ce77dbb239  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-receipt-tests.log
+ebb2423bdc7577e9f610dcf18bab8a2a85f740afb7d919718e42831d66e80306  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-release-fixture-events.log
+fdefbf371361f7b2b46572d44696c06ba356532155aab95c7352033618c3b25b  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-release-fixture-failure.log
+1eda036ac2279778968f8be87c01d6ec838e417d276025337c07e8157bd5f1e9  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/reused-release-fixture-output.log
+e8f6e4a98f0fe9ce2aec60f9e750d454b4b99e9d0d9e80c42f4592aecdf01841  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/source-sha256.txt
+99dfc351055f06a5be8d70f6d58ab9713f95c1253bbe3ad554c89a08808b2193  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/source-verification.log
+f7e0f48eeb48b3bf7e8d21731c61f82d3b819114f1a76df8e44803f37a913f73  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/worktree-at-report.txt
+c0db3607cfc6dac6d582523fe8ab9a4065bc1a25e6ad538d4021752601d189f4  docs/reports/audits/2026/10/08/complexity-and-host-reuse/01/artifacts/worktree-before.txt

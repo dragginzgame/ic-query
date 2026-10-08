@@ -63,9 +63,9 @@ pub(super) fn read_refresh_attempt_status(
     )
     .map_err(map_attempt_read_error)?
     .map(|attempt| {
-        let status = validate_attempt(path, request, &attempt)?;
+        validate_attempt(path, request, &attempt)?;
         Ok(IcrcAccountTransactionRefreshAttemptStatus {
-            status,
+            status: attempt.status,
             started_at: attempt.started_at,
             updated_at: attempt.updated_at,
             index_canister_id: attempt.metadata.index_canister_id,
@@ -173,7 +173,7 @@ fn write_attempt(
             subaccount_hex: request.cache.subaccount_hex.clone(),
             index_canister_id,
         },
-        status: status.to_string(),
+        status,
         page_size: request.page_size,
         pages_fetched: progress.pages_fetched,
         rows_fetched: progress.rows_fetched,
@@ -197,12 +197,12 @@ fn validate_attempt(
     path: &Path,
     request: &IcrcAccountTransactionCacheRequest,
     attempt: &AccountTransactionRefreshAttempt,
-) -> Result<CacheRefreshAttemptStatus, IcrcAccountTransactionError> {
+) -> Result<(), IcrcAccountTransactionError> {
     let invalid = |reason| IcrcAccountTransactionError::InvalidRefreshAttempt {
         path: path.to_path_buf(),
         reason,
     };
-    let status = validate_snapshot_refresh_attempt(attempt, MAINNET_NETWORK).map_err(invalid)?;
+    validate_snapshot_refresh_attempt(attempt, MAINNET_NETWORK).map_err(invalid)?;
     if attempt.source_endpoint != request.source_endpoint
         || attempt.metadata.ledger_canister_id != request.ledger_canister_id
         || attempt.metadata.account_owner != request.account_owner
@@ -219,7 +219,7 @@ fn validate_attempt(
     if let Some(cursor) = attempt.last_cursor.as_deref() {
         validate_transaction_cursor_text(cursor).map_err(|error| invalid(error.to_string()))?;
     }
-    Ok(status)
+    Ok(())
 }
 
 fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> IcrcAccountTransactionError {

@@ -194,7 +194,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     )
     .ok()
     .flatten();
-    let progress = latest.map_or_else(SnapshotRefreshProgress::default, |(attempt, _status)| {
+    let progress = latest.map_or_else(SnapshotRefreshProgress::default, |attempt| {
         SnapshotRefreshProgress::new(
             attempt.pages_fetched,
             attempt.rows_fetched,
@@ -226,7 +226,7 @@ fn write_sns_refresh_attempt_status(
             root_canister_id: context.sns.root_canister_id.clone(),
             governance_canister_id: context.sns.governance_canister_id.clone(),
         },
-        status: status.to_string(),
+        status,
         page_size: context.request.page_size(),
         pages_fetched: progress.pages_fetched,
         rows_fetched: progress.rows_fetched,
@@ -253,12 +253,12 @@ fn validate_sns_refresh_attempt(
     path: &Path,
     expected_network: &str,
     attempt: &SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>,
-) -> Result<CacheRefreshAttemptStatus, SnsHostError> {
+) -> Result<(), SnsHostError> {
     let invalid = |reason| SnsHostError::InvalidRefreshAttempt {
         path: path.to_path_buf(),
         reason,
     };
-    let status = validate_snapshot_refresh_attempt(attempt, expected_network).map_err(invalid)?;
+    validate_snapshot_refresh_attempt(attempt, expected_network).map_err(invalid)?;
     if attempt.metadata.id == 0 {
         return Err(invalid("SNS list id must be greater than zero".to_string()));
     }
@@ -279,7 +279,7 @@ fn validate_sns_refresh_attempt(
             "governance_canister_id must not be empty".to_string(),
         ));
     }
-    Ok(status)
+    Ok(())
 }
 
 fn read_sns_refresh_attempt(
@@ -287,7 +287,7 @@ fn read_sns_refresh_attempt(
     path: &Path,
     expected_network: &str,
     budget: Option<&mut ManagedReadBudget>,
-) -> Result<Option<(SnsRefreshAttempt, CacheRefreshAttemptStatus)>, SnsHostError> {
+) -> Result<Option<SnsRefreshAttempt>, SnsHostError> {
     read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(
         cache_root,
         path,
@@ -306,8 +306,8 @@ fn read_sns_refresh_attempt(
         }
     })?
     .map(|attempt| {
-        let status = validate_sns_refresh_attempt(path, expected_network, &attempt)?;
-        Ok((attempt, status))
+        validate_sns_refresh_attempt(path, expected_network, &attempt)?;
+        Ok(attempt)
     })
     .transpose()
 }
@@ -320,6 +320,6 @@ pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(
 ) -> Result<Option<SnsRefreshAttemptStatus>, SnsHostError> {
     Ok(
         read_sns_refresh_attempt(cache_root, path, expected_network, budget)?
-            .map(|(attempt, status)| SnsRefreshAttemptStatus::from_validated(attempt, status)),
+            .map(SnsRefreshAttemptStatus::from_validated),
     )
 }

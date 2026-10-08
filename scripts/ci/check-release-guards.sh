@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
+export RELEASE_DELIVERY=direct
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk
 bash "$repo_root/scripts/ci/test-release-runner.sh"
@@ -295,6 +296,15 @@ check_old_evidence() {
   [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
+new_fixture unsupported-delivery patch
+if RELEASE_DELIVERY=pr RELEASE_KIND=patch RELEASE_PREVIOUS=0.46.5 \
+  RELEASE_VERSION=0.46.6 RELEASE_DATE=2026-10-07 \
+  RELEASE_SOURCE=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  RELEASE_REMOTE=origin RELEASE_BRANCH=main \
+  bash scripts/release/adapter.sh preflight > output 2>&1; then
+  fail 'unqualified release delivery admitted'
+fi
+[[ ! -e .release-state && ! -e events ]] || fail 'refused delivery changed release state'
 for kind in patch minor major; do
   new_fixture "success-$kind" "$kind"
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \

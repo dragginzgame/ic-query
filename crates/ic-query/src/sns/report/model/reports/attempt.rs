@@ -36,7 +36,6 @@ pub struct SnsRefreshAttemptStatus {
 impl SnsRefreshAttemptStatus {
     pub(in crate::sns::report) fn from_validated(
         attempt: SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>,
-        status: CacheRefreshAttemptStatus,
     ) -> Self {
         Self {
             id: attempt.metadata.id,
@@ -44,7 +43,7 @@ impl SnsRefreshAttemptStatus {
             source_endpoint: attempt.source_endpoint,
             root_canister_id: attempt.metadata.root_canister_id,
             governance_canister_id: attempt.metadata.governance_canister_id,
-            status,
+            status: attempt.status,
             started_at: attempt.started_at,
             updated_at: attempt.updated_at,
             page_size: attempt.page_size,

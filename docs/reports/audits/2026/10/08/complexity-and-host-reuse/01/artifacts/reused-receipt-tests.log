@@ -1,0 +1,33 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+Receipt: /tmp/tmptf1qbd3x/receipt.json
+..Receipt: /tmp/tmpawyumgzn/receipt.json
+.Receipt: /tmp/tmpky_xnpgz/receipt.json
+.    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+.....Receipt: /tmp/tmpct7qwh6d/receipt.json
+.Receipt: /tmp/tmpnoqxr75a/receipt.json
+Receipt: /tmp/tmpkiamolth/receipt.json
+.Receipt: /tmp/tmpo7_4fn_g/receipt.json
+Receipt: /tmp/tmpuauzh2hp/receipt.json
+Receipt: /tmp/tmp52zz3lba/receipt.json
+Receipt: /tmp/tmpfx15egzp/receipt.json
+.    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+.Receipt: /tmp/tmp5la63zhx/receipt.json
+.Receipt: /tmp/tmptf1blb01/receipt.json
+..Receipt: /tmp/tmppeffvicp/receipt.json
+...........Receipt: /tmp/tmp_zbon7yv/receipt.json
+Collecting economics (mainnet-smoke)
+Collecting metrics (mainnet-smoke)
+.....Collecting economics (local)
+Collecting metrics (local)
+Collecting reward_event (local)
+Collecting maturity_modulation (local)
+Collecting economics (local)
+Collecting metrics (local)
+Collecting reward_event (local)
+Collecting maturity_modulation (local)
+.
+----------------------------------------------------------------------
+Ran 33 tests in 9.170s
+
+OK

@@ -32,10 +32,11 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The prepared adoption selects published IC Host Tooling 0.4.6 at
-[`0fb05f9`](https://github.com/dragginzgame/ic-host-tooling/tree/0fb05f9e18f032425188d68e1d69317a0f0127d5).
-It includes the Darwin compilation repair and passes the owner's native host
-matrix. Query's repaired selection requires its own native smoke qualification;
+The pending 0.48.2 selection uses published IC Host Tooling 0.5.0 at
+[`db637fa`](https://github.com/dragginzgame/ic-host-tooling/tree/db637fac8b7a9ef62301e1d9009ffeb5ffcd0be7).
+Its retained APIs pass focused Query artifact tests, and the owner release passes
+Linux, Intel/ARM macOS and MSRV CI. This consumer selection requires its own
+matching native smoke qualification;
 see the [host matrix](supported-hosts.md#tool-specific-dependencies).
 The helper uses retained bounded file-read, durable publication and response
 APIs; it has no callers of the removed durable/private readers or lock wrapper.
@@ -178,6 +179,23 @@ termination signals are ignored during that interruption's cleanup. A failed
 receipt retains `failed_phase`, `interrupted_by` when applicable, and any
 `cleanup_error`, together with evidence collected so far. Timeouts also stop
 the command's child processes before network cleanup is attempted.
+
+An operation failure remains the raised error if network cleanup or subsequent
+receipt publication also fails. Failed receipts retain available command stdout
+and stderr in `command_stdout` and `command_stderr`; incomplete byte diagnostics
+are decoded as UTF-8 with replacement for invalid bytes. Receipt publication
+failures are attached to the original exception as `receipt_errors` and retained
+in a later complete receipt when storage recovers. If storage remains unavailable,
+the previous complete receipt remains the on-disk evidence. Cleanup or publication
+failure after otherwise successful verification still fails the attempt.
+
+Successful background startup transfers the runtime lifetime to the harness's
+network cleanup phase. Host 0.5.0's `OwnedChild` instead terminates the command
+group on ordinary leader exit. An attempted replacement failed the background
+handoff fixture and was withdrawn; the existing process wrapper remains until an
+explicit shared lifetime contract is available. The consumer fixture and required
+owner changes are recorded in
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6055899595).
 
 SIGKILL cannot execute cleanup handlers. In a surviving workspace, the last
 complete receipt remains on disk with `status: running` and the last recorded

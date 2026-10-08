@@ -1,0 +1,31 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running `target/debug/examples/governance_process python python3 -m unittest discover -s scripts/canister -p 'test_*.py' -k successful_startup_hands`
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+Receipt: /tmp/tmpoaujtzp9/receipt.json
+F
+======================================================================
+FAIL: test_successful_startup_hands_background_lifetime_to_network_cleanup (test_smoke.LifecycleTests.test_successful_startup_hands_background_lifetime_to_network_cleanup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/adam/projects/ic-query/scripts/canister/test_smoke.py", line 352, in test_successful_startup_hands_background_lifetime_to_network_cleanup
+    smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, receipt)
+  File "/home/adam/projects/ic-query/scripts/canister/smoke.py", line 300, in run_attempt
+    receipt["network"] = json.loads(icp("network", "status", "local", "--json"))
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1199, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adam/projects/ic-query/scripts/canister/test_smoke.py", line 344, in command
+    self.assertNotEqual((path / "heartbeat").read_bytes(), heartbeat,
+AssertionError: b'78211453655416' == b'78211453655416' : successful startup must not stop the owned background network
+
+----------------------------------------------------------------------
+Ran 1 test in 0.479s
+
+FAILED (failures=1)

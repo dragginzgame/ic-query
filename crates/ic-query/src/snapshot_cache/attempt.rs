@@ -77,7 +77,8 @@ pub struct SnapshotRefreshAttempt<Metadata> {
     pub updated_at: String,
     #[serde(flatten)]
     pub metadata: Metadata,
-    pub status: String,
+    /// Current lifecycle state, serialized as its stable lowercase label.
+    pub status: CacheRefreshAttemptStatus,
     pub page_size: u32,
     pub pages_fetched: u32,
     pub rows_fetched: usize,
@@ -183,10 +184,11 @@ pub fn current_attempt_timestamp(fallback: &str) -> String {
     )
 }
 
+/// Validate shared identity, progress and lifecycle/error consistency.
 pub fn validate_snapshot_refresh_attempt<Metadata>(
     attempt: &SnapshotRefreshAttempt<Metadata>,
     expected_network: &str,
-) -> Result<CacheRefreshAttemptStatus, String> {
+) -> Result<(), String> {
     if attempt.schema_version != SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION {
         return Err(format!(
             "schema_version is {}, expected {}",
@@ -211,13 +213,12 @@ pub fn validate_snapshot_refresh_attempt<Metadata>(
     if attempt.pages_fetched == 0 && (attempt.rows_fetched != 0 || attempt.last_cursor.is_some()) {
         return Err("zero-page attempt contains row or cursor progress".to_string());
     }
-    let status = CacheRefreshAttemptStatus::from_label(&attempt.status)
-        .ok_or_else(|| format!("unsupported attempt status {}", attempt.status))?;
+    let status = attempt.status;
     match status {
         CacheRefreshAttemptStatus::Running | CacheRefreshAttemptStatus::Complete
             if attempt.last_error.is_none() =>
         {
-            Ok(status)
+            Ok(())
         }
         CacheRefreshAttemptStatus::Failed
             if attempt
@@ -225,7 +226,7 @@ pub fn validate_snapshot_refresh_attempt<Metadata>(
                 .as_deref()
                 .is_some_and(|error| !error.trim().is_empty()) =>
         {
-            Ok(status)
+            Ok(())
         }
         CacheRefreshAttemptStatus::Running | CacheRefreshAttemptStatus::Complete => {
             Err(format!("{status} attempt contains last_error"))

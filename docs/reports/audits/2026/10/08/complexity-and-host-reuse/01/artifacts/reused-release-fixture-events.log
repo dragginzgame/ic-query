@@ -1,0 +1,15 @@
+release-preflight
+release-verify
+release-preflight
+release-prepare-version
+release-prepared-check
+release-prepared-check
+release-files
+stage
+release-commit-check
+commit
+release-committed-check
+tag
+release-tagged-check
+release-push-check
+push

@@ -52,7 +52,7 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
 }
 
 #[test]
-fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_as_invalid() {
+fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_during_parsing() {
     let root = temp_dir("ic-query-sns-neurons-unknown-attempt-lifecycle");
     let request = sns_neurons_refresh_request(&root, None);
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
@@ -77,8 +77,7 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_as_invalid() {
 
     assert!(matches!(
         err,
-        SnsHostError::InvalidRefreshAttempt { reason, .. }
-            if reason == "unsupported attempt status unknown"
+        SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
     ));
     let _ = fs::remove_dir_all(root);
 }

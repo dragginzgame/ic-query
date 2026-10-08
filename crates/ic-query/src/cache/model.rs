@@ -5,7 +5,7 @@
 //! Boundary: names family validation outcomes and exposes generic header, age,
 //! recovery-policy, and lock evidence without performing family-specific validation.
 
-use serde::Serialize;
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::{fmt, path::PathBuf};
 
 /// Current serialized schema version for cache-status reports.
@@ -50,7 +50,7 @@ impl fmt::Display for CacheValidationStatus {
 /// Lifecycle state for a complete-cache refresh attempt.
 ///
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheRefreshAttemptStatus {
     /// A refresh started or published intermediate collection progress.
@@ -69,21 +69,6 @@ impl CacheRefreshAttemptStatus {
             Self::Running => "running",
             Self::Complete => "complete",
             Self::Failed => "failed",
-        }
-    }
-
-    #[cfg(any(
-        feature = "icrc-host",
-        feature = "nns-host",
-        feature = "sns-host",
-        test
-    ))]
-    pub(crate) fn from_label(label: &str) -> Option<Self> {
-        match label {
-            "running" => Some(Self::Running),
-            "complete" => Some(Self::Complete),
-            "failed" => Some(Self::Failed),
-            _ => None,
         }
     }
 }
@@ -391,15 +376,19 @@ mod tests {
             assert_eq!(status.as_str(), expected);
             assert_eq!(status.to_string(), expected);
             assert_eq!(
-                CacheRefreshAttemptStatus::from_label(expected),
-                Some(status)
+                serde_json::from_value::<CacheRefreshAttemptStatus>(serde_json::json!(expected))
+                    .expect("deserialize refresh-attempt status"),
+                status
             );
             assert_eq!(
                 serde_json::to_value(status).expect("serialize refresh-attempt status"),
                 serde_json::json!(expected)
             );
         }
-        assert_eq!(CacheRefreshAttemptStatus::from_label("unknown"), None);
+        assert!(
+            serde_json::from_value::<CacheRefreshAttemptStatus>(serde_json::json!("unknown"))
+                .is_err()
+        );
         for (status, expected) in [
             (CacheHeaderStatus::Readable, "readable"),
             (CacheHeaderStatus::Invalid, "invalid"),

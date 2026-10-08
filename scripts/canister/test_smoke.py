@@ -311,6 +311,53 @@ print(json.dumps({name: os.environ.get(name) for name in
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_successful_startup_hands_background_lifetime_to_network_cleanup(self):
+        launcher = r'''
+import os, sys, time
+from pathlib import Path
+directory = Path(sys.argv[1])
+(directory / "launcher").write_text(str(os.getpid()))
+while True:
+    (directory / "heartbeat").write_text(str(time.monotonic_ns()))
+    time.sleep(0.01)
+'''
+        start = r'''
+import subprocess, sys, time
+from pathlib import Path
+subprocess.Popen([sys.executable, "-c", sys.argv[1], sys.argv[2]],
+                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+while not (Path(sys.argv[2]) / "heartbeat").exists():
+    time.sleep(0.01)
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            receipt = path / "receipt.json"
+
+            def command(*args, **kwargs):
+                if args == ("network", "status", "local"):
+                    raise subprocess.CalledProcessError(1, args)
+                if args[:2] == ("network", "start"):
+                    smoke.run(sys.executable, "-c", start, launcher, directory, **kwargs)
+                elif args == ("network", "status", "local", "--json"):
+                    heartbeat = (path / "heartbeat").read_bytes()
+                    time.sleep(0.1)
+                    self.assertNotEqual((path / "heartbeat").read_bytes(), heartbeat,
+                                        "successful startup must not stop the owned background network")
+                    return '{}'
+                elif args[:2] == ("network", "stop"):
+                    os.kill(int((path / "launcher").read_text()), signal.SIGTERM)
+
+            try:
+                with patch.object(smoke, "icp", side_effect=command), patch.object(smoke, "verify"):
+                    smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, receipt)
+                self.assertEqual(json.loads(receipt.read_text())["status"], "passed")
+            finally:
+                if (path / "launcher").exists():
+                    try:
+                        os.kill(int((path / "launcher").read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
     def test_startup_failure_or_timeout_attempts_cleanup_and_retains_both_errors(self):
         for failure in (RuntimeError("startup failed"), subprocess.TimeoutExpired("icp", 900)):
             for cleanup_fails in (False, True):
@@ -333,8 +380,9 @@ class LifecycleTests(unittest.TestCase):
                             raise RuntimeError("stop failed")
 
                     with patch.object(smoke, "icp", side_effect=command):
-                        with self.assertRaises((RuntimeError, subprocess.TimeoutExpired)):
+                        with self.assertRaises((RuntimeError, subprocess.TimeoutExpired)) as raised:
                             smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+                    self.assertIs(raised.exception, failure)
                     saved = json.loads(output.read_text())
                     self.assertEqual(saved["status"], "failed")
                     self.assertEqual(saved["failed_phase"], "starting_network")
@@ -382,10 +430,18 @@ def command(*args, **kwargs):
     if args[:2] == ("network", "status"):
         raise subprocess.CalledProcessError(1, args)
     if args[:2] == ("network", "start"):
-        smoke.run(sys.executable, "-c",
-                  "import os,signal,sys; from pathlib import Path; "
-                  "Path(sys.argv[1]).write_text(str(os.getpid())); signal.pause()",
-                  str(directory / "child"))
+        child_script = r"""
+import os, signal, sys, time
+from pathlib import Path
+directory = Path(sys.argv[1])
+if os.fork() == 0:
+    while True:
+        (directory / "descendant").write_text(str(time.monotonic_ns()))
+        time.sleep(0.01)
+(directory / "child").write_text(str(os.getpid()))
+signal.pause()
+"""
+        smoke.run(sys.executable, "-c", child_script, str(directory))
     if args[:2] == ("network", "stop"):
         (directory / "stopped").write_text("yes")
         while not (directory / "release").exists():
@@ -404,9 +460,13 @@ except smoke.RunInterrupted as error:
                                       stdout=subprocess.DEVNULL, start_new_session=True) as process:
                     try:
                         wait_for_file(path / "child", process)
+                        wait_for_file(path / "descendant", process)
                         child = int((path / "child").read_text())
-                        process.send_signal(signum)
+                        os.killpg(process.pid, signum)
                         wait_for_file(path / "stopped", process)
+                        descendant = (path / "descendant").read_bytes()
+                        time.sleep(0.1)
+                        self.assertEqual((path / "descendant").read_bytes(), descendant)
                         process.send_signal(signum)
                         (path / "release").touch()
                         self.assertEqual(process.wait(timeout=10), 128 + signum)
@@ -472,6 +532,65 @@ except smoke.RunInterrupted as error:
             self.assertEqual(saved["status"], "failed")
             self.assertEqual(saved["network_cleanup"], "stopped")
 
+    def test_receipt_storage_failure_retains_the_original_operation_error(self):
+        for recovered in (False, True):
+            with self.subTest(storage_recovers=recovered), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "receipt.json"
+                failure = RuntimeError("startup failed")
+                publish = smoke.save_receipt
+
+                def checkpoint(path, receipt, phase=None):
+                    if receipt["status"] == "failed" and (not recovered or phase != "finished"):
+                        raise OSError("receipt storage unavailable")
+                    publish(path, receipt, phase)
+
+                def command(*args, **_kwargs):
+                    if args[:2] == ("network", "status"):
+                        raise subprocess.CalledProcessError(1, args)
+                    if args[:2] == ("network", "start"):
+                        raise failure
+
+                with patch.object(smoke, "icp", side_effect=command) as commands, \
+                        patch.object(smoke, "save_receipt", side_effect=checkpoint):
+                    with self.assertRaises(RuntimeError) as raised:
+                        smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+                self.assertIs(raised.exception, failure)
+                self.assertIn("receipt storage unavailable", failure.receipt_errors)
+                self.assertEqual(commands.call_args.args, ("network", "stop", "local"))
+                if recovered:
+                    saved = json.loads(output.read_text())
+                    self.assertEqual(saved["error"], "startup failed")
+                    self.assertEqual(saved["network_cleanup"], "stopped")
+                    self.assertIn("receipt storage unavailable", saved["receipt_errors"])
+                else:
+                    self.assertEqual(json.loads(output.read_text())["status"], "running")
+
+    def test_final_receipt_failure_does_not_replace_a_standalone_network_cleanup_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "receipt.json"
+            failure = RuntimeError("network cleanup failed")
+            publish = smoke.save_receipt
+
+            def checkpoint(path, receipt, phase=None):
+                if phase == "finished":
+                    raise OSError("final receipt unavailable")
+                publish(path, receipt, phase)
+
+            def command(*args, **_kwargs):
+                if args == ("network", "status", "local"):
+                    raise subprocess.CalledProcessError(1, args)
+                if args[-1] == "--json":
+                    return '{}'
+                if args[:2] == ("network", "stop"):
+                    raise failure
+
+            with patch.object(smoke, "icp", side_effect=command), patch.object(smoke, "verify"), \
+                    patch.object(smoke, "save_receipt", side_effect=checkpoint):
+                with self.assertRaises(RuntimeError) as raised:
+                    smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+            self.assertIs(raised.exception, failure)
+            self.assertEqual(failure.receipt_errors, ["final receipt unavailable"])
+
     def test_command_timeout_reaps_its_child(self):
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / "child"
@@ -482,6 +601,99 @@ except smoke.RunInterrupted as error:
                           str(marker), timeout=2)
             with self.assertRaises(ProcessLookupError):
                 os.kill(int(marker.read_text()), 0)
+
+    def test_piped_input_and_both_outputs_are_drained_concurrently(self):
+        script = r'''
+import os, sys, threading
+def output():
+    sys.stdout.write("o" * 262144)
+    sys.stdout.flush()
+    sys.stdout.write(sys.stdin.read())
+thread = threading.Thread(target=output)
+thread.start()
+sys.stderr.write("e" * 262144)
+thread.join()
+sys.exit(7)
+'''
+        contents = "piped receipt input\n" * 32768
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            smoke.run(sys.executable, "-c", script, input=contents, stderr=subprocess.PIPE, timeout=10)
+        self.assertEqual(raised.exception.returncode, 7)
+        self.assertEqual(raised.exception.output, "o" * 262144 + contents)
+        self.assertEqual(raised.exception.stderr, "e" * 262144)
+
+    def test_inherited_outputs_are_not_captured_by_the_control_protocol(self):
+        script = r'''
+import smoke, sys
+assert smoke.run(sys.executable, "-c", "import sys; print('streamed stdout'); print('streamed stderr', file=sys.stderr)",
+                 capture=False) is None
+'''
+        result = subprocess.run([sys.executable, "-c", script], cwd=Path(smoke.__file__).parent,
+                                text=True, capture_output=True, timeout=10, check=True)
+        self.assertEqual(result.stdout, "streamed stdout\n")
+        self.assertEqual(result.stderr, "streamed stderr\n")
+
+    def test_timeout_retains_output_in_the_failed_receipt_before_network_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "receipt.json"
+            failure = None
+
+            def command(*args, **_kwargs):
+                nonlocal failure
+                if args[:2] == ("network", "status"):
+                    raise subprocess.CalledProcessError(1, args)
+                if args[:2] == ("network", "start"):
+                    try:
+                        smoke.run(sys.executable, "-c", "import signal,sys; print('startup output', flush=True); "
+                                  "print('startup diagnostic', file=sys.stderr, flush=True); signal.pause()",
+                                  timeout=1, stderr=subprocess.PIPE)
+                    except subprocess.TimeoutExpired as error:
+                        failure = error
+                        raise
+                self.assertEqual(args, ("network", "stop", "local"))
+                saved = json.loads(output.read_text())
+                self.assertEqual(saved["command_stdout"], "startup output\n")
+                self.assertEqual(saved["command_stderr"], "startup diagnostic\n")
+                raise RuntimeError("network cleanup failed")
+
+            with patch.object(smoke, "icp", side_effect=command):
+                with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                    smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+            self.assertIs(raised.exception, failure)
+            self.assertEqual(json.loads(output.read_text())["cleanup_error"], "network cleanup failed")
+
+    def test_timeout_does_not_wait_for_blocked_stdin(self):
+        with self.assertRaises(subprocess.TimeoutExpired) as raised:
+            smoke.run(sys.executable, "-c", "import signal; print('ready', flush=True); signal.pause()",
+                      input="x" * 1048576, timeout=1)
+        self.assertEqual(raised.exception.output, b"ready\n")
+
+    def test_pipe_held_by_an_escaped_descendant_still_obeys_the_deadline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "escaped"
+            leader = r'''
+import subprocess, sys
+from pathlib import Path
+child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], start_new_session=True)
+Path(sys.argv[1]).write_text(str(child.pid))
+print("leader exited", flush=True)
+'''
+            try:
+                with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                    smoke.run(sys.executable, "-c", leader, str(marker), timeout=1)
+                self.assertEqual(raised.exception.output, b"leader exited\n")
+            finally:
+                if marker.exists():
+                    try:
+                        os.kill(int(marker.read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+    def test_invalid_utf8_cannot_replace_an_existing_timeout(self):
+        with self.assertRaises(subprocess.TimeoutExpired) as raised:
+            smoke.run(sys.executable, "-c", "import os,signal; os.write(1, b'prefix\\xff'); signal.pause()",
+                      timeout=1)
+        self.assertTrue(raised.exception.output.startswith(b"prefix"))
 
     def test_hard_termination_preserves_the_last_complete_snapshot(self):
         script = r'''

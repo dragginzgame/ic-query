@@ -1,0 +1,21 @@
+ M .shared-tooling.snapshot
+ M AGENTS.md
+ M CHANGELOG.md
+ M Cargo.lock
+ M Cargo.toml
+ M DRAGGINZGAME.md
+ M docs/canister-smoke.md
+ M docs/changelog/0.48.md
+ M docs/consuming-snapshots.md
+ M docs/release-workflow.md
+ M docs/releases.md
+ M docs/supported-hosts.md
+ M rules/contributions.md
+ M scripts/canister/smoke.py
+ M scripts/canister/test_smoke.py
+ M scripts/ci/check-release-guards.sh
+ M scripts/ci/run-release.sh
+ M scripts/ci/test-release-runner.sh
+ M scripts/distribution/governance-files.txt
+ M scripts/release/adapter.sh
+?? scripts/ci/release-pr.sh

@@ -7,6 +7,8 @@ cd "$repo_root"
 operation="${1:-}"
 metadata() { perl scripts/release/metadata.pl "$@"; }
 fail() { echo "release adapter refused: $*" >&2; exit 1; }
+[[ "${RELEASE_DELIVERY:-direct}" == direct ]] \
+  || fail 'IC Query requires direct release delivery; PR delivery is not qualified'
 for selection in RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_REMOTE RELEASE_BRANCH; do
   [[ -n "${!selection:-}" ]] || fail "missing $selection"
 done
