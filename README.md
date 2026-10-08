@@ -659,7 +659,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false }
+ic-query = { version = "0.50", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -667,7 +667,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["host"] }
+ic-query = { version = "0.50", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -679,7 +679,7 @@ the native host graph:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["canister"] }
+ic-query = { version = "0.50", default-features = false, features = ["canister"] }
 ```
 
 The canister surface collects the four bounded direct NNS Governance point
@@ -854,7 +854,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -867,7 +867,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -876,7 +876,7 @@ node collection, and the shared observed default-scope node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders including
@@ -893,7 +893,7 @@ report:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["ic-state-host"] }
 ```
 
 This exposes `LiveIcStateSource`, its focused source trait, and live/custom
@@ -906,7 +906,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -919,7 +919,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -931,7 +931,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -966,7 +966,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -981,7 +981,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -994,7 +994,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.49", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.50", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and
