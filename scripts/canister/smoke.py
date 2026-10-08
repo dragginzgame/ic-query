@@ -49,7 +49,7 @@ def handle_interrupts():
             signal.signal(item, handler)
 
 
-def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None):
+def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None, strip=True):
     process = subprocess.Popen(
         args, cwd=ROOT, text=True, start_new_session=True,
         stdin=subprocess.PIPE if input is not None else None,
@@ -104,7 +104,7 @@ def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env
                     if operation_error is None:
                         raise
                     cleanup_failure("close command pipe", cleanup_error)
-    return stdout.strip() if capture else None
+    return (stdout.strip() if strip else stdout) if capture else None
 
 
 def icp(*args, **kwargs):
@@ -165,7 +165,7 @@ def cargo_target_directory():
     ))["target_directory"])
 
 
-def admit_artifact(*args, input=None):
+def admit_artifact(*args, input=None, strip=True):
     """Use the development-only shared host boundary; keep orchestration here."""
     global ARTIFACT_TOOL
     if ARTIFACT_TOOL is None:
@@ -173,17 +173,17 @@ def admit_artifact(*args, input=None):
             "--locked", "--offline", capture=False)
         ARTIFACT_TOOL = cargo_target_directory() / "debug/examples/governance_artifact"
     try:
-        return run(str(ARTIFACT_TOOL), *args, input=input, stderr=subprocess.PIPE, umask=0o077)
+        return run(str(ARTIFACT_TOOL), *args, input=input, stderr=subprocess.PIPE, umask=0o077, strip=strip)
     except subprocess.CalledProcessError as error:
         diagnostic = (error.stderr or "").strip()
-        message = "invalid Governance artifact evidence"
+        message = "Governance smoke helper failed"
         if diagnostic:
             message += f": {diagnostic}"
         raise ValueError(message) from error
 
 
-def decode_text_reply(response):
-    return json.loads(admit_artifact("decode-response", input=response))
+def probe(command, environment, endpoint, canister, *args):
+    return admit_artifact(command, environment, endpoint, canister, *args, strip=False)
 
 
 def build_wasm():
@@ -238,48 +238,43 @@ def validate_report(kind, payload, collector):
 
 
 def verify(environment, canister, receipt, output):
-    selection = ("-e", environment)
-    status_args = ("canister", "status", canister, "--public", "--json", *selection)
+    endpoint = receipt["api_endpoint"]
+    receipt["canister_id"] = canister
     save_receipt(output, receipt, "checking_module")
-    before = json.loads(icp(*status_args))
-    receipt["canister_before"] = before
+    before = probe("module-hash", environment, endpoint, canister)
+    receipt["module_hash_before"] = before
     save_receipt(output, receipt)
-    expected_hash = "0x" + admit_artifact(
+    expected_hash = admit_artifact(
         "inspect-wasm", str(ARTIFACTS / "governance_probe.wasm"),
     )
-    if before["module_hash"] != expected_hash:
+    if before != expected_hash:
         raise ValueError("deployed module hash differs from the locally built probe")
     save_receipt(output, receipt, "checking_candid")
-    metadata = json.loads(icp(
-        "canister", "metadata", canister, "candid:service", "--json", *selection,
-    ))["value"]
+    metadata = probe("metadata", environment, endpoint, canister, "candid:service")
     if metadata != (PROJECT / "probe.did").read_text():
         raise ValueError("deployed Candid metadata differs from probe.did")
     receipt["candid_sha256"] = sha256(metadata.encode())
     save_receipt(output, receipt, "checking_build_metadata")
-    receipt["build"] = json.loads(json.loads(icp(
-        "canister", "metadata", canister, "ic-query:build", "--json", *selection,
-    ))["value"])
+    receipt["build"] = json.loads(probe("metadata", environment, endpoint, canister, "ic-query:build"))
     receipt["reports"] = {}
     save_receipt(output, receipt)
     for kind in KINDS:
         print(f"Collecting {kind} ({environment})", flush=True)
         save_receipt(output, receipt, f"collecting_{kind}")
-        response = icp(
-            "canister", "call", canister, "report", f'("{kind}")',
-            "--candid", str(PROJECT / "probe.did"), "--json", *selection,
-        )
-        entry = {"response": json.loads(response)}
+        reply = f"{kind}.candid"
+        entry = {"reply_file": reply}
         receipt["reports"][kind] = entry
+        save_receipt(output, receipt)
+        response = probe("report", environment, endpoint, canister, kind, str(output.parent / reply))
         save_receipt(output, receipt, f"validating_{kind}")
-        entry["report"] = validate_report(kind, decode_text_reply(response), before["id"])
+        entry["report"] = validate_report(kind, json.loads(response), canister)
         save_receipt(output, receipt, f"collected_{kind}")
     save_receipt(output, receipt, "checking_final_module")
-    after = json.loads(icp(*status_args))
-    receipt["canister_after"] = after
+    after = probe("module-hash", environment, endpoint, canister)
+    receipt["module_hash_after"] = after
     save_receipt(output, receipt)
-    if before["id"] != after["id"] or before["module_hash"] != after["module_hash"]:
-        raise ValueError("probe identity or module changed during collection")
+    if before != after:
+        raise ValueError("probe module changed during collection")
 
 
 def run_attempt(environment, canister, receipt, output):
@@ -303,8 +298,13 @@ def run_attempt(environment, canister, receipt, output):
             icp("network", "start", "local", "--background", capture=False, timeout=900)
             save_receipt(output, receipt, "reading_network")
             receipt["network"] = json.loads(icp("network", "status", "local", "--json"))
+            receipt["api_endpoint"] = receipt["network"]["api_url"]
             save_receipt(output, receipt, "deploying")
-            icp("deploy", "-e", "local", capture=False)
+            deployment = json.loads(icp("deploy", "-e", "local", "--json"))
+            deployed = [item["canister_id"] for item in deployment["canisters"] if item["name"] == "governance-probe"]
+            if len(deployed) != 1:
+                raise ValueError("deployment must identify exactly one Governance probe")
+            canister = deployed[0]
         else:
             receipt["api_endpoint"] = "https://icp-api.io/"
             save_receipt(output, receipt, "building")

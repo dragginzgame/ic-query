@@ -65,6 +65,7 @@ jobs:
           name: canister-smoke-${{ matrix.host }}
           path: |
             target/canister-smoke/receipt-*/receipt.json
+            target/canister-smoke/receipt-*/*.candid
             target/canister-smoke/governance_probe.wasm
             target/canister-smoke/governance-probe.tar.gz
           retention-days: 30

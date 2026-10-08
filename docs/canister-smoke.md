@@ -29,20 +29,17 @@ The harness exercises the four direct NNS Governance reports through
 `ic-query` package's `governance_probe` example and the development-only
 `governance_artifact` helper in `ic-query-cli`. The helper adopts
 `ic-host-artifacts` for bounded streams, digesting and Wasm inspection,
-`ic-host-fs` for artifact file reads and atomic receipt publication, and
-`ic-host-tools` for response decoding;
+`ic-host-fs` for artifact file reads, raw reply evidence and atomic receipt
+publication, and `ic-agent` for direct protocol IO;
 it adds no production CLI operation or canister-runtime dependency.
-The pending 0.49.1 selection uses published IC Host Tooling 0.5.2 at
-[`c701499`](https://github.com/dragginzgame/ic-host-tooling/tree/c7014995bf0890c1df9cd9b9a6ec14ea70f98c6f).
-Its retained APIs pass focused Query artifact tests, and the owner release passes
-Linux, Intel/ARM macOS and MSRV CI. This consumer selection requires its own
-matching native smoke qualification;
+The current workspace selection uses published IC Host Tooling 0.7.1 at
+[`410fee7`](https://github.com/dragginzgame/ic-host-tooling/tree/410fee7c309e781edf6a361f0e480d71b7c11e5a).
+The selected registry dependency cache has been prepared explicitly and the
+helper uses its bounded file-read and durable publication APIs. This consumer
+selection requires its own matching native smoke qualification;
 see the [host matrix](supported-hosts.md#tool-specific-dependencies).
-The helper uses retained bounded file-read, durable publication and response
-APIs; it has no callers of the removed durable/private readers or lock wrapper.
 The workspace lockfile selects registry packages; archive support is unnecessary
-for this helper and remains disabled. The response-only tools profile disables
-default features, excluding Candid extraction and its process execution edge.
+for this helper and remains disabled. `ic-host-tools` is no longer selected.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
@@ -124,12 +121,27 @@ at `target/canister-smoke/governance_probe.wasm`.
 The shared host helper admits core Wasm framing under a 64 MiB artifact limit,
 10,000 sections/exports and 1,000 custom sections. The builder checks the admitted
 digest again before attaching consumer-owned metadata. Inspection is structural;
-it does not replace the compiler or replica's Wasm validation. Response admission
-bounds the complete ICP JSON envelope to 8 MiB and decoded Candid bytes to 2 MiB,
-requires one Candid text value without trailing arguments/bytes, and returns that
-text unchanged for report validation. These limits apply to helper admission;
-the existing Python subprocess capture and process-group deadlines remain its
-owner's contract. Receipts retain the response before admission fails.
+it does not replace the compiler or replica's Wasm validation. Direct agent calls
+bound response bodies to 8 MiB and admit at most 2 MiB of reply bytes. The helper
+saves the original binary reply before requiring exactly one Candid text value
+without trailing arguments/bytes. It returns that text unchanged for report
+validation, without ICP response wrapping or hex decoding. Each agent operation,
+including local root-key fetching and update polling, has a 590-second deadline;
+the Python process deadline remains 600 seconds. Existing process-group cleanup
+and receipt publication still own interruption and failure handling.
+
+Agent state reads verify certificates. Local calls fetch a root key only from
+an explicitly selected loopback HTTP endpoint. Mainnet calls use HTTPS and the
+built-in IC root key. The probe's `report` calls are updates: they perform the
+replicated inter-canister reads tested by this harness.
+The agent's HTTP client refuses redirects so requests retain the selected
+endpoint and root-key trust boundary.
+
+ICP JSON is retained only to discover the managed network's random API endpoint
+and the deployed probe principal. `ic-agent` uses these explicit values; it does
+not resolve ICP project aliases. Canister calls and certified state reads use
+the agent directly. Deployment must identify exactly one `governance-probe`
+before verification begins.
 
 The development-only helper can inspect an existing artifact without modifying it:
 
@@ -169,6 +181,14 @@ Receipts retain the environment, timestamps, tool versions, network details,
 module evidence, build metadata, raw Candid replies, and decoded reports.
 Receipts record the active `phase` and `updated_at`; raw replies are saved
 before validation, and validated report payloads are added afterward.
+Starting with the 0.50 hard cut, schema-1 report entries use `reply_file` for an
+adjacent binary Candid file and `report` for validated JSON. Module hashes are
+unprefixed SHA-256 text in `module_hash_before` and `module_hash_after`, with
+one `canister_id` identifying the explicitly selected principal. The agent's
+certified reads bind both hashes to that principal; comparing two copied IDs
+adds no identity evidence. External receipt readers must update and each attempt
+uses a fresh directory. Keep previous receipts and their evidence; no reader,
+migration or automatic cleanup of the old contract is supplied.
 `status: passed` requires all four reports, the final module check, and local
 network cleanup to succeed. A missing optional maturity value is a valid
 successful response.
@@ -196,12 +216,15 @@ the previous complete receipt remains the on-disk evidence. Cleanup or publicati
 failure after otherwise successful verification still fails the attempt.
 
 Successful background startup transfers the runtime lifetime to the harness's
-network cleanup phase. Host 0.5.2 adds reserved-leader observation and explicit
-successful handoff; its default wait still cleans up the command group. The
-Python wrapper remains while full piped IO, deadlines, interruption and receipt
-integration are evaluated. The shared lifetime API and remaining consumer work
-are recorded in
-[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6057100625).
+network cleanup phase. Host 0.7.1 provides owned-child piped IO, cancellation
+and explicit successful handoff through one shared execution engine. Query's
+Python wrapper remains: its five-second TERM grace and bounded reaping are not
+provided by Host's synchronous KILL/reap cleanup. Replacing it must preserve
+those lifetime decisions, signal interpretation, original errors and actual
+receipt publication. The maintainer has confirmed both existing timing bounds
+must remain; the earlier isolated bridge is not current integration.
+The shared API and remaining consumer work are recorded in
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5).
 
 SIGKILL cannot execute cleanup handlers. In a surviving workspace, the last
 complete receipt remains on disk with `status: running` and the last recorded
@@ -259,7 +282,7 @@ The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
 and macOS 15 Intel. It explicitly installs and checks the common local IC set
 from the snapshot's single pin matrix, retaining ICP CLI 1.6.0 and its existing
 archive digests. It selects `.tools/ic/bin`, runs the local smoke, and builds
-the bundle. It uploads receipts, the probe Wasm,
+the bundle. It uploads receipts and their adjacent binary Candid replies, the probe Wasm,
 and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
 failed runs. Identities and runtime state are excluded from uploads.
 The newly configured macOS runtime jobs require matching native runs before

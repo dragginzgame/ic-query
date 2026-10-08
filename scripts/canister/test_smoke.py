@@ -16,6 +16,14 @@ from unittest.mock import Mock, patch
 import smoke
 
 
+def local_context(args):
+    if args == ("network", "status", "local", "--json"):
+        return json.dumps({"api_url": "http://127.0.0.1:1234/"})
+    if args == ("deploy", "-e", "local", "--json"):
+        return json.dumps({"canisters": [{"name": "governance-probe", "canister_id": "aaaaa-aa"}]})
+    raise AssertionError(f"unexpected discovery command: {args}")
+
+
 def wait_for_file(path, process):
     deadline = time.monotonic() + 10
     while not path.exists() or path.stat().st_size == 0:
@@ -39,6 +47,16 @@ class ReceiptTests(unittest.TestCase):
                 "economics": {"transaction_fee_e8s": 10_000},
             },
         }
+
+    def test_probe_preserves_metadata_whitespace_through_the_helper_process(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helper = Path(directory) / "helper"
+            metadata = "service : { report : (text) -> (text); };\n"
+            helper.write_text(f"#!{sys.executable}\nimport sys\nsys.stdout.write({metadata!r})\n")
+            helper.chmod(0o700)
+            with patch.object(smoke, "ARTIFACT_TOOL", helper):
+                self.assertEqual(smoke.probe("metadata", "local", "http://127.0.0.1:1234/",
+                                             "aaaaa-aa", "candid:service"), metadata)
 
     def test_icp_uses_repository_local_executable_and_project(self):
         with patch.dict(os.environ, {}, clear=True), \
@@ -154,23 +172,6 @@ print(json.dumps({name: os.environ.get(name) for name in
                     "--pins", selected_pins, "--check",
                 ))
 
-    def test_accepts_exact_text_reply_and_preserves_raw_report(self):
-        text = json.dumps(self.payload).encode()
-        raw = b"DIDL\x00\x01\x71" + smoke.leb128(len(text)) + text
-        decoded = smoke.decode_text_reply(json.dumps({"response_bytes": raw.hex()}))
-        report = smoke.validate_report("economics", decoded, "aaaaa-aa")
-        self.assertEqual(report["economics"]["transaction_fee_e8s"], 10_000)
-
-    def test_rejects_truncated_extra_and_wrong_type_replies(self):
-        for raw in (b"DIDL\x00\x01\x71\x05{}", b"DIDL\x00\x01\x71\x02{}x",
-                    b"DIDL\x00\x01\x71\x80", b"DIDL\x00\x01\x7e\x00"):
-            with self.subTest(raw=raw), self.assertRaises(ValueError) as raised:
-                smoke.decode_text_reply(json.dumps({"response_bytes": raw.hex()}))
-            cause = raised.exception.__cause__
-            self.assertIsInstance(cause, subprocess.CalledProcessError)
-            self.assertTrue(cause.stderr)
-            self.assertIn(cause.stderr.strip(), str(raised.exception))
-
     def test_rejects_wrong_collector_transport_and_identity(self):
         for key, value in (("network", "unknown"), ("schema_version", 0),
                            ("governance_canister_id", "aaaaa-aa"),
@@ -195,37 +196,39 @@ print(json.dumps({name: os.environ.get(name) for name in
         with tempfile.TemporaryDirectory() as directory:
             artifacts = Path(directory)
             (artifacts / "governance_probe.wasm").write_bytes(b"\0asm\x01\0\0\0")
-            status = {"id": "aaaaa-aa", "module_hash": "0x" + smoke.sha256(b"\0asm\x01\0\0\0")}
-            replies = [json.dumps(status),
-                       json.dumps({"value": (smoke.PROJECT / "probe.did").read_text()}),
-                       json.dumps({"value": '{"schema_version": 1}'})]
+            module_hash = smoke.sha256(b"\0asm\x01\0\0\0")
+            replies = [module_hash, (smoke.PROJECT / "probe.did").read_text(), '{"schema_version": 1}']
             for kind in smoke.KINDS:
                 payload = copy.deepcopy(self.payload)
                 payload["report"][kind] = payload["report"].pop("economics")
-                text = json.dumps(payload).encode()
-                raw = b"DIDL\x00\x01\x71" + smoke.leb128(len(text)) + text
-                replies.append(json.dumps({"response_bytes": raw.hex()}))
+                payload["report"][kind]["raw_amount"] = 2 ** 80
+                replies.append(json.dumps(payload))
             for changed in (False, True):
-                final = dict(status, module_hash="0xchanged") if changed else status
-                receipt = {}
+                final = "changed" if changed else module_hash
+                receipt = {"api_endpoint": "http://127.0.0.1:1234/"}
                 with self.subTest(changed=changed), patch.object(smoke, "ARTIFACTS", artifacts), \
-                        patch.object(smoke, "icp", side_effect=replies + [json.dumps(final)]):
+                        patch.object(smoke, "probe", side_effect=replies + [final]):
                     if changed:
                         with self.assertRaisesRegex(ValueError, "changed during collection"):
-                            smoke.verify("local", "governance-probe", receipt, artifacts / "receipt.json")
+                            smoke.verify("local", "aaaaa-aa", receipt, artifacts / "receipt.json")
                     else:
-                        smoke.verify("local", "governance-probe", receipt, artifacts / "receipt.json")
+                        smoke.verify("local", "aaaaa-aa", receipt, artifacts / "receipt.json")
                     self.assertEqual(set(receipt["reports"]), set(smoke.KINDS))
+                    self.assertEqual(receipt["canister_id"], "aaaaa-aa")
+                    self.assertEqual(receipt["module_hash_before"], module_hash)
+                    self.assertEqual(receipt["module_hash_after"], final)
+                    for kind in smoke.KINDS:
+                        self.assertEqual(receipt["reports"][kind]["report"][kind]["raw_amount"], 2 ** 80)
 
     def test_mismatched_module_stops_before_any_report_call(self):
         with tempfile.TemporaryDirectory() as directory:
             artifacts = Path(directory)
             (artifacts / "governance_probe.wasm").write_bytes(b"\0asm\x01\0\0\0")
             with patch.object(smoke, "ARTIFACTS", artifacts), patch.object(
-                smoke, "icp", return_value='{"id": "aaaaa-aa", "module_hash": "0xwrong"}',
+                smoke, "probe", return_value="wrong",
             ) as command:
                 with self.assertRaisesRegex(ValueError, "module hash differs"):
-                    smoke.verify("mainnet-smoke", "aaaaa-aa", {}, artifacts / "receipt.json")
+                    smoke.verify("mainnet-smoke", "aaaaa-aa", {"api_endpoint": "https://icp-api.io/"}, artifacts / "receipt.json")
                 self.assertEqual(command.call_count, 1)
 
     def test_invalid_local_wasm_stops_before_report_collection(self):
@@ -234,15 +237,15 @@ print(json.dumps({name: os.environ.get(name) for name in
             output = artifacts / "receipt.json"
             (artifacts / "governance_probe.wasm").write_bytes(b"invalid Wasm")
             with patch.object(smoke, "ARTIFACTS", artifacts), patch.object(
-                smoke, "icp", return_value='{"id": "aaaaa-aa", "module_hash": "0xanything"}',
+                smoke, "probe", return_value="anything",
             ) as command:
                 with self.assertRaises(ValueError) as raised:
-                    smoke.verify("local", "governance-probe", {}, output)
+                    smoke.verify("local", "aaaaa-aa", {"api_endpoint": "http://127.0.0.1:1234/"}, output)
             self.assertIsInstance(raised.exception.__cause__, subprocess.CalledProcessError)
             command.assert_called_once()
             saved = json.loads(output.read_text())
             self.assertEqual(saved["phase"], "checking_module")
-            self.assertEqual(saved["canister_before"]["id"], "aaaaa-aa")
+            self.assertEqual(saved["canister_id"], "aaaaa-aa")
 
     def test_failed_receipt_encoding_or_publication_preserves_the_previous_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -279,34 +282,32 @@ print(json.dumps({name: os.environ.get(name) for name in
             artifacts = Path(directory)
             output = artifacts / "receipt.json"
             (artifacts / "governance_probe.wasm").write_bytes(b"\0asm\x01\0\0\0")
-            text = json.dumps(self.payload).encode()
-            reply = {"response_bytes": (b"DIDL\x00\x01\x71" + smoke.leb128(len(text)) + text).hex()}
             initial = iter([
-                json.dumps({"id": "aaaaa-aa", "module_hash": "0x" + smoke.sha256(b"\0asm\x01\0\0\0")}),
-                json.dumps({"value": (smoke.PROJECT / "probe.did").read_text()}),
-                json.dumps({"value": '{"schema_version": 1}'}),
-                json.dumps(reply),
+                smoke.sha256(b"\0asm\x01\0\0\0"),
+                (smoke.PROJECT / "probe.did").read_text(),
+                '{"schema_version": 1}',
+                json.dumps(self.payload),
             ])
 
             def command(*args, **_kwargs):
-                if args[:1] == ("build",):
-                    return None
-                if args[:4] == ("canister", "call", "governance-probe", "report") and args[4] == '("metrics")':
+                if args[0] == "report" and args[4] == "metrics":
                     saved = json.loads(output.read_text())
                     self.assertEqual(saved["phase"], "collecting_metrics")
                     self.assertEqual(saved["reports"]["economics"]["report"], self.payload["report"])
-                    return '{"response_bytes": "00"}'
+                    Path(args[5]).write_bytes(b"invalid Candid")
+                    raise ValueError("invalid Candid reply")
                 return next(initial)
 
-            with patch.object(smoke, "ARTIFACTS", artifacts), patch.object(smoke, "icp", side_effect=command):
+            with patch.object(smoke, "ARTIFACTS", artifacts), patch.object(smoke, "icp"), \
+                    patch.object(smoke, "probe", side_effect=command):
                 with self.assertRaises(ValueError) as raised:
-                    smoke.run_attempt("mainnet-smoke", "governance-probe", {"status": "running"}, output)
+                    smoke.run_attempt("mainnet-smoke", "aaaaa-aa", {"status": "running"}, output)
             saved = json.loads(output.read_text())
             self.assertEqual(saved["status"], "failed")
-            self.assertEqual(saved["failed_phase"], "validating_metrics")
+            self.assertEqual(saved["failed_phase"], "collecting_metrics")
             self.assertEqual(saved["error"], str(raised.exception))
-            self.assertIn(raised.exception.__cause__.stderr.strip(), saved["error"])
-            self.assertEqual(saved["reports"]["metrics"], {"response": {"response_bytes": "00"}})
+            self.assertEqual(saved["reports"]["metrics"], {"reply_file": "metrics.candid"})
+            self.assertEqual((artifacts / "metrics.candid").read_bytes(), b"invalid Candid")
             self.assertIn("report", saved["reports"]["economics"])
 
 
@@ -343,7 +344,9 @@ while not (Path(sys.argv[2]) / "heartbeat").exists():
                     time.sleep(0.1)
                     self.assertNotEqual((path / "heartbeat").read_bytes(), heartbeat,
                                         "successful startup must not stop the owned background network")
-                    return '{}'
+                    return local_context(args)
+                elif args[0] == "deploy":
+                    return local_context(args)
                 elif args[:2] == ("network", "stop"):
                     os.kill(int((path / "launcher").read_text()), signal.SIGTERM)
 
@@ -410,15 +413,42 @@ while not (Path(sys.argv[2]) / "heartbeat").exists():
                 if args == ("network", "status", "local"):
                     raise subprocess.CalledProcessError(1, args)
                 if args[-1] == "--json":
-                    return '{}'
+                    return local_context(args)
                 if args[:2] == ("network", "stop"):
                     self.assertEqual(json.loads(output.read_text())["status"], "running")
 
-            with patch.object(smoke, "icp", side_effect=command), patch.object(smoke, "verify"):
+            with patch.object(smoke, "icp", side_effect=command), patch.object(smoke, "verify") as verify:
                 smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+            self.assertEqual(verify.call_args.args[:2], ("local", "aaaaa-aa"))
+            self.assertEqual(verify.call_args.args[2]["api_endpoint"], "http://127.0.0.1:1234/")
             saved = json.loads(output.read_text())
             self.assertEqual(saved["status"], "passed")
             self.assertEqual(saved["network_cleanup"], "stopped")
+
+    def test_ambiguous_or_missing_deployment_identity_stops_verification_and_cleans_up(self):
+        probe = {"name": "governance-probe", "canister_id": "aaaaa-aa"}
+        for canisters in ([], [probe, probe], [{"name": "another-probe", "canister_id": "aaaaa-aa"}]):
+            with self.subTest(canisters=canisters), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "receipt.json"
+
+                def command(*args, **_kwargs):
+                    if args == ("network", "status", "local"):
+                        raise subprocess.CalledProcessError(1, args)
+                    if args == ("deploy", "-e", "local", "--json"):
+                        return json.dumps({"canisters": canisters})
+                    if args[-1] == "--json":
+                        return local_context(args)
+
+                with patch.object(smoke, "icp", side_effect=command) as icp, \
+                        patch.object(smoke, "verify") as verify:
+                    with self.assertRaisesRegex(ValueError, "exactly one Governance probe"):
+                        smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+                verify.assert_not_called()
+                self.assertEqual(icp.call_args.args, ("network", "stop", "local"))
+                saved = json.loads(output.read_text())
+                self.assertEqual(saved["failed_phase"], "deploying")
+                self.assertEqual(saved["status"], "failed")
+                self.assertEqual(saved["network_cleanup"], "stopped")
 
     def test_startup_signals_stop_child_process_and_publish_failed_receipt(self):
         script = r'''
@@ -495,7 +525,7 @@ except smoke.RunInterrupted as error:
                 if args == ("network", "status", "local"):
                     raise subprocess.CalledProcessError(1, args)
                 if args[-1] == "--json":
-                    return '{}'
+                    return local_context(args)
                 if args[:2] == ("network", "stop"):
                     raise RuntimeError("could not stop runtime")
 
@@ -521,7 +551,7 @@ except smoke.RunInterrupted as error:
                 if args == ("network", "status", "local"):
                     raise subprocess.CalledProcessError(1, args)
                 if args[-1] == "--json":
-                    return '{}'
+                    return local_context(args)
 
             with patch.object(smoke, "icp", side_effect=command) as commands, \
                     patch.object(smoke, "verify"), patch.object(smoke, "save_receipt", side_effect=checkpoint):
@@ -580,7 +610,7 @@ except smoke.RunInterrupted as error:
                 if args == ("network", "status", "local"):
                     raise subprocess.CalledProcessError(1, args)
                 if args[-1] == "--json":
-                    return '{}'
+                    return local_context(args)
                 if args[:2] == ("network", "stop"):
                     raise failure
 

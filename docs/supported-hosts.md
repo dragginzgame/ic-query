@@ -284,7 +284,7 @@ after explicit cache preparation. Strict Clippy for both affected packages and
 the library's no-default-features check also pass. These local results cover the
 changed ownership boundaries; they are not native macOS or full consumer CI proof.
 
-The pending 0.49.1 selection uses published Host 0.5.2 at
+The released 0.49.1 selection uses published Host 0.5.2 at
 `c7014995bf0890c1df9cd9b9a6ec14ea70f98c6f`, with matching registry checksums
 for the three existing dependencies. Their implementation files are unchanged
 from 0.5.1; the feature profiles remain unchanged. The owner's
@@ -306,7 +306,60 @@ before KILL escalation.
 The focused Rust checks were repeated after the subsequent `zerocopy` 0.8.62
 lockfile selection; the Python run precedes that dependency update.
 Matching native consumer CI, fresh local MSRV, full local CI and live network
-smoke execution were not run for these dirty changes.
+smoke execution were not run during that local preparation. Subsequently,
+released Query `a05ec4d2a30569ed738363f60e3fa71678d84cb3` passed all nine
+[exact-source branch jobs](https://github.com/dragginzgame/ic-query/actions/runs/37767619642)
+(checks, MSRV and canister smoke on all three native hosts), plus the three
+[matching tag checks](https://github.com/dragginzgame/ic-query/actions/runs/37767619965).
+That qualifies the released 0.49.1 cleanup repair, separately from dirty 0.50.0.
+
+The pending 0.50.0 smoke hard cut uses `ic-agent` for certified state reads and
+typed Candid update calls in the development helper. Host artifact and filesystem
+dependencies select published 0.7.1 in the updated workspace; `ic-host-tools` is
+removed. The helper explicitly limits response bodies, preserves binary replies
+before admission, uses the
+built-in mainnet root key, and fetches local root keys only over loopback HTTP.
+ICP retains managed-runtime/deployment discovery and lifecycle ownership.
+Focused Linux validation against the earlier 0.7.0 graph passes 55 cache-file
+tests, six Rust helper tests, strict helper Clippy and all 38 Python receipt/process
+tests after the receipt simplification. Cargo used the explicitly prepared
+locked/offline cache. Host's retained artifact/filesystem implementations are
+unchanged from 0.6.0, and its
+[exact-source 0.7.0 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37773664766)
+now passes Linux, both macOS architectures and MSRV. This owner result does not
+qualify Query's dirty graph or imply consumer process adoption.
+The 0.7.1 Rust implementations are byte-identical to 0.7.0. Its
+[exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37776708008)
+passes Linux and MSRV; both macOS jobs remain queued at inspection. The selected
+0.7.1 lockfile cache was explicitly prepared offline. Focused checks of that
+selection pass 55 cache-file tests, six Rust helper tests, 15 Python receipt
+tests and strict helper Clippy. A disposable path-Query consumer with ordinary
+registry Host 0.7.1 dependencies compiles with exactly one artifact identity
+and one filesystem identity. This is not published Query consumer evidence; consumers pinned to
+Host 0.6 require a coordinated upgrade, tracked in
+[Query #24](https://github.com/dragginzgame/ic-query/issues/24).
+Query retains its existing
+TERM grace and bounded reaping by maintainer decision; Host's current process
+owner cannot preserve those requirements.
+Full local CI, fresh MSRV, live canister smoke and macOS execution
+have not been run for this dirty selection. Earlier consumer and owner runs do
+not qualify the new helper protocol path. CI retains the binary reply files
+alongside their receipts on both successful and failed smoke runs.
+
+Shared Tooling 0.1.26 was reviewed at
+`75a8a60f49cec11d3f6aecab5c977029c42cc549`, followed by 0.1.27 at
+`b866d41041a1986eeec95bde9af4c6ba0853d2e3`. Query retains its 0.1.23 snapshot:
+the new shared runner suite unconditionally performs real Git release effects
+in scratch repositories, contrary to the local simulation-only fixture rule.
+[Shared #70](https://github.com/dragginzgame/shared-tooling/issues/70) requests a
+separate admissible fixture selection without weakening the owner's native
+tracking/lock tests. The reviewed exporter successfully verified both 59-file
+exports, including restoration before a consumer commit; the new runner tests
+were not executed. The 0.1.27 bootstrap-path fixture passes on Linux, covering
+relative/absolute invocation, inherited CDPATH and newline checkout paths.
+Its runner changes only path resolution and retains the incompatible native
+tracking block. Shared's exact 0.1.27 owner CI was queued at inspection and does
+not establish native qualification or consumer adoption.
 
 ## Tool-specific dependencies
 

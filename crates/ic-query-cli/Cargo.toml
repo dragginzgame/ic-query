@@ -25,9 +25,12 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+ic-agent.workspace = true
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs.workspace = true
-ic-host-tools.workspace = true
+reqwest.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
+url.workspace = true
 
 [lints]
 workspace = true

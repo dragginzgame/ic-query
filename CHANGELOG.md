@@ -5,6 +5,28 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.50.0]
+
+Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)
+
+- Uses `ic-agent` for Governance smoke calls and certified module/metadata reads.
+  Removes ICP response envelopes and hexadecimal Candid decoding, and drops the
+  unused `ic-host-tools` dependency. AGENTS.md now prefers direct agent APIs.
+- Hard-cuts schema-1 smoke receipts: each report references its retained binary
+  Candid reply file instead of embedding an ICP response. Module evidence records
+  one probe principal and plain before/after SHA-256 hashes. Receipt consumers
+  must update and new runs require fresh evidence
+  directories; existing evidence is retained without migration.
+  CI uploads the reply files alongside receipts, including on failure.
+- Selects published IC Host Tooling 0.7.1 for the retained artifact and filesystem
+  APIs, preserving the existing feature profiles.
+- The development helper exposes direct agent reads and probe calls:
+
+```bash
+cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
+  report mainnet-smoke https://icp-api.io/ "$PROBE_CANISTER" economics "$REPLY_FILE"
+```
+
 ## [0.49.1] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.49.md](docs/changelog/0.49.md)

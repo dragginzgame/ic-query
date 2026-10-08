@@ -231,6 +231,13 @@ If code or habit conflicts with this file, this file wins.
 
 ## Security And Network
 
+- Prefer `ic-agent` for IC protocol calls whenever it supplies the required
+  capability, including development and verification tooling. Use typed Candid
+  arguments and direct reply bytes; do not route canister calls or certified
+  state reads through ICP CLI JSON envelopes or hexadecimal response decoding.
+  Keep ICP CLI at project, build, deployment and managed-runtime boundaries.
+  Preserve explicit endpoints, local/mainnet root-key policy, deadlines and
+  original reply evidence when replacing subprocess calls.
 - This is a read-only metadata query CLI. Do not add mutation behavior unless
   the maintainer explicitly changes the project scope.
 - Keep network endpoints explicit in command options and reports. Do not hide
