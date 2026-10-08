@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "tests/canister"
@@ -49,32 +50,60 @@ def handle_interrupts():
 
 
 def run(*args, capture=True, timeout=600, stderr=None, input=None, umask=-1, env=None):
-    with subprocess.Popen(
+    process = subprocess.Popen(
         args, cwd=ROOT, text=True, start_new_session=True,
         stdin=subprocess.PIPE if input is not None else None,
         stdout=subprocess.PIPE if capture else None, stderr=stderr,
         umask=umask, env=env,
-    ) as process:
-        try:
-            stdout, diagnostic = process.communicate(input=input, timeout=timeout)
-            if process.returncode:
-                raise subprocess.CalledProcessError(
-                    process.returncode, args, output=stdout, stderr=diagnostic,
-                )
-        except BaseException:
-            # Stop only this command's process group before network-level cleanup.
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-                process.wait(timeout=5)
-            except (ProcessLookupError, subprocess.TimeoutExpired):
-                pass
-            finally:
+    )
+    operation_error = None
+
+    def cleanup_failure(stage, error):
+        message = f"{stage}: {str(error) or type(error).__name__}"
+        if not hasattr(operation_error, "command_cleanup_errors"):
+            operation_error.command_cleanup_errors = []
+        operation_error.command_cleanup_errors.append(message)
+
+    try:
+        stdout, diagnostic = process.communicate(input=input, timeout=timeout)
+        if process.returncode:
+            raise subprocess.CalledProcessError(
+                process.returncode, args, output=stdout, stderr=diagnostic,
+            )
+    except BaseException as error:
+        operation_error = error
+        # A reaped leader no longer reserves its PID for safe group signalling.
+        if process.returncode is None:
+            for signum in (signal.SIGTERM, signal.SIGKILL):
                 try:
-                    os.killpg(process.pid, signal.SIGKILL)
+                    os.killpg(process.pid, signum)
+                    if signum == signal.SIGTERM:
+                        # Retain the leader's PID through escalation, even if it exits.
+                        time.sleep(5)
                 except ProcessLookupError:
                     pass
-                process.wait()
-            raise
+                except BaseException as cleanup_error:
+                    cleanup_failure(signal.Signals(signum).name, cleanup_error)
+                    if signum == signal.SIGKILL:
+                        try:
+                            process.kill()
+                        except BaseException as kill_error:
+                            cleanup_failure("kill leader", kill_error)
+            try:
+                process.wait(timeout=5)
+            except BaseException as cleanup_error:
+                cleanup_failure("reap leader", cleanup_error)
+        raise
+    finally:
+        # Do not drain inherited pipes or perform an unbounded context-manager wait.
+        for pipe in (process.stdin, process.stdout, process.stderr):
+            if pipe is not None:
+                try:
+                    pipe.close()
+                except BaseException as cleanup_error:
+                    if operation_error is None:
+                        raise
+                    cleanup_failure("close command pipe", cleanup_error)
     return stdout.strip() if capture else None
 
 
@@ -289,6 +318,8 @@ def run_attempt(environment, canister, receipt, output):
         receipt["failed_phase"] = receipt["phase"]
         if isinstance(error, RunInterrupted):
             receipt["interrupted_by"] = signal.Signals(error.signum).name
+        if getattr(error, "command_cleanup_errors", None):
+            receipt["command_cleanup_errors"] = error.command_cleanup_errors
         for name in ("output", "stderr"):
             value = getattr(error, name, None)
             if isinstance(value, bytes):

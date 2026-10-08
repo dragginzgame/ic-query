@@ -11,7 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import smoke
 
@@ -601,6 +601,109 @@ except smoke.RunInterrupted as error:
                           str(marker), timeout=2)
             with self.assertRaises(ProcessLookupError):
                 os.kill(int(marker.read_text()), 0)
+
+    def test_command_cleanup_failures_preserve_the_operation_error(self):
+        for failure in (subprocess.TimeoutExpired("probe", 1, output=b"partial"),
+                        smoke.RunInterrupted(signal.SIGTERM)):
+            with self.subTest(error=type(failure).__name__):
+                process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
+                process.communicate.side_effect = failure
+                process.wait.side_effect = OSError("reap refused")
+                process.kill.side_effect = PermissionError("leader signal refused")
+                with patch.object(smoke.subprocess, "Popen", return_value=process), \
+                        patch.object(smoke.os, "killpg", side_effect=PermissionError("group signal refused")):
+                    with self.assertRaises(type(failure)) as raised:
+                        smoke.run("probe", timeout=1)
+                self.assertIs(raised.exception, failure)
+                self.assertEqual(len(failure.command_cleanup_errors), 4)
+                self.assertTrue(failure.command_cleanup_errors[0].startswith("SIGTERM:"))
+                self.assertTrue(failure.command_cleanup_errors[1].startswith("SIGKILL:"))
+                process.wait.assert_called_once_with(timeout=5)
+
+    def test_group_escalation_precedes_reaping_the_leader(self):
+        events = []
+        process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
+        process.communicate.side_effect = subprocess.TimeoutExpired("probe", 1)
+        process.wait.side_effect = lambda **_kwargs: events.append("reap")
+        with patch.object(smoke.subprocess, "Popen", return_value=process), \
+                patch.object(smoke.os, "killpg", side_effect=lambda _pid, sig: events.append(sig)), \
+                patch.object(smoke.time, "sleep", side_effect=lambda seconds: events.append(seconds)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                smoke.run("probe", timeout=1)
+        self.assertEqual(events, [signal.SIGTERM, 5, signal.SIGKILL, "reap"])
+
+    def test_escalation_stops_descendants_after_the_leader_exits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            heartbeat = Path(directory) / "heartbeat"
+            marker = Path(directory) / "descendant"
+            child = r'''
+import signal, sys, time
+from pathlib import Path
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+while True:
+    Path(sys.argv[1]).write_text(str(time.monotonic()))
+    time.sleep(0.01)
+'''
+            leader = r'''
+import signal, subprocess, sys, time
+from pathlib import Path
+child = subprocess.Popen([sys.executable, "-c", sys.argv[1], sys.argv[2]])
+Path(sys.argv[3]).write_text(str(child.pid))
+while not Path(sys.argv[2]).exists():
+    time.sleep(0.01)
+print("ready", flush=True)
+signal.pause()
+'''
+            try:
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    smoke.run(sys.executable, "-c", leader, child, str(heartbeat), str(marker), timeout=1)
+                self.assertTrue(heartbeat.exists())
+                stopped = heartbeat.read_bytes()
+                time.sleep(0.1)
+                self.assertEqual(heartbeat.read_bytes(), stopped)
+            finally:
+                if marker.exists():
+                    try:
+                        os.kill(int(marker.read_text()), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
+    def test_reaped_failure_does_not_signal_an_unreserved_process_group(self):
+        process = Mock(pid=123, returncode=7, stdin=None, stdout=None, stderr=None)
+        process.communicate.return_value = ("output", "diagnostic")
+        with patch.object(smoke.subprocess, "Popen", return_value=process), \
+                patch.object(smoke.os, "killpg") as group_signal:
+            with self.assertRaises(subprocess.CalledProcessError) as raised:
+                smoke.run("probe")
+        self.assertEqual(raised.exception.returncode, 7)
+        self.assertEqual(raised.exception.output, "output")
+        group_signal.assert_not_called()
+
+    def test_group_signal_refusal_is_retained_in_the_failed_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "receipt.json"
+            failure = subprocess.TimeoutExpired("probe", 1, output=b"partial")
+            process = Mock(pid=123, returncode=None, stdin=None, stdout=None, stderr=None)
+            process.communicate.side_effect = failure
+
+            def command(*args, **_kwargs):
+                if args[:2] == ("network", "status"):
+                    raise subprocess.CalledProcessError(1, args)
+                if args[:2] == ("network", "start"):
+                    with patch.object(smoke.subprocess, "Popen", return_value=process), \
+                            patch.object(smoke.os, "killpg", side_effect=PermissionError("group signal refused")):
+                        smoke.run("probe", timeout=1)
+                else:
+                    self.assertEqual(args, ("network", "stop", "local"))
+                    saved = json.loads(output.read_text())
+                    self.assertEqual(saved["command_stdout"], "partial")
+                    self.assertEqual(saved["command_cleanup_errors"], failure.command_cleanup_errors)
+
+            with patch.object(smoke, "icp", side_effect=command):
+                with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                    smoke.run_attempt("local", "probe", {"schema_version": 1, "status": "running"}, output)
+            self.assertIs(raised.exception, failure)
+            self.assertEqual(json.loads(output.read_text())["network_cleanup"], "stopped")
 
     def test_piped_input_and_both_outputs_are_drained_concurrently(self):
         script = r'''

@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.49.1]
+
+Detailed release notes: [docs/changelog/0.49.md](docs/changelog/0.49.md)
+
+- Preserves smoke-command timeouts and interruptions when process-group cleanup
+  is refused, retaining cleanup diagnostics in failed receipts. Escalation holds
+  the leader PID until group signalling finishes; successful background startup
+  still hands its lifetime to network cleanup.
+  [#23](https://github.com/dragginzgame/ic-query/issues/23).
+- Selects published Host 0.5.2 for the three existing dependencies, retaining
+  the current feature profiles and artifact/cache contracts.
+
 ## [0.49.0] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.49.md](docs/changelog/0.49.md)

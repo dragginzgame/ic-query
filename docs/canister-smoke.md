@@ -32,8 +32,8 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for artifact file reads and atomic receipt publication, and
 `ic-host-tools` for response decoding;
 it adds no production CLI operation or canister-runtime dependency.
-The pending 0.48.2 selection uses published IC Host Tooling 0.5.0 at
-[`db637fa`](https://github.com/dragginzgame/ic-host-tooling/tree/db637fac8b7a9ef62301e1d9009ffeb5ffcd0be7).
+The pending 0.49.1 selection uses published IC Host Tooling 0.5.2 at
+[`c701499`](https://github.com/dragginzgame/ic-host-tooling/tree/c7014995bf0890c1df9cd9b9a6ec14ea70f98c6f).
 Its retained APIs pass focused Query artifact tests, and the owner release passes
 Linux, Intel/ARM macOS and MSRV CI. This consumer selection requires its own
 matching native smoke qualification;
@@ -173,29 +173,35 @@ before validation, and validated report payloads are added afterward.
 network cleanup to succeed. A missing optional maturity value is a valid
 successful response.
 
-SIGINT and SIGTERM stop the active command's process group and trigger local
+SIGINT and SIGTERM attempt to stop the active command's process group and trigger local
 network cleanup, including when startup has not returned yet. Further
 termination signals are ignored during that interruption's cleanup. A failed
 receipt retains `failed_phase`, `interrupted_by` when applicable, and any
-`cleanup_error`, together with evidence collected so far. Timeouts also stop
-the command's child processes before network cleanup is attempted.
+`cleanup_error`, together with evidence collected so far. Timeouts also attempt
+command cleanup before network cleanup. Group escalation reserves the unreaped
+leader PID through the five-second TERM grace period and KILL signal; an already
+reaped leader is not used to address a process group. Refused group KILL falls
+back to killing the leader directly, and reaping has a five-second deadline.
+Escaped descendants are outside the command group and may need manual cleanup.
 
 An operation failure remains the raised error if network cleanup or subsequent
 receipt publication also fails. Failed receipts retain available command stdout
 and stderr in `command_stdout` and `command_stderr`; incomplete byte diagnostics
-are decoded as UTF-8 with replacement for invalid bytes. Receipt publication
-failures are attached to the original exception as `receipt_errors` and retained
+are decoded as UTF-8 with replacement for invalid bytes. Command
+signal, reaping and pipe cleanup failures appear as `command_cleanup_errors`
+on the exception and failed receipt; a refusal is not successful cleanup. Receipt
+publication failures are attached to the original exception as `receipt_errors` and retained
 in a later complete receipt when storage recovers. If storage remains unavailable,
 the previous complete receipt remains the on-disk evidence. Cleanup or publication
 failure after otherwise successful verification still fails the attempt.
 
 Successful background startup transfers the runtime lifetime to the harness's
-network cleanup phase. Host 0.5.0's `OwnedChild` instead terminates the command
-group on ordinary leader exit. An attempted replacement failed the background
-handoff fixture and was withdrawn; the existing process wrapper remains until an
-explicit shared lifetime contract is available. The consumer fixture and required
-owner changes are recorded in
-[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6055899595).
+network cleanup phase. Host 0.5.2 adds reserved-leader observation and explicit
+successful handoff; its default wait still cleans up the command group. The
+Python wrapper remains while full piped IO, deadlines, interruption and receipt
+integration are evaluated. The shared lifetime API and remaining consumer work
+are recorded in
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6057100625).
 
 SIGKILL cannot execute cleanup handlers. In a surviving workspace, the last
 complete receipt remains on disk with `status: running` and the last recorded

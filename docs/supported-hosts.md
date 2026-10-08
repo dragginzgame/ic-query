@@ -171,7 +171,7 @@ retain their 0.1.19 bytes; this refresh adds contribution-policy and linked
 governance guidance. The existing engineering baseline remains separately pinned.
 IC Query's adoption changes require their own matching native CI; upstream
 qualification does not establish consumer execution or deployment compatibility.
-The prepared 0.49.0 snapshot selects Shared Tooling 0.1.23,
+The released 0.49.0 snapshot selects Shared Tooling 0.1.23,
 `0ba0ad00ed94848e54ecc82629b6b7873b7284c0`. Its
 [exact-source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37746567888)
 has passed Linux, Intel/Apple Silicon macOS and lint/security.
@@ -184,9 +184,11 @@ Query's stub-based adapter and real-index metadata checks pass locally on Linux.
 The exact committed owner's LOC context fixture also passes locally with
 enclosing configuration and physical/aliased trailing-slash temporary roots.
 The canonical runner fixture selects direct delivery and keeps release effects
-stubbed; the separate real-Git PR fixture remains upstream. These pending
-consumer changes have no matching native CI qualification yet; direct release
-delivery remains selected.
+stubbed; the separate real-Git PR fixture remains upstream. The released consumer
+CI results and outstanding macOS failure are recorded below; direct release
+delivery remains selected. Pending 0.49.1 retains this snapshot while the
+concurrent symbolic tracking-ref case in
+[Shared #62](https://github.com/dragginzgame/shared-tooling/issues/62) remains open.
 The prior IC Host Tooling 0.3.1 registry crates were reviewed at
 `38a2a5127be064014e6d39d72d0300ffb2cf20be`. That exact published source passed
 [Linux, both macOS architectures and MSRV CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37580017649).
@@ -261,32 +263,50 @@ passes Linux, both macOS architectures and MSRV. Released 0.48.1 requires
 filesystem version 0.4.5 or newer for downstream builds and selects 0.4.6 in its
 lockfile; its matching consumer native qualification is recorded below.
 
-The pending 0.49.0 selection uses published Host 0.5.1 at
+The released 0.49.0 selection uses published Host 0.5.1 at
 `81f9809861159def2fd0987fcb7961cda4afd969`. All four owner crates are published
 and non-yanked; Query's three selected lockfile checksums match the official
 registry. Committed Host crate files are unchanged from 0.5.0; 0.5.1 adopts the
 owner's release-tooling corrections. Its
 [exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37750135927)
 passes Linux, Intel/ARM macOS and Rust 1.88. The earlier 113 focused Linux tests
-used Host 0.5.0 and do not qualify this new lockfile selection. No process, gzip
-or IC limit-report dependency profile is added. Matching native consumer CI,
-fresh local MSRV and full local CI were not run for this dirty graph; the prior
-0.48.1 results do not qualify it.
+used Host 0.5.0 and do not qualify this lockfile selection. No process, gzip
+or IC limit-report dependency profile was added.
+Query's [0.49.0 tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37757330449)
+at `59bf55ac5725ce4d336e4955c74a89b5f1e4793c` passes Linux checks but fails
+both native macOS checks in the escaped-descendant Python fixture: refused
+process-group cleanup replaces its timeout. This is tracked in
+[#23](https://github.com/dragginzgame/ic-query/issues/23), not a green consumer gate.
 
-The prepared 0.49.0 typed-attempt and private CLI cleanup now passes 95 focused
+The 0.49.0 typed-attempt and private CLI cleanup passed 95 focused
 library tests and 12 CLI leaf tests on Linux with Host 0.5.1, locked/offline
 after explicit cache preparation. Strict Clippy for both affected packages and
 the library's no-default-features check also pass. These local results cover the
 changed ownership boundaries; they are not native macOS or full consumer CI proof.
 
-The pending smoke failure-precedence repair passes 33 focused Python receipt and
-process tests on Linux, including successful background lifetime handoff,
-SIGINT/SIGTERM descendant cleanup and timeout diagnostics. A separate attempted
-Host process bridge failed the successful background handoff fixture and was
-withdrawn; no process dependency was adopted. Native consumer qualification and
-live network smoke execution were not run for these dirty changes.
-[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6055899595)
-records the remaining shared lifetime requirement.
+The pending 0.49.1 selection uses published Host 0.5.2 at
+`c7014995bf0890c1df9cd9b9a6ec14ea70f98c6f`, with matching registry checksums
+for the three existing dependencies. Their implementation files are unchanged
+from 0.5.1; the feature profiles remain unchanged. The owner's
+[exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37762087718)
+passes Linux, Intel/ARM macOS and MSRV. This does not qualify Query's dirty graph.
+
+The 0.49.1 smoke repair retains original command failures and separately records
+group-signal, reaping and pipe cleanup errors. Escalation reserves the leader PID
+until group signals finish, and reaping is bounded. No process dependency was
+adopted: Host 0.5.2 supplies an explicit successful handoff, while full consumer
+IO, deadline, interruption and receipt integration remains under
+[Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5#issuecomment-6057100625).
+Focused Linux validation passes 38 Python receipt/process tests, 55 library
+cache tests with `host`, four Governance artifact-helper tests and strict Clippy
+for that helper. Cargo validation uses the explicitly prepared selected lockfile
+with `--locked --offline`. This includes background handoff, SIGINT/SIGTERM,
+refused cleanup diagnostics and a TERM-ignoring descendant whose leader exits
+before KILL escalation.
+The focused Rust checks were repeated after the subsequent `zerocopy` 0.8.62
+lockfile selection; the Python run precedes that dependency update.
+Matching native consumer CI, fresh local MSRV, full local CI and live network
+smoke execution were not run for these dirty changes.
 
 ## Tool-specific dependencies
 
@@ -326,8 +346,14 @@ five attempts; its annotation identifies ARM runner capacity constraints.
 This was unavailable native execution, not an observed compiler failure. The
 maintainer requested a fix and the failed-job retry passed for the same
 release SHA in its [MSRV job](https://github.com/dragginzgame/ic-query/actions/runs/37652231894/job/112933559853).
-This completes released 0.48.1's native branch qualification. The pending 0.49.0
-snapshot and adapter changes still need matching committed consumer CI.
+This completes released 0.48.1's native branch qualification. Released 0.49.0's
+[exact-source branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37757330459)
+at `59bf55ac5725ce4d336e4955c74a89b5f1e4793c` passes MSRV and live canister
+smoke on all three supported hosts, as well as Linux checks. Both native macOS
+checks fail the Python escaped-descendant timeout fixture under
+[#23](https://github.com/dragginzgame/ic-query/issues/23). Those passing jobs do
+not establish a green complete consumer gate. The prepared 0.49.1 repair and Host
+0.5.2 selection still need their own matching native consumer CI.
 
 Installer implementation regression suites are owned by Shared Tooling. This
 consumer runs the reviewed canonical Rust-tool fixture with substitute Cargo;
