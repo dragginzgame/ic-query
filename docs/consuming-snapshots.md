@@ -106,6 +106,13 @@ These declarations belong to the selected source revision. Older files without
 them retain integrity checks but provide no dependency-completeness guarantee.
 Conditional features and consumer configuration still need adoption review.
 
+The optional `scripts/ci/test-installers.sh` fixture exercises all five CI
+installer wrappers: actionlint, gitleaks, ShellCheck, yq and sccache. Selecting
+that fixture requires all five wrappers, their shared `install-ci-tool.sh` engine
+and the checksum verifier, even if production CI uses only some of them. Add
+that complete set explicitly or omit the optional fixture and its callers;
+selecting an individual production installer does not require the whole suite.
+
 The release runner requires `scripts/ci/next-release-version.sh`. The runner,
 validation logger and formatting hook also require
 `scripts/ci/check-make-execution.sh`. Include it when adding or refreshing any of

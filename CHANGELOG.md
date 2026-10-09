@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.2]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Runs native CI once per atomic branch/tag release, preserving all Linux and
+  macOS checks, MSRV and canister integration on the branch. Manual CI dispatch
+  can qualify a selected branch or tag across all nine jobs.
+  [#34](https://github.com/dragginzgame/ic-query/issues/34).
+- Adopts reviewed Shared Tooling 0.2.3 snapshot-selection and CI queue guidance.
+- Streams probe source and lockfile hashing instead of buffering complete
+  files, preserving the fingerprint encoding.
+
+```bash
+gh workflow run ci.yml --repo dragginzgame/ic-query --ref v0.52.2
+```
+
 ## [0.52.1] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)

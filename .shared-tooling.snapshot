@@ -1,7 +1,7 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	ee48bb37c98c771e77b92fd891f0757d8c1c8b99
+revision	ac4549c5ebde497f7db0da5d05d32835112e51de
 file	0d472a74369e6aa772d585305e19b398fb86f0ef9698f1564356ddc11c60e0b6	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	a7d6612e6c9cfea5f8e920f82109094851876d0dfc117ecc454f966cb50d7c66	-	rules/cargo-dependencies.md
@@ -12,7 +12,7 @@ file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/pri
 file	ee68649246bad21f0f28df4ea3809d8e2c7bcf1cd2a3d68e44684b855badc1c2	-	docs/principles/reviewable-changes.md
 file	27a04aeee753252b310fef363856edf83577337bfaea1e63a50017460eddde59	-	docs/principles/rust-code-hygiene.md
 file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
-file	70489e0c67d0d42d1237e0d06bd8f7e81816874a4d16365220197ebc838b0567	-	docs/consuming-snapshots.md
+file	c7cc663600271e4aa3ec295b8d56d331e654d2a0ef9edd140f3fc22d8d2590ce	-	docs/consuming-snapshots.md
 file	fc689ff5d636be1049a527f6cafa74a768005211dcbecb074b8b327d8e6bab04	x	scripts/ci/run-release.sh
 file	37e028e2d9fee271ffdc06d06fc15d7a148ec524def3d9ed2afcd9910c0ec642	x	scripts/ci/next-release-version.sh
 file	e7f4c82566858b89b50c5c2f929097bdde85345a2c0c1bf553bb1170cc4f5960	-	scripts/ci/finalize-release-changelog.awk
@@ -60,11 +60,11 @@ file	775da89f655a3781059f433f80470ee6db9675e08942a805c111614183322fe1	-	scripts/
 file	ec4936566d8f4c9aacf2481484b3840df1f3090e796f02dd7ca544c45d924625	x	scripts/ci/test-rust-tools.sh
 file	05838a36f21bb4299617ae8965687791062c94d768181f5f97676cc577382153	-	rules/contributions.md
 file	fc40c8ad1c4ab850fda0e60b8cb0b3201724d020966e4d7e5d07620781f5e814	-	scripts/ci/release-pr.sh
-file	3bbed65dbcd53ef17a7da5a50604d3a586951b7a56dacad9c98bb92bf9cf47ce	-	tasks/README.md
+file	7c63c133b3b35bc7648f0269271a2cbf5f36916e9ab79ca89185e2c34e017140	-	tasks/README.md
 file	eb2419a5762a3cb02f25811d93becb6b18ca520df0bc3448ea35dfa187a034b4	-	tasks/cargo-machete.md
 file	b20211ec1c39ef262c8ab266b207db43c44cd1474acde18297586590c7885810	-	tasks/msrv.md
 file	ed8d04d20a6e5bd77aece468a5f44f7d9e1c8a52411431d24e052e20c39038f3	-	tasks/rust-toolchain.md
-file	2ba5de4ca0247f0af6e008a4d952d14270e53510597ffd78ea47e2c05b8fd050	-	tasks/ci-health.md
+file	4f48ed5bec0cb8310884e67912d1ab7cf2701c0987aa1dc77e75b57f0493edfb	-	tasks/ci-health.md
 file	32542f9879fcb5f2fa0f32ec0c71afb53380f1b365b900b24f5a736e776e1945	-	tasks/snapshot-drift.md
 file	5057273d73e5bae55b9cebb0c8cd606afcd9a413a0c8cf89c3a634ca7b63aa4a	-	tasks/dependency-security.md
 file	5d0c7d274dd9da1e5064287c7bd89c7baec9b0a9ba5a8f1a44e918bb60a28943	-	tasks/code-audit.md

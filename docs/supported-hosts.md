@@ -667,6 +667,43 @@ and [Host source CI](https://github.com/dragginzgame/ic-host-tooling/actions/run
 are queued when inspected. No full local CI, native macOS or actual canister
 startup was run for this dirty adoption.
 
+Released Query 0.52.1 at `8568128a996e246e0b134b6a0254588f3d01ca12`
+delivers Shared 0.2.2, Host 0.9.2 and streamed private receipts. Its exact
+[branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37926517640)
+and [tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37926517149)
+are queued when inspected; native acceptance remains unqualified.
+
+Pending 0.52.2 adopts committed Shared Tooling 0.2.3 at
+`ac4549c5ebde497f7db0da5d05d32835112e51de`, keeping the same 73-file selection
+and engineering baseline. Host remains selected at 0.9.2. The optional
+installer suite is not selected; its new companion declaration does not add
+another consumer setup path. Snapshot integrity and changed documentation
+links pass. The exact [Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37925303425)
+is queued when inspected.
+
+The pending workflow fix for [#34](https://github.com/dragginzgame/ic-query/issues/34)
+runs automatic native qualification on main pushes and PRs, eliminating the
+duplicate tag complete-CI matrix. All nine jobs remain selected, with the same
+three hosts, gate commands, per-source concurrency and retained failure evidence.
+Explicit dispatch runs all nine at a selected branch or tag for qualification
+outside main; annotated release/publication tag guards remain unchanged.
+Actionlint and ShellCheck pass. Event-selection and consumer CI-script fixtures
+pass on Linux Bash 5 and genuine Bash 3.2.57, including refusal of duplicate
+tag checks, missing gates, restricted dispatch, reduced hosts and checkout
+overrides. No full local CI, native macOS, live canister startup or workflow
+dispatch was run for these working-tree changes.
+
+The same pending 0.52.2 slice streams probe source contents into the existing
+fingerprint and uses Host's stream hasher for Cargo.lock. The source roster,
+path-component ordering, NUL framing and schema-1 build metadata remain intact.
+An independently checked fixed digest covers a file larger than the read buffer,
+path identity, excluded documentation and refusal of missing required inputs.
+After explicit locked/offline cache preparation, all 25 smoke-runner tests and
+focused example/test Clippy with warnings denied pass on Linux. Formatting,
+changed documentation links and the current-version changelog check pass.
+This adds local fingerprint evidence; native macOS and actual probe build/smoke
+qualification remain separate and were not run.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |

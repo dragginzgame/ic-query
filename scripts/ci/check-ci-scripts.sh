@@ -334,6 +334,7 @@ done
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
+bash "$repo_root/scripts/ci/test-ci-workflow.sh"
 
 schema_version_case="${work_dir}/schema-version"
 mkdir -p "${schema_version_case}"

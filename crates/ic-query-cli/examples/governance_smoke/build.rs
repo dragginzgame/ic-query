@@ -5,13 +5,13 @@ use crate::{
     command::{self, CommandOptions, StderrMode},
     invalid, protocol,
 };
-use ic_host_artifacts::artifact::Sha256Digest;
+use ic_host_artifacts::artifact::hash_reader;
 use ic_host_fs::durable::write_bytes;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
-    env, fs,
+    env, fs, io,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -65,7 +65,7 @@ fn rust_sources(directory: &Path, paths: &mut BTreeSet<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-fn source_digest(root: &Path) -> Result<String> {
+pub fn source_digest(root: &Path) -> Result<String> {
     let mut paths: BTreeSet<_> = [
         "Cargo.toml",
         "Cargo.lock",
@@ -86,7 +86,7 @@ fn source_digest(root: &Path) -> Result<String> {
     for path in paths {
         hash.update(path.strip_prefix(root)?.as_os_str().as_encoded_bytes());
         hash.update([0]);
-        hash.update(fs::read(path)?);
+        io::copy(&mut fs::File::open(path)?, &mut hash)?;
         hash.update([0]);
     }
     Ok(format!("{:x}", hash.finalize()))
@@ -145,7 +145,7 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
     let mut bytes = protocol::read_wasm(&path)?;
     let build = json!({"schema_version":1,
         "rustc":command::run(&mut command(root,"rustc", &["--version"]), &CommandOptions::default())?,
-        "cargo_lock_sha256":Sha256Digest::compute(&fs::read(root.join("Cargo.lock"))?).to_string(),
+        "cargo_lock_sha256":hash_reader(fs::File::open(root.join("Cargo.lock"))?, u64::MAX)?.sha256.to_string(),
         "source_sha256":source_digest(root)?});
     bytes.extend(metadata_section(
         "candid:service",

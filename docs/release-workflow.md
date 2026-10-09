@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`ee48bb37c98c771e77b92fd891f0757d8c1c8b99`](https://github.com/dragginzgame/shared-tooling/tree/ee48bb37c98c771e77b92fd891f0757d8c1c8b99) (0.2.2),
+[`ac4549c5ebde497f7db0da5d05d32835112e51de`](https://github.com/dragginzgame/shared-tooling/tree/ac4549c5ebde497f7db0da5d05d32835112e51de) (0.2.3),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/ee48bb37c98c771e77b92fd891f0757d8c1c8b99/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/ac4549c5ebde497f7db0da5d05d32835112e51de/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -112,6 +112,31 @@ Pushed commits have separate CI concurrency groups so a newer release does not
 cancel or displace an older commit's native qualification. PR revisions share
 their PR group and supersede older checks. This retains execution evidence;
 it does not change runner capacity or establish a passing gate before execution.
+
+Automatic native qualification runs on `main` pushes and pull requests. All
+three gate families (complete checks, MSRV and canister integration) run on
+Linux, Intel macOS and Apple Silicon. An atomic branch/tag release therefore
+runs these nine jobs once on the branch source; pushing its tag does not repeat
+the complete check matrix. Annotated tag/version/commit admission remains in
+the release runner and `make publish`; those read-only guards are unchanged.
+
+For a tag-only release or a selected non-main release branch, the maintainer
+must explicitly qualify that exact source through the workflow dispatch route.
+Once this workflow is present on the default branch, select a branch or tag
+with the existing GitHub CLI command:
+
+```bash
+gh workflow run ci.yml --repo dragginzgame/ic-query --ref v0.52.2
+```
+
+Dispatch checks out the selected ref and runs all nine jobs, including MSRV and
+live local canister integration. Inspect the run's exact `headSha` against the
+intended release commit; another commit's success and queued, absent or skipped
+jobs do not qualify it. Older refs whose workflow lacks dispatch cannot use
+this route. A tag does not establish native acceptance, and dispatch remains
+a separate explicit maintainer action. See [#34](https://github.com/dragginzgame/ic-query/issues/34).
+GitHub documents the [default-branch prerequisite](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
+and [branch or tag dispatch refs](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event).
 
 Commit reviewed source and the numbered pending notes before invoking a release.
 The initial preflight requires a clean worktree and an existing lockfile.

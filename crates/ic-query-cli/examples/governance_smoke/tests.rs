@@ -66,6 +66,42 @@ fn actions_are_admitted_before_effects_and_help_commands_are_sorted() {
 }
 
 #[test]
+fn source_fingerprint_preserves_sorted_paths_raw_contents_and_complete_inputs() {
+    let directory = Directory::new();
+    for path in [
+        "tests/canister/probe.did",
+        "rust-toolchain.toml",
+        "crates/ic-query/src/lib.rs",
+        "crates/ic-query/Cargo.toml",
+        "crates/ic-query-cli/examples/governance_smoke/main.rs",
+        "crates/ic-query-cli/Cargo.toml",
+        "Cargo.toml",
+        "Cargo.lock",
+    ] {
+        let path = directory.0.join(path);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, b"fixture\n").unwrap();
+    }
+    let source = directory.0.join("crates/ic-query/src/large.rs");
+    fs::write(&source, vec![b'x'; 65_537]).unwrap();
+    let expected = "2c947bca9ebcb90408ef8ba4a6f62b3a3992c82f23d18b684ff34ee4162c405b";
+    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::write(directory.0.join("crates/ic-query/README.md"), b"guide").unwrap();
+    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::rename(&source, source.with_file_name("renamed.rs")).unwrap();
+    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::remove_file(directory.0.join("Cargo.lock")).unwrap();
+    assert_eq!(
+        build::source_digest(&directory.0)
+            .unwrap_err()
+            .downcast_ref::<io::Error>()
+            .unwrap()
+            .kind(),
+        io::ErrorKind::NotFound
+    );
+}
+
+#[test]
 fn persistent_identity_selection_resolves_missing_paths_and_symlinks() {
     let directory = Directory::new();
     let root = &directory.0;
