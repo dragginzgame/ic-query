@@ -34,13 +34,16 @@ qualified by this matrix.
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
 - `make install-tools` prepares host tools followed by the complete IC set:
-  Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1, PocketIC 16.1.0 and
+  Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
   owner in `ci/ic-tools.tsv`; `make tools-check` verifies both sets offline.
   Make selects the local paths; interactive shells use
   `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PATH"`.
   See [local setup](local-setup.md) and [IC tools](ic-tools.md) for bootstrap
   packages, complete-set activation, locks and retained failed/previous sets.
+  Shared 0.2.0 requires explicit setup to replace an active six-tool bundle;
+  offline validation refuses it without conversion. Query uses ICP-managed
+  networks and has no PocketIC runtime or Testkit setup requirement.
   curl, tar with xz/gzip support and a SHA-256 backend are required. dfx is
   excluded. Linux ARM64 has a host-tool mapping but no complete IC set and remains
   outside the qualified consumer matrix.
@@ -550,15 +553,79 @@ Released 0.51.0 is pushed at `26da02ccbea1bf5d6d84483b1879535f9bf98708`.
 Its matching [branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37908616344)
 and [tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37908616373)
 remain queued when inspected; native qualification for the hard cut is pending.
-The prepared 0.51.1 slice selects Shared Tooling 0.1.36 and Host 0.8.9.
+Released 0.51.1 selects Shared Tooling 0.1.36 and Host 0.8.9.
 Installer and consumer tool-command fixtures pass on Linux Bash 5 and genuine
 Bash 3.2.57, including canister cache preparation before all three runner actions,
 offline/network refusal and unchanged lockfiles. Against the explicitly prepared
 Host 0.8.9 graph, 23 smoke-runner and 55 cache-file tests pass locked/offline.
 Snapshot integrity, ShellCheck, changed document links and the current-version
-changelog check pass. Candidate 0.51.1's committed-notes gate awaits the maintainer
-commit. Full local CI, actual deployment and native macOS execution were not run
-for this pending slice.
+changelog check pass. The source is now published at
+`5c71413237247823c21fec11ba91c74cff705544`; matching
+[branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37913796835)
+and [tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37913796105)
+remain queued when inspected. Full local CI, actual deployment and native macOS
+execution were not run for this slice. Cache-preparation native acceptance stays
+with [#32](https://github.com/dragginzgame/ic-query/issues/32).
+
+Before the 0.52.0 hard cut, the pending batch adopted Shared Tooling 0.1.38 at
+`926a20606591214ab29faa236b0b584e4857439e`, excluding the sibling's dirty
+version edit and retaining the same 73 selected files. The dependency-pinning
+checker requires one fully validated exception document. Canonical regression
+fixtures pass on Linux Bash 5 and genuine Bash 3.2.57, including multi-document
+refusal and unchanged exception, manifest, lock and index evidence. Query's
+actual declaration/inheritance check, snapshot integrity, ShellCheck and changed
+document links pass. Query has no exception catalog. Formatting-hook changes
+in Shared 0.1.37 are outside the selected executable helpers; refreshed guidance
+does not activate hooks. The selected
+[Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37912382208)
+is queued; no full local CI or native macOS execution qualifies this pending
+adoption yet.
+
+The pending 0.52.0 slice retains the maintainer's Host 0.8.10 lockfile
+selection. The released Host source at
+`e944f114f7542d27ead5df8996d1b2df04e06c31` changes shared tooling, with no library
+source changes from 0.8.9. After explicit locked cache preparation, 23
+smoke-runner and 55 cache-file tests pass on Linux, locked/offline against the
+published 0.8.10 crates. Host's matching
+[source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37915010103)
+is queued when inspected. These focused checks do not qualify native macOS or
+full consumer CI for the dirty selection.
+
+Pending 0.52.0 now adopts Shared Tooling 0.2.0 at
+`8140e3dd1b44409d682c721889ab702f438c6a17` through the canonical exporter with
+the same 73 selected files. PocketIC has no runtime callers in Query; the retired
+checkers were not selected. The current five-tool pins and installer replace
+PocketIC provisioning together, without adding a Testkit server selection.
+The initial Linux offline check refused the existing six-tool bundle before
+activation. Explicit installation and offline verification of the actual
+five-tool bundle pass; the previous pins and receipt match byte-for-byte and
+every old receipt-covered payload still verifies. Evidence is retained under
+`/tmp/ic-query-shared-020-evidence.Rr7v4O/`. Canonical installer fixtures pass on
+Linux Bash 5 and genuine Bash 3.2.57, including refusal and retained evidence
+through failed setup and successful activation. Query's tool-command fixtures
+and actual five-tool offline check also pass under both shells. Snapshot
+verification, ShellCheck and the current-version changelog check pass.
+The [Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37916384666)
+is queued when inspected. Native macOS setup/check and actual canister startup
+were not run for this dirty adoption; they remain consumer qualification gaps
+tracked in [#33](https://github.com/dragginzgame/ic-query/issues/33).
+
+The pending 0.52.0 batch now completes the maintainer's Host 0.9 requirements
+with published 0.9.0, reviewed at
+`715854b47b888eefb6fc0fca76d9c99f55099150`. Its Rust library sources are unchanged
+from 0.8.10; the owner adopts the same Shared 0.2.0 setup hard cut. An initial
+locked check refused the in-progress manifest/lock mismatch before compilation;
+the explicit dependency update and cache preparation precede all new validation.
+The smoke build now uses one bounded, structurally inspected Wasm read before
+metadata publication, retaining the same original bytes through that boundary.
+Against the coherent 0.9.0 graph, 24 smoke-runner tests (including malformed and
+oversized Wasm admission), 55 cache-file tests and strict CLI/example test Clippy
+pass on Linux, locked/offline. An earlier isolated cleanup check also passed
+against the prior coherent 0.8.10 selection; it did not qualify the edited root
+manifest. Formatting and changed documentation links pass. The exact
+[Host source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37917141870)
+is queued when inspected. Full consumer CI, native macOS and live canister
+startup were not run for these dirty changes.
 
 ## Tool-specific dependencies
 

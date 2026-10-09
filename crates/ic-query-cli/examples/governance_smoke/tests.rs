@@ -1,6 +1,9 @@
 use super::*;
 use command::{CommandFailure, CommandOptions, StderrMode};
-use ic_host_artifacts::artifact::Sha256Digest;
+use ic_host_artifacts::{
+    artifact::{ArtifactError, Sha256Digest},
+    wasm::InspectionError,
+};
 use protocol::Probe;
 use std::{
     os::unix::fs::{PermissionsExt, symlink},
@@ -479,10 +482,29 @@ fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
     assert!(section.ends_with(&contents));
     bytes.extend(section);
     fs::write(&path, &bytes).unwrap();
-    assert_eq!(
-        protocol::inspect_wasm(&path).unwrap(),
-        Sha256Digest::compute(&bytes)
-    );
+    assert_eq!(protocol::read_wasm(&path).unwrap(), bytes);
+}
+
+#[test]
+fn wasm_admission_rejects_malformed_and_oversized_files() {
+    let directory = Directory::new();
+    let path = directory.0.join("probe.wasm");
+    fs::write(&path, b"not a Wasm module").unwrap();
+    let error = protocol::read_wasm(&path).expect_err("malformed artifact rejected");
+    assert!(matches!(
+        error.downcast_ref::<InspectionError>(),
+        Some(InspectionError::Parse(_))
+    ));
+    fs::File::create(&path)
+        .unwrap()
+        .set_len(u64::try_from(protocol::WASM_BYTES).unwrap() + 1)
+        .unwrap();
+    let error = protocol::read_wasm(&path).expect_err("oversized artifact rejected before reading");
+    assert!(matches!(
+        error.downcast_ref::<ArtifactError>(),
+        Some(ArtifactError::LimitExceeded { limit })
+            if *limit == u64::try_from(protocol::WASM_BYTES).unwrap()
+    ));
 }
 
 fn run_fixture(operations: &mut Operations) -> (Result<()>, Value) {

@@ -84,7 +84,7 @@ help:
 	@echo "  tools-check  Verify both toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
 	@echo "  host-tools-check  Verify the host toolset offline"
-	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm, PocketIC and wasm-opt"
+	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm and wasm-opt"
 	@echo "  ic-tools-check  Verify the IC toolset offline"
 	@echo "  install-rust-tools  Install the optional shared Cargo-tool set locally"
 	@echo "  rust-tools-check  Verify that optional Cargo-tool set offline"

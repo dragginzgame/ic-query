@@ -122,7 +122,7 @@ pub fn verify(
     let before = probe.module_hash()?;
     receipt["module_hash_before"] = before.clone().into();
     checkpoint(receipt, None, &mut publish)?;
-    if before != protocol::inspect_wasm(wasm)?.to_string() {
+    if before != Sha256Digest::compute(&protocol::read_wasm(wasm)?).to_string() {
         return Err(invalid(
             "deployed module hash differs from the locally built probe",
         ));

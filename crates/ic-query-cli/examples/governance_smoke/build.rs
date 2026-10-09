@@ -6,7 +6,7 @@ use crate::{
     invalid, protocol,
 };
 use ic_host_artifacts::artifact::Sha256Digest;
-use ic_host_fs::{durable::write_bytes, read::read_file};
+use ic_host_fs::durable::write_bytes;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{
@@ -142,11 +142,7 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
         },
     )?;
     let path = target.join("wasm32-unknown-unknown/release/examples/governance_probe.wasm");
-    let digest = protocol::inspect_wasm(&path)?;
-    let mut bytes = read_file(&path, protocol::WASM_BYTES)?;
-    if Sha256Digest::compute(&bytes) != digest {
-        return Err(invalid("build output changed after Wasm inspection"));
-    }
+    let mut bytes = protocol::read_wasm(&path)?;
     let build = json!({"schema_version":1,
         "rustc":command::run(&mut command(root,"rustc", &["--version"]), &CommandOptions::default())?,
         "cargo_lock_sha256":Sha256Digest::compute(&fs::read(root.join("Cargo.lock"))?).to_string(),

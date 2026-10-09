@@ -18,7 +18,8 @@ use url::Url;
 pub const WASM_BYTES: usize = 64 * 1024 * 1024;
 const REPLY_BYTES: usize = 2 * 1024 * 1024;
 
-pub fn inspect_wasm(path: &Path) -> Result<Sha256Digest> {
+/// Read bounded regular-file bytes and inspect their Wasm structure once.
+pub fn read_wasm(path: &Path) -> Result<Vec<u8>> {
     let bytes = read_file(path, WASM_BYTES)?;
     wasm::inspect(
         &bytes,
@@ -29,7 +30,7 @@ pub fn inspect_wasm(path: &Path) -> Result<Sha256Digest> {
             custom_sections: 1_000,
         },
     )?;
-    Ok(Sha256Digest::compute(&bytes))
+    Ok(bytes)
 }
 
 pub fn decode_reply(bytes: &[u8]) -> Result<String> {

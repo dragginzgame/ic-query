@@ -59,6 +59,11 @@ This consumer needs its own native smoke qualification; see the
 - Internet access for the first local-runtime download and enough resources
   to run the local NNS/SNS network.
 
+The common tool bundle supplies Quill, ICP CLI, didc, ic-wasm and wasm-opt.
+The harness uses ICP's managed runtime, so it does not require PocketIC or
+Testkit. After adopting Shared 0.2.0, explicitly reinstall the common bundle
+before offline checks; prior six-tool bundles remain retained evidence.
+
 The managed runtime is pinned to network launcher **16.0.0** in `icp.yaml`.
 ICP CLI 1.6.0 bundles launcher **16.0.0-2026-09-18-03-28**; the project pin
 keeps local NNS execution on the existing stable runtime. ICP identities,

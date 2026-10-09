@@ -50,7 +50,6 @@ version_check() {
     local executable="$1" tool="$2" version="$3" expected output
     [[ -f "$executable" && ! -L "$executable" && -x "$executable" ]] || return 1
     case "$tool" in
-        pocket-ic) expected="pocket-ic-server $version" ;;
         wasm-opt) expected="wasm-opt version $version" ;;
         *) expected="$tool $version" ;;
     esac
@@ -123,8 +122,6 @@ while IFS=$'\t' read -r tool version selected_host digest; do
     case "$tool" in
         quill)
             repo=dfinity/quill; tag="v$version"; asset="quill-$os-$arch"; format=raw; member='' ;;
-        pocket-ic)
-            repo=dfinity/pocketic; tag="$version"; asset="pocket-ic-$arch-${host%-*}.gz"; format=gzip; member='' ;;
         wasm-opt)
             repo=WebAssembly/binaryen; tag="version_$version"; asset="binaryen-version_$version-$arch-$os.tar.gz"
             format=binaryen; member="binaryen-version_$version" ;;
@@ -144,7 +141,6 @@ while IFS=$'\t' read -r tool version selected_host digest; do
     bash "$ROOT/scripts/ci/verify-file-checksum.sh" sha256 "$digest" "$archive"
     case "$format" in
         raw) cp "$archive" "$stage/bin/$tool" ;;
-        gzip) gzip -dc "$archive" > "$stage/bin/$tool" ;;
         xz)
             tar -xJf "$archive" -C "$scratch" "$member"
             [[ -f "$scratch/$member" && ! -L "$scratch/$member" ]] || exit 1

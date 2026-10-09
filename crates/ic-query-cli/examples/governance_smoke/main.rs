@@ -11,6 +11,7 @@ mod tests;
 
 use attempt::AttemptOperations;
 use command::CommandOptions;
+use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::path::canonicalize_allow_missing;
 use serde_json::{Value, json};
 use std::{
@@ -186,7 +187,7 @@ fn execute(action: Action) -> Result<()> {
             return Ok(());
         }
         Action::InspectWasm(path) => {
-            println!("{}", protocol::inspect_wasm(&path)?);
+            println!("{}", Sha256Digest::compute(&protocol::read_wasm(&path)?));
             return Ok(());
         }
         _ => {}

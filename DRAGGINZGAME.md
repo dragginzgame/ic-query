@@ -266,6 +266,9 @@ Consumer choices described in those guides remain subject to this baseline.
   names available under the checkout's `.tools/ic/bin`, with one reviewed pin
   matrix and explicit installation. Consumers own version qualification and
   scoped pin exceptions; ordinary validation never downloads tools implicitly.
+  PocketIC-specific selection, provisioning, offline admission and lifecycle
+  belong to IC Testkit. Consumers use its selected setup/check contract rather
+  than a separate server pin catalog or Shared Tooling's IC executable bundle.
 - Apply the [dependency pinning rules](rules/dependency-pinning.md): immutable
   Git/action identities, compatible registry requirements with locked builds,
   verified tool downloads, and explicitly qualified sibling or moving inputs.

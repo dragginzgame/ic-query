@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.0]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Adopts Shared Tooling 0.2.0 and removes PocketIC from the common developer
+  tool bundle. Run explicit `make install-ic-tools` before offline tool checks;
+  prior six-tool bundles and evidence remain intact. Query's ICP-managed smoke
+  runner continues to use the remaining five tools.
+  [#33](https://github.com/dragginzgame/ic-query/issues/33),
+  [Shared #76](https://github.com/dragginzgame/shared-tooling/issues/76).
+- Dependency checks require one fully validated
+  exception document, preventing malformed JSON streams from suppressing pinning
+  failures. Valid exception catalogs retain their behavior.
+  [Shared #86](https://github.com/dragginzgame/shared-tooling/issues/86).
+- Selects published Host 0.9.0 with the existing cache and smoke-runner contracts.
+- Builds smoke-probe metadata from one bounded, structurally inspected Wasm
+  read, removing the second read and redundant digest comparison.
+
 ## [0.51.1] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)
