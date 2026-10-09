@@ -66,7 +66,7 @@ verify_bundle() (
     [[ "$selected_records" == "$installed_records" ]] || exit 1
     [[ "$(cat host)" == "$host" ]] || exit 1
     bash "$ROOT/scripts/ci/verify-evidence-checksums.sh" files.sha256 >&2 || exit 1
-    while IFS=$'\t' read -r tool version selected_host digest; do
+    while IFS=$'\t' read -r tool version selected_host digest || [[ -n "$tool" ]]; do
         [[ "$tool" != \#* && "$selected_host" == "$host" ]] || continue
         # Each executable must have a checksum before any version execution.
         awk -v file="bin/$tool" '$2 == file { n++ } END { if (n != 1) exit 1 }' files.sha256 || exit 1
@@ -115,7 +115,7 @@ mkdir "$stage/bin" "$stage/lib" "$stage/downloads"
 cp "$pins" "$stage/pins.tsv"
 validate_pins "$stage/pins.tsv" >/dev/null
 printf '%s\n' "$host" > "$stage/host"
-while IFS=$'\t' read -r tool version selected_host digest; do
+while IFS=$'\t' read -r tool version selected_host digest || [[ -n "$tool" ]]; do
     [[ "$tool" != \#* && "$selected_host" == "$host" ]] || continue
     scratch="$stage/downloads/$tool"
     mkdir "$scratch"

@@ -10,7 +10,7 @@ use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::durable::{PublicationMode, WriteOptions, write_typed_with};
 use serde_json::{Value, json};
 use std::{
-    io::{self, Write},
+    io::{self, BufWriter, Write},
     path::Path,
     time::Duration,
 };
@@ -24,20 +24,23 @@ pub fn utc_now() -> Result<String> {
 }
 
 pub fn save_receipt(path: &Path, receipt: &Value) -> Result<()> {
-    let mut bytes = serde_json::to_vec_pretty(receipt)?;
-    bytes.push(b'\n');
     write_typed_with(
         path,
         WriteOptions {
             mode: PublicationMode::Replace,
             permissions: 0o600,
         },
-        |file| -> io::Result<()> { file.write_all(&bytes) },
+        |file| -> io::Result<()> {
+            let mut writer = BufWriter::new(file);
+            serde_json::to_writer_pretty(&mut writer, receipt)?;
+            writer.write_all(b"\n")?;
+            writer.flush()
+        },
     )?;
     Ok(())
 }
 
-pub fn validate_report(kind: &str, payload: &Value, collector: &str) -> Result<Value> {
+pub fn validate_report(kind: &str, mut payload: Value, collector: &str) -> Result<Value> {
     if payload["status"] != "ok" {
         return Err(invalid(&format!(
             "{kind}: {}",
@@ -70,7 +73,7 @@ pub fn validate_report(kind: &str, payload: &Value, collector: &str) -> Result<V
             "fetched_at must be canonical second-resolution UTC",
         ));
     }
-    Ok(report.clone())
+    Ok(payload["report"].take())
 }
 
 pub fn deployed_canister(deployment: &Value) -> Result<String> {
@@ -150,7 +153,7 @@ pub fn verify(
             protocol::publish_reply(&output.with_file_name(&reply), &probe.report(kind)?)?;
         checkpoint(receipt, Some(&format!("validating_{kind}")), &mut publish)?;
         let payload = serde_json::from_str(&response)?;
-        receipt["reports"][kind]["report"] = validate_report(kind, &payload, canister)?;
+        receipt["reports"][kind]["report"] = validate_report(kind, payload, canister)?;
         checkpoint(receipt, Some(&format!("collected_{kind}")), &mut publish)?;
     }
     checkpoint(receipt, Some("checking_final_module"), &mut publish)?;

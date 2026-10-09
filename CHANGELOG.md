@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.1]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Adopts Shared Tooling 0.2.2. IC tool setup and offline checks process every
+  selected pin, including a final row without a trailing newline.
+  [Shared #87](https://github.com/dragginzgame/shared-tooling/issues/87).
+- Selects published Host 0.9.2, retaining cache publication, private reply
+  evidence and command cleanup behavior.
+- Reduces smoke-runner receipt memory by moving admitted reports and streaming
+  JSON into private atomic publication, preserving raw numbers and formatting.
+
 ## [0.52.0] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)

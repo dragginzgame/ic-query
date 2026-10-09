@@ -204,7 +204,10 @@ fn trust_policy_refuses_remote_local_roots_and_unclean_endpoints() {
 #[test]
 fn report_admission_checks_identity_transport_and_canonical_time() {
     let good = payload("economics");
-    assert!(attempt::validate_report("economics", &good, "aaaaa-aa").is_ok());
+    assert_eq!(
+        attempt::validate_report("economics", good.clone(), "aaaaa-aa").unwrap(),
+        good["report"]
+    );
     for (key, value) in [
         ("schema_version", json!(2)),
         ("network", json!("local")),
@@ -215,14 +218,14 @@ fn report_admission_checks_identity_transport_and_canonical_time() {
     ] {
         let mut bad = good.clone();
         bad["report"][key] = value;
-        assert!(attempt::validate_report("economics", &bad, "aaaaa-aa").is_err());
+        assert!(attempt::validate_report("economics", bad, "aaaaa-aa").is_err());
     }
-    assert!(attempt::validate_report("metrics", &good, "aaaaa-aa").is_err());
-    assert!(attempt::validate_report("economics", &good, "ryjl3-tyaaa-aaaaa-aaaba-cai").is_err());
+    assert!(attempt::validate_report("metrics", good.clone(), "aaaaa-aa").is_err());
+    assert!(attempt::validate_report("economics", good, "ryjl3-tyaaa-aaaaa-aaaba-cai").is_err());
     assert!(
         attempt::validate_report(
             "economics",
-            &json!({"status":"error", "error":"fixture"}),
+            json!({"status":"error", "error":"fixture"}),
             "aaaaa-aa"
         )
         .is_err()
@@ -620,16 +623,25 @@ fn storage_failure_cannot_skip_cleanup_or_replace_an_operation_error() {
 fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
     let directory = Directory::new();
     let path = directory.0.join("receipt.json");
-    let first = json!({"schema_version":1,"status":"running"});
+    let first = json!({
+        "schema_version":1,
+        "status":"running",
+        "raw_amount":serde_json::from_str::<Value>("184467440737095516160").unwrap(),
+        "padding":"x".repeat(32 * 1024),
+    });
     attempt::save_receipt(&path, &first).unwrap();
+    assert_eq!(
+        serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(),
+        first
+    );
     assert_eq!(
         fs::metadata(&path).unwrap().permissions().mode() & 0o777,
         0o600
     );
     attempt::save_receipt(&path, &json!({"status":"passed"})).unwrap();
     assert_eq!(
-        serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["status"],
-        "passed"
+        fs::read(&path).unwrap(),
+        b"{\n  \"status\": \"passed\"\n}\n"
     );
     let one = receipt_directory(&directory.0).unwrap();
     let two = receipt_directory(&directory.0).unwrap();

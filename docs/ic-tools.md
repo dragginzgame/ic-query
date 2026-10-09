@@ -65,6 +65,8 @@ Failed or interrupted attempts retain their candidate directory and leave the
 prior selected set intact; retries create a fresh candidate. Previous sets and
 downloads are not automatically deleted. Cleanup is an explicit local action.
 
+Installation and verification consume every validated row, including a final row
+without a newline. The exact pin-file bytes remain retained as provenance.
 Reuse compares the complete validated tool/version/host/archive-checksum records
 across all supported hosts. Comments and row order do not change that selection
 or trigger downloads. The installed pins remain the exact installation input;

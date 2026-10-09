@@ -627,6 +627,46 @@ manifest. Formatting and changed documentation links pass. The exact
 is queued when inspected. Full consumer CI, native macOS and live canister
 startup were not run for these dirty changes.
 
+Released Query 0.52.0 is now published at
+`af02d9fc8f98bc4a7f54a7993c602634294bea3a`. Its matching
+[branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37919404601)
+and [tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37919405178)
+remain queued when inspected. The five-tool hard cut is delivered; native
+acceptance remains open in [#33](https://github.com/dragginzgame/ic-query/issues/33).
+The exact 0.51.0 and 0.51.1 issue-fix runs also remain queued; their delivered
+source is not yet qualified by passing native execution.
+
+Pending 0.52.1 adopts committed Shared Tooling 0.2.2 at
+`ee48bb37c98c771e77b92fd891f0757d8c1c8b99` through the canonical exporter,
+retaining 73 selected files. The IC installer admits every validated pin row,
+including a final row without a newline, and retains the original pin bytes.
+Canonical IC installer fixtures pass on Linux Bash 5 and genuine Bash 3.2.57,
+including installation of the final tool and refusal of a wrong final
+executable version even when its checksum receipt matches. Bundle-retention
+fixtures also pass.
+Query's consumer tool-command fixtures, actual installed five-tool offline
+check, snapshot integrity, ShellCheck, dependency declarations, changed document
+links and current-version changelog check pass. Shared's separate CI binary
+installer publication fix is outside Query's executable selection.
+
+The same pending slice preserves the maintainer-selected published Host 0.9.2
+graph, reviewed at `c5decaefd17809829bfa969966729d672f609c49`. Host simplifies
+durable publication options and closes captured pipes at EOF; Query's public
+API, file permissions, evidence publication and TERM/reaping policy are retained.
+Host 0.9.2's library sources are unchanged from 0.9.1; its release adopts the
+same Shared Tooling fixes and preserves each pushed source's CI qualification.
+The smoke runner moves admitted reports into receipts and streams pretty JSON
+through a fixed-size buffer before durable publication, retaining the final
+newline. Its receipt test covers buffer-spanning data, raw numbers beyond
+`u64`, owner-only permissions and exact formatting. Focused example/test
+Clippy passes with warnings denied on Linux.
+After explicit locked cache preparation, 24 smoke-runner and 55 cache-file tests
+pass on Linux, locked/offline. Matching
+[Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37918955655)
+and [Host source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37924013633)
+are queued when inspected. No full local CI, native macOS or actual canister
+startup was run for this dirty adoption.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |
