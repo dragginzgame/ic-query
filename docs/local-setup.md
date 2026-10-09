@@ -195,6 +195,8 @@ The command prints the admitted executable path under
 Use that returned path in the consumer adapter. Each selection is immutable:
 an existing installation must pass physical-path, exact Cargo receipt and local
 byte-digest checks. Changed bytes or receipts fail without repair or execution;
+each receipt must contain exactly one JSON document. Cargo installation failures
+return Cargo's original exit status along with the retained attempt location;
 no invented `--version` probe runs for examples. Checks invoke rustc for the
 selected host but never Cargo or downloads. Digests detect local changes; they
 are not publisher signatures. The consumer still owns compiler compatibility.
@@ -207,7 +209,9 @@ A directory lock rejects concurrent setup for the same selection; retry after
 its owner finishes. An abruptly killed process may leave a lock: inspect that
 owner and retained attempt before explicitly removing the empty lock. The tool
 never guesses that a lock is stale. Redirected output, receipt and lock paths
-refuse. As with the fixed bundle, path admission is not a sandbox against another
+refuse. After Cargo returns, setup rechecks the shared directory ancestors and
+selection slot before admitting or activating the candidate. As with the fixed
+bundle, path admission is not a sandbox against another
 process deliberately replacing paths while setup runs. Installation may fetch
 dependencies; `CARGO_NET_OFFLINE=true` remains authoritative.
 

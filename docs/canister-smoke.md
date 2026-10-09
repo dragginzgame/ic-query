@@ -32,9 +32,10 @@ The harness exercises the four direct NNS Governance reports through
 `ic-host-fs` for file reads, raw reply evidence and atomic receipt publication,
 `ic-host-process` for command IO, process-group ownership and cleanup, and
 `ic-agent` for direct protocol IO. It adds no production CLI operation or
-canister-runtime dependency. The workspace selects published Host 0.8.6;
-the lockfile's registry cache is explicitly prepared before locked/offline
-validation. Archive support remains disabled and `ic-host-tools` is not selected.
+canister-runtime dependency. The workspace's Host registry selections are
+recorded in [Cargo.lock](../Cargo.lock). The canister Make entry points prepare
+that locked graph before offline runner builds. Archive support remains disabled
+and `ic-host-tools` is not selected.
 This consumer needs its own native smoke qualification; see the
 [host matrix](supported-hosts.md#tool-specific-dependencies).
 
@@ -51,8 +52,10 @@ This consumer needs its own native smoke qualification; see the
   ICP CLI **1.6.0**. Prepare it explicitly with `make install-ic-tools`;
   `make ic-tools-check` verifies the installed set offline.
 - The selected workspace dependency cache, including the development-only
-  IC Host Tooling dependencies. Prepare it explicitly with `cargo fetch --locked`;
-  helper compilation and validation use locked/offline Cargo commands.
+  IC Host Tooling dependencies. The canister Make entry points prepare it with
+  `cargo fetch --locked`; direct Cargo callers prepare it explicitly with the
+  same command. Caller-selected Cargo offline settings remain authoritative;
+  runner compilation and validation use locked/offline Cargo commands.
 - Internet access for the first local-runtime download and enough resources
   to run the local NNS/SNS network.
 

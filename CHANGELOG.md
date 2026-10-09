@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.51.1]
+
+Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)
+
+- Adopts Shared Tooling 0.1.36. Cargo-tool setup and offline checks reject
+  multi-document receipts, recheck installation paths after builds, and retain
+  Cargo's original failure status and build evidence.
+  [Shared #65](https://github.com/dragginzgame/shared-tooling/issues/65).
+- Selects published Host 0.8.9 with the existing library and smoke-runner contracts.
+- Prepares locked dependencies before canister build, bundle and smoke runner
+  compilation. Explicit Cargo offline settings remain authoritative; failed
+  preparation stops before runner or deployment work.
+
 ## [0.51.0] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)

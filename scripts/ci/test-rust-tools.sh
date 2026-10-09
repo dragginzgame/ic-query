@@ -176,9 +176,17 @@ jq -n --arg identity "$2 ${4#=} (registry+https://github.com/rust-lang/crates.io
 printf 'Cargo receipt\n' > "$7/.crates.toml"
 case "${SELECTED_FAIL:-}" in
     receipt) printf '{}\n' > "$7/.crates2.json" ;;
+    receipt-stream)
+        cp "$7/.crates2.json" "$7/original.json"
+        printf '{}\n' > "$7/.crates2.json"
+        cat "$7/original.json" >> "$7/.crates2.json" ;;
     binary-link) mv "$7/bin/${11}" "$7/original"; ln -s ../original "$7/bin/${11}" ;;
     receipt-link) mv "$7/.crates2.json" "$7/original"; ln -s original "$7/.crates2.json" ;;
 esac
+if [[ -n "${SELECTED_REDIRECT:-}" ]]; then
+    mv "$SELECTED_REDIRECT" "$SELECTED_REDIRECT.original"
+    ln -s "${SELECTED_REDIRECT##*/}.original" "$SELECTED_REDIRECT"
+fi
 CARGO
 chmod +x "$fixture/bin/rustc" "$fixture/bin/cargo"
 mkdir "$fixture/selected"
@@ -202,6 +210,29 @@ chmod +x "$fixture/bin/sha256sum"
 if bash "$installer" "${selected_args[@]}" --check > "$fixture/failed-checksum.log" 2>&1; then exit 1; fi
 rm "$fixture/bin/sha256sum"
 cp "$fixture/good-selection" "$slot/installed/selection.json"
+
+# A valid final JSON document must not conceal an earlier conflicting receipt.
+for file in selection.json .crates2.json; do
+    cp "$slot/installed/$file" "$fixture/single-receipt"
+    for prefix in '{}' 'null'; do
+        printf '%s\n' "$prefix" > "$slot/installed/$file"
+        cat "$fixture/single-receipt" >> "$slot/installed/$file"
+        if [[ "$file" == .crates2.json ]]; then
+            digest="$(bash "$ROOT/scripts/ci/verify-file-checksum.sh" --print sha256 "$slot/installed/$file")"
+            jq --arg digest "$digest" '.receipt_sha256 = $digest' "$fixture/good-selection" > "$slot/installed/selection.json"
+        fi
+        for mode in install check; do
+            extra=()
+            [[ "$mode" != check ]] || extra=(--check)
+            if bash "$installer" "${selected_args[@]}" ${extra[@]+"${extra[@]}"} > "$fixture/receipt-stream.log" 2>&1; then
+                echo "multiple JSON documents accepted in $file ($mode)" >&2; exit 1
+            fi
+            cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/selected-installs"
+        done
+    done
+    cp "$fixture/single-receipt" "$slot/installed/$file"
+    cp "$fixture/good-selection" "$slot/installed/selection.json"
+done
 
 # Corruption is refused without executing Cargo or replacing the damaged bytes.
 for file in bin/prepare .crates2.json selection.json; do
@@ -256,12 +287,36 @@ done
 # Failed builds/admission of a new selection preserve the previous usable one.
 next_args=(--consumer "$fixture/selected" --package sample --version 1.2.4 --bin prepare --profile release)
 next_slot="$fixture/selected/.tools/rust/sample-1.2.4-bin-prepare-release"
-for failure in build receipt binary-link receipt-link; do
-    if SELECTED_FAIL="$failure" bash "$installer" "${next_args[@]}" > "$fixture/failure-$failure.log" 2>&1; then exit 1; fi
+failures=(build receipt receipt-stream binary-link receipt-link)
+for failure in "${failures[@]}"; do
+    status=0
+    SELECTED_FAIL="$failure" bash "$installer" "${next_args[@]}" > "$fixture/failure-$failure.log" 2>&1 || status=$?
+    [[ "$status" != 0 ]]
+    [[ "$failure" != build || "$status" == 23 ]]
     [[ ! -e "$next_slot/installed" && ! -e "$next_slot/install.lock" ]]
     bash "$installer" "${selected_args[@]}" --check > /dev/null
 done
-[[ "$(find "$fixture/selected/.tools/rust/build" -name evidence | wc -l | tr -d ' ')" == 4 ]]
+[[ "$(find "$fixture/selected/.tools/rust/build" -name evidence | wc -l | tr -d ' ')" == "${#failures[@]}" ]]
+
+# The returned candidate is not admissible through a redirected ancestor, even
+# when its own directory, executable and receipts are all regular files.
+for relative in .tools .tools/rust .tools/rust/build sample-1.2.4-bin-prepare-release; do
+    redirected="$fixture/redirected-${relative//\//-}"
+    cp -R "$fixture/selected" "$redirected"
+    redirect_path="$redirected/$relative"
+    [[ "$relative" != sample-* ]] || redirect_path="$redirected/.tools/rust/$relative"
+    status=0
+    SELECTED_REDIRECT="$redirect_path" bash "$installer" --consumer "$redirected" \
+        --package sample --version 1.2.4 --bin prepare --profile release \
+        > "$redirected/refusal.log" 2>&1 || status=$?
+    [[ "$status" != 0 && -L "$redirect_path" &&
+       ! -e "$redirected/.tools/rust/sample-1.2.4-bin-prepare-release/installed" ]]
+    # Follow the deliberately moved fixture route only to compare preserved
+    # original bytes and the failed build, never to execute the binary.
+    cmp "$slot/installed/bin/prepare" "$redirected/.tools/rust/sample-1.2.3-example-prepare-debug/installed/bin/prepare"
+    cmp "$slot/installed/selection.json" "$redirected/.tools/rust/sample-1.2.3-example-prepare-debug/installed/selection.json"
+    [[ "$(find -L "$redirected/.tools/rust/build" -name evidence | wc -l | tr -d ' ')" == "$((${#failures[@]} + 1))" ]]
+done
 
 # A competing installer cannot build or activate while the owner holds its lock.
 mkdir "$fixture/pause"

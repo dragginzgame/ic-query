@@ -158,14 +158,9 @@ ci-scripts-check:
 	bash scripts/ci/test-rust-tools.sh
 	cargo test -p ic-query-cli --example governance_smoke --locked --offline
 
-canister-build:
-	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- build
-
-canister-bundle:
-	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- bundle
-
-canister-smoke:
-	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- local
+canister-build canister-bundle canister-smoke:
+	cargo fetch --locked
+	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- $(if $(filter canister-smoke,$@),local,$(@:canister-%=%))
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh

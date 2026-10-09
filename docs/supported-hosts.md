@@ -546,6 +546,20 @@ failure retention and concurrent-install refusal. Query's release-cache fixtures
 also pass. This does not qualify actual registry installation of a selected tool
 or native macOS execution; upstream source CI was queued when inspected.
 
+Released 0.51.0 is pushed at `26da02ccbea1bf5d6d84483b1879535f9bf98708`.
+Its matching [branch CI](https://github.com/dragginzgame/ic-query/actions/runs/37908616344)
+and [tag CI](https://github.com/dragginzgame/ic-query/actions/runs/37908616373)
+remain queued when inspected; native qualification for the hard cut is pending.
+The prepared 0.51.1 slice selects Shared Tooling 0.1.36 and Host 0.8.9.
+Installer and consumer tool-command fixtures pass on Linux Bash 5 and genuine
+Bash 3.2.57, including canister cache preparation before all three runner actions,
+offline/network refusal and unchanged lockfiles. Against the explicitly prepared
+Host 0.8.9 graph, 23 smoke-runner and 55 cache-file tests pass locked/offline.
+Snapshot integrity, ShellCheck, changed document links and the current-version
+changelog check pass. Candidate 0.51.1's committed-notes gate awaits the maintainer
+commit. Full local CI, actual deployment and native macOS execution were not run
+for this pending slice.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |
@@ -600,9 +614,9 @@ ordering, explicit pin selection, local PATH and failure propagation, verifies
 the immutable snapshot and installed host tools, and requires actual setup
 qualification in the configured native CI jobs.
 
-The native `checks` matrix runs receipt tests through `ci-scripts-check` and
-artifact-helper Rust unit tests through `test`, which selects all targets,
-including examples. Receipt tests build the helper with the prepared
+The native `checks` matrix runs the Rust Governance runner fixtures through
+`ci-scripts-check` and `test`, which selects all targets including examples.
+Those fixtures cover receipt admission and process cleanup with the prepared
 locked/offline cache. The separate `canister` matrix owns live local-network
 smoke execution and bundle construction on each declared host.
 Failed `checks` jobs upload their job-owned temporary validation directories

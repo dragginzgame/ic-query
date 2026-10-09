@@ -1,7 +1,7 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	be550afa57fe9e16872e5110b5cd69c24b4fa9e8
+revision	1af63d31942448a46ef42553285176b98dce9274
 file	108064112f1073695d43b69122db38174439dd67bdba9df640a84f6f686eef03	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	a7d6612e6c9cfea5f8e920f82109094851876d0dfc117ecc454f966cb50d7c66	-	rules/cargo-dependencies.md
@@ -23,7 +23,7 @@ file	49ec78ab63a587a2f74f0f7da3e06d9f9942f831129b9201cba5bcd0698548fe	x	scripts/
 file	f114e128d2d3ab1cd4fae4c8eb89866990063cd5cd4a6dbafde49872f0a02af1	-	rules/dependency-pinning.md
 file	c50a0e7c23ad9bbace12c9e8fa9aa8e6c5bc97151a9c76cf5d371f18922a0b94	x	scripts/ci/check-dependency-pins.sh
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq
-file	aa2f9a47d301771754007848d83f124c3ba9a2fbf183a66fb6284300d6989c4c	-	docs/local-setup.md
+file	3d6155dbd262fcc15c903474d3962ae719aa29d922553c2a738acc588f2291f7	-	docs/local-setup.md
 file	6d4c393d99d70a18c1eff4b2d9910bbc0f1eb64db301ce43983f3a1c916c912c	-	docs/ic-tools.md
 file	1a0d1d6f2a87a0d77378fdda605f5700cc7e2ca8c8dfac79418248da30b7e657	-	docs/provenance.md
 file	85d200ddcb31d17d2a281a273504e6a39a628b77fcfbeab8995b3fe69352e169	-	ci/ic-tools.tsv
@@ -55,9 +55,9 @@ file	c0d4bed8f2b876f5ae0a61f6c56e4c71736ab9888f092ab6c67d9f5ba142543d	x	scripts/
 file	49c3ea9db43f37ea293be61a1031c61bdf00745ae58bc66b76afcea07f9a2128	-	make/tools.mk
 file	027575ae9be221c3ef9e903239fbfdb40aa5192c2f5e08c157a5d15dc3cd52ae	x	scripts/ci/test-release-runner.sh
 file	94a934651d5cb0c6f77fa429df277856dbda4c1a7441b2b8563e678c416258f6	-	audits/ic-canister-applications.md
-file	d47999e8852b4cc45d361bd37bf7808728ab61ff8a90f6ef2d0f4cd91b42d4e6	x	scripts/dev/install-rust-tools.sh
+file	83e60382356dcf245349b41658b36560bc17a14b1c3be8abc8c6d7101f6376ac	x	scripts/dev/install-rust-tools.sh
 file	d115de58d30404698b4c691359189763dc1f9452893002477dc607e02d2d8c90	-	scripts/ci/ic-tool-pins.awk
-file	d66f24d39128b1400b143d890bab88b2d5419755008e0daa1ce39ee0b0714b3b	x	scripts/ci/test-rust-tools.sh
+file	ec4936566d8f4c9aacf2481484b3840df1f3090e796f02dd7ca544c45d924625	x	scripts/ci/test-rust-tools.sh
 file	05838a36f21bb4299617ae8965687791062c94d768181f5f97676cc577382153	-	rules/contributions.md
 file	fc40c8ad1c4ab850fda0e60b8cb0b3201724d020966e4d7e5d07620781f5e814	-	scripts/ci/release-pr.sh
 file	3bbed65dbcd53ef17a7da5a50604d3a586951b7a56dacad9c98bb92bf9cf47ce	-	tasks/README.md

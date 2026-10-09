@@ -117,13 +117,13 @@ selected_paths() {
 }
 
 selected_receipt() {
-    jq -e --arg identity "$package $selected_version (registry+https://github.com/rust-lang/crates.io-index)" \
+    jq -se --arg identity "$package $selected_version (registry+https://github.com/rust-lang/crates.io-index)" \
         --arg version "=$selected_version" --arg target "$target" --arg profile "$profile" --arg host "$host" '
-        (.installs | keys) == [$identity] and
+        length == 1 and (.[0] | (.installs | keys) == [$identity] and
         (.installs[$identity] | .version_req == $version and .bins == [$target] and
           (if $profile == "debug" then (.profile == "dev" or .profile == "debug")
            else .profile == "release" end) and .target == $host and
-          (.rustc | type == "string" and length > 0))
+          (.rustc | type == "string" and length > 0)))
     ' "$1/.crates2.json" > /dev/null
 }
 
@@ -144,7 +144,7 @@ check_selected() {
     selected_receipt "$destination" || return 1
     local expected
     expected="$(selected_identity "$destination")" || return 1
-    jq -e --argjson expected "$expected" '. == $expected' "$destination/selection.json" > /dev/null
+    jq -se --argjson expected "$expected" 'length == 1 and .[0] == $expected' "$destination/selection.json" > /dev/null
 }
 
 install_selected() (
@@ -181,8 +181,14 @@ install_selected() (
             selection=("--$kind" "$target" --registry crates-io)
             [[ "$profile" != debug ]] || selection+=(--debug)
             install_cargo_tool "$package" "$selected_version" "$stage" "${selection[@]}" > "$stage/install.log" 2>&1 || {
-                cat "$stage/install.log" >&2; return 1;
+                status=$?
+                cat "$stage/install.log" >&2 || :
+                return "$status"
             }
+            # Cargo is an external effect boundary. Admit the whole route again
+            # before reading candidate receipts or activating its executable.
+            check_install_paths
+            selected_paths "$slot"
             selected_paths "$stage"
             [[ -x "$stage/bin/$target" ]]
             selected_receipt "$stage"
