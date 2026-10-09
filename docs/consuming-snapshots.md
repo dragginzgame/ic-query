@@ -393,6 +393,10 @@ policy:
   `scripts/ci/check-format-tools.sh` and the reviewed pin file. Keep richer
   workspace/frontend recipes local under the [formatting rules](../rules/git-hooks.md).
 
+Both includes require the adjacent `make/execution.mk` and its execution-probe
+companion. Export these explicitly so unsupported Make modes cannot turn a
+failed command into success.
+
 Replace equivalent local recipes only after testing the actual caller and hook.
 These files must come from the recorded snapshot, never a live sibling include.
 The optional `test-make-format.sh` fixture declares its own companions; the

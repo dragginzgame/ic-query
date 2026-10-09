@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`ce13a5314916891fd239d9b199b4a91b04775054`](https://github.com/dragginzgame/shared-tooling/tree/ce13a5314916891fd239d9b199b4a91b04775054) (0.2.6),
+[`b2646cde9abbc8861857a4379c683a0c19eba43e`](https://github.com/dragginzgame/shared-tooling/tree/b2646cde9abbc8861857a4379c683a0c19eba43e) (0.2.8),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/ce13a5314916891fd239d9b199b4a91b04775054/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/b2646cde9abbc8861857a4379c683a0c19eba43e/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -32,7 +32,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 75 shared files. Its governance selection keeps the linked
+The snapshot contains 76 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -56,10 +56,13 @@ The reviewed `make/release.mk` and `make/rust-format.mk` includes own standard
 release routing and root-workspace formatting. Query retains its parse-time
 execution-mode guard, local adapters and target-specific cache preparation on
 all four release entrypoints. Release and formatter helper paths remain bound
-to this checkout, including in disposable fixtures under inherited or explicit
-snapshot selections. The root release-command fixture is qualified against
-inert external runners; this consumer binding does not repair the shared
-checker's independent isolation issue.
+to this checkout before includes are loaded, including in disposable fixtures
+under inherited or explicit snapshot selections. The shared admission probe
+resolves beside its selected include and supports argument-bearing recursive
+Make selections. Query retains its stronger guard for invocation modes hidden
+by command-line `MAKEFLAGS` overrides, tracked in Shared #30. Portable exported
+target policies supersede caller defaults without GNU Make 3.81's unsupported
+combined `override export` syntax.
 
 Formatting checks the reviewed cargo-sort pin before sorting and Rust formatting,
 uses prepared tools offline and disables automatic rustup installation.
@@ -206,6 +209,13 @@ and native setup are documented in
 runtime behavior or replace locked compilation and tests.
 
 `make install-dev` also installs cargo-sort 2.1.4 from `ci/tool-versions.env`.
+It uses the shared selected-package installer with `--bin cargo-sort` and the
+release profile, under `.tools/rust/cargo-sort-2.1.4-bin-cargo-sort-release/installed/`.
+Formatter commands prefer that versioned directory before the optional bundle
+or global tools, so a stale copy cannot shadow successful explicit setup.
+Previous installations and failed candidates remain available for inspection.
+Only cargo-sort is selected; cargo-sort-derives and candid-extractor remain
+optional. Cargo Audit and Cargo Machete keep their pinned global Cargo installs.
 `make format-tools-check` checks that exact pin and prepared rustfmt offline.
 Both `fmt` and `fmt-check` require it, then sort/check the one Cargo workspace
 before formatting/checking Rust. They never install missing tools. The complete

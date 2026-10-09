@@ -30,6 +30,8 @@ qualified by this matrix.
   plus common jq 1.8.2, Mike Farah yq 4.47.2 and
   ripgrep 15.2.0 with PCRE2 and cloc 2.10 under `.tools/host/bin`. Host versions
   and payload digests have one owner in the immutable `ci/tool-versions.env` snapshot.
+  Cargo-sort uses the shared selected-package installer and a versioned local
+  directory; Cargo Audit and Cargo Machete retain their global Cargo destinations.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
@@ -783,6 +785,55 @@ failed status observations and source/index preservation. ShellCheck, changelog
 and documentation-link checks pass. Original release logs remain intact; no
 complete CI gate or release was rerun, and native macOS remains unqualified.
 
+Pending 0.52.4 selects published Shared Tooling 0.2.8 at
+`b2646cde9abbc8861857a4379c683a0c19eba43e` (76 canonical files) and Host
+artifacts/filesystem/process 0.9.7 at
+`ca62e661918db2f4320743b9042a4993a5fff2aa`. These three libraries are unchanged
+from 0.9.4. The released consumer Makefile's combined target-specific
+`override export` syntax fails GNU Make 3.81 parsing; portable exported policies
+now retain forced release cache preparation and offline/no-auto-install
+formatting under inherited and command-line caller settings. Snapshot routing
+is bound before includes load. The shared probe's command-line `MAKEFLAGS`
+override gap remains in 0.2.8; Query retains its stronger guard and reports
+the executed failure in [Shared #30](https://github.com/dragginzgame/shared-tooling/issues/30#issuecomment-6084528903).
+
+Consumer CI-script, release-cache, metadata, publication and actual release-command
+fixtures pass on Linux with GNU Make 4.3/Bash 5 and genuine GNU Make 3.81/Bash
+3.2. Actual check-only formatting passes on both profiles. Snapshot integrity,
+ShellCheck, documentation links, current committed-version changelog admission
+and whitespace checks pass. After explicit locked cache preparation, 26 smoke
+and 55 host-feature cache tests pass locked/offline. Package manifests and the
+real Git index remain unchanged; no release commands or shared hooks ran.
+Evidence is retained in `/tmp/ic-query-0524-*.log`; these Linux compatibility
+checks do not qualify native macOS or the complete consumer gate.
+
+Exact [Query 0.52.3 CI](https://github.com/dragginzgame/ic-query/actions/runs/37953720710)
+passes all three Linux jobs; its six macOS jobs remain queued when inspected.
+Exact [Shared 0.2.8 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37955525946)
+passes Linux portable regression and lint/security, with both macOS jobs queued.
+Exact [Host 0.9.7 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37958032736)
+passes Linux native and MSRV checks, with both macOS jobs queued. Pending
+consumer 0.52.4 changes have no remote qualification.
+
+The same pending slice repairs
+[#36](https://github.com/dragginzgame/ic-query/issues/36): explicit developer
+setup prepares only cargo-sort through the selected-package installer, while
+formatter targets prefer its versioned directory. The actual-Make regression
+fails against the previous global recipe after successful setup, then passes
+with the repair on both Linux Make/Bash profiles. It uses the reviewed installer
+and checksum helper with substitute Cargo/rustc effects and receipts; conflicting
+local/global copies remain unchanged, and a failed install retains its candidate
+and stops before Audit/Machete setup. An initial draft changed the unrelated
+host PATH prefix; that failure is retained separately from the final passes.
+The final PATH binding applies only to formatter targets. Consumer CI-script
+and shared Rust installer suites, release/cache routing, check-only formatting,
+ShellCheck and snapshot checks pass on both profiles where applicable. After
+explicit locked cache preparation, 26 smoke and 55 host-feature cache tests pass
+against Host 0.9.7. Evidence: `/tmp/ic-query-0524-issue36-*.log`,
+`/tmp/ic-query-0524-rust-tools-*.log` and `/tmp/ic-query-0524-host097-*.log`.
+No actual tool installation, full gate or native macOS execution was performed;
+the prepared consumer changes remain uncommitted.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |
@@ -878,9 +929,12 @@ formatting and preserves source, the Git index, lockfiles and unrelated edits.
 The shared Cargo-tool set is optional for Query. `make install-rust-tools`
 prepares cargo-sort, cargo-sort-derives and candid-extractor under `.tools/rust`;
 `make rust-tools-check` verifies that complete local set offline. Query does not
-need the latter two executables for its current workflows, so `install-tools`,
-`tools-check` and `install-dev` retain their existing selections. The shared
-Make include adds `.tools/rust/bin` to PATH; if this optional set is prepared,
-its cargo-sort must satisfy the same formatter pin. Installer substitution
-tests establish dispatch and failure handling, not native compilation of these
-optional executables in this consumer.
+need the latter two executables for its current workflows, so `install-tools`
+and `tools-check` retain their existing selections. `install-dev` selects only
+cargo-sort through the shared package installer, with a release-profile binary
+under `.tools/rust/cargo-sort-<pin>-bin-cargo-sort-release/installed/bin`.
+Formatter targets prepend that directory to the shared Make include's paths,
+so an older optional bundle or global copy cannot shadow successful setup.
+Those existing copies remain intact. Cargo Audit and Cargo Machete keep their
+pinned global Cargo installations. Installer substitution tests establish
+dispatch and failure handling, not native compilation of these executables.

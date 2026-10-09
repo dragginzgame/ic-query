@@ -1,6 +1,7 @@
 # Opt-in single-root-workspace formatting; include make/tools.mk first.
-# Shared companions: make/tools.mk scripts/ci/check-format-tools.sh
+# Shared companions: make/tools.mk scripts/ci/check-format-tools.sh make/execution.mk
 _shared_format_default_goal := $(.DEFAULT_GOAL)
+include $(dir $(lastword $(MAKEFILE_LIST)))execution.mk
 FORMAT_CARGO ?= cargo
 
 .PHONY: format-tools-check fmt fmt-check

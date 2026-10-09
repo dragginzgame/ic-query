@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.4]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Adopts Shared Tooling 0.2.8, including isolated Make admission and release
+  fixture routing. Retains Query's stronger execution guard for overridden flags.
+- Repairs GNU Make 3.81 parsing while preserving release cache preparation,
+  checkout-local helper selection and offline formatting.
+  [#35](https://github.com/dragginzgame/ic-query/issues/35).
+- Selects published Host 0.9.7 with the existing cache and process contracts.
+- Development setup installs cargo-sort through the shared local installer;
+  formatting prefers that selection over stale local or global copies.
+  [#36](https://github.com/dragginzgame/ic-query/issues/36).
+
 ## [0.52.3] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)

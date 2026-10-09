@@ -63,6 +63,10 @@ disables automatic rustup installation. `FORMAT_CARGO` selects one executable
 name or path, not a command string; export `RUSTUP_TOOLCHAIN` to select a compiler.
 The include preserves the default goal and never activates hooks or installs
 tools. Keep setup explicit and retain stronger consumer admission checks.
+The adjacent `make/execution.mk` companion uses the existing execution probe to
+reject Make ignore-errors and non-executing modes before recipes run. Select its
+declared companion when exporting; a failing prerequisite alone cannot enforce
+failure propagation under ignore-errors mode.
 
 Keep local recipes for multiple independent workspaces, sort-derives, custom
 manifest ordering or frontend formatting. Those recipes still use the shared

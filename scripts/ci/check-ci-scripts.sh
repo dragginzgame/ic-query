@@ -15,8 +15,8 @@ fail() {
 copy_makefile() {
   mkdir -p "$1/make" "$1/scripts/ci"
   cp "$repo_root/Makefile" "$1/Makefile"
-  cp "$repo_root/make/"{tools,release,rust-format}.mk "$1/make/"
-  cp "$repo_root/scripts/ci/check-release-source.sh" "$1/scripts/ci/"
+  cp "$repo_root/make/"{tools,release,rust-format,execution}.mk "$1/make/"
+  cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution}.sh "$1/scripts/ci/"
 }
 
 check_clean_worktree() {
@@ -103,11 +103,13 @@ MAKE
       -C "$fixture" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
     [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted inherited MAKEFLAGS=$mode"
   done
-  status=0
-  env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-    TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
-    -i MAKEFLAGS=--no-print-directory execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-  [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail 'MAKEFLAGS override hid invocation mode'
+  for mode in -i -n -t -q; do
+    status=0
+    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+      TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
+      "$mode" MAKEFLAGS=--no-print-directory execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "MAKEFLAGS override hid invocation mode $mode"
+  done
   for mode in --no-print-directory -j2; do
     env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
       TRACE_FILE="$fixture/trace" "$make_bin" -C "$fixture" "$mode" \
@@ -620,17 +622,95 @@ for target in fmt fmt-check; do
   fi
   [[ ! -s "$format_case/trace" ]] || fail 'absent formatter dispatched fallback Cargo'
 done
+cp "$repo_root/scripts/dev/install-rust-tools.sh" "$format_case/scripts/dev/"
+cp "$repo_root/scripts/ci/verify-file-checksum.sh" "$format_case/scripts/ci/"
+mkdir -p "$format_case/.tools/rust/bin"
+printf '#!/usr/bin/env bash\necho cargo-sort 9.8.6\n' > "$format_case/.tools/rust/bin/cargo-sort"
+printf '#!/usr/bin/env bash\necho cargo-sort 9.8.5\n' > "$format_case/bin/cargo-sort"
+chmod +x "$format_case/.tools/rust/bin/cargo-sort" "$format_case/bin/cargo-sort"
+cp "$format_case/.tools/rust/bin/cargo-sort" "$format_case/local-before"
+cp "$format_case/bin/cargo-sort" "$format_case/global-before"
+printf '#!/usr/bin/env bash\necho "host: fixture-host"\n' > "$format_case/bin/rustc"
+chmod +x "$format_case/bin/rustc"
+cat > "$format_case/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  install)
+    if [[ "$*" == 'install --locked cargo-sort --version 9.8.7' ]]; then
+      # Reproduce the old global setup while leaving the stale local winner.
+      printf '#!/usr/bin/env bash\necho cargo-sort 9.8.7\n' > "$FIXTURE_GLOBAL_SORT"
+      exit 0
+    fi
+    if [[ "$2" != cargo-sort ]]; then
+      printf '%s\n' "$*" >> "$TRACE_FILE"
+      [[ "$*" == 'install --locked cargo-audit --version 8.7.6' ||
+         "$*" == 'install --locked cargo-machete --version 7.6.5' ]]
+      exit 0
+    fi
+    [[ $# == 13 && "$3" == --version && "$4" == =9.8.7 && "$5" == --locked &&
+       "$6" == --root && "$8" == --target-dir && "$9" == "$7/build" &&
+       "${10}" == --bin && "${11}" == cargo-sort && "${12}" == --registry &&
+       "${13}" == crates-io && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+    printf 'formatter setup 9.8.7\n' >> "$TRACE_FILE"
+    [[ "${FIXTURE_SORT_INSTALL_FAIL:-}" != yes ]] || exit 23
+    mkdir -p "$7/bin"
+    cat > "$7/bin/cargo-sort" <<'SORT'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+printf 'sort %s\n' "$*" >> "$TRACE_FILE"
+if [[ "$*" == --version ]]; then echo 'cargo-sort 9.8.7';
+else [[ "$*" == '--workspace --check' ]]; fi
+SORT
+    chmod +x "$7/bin/cargo-sort"
+    jq -n '{installs:{"cargo-sort 9.8.7 (registry+https://github.com/rust-lang/crates.io-index)":
+      {version_req:"=9.8.7",bins:["cargo-sort"],profile:"release",target:"fixture-host",rustc:"fixture rustc"}}}' > "$7/.crates2.json"
+    ;;
+  sort) shift; exec cargo-sort "$@" ;;
+  fmt)
+    [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+    printf '%s\n' "$*" >> "$TRACE_FILE"
+    if [[ "$*" == 'fmt --version' ]]; then echo rustfmt;
+    else [[ "$*" == 'fmt --all -- --check' ]]; fi
+    ;;
+  *) exit 80 ;;
+esac
+CARGO
+run_formatter_make() {
+  PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
+    FIXTURE_GLOBAL_SORT="$format_case/bin/cargo-sort" \
+    MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$format_case" "$@"
+}
+if run_formatter_make fmt-check > "$format_case/stale.log" 2>&1; then
+  fail 'formatting admitted the stale local formatter'
+fi
 : > "$format_case/trace"
-PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
-  MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
-  "$make_bin" --no-print-directory -C "$format_case" install-dev \
-  CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null
+run_formatter_make install-dev CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 \
+  > "$format_case/setup.log" 2>&1
+run_formatter_make fmt-check > "$format_case/prepared.log" 2>&1 \
+  || fail 'install-dev did not prepare the formatter selected by fmt-check'
 printf '%s\n' "host setup --consumer $format_case --versions $format_case/ci/tool-versions.env --with-ripgrep --with-cloc" \
-  'install --locked cargo-sort --version 9.8.7' \
-  'install --locked cargo-audit --version 8.7.6' \
-  'install --locked cargo-machete --version 7.6.5' > "$format_case/expected"
-cmp "$format_case/expected" "$format_case/trace" \
-  || fail 'install-dev did not share the formatter pin or changed development setup ordering'
+  'formatter setup 9.8.7' 'install --locked cargo-audit --version 8.7.6' \
+  'install --locked cargo-machete --version 7.6.5' 'sort --version' 'fmt --version' \
+  'sort --workspace --check' 'fmt --all -- --check' > "$format_case/expected"
+cmp "$format_case/expected" "$format_case/trace" || fail 'formatter setup or offline lookup changed'
+cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
+cmp "$format_case/global-before" "$format_case/bin/cargo-sort"
+slot="$format_case/.tools/rust/cargo-sort-9.8.7-bin-cargo-sort-release"
+mv "$slot/installed" "$format_case/prepared-formatter"
+: > "$format_case/trace"
+if FIXTURE_SORT_INSTALL_FAIL=yes run_formatter_make install-dev \
+  CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$format_case/setup-failure.log" 2>&1; then
+  fail 'install-dev admitted a failed formatter installation'
+fi
+head -2 "$format_case/expected" > "$format_case/expected-failure"
+cmp "$format_case/expected-failure" "$format_case/trace" || fail 'setup continued after formatter failure'
+[[ ! -e "$slot/installed" && ! -e "$slot/install.lock" ]]
+grep -Fq 'Cargo tool attempt retained:' "$format_case/setup-failure.log"
+cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
+cmp "$format_case/global-before" "$format_case/bin/cargo-sort"
 
 python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 

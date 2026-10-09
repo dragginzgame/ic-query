@@ -11,7 +11,8 @@ fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,scripts/ci,scripts/release} "$work_dir/bin"
 cd "$work_dir/repository"
 cp "$repo_root/Makefile" Makefile
-cp "$repo_root/make/"{tools,release,rust-format}.mk make/
+cp "$repo_root/make/"{tools,release,rust-format,execution}.mk make/
+cp "$repo_root/scripts/ci/check-make-execution.sh" scripts/ci/
 cp "$repo_root/scripts/release/adapter.sh" scripts/release/
 cp "$repo_root/scripts/ci/next-release-version.sh" scripts/ci/
 cat > scripts/ci/run-release.sh <<'STUB'
@@ -67,7 +68,7 @@ export IC_QUERY_RELEASE_PREPARE_CACHE := 0
 probe:
 	+$(MAKE) --no-print-directory -C "$(FIXTURE_REPOSITORY)" release-patch
 checker:
-	+@bash "$(CHECKER)" "$(CONSUMER)" make/tools.mk make/release.mk make/rust-format.mk
+	+@bash "$(CHECKER)" "$(CONSUMER)" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh
 MAKE
 : > "$TRACE_FILE"
 "$make_bin" --no-print-directory -f "$work_dir/parent.mk" probe \

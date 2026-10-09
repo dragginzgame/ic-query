@@ -161,7 +161,17 @@ help:
 ```
 
 The include preserves the default goal and supplies `release-resume VERSION=X.Y.Z`.
-Set `SHARED_TOOLING_ROOT` before including it for a nested reviewed snapshot.
+Its adjacent `make/execution.mk` companion rejects Make ignore-errors and
+non-executing modes before recipes run, using the existing execution probe.
+Keep both the Make companion and `scripts/ci/check-make-execution.sh` selected.
+Admission resolves its probe relative to the selected include, independently of
+`SHARED_TOOLING_ROOT`; a missing companion refuses without consulting another
+snapshot. It probes the running GNU Make executable (`MAKE_COMMAND`), preserving
+the invocation's execution flags. A consumer's recursive `MAKE` command may carry
+arguments such as `-f Makefile -f overrides.mk`; those files and arguments never
+enter the isolated admission probe. Recursive invocations qualify their own modes.
+Set `SHARED_TOOLING_ROOT` for runtime runner routing to a nested reviewed snapshot;
+consumer target-specific overrides still apply to recipes.
 Keep delivery admission and metadata adapters local. Attach existing admission
 prerequisites to the four entrypoints and export cache-preparation selections
 with target-specific variables; do not replace the shared recipes. For example:
@@ -175,9 +185,12 @@ Preserve any consumer post-run reconciliation when adopting; a prerequisites-onl
 conversion does not reproduce an operation that previously followed the runner.
 The include does not select PR delivery, add validation or metadata adapters,
 publish packages, or clean artifacts. Keep those contracts explicit. Include
-`make/release.mk` in the extra inputs to `check-release-commands.sh` when testing
+`make/release.mk`, `make/execution.mk` and `scripts/ci/check-make-execution.sh`
+in the extra inputs to `check-release-commands.sh` when testing
 an adopting Makefile with the runner at `scripts/ci/run-release.sh`. That smoke
-checker substitutes the root runner; nested snapshots need a caller fixture
+checker binds `SHARED_TOOLING_ROOT` to its disposable checkout, overriding parent
+environment and ordinary Makefile assignments. It substitutes the root runner;
+nested snapshots need a caller fixture
 substituting their selected runner path, as the shared include tests do.
 Direct runner invocation remains supported for specialized
 entrypoints with independently qualified behavior.

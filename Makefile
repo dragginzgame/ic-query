@@ -13,11 +13,26 @@
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-# GNU Make 3.81 can put short flags after long options in MFLAGS. MFLAGS also
-# preserves invocation options when a caller overrides MAKEFLAGS explicitly.
+# MFLAGS preserves invocation modes hidden by a command-line MAKEFLAGS value.
+# Retain this boundary until the shared probe covers that override (Shared #30).
 override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(MFLAGS))
 ifneq ($(strip $(foreach mode,i n t q,$(findstring $(mode),$(icq_make_execution_flags)))),)
 $(error IC Query requires execution with errors enforced; remove ignore-errors, dry-run, touch and question modes)
+endif
+
+# GNU Make 3.81 cannot combine target-specific export and override. Preserve
+# caller defaults here so the exported target policies can supersede them.
+ifneq ($(origin IC_QUERY_RELEASE_PREPARE_CACHE),undefined)
+override IC_QUERY_RELEASE_PREPARE_CACHE := $(IC_QUERY_RELEASE_PREPARE_CACHE)
+export IC_QUERY_RELEASE_PREPARE_CACHE
+endif
+ifneq ($(origin CARGO_NET_OFFLINE),undefined)
+override CARGO_NET_OFFLINE := $(CARGO_NET_OFFLINE)
+export CARGO_NET_OFFLINE
+endif
+ifneq ($(origin RUSTUP_AUTO_INSTALL),undefined)
+override RUSTUP_AUTO_INSTALL := $(RUSTUP_AUTO_INSTALL)
+export RUSTUP_AUTO_INSTALL
 endif
 
 MSRV ?= 1.91.0
@@ -29,17 +44,17 @@ CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
-SHARED_TOOLING_ROOT := $(REPO_ROOT)
+override SHARED_TOOLING_ROOT := $(REPO_ROOT)
 include $(REPO_ROOT)make/tools.mk
 include $(REPO_ROOT)make/release.mk
 include $(REPO_ROOT)make/rust-format.mk
 export IC_TOOL_PINS
 
-# These commands have always dispatched through this checkout's local helpers.
-release-patch release-minor release-major release-resume format-tools-check fmt fmt-check: override SHARED_TOOLING_ROOT := $(REPO_ROOT)
-release-patch release-minor release-major release-resume: override export IC_QUERY_RELEASE_PREPARE_CACHE := 1
-format-tools-check fmt fmt-check: override export CARGO_NET_OFFLINE := true
-format-tools-check fmt fmt-check: override export RUSTUP_AUTO_INSTALL := 0
+# Use the shared installer's versioned cargo-sort selection before other copies.
+icq_formatter_version := $(shell if test -f "$(HOST_TOOL_VERSIONS)"; then . "$(HOST_TOOL_VERSIONS)" && printf '%s' "$${SHARED_TOOLING_CARGO_SORT_VERSION:-}"; fi)
+format-tools-check fmt fmt-check: export PATH := $(CURDIR)/.tools/rust/cargo-sort-$(icq_formatter_version)-bin-cargo-sort-release/installed/bin:$(PATH)
+
+release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
 CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
@@ -81,7 +96,7 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
-	@echo "  install-dev  Install pinned tools required by the local CI gate"
+	@echo "  install-dev  Prepare local cargo-sort and pinned tools required by CI"
 	@echo "  install-tools  Install the repository-local host and IC toolsets"
 	@echo "  tools-check  Verify both toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
@@ -183,7 +198,8 @@ install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
 install-dev: install-host-tools
-	@. "$(HOST_TOOL_VERSIONS)" && cargo install --locked cargo-sort --version "$$SHARED_TOOLING_CARGO_SORT_VERSION"
+	@. "$(HOST_TOOL_VERSIONS)" && bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
+		--package cargo-sort --version "$$SHARED_TOOLING_CARGO_SORT_VERSION" --bin cargo-sort --profile release
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 
