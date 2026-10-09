@@ -180,9 +180,10 @@ cat > "${make_case}/bin/git" <<'EOF'
 set -euo pipefail
 head_commit=1111111111111111111111111111111111111111
 case "$*" in
-  'diff-index --quiet HEAD --') exit "${DIRTY_STATUS:-0}" ;;
-  'ls-files --others --exclude-standard')
-    [[ -z "${UNTRACKED_PATH:-}" ]] || printf '%s\n' "${UNTRACKED_PATH}"
+  'rev-parse --show-prefix') printf '\n' ;;
+  'status --porcelain=v1 -z --untracked-files=all')
+    [[ "${DIRTY_STATUS:-0}" == 0 ]] || printf ' M Cargo.lock\0'
+    [[ -z "${UNTRACKED_PATH:-}" ]] || printf '?? %s\0' "${UNTRACKED_PATH}"
     exit "${INVENTORY_STATUS:-0}"
     ;;
   "cat-file -t refs/tags/v${RELEASE_VERSION}")
@@ -229,9 +230,14 @@ for invalid_release in dirty untracked inventory-empty inventory-partial stale-t
       lightweight-tag) export TAG_TYPE=commit ;;
     esac
     make --no-print-directory -f "${repo_root}/Makefile" publish
-  ) >/dev/null 2>&1; then
+  ) > "$make_case/$invalid_release.log" 2>&1; then
     fail "make publish accepted a ${invalid_release} release"
   fi
   [[ ! -s "${make_case}/trace" ]] \
     || fail "make publish reached the registry or Cargo for a ${invalid_release} release"
+  case "$invalid_release" in
+    dirty) grep -Fq 'unstaged: Cargo.lock' "$make_case/$invalid_release.log" ;;
+    untracked) grep -Fq 'untracked: unexpected.txt' "$make_case/$invalid_release.log" ;;
+    inventory-*) grep -Fq 'cannot inspect release-source status' "$make_case/$invalid_release.log" ;;
+  esac
 done

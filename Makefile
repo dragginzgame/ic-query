@@ -1,10 +1,10 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
-	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check fmt fmt-check format-tools-check help \
+	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dev library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
-	release-guards-check release-major release-minor release-patch release-resume \
+	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
 	release-tagged-check release-push-check release-tag-check shared-tooling-check \
@@ -12,18 +12,12 @@
 
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-RELEASE_REMOTE ?= origin
-RELEASE_BRANCH ?= main
 
 # GNU Make 3.81 can put short flags after long options in MFLAGS. MFLAGS also
 # preserves invocation options when a caller overrides MAKEFLAGS explicitly.
 override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(MFLAGS))
 ifneq ($(strip $(foreach mode,i n t q,$(findstring $(mode),$(icq_make_execution_flags)))),)
 $(error IC Query requires execution with errors enforced; remove ignore-errors, dry-run, touch and question modes)
-endif
-
-ifneq ($(word 2,$(filter release-patch release-minor release-major release-resume,$(MAKECMDGOALS))),)
-$(error Select exactly one release target)
 endif
 
 MSRV ?= 1.91.0
@@ -37,7 +31,15 @@ CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 SHARED_TOOLING_ROOT := $(REPO_ROOT)
 include $(REPO_ROOT)make/tools.mk
+include $(REPO_ROOT)make/release.mk
+include $(REPO_ROOT)make/rust-format.mk
 export IC_TOOL_PINS
+
+# These commands have always dispatched through this checkout's local helpers.
+release-patch release-minor release-major release-resume format-tools-check fmt fmt-check: override SHARED_TOOLING_ROOT := $(REPO_ROOT)
+release-patch release-minor release-major release-resume: override export IC_QUERY_RELEASE_PREPARE_CACHE := 1
+format-tools-check fmt fmt-check: override export CARGO_NET_OFFLINE := true
+format-tools-check fmt fmt-check: override export RUSTUP_AUTO_INSTALL := 0
 
 CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
@@ -99,32 +101,13 @@ help:
 	@echo "  clean      Remove build artifacts"
 
 ensure-clean:
-	@untracked="$$(git ls-files --others --exclude-standard)" || { \
-		echo "error: cannot inventory untracked source" >&2; exit 1; \
-	}; \
-	if ! git diff-index --quiet HEAD -- || test -n "$$untracked"; then \
-		echo "error: working directory is not clean; commit or stash changes first" >&2; \
-		exit 1; \
-	fi
+	@bash "$(REPO_ROOT)scripts/ci/check-release-source.sh"
 
 version release-version:
 	@YQ="$(YQ)" bash "$(REPO_ROOT)scripts/ci/read-cargo-workspace-version.sh" --stable Cargo.toml
 
 tags:
 	@git tag --sort=-version:refname | head -10
-
-format-tools-check:
-	@. "$(HOST_TOOL_VERSIONS)" && bash "$(REPO_ROOT)scripts/ci/check-format-tools.sh" "$$SHARED_TOOLING_CARGO_SORT_VERSION"
-
-fmt fmt-check: format-tools-check
-
-fmt:
-	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo sort --workspace
-	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo fmt --all
-
-fmt-check:
-	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo sort --workspace --check
-	CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo fmt --all -- --check
 
 check:
 	cargo check --workspace --all-targets --all-features --locked --offline
@@ -206,12 +189,6 @@ install-dev: install-host-tools
 
 publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh
-
-release-patch release-minor release-major:
-	+@IC_QUERY_RELEASE_PREPARE_CACHE=1 bash "$(REPO_ROOT)scripts/ci/run-release.sh" "$(@:release-%=%)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
-
-release-resume:
-	+@IC_QUERY_RELEASE_PREPARE_CACHE=1 bash "$(REPO_ROOT)scripts/ci/run-release.sh" resume "$(VERSION)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
 
 export RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH
 

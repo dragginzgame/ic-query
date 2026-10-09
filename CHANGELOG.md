@@ -9,12 +9,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
 
-- Adopts Shared Tooling 0.2.5. Shared test exports now require their declared
+- Adopts Shared Tooling 0.2.6. Shared test exports now require their declared
   helpers before changing consumer files; Query retains its existing selection.
   [Shared #73](https://github.com/dragginzgame/shared-tooling/issues/73).
-- Selects published Host 0.9.3 with the existing cache and process contracts.
+- Shares release and formatting Make recipes, preserving execution guards,
+  local helper routing and dependency preparation. Formatting admission and
+  execution use the same selectable Cargo executable.
+  [#35](https://github.com/dragginzgame/ic-query/issues/35).
+- Selects published Host 0.9.4 with the existing cache and process contracts.
 - Resolves node-status targets without buffering all identifiers, retaining
   exact matches, unique prefixes and ordered ambiguity details.
+- Package and publication clean-source failures now identify staged, unstaged
+  and untracked paths without changing the checkout or index.
+
+```bash
+make fmt-check FORMAT_CARGO=cargo
+```
 
 ## [0.52.2] - 2026-10-09
 

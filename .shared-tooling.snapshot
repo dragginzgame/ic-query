@@ -1,18 +1,18 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	04e07b4bf54e7aeb03eb7804a845cee27b7305df
+revision	ce13a5314916891fd239d9b199b4a91b04775054
 file	0d472a74369e6aa772d585305e19b398fb86f0ef9698f1564356ddc11c60e0b6	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	a7d6612e6c9cfea5f8e920f82109094851876d0dfc117ecc454f966cb50d7c66	-	rules/cargo-dependencies.md
-file	6c763c1a8b7ccb20d37476627341a6da73fdf4cf8a6081f19d87da115dcda958	-	rules/git-hooks.md
-file	2a81dbef0bbf2045bf83a921cd5d4af49d400ffc4cafd35fad222750ac6b2d9f	-	docs/releases.md
+file	68f325537b928729a8b8f973538588c5332fa50b1a52aec17a64a4e334f24559	-	rules/git-hooks.md
+file	825e0f93b3d6e3a135c43b535b1619980defb82d27d75f366a3cb991e47a04e3	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	ee68649246bad21f0f28df4ea3809d8e2c7bcf1cd2a3d68e44684b855badc1c2	-	docs/principles/reviewable-changes.md
 file	27a04aeee753252b310fef363856edf83577337bfaea1e63a50017460eddde59	-	docs/principles/rust-code-hygiene.md
 file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
-file	2f07378fef5bda41bd21a1c1157fc9cf5ce6562bd273c0e05e1cd1755c9faf35	-	docs/consuming-snapshots.md
+file	c504bfccb87ae2bbd286c9182076ff82d86ea274126edb97cfdb108e5cf98931	-	docs/consuming-snapshots.md
 file	fc689ff5d636be1049a527f6cafa74a768005211dcbecb074b8b327d8e6bab04	x	scripts/ci/run-release.sh
 file	37e028e2d9fee271ffdc06d06fc15d7a148ec524def3d9ed2afcd9910c0ec642	x	scripts/ci/next-release-version.sh
 file	e7f4c82566858b89b50c5c2f929097bdde85345a2c0c1bf553bb1170cc4f5960	-	scripts/ci/finalize-release-changelog.awk
@@ -75,3 +75,5 @@ file	d26462d2d6e9c1e991a6f1f45f2a12ce919a29eab987665438af530f51b6fee5	-	tasks/sy
 file	f7b95816164980993403d2d6eae13336db1c476c58217c8e8d356e6d01fe9b27	-	tasks/systemd/shared-tooling-maintenance.timer
 file	dfccb5fa0194b343d140512c892a31eac902cb1a489e641feae3c18e1cf70a1c	-	scripts/dev/run-maintenance.sh
 file	a3af7084956384262842be33100f91a22fdd82b0f91b6091a00e90f8726f67fe	x	scripts/ci/check-release-source.sh
+file	c3410070f600c1eafdb0f7bed9dcc34a61ca2dfbb8dfcc066dfcc63c981c5cba	-	make/release.mk
+file	744ee908b1e5c7b5f709ce8854187015abfc1673305f89865bce37ab3db752c9	-	make/rust-format.mk

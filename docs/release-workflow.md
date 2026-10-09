@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`04e07b4bf54e7aeb03eb7804a845cee27b7305df`](https://github.com/dragginzgame/shared-tooling/tree/04e07b4bf54e7aeb03eb7804a845cee27b7305df) (0.2.5),
+[`ce13a5314916891fd239d9b199b4a91b04775054`](https://github.com/dragginzgame/shared-tooling/tree/ce13a5314916891fd239d9b199b4a91b04775054) (0.2.6),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/04e07b4bf54e7aeb03eb7804a845cee27b7305df/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/ce13a5314916891fd239d9b199b4a91b04775054/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,14 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 73 shared files. Its governance selection keeps the linked
+Package and publication admission use the shared read-only source checker with
+no allowed dirty paths. It lists staged, unstaged and untracked changes without
+updating the Git index. Finish and commit reviewed source/dependency changes
+before starting validation; changes made while a gate is running invalidate
+its source qualification and require a fresh attempt. A failed validation does
+not authorize reverting those changes or clearing its retained evidence.
+
+The snapshot contains 75 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -44,6 +51,21 @@ It refuses native Git effects except inert hashing; actual tracking/race tests
 remain in Shared Tooling's owner suite. The linked maintenance task catalog and
 schedule templates are retained offline, without enabling a timer or recurring
 agent execution.
+
+The reviewed `make/release.mk` and `make/rust-format.mk` includes own standard
+release routing and root-workspace formatting. Query retains its parse-time
+execution-mode guard, local adapters and target-specific cache preparation on
+all four release entrypoints. Release and formatter helper paths remain bound
+to this checkout, including in disposable fixtures under inherited or explicit
+snapshot selections. The root release-command fixture is qualified against
+inert external runners; this consumer binding does not repair the shared
+checker's independent isolation issue.
+
+Formatting checks the reviewed cargo-sort pin before sorting and Rust formatting,
+uses prepared tools offline and disables automatic rustup installation.
+`FORMAT_CARGO` selects one executable name or path for admission and execution;
+use `RUSTUP_TOOLCHAIN` for explicit toolchain selection. Setup and checkout hook
+configuration remain separate; Query does not select the shared formatting hook.
 
 After confirmed URL-form release delivery, the runner refreshes an eligible
 matching local upstream tracking ref without fetching or repeating the push.

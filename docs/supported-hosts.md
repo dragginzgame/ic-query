@@ -712,7 +712,7 @@ macOS jobs remain queued when inspected. The source has one nine-job branch
 run and no duplicate tag run; native macOS acceptance and manual dispatch
 execution remain separate gaps.
 
-Pending 0.52.3 adopts committed Shared Tooling 0.2.5 at
+The initial pending 0.52.3 refresh reviewed committed Shared Tooling 0.2.5 at
 `04e07b4bf54e7aeb03eb7804a845cee27b7305df` through the canonical exporter,
 retaining 73 selected files and the separately pinned engineering baseline.
 The selected Rust-tool fixture declares its installer/checksum companions;
@@ -745,6 +745,43 @@ features and 21 with `host`, plus strict Clippy for the library and tests withou
 host features, on Linux with locked/offline dependencies. Rust formatting and
 the changelog check pass. These local checks do not qualify native macOS or a
 complete consumer CI gate.
+
+Pending 0.52.3 now selects reviewed Shared Tooling 0.2.6 at
+`ce13a5314916891fd239d9b199b4a91b04775054`, with 75 canonical snapshot files.
+The shared release and formatting Make includes replace local recipes under
+[#35](https://github.com/dragginzgame/ic-query/issues/35). Consumer CI-script,
+release-cache and metadata fixtures pass on Linux with Bash 5 and genuine Bash
+3.2, including nested Make, inert external-runner isolation, exact destinations,
+cache selection, formatter admission/order and command-line policy overrides.
+Actual check-only formatting, snapshot verification, ShellCheck, changelog and
+documentation-link checks pass. Formatting preserves manifests, lockfiles and
+the Git index; the shared hook remains outside Query's selection and was not
+activated or executed. These checks preserve Query's stronger local guard;
+Shared's generic Make admission and fixture-isolation repairs remain upstream.
+
+The maintainer-selected Host 0.9.4 artifacts/filesystem/process packages map to
+published source `4e3daebd5df07c6449279535668436024a45c02b`; their library sources
+are unchanged from 0.9.3. After explicit locked cache preparation, 26 smoke-runner
+and 55 cache-file tests pass locked/offline on Linux. Exact
+[Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37944389294)
+passes Linux portable regression and lint/security; both macOS lanes are queued.
+[Host source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37947548868)
+is queued when inspected. Query's current committed source
+`ec0af4f140220de2da2534d3be2ae170fff5f370` has no hosted run when inspected;
+the additional dirty adoption changes have no remote qualification. No full
+consumer CI, live canister deployment, native macOS or release was run locally.
+
+The reported `.git/release-state/0.52.3.verify.muLRod` attempt retained Host
+0.9.3 inputs at 17:01 CEST; the lockfile changed to 0.9.4 at 17:04, before
+packaging refused dirty source at 17:10. The subsequent Shared 0.2.6 adoption
+was written after that failure. Package/publication admission now delegates to
+the selected shared source checker, reporting each staged, unstaged and
+untracked path without changing the index. Consumer CI-script and publication
+guard fixtures pass on Linux with Bash 5 and genuine Bash 3.2, including real-Git
+dirty-lock refusal before Cargo, hidden staged changes, unusual untracked names,
+failed status observations and source/index preservation. ShellCheck, changelog
+and documentation-link checks pass. Original release logs remain intact; no
+complete CI gate or release was rerun, and native macOS remains unqualified.
 
 ## Tool-specific dependencies
 

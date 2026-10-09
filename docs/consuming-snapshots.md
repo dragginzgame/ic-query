@@ -381,6 +381,24 @@ select consumer-owned pin exceptions; their defaults remain the checkout's
 consumer checkout. Include `make/tools.mk` in any isolated Makefile export,
 including the extra inputs to `check-release-commands.sh`.
 
+Two optional includes centralize further command wiring without owning product
+policy:
+
+- `make/release.mk` supplies the standard release entrypoints
+  and conflicting-goal rejection. Select its declared runner companions and
+  retain the consumer's delivery admission, cache preparation, metadata and
+  validation adapters. See the [release example](releases.md#makefile-example).
+- `make/rust-format.mk`, included after `make/tools.mk`,
+  supplies the simple root-workspace formatting commands. Select both includes,
+  `scripts/ci/check-format-tools.sh` and the reviewed pin file. Keep richer
+  workspace/frontend recipes local under the [formatting rules](../rules/git-hooks.md).
+
+Replace equivalent local recipes only after testing the actual caller and hook.
+These files must come from the recorded snapshot, never a live sibling include.
+The optional `test-make-format.sh` fixture declares its own companions; the
+complete `test-git-hooks.sh` fixture also requires the new formatting include.
+Explicitly extend a consumer's file selection before refreshing that fixture.
+
 `make cloc` reports the consumer's root Cargo workspace and requires its prepared
 Rust toolchain. Shared Tooling itself selects `CLOC_REPORT` and `CLOC_ROOT` before
 the include to summarize sibling workspaces; consumers normally use the defaults.

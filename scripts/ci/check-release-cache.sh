@@ -11,7 +11,7 @@ fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,scripts/ci,scripts/release} "$work_dir/bin"
 cd "$work_dir/repository"
 cp "$repo_root/Makefile" Makefile
-cp "$repo_root/make/tools.mk" make/
+cp "$repo_root/make/"{tools,release,rust-format}.mk make/
 cp "$repo_root/scripts/release/adapter.sh" scripts/release/
 cp "$repo_root/scripts/ci/next-release-version.sh" scripts/ci/
 cat > scripts/ci/run-release.sh <<'STUB'
@@ -19,6 +19,7 @@ cat > scripts/ci/run-release.sh <<'STUB'
 set -euo pipefail
 [[ "${IC_QUERY_RELEASE_PREPARE_CACHE:-}" == 1 ]]
 printf '%s\n' "$*" >> "$TRACE_FILE"
+exit "${FIXTURE_RUNNER_RESULT:-0}"
 STUB
 export TRACE_FILE="$work_dir/trace"
 for kind in patch minor major; do
@@ -27,6 +28,56 @@ done
 "$make_bin" --no-print-directory release-resume VERSION=0.51.0
 printf '%s\n' 'patch origin main' 'minor origin main' 'major origin main' 'resume 0.51.0 origin main' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
+
+# Local dispatch must survive inherited or command-line snapshot selections.
+mkdir -p "$work_dir/external/scripts/ci"
+cat > "$work_dir/external/scripts/ci/run-release.sh" <<'STUB'
+printf 'external runner dispatched\n' >> "$TRACE_FILE"
+exit 99
+STUB
+: > "$TRACE_FILE"
+"$make_bin" --no-print-directory > "$work_dir/default.log"
+[[ ! -s "$TRACE_FILE" ]] || fail 'default goal dispatched a release'
+grep -Fq 'Available commands:' "$work_dir/default.log" || fail 'default goal lost help'
+for selection in environment command-line; do
+  : > "$TRACE_FILE"
+  for kind in patch minor major resume; do
+    arguments=("release-$kind" VERSION=0.51.0 RELEASE_REMOTE=review RELEASE_BRANCH=review-branch)
+    if [[ "$selection" == command-line ]]; then
+      arguments+=("SHARED_TOOLING_ROOT=$work_dir/external" IC_QUERY_RELEASE_PREPARE_CACHE=0)
+    fi
+    SHARED_TOOLING_ROOT="$work_dir/external" IC_QUERY_RELEASE_PREPARE_CACHE=0 \
+      "$make_bin" --no-print-directory "${arguments[@]}" > "$work_dir/$selection-$kind.log" 2>&1
+  done
+  printf '%s\n' 'patch review review-branch' 'minor review review-branch' \
+    'major review review-branch' 'resume 0.51.0 review review-branch' > "$work_dir/expected"
+  cmp "$TRACE_FILE" "$work_dir/expected" || fail 'selected destination, resume or local cache routing changed'
+done
+: > "$TRACE_FILE"
+status=0
+FIXTURE_RUNNER_RESULT=17 "$make_bin" --no-print-directory release-patch \
+  > "$work_dir/runner-failure.log" 2>&1 || status=$?
+[[ "$status" == 2 ]] || fail 'Make discarded the runner failure'
+printf '%s\n' 'patch origin main' > "$work_dir/expected"
+cmp "$TRACE_FILE" "$work_dir/expected"
+cat > "$work_dir/parent.mk" <<'MAKE'
+export SHARED_TOOLING_ROOT := $(EXTERNAL_ROOT)
+export IC_QUERY_RELEASE_PREPARE_CACHE := 0
+.PHONY: probe checker
+probe:
+	+$(MAKE) --no-print-directory -C "$(FIXTURE_REPOSITORY)" release-patch
+checker:
+	+@bash "$(CHECKER)" "$(CONSUMER)" make/tools.mk make/release.mk make/rust-format.mk
+MAKE
+: > "$TRACE_FILE"
+"$make_bin" --no-print-directory -f "$work_dir/parent.mk" probe \
+  "EXTERNAL_ROOT=$work_dir/external" "FIXTURE_REPOSITORY=$PWD" > "$work_dir/parent.log" 2>&1
+cmp "$TRACE_FILE" "$work_dir/expected" || fail 'parent Make redirected the local runner'
+: > "$TRACE_FILE"
+"$make_bin" --no-print-directory -f "$work_dir/parent.mk" checker \
+  "EXTERNAL_ROOT=$work_dir/external" "CHECKER=$repo_root/scripts/ci/check-release-commands.sh" \
+  "CONSUMER=$repo_root" > "$work_dir/parent-checker.log" 2>&1
+[[ ! -s "$TRACE_FILE" ]] || fail 'release-command checker dispatched the external runner'
 
 cat > "$work_dir/bin/git" <<'STUB'
 #!/usr/bin/env bash

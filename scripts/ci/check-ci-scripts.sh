@@ -13,10 +13,61 @@ fail() {
 }
 
 copy_makefile() {
-  mkdir -p "$1/make"
+  mkdir -p "$1/make" "$1/scripts/ci"
   cp "$repo_root/Makefile" "$1/Makefile"
-  cp "$repo_root/make/tools.mk" "$1/make/"
+  cp "$repo_root/make/"{tools,release,rust-format}.mk "$1/make/"
+  cp "$repo_root/scripts/ci/check-release-source.sh" "$1/scripts/ci/"
 }
+
+check_clean_worktree() {
+  local fixture="$work_dir/clean-worktree" replacement unusual
+  git clone --quiet --shared "$repo_root" "$fixture"
+  check_clean_source() {
+    "$make_bin" --no-print-directory -C "$fixture" -f "$repo_root/Makefile" ensure-clean \
+      > "$work_dir/clean-source.log" 2>&1
+  }
+  check_clean_source || fail 'Make refused a clean source checkout'
+  cp "$fixture/.git/index" "$work_dir/clean-index"
+  printf '\n' >> "$fixture/Cargo.lock"
+  cp "$fixture/Cargo.lock" "$work_dir/dirty-lock"
+  if check_clean_source; then fail 'Make admitted an unstaged lockfile'; fi
+  grep -Fq 'unstaged: Cargo.lock' "$work_dir/clean-source.log" \
+    || fail 'Make did not identify the changed lockfile'
+  cmp "$fixture/.git/index" "$work_dir/clean-index"
+  cmp "$fixture/Cargo.lock" "$work_dir/dirty-lock"
+
+  mkdir -p "$work_dir/clean-bin"
+  cat > "$work_dir/clean-bin/cargo" <<'STUB'
+#!/usr/bin/env bash
+printf 'Cargo dispatched\n' >> "$CLEAN_GATE_TRACE"
+STUB
+  chmod +x "$work_dir/clean-bin/cargo"
+  if PATH="$work_dir/clean-bin:$PATH" CLEAN_GATE_TRACE="$work_dir/package-trace" \
+    "$make_bin" --no-print-directory -C "$fixture" -f "$repo_root/Makefile" package \
+    > "$work_dir/dirty-package.log" 2>&1; then
+    fail 'package admitted an unstaged lockfile'
+  fi
+  [[ ! -e "$work_dir/package-trace" ]] || fail 'dirty source reached Cargo packaging'
+  grep -Fq 'unstaged: Cargo.lock' "$work_dir/dirty-package.log" \
+    || fail 'package did not identify the changed lockfile'
+  git -C "$fixture" checkout-index --force -- Cargo.lock
+
+  replacement="$(git -C "$fixture" rev-parse HEAD:AGENTS.md)"
+  git -C "$fixture" update-index --cacheinfo "100644,$replacement,README.md"
+  unusual=$'caller-owned\nfile.txt'
+  printf 'retained caller evidence\n' > "$fixture/$unusual"
+  cp "$fixture/.git/index" "$work_dir/clean-index"
+  if check_clean_source; then fail 'Make admitted staged or untracked source'; fi
+  grep -Fq 'staged: README.md' "$work_dir/clean-source.log"
+  grep -Fq 'unstaged: README.md' "$work_dir/clean-source.log"
+  printf '  untracked: %q\n' "$unusual" > "$work_dir/clean-expected"
+  grep -Fx -f "$work_dir/clean-expected" "$work_dir/clean-source.log" >/dev/null
+  cmp "$fixture/.git/index" "$work_dir/clean-index"
+  [[ "$(cat "$fixture/$unusual")" == 'retained caller evidence' ]] \
+    || fail 'source admission changed caller evidence'
+}
+
+check_clean_worktree
 
 check_make_execution_modes() {
   local fixture="$work_dir/make-execution" mode status
@@ -299,7 +350,7 @@ cp "$repo_root/scripts/ci/package-workspace.sh" "$offline_validation_case/script
 cat > "$offline_validation_case/bin/git" <<'EOF'
 #!/usr/bin/env bash
 case "$*" in
-  'ls-files --others --exclude-standard' | 'diff-index --quiet HEAD --') exit 0 ;;
+  'rev-parse --show-prefix' | 'status --porcelain=v1 -z --untracked-files=all') exit 0 ;;
   *) exit 59 ;;
 esac
 EOF
@@ -509,7 +560,7 @@ if [[ "$1" != install ]]; then
 fi
 printf '%s\n' "$*" >> "$TRACE_FILE"
 case "$*" in
-  'sort --version') echo 'cargo-sort 9.8.7' ;;
+  'sort --version') echo "cargo-sort ${FIXTURE_SORT_VERSION:-9.8.7}" ;;
   'fmt --version') echo rustfmt ;;
 esac
 [[ "$*" != "${FAIL_FORMAT_COMMAND:-}" ]] || exit 78
@@ -541,6 +592,33 @@ for target in fmt fmt-check; do
     cmp "$format_case/expected-failure" "$format_case/trace" \
       || fail "$target continued after failed formatter admission or execution"
   done
+done
+# Both admission and execution must use the selected executable, even with spaces.
+cp "$format_case/bin/cargo" "$format_case/bin/selected cargo"
+: > "$format_case/trace"
+PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" MAKEFLAGS='' MAKEOVERRIDES='' \
+  HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+  "$make_bin" --no-print-directory -C "$format_case" fmt-check \
+  "FORMAT_CARGO=$format_case/bin/selected cargo" "SHARED_TOOLING_ROOT=$work_dir/external" \
+  CARGO_NET_OFFLINE=false RUSTUP_AUTO_INSTALL=1 >/dev/null
+cmp "$format_case/expected" "$format_case/trace" || fail 'formatter executable selection diverged'
+for target in fmt fmt-check; do
+  : > "$format_case/trace"
+  if PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" FIXTURE_SORT_VERSION=9.8.6 \
+    MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$format_case" "$target" > "$format_case/wrong-pin.log" 2>&1; then
+    fail "$target accepted the wrong formatter pin"
+  fi
+  printf '%s\n' 'sort --version' > "$format_case/expected-admission"
+  cmp "$format_case/expected-admission" "$format_case/trace" || fail 'wrong pin dispatched formatting'
+  : > "$format_case/trace"
+  if PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
+    MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -C "$format_case" "$target" \
+    "FORMAT_CARGO=$format_case/missing cargo" > "$format_case/missing-tool.log" 2>&1; then
+    fail "$target accepted an absent formatter"
+  fi
+  [[ ! -s "$format_case/trace" ]] || fail 'absent formatter dispatched fallback Cargo'
 done
 : > "$format_case/trace"
 PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
