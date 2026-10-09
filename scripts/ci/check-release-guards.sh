@@ -4,6 +4,7 @@ set -euo pipefail
 # Release effects are file-backed stubs, never real Git mutations.
 export RELEASE_DELIVERY=direct
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk
 bash "$repo_root/scripts/ci/test-release-runner.sh"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
@@ -166,7 +167,7 @@ set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 printf 'cargo %s\n' "$*" >> events
 case "$*" in
-  'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
+  'fetch --locked'|'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
   'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
   generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
   *) exit 2 ;;
@@ -182,6 +183,7 @@ for argument in "$@"; do
     echo validate >> events
     printf 'retained build output\n' > target/retained-output
     [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
+    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
     exit
   fi

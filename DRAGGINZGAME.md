@@ -53,6 +53,9 @@ Consumer choices described in those guides remain subject to this baseline.
   and issue-reporting authority do not grant cross-repository edit permission.
   Without that authorization, keep other repositories read-only and report the
   proposed fix under the GitHub issue authorization below.
+  Prefer owning-repository issues for sibling findings. Explicit scoped
+  authorization is an exception to this read-only default, and remains valid
+  through the necessary implementation and qualification of that change.
 - Follow the [contribution rules](rules/contributions.md): ordinary contributions
   from people and agents use branches and pull requests. Agents may create
   scoped commits when asked to commit or deliver a PR. A PR request includes the
@@ -110,6 +113,10 @@ Consumer choices described in those guides remain subject to this baseline.
 - Deliver one coherent outcome with its directly required implementation,
   rejection/recovery evidence, callers, fixtures, documentation and cleanup.
   Split independent outcomes, not compiler fallout or each proof of one change.
+- Scale the handoff to the change: lead a small fix with its practical effect,
+  focused verification and actionable blocker, linking detailed evidence at its
+  owner. Keep independent dependency updates separate even within one release.
+  Inspect newly discovered concerns before expanding the accepted repair scope.
 - Contract changes must trace producers, consumers, codecs, generated artifacts,
   persisted data and installation/recovery helpers. Reuse the canonical encoder
   rather than reconstructing its payload in another path.
@@ -164,8 +171,17 @@ Consumer choices described in those guides remain subject to this baseline.
   repository's build directory; preserve unrelated artifacts.
 - For offline validation, prepare caches for the selected lockfile explicitly
   before validation or release mutation. Preserve lock selection and report
-  preparation failures. Network use and dependency upgrades require their own
-  authority; do not silently retry offline failures online or select new versions.
+  preparation failures. An authorized dependency update includes the registry/Git
+  access needed for that selected update; do not require separate network approval
+  or add `--offline`, `--frozen` or `CARGO_NET_OFFLINE=true` by habit. Offline
+  validation is not a blanket policy for dependency preparation. Follow the
+  [Cargo network policy](rules/cargo-dependencies.md#cargo-network-policy);
+  do not silently override a caller's explicit offline setting or select
+  unrequested dependency versions.
+  A selected standard release includes its documented locked cache preparation
+  under the [release contract](docs/releases.md), including before compiled
+  adapter startup. Explicit offline settings remain authoritative; ordinary
+  checks and standalone helper reads do not gain network permission.
 - Test maintained observable behavior, typed failures and genuine architectural
   boundaries. Delete tests that only prohibit a removed name or remember an old
   implementation. Source inspection can enforce a live architectural invariant;

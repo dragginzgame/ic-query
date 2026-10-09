@@ -21,12 +21,27 @@ Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)
   actual cache policy, including invalid and selected stale-cache recovery.
   Cache hits and cache-only or filesystem-authority refusals remain silent.
   [#28](https://github.com/dragginzgame/ic-query/issues/28).
-- Selects published Host 0.8.6, retaining explicit command deadlines.
-- Adopts Shared Tooling 0.1.31. IC-tool setup reuses verified bundles across
+- Prepares locked dependencies during standard release preflight so newly
+  selected crates can download before offline validation. Explicit Cargo offline
+  settings remain authoritative; failed preparation stops the release.
+  [Shared #84](https://github.com/dragginzgame/shared-tooling/issues/84).
+- Selects published Host 0.8.8, retaining explicit command deadlines and cleanup.
+- Removes the unused consumer fleet reporter; run fleet inventories in Shared
+  Tooling. Local setup/check commands and `make cloc` remain available.
+  [#31](https://github.com/dragginzgame/ic-query/issues/31).
+- Adopts Shared Tooling 0.1.35, including the shared dependency-preparation
+  policy and optional installation of selected Cargo binaries/examples with
+  explicit profiles, offline receipt checks and retained failed builds.
+  IC-tool setup reuses verified bundles across
   comment-only or reordered pin files, preserving installed pins and receipts.
   Changed tool, version, host or archive-checksum records still require explicit
   setup; offline checks still authenticate installed files and versions.
   [Shared #79](https://github.com/dragginzgame/shared-tooling/issues/79).
+
+```bash
+bash scripts/dev/install-rust-tools.sh --consumer "$PWD" \
+  --package cargo-sort --version 2.1.4 --bin cargo-sort --profile release
+```
 
 ```bash
 cargo run -p ic-query-cli --example governance_smoke --locked --offline -- local

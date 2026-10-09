@@ -5,6 +5,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 cd "$repo_root"
 operation="${1:-}"
+prepare_cache="${IC_QUERY_RELEASE_PREPARE_CACHE:-0}"
+unset IC_QUERY_RELEASE_PREPARE_CACHE
 metadata() { perl scripts/release/metadata.pl "$@"; }
 fail() { echo "release adapter refused: $*" >&2; exit 1; }
 [[ "${RELEASE_DELIVERY:-direct}" == direct ]] \
@@ -66,7 +68,15 @@ case "$operation" in
     else
       bash scripts/ci/check-release-source.sh
       metadata preflight
-      cargo fetch --locked --offline
+      fetch_args=(--locked)
+      [[ "$prepare_cache" == 1 ]] || fetch_args+=(--offline)
+      if cargo fetch "${fetch_args[@]}"; then
+        :
+      else
+        status="$?"
+        echo 'release dependency preparation failed; prepare the selected cache with cargo fetch --locked, then retry' >&2
+        exit "$status"
+      fi
     fi
     ;;
   verify)

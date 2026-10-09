@@ -89,7 +89,6 @@ help:
 	@echo "  install-rust-tools  Install the optional shared Cargo-tool set locally"
 	@echo "  rust-tools-check  Verify that optional Cargo-tool set offline"
 	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
-	@echo "  cloc-tooling  Inventory sibling CI/tooling and shared snapshot ownership"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
@@ -214,10 +213,10 @@ publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh
 
 release-patch release-minor release-major:
-	+@bash "$(REPO_ROOT)scripts/ci/run-release.sh" "$(@:release-%=%)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
+	+@IC_QUERY_RELEASE_PREPARE_CACHE=1 bash "$(REPO_ROOT)scripts/ci/run-release.sh" "$(@:release-%=%)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
 
 release-resume:
-	+@bash "$(REPO_ROOT)scripts/ci/run-release.sh" resume "$(VERSION)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
+	+@IC_QUERY_RELEASE_PREPARE_CACHE=1 bash "$(REPO_ROOT)scripts/ci/run-release.sh" resume "$(VERSION)" "$(RELEASE_REMOTE)" "$(RELEASE_BRANCH)"
 
 export RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH
 

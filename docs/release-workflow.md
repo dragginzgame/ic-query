@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`9af82393c620e486578febed74a648523725c234`](https://github.com/dragginzgame/shared-tooling/tree/9af82393c620e486578febed74a648523725c234) (0.1.31),
+[`be550afa57fe9e16872e5110b5cd69c24b4fa9e8`](https://github.com/dragginzgame/shared-tooling/tree/be550afa57fe9e16872e5110b5cd69c24b4fa9e8) (0.1.35),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/9af82393c620e486578febed74a648523725c234/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/be550afa57fe9e16872e5110b5cd69c24b4fa9e8/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
@@ -25,7 +25,7 @@ replacement. For an authorized refresh of an already-staged snapshot, export int
 an isolated checkout, verify the existing snapshot, and reconcile only its known
 shared bytes; preserve the consumer index and unrelated edits.
 
-The snapshot contains 74 shared files. Its governance selection keeps the linked
+The snapshot contains 73 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -121,10 +121,16 @@ distinct from dirty-source refusals. No metadata paths are exempted at this
 initial boundary. A refused initial preflight states that this attempt has not
 started validation or version preparation; saved-evidence recovery keeps its
 separate exact metadata and receipt checks.
-Initial admission checks root and detailed candidate headings before validation or saved intent,
-prepares its cache with `cargo fetch --locked --offline`, and rejects missing
-dependencies without an online retry. Explicitly prepare missing cached inputs
-under separate network authority before retrying; do not regenerate the lockfile.
+Initial admission checks root and detailed candidate headings before validation or saved intent.
+The maintainer's standard release targets then prepare the selected workspace
+cache with `cargo fetch --locked`, preserving Cargo's explicit offline settings
+and stopping on preparation failure with the original status. The release entry
+point passes an internal preparation selection to preflight; the adapter removes
+it before dispatching any child. Standalone adapter calls use
+`cargo fetch --locked --offline`. Neither path retries online or regenerates
+the lockfile. Saved-evidence recovery admits its existing inputs first and never
+fetches against interrupted metadata. To prepare dependencies separately, run
+`cargo fetch --locked` under network authority before retrying.
 Authorized dependency changes prepare every affected independent graph before
 release validation. IC Query currently has one workspace and one root lockfile;
 examples and the Governance probe share that graph. Verify it with

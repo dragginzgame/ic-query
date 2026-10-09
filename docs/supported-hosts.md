@@ -46,8 +46,9 @@ qualified by this matrix.
   outside the qualified consumer matrix.
 - Explicitly prepare the selected dependency cache before a gate. Hosted CI
   uses `cargo fetch --locked`, then runs the gate with `CARGO_NET_OFFLINE=true`.
-  Local release preflight uses `cargo fetch --locked --offline`, reporting missing
-  inputs without fetching or changing their versions.
+  Standard local release entry points prepare the cache with `cargo fetch --locked`,
+  preserving explicit Cargo offline settings and the selected versions. Standalone
+  release adapters use `cargo fetch --locked --offline`.
   Local build, check, Clippy, test, MSRV, rustdoc and package validation also
   select locked/offline access explicitly. They report missing inputs even if
   the ambient Cargo setting permits downloads. Cargo Machete's metadata scan
@@ -521,6 +522,30 @@ local document links pass. The compatible Shared 0.1.31 notes previously prepare
 for 0.50.4 are folded into this minor slice, preserving the existing staged work.
 No full local CI, fresh native macOS or live integration result is claimed here.
 
+The same pending 0.51.0 slice now selects Host 0.8.8 and the 73-file Shared
+Tooling 0.1.34 snapshot at `3d33cd250fcae7dbe5cabe44b2abd6b2c91a1822`.
+The unused fleet reporter is retired. Standard release entry points prepare the
+locked cache before offline validation; standalone adapters remain offline,
+explicit Cargo offline settings are preserved, and saved-evidence admission
+does not fetch against interrupted metadata. Focused substituted cache and
+real-Git metadata/logger fixtures pass on Linux Bash 5 and genuine Bash 3.2.57.
+The selected graph is explicitly prepared with `cargo fetch --locked`;
+23 smoke-runner and 55 cache-file fixtures pass locked/offline against Host 0.8.8. Consumer
+tool-command fixtures, local `make cloc`, snapshot integrity, ShellCheck and
+changed documentation links pass. Matching native macOS, live smoke and full
+consumer CI remain unexecuted for these working-tree changes. The local source
+commit `0c47009fe6ef16980858ebef0ab4316638fe3960` is not pushed when inspected;
+the remote default branch remains at released 0.50.3.
+
+That pending slice now refreshes the same 73-file selection to Shared Tooling
+0.1.35 at `be550afa57fe9e16872e5110b5cd69c24b4fa9e8`, including the committed
+Cargo network-preparation contract and selected registry binary/example installer.
+Fixed-bundle and selected-tool fixtures pass on Linux Bash 5 and genuine Bash
+3.2.57 with substitute Cargo, covering receipt/byte admission, offline reuse,
+failure retention and concurrent-install refusal. Query's release-cache fixtures
+also pass. This does not qualify actual registry installation of a selected tool
+or native macOS execution; upstream source CI was queued when inspected.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |
@@ -606,13 +631,8 @@ method identity; compare them only after checking file selection and counting
 rules. This command discovers workspace metadata and counts files; it does not
 compile tests or run a broad gate.
 
-`make cloc-tooling` inventories sibling CI and tooling without invoking consumer
-commands or Cargo. `CLOC_PARENT` selects another parent directory. The selected
-0.1.16 snapshot fixes custom-manifest roots and SSH source identities under
-[Shared Tooling #39](https://github.com/dragginzgame/shared-tooling/issues/39).
-`--snapshot-root MANIFEST ROOT` explicitly selects another ownership root;
-without that override, custom manifests use their owning Git root. Classification
-requires exact hashes and modes; modified shared files count as local drift.
+Fleet tooling reports run centrally in Shared Tooling. Query selects only its
+local workspace reporter and the shared setup/check and verification companions.
 
 IC Query's formatting gate now requires the same reviewed cargo-sort pin used
 by explicit development setup. `fmt-check` checks dependency order before Rust

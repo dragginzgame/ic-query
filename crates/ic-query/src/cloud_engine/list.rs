@@ -40,7 +40,6 @@ pub fn build_cloud_engine_list_report(
     )
 }
 
-/// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
 /// Build a CloudEngine inventory while reporting authorized catalog refreshes.
 pub fn build_cloud_engine_list_report_with_progress(
     catalog_request: &SubnetCatalogListRequest,
@@ -56,6 +55,7 @@ pub fn build_cloud_engine_list_report_with_progress(
     )
 }
 
+/// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
 pub fn build_cloud_engine_list_report_with_sources(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,

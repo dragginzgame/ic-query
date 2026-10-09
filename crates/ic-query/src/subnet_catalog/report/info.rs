@@ -19,7 +19,6 @@ pub fn build_subnet_catalog_info_report(
     build_subnet_catalog_info_report_with_source(request, &LiveNnsSource)
 }
 
-/// Resolve one subject using the selected cache policy and caller-owned refresh source.
 /// Build the report while reporting authorized live refreshes.
 pub fn build_subnet_catalog_info_report_with_progress(
     request: &SubnetCatalogInfoRequest,
@@ -28,6 +27,7 @@ pub fn build_subnet_catalog_info_report_with_progress(
     build_subnet_catalog_info_report_with_source_and_progress(request, &LiveNnsSource, progress)
 }
 
+/// Resolve one subject using the selected cache policy and caller-owned refresh source.
 pub fn build_subnet_catalog_info_report_with_source(
     request: &SubnetCatalogInfoRequest,
     source: &dyn SubnetCatalogSource,

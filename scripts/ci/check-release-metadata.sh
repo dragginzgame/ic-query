@@ -91,11 +91,12 @@ git read-tree "$RELEASE_SOURCE"
 git checkout-index --force --all
 cat >> Makefile <<'MAKE'
 ci:
+	@test -z "$${IC_QUERY_RELEASE_PREPARE_CACHE+x}"
 	@echo release-gate-failure-marker
 	@exit 7
 MAKE
 for attempt in first second; do
-  if bash scripts/release/adapter.sh verify > "$work_dir/$attempt-gate.log" 2>&1; then
+  if IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh verify > "$work_dir/$attempt-gate.log" 2>&1; then
     fail 'failed real Make gate passed validation'
   fi
   failed_logs=(.git/release-state/"$RELEASE_VERSION".verify.*/validation-failures/*-0-ci.log)

@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `9af82393c620e486578febed74a648523725c234`; the selected
+  Shared Tooling at reviewed revision `be550afa57fe9e16872e5110b5cd69c24b4fa9e8`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -34,6 +34,11 @@ If code or habit conflicts with this file, this file wins.
   `docs/ic-tools.md`, registry observation and local link checks in
   `docs/verification-helpers.md`,
   and the consumer host matrix in `docs/supported-hosts.md`.
+  Dependency preparation adopts the Cargo network policy in
+  `rules/cargo-dependencies.md`: authorized dependency updates include their
+  registry/Git access, and standard release/deployment preparation fetches the
+  selected lock before offline validation. Explicit caller offline settings
+  remain authoritative; the agent-run release prohibition below still applies.
   `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
   they do not silently replace the explicitly
   pinned engineering baseline or activate unrelated hook/tooling adoption.
