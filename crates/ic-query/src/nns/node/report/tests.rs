@@ -37,10 +37,10 @@ fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
         &mut |event| events.push(event),
     )
     .expect("valid cache avoids invalid source");
-    assert!(events.is_empty());
+    assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json").unwrap();
     super::build_nns_node_list_report_with_source_and_progress(&request, &source, &mut |event| {
-        events.push(event)
+        events.push(event);
     })
     .expect("invalid cache refreshes");
     assert_eq!(events.len(), 1);
@@ -68,7 +68,7 @@ fn node_authority_refusal_never_announces_or_calls_a_source() {
         error,
         NnsNodeHostError::Cache(crate::HostCacheError::Operation { .. })
     ));
-    assert!(events.is_empty());
+    assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     let _ = fs::remove_dir_all(cache.cache_root);
 }
 

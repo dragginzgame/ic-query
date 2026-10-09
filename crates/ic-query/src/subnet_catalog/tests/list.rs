@@ -56,15 +56,15 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
     request.read_policy = CatalogReadPolicy::CacheOnly;
     events.clear();
     build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
-        events.push(event)
+        events.push(event);
     })
     .unwrap();
     request.read_policy = list_request(&root).read_policy;
     build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
-        events.push(event)
+        events.push(event);
     })
     .unwrap();
-    assert!(events.is_empty());
+    assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     assert_eq!(source.call_count(), source_calls);
     fs::remove_file(&path).unwrap();
     request.read_policy = CatalogReadPolicy::CacheOnly;
@@ -76,7 +76,7 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
         )
         .is_err()
     );
-    assert!(events.is_empty());
+    assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     assert_eq!(source.call_count(), source_calls);
     let _ = fs::remove_dir_all(root);
 }
@@ -98,7 +98,7 @@ fn catalog_lock_refusal_does_not_announce_a_source_call() {
         )
         .is_err()
     );
-    assert!(events.is_empty());
+    assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     assert_eq!(source.call_count(), 0);
     let _ = fs::remove_dir_all(root);
 }
