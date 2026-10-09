@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.51.1]
+## [0.51.1] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)
 
