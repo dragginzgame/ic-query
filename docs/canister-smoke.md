@@ -36,6 +36,11 @@ canister-runtime dependency. The workspace's Host registry selections are
 recorded in [Cargo.lock](../Cargo.lock). The canister Make entry points prepare
 that locked graph before offline runner builds. Archive support remains disabled
 and `ic-host-tools` is not selected.
+Host 0.10's unified durable writer uses explicit publication options for receipts.
+Receipt, Wasm and raw-reply failures retain the complete typed publication error,
+including whether output is already visible and any staging-cleanup failure.
+Reconcile visible output after a completion failure before retrying. Existing
+permissions, schema-1 evidence and the create-only raw-reply policy remain intact.
 This consumer needs its own native smoke qualification; see the
 [host matrix](supported-hosts.md#tool-specific-dependencies).
 

@@ -7,7 +7,7 @@ use crate::{
     protocol::{self, Probe},
 };
 use ic_host_artifacts::artifact::Sha256Digest;
-use ic_host_fs::durable::{PublicationMode, WriteOptions, write_typed_with};
+use ic_host_fs::durable::{PublicationMode, WriteOptions, write_with};
 use serde_json::{Value, json};
 use std::{
     io::{self, BufWriter, Write},
@@ -24,7 +24,7 @@ pub fn utc_now() -> Result<String> {
 }
 
 pub fn save_receipt(path: &Path, receipt: &Value) -> Result<()> {
-    write_typed_with(
+    write_with(
         path,
         WriteOptions {
             mode: PublicationMode::Replace,

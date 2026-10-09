@@ -834,6 +834,43 @@ against Host 0.9.7. Evidence: `/tmp/ic-query-0524-issue36-*.log`,
 No actual tool installation, full gate or native macOS execution was performed;
 the prepared consumer changes remain uncommitted.
 
+The maintainer delivered 0.52.4 at
+`1a2bd9ea19531c724ca7844c59b0d25c8e03e3b0`.
+[Exact source CI](https://github.com/dragginzgame/ic-query/actions/runs/37961527140)
+passes Linux checks, MSRV and canister integration; its six macOS jobs remain
+queued when inspected. The initial pending 0.52.5 pass completes the maintainer-selected Host
+artifacts/filesystem/process 0.10.0 adoption from published source
+`98562bea26a98993d93b80ed908bea4876c32a91`. Receipt replacement uses the unified
+pathname writer with explicit owner-only options, and the smoke runner propagates
+byte-publication errors intact. The reusable library's descriptor-relative writer
+and public cache error projection retain their contracts; schema-1 evidence
+requires no migration or reset.
+
+After explicit locked cache preparation, 26 smoke-runner and 55 host-feature
+cache tests pass locked/offline on Linux. Focused smoke-example Clippy with
+warnings denied passes. Existing fixtures now assert producer error identity,
+pre-publication create-only refusal and preservation of original bytes. Evidence:
+`/tmp/ic-query-0525-host010-{smoke,cache,clippy}.log`. Exact
+[Host 0.10.0 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37961457616)
+passes Linux native and MSRV jobs; both macOS jobs are queued. Pending consumer
+source has no remote qualification. No full consumer gate, live deployment,
+native macOS execution, release, publication or sibling edit was performed.
+That initial pass excluded the then-unpublished parent-sync changes.
+
+Pending 0.52.5 now selects published Host 0.10.1 at
+`c7bdc3d4e1c658957202eebd76bff2c51e22f645`, including
+[Host #43](https://github.com/dragginzgame/ic-host-tooling/issues/43).
+Pathname publication independently syncs a newly observed missing directory
+and its parent link even when another creator wins its creation. Existing parent
+directories and descriptor-relative cache publication retain their behavior.
+After explicit locked cache preparation, all 26 smoke-runner and 55 host-feature
+cache tests pass locked/offline on Linux, and focused smoke-example Clippy passes
+with warnings denied. Evidence: `/tmp/ic-query-0525-host0101-{smoke,cache,clippy}.log`.
+Exact [Host 0.10.1 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37964131536)
+passes Linux native and MSRV jobs; both macOS jobs remain queued. Pending consumer
+source remains uncommitted and has no remote qualification. No full consumer gate,
+native macOS execution, deployment or release was performed for this update.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |

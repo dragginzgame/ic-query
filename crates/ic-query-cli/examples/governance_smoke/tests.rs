@@ -4,6 +4,7 @@ use ic_host_artifacts::{
     artifact::{ArtifactError, Sha256Digest},
     wasm::InspectionError,
 };
+use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_with};
 use protocol::Probe;
 use std::{
     os::unix::fs::{PermissionsExt, symlink},
@@ -208,7 +209,12 @@ fn rejected_replies_remain_private_and_cannot_be_replaced() {
         let path = directory.0.join(name);
         assert!(protocol::publish_reply(&path, &bytes).is_err());
         assert_eq!(fs::read(&path).unwrap(), bytes);
-        assert!(protocol::publish_reply(&path, &candid::encode_one("{}").unwrap()).is_err());
+        let error = protocol::publish_reply(&path, &candid::encode_one("{}").unwrap()).unwrap_err();
+        assert!(matches!(
+            error.downcast_ref::<NamedWriteError<io::Error>>(),
+            Some(NamedWriteError::BeforePublication { source, cleanup_error: None })
+                if source.kind() == io::ErrorKind::AlreadyExists
+        ));
         assert_eq!(fs::read(&path).unwrap(), bytes);
         assert_eq!(
             fs::metadata(path).unwrap().permissions().mode() & 0o777,
@@ -701,15 +707,23 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
         fs::metadata(one).unwrap().permissions().mode() & 0o777,
         0o700
     );
-    use ic_host_fs::durable::write_with;
     let before = fs::read(&path).unwrap();
-    assert!(
-        write_with(&path, |file| -> io::Result<()> {
+    let error = write_with(
+        &path,
+        WriteOptions {
+            mode: PublicationMode::Replace,
+            permissions: 0o600,
+        },
+        |file| -> io::Result<()> {
             use io::Write;
             file.write_all(b"partial")?;
             Err(io::ErrorKind::BrokenPipe.into())
-        })
-        .is_err()
+        },
+    )
+    .unwrap_err();
+    assert!(
+        matches!(error, NamedWriteError::Producer { source, cleanup_error: None }
+            if source.kind() == io::ErrorKind::BrokenPipe)
     );
     assert_eq!(fs::read(path).unwrap(), before);
 }

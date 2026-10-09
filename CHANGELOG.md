@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.5]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Adopts Host 0.10.1 and its unified durable writer in the Governance smoke
+  runner. File-publication failures retain their publication phase and cleanup
+  evidence; cache contracts and stored formats remain unchanged.
+  [#37](https://github.com/dragginzgame/ic-query/issues/37).
+- Durable smoke-file publication completes parent-directory sync when another
+  creator wins the directory creation race.
+  [Host #43](https://github.com/dragginzgame/ic-host-tooling/issues/43).
+
 ## [0.52.4] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
