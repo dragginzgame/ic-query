@@ -80,11 +80,10 @@ pub fn deployed_canister(deployment: &Value) -> Result<String> {
     let items = deployment["canisters"]
         .as_array()
         .ok_or_else(|| invalid("deployment omitted canisters"))?;
-    let selected: Vec<_> = items
+    let mut selected = items
         .iter()
-        .filter(|item| item["name"] == "governance-probe")
-        .collect();
-    let [item] = selected.as_slice() else {
+        .filter(|item| item["name"] == "governance-probe");
+    let (Some(item), None) = (selected.next(), selected.next()) else {
         return Err(invalid(
             "deployment must identify exactly one Governance probe",
         ));

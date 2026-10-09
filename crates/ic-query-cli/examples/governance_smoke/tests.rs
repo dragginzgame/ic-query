@@ -610,8 +610,23 @@ fn runtime_discovery_refusals_do_not_claim_or_stop_an_existing_network() {
         assert_eq!(operations.calls.len(), 1);
         assert!(!operations.verified);
     }
+}
+
+#[test]
+fn deployed_probe_admission_requires_one_valid_principal() {
+    let deployment = json!({"canisters":[
+        {"name":"other", "canister_id":"rrkah-fqaaa-aaaaa-aaaaq-cai"},
+        {"name":"governance-probe", "canister_id":"aaaaa-aa"},
+        {"name":"another", "canister_id":"ryjl3-tyaaa-aaaaa-aaaba-cai"},
+    ]});
+    assert_eq!(attempt::deployed_canister(&deployment).unwrap(), "aaaaa-aa");
     for deployment in [
+        json!({}),
         json!({"canisters":[]}),
+        json!({"canisters":[{"name":"other", "canister_id":"aaaaa-aa"}]}),
+        json!({"canisters":[{"name":"governance-probe"}]}),
+        json!({"canisters":[{"name":"governance-probe", "canister_id":10}]}),
+        json!({"canisters":[{"name":"governance-probe", "canister_id":"invalid"}]}),
         json!({"canisters":[{"name":"governance-probe", "canister_id":"aaaaa-aa"}, {"name":"governance-probe", "canister_id":"aaaaa-aa"}]}),
     ] {
         assert!(attempt::deployed_canister(&deployment).is_err());

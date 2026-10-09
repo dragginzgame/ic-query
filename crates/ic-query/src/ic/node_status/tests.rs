@@ -245,15 +245,26 @@ fn subnet_threshold_reports_down_and_conservative_non_up_distance_separately() {
 }
 
 #[test]
-fn target_resolution_supports_unique_prefixes_and_rejects_ambiguity() {
+fn target_resolution_preserves_identity_and_reports_invalid_selections() {
     let snapshot = fixture_snapshot();
-    let selected = ic_node_status_report_from_snapshot(
-        &snapshot,
-        &IcNodeStatusView::attention().with_target("ryj"),
-    )
-    .expect("unique prefix");
-    assert_eq!(selected.returned_node_count, 1);
-    assert_eq!(selected.nodes[0].status, "UP");
+    let principal = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+    for (target, resolved_from) in [
+        (principal, "node_principal"),
+        (" ryjl3-tyaaa-aaaaa-aaaba-cai ", "node_principal"),
+        ("ryj", "node_principal_prefix"),
+        (" ryj ", "node_principal_prefix"),
+    ] {
+        let selected = ic_node_status_report_from_snapshot(
+            &snapshot,
+            &IcNodeStatusView::attention().with_target(target),
+        )
+        .expect("unique target");
+        assert_eq!(selected.returned_node_count, 1);
+        assert_eq!(selected.nodes[0].status, "UP");
+        assert_eq!(selected.requested_target.as_deref(), Some(target));
+        assert_eq!(selected.resolved_target.as_deref(), Some(principal));
+        assert_eq!(selected.resolved_from.as_deref(), Some(resolved_from));
+    }
 
     let ambiguous = ic_node_status_report_from_snapshot(
         &snapshot,
@@ -262,8 +273,26 @@ fn target_resolution_supports_unique_prefixes_and_rejects_ambiguity() {
     .expect_err("shared prefix is ambiguous");
     assert!(matches!(
         ambiguous,
-        IcNodeStatusProjectionError::AmbiguousTarget { prefix, matches, .. }
-            if prefix == "r" && matches.len() == 2
+        IcNodeStatusProjectionError::AmbiguousTarget { kind: "node", prefix, matches }
+            if prefix == "r" && matches == ["rrkah-fqaaa-aaaaa-aaaaq-cai", principal]
+    ));
+
+    for target in ["", " \t "] {
+        assert!(matches!(
+            ic_node_status_report_from_snapshot(
+                &snapshot,
+                &IcNodeStatusView::attention().with_target(target),
+            ),
+            Err(IcNodeStatusProjectionError::EmptyTarget { kind: "node" })
+        ));
+    }
+    assert!(matches!(
+        ic_node_status_report_from_snapshot(
+            &snapshot,
+            &IcNodeStatusView::attention().with_target(" missing "),
+        ),
+        Err(IcNodeStatusProjectionError::UnknownTarget { kind: "node", target })
+            if target == "missing"
     ));
 }
 

@@ -1,18 +1,18 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	ac4549c5ebde497f7db0da5d05d32835112e51de
+revision	04e07b4bf54e7aeb03eb7804a845cee27b7305df
 file	0d472a74369e6aa772d585305e19b398fb86f0ef9698f1564356ddc11c60e0b6	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	a7d6612e6c9cfea5f8e920f82109094851876d0dfc117ecc454f966cb50d7c66	-	rules/cargo-dependencies.md
-file	a6c686b7e789b8bdd4680e65c1031cf86f6b73a9feb1008fb553d033126ae978	-	rules/git-hooks.md
+file	6c763c1a8b7ccb20d37476627341a6da73fdf4cf8a6081f19d87da115dcda958	-	rules/git-hooks.md
 file	2a81dbef0bbf2045bf83a921cd5d4af49d400ffc4cafd35fad222750ac6b2d9f	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	ee68649246bad21f0f28df4ea3809d8e2c7bcf1cd2a3d68e44684b855badc1c2	-	docs/principles/reviewable-changes.md
 file	27a04aeee753252b310fef363856edf83577337bfaea1e63a50017460eddde59	-	docs/principles/rust-code-hygiene.md
 file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
-file	c7cc663600271e4aa3ec295b8d56d331e654d2a0ef9edd140f3fc22d8d2590ce	-	docs/consuming-snapshots.md
+file	2f07378fef5bda41bd21a1c1157fc9cf5ce6562bd273c0e05e1cd1755c9faf35	-	docs/consuming-snapshots.md
 file	fc689ff5d636be1049a527f6cafa74a768005211dcbecb074b8b327d8e6bab04	x	scripts/ci/run-release.sh
 file	37e028e2d9fee271ffdc06d06fc15d7a148ec524def3d9ed2afcd9910c0ec642	x	scripts/ci/next-release-version.sh
 file	e7f4c82566858b89b50c5c2f929097bdde85345a2c0c1bf553bb1170cc4f5960	-	scripts/ci/finalize-release-changelog.awk
@@ -57,7 +57,7 @@ file	027575ae9be221c3ef9e903239fbfdb40aa5192c2f5e08c157a5d15dc3cd52ae	x	scripts/
 file	94a934651d5cb0c6f77fa429df277856dbda4c1a7441b2b8563e678c416258f6	-	audits/ic-canister-applications.md
 file	83e60382356dcf245349b41658b36560bc17a14b1c3be8abc8c6d7101f6376ac	x	scripts/dev/install-rust-tools.sh
 file	775da89f655a3781059f433f80470ee6db9675e08942a805c111614183322fe1	-	scripts/ci/ic-tool-pins.awk
-file	ec4936566d8f4c9aacf2481484b3840df1f3090e796f02dd7ca544c45d924625	x	scripts/ci/test-rust-tools.sh
+file	ffbcacc284996bf0b0a5ffae87efabd10a9d29552089225b927c9a97048a1ccc	x	scripts/ci/test-rust-tools.sh
 file	05838a36f21bb4299617ae8965687791062c94d768181f5f97676cc577382153	-	rules/contributions.md
 file	fc40c8ad1c4ab850fda0e60b8cb0b3201724d020966e4d7e5d07620781f5e814	-	scripts/ci/release-pr.sh
 file	7c63c133b3b35bc7648f0269271a2cbf5f36916e9ab79ca89185e2c34e017140	-	tasks/README.md

@@ -263,31 +263,31 @@ fn resolve_optional_target<'a>(
     if target.is_empty() {
         return Err(IcNodeStatusProjectionError::EmptyTarget { kind });
     }
-    let identifiers = identifiers.collect::<Vec<_>>();
-    if identifiers.contains(&target) {
-        return Ok(Some(TargetResolution {
-            resolved: target.to_string(),
-            resolved_from: exact_label.to_string(),
-        }));
+    let mut matches = Vec::new();
+    for identifier in identifiers {
+        if identifier == target {
+            return Ok(Some(TargetResolution {
+                resolved: target.to_string(),
+                resolved_from: exact_label.to_string(),
+            }));
+        }
+        if identifier.starts_with(target) {
+            matches.push(identifier);
+        }
     }
-    let matches = identifiers
-        .into_iter()
-        .filter(|identifier| identifier.starts_with(target))
-        .map(str::to_string)
-        .collect::<Vec<_>>();
     match matches.as_slice() {
         [] => Err(IcNodeStatusProjectionError::UnknownTarget {
             kind,
             target: target.to_string(),
         }),
         [resolved] => Ok(Some(TargetResolution {
-            resolved: resolved.clone(),
+            resolved: (*resolved).to_string(),
             resolved_from: format!("{exact_label}_prefix"),
         })),
         _ => Err(IcNodeStatusProjectionError::AmbiguousTarget {
             kind,
             prefix: target.to_string(),
-            matches,
+            matches: matches.into_iter().map(str::to_string).collect(),
         }),
     }
 }

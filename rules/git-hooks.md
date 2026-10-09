@@ -182,6 +182,8 @@ or deliberately disabled settings, or to disable an executable private hook in
 the default Git hooks directory. Reconcile existing hook obligations explicitly
 before changing their location. Setup never changes global Git configuration or
 silently chmods tracked files.
+Hook paths are compared literally, including trailing newlines. A failed Git
+configuration read must stop setup rather than count as an absent setting.
 
 Adding tracked hooks does not activate them in an existing clone. Verify the
 effective `git config --get core.hooksPath`, executable mode, snapshot integrity,

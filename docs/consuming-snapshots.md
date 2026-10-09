@@ -113,6 +113,25 @@ and the checksum verifier, even if production CI uses only some of them. Add
 that complete set explicitly or omit the optional fixture and its callers;
 selecting an individual production installer does not require the whole suite.
 
+Reusable Cargo, formatter, evidence, registry, release-PR and tool-command tests
+also declare their required helpers. Review fixture dependencies when selecting
+tests, not only production entrypoints. The PR fixture requires the PR helper
+even though direct release delivery does not. Caller-owned pin files and optional
+production modes stay explicit inputs rather than unconditional companions.
+
+Run `test-snapshot-distribution.sh` from Shared Tooling for upstream exporter and
+governance qualification. Consumers should normally omit that integration fixture
+and its invocation, retaining actual snapshot verification and local adoption
+checks rather than importing its growing upstream test roster.
+
+The validation-runner fixture is different: `test-validation-target-runner.sh`
+invokes `scripts/ci/test-release-metadata.sh` in nested Make/release contexts.
+Consumers retaining this fixture own that metadata-test entrypoint. Keep an
+existing qualified adapter to the consumer's own release tests, as IC Backup
+does. Do not import Shared Tooling's release metadata adapter or root Makefile
+to satisfy it; without a local metadata-test adapter, run this integration check
+upstream and retain focused local validation-runner checks.
+
 The release runner requires `scripts/ci/next-release-version.sh`. The runner,
 validation logger and formatting hook also require
 `scripts/ci/check-make-execution.sh`. Include it when adding or refreshing any of

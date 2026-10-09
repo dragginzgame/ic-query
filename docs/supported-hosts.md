@@ -704,6 +704,48 @@ changed documentation links and the current-version changelog check pass.
 This adds local fingerprint evidence; native macOS and actual probe build/smoke
 qualification remain separate and were not run.
 
+Released Query 0.52.2 at `5b6b6d6c63346d357d715da5f7a8d04db15467e2`
+delivers the CI event selection and streamed fingerprint cleanup. Its exact
+[main CI](https://github.com/dragginzgame/ic-query/actions/runs/37936963838)
+has passed complete checks, MSRV and live canister smoke on Linux. All six
+macOS jobs remain queued when inspected. The source has one nine-job branch
+run and no duplicate tag run; native macOS acceptance and manual dispatch
+execution remain separate gaps.
+
+Pending 0.52.3 adopts committed Shared Tooling 0.2.5 at
+`04e07b4bf54e7aeb03eb7804a845cee27b7305df` through the canonical exporter,
+retaining 73 selected files and the separately pinned engineering baseline.
+The selected Rust-tool fixture declares its installer/checksum companions;
+the incomplete selection is refused before consumer writes. Snapshot integrity,
+ShellCheck, changed documentation links, current-version changelog admission
+and consumer tool-command fixtures pass. Rust-tool setup/check/failure fixtures
+and consumer CI-script fixtures pass on Linux Bash 5 and genuine Bash 3.2.57
+with substituted Cargo and network commands. The hook installer and pre-commit
+hook remain outside Query's selection; actual hook configuration is untouched.
+
+Exact [Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37937705371)
+passes Linux portable regression and lint/security; both macOS lanes are queued.
+Newer dirty upstream changes are excluded. The initial tooling-only refresh
+preserved the maintainer's incoming Host 0.9.3 lockfile selection before Rust
+validation. No full local CI, native macOS or live canister startup was run
+for the dirty adoption.
+
+The same pending 0.52.3 slice now reviews published Host 0.9.3 at
+`545e7236b91d84e190c80931b784f72cc4fafb11`; its library sources are unchanged
+from 0.9.2. After explicit locked cache preparation, 26 smoke-runner and 55
+cache-file tests pass locked/offline on Linux. The smoke runner selects its
+unique deployed probe through an iterator without collecting a match list;
+fixtures retain unrelated canisters, duplicate/missing refusal and principal
+admission. Focused example/test Clippy passes with warnings denied on Linux.
+Exact [Host source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37938930037)
+passes native Linux and MSRV; both macOS lanes are queued when inspected.
+
+The pending target-resolution cleanup passes 10 node-status tests without host
+features and 21 with `host`, plus strict Clippy for the library and tests without
+host features, on Linux with locked/offline dependencies. Rust formatting and
+the changelog check pass. These local checks do not qualify native macOS or a
+complete consumer CI gate.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |

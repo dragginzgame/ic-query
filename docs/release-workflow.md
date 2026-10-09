@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`ac4549c5ebde497f7db0da5d05d32835112e51de`](https://github.com/dragginzgame/shared-tooling/tree/ac4549c5ebde497f7db0da5d05d32835112e51de) (0.2.3),
+[`04e07b4bf54e7aeb03eb7804a845cee27b7305df`](https://github.com/dragginzgame/shared-tooling/tree/04e07b4bf54e7aeb03eb7804a845cee27b7305df) (0.2.5),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/ac4549c5ebde497f7db0da5d05d32835112e51de/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/04e07b4bf54e7aeb03eb7804a845cee27b7305df/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request. This snapshot selects read-only workspace
 version checking and release mechanics,
