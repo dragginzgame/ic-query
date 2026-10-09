@@ -34,12 +34,7 @@ pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), Nns
         }
         _ => {}
     }
-    leaf::run_cached_leaf(
-        matches,
-        network,
-        &spec::NODE_PROVIDER_SPEC,
-        reports::NnsNodeProviderReports,
-    )
+    leaf::run_cached_leaf(matches, network, reports::NnsNodeProviderReports)
 }
 
 #[cfg(test)]

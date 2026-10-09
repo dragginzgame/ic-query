@@ -102,6 +102,7 @@ pub(super) fn write_refresh_lock_for_test(
 pub(super) struct FixtureRefreshSource {
     catalog: Option<RawSubnetCatalog>,
     fail: bool,
+    calls: AtomicUsize,
 }
 
 ///
@@ -206,10 +207,14 @@ fn attach_complete_registry_evidence(catalog: &mut RawSubnetCatalog, endpoint: &
 }
 
 impl FixtureRefreshSource {
+    pub(super) fn call_count(&self) -> usize {
+        self.calls.load(Ordering::Relaxed)
+    }
     pub(super) const fn ok(catalog: RawSubnetCatalog) -> Self {
         Self {
             catalog: Some(catalog),
             fail: false,
+            calls: AtomicUsize::new(0),
         }
     }
 
@@ -217,6 +222,7 @@ impl FixtureRefreshSource {
         Self {
             catalog: None,
             fail: true,
+            calls: AtomicUsize::new(0),
         }
     }
 }
@@ -224,6 +230,7 @@ impl FixtureRefreshSource {
 impl SubnetCatalogSource for FixtureRefreshSource {
     fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::Relaxed);
             if self.fail {
                 return Err(SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets));
             }

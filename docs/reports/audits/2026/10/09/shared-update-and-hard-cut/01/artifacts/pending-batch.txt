@@ -1,0 +1,11 @@
+ .shared-tooling.snapshot        | 10 ++++-----
+ AGENTS.md                       |  2 +-
+ CHANGELOG.md                    | 10 +++++++++
+ DRAGGINZGAME.md                 | 11 ++++++++++
+ docs/changelog/0.50.md          | 14 +++++++++++++
+ docs/ic-tools.md                |  8 ++++++++
+ docs/release-workflow.md        |  4 ++--
+ docs/supported-hosts.md         | 45 ++++++++++++++++++++++++++++++++---------
+ scripts/ci/ic-tool-pins.awk     |  5 ++++-
+ scripts/dev/install-ic-tools.sh |  9 +++++----
+ 10 files changed, 96 insertions(+), 22 deletions(-)

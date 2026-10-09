@@ -157,17 +157,16 @@ shared-tooling-check:
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
 	bash scripts/ci/test-rust-tools.sh
-	cargo run -p ic-query-cli --example governance_process --locked --offline -- \
-		python python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+	cargo test -p ic-query-cli --example governance_smoke --locked --offline
 
 canister-build:
-	python3 scripts/canister/smoke.py build
+	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- build
 
 canister-bundle:
-	python3 scripts/canister/smoke.py bundle
+	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- bundle
 
 canister-smoke:
-	python3 scripts/canister/smoke.py local
+	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- local
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh

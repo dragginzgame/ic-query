@@ -1,11 +1,11 @@
 use super::{
-    model::{NnsLeafCommandSpec, NnsLeafReports},
+    model::NnsLeafReports,
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
     cli::common::write_text_or_json_verbose,
     nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
-    progress::announce_missing_mainnet_cache,
+    progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
 use ic_query::nns::{
@@ -16,15 +16,14 @@ use ic_query::nns::{
 pub(in crate::nns) fn run_cached_leaf<Reports>(
     matches: &ArgMatches,
     network: &str,
-    spec: &NnsLeafCommandSpec,
     reports: Reports,
 ) -> Result<(), NnsCommandError>
 where
     Reports: NnsLeafReports,
 {
     match matches.subcommand() {
-        Some(("list", matches)) => run_cached_leaf_list(matches, network, spec, &reports),
-        Some(("info", matches)) => run_cached_leaf_info(matches, network, spec, &reports),
+        Some(("list", matches)) => run_cached_leaf_list(matches, network, &reports),
+        Some(("info", matches)) => run_cached_leaf_info(matches, network, &reports),
         Some(("refresh", matches)) => run_cached_leaf_refresh(matches, network, &reports),
         _ => unreachable!("clap requires a known NNS leaf subcommand"),
     }
@@ -46,7 +45,6 @@ fn leaf_runtime_parts(network: &str) -> Result<LeafRuntimeParts, NnsCommandError
 fn run_cached_leaf_list<Reports>(
     matches: &ArgMatches,
     network: &str,
-    spec: &NnsLeafCommandSpec,
     reports: &Reports,
 ) -> Result<(), NnsCommandError>
 where
@@ -54,15 +52,11 @@ where
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
     let parts = leaf_runtime_parts(&options.network)?;
-    announce_missing_leaf_cache(
-        &parts.cache,
-        reports,
-        spec.command_name,
-        &options.source_endpoint,
-    );
     let request =
         NnsInventoryListRequest::new(parts.cache, options.source_endpoint, parts.now_unix_secs);
-    let report = reports.build_list_report(&request).map_err(Into::into)?;
+    let report = reports
+        .build_list_report(&request, &mut StderrQueryProgress::new())
+        .map_err(Into::into)?;
     write_text_or_json_verbose(
         options.format,
         &report,
@@ -75,7 +69,6 @@ where
 fn run_cached_leaf_info<Reports>(
     matches: &ArgMatches,
     network: &str,
-    spec: &NnsLeafCommandSpec,
     reports: &Reports,
 ) -> Result<(), NnsCommandError>
 where
@@ -83,19 +76,15 @@ where
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
     let parts = leaf_runtime_parts(&options.network)?;
-    announce_missing_leaf_cache(
-        &parts.cache,
-        reports,
-        spec.command_name,
-        &options.source_endpoint,
-    );
     let request = NnsInventoryInfoRequest::new(
         parts.cache,
         options.source_endpoint,
         options.input,
         parts.now_unix_secs,
     );
-    let report = reports.build_info_report(&request).map_err(Into::into)?;
+    let report = reports
+        .build_info_report(&request, &mut StderrQueryProgress::new())
+        .map_err(Into::into)?;
     write_text_or_json(options.format, &report, |report| {
         reports.info_report_text(report)
     })
@@ -126,16 +115,4 @@ where
     write_text_or_json(format, &report, |report| {
         reports.refresh_report_text(report)
     })
-}
-
-fn announce_missing_leaf_cache<Reports>(
-    cache: &NnsInventoryCacheRequest,
-    reports: &Reports,
-    component: &str,
-    source_endpoint: &str,
-) where
-    Reports: NnsLeafReports,
-{
-    let path = reports.cache_path(cache);
-    announce_missing_mainnet_cache(&cache.network, component, &path, source_endpoint);
 }

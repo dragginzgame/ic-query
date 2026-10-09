@@ -26,22 +26,17 @@
 
 The harness exercises the four direct NNS Governance reports through
 `CanisterNnsSource` in a deployed Wasm canister. It uses the existing
-`ic-query` package's `governance_probe` example and the development-only
-`governance_artifact` helper in `ic-query-cli`. The helper adopts
+`ic-query` package's `governance_probe` example and one development-only
+`governance_smoke` Rust runner in `ic-query-cli`. The runner adopts
 `ic-host-artifacts` for bounded streams, digesting and Wasm inspection,
-`ic-host-fs` for artifact file reads, raw reply evidence and atomic receipt
-publication, and `ic-agent` for direct protocol IO. The companion
-`governance_process` helper adopts `ic-host-process` for command IO,
-process-group ownership and cleanup;
-it adds no production CLI operation or canister-runtime dependency.
-The current workspace selection uses published IC Host Tooling 0.8.4 at
-[`97187b2`](https://github.com/dragginzgame/ic-host-tooling/tree/97187b2a46d6f8a6964224a36a133d858ef0d223).
-The selected registry dependency cache has been prepared explicitly and the
-helper uses its bounded file-read and durable publication APIs. This consumer
-selection requires its own matching native smoke qualification;
-see the [host matrix](supported-hosts.md#tool-specific-dependencies).
-The workspace lockfile selects registry packages; archive support is unnecessary
-for this helper and remains disabled. `ic-host-tools` is no longer selected.
+`ic-host-fs` for file reads, raw reply evidence and atomic receipt publication,
+`ic-host-process` for command IO, process-group ownership and cleanup, and
+`ic-agent` for direct protocol IO. It adds no production CLI operation or
+canister-runtime dependency. The workspace selects published Host 0.8.6;
+the lockfile's registry cache is explicitly prepared before locked/offline
+validation. Archive support remains disabled and `ic-host-tools` is not selected.
+This consumer needs its own native smoke qualification; see the
+[host matrix](supported-hosts.md#tool-specific-dependencies).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
@@ -52,7 +47,7 @@ for this helper and remains disabled. `ic-host-tools` is no longer selected.
 - Linux or macOS; interruption cleanup uses POSIX process groups.
 - Rust 1.99.0, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
-- Python 3.10 or later and the verified repository-local IC toolset, including
+- The verified repository-local IC toolset, including
   ICP CLI **1.6.0**. Prepare it explicitly with `make install-ic-tools`;
   `make ic-tools-check` verifies the installed set offline.
 - The selected workspace dependency cache, including the development-only
@@ -148,7 +143,7 @@ before verification begins.
 The development-only helper can inspect an existing artifact without modifying it:
 
 ```bash
-cargo run -p ic-query-cli --example governance_artifact --locked --offline -- \
+cargo run -p ic-query-cli --example governance_smoke --locked --offline -- \
   inspect-wasm target/canister-smoke/governance_probe.wasm
 ```
 
@@ -183,6 +178,13 @@ Receipts retain the environment, timestamps, tool versions, network details,
 module evidence, build metadata, raw Candid replies, and decoded reports.
 Receipts record the active `phase` and `updated_at`; raw replies are saved
 before validation, and validated report payloads are added afterward.
+Candid admission limits original replies to 2 MiB and requires exactly one
+text value with no extra values or trailing bytes. Decoder work is charged at
+32 times wire size plus 1,000,000 units, capped at 256,000,000; skipped work is
+limited to 100,000, type tables to 4,096 entries and headers to 64 KiB. Original
+private reply files survive every admission failure. JSON report values retain
+arbitrary-precision numeric evidence.
+
 Starting with the 0.50 hard cut, schema-1 report entries use `reply_file` for an
 adjacent binary Candid file and `report` for validated JSON. Module hashes are
 unprefixed SHA-256 text in `module_hash_before` and `module_hash_after`, with
@@ -195,18 +197,20 @@ migration or automatic cleanup of the old contract is supplied.
 network cleanup to succeed. A missing optional maturity value is a valid
 successful response.
 
-The harness and `make ci-scripts-check` launch Python through the development
-process helper. Direct script invocations bootstrap it with locked/offline Cargo.
-Each command uses private request/result files and a short local Unix socket;
-inherited stdout/stderr remain separate from control traffic. Closing the socket
-requests Host cancellation. Host alone communicates with command pipes, owns the
-command group and reaps its leader. The Python transport waits with finite bounds
-for Host cleanup and retains transport failures separately.
+The harness runs directly as one Rust example; `make ci-scripts-check` runs
+its offline fixtures. Commands and agent operations return typed results inside
+that process. Host owns the actual command pipes, cancellation, process group
+and reaping. Inherited stdout/stderr stay attached to the caller's terminals.
+There are no serialized command requests or cancellation sockets.
 
 ```bash
-cargo run -p ic-query-cli --example governance_process --locked --offline -- \
-  python python3 -m unittest discover -s scripts/canister -p 'test_*.py'
+cargo test -p ic-query-cli --example governance_smoke --locked --offline
 ```
+
+The 0.51.0 hard cut retires the Python entry point and the two separate Rust
+helper executables. Callers must select `governance_smoke`; receipt directories
+and the schema-1 receipt contract remain current and previous evidence must
+be retained. No fallback entry point or evidence migration is supplied.
 
 SIGINT and SIGTERM attempt to stop the active command's process group and trigger local
 network cleanup, including when startup has not returned yet. Further
@@ -222,26 +226,23 @@ completion and output admission; subsequent runtime ownership remains with
 `icp network stop`. Other successful commands clean up their remaining command
 group. Escaped descendants are outside the command group and may need manual cleanup.
 
-An operation failure remains the raised error if network cleanup or subsequent
+An operation failure remains the returned error if network cleanup or subsequent
 receipt publication also fails. Failed receipts retain available command stdout
 and stderr in `command_stdout` and `command_stderr`; incomplete byte diagnostics
 are decoded as UTF-8 with replacement for invalid bytes. Command
 signal, reaping and pipe cleanup failures appear as `command_cleanup_errors`
-on the exception and failed receipt; a refusal is not successful cleanup. Receipt
-publication failures are attached to the original exception as `receipt_errors` and retained
+on the failed receipt; a refusal is not successful cleanup. Receipt
+publication failures are reported separately as `receipt_errors` and retained
 in a later complete receipt when storage recovers. If storage remains unavailable,
 the previous complete receipt remains the on-disk evidence. Cleanup or publication
 failure after otherwise successful verification still fails the attempt.
 
-Successful background startup transfers the runtime lifetime to the harness's
-network cleanup phase. Host 0.7.1 provides owned-child piped IO, cancellation
-and explicit successful handoff through one shared execution engine. Query's
-Python wrapper remains: its five-second TERM grace and bounded reaping are not
-provided by Host's synchronous KILL/reap cleanup. Replacing it must preserve
-those lifetime decisions, signal interpretation, original errors and actual
-receipt publication. The maintainer has confirmed both existing timing bounds
-must remain; the earlier isolated bridge is not current integration.
-The shared API and remaining consumer work are recorded in
+Successful background startup transfers runtime ownership to the harness's
+network cleanup phase only after zero exit, UTF-8 admission, deadline and
+cancellation checks. Host's owned-child API preserves the maintainer-selected
+five-second TERM grace and five-second bounded reaping. Receipt publication
+cannot skip that network cleanup or replace an earlier operation failure.
+The shared process boundary is recorded in
 [Host #5](https://github.com/dragginzgame/ic-host-tooling/issues/5).
 
 SIGKILL cannot execute cleanup handlers. In a surviving workspace, the last
@@ -280,7 +281,8 @@ Deploy the reviewed bundle to a dedicated, funded test canister using the
 Rust toolchain so the verifier can reproduce the Wasm hash. Then run:
 
 ```bash
-python3 scripts/canister/smoke.py verify-mainnet --canister <probe-principal>
+cargo run -p ic-query-cli --example governance_smoke --locked --offline -- \
+  verify-mainnet --canister <probe-principal>
 ```
 
 The verifier selects the built-in mainnet endpoint `https://icp-api.io/` and

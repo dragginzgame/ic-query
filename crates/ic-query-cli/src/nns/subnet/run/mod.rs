@@ -2,12 +2,9 @@ mod info;
 mod list;
 mod refresh;
 
-use crate::{
-    nns::{NnsCommandError, command_cache_root},
-    progress::announce_missing_mainnet_cache,
-};
+use crate::nns::{NnsCommandError, command_cache_root};
 use clap::ArgMatches;
-use ic_query::subnet_catalog::{SubnetCatalogCacheRequest, subnet_catalog_path};
+use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("status", matches)) => crate::nns::operational_status::run(
@@ -27,9 +24,4 @@ fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandE
         command_cache_root()?,
         network,
     ))
-}
-
-fn announce_missing_catalog(cache: &SubnetCatalogCacheRequest, source_endpoint: &str) {
-    let path = subnet_catalog_path(&cache.cache_root, &cache.network);
-    announce_missing_mainnet_cache(&cache.network, "subnet catalog", &path, source_endpoint);
 }

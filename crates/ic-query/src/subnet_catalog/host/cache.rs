@@ -10,8 +10,9 @@ use super::{
     SubnetCatalogRefreshRequest, SubnetCatalogRefreshTrigger, SubnetCatalogSource,
     SubnetCatalogSourceFailure, SubnetCatalogSubject, error::enforce_mainnet_network,
     failure::subject_from_catalog_error,
-    refresh::refresh_subnet_catalog_detailed_with_source_async, subnet_catalog_path,
+    refresh::refresh_subnet_catalog_detailed_with_progress_async, subnet_catalog_path,
 };
+use crate::{QueryProgress, progress::IgnoreQueryProgress};
 use crate::{
     cache_file::{BoundedManagedFileReadError, HostCacheError, read_bounded_managed_file},
     runtime::block_on_current_thread,
@@ -297,6 +298,20 @@ pub fn load_subnet_catalog_with_source(
         .map_err(SubnetCatalogLoadFailure::into_source)
 }
 
+/// Apply a catalog read policy with a supplied source and progress sink.
+pub fn load_subnet_catalog_with_source_and_progress(
+    request: &SubnetCatalogLoadRequest,
+    source: &dyn SubnetCatalogSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
+    match block_on_current_thread(load_subnet_catalog_detailed_with_progress_async(
+        request, source, progress,
+    )) {
+        Ok(result) => result.map_err(SubnetCatalogLoadFailure::into_source),
+        Err(error) => Err(runtime_load_failure(request, error).into_source()),
+    }
+}
+
 /// Apply a catalog read policy with a supplied source and typed failure provenance.
 pub fn load_subnet_catalog_detailed_with_source(
     request: &SubnetCatalogLoadRequest,
@@ -342,6 +357,15 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
+    load_subnet_catalog_detailed_with_progress_async(request, source, &mut IgnoreQueryProgress)
+        .await
+}
+
+async fn load_subnet_catalog_detailed_with_progress_async(
+    request: &SubnetCatalogLoadRequest,
+    source: &dyn SubnetCatalogSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     enforce_mainnet_network(&request.cache.network).map_err(|source| {
         load_failure(
             request,
@@ -363,6 +387,7 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
             refresh_then_load_detailed(
                 request,
                 source,
+                progress,
                 CacheDisposition::ForcedRefresh,
                 SubnetCatalogRefreshTrigger::Forced,
             )
@@ -389,6 +414,7 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
                         refresh_then_load_detailed(
                             request,
                             source,
+                            progress,
                             CacheDisposition::RefreshedStale,
                             SubnetCatalogRefreshTrigger::Stale,
                         )
@@ -406,6 +432,7 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
                     refresh_then_load_detailed(
                         request,
                         source,
+                        progress,
                         CacheDisposition::RefreshedMissing,
                         SubnetCatalogRefreshTrigger::Missing,
                     )
@@ -425,6 +452,7 @@ pub async fn load_subnet_catalog_detailed_with_source_async(
                     refresh_then_load_detailed(
                         request,
                         source,
+                        progress,
                         CacheDisposition::RefreshedInvalid,
                         SubnetCatalogRefreshTrigger::Rejected,
                     )
@@ -535,6 +563,7 @@ fn bounded_catalog_read_error(error: BoundedManagedFileReadError) -> SubnetCatal
 async fn refresh_then_load_detailed(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
+    progress: &mut (dyn QueryProgress + Send),
     disposition: CacheDisposition,
     trigger: SubnetCatalogRefreshTrigger,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
@@ -576,16 +605,17 @@ async fn refresh_then_load_detailed(
         DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     )
     .with_max_future_skew_seconds(request.max_future_skew_seconds);
-    let refresh = refresh_subnet_catalog_detailed_with_source_async(&refresh_request, source)
-        .await
-        .map_err(|failure| {
-            load_failure(
-                request,
-                SubnetCatalogLoadStage::RefreshFailed,
-                SubnetCatalogFailureCacheDisposition::RefreshFailed(trigger),
-                failure,
-            )
-        })?;
+    let refresh =
+        refresh_subnet_catalog_detailed_with_progress_async(&refresh_request, source, progress)
+            .await
+            .map_err(|failure| {
+                load_failure(
+                    request,
+                    SubnetCatalogLoadStage::RefreshFailed,
+                    SubnetCatalogFailureCacheDisposition::RefreshFailed(trigger),
+                    failure,
+                )
+            })?;
     load_cached_with_disposition_detailed(request, disposition).map_err(|mut failure| {
         if failure.registry_version.is_none() {
             failure.registry_version = Some(refresh.registry_version);

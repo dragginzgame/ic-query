@@ -67,6 +67,14 @@ Failed or interrupted attempts retain their candidate directory and leave the
 prior selected set intact; retries create a fresh candidate. Previous sets and
 downloads are not automatically deleted. Cleanup is an explicit local action.
 
+Reuse compares the complete validated tool/version/host/archive-checksum records
+across all supported hosts. Comments and row order do not change that selection
+or trigger downloads. The installed pins remain the exact installation input;
+neither the caller's pins nor installed receipts are rewritten during reuse.
+Every changed record requires explicit setup, and offline reuse still verifies
+the host, installed file hashes and executable versions. Changes to the caller's
+pin file during installation still prevent activation of that candidate.
+
 Setup and offline checks admit the literal `.tools/ic` link target. Malformed
 managed names, including trailing newlines, are refused before tool execution
 or downloads; the existing link and bundles remain intact.

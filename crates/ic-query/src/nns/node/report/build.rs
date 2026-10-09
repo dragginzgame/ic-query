@@ -9,6 +9,7 @@ use super::{
     source::NnsNodeSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
+use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
@@ -22,23 +23,58 @@ pub fn build_nns_node_info_report(
     build_nns_node_info_report_with_source(request, &LiveNnsSource)
 }
 
+/// Build the report while reporting authorized cache refreshes.
+pub fn build_nns_node_list_report_with_progress(
+    request: &NnsNodeListRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<NnsNodeListReport, NnsNodeHostError> {
+    build_nns_node_list_report_with_source_and_progress(request, &LiveNnsSource, progress)
+}
+
 pub fn build_nns_node_list_report_with_source(
     request: &NnsNodeListRequest,
     source: &dyn NnsNodeSource,
+) -> Result<NnsNodeListReport, NnsNodeHostError> {
+    build_nns_node_list_report_with_source_and_progress(request, source, &mut IgnoreQueryProgress)
+}
+
+/// Build the report with a caller-owned source and progress sink.
+pub fn build_nns_node_list_report_with_source_and_progress(
+    request: &NnsNodeListRequest,
+    source: &dyn NnsNodeSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     let report = load_or_refresh_nns_inventory_report(
         request,
         nns_node_cache_path(&request.cache.cache_root, &request.cache.network),
         DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
+        progress,
         |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
         |refresh_request| refresh_nns_node_cache_with_source(refresh_request, source).map(|_| ()),
     )?;
     Ok(filter_node_list_report(report, &request.filters))
 }
 
+/// Build the report while reporting authorized cache refreshes.
+pub fn build_nns_node_info_report_with_progress(
+    request: &NnsInventoryInfoRequest,
+    progress: &mut dyn QueryProgress,
+) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
+    build_nns_node_info_report_with_source_and_progress(request, &LiveNnsSource, progress)
+}
+
 pub fn build_nns_node_info_report_with_source(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeSource,
+) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
+    build_nns_node_info_report_with_source_and_progress(request, source, &mut IgnoreQueryProgress)
+}
+
+/// Build the report with a caller-owned source and progress sink.
+pub fn build_nns_node_info_report_with_source_and_progress(
+    request: &NnsInventoryInfoRequest,
+    source: &dyn NnsNodeSource,
+    progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
     let list_request = NnsNodeListRequest {
         cache: request.cache.clone(),
@@ -46,7 +82,8 @@ pub fn build_nns_node_info_report_with_source(
         now_unix_secs: request.now_unix_secs,
         filters: NnsNodeListFilters::default(),
     };
-    let report = build_nns_node_list_report_with_source(&list_request, source)?;
+    let report =
+        build_nns_node_list_report_with_source_and_progress(&list_request, source, progress)?;
     let (node, resolved_from) = resolve_node(&report, &request.input)?;
     Ok(NnsNodeInfoReport {
         schema_version: NNS_NODE_INFO_REPORT_SCHEMA_VERSION,

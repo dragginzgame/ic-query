@@ -11,6 +11,68 @@ use crate::test_support::temp_dir;
 use std::fs;
 
 #[test]
+fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
+    let cache = test_cache_request(MAINNET_NETWORK, "progress-read-policy");
+    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    let request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_780_531_200);
+    let source = FixtureNodeSource {
+        nodes: vec![node_fixture()],
+    };
+    let mut events = Vec::new();
+    let mut progress = |event| events.push(event);
+    super::build_nns_node_list_report_with_source_and_progress(&request, &source, &mut progress)
+        .expect("missing cache refreshes");
+    assert_eq!(
+        events,
+        vec![crate::QueryProgressEvent::CacheRefresh {
+            component: "node".to_string(),
+            path: path.clone(),
+            source_endpoint: request.source_endpoint.clone(),
+        }]
+    );
+    events.clear();
+    super::build_nns_node_list_report_with_source_and_progress(
+        &request,
+        &InvalidNodeSource,
+        &mut |event| events.push(event),
+    )
+    .expect("valid cache avoids invalid source");
+    assert!(events.is_empty());
+    crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json").unwrap();
+    super::build_nns_node_list_report_with_source_and_progress(&request, &source, &mut |event| {
+        events.push(event)
+    })
+    .expect("invalid cache refreshes");
+    assert_eq!(events.len(), 1);
+    let _ = fs::remove_dir_all(cache.cache_root);
+}
+
+#[cfg(unix)]
+#[test]
+fn node_authority_refusal_never_announces_or_calls_a_source() {
+    use std::os::unix::fs::symlink;
+    let cache = test_cache_request(MAINNET_NETWORK, "progress-authority");
+    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "{}").unwrap();
+    fs::remove_file(&path).unwrap();
+    symlink(cache.cache_root.join("missing-target"), &path).unwrap();
+    let request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_780_531_200);
+    let mut events = Vec::new();
+    let error = super::build_nns_node_list_report_with_source_and_progress(
+        &request,
+        &InvalidNodeSource,
+        &mut |event| events.push(event),
+    )
+    .expect_err("managed authority refusal");
+    assert!(matches!(
+        error,
+        NnsNodeHostError::Cache(crate::HostCacheError::Operation { .. })
+    ));
+    assert!(events.is_empty());
+    let _ = fs::remove_dir_all(cache.cache_root);
+}
+
+#[test]
 fn live_node_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",

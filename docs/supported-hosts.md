@@ -22,7 +22,7 @@ qualified by this matrix.
   the declared MSRV `1.91.0` for its separate check. Installation must preserve
   the repository's selected `Cargo.lock`.
 - Bash 3.2 or newer, GNU Make 3.81 or newer, Git, Perl with its core modules,
-  Python 3 for the maintained documentation/canister tools, and standard Unix
+  Python 3 for the maintained documentation tools, and standard Unix
   utilities. macOS needs Xcode Command Line Tools for its compiler, Git and Make.
   Release/checksum helpers support both GNU `sha256sum` and macOS `shasum`.
 - `make install-dev` explicitly installs the exact Cargo Audit and Cargo Machete
@@ -444,33 +444,60 @@ MSRV and live smoke in its
 [branch run](https://github.com/dragginzgame/ic-query/actions/runs/37817468555),
 and Linux checks in its
 [tag run](https://github.com/dragginzgame/ic-query/actions/runs/37817469555).
-Intel macOS checks are in progress; its other macOS jobs remain queued. Cancellation and queued jobs do
-not qualify the consumer's required native coverage.
+Both runs have now completed successfully on all three required hosts. The
+branch run passes all nine checks, MSRV and live-smoke jobs; the tag run passes
+all three configured checks jobs.
 
-Pending 0.50.3 preserves the selected registry Host 0.8.4 graph at
+Released 0.50.3 preserves the selected registry Host 0.8.4 graph at
 `97187b2a46d6f8a6964224a36a133d858ef0d223`, with defaults disabled and process
 support development-only. Its
 [owner CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/37818647474)
-passes Linux and MSRV; both macOS jobs remain queued. The selected cache was
+passes Linux, both macOS architectures and MSRV. The selected cache was
 prepared explicitly after offline fetch reported the missing filesystem crate.
 The 74-file Shared Tooling snapshot now records 0.1.30 at
 `4e274a2219c0b0cc3af68ec65658b373253518fb`; only setup guidance changes within
 that selection. The owner-only Cargo installation assessment and manual workflow
 are not selected or executed here. Shared's
 [matching CI](https://github.com/dragginzgame/shared-tooling/actions/runs/37809818114)
-passes Linux regression and lint/security; both macOS jobs remain queued.
-These owner runs and older Query results do not qualify the new dirty selection.
+passes Linux, both macOS architectures and lint/security.
 Focused locked/offline Linux validation passes 55 cache-file tests, six artifact
 helper tests, 37 smoke-command fixtures through the actual Host runner, and strict
 process-helper Clippy. Snapshot integrity, dependency declarations, documentation
 links and existing CI script fixtures also pass. Cache preparation and checks
 preserve the maintainer's selected lockfile bytes. Full local CI, complete MSRV,
 live IC smoke and native macOS execution for this selection were not run.
-The pending CI policy groups pushed commits by ref and source SHA, preserving
+The CI policy groups pushed commits by ref and source SHA, preserving
 their queued/running qualification across later pushes. PR revisions retain
-automatic cancellation. The affected workflow passes actionlint; actual native
-execution and consecutive-push qualification of this policy remain unrun under
+automatic cancellation. Released source
+`edd68020d9ef8e76a241e89daf77e51155a92f57` passes all nine native checks,
+MSRV and live-smoke jobs in its
+[branch run](https://github.com/dragginzgame/ic-query/actions/runs/37823182436),
+and all three configured native checks in its
+[tag run](https://github.com/dragginzgame/ic-query/actions/runs/37823183374).
+The preceding 0.50.2 Intel checks continued across the 0.50.3 push; its Apple
+Silicon checks started afterward and passed. Both source runs completed,
+qualifying consecutive-push preservation under
 [#27](https://github.com/dragginzgame/ic-query/issues/27).
+
+Pending 0.50.4 adopts Shared Tooling 0.1.31 at
+`9af82393c620e486578febed74a648523725c234` with the same 74-file selection.
+The installer and its canonical pin parser now compare validated complete
+records for reuse. The owner IC-installer fixture passes on Linux Bash 5 and
+genuine Bash 3.2.57, including substituted Linux, Intel Darwin and ARM Darwin
+tool branches, damaged payloads, invalid or changed records, unchanged caller
+and installation provenance, and failed-candidate retention. Those substituted
+branches do not qualify native macOS execution. The owner fixtures are exercised
+from an isolated exact-revision checkout rather than added to consumer CI.
+The actual installed Linux six-tool bundle passes both offline checking and
+explicit setup with comment-only/reordered pins and curl blocked: zero
+downloads, no new bundle, unchanged active link, caller pins, receipts, Git index
+and Cargo lockfile. A changed Apple Silicon archive digest refuses offline
+reuse. Snapshot integrity, dependency declarations and documentation links pass.
+The exact shared
+[CI run](https://github.com/dragginzgame/shared-tooling/actions/runs/37891841317)
+is in progress when inspected. This pending Query selection has no native CI
+result yet; full local CI, Rust compilation and live smoke were not run for this
+installer-only change.
 
 A fresh ordinary-registry consumer selects non-yanked Query 0.50.1 plus Host
 artifact/filesystem 0.8.2, with exactly one identity for each Host package and
@@ -478,6 +505,21 @@ no path overrides or registry patches. Complete locked/offline metadata and
 compilation pass on Linux. This verifies published-manifest convergence;
 coordinated downstream adoption remains consumer-owned under
 [Query #24](https://github.com/dragginzgame/ic-query/issues/24).
+
+The pending 0.51.0 hard cut replaces the Python smoke harness and its two Rust
+bridges with one development-only Rust runner against the selected Host 0.8.6
+registry packages. POSIX signal handling records the first SIGINT/SIGTERM;
+Host preserves five-second TERM grace and bounded reaping. This source needs
+matching native Linux and both macOS architecture checks, MSRV compilation and
+live canister smoke. Prior released-source runs do not qualify this working tree.
+Focused Linux checks pass 23 runner fixtures, 105 inventory/catalog tests,
+65 NNS/CloudEngine CLI unit tests and the binary authority-refusal fixture.
+The catalog-only feature selection compiles, strict runner/CLI Clippy passes,
+and the runner compiles on actual Rust 1.91.0, all locked/offline against the
+explicitly prepared 0.8.6 graph. Formatting, section-style type docs and changed
+local document links pass. The compatible Shared 0.1.31 notes previously prepared
+for 0.50.4 are folded into this minor slice, preserving the existing staged work.
+No full local CI, fresh native macOS or live integration result is claimed here.
 
 ## Tool-specific dependencies
 
@@ -492,9 +534,9 @@ coordinated downstream adoption remains consumer-owned under
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
-| Artifact-helper and receipt tests | Selected Rust toolchain and locked/offline dependency cache, Python 3, POSIX process groups |
+| Governance runner and receipt tests | Selected Rust toolchain and locked/offline dependency cache, POSIX process groups |
 | Complete gate | Declared Rust toolchain, local jq/yq/ripgrep/cloc set, Cargo Audit/Machete and ordinary utilities |
-| Governance integration | Verified local IC set, Wasm Rust target, Python 3 and explicit local-runtime network access |
+| Governance integration | Verified local IC set, Wasm Rust target and explicit local-runtime network access |
 
 The Governance harness selects a persistent `ICP_HOME` only for ICP children,
 using the same override on Linux and macOS. Identities, settings and launcher

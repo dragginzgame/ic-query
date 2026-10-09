@@ -15,6 +15,17 @@ Consumer choices described in those guides remain subject to this baseline.
   numeric limits, validation gates and release identities stay local. Release
   target names and workflow follow the common contract below. Do not copy one
   consumer's architecture into the common baseline.
+- Shared Tooling owns consistency across the repository fleet: repository/sibling
+  counts, shared-snapshot and pin drift, CI/issue overviews, cross-repository LOC
+  and tooling inventories, and common maintenance/audit procedures. Run central
+  fleet reports here; their existence does not require every consumer to vendor
+  them or add sibling scans/dashboard tests to its CI. Consumers still adopt
+  shared tooling needed for their own development and validation.
+- Keep repository-fleet inventory and governance out of IC Metrics' product
+  scope. IC Metrics owns reusable measurement arithmetic; a repository count is
+  a Shared Tooling report, not a new IC Metrics API, dependency or application.
+  Product libraries do not become fleet-management owners because a report
+  contains counts or is called a metric.
 - Local overlays may strengthen the baseline or define product-specific choices
   within its delegated scope. A change to an explicit common rule, including
   command authority or delivery cadence, requires a maintainer-approved exception

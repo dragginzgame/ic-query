@@ -5,6 +5,33 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.51.0]
+
+Detailed release notes: [docs/changelog/0.51.md](docs/changelog/0.51.md)
+
+- Replaces the Governance smoke harness with one development-only Rust runner.
+  Direct callers must use `governance_smoke`; Python and the separate process
+  and artifact helpers are retired. Receipts and original Candid replies remain
+  preserved, with the existing cleanup timing and network trust policy.
+  [#29](https://github.com/dragginzgame/ic-query/issues/29).
+- Bounds smoke Candid decoding work, type tables and headers in addition to
+  reply size, retaining exact rejected reply evidence and raw JSON numbers.
+  [#30](https://github.com/dragginzgame/ic-query/issues/30).
+- Announces automatic inventory and Subnet Catalog refreshes from the library's
+  actual cache policy, including invalid and selected stale-cache recovery.
+  Cache hits and cache-only or filesystem-authority refusals remain silent.
+  [#28](https://github.com/dragginzgame/ic-query/issues/28).
+- Selects published Host 0.8.6, retaining explicit command deadlines.
+- Adopts Shared Tooling 0.1.31. IC-tool setup reuses verified bundles across
+  comment-only or reordered pin files, preserving installed pins and receipts.
+  Changed tool, version, host or archive-checksum records still require explicit
+  setup; offline checks still authenticate installed files and versions.
+  [Shared #79](https://github.com/dragginzgame/shared-tooling/issues/79).
+
+```bash
+cargo run -p ic-query-cli --example governance_smoke --locked --offline -- local
+```
+
 ## [0.50.3] - 2026-10-08
 
 Detailed release notes: [docs/changelog/0.50.md](docs/changelog/0.50.md)

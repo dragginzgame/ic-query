@@ -15,20 +15,20 @@ use crate::{
             current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
         },
     },
-    progress::announce_missing_mainnet_cache,
+    progress::StderrQueryProgress,
     storage::{CacheRootError, cache_root},
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::{
     CloudEngineHostError, CloudEngineSourceRequest, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
-    build_cloud_engine_list_report, build_cloud_engine_operator_report,
+    build_cloud_engine_list_report_with_progress, build_cloud_engine_operator_report,
     build_cloud_engine_prices_report, cloud_engine_list_report_text,
     cloud_engine_operator_report_text, cloud_engine_prices_report_text,
 };
 use ic_query::ic::IcHostError;
 use ic_query::subnet_catalog::{
     DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
-    SubnetCatalogListRequest, subnet_catalog_path,
+    SubnetCatalogListRequest,
 };
 use std::io;
 use thiserror::Error as ThisError;
@@ -104,12 +104,6 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
     let now_unix_secs = current_unix_secs()?;
     let registry_source_endpoint = required_string(matches, REGISTRY_SOURCE_ENDPOINT_ARG);
     let cache = SubnetCatalogCacheRequest::new(cache_root()?, network);
-    announce_missing_mainnet_cache(
-        network,
-        "subnet catalog",
-        &subnet_catalog_path(&cache.cache_root, &cache.network),
-        &registry_source_endpoint,
-    );
     let catalog_request = SubnetCatalogListRequest::new(
         cache,
         registry_source_endpoint,
@@ -117,7 +111,11 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
         DEFAULT_STALE_AFTER_SECONDS,
     );
     let control_plane_request = source_request_at(matches, network, now_unix_secs);
-    let report = build_cloud_engine_list_report(&catalog_request, &control_plane_request)?;
+    let report = build_cloud_engine_list_report_with_progress(
+        &catalog_request,
+        &control_plane_request,
+        &mut StderrQueryProgress::new(),
+    )?;
     write_text_or_json(
         output_format(matches),
         &report,

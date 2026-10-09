@@ -90,7 +90,8 @@ pub mod nns;
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-host",
-    feature = "sns-host"
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
 ))]
 mod progress;
 pub mod report;
@@ -147,6 +148,7 @@ mod tests;
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-host",
-    feature = "sns-host"
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
 ))]
 pub use progress::{QueryProgress, QueryProgressEvent, QueryProgressState};

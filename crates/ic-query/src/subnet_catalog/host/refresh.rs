@@ -6,6 +6,7 @@ use super::{
     source::collect_subnet_catalog_detailed,
     subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
+use crate::{QueryProgress, QueryProgressEvent, progress::IgnoreQueryProgress};
 use crate::{
     cache_file::{
         MAX_JSON_SNAPSHOT_BYTES, RefreshLockRequest, create_managed_parent_directory,
@@ -137,6 +138,15 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_source_async(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, Box<SubnetCatalogSourceFailure>> {
+    refresh_subnet_catalog_detailed_with_progress_async(request, source, &mut IgnoreQueryProgress)
+        .await
+}
+
+pub(super) async fn refresh_subnet_catalog_detailed_with_progress_async(
+    request: &SubnetCatalogRefreshRequest,
+    source: &dyn SubnetCatalogSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<SubnetCatalogRefreshReport, Box<SubnetCatalogSourceFailure>> {
     enforce_mainnet_network(&request.cache.network).map_err(|source| {
         SubnetCatalogSourceFailure::new(
             None,
@@ -194,6 +204,7 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_source_async(
                 &catalog_path,
                 &lock_path,
                 &known_registry_version,
+                progress,
             )
         },
     )
@@ -207,14 +218,19 @@ async fn refresh_subnet_catalog_under_lock(
     catalog_path: &Path,
     lock_path: &Path,
     known_registry_version: &AtomicU64,
+    progress: &mut (dyn QueryProgress + Send),
 ) -> Result<SubnetCatalogRefreshReport, Box<SubnetCatalogSourceFailure>> {
     let replaced_existing_catalog = managed_file_exists(&request.cache.cache_root, catalog_path)
         .map_err(|error| cache_failure(error, None, catalog_path))?;
-    let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
+    progress.report(QueryProgressEvent::CacheRefresh {
+        component: "subnet catalog".to_string(),
+        path: catalog_path.to_path_buf(),
+        source_endpoint: source_endpoints.join(", "),
+    });
     let raw = collect_subnet_catalog_detailed(
         &request.cache.network,
         source_endpoints,
-        &fetched_at,
+        &format_utc_timestamp_secs(request.now_unix_secs),
         "ic-query",
         request.now_unix_secs,
         request.max_future_skew_seconds,

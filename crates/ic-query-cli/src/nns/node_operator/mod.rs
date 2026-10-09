@@ -18,12 +18,7 @@ pub(in crate::nns) fn command() -> clap::Command {
 }
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    leaf::run_cached_leaf(
-        matches,
-        network,
-        &spec::NODE_OPERATOR_SPEC,
-        reports::NnsNodeOperatorReports,
-    )
+    leaf::run_cached_leaf(matches, network, reports::NnsNodeOperatorReports)
 }
 
 #[cfg(test)]

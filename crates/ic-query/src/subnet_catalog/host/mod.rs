@@ -11,7 +11,7 @@ pub use cache::{
     load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_detailed,
     load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
     load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source,
-    load_subnet_catalog_with_source_async,
+    load_subnet_catalog_with_source_and_progress, load_subnet_catalog_with_source_async,
 };
 pub use error::{
     SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogHostError,

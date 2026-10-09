@@ -18,8 +18,12 @@ use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventory
 
 #[cfg(feature = "nns-host")]
 pub use build::{
-    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_source,
-    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_source,
+    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_progress,
+    build_nns_node_operator_info_report_with_source,
+    build_nns_node_operator_info_report_with_source_and_progress,
+    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_progress,
+    build_nns_node_operator_list_report_with_source,
+    build_nns_node_operator_list_report_with_source_and_progress,
 };
 #[cfg(feature = "nns-host")]
 pub use cache::{nns_node_operator_cache_path, nns_node_operator_refresh_lock_path};

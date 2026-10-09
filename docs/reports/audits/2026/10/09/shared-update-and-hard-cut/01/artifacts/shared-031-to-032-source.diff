@@ -1,0 +1,335 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 742613e..98a5feb 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -14,8 +14,10 @@ defaults:
+     shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+ 
+ concurrency:
+-  group: ${{ github.workflow }}-${{ github.ref }}
+-  cancel-in-progress: true
++  # Preserve each pushed source's native qualification, including queued jobs.
++  # PR updates may still replace validation of an older review revision.
++  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
++  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+ 
+ jobs:
+   lint-and-security:
+@@ -77,8 +79,6 @@ jobs:
+           - macos-15
+           - macos-15-intel
+     runs-on: ${{ matrix.os }}
+-    # Include native setup and leave time to upload failed-suite evidence.
+-    timeout-minutes: 35
+     steps:
+       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+         with:
+@@ -118,7 +118,6 @@ jobs:
+           npm ci --prefix ci/frontend
+       - name: Run portable regression set with prepared tools
+         shell: bash
+-        timeout-minutes: 20
+         env:
+           TMPDIR: ${{ runner.temp }}/portable-fixtures
+         run: |
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a13ad7c..bc8fc60 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,11 +1,32 @@
+ # Changelog
+ 
++## [0.1.32]
++
++### Fixed
++
++- Preserve running and queued native CI for each pushed commit while allowing
++  newer PR revisions to replace older review runs.
++  ([#80](https://github.com/dragginzgame/shared-tooling/issues/80))
++- Resolve Cargo-install qualification evidence paths independently of `CDPATH`,
++  preserving unusual directory names and refusing existing evidence roots before
++  tool execution. Accept both Cargo receipt spellings for `--debug`, fixing a
++  false rejection after successful native macOS installation.
++  ([#65](https://github.com/dragginzgame/shared-tooling/issues/65))
++
++### Changed
++
++- Document the PocketIC handoff to Testkit, including the published setup/check
++  prerequisite and preservation of existing bundles before the current installer
++  contract can be retired.
++  ([#76](https://github.com/dragginzgame/shared-tooling/issues/76))
++
+ ## [0.1.31]
+ 
+ ### Fixed
+ 
+-- Remove the Cargo-install qualification workflow's 30-minute step and 40-minute
+-  job limits so long builds can finish within GitHub Actions' default limits.
++- Remove short job/step limits from Cargo-install qualification and portable
++  regression so long builds can finish within GitHub Actions' default limits.
++  Ordinary failure evidence collection remains enabled.
+ - Select the intended sibling directory when `CDPATH` is set or its name ends
+   in a newline, keeping the issue dashboard scoped to the requested repositories.
+   ([#78](https://github.com/dragginzgame/shared-tooling/issues/78))
+diff --git a/docs/ic-tools.md b/docs/ic-tools.md
+index 7e41eab..d02cc03 100644
+--- a/docs/ic-tools.md
++++ b/docs/ic-tools.md
+@@ -93,6 +93,27 @@ with their consumers.
+ 
+ ## Consumer adoption
+ 
++### PocketIC ownership handoff
++
++IC Testkit is the intended owner of PocketIC-specific release selection, asset
++checksums, provisioning, offline admission and server lifecycle. Track its
++published setup/check contract in
++[Testkit #38](https://github.com/dragginzgame/ic-testkit/issues/38) and the Shared
++Tooling removal in [#76](https://github.com/dragginzgame/shared-tooling/issues/76).
++Shared Tooling can supply generic download/checksum/archive mechanics; application
++repositories should not acquire another independent PocketIC version policy.
++
++The currently supported installer still requires the complete six-tool matrix
++above. Preserve that functioning setup until the replacement is published and
++qualified on Linux and both macOS architectures. Adoption must trace callers of
++`make install-tools`, `make ic-tools-check`, the alignment/binary helpers and
++`.tools/ic/bin/pocket-ic`, as well as each consumer's selected snapshot and pins.
++Retiring the row and PocketIC-specific branches changes the setup contract and
++requires a separately coordinated release, with explicit Testkit setup, offline
++checks and product startup verified before removing the old route. Preserve
++existing bundles, receipts and failed-install evidence; tests must not silently
++download a replacement, and consumers must not patch their vendored snapshots.
++
+ ### Identity storage and local resets
+ 
+ Keep identity/key stores outside every directory removed by a consumer's reset
+diff --git a/docs/local-setup.md b/docs/local-setup.md
+index afae93a..1eecefb 100644
+--- a/docs/local-setup.md
++++ b/docs/local-setup.md
+@@ -181,8 +181,10 @@ CARGO_NET_OFFLINE=true bash scripts/ci/qualify-cargo-install.sh "$PWD/.tools/car
+ The offline command requires the registry packages and their locked dependencies
+ to be prepared already. Explicit online qualification may omit
+ `CARGO_NET_OFFLINE=true`; it installs only into the new evidence root and retains
+-builds and logs on both success and failure. It never cleans or changes an
+-existing installation. The fixture selects published `ic-blob-storage 0.15.1`'s
++builds and logs on both success and failure. Relative evidence paths resolve from
++the caller's working directory independently of `CDPATH`; existing roots are
++refused before tool probes. It never cleans or changes an existing installation.
++The fixture selects published `ic-blob-storage 0.15.1`'s
+ `prepare_upload` example and the existing reviewed cargo-sort version. Those are
+ assessment inputs, not defaults for consumer applications. Both use the debug
+ profile; no product MSRV or Canic CLI selection is qualified by this fixture.
+@@ -193,11 +195,14 @@ of the executable and receipts after an injected compiler failure. It records
+ local executable digests and rejects changed bytes using the shared checksum
+ owner. Those digests detect changes to an observed build; they are not publisher
+ signatures, and a Cargo receipt alone does not authenticate executable bytes.
++For the selected `--debug` command, receipt admission accepts Cargo's `dev` and
++`debug` spellings and rejects release profiles; original receipts and toolchain
++identity remain in the evidence root.
+ 
+ The manually triggered **Cargo installation qualification** workflow runs this
+-assessment on Linux and both macOS architectures with separate finite budgets
+-and failure evidence collection. It does not add registry builds to the default
+-portable gate. Native results, consumer-specific versions and an actual shared
++assessment on Linux and both macOS architectures with GitHub Actions' default
++duration limits and failure evidence collection. It does not add registry builds
++to the default portable gate. Native results, consumer-specific versions and an actual shared
+ installer's path/receipt/lock refusal still need qualification before extraction
+ under [#65](https://github.com/dragginzgame/shared-tooling/issues/65). The current
+ fixed Rust installer remains the supported setup contract.
+diff --git a/docs/supported-hosts.md b/docs/supported-hosts.md
+index 3840136..4bf7b00 100644
+--- a/docs/supported-hosts.md
++++ b/docs/supported-hosts.md
+@@ -53,9 +53,16 @@ The table describes the intended CI contract. Passing qualification for a
+ revision requires its matching workflow run; adding a matrix entry does not
+ establish that the run passed.
+ 
+-The portable job allows 35 minutes including native setup and evidence upload.
+-Its regression step has a separate 20-minute limit, leaving time for the failure
+-collector after an overlong suite. Lint/security retains its 10-minute limit.
++Push CI groups include the source commit so a later main push preserves both
++running and queued qualification of earlier commits. PR updates share their PR
++group and cancel superseded review revisions. This retains more main-commit
++runs when native runners are busy; it does not add runner capacity. Inspect each
++selected commit's result before treating its snapshot as qualified.
++
++The portable job uses GitHub Actions' default job timeout, allowing long native
++builds to finish without a shorter regression-step deadline. Ordinary failures
++still run the evidence collector; reaching the platform job limit can prevent
++collection. Lint/security retains its 10-minute limit.
+ 
+ All three jobs also run real Prettier/Rust hook qualification and a native
+ installer failure-artifact round trip, described below. These are separate
+diff --git a/docs/verification-helpers.md b/docs/verification-helpers.md
+index 18beea3..b9cb54a 100644
+--- a/docs/verification-helpers.md
++++ b/docs/verification-helpers.md
+@@ -123,6 +123,11 @@ runner-image cleanup remains a separate, explicitly scoped consumer operation.
+ 
+ ## PocketIC alignment and external binaries
+ 
++These helpers implement existing explicitly selected pairings; they do not own
++IC Testkit's compatibility policy. Coordinate their retirement with the
++[PocketIC ownership handoff](ic-tools.md#pocketic-ownership-handoff), after the
++published Testkit setup/check replacement is qualified.
++
+ ```bash
+ bash scripts/ci/check-pocketic-alignment.sh \
+   --manifest testing/Cargo.toml --pins ci/ic-tools.tsv
+diff --git a/scripts/ci/qualify-cargo-install.sh b/scripts/ci/qualify-cargo-install.sh
+index 100d731..8fbbd2e 100755
+--- a/scripts/ci/qualify-cargo-install.sh
++++ b/scripts/ci/qualify-cargo-install.sh
+@@ -12,8 +12,10 @@ ROOT="$0"
+ [[ "$ROOT" == /* ]] || ROOT="$PWD/$ROOT"
+ ROOT="$(cd -P "${ROOT%/*}/../.." && printf '%s/.' "$PWD")"
+ ROOT="${ROOT%/.}"
+-mkdir "$1"
+-fixture="$(cd -P "$1" && printf '%s/.' "$PWD")"
++selected="$1"
++[[ "$selected" == /* ]] || selected="$PWD/$selected"
++mkdir "$selected"
++fixture="$(cd -P "$selected" && printf '%s/.' "$PWD")"
+ fixture="${fixture%/.}"
+ trap 'printf "Cargo installation evidence retained: %s\n" "$fixture" >&2' EXIT
+ export RUSTUP_AUTO_INSTALL=0
+@@ -56,12 +58,17 @@ install_at() {
+         --target-dir "$build_root" -j 2 "$@"
+ }
+ admit_receipt() {
++    # Cargo records --debug as dev on older toolchains and debug on newer ones.
+     jq -e --arg identity "$package $version (registry+https://github.com/rust-lang/crates.io-index)" \
+         --arg version "=$version" --arg target "$target" --arg host "$host" '
+         (.installs | keys) == [$identity] and
+         (.installs[$identity] | .version_req == $version and .bins == [$target] and
+-          .profile == "debug" and .target == $host and (.rustc | type == "string"))
+-    ' "$1/.crates2.json" > /dev/null
++          (.profile == "dev" or .profile == "debug") and
++          .target == $host and (.rustc | type == "string"))
++    ' "$1/.crates2.json" > /dev/null || {
++        printf 'Cargo receipt does not match the selected package, version, target, debug profile or host: %s\n' "$1/.crates2.json" >&2
++        return 1
++    }
+ }
+ assert_preserved() {
+     cmp "$case_root/binary.before" "$case_root/install/bin/$target"
+diff --git a/scripts/ci/test-cargo-install-qualification.sh b/scripts/ci/test-cargo-install-qualification.sh
+new file mode 100755
+index 0000000..b9c6b4c
+--- /dev/null
++++ b/scripts/ci/test-cargo-install-qualification.sh
+@@ -0,0 +1,81 @@
++#!/usr/bin/env bash
++# Shared companions: scripts/ci/qualify-cargo-install.sh
++set -euo pipefail
++ROOT="${BASH_SOURCE[0]}"
++[[ "$ROOT" == /* ]] || ROOT="$PWD/$ROOT"
++ROOT="$(cd -P "${ROOT%/*}/../.." && printf '%s/.' "$PWD")"
++ROOT="${ROOT%/.}"
++fixture="$(mktemp -d "${TMPDIR:-/tmp}/cargo-qualification-paths.XXXXXX")"
++trap 'if [[ $? == 0 ]]; then rm -rf "$fixture"; else printf "Cargo qualification path fixtures retained: %s\n" "$fixture" >&2; fi' EXIT
++mkdir "$fixture/bin"
++export QUALIFICATION_CALLS="$fixture/calls"
++cat > "$fixture/bin/rustc" <<'SCRIPT'
++#!/usr/bin/env bash
++printf 'rustc\n' >> "$QUALIFICATION_CALLS"
++printf 'host: x86_64-unknown-linux-gnu\n'
++SCRIPT
++cat > "$fixture/bin/cargo" <<'SCRIPT'
++#!/usr/bin/env bash
++printf 'cargo\n' >> "$QUALIFICATION_CALLS"
++if [[ "$1" == -V ]]; then echo 'cargo fixture'; exit 0; fi
++printf '%s\0' "$@" > "$QUALIFICATION_CALLS.arguments"
++if [[ -n "${QUALIFICATION_PROFILE:-}" && ! -e "$QUALIFICATION_CALLS.installed" ]]; then
++    while [[ $# -gt 0 ]]; do
++        if [[ "$1" == --root ]]; then install_root="$2"; break; fi
++        shift
++    done
++    mkdir -p "$install_root/bin"
++    printf '#!/usr/bin/env bash\nexit 0\n' > "$install_root/bin/prepare_upload"
++    chmod +x "$install_root/bin/prepare_upload"
++    printf '[v1]\n' > "$install_root/.crates.toml"
++    jq -n --arg profile "$QUALIFICATION_PROFILE" '{installs: {
++      "ic-blob-storage 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)": {
++        version_req: "=0.15.1", bins: ["prepare_upload"], profile: $profile,
++        target: "x86_64-unknown-linux-gnu", rustc: "rustc fixture"
++      }
++    }}' > "$install_root/.crates2.json"
++    touch "$QUALIFICATION_CALLS.installed"
++    exit 0
++fi
++# Stop at the first install boundary: no Cargo, compilation or network effects.
++exit 97
++SCRIPT
++chmod +x "$fixture/bin/"*
++export PATH="$fixture/bin:$PATH"
++cd "$fixture"
++physical="$(pwd -P)"
++for selected in relative 'with spaces' -leading "$fixture/absolute" "$fixture/newline"$'\n'; do
++    expected="$physical/${selected##*/}"
++    status=0
++    CDPATH="$fixture" bash "$ROOT/scripts/ci/qualify-cargo-install.sh" "$selected" > "$fixture/run.log" 2>&1 || status=$?
++    [[ "$status" == 97 && -s "$expected/rustc.txt" && -s "$expected/source.txt" &&
++       -d "$expected/prepare_upload" && ! -s "$expected/prepare_upload/install.log" ]]
++    found=false
++    while IFS= read -r -d '' argument; do
++        [[ "$argument" != "$expected/prepare_upload/install" ]] || found=true
++    done < "$QUALIFICATION_CALLS.arguments"
++    [[ "$found" == true ]]
++    # Retrying must refuse the owned evidence root before even probing tools.
++    : > "$QUALIFICATION_CALLS"
++    status=0
++    CDPATH="$fixture" bash "$ROOT/scripts/ci/qualify-cargo-install.sh" "$selected" > "$fixture/refusal.log" 2>&1 || status=$?
++    [[ "$status" == 2 && ! -s "$QUALIFICATION_CALLS" && -s "$expected/source.txt" ]]
++done
++ln -s missing "$fixture/dangling"
++status=0
++bash "$ROOT/scripts/ci/qualify-cargo-install.sh" "$fixture/dangling" > "$fixture/refusal.log" 2>&1 || status=$?
++[[ "$status" == 2 && ! -s "$QUALIFICATION_CALLS" && -L "$fixture/dangling" ]]
++
++# Observed Cargo --debug receipts use dev or debug; release remains a mismatch.
++for profile in dev debug release; do
++    rm -f "$QUALIFICATION_CALLS.installed"
++    status=0
++    QUALIFICATION_PROFILE="$profile" bash "$ROOT/scripts/ci/qualify-cargo-install.sh" "$fixture/$profile" > "$fixture/profile.log" 2>&1 || status=$?
++    if [[ "$profile" == release ]]; then
++        [[ "$status" == 1 && ! -e "$fixture/$profile/prepare_upload/binary.before" ]]
++        grep -F 'Cargo receipt does not match' "$fixture/profile.log" > /dev/null
++    else
++        [[ "$status" == 97 && -s "$fixture/$profile/prepare_upload/observed.sha256" ]]
++    fi
++done
++echo 'Cargo qualification paths, receipt profiles, retained failure roots and early refusal passed (substitute Cargo)'
+diff --git a/scripts/ci/test-fixture-retention.sh b/scripts/ci/test-fixture-retention.sh
+index 1f13414..9e936f8 100755
+--- a/scripts/ci/test-fixture-retention.sh
++++ b/scripts/ci/test-fixture-retention.sh
+@@ -43,13 +43,11 @@ set -- "$fixture/portable"/shared-tooling-test.*
+ # This checks local ordering/paths; GitHub's upload service is qualified by CI.
+ yq -o json '.' "$ROOT/.github/workflows/ci.yml" > "$fixture/workflow.json"
+ yq -o json '.' "$ROOT/.github/actions/retain-failure-evidence/action.yml" > "$fixture/collector.json"
+-# Stop an overlong suite before the job deadline so its failure collector can run.
++# A failed regression gate must still fail the job and reach failure collection.
+ jq -e '
+   .jobs["portable-regression"] as $job |
+   [$job.steps[] | select(.run? | strings | contains("bash scripts/ci/test-portable-tools.sh"))] as $gate |
+   ($gate | length) == 1 and
+-  ($gate[0]["timeout-minutes"] | type == "number" and . > 0) and
+-  $job["timeout-minutes"] > $gate[0]["timeout-minutes"] and
+   $gate[0]["continue-on-error"] != true
+ ' "$fixture/workflow.json" > /dev/null
+ # shellcheck disable=SC2016 # GitHub expressions are literal workflow inputs.
+diff --git a/scripts/ci/test-portable-tools.sh b/scripts/ci/test-portable-tools.sh
+index 61adea5..3fec840 100755
+--- a/scripts/ci/test-portable-tools.sh
++++ b/scripts/ci/test-portable-tools.sh
+@@ -34,6 +34,7 @@ fi
+ 
+ bash "$ROOT/scripts/ci/test-portable-prerequisites.sh"
+ bash "$ROOT/scripts/ci/test-script-paths.sh"
++bash "$ROOT/scripts/ci/test-cargo-install-qualification.sh"
+ bash "$ROOT/scripts/ci/test-evidence-archive.sh"
+ bash "$ROOT/scripts/ci/test-gh-ci.sh"
+ bash "$ROOT/scripts/ci/test-issues-siblings.sh"

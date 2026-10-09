@@ -1,8 +1,5 @@
-use ic_query::nns::{
-    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    NnsInventoryRefreshRequest,
-};
-use std::path::PathBuf;
+use ic_query::QueryProgress;
+use ic_query::nns::{NnsInventoryInfoRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest};
 
 ///
 /// NnsLeafCommandSpec
@@ -45,16 +42,17 @@ pub(in crate::nns) trait NnsLeafReports {
     fn build_list_report(
         &self,
         request: &NnsInventoryListRequest,
+        progress: &mut dyn QueryProgress,
     ) -> Result<Self::ListReport, Self::HostError>;
     fn build_info_report(
         &self,
         request: &NnsInventoryInfoRequest,
+        progress: &mut dyn QueryProgress,
     ) -> Result<Self::InfoReport, Self::HostError>;
     fn refresh_report(
         &self,
         request: &NnsInventoryRefreshRequest,
     ) -> Result<Self::RefreshReport, Self::HostError>;
-    fn cache_path(&self, cache: &NnsInventoryCacheRequest) -> PathBuf;
     fn list_report_text(&self, report: &Self::ListReport) -> String;
     fn list_report_verbose_text(&self, report: &Self::ListReport) -> String;
     fn info_report_text(&self, report: &Self::InfoReport) -> String;

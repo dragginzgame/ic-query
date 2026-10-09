@@ -1,12 +1,13 @@
 use super::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSubnetRow,
 };
+use crate::{QueryProgress, progress::IgnoreQueryProgress};
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
         SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
         SubnetCatalogLoadRequest, SubnetCatalogSource, SubnetInfo, ValidatedSubnetCatalog,
-        catalog_stale_status, load_subnet_catalog_with_source,
+        catalog_stale_status, load_subnet_catalog_with_source_and_progress,
     },
 };
 
@@ -18,14 +19,35 @@ pub fn build_subnet_catalog_list_report(
 }
 
 /// Project filtered Subnet rows using the cache policy and caller-owned refresh source.
+/// Build the report while reporting authorized live refreshes.
+pub fn build_subnet_catalog_list_report_with_progress(
+    request: &SubnetCatalogListRequest,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
+    build_subnet_catalog_list_report_with_source_and_progress(request, &LiveNnsSource, progress)
+}
+
 pub fn build_subnet_catalog_list_report_with_source(
     request: &SubnetCatalogListRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
+    build_subnet_catalog_list_report_with_source_and_progress(
+        request,
+        source,
+        &mut IgnoreQueryProgress,
+    )
+}
+
+/// Build the report with a caller-owned source and progress sink.
+pub fn build_subnet_catalog_list_report_with_source_and_progress(
+    request: &SubnetCatalogListRequest,
+    source: &dyn SubnetCatalogSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
     let load_request =
         SubnetCatalogLoadRequest::cache_only(request.cache.clone(), request.now_unix_secs)
             .with_policy(request.read_policy.clone());
-    let cached = load_subnet_catalog_with_source(&load_request, source)?;
+    let cached = load_subnet_catalog_with_source_and_progress(&load_request, source, progress)?;
     let stale = catalog_stale_status(
         cached.catalog.raw(),
         request.now_unix_secs,

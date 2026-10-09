@@ -1,8 +1,8 @@
 # Shared Tooling snapshot v1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	4e274a2219c0b0cc3af68ec65658b373253518fb
-file	554907477c03b57a727cc4aa12915c051b3e42b0d7f6505b21e3ba0575f5a1ef	-	DRAGGINZGAME.md
+revision	9af82393c620e486578febed74a648523725c234
+file	bcf2d1378eba6009edb996d9c7ac4a096044e30086d4ada1a8727c6ca2e7584c	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	6f10d8bfaaa5641f47ca6638c38be056b01d00b5b22ccbd381e8df076767c3e1	-	rules/cargo-dependencies.md
 file	25485770b77ce6c537e5ded883fce3db58c1ebcb3b3796e236bbc22c291308ef	-	rules/git-hooks.md
@@ -24,12 +24,12 @@ file	f114e128d2d3ab1cd4fae4c8eb89866990063cd5cd4a6dbafde49872f0a02af1	-	rules/de
 file	c50a0e7c23ad9bbace12c9e8fa9aa8e6c5bc97151a9c76cf5d371f18922a0b94	x	scripts/ci/check-dependency-pins.sh
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq
 file	98a199fcc8890d743076dc03a46cf1130554f2488d01d79e9b869edf91cb786c	-	docs/local-setup.md
-file	758cd0977502a54d2ebfb28bb58a5c2ff6691da85f7b5dab0cef4c231ec234d8	-	docs/ic-tools.md
+file	9eb693d59ec982d5852234f05d659a1f3d1e72396b411e32eaa9c30aca6cec99	-	docs/ic-tools.md
 file	1a0d1d6f2a87a0d77378fdda605f5700cc7e2ca8c8dfac79418248da30b7e657	-	docs/provenance.md
 file	85d200ddcb31d17d2a281a273504e6a39a628b77fcfbeab8995b3fe69352e169	-	ci/ic-tools.tsv
 file	82892e25292fe47c26035a0031aa4ad1996fcf181732163e75039bd657f2f84b	-	ci/tool-versions.env
 file	74134f6567746b2071ecfca28829b0ea4da69ed207b958b38fd181e722a3aea9	x	scripts/dev/install-host-tools.sh
-file	463106a6ba07018c4b9b8ff9d736367d68bad195dc47e754b0f1617f0fb51c73	x	scripts/dev/install-ic-tools.sh
+file	40c619af109b98b48b9668d90fb6d468f70834c4adad7ad0bddfa9e14b1668b8	x	scripts/dev/install-ic-tools.sh
 file	ab2202f89a077373fffac29f57527b88ccc65998f5c85c60a32081edd8338150	x	scripts/ci/verify-evidence-checksums.sh
 file	faa9a62257ecdfd6532ac2225b3fd053012dfe9c35b8bc2ddc95288d8626a518	-	audits/README.md
 file	518d890bf485bef06c316b4cf26ac6bf357ed52bcce995e8d9b1232a103d0ea3	-	audits/code-hygiene.md
@@ -57,7 +57,7 @@ file	1dd0f35519fc3afafb723eadbb7d2cce1207e4103f41939d3ceec5a6678ebb22	x	scripts/
 file	027575ae9be221c3ef9e903239fbfdb40aa5192c2f5e08c157a5d15dc3cd52ae	x	scripts/ci/test-release-runner.sh
 file	94a934651d5cb0c6f77fa429df277856dbda4c1a7441b2b8563e678c416258f6	-	audits/ic-canister-applications.md
 file	ac24a1367e55b9e4f19cf67d5e19547aebca278a8b625a565c0e2f4e01e3fe9b	x	scripts/dev/install-rust-tools.sh
-file	49e5c54defd9330aacf2635fd36803f3ea469ea278a2628f63dbd82458dfd5a9	-	scripts/ci/ic-tool-pins.awk
+file	d115de58d30404698b4c691359189763dc1f9452893002477dc607e02d2d8c90	-	scripts/ci/ic-tool-pins.awk
 file	a74fc5ec8415bbe2ccbd9c51ba16b544bffb1f72a89a981b68e19aff8edbc8c0	x	scripts/ci/test-rust-tools.sh
 file	05838a36f21bb4299617ae8965687791062c94d768181f5f97676cc577382153	-	rules/contributions.md
 file	fc40c8ad1c4ab850fda0e60b8cb0b3201724d020966e4d7e5d07620781f5e814	-	scripts/ci/release-pr.sh

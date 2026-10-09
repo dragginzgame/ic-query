@@ -4,13 +4,8 @@
 //! Does not own: refresh orchestration, cache policy, or report construction.
 //! Boundary: owns terminal detection and stderr output for query progress.
 
-use ic_query::{
-    QueryProgress, QueryProgressEvent, QueryProgressState, subnet_catalog::MAINNET_NETWORK,
-};
-use std::{
-    io::{self, IsTerminal, Write},
-    path::Path,
-};
+use ic_query::{QueryProgress, QueryProgressEvent, QueryProgressState};
+use std::io::{self, IsTerminal, Write};
 
 ///
 /// StderrQueryProgress
@@ -55,24 +50,6 @@ impl QueryProgress for StderrQueryProgress {
             }
         }
     }
-}
-
-/// Announce a missing mainnet cache before the CLI starts its live refresh.
-pub fn announce_missing_mainnet_cache(
-    network: &str,
-    component: &str,
-    path: &Path,
-    source_endpoint: &str,
-) {
-    if network != MAINNET_NETWORK || path.is_file() {
-        return;
-    }
-    let mut progress = StderrQueryProgress::new();
-    progress.report(QueryProgressEvent::CacheRefresh {
-        component: component.to_string(),
-        path: path.to_path_buf(),
-        source_endpoint: source_endpoint.to_string(),
-    });
 }
 
 ///

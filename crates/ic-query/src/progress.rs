@@ -82,6 +82,7 @@ where
     feature = "icrc-host",
     feature = "nns-host",
     feature = "sns-host",
+    feature = "subnet-catalog-host",
     test
 ))]
 pub struct IgnoreQueryProgress;
@@ -90,6 +91,7 @@ pub struct IgnoreQueryProgress;
     feature = "icrc-host",
     feature = "nns-host",
     feature = "sns-host",
+    feature = "subnet-catalog-host",
     test
 ))]
 impl QueryProgress for IgnoreQueryProgress {

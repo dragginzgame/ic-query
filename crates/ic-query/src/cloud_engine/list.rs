@@ -20,8 +20,9 @@ use super::{
 use crate::nns::LiveNnsSource;
 use crate::subnet_catalog::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSource,
-    SubnetKind, build_subnet_catalog_list_report_with_source,
+    SubnetKind, build_subnet_catalog_list_report_with_source_and_progress,
 };
+use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 const REGISTRY_AUTHORITY: &str = "nns_registry";
 const MAX_LOOKUP_ERROR_BYTES: usize = 4_096;
@@ -40,18 +41,54 @@ pub fn build_cloud_engine_list_report(
 }
 
 /// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
+/// Build a CloudEngine inventory while reporting authorized catalog refreshes.
+pub fn build_cloud_engine_list_report_with_progress(
+    catalog_request: &SubnetCatalogListRequest,
+    control_plane_request: &CloudEngineSourceRequest,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<CloudEngineListReport, CloudEngineHostError> {
+    build_cloud_engine_list_report_with_sources_and_progress(
+        catalog_request,
+        control_plane_request,
+        &LiveNnsSource,
+        &LiveCloudEngineSource,
+        progress,
+    )
+}
+
 pub fn build_cloud_engine_list_report_with_sources(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,
     catalog_source: &dyn SubnetCatalogSource,
     binding_source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
+    build_cloud_engine_list_report_with_sources_and_progress(
+        catalog_request,
+        control_plane_request,
+        catalog_source,
+        binding_source,
+        &mut IgnoreQueryProgress,
+    )
+}
+
+/// Build a CloudEngine inventory with caller-owned sources and progress sink.
+pub fn build_cloud_engine_list_report_with_sources_and_progress(
+    catalog_request: &SubnetCatalogListRequest,
+    control_plane_request: &CloudEngineSourceRequest,
+    catalog_source: &dyn SubnetCatalogSource,
+    binding_source: &dyn CloudEngineOperatorBindingSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<CloudEngineListReport, CloudEngineHostError> {
     validate_requests(catalog_request, control_plane_request)?;
 
     let mut inventory_request = catalog_request.clone();
     inventory_request.filters = SubnetCatalogFilters::default().with_kind(SubnetKind::CloudEngine);
     inventory_request.show_ranges = false;
-    let catalog = build_subnet_catalog_list_report_with_source(&inventory_request, catalog_source)?;
+    let catalog = build_subnet_catalog_list_report_with_source_and_progress(
+        &inventory_request,
+        catalog_source,
+        progress,
+    )?;
     build_cloud_engine_list_report_from_catalog_with_source(
         control_plane_request,
         catalog,

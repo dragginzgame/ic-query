@@ -1,6 +1,109 @@
 use super::{fixtures::*, *};
 
 #[test]
+fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
+    let root = temp_dir("ic-query-catalog-progress");
+    let path = subnet_catalog_path(&root, MAINNET_NETWORK);
+    let source = FixtureRefreshSource::ok(fixture_catalog());
+    let mut request = list_request(&root);
+    let mut events = Vec::new();
+    for disposition in [
+        CacheDisposition::RefreshedMissing,
+        CacheDisposition::RefreshedInvalid,
+        CacheDisposition::RefreshedStale,
+        CacheDisposition::ForcedRefresh,
+    ] {
+        match disposition {
+            CacheDisposition::RefreshedInvalid => {
+                crate::cache_file::write_managed_text_atomically(&root, &path, "not-json").unwrap();
+            }
+            CacheDisposition::RefreshedStale => {
+                request.now_unix_secs += 100;
+                request.read_policy = CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+                    source: CatalogSourceSelection::uncertified_query(
+                        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+                    ),
+                    max_age_seconds: 1,
+                };
+            }
+            CacheDisposition::ForcedRefresh => {
+                request.read_policy = CatalogReadPolicy::ForceRefresh {
+                    source: CatalogSourceSelection::uncertified_query(
+                        DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+                    ),
+                };
+            }
+            _ => {}
+        }
+        events.clear();
+        let report = build_subnet_catalog_list_report_with_source_and_progress(
+            &request,
+            &source,
+            &mut |event| events.push(event),
+        )
+        .unwrap();
+        assert_eq!(report.cache_disposition, disposition);
+        assert_eq!(
+            events,
+            vec![crate::QueryProgressEvent::CacheRefresh {
+                component: "subnet catalog".to_string(),
+                path: path.clone(),
+                source_endpoint: DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string(),
+            }]
+        );
+    }
+    let source_calls = source.call_count();
+    request.read_policy = CatalogReadPolicy::CacheOnly;
+    events.clear();
+    build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
+        events.push(event)
+    })
+    .unwrap();
+    request.read_policy = list_request(&root).read_policy;
+    build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
+        events.push(event)
+    })
+    .unwrap();
+    assert!(events.is_empty());
+    assert_eq!(source.call_count(), source_calls);
+    fs::remove_file(&path).unwrap();
+    request.read_policy = CatalogReadPolicy::CacheOnly;
+    assert!(
+        build_subnet_catalog_list_report_with_source_and_progress(
+            &request,
+            &source,
+            &mut |event| events.push(event)
+        )
+        .is_err()
+    );
+    assert!(events.is_empty());
+    assert_eq!(source.call_count(), source_calls);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn catalog_lock_refusal_does_not_announce_a_source_call() {
+    let root = temp_dir("ic-query-catalog-progress-lock");
+    let request = list_request(&root);
+    let refresh = refresh_request(&root);
+    let lock = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
+    write_refresh_lock_for_test(&lock, &refresh, request.now_unix_secs * 1_000);
+    let source = FixtureRefreshSource::ok(fixture_catalog());
+    let mut events = Vec::new();
+    assert!(
+        build_subnet_catalog_list_report_with_source_and_progress(
+            &request,
+            &source,
+            &mut |event| events.push(event)
+        )
+        .is_err()
+    );
+    assert!(events.is_empty());
+    assert_eq!(source.call_count(), 0);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn list_report_loads_cached_catalog_and_caps_ranges() {
     let root = temp_dir("ic-query-subnet-list");
     write_catalog(&root, fixture_catalog());

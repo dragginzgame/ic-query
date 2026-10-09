@@ -1,0 +1,11 @@
+M  .shared-tooling.snapshot
+M  AGENTS.md
+M  CHANGELOG.md
+M  DRAGGINZGAME.md
+M  docs/changelog/0.50.md
+M  docs/ic-tools.md
+M  docs/release-workflow.md
+ M docs/supported-hosts.md
+M  scripts/ci/ic-tool-pins.awk
+M  scripts/dev/install-ic-tools.sh
+?? docs/reports/audits/2026/10/09/

@@ -34,9 +34,10 @@ pub use host::{
     load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_detailed,
     load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
     load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source,
-    load_subnet_catalog_with_source_async, refresh_subnet_catalog, refresh_subnet_catalog_async,
-    refresh_subnet_catalog_with_source, refresh_subnet_catalog_with_source_async,
-    subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    load_subnet_catalog_with_source_and_progress, load_subnet_catalog_with_source_async,
+    refresh_subnet_catalog, refresh_subnet_catalog_async, refresh_subnet_catalog_with_source,
+    refresh_subnet_catalog_with_source_async, subnet_catalog_path,
+    subnet_catalog_refresh_lock_path,
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
@@ -64,8 +65,10 @@ pub use report::{
     CatalogStaleStatus, SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
     SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
-    build_subnet_catalog_info_report_with_source, build_subnet_catalog_list_report,
-    build_subnet_catalog_list_report_with_source,
+    build_subnet_catalog_info_report_with_progress, build_subnet_catalog_info_report_with_source,
+    build_subnet_catalog_info_report_with_source_and_progress, build_subnet_catalog_list_report,
+    build_subnet_catalog_list_report_with_progress, build_subnet_catalog_list_report_with_source,
+    build_subnet_catalog_list_report_with_source_and_progress,
 };
 pub use resolver::{ResolveAs, ResolvedCanisterRoute, ResolvedSubnet, ResolvedSubnetSubject};
 #[cfg(feature = "subnet-catalog-host")]

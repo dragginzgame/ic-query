@@ -182,6 +182,33 @@ fn run_icq_in_root(root: &Path, args: &[&str]) -> Output {
         .expect("run icq test binary")
 }
 
+#[cfg(unix)]
+#[test]
+fn binary_inventory_authority_refusals_do_not_announce_live_refreshes() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = temp_cache_root("ic-query-cli-inventory-authority");
+    fs::create_dir(&root).unwrap();
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
+    for args in [
+        vec!["nns", "data-center", "list"],
+        vec!["nns", "node-operator", "list"],
+        vec!["nns", "node-provider", "list"],
+        vec!["nns", "node", "list"],
+        vec!["nns", "subnet", "list"],
+        vec!["cloud-engine", "list"],
+    ] {
+        let output = run_icq_in_root(&root, &args);
+        assert!(!output.status.success(), "authority refusal for {args:?}");
+        assert_eq!(output.stdout, Vec::<u8>::new());
+        assert!(
+            !stderr_text(&output).contains("calling"),
+            "no source call for {args:?}"
+        );
+        assert!(!stderr_text(&output).contains("refresh/create cache"));
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
 fn run_icq_with_xdg_cache(cwd: &Path, xdg_cache_home: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_icq"))
         .current_dir(cwd)

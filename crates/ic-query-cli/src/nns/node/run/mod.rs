@@ -2,12 +2,9 @@ mod info;
 mod list;
 mod refresh;
 
-use crate::{
-    nns::{NnsCommandError, command_cache_root},
-    progress::announce_missing_mainnet_cache,
-};
+use crate::nns::{NnsCommandError, command_cache_root};
 use clap::ArgMatches;
-use ic_query::nns::{NnsInventoryCacheRequest, node::nns_node_cache_path};
+use ic_query::nns::NnsInventoryCacheRequest;
 
 pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
@@ -28,9 +25,4 @@ fn cache_request(network: &str) -> Result<NnsInventoryCacheRequest, NnsCommandEr
         command_cache_root()?,
         network,
     ))
-}
-
-fn announce_missing_node_cache(cache: &NnsInventoryCacheRequest, source_endpoint: &str) {
-    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
-    announce_missing_mainnet_cache(&cache.network, "node", &path, source_endpoint);
 }

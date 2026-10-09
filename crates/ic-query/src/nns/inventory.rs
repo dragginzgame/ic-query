@@ -8,7 +8,7 @@ use super::{
     NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest, NnsSourceRequest,
 };
 use crate::{
-    HostCacheError,
+    HostCacheError, QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
     nns::leaf::write_nns_leaf_json_refresh_cache,
     subnet_catalog::{
@@ -157,17 +157,24 @@ pub(in crate::nns) fn load_or_refresh_nns_inventory_report<Report, Error>(
     request: &impl NnsInventoryListInput,
     expected_cache_path: PathBuf,
     lock_stale_after_seconds: u64,
+    progress: &mut dyn QueryProgress,
     mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, Error>,
     refresh: impl FnOnce(&NnsInventoryRefreshRequest) -> Result<(), Error>,
 ) -> Result<Report, Error>
 where
     Error: NnsInventoryHostError,
+    Report: NnsInventoryReport,
 {
     load_or_refresh_cache(
         || load(request.cache()),
         |_| false,
-        |error| error.cache_refresh_reason(expected_cache_path),
+        |error| error.cache_refresh_reason(expected_cache_path.clone()),
         |_| {
+            progress.report(QueryProgressEvent::CacheRefresh {
+                component: Report::ITEM_NAME.replace('_', "-"),
+                path: expected_cache_path.clone(),
+                source_endpoint: request.source_endpoint().to_string(),
+            });
             let refresh_request = NnsInventoryRefreshRequest::new(
                 request.cache().clone(),
                 request.source_endpoint(),

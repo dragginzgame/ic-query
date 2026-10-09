@@ -4,7 +4,7 @@ canisters:
     build:
       steps:
         - type: script
-          command: python3 ../../scripts/canister/smoke.py build-wasm
+          command: cargo run --manifest-path ../../Cargo.toml -p ic-query-cli --example governance_smoke --locked --offline -- build-wasm
 
 networks:
   - name: local

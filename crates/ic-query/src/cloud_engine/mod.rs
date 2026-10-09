@@ -24,7 +24,11 @@ pub use build::{
     build_cloud_engine_prices_report, build_cloud_engine_prices_report_with_source,
 };
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-pub use list::{build_cloud_engine_list_report, build_cloud_engine_list_report_with_sources};
+pub use list::{
+    build_cloud_engine_list_report, build_cloud_engine_list_report_with_progress,
+    build_cloud_engine_list_report_with_sources,
+    build_cloud_engine_list_report_with_sources_and_progress,
+};
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 pub use model::{CloudEngineListReport, CloudEngineListRow, CloudEngineOperatorLookupStatus};
 pub use model::{
