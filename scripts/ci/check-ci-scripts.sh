@@ -103,12 +103,21 @@ MAKE
       -C "$fixture" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
     [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted inherited MAKEFLAGS=$mode"
   done
-  for mode in -i -n -t -q; do
+  for mode in -i -n -t -q -kin --ignore-errors --dry-run --touch --question; do
+    for flags in '' --no-print-directory; do
+      status=0
+      env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+        TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
+        "$mode" "MAKEFLAGS=$flags" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+      [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "MAKEFLAGS override hid invocation mode $mode"
+    done
+  done
+  for flags in '' --no-print-directory; do
     status=0
     env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
       TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
-      "$mode" MAKEFLAGS=--no-print-directory execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "MAKEFLAGS override hid invocation mode $mode"
+      "MFLAGS=$flags" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail 'Make admitted replaced invocation evidence'
   done
   for mode in --no-print-directory -j2; do
     env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
@@ -193,9 +202,10 @@ for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... 
     || fail 'make ci labelled a successful or ignored namespaced test as an error'
 done
 expected_ci_targets=(
-  changelog-check
   shared-tooling-check
   host-tools-check
+  format-tools-check
+  changelog-check
   dependency-pins-check
   package-contents-check
   feature-boundary-check
@@ -220,7 +230,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in changelog-check dependency-pins-check doc-links-check test; do
+for failed_target in format-tools-check changelog-check dependency-pins-check doc-links-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
@@ -554,6 +564,11 @@ mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format
 copy_makefile "$format_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$format_case/scripts/ci/"
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/tool-versions.env"
+cat > "$format_case/scripts/dev/install-rust-tools.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$*" == "--consumer $PWD --package cargo-sort --version 9.8.7 --bin cargo-sort --profile release --check" ]]
+EOF
 cat > "$format_case/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -573,7 +588,10 @@ fi
 EOF
 cat > "$format_case/scripts/dev/install-host-tools.sh" <<'EOF'
 #!/usr/bin/env bash
+[[ "$*" != *--check ]] || exit 0
 printf 'host setup %s\n' "$*" >> "$TRACE_FILE"
+sleep 0.1
+: > host-setup-ready
 EOF
 chmod +x "$format_case/bin/cargo"
 for target in fmt fmt-check; do
@@ -644,6 +662,8 @@ for target in fmt fmt-check; do
 done
 cp "$repo_root/scripts/dev/install-rust-tools.sh" "$format_case/scripts/dev/"
 cp "$repo_root/scripts/ci/verify-file-checksum.sh" "$format_case/scripts/ci/"
+cp "$repo_root/scripts/ci/run-validation-targets.sh" "$format_case/scripts/ci/"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$format_case/scripts/ci/verify-shared-tooling-snapshot.sh"
 mkdir -p "$format_case/.tools/rust/bin"
 printf '#!/usr/bin/env bash\necho cargo-sort 9.8.6\n' > "$format_case/.tools/rust/bin/cargo-sort"
 printf '#!/usr/bin/env bash\necho cargo-sort 9.8.5\n' > "$format_case/bin/cargo-sort"
@@ -657,6 +677,7 @@ cat > "$format_case/bin/cargo" <<'CARGO'
 set -euo pipefail
 case "$1" in
   install)
+    [[ -f host-setup-ready ]]
     if [[ "$*" == 'install --locked cargo-sort --version 9.8.7' ]]; then
       # Reproduce the old global setup while leaving the stale local winner.
       printf '#!/usr/bin/env bash\necho cargo-sort 9.8.7\n' > "$FIXTURE_GLOBAL_SORT"
@@ -707,7 +728,14 @@ if run_formatter_make fmt-check > "$format_case/stale.log" 2>&1; then
   fail 'formatting admitted the stale local formatter'
 fi
 : > "$format_case/trace"
-run_formatter_make install-dev CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 \
+if run_formatter_make -j4 ci > "$format_case/early-refusal.log" 2>&1; then
+  fail 'CI admitted a missing selected formatter'
+fi
+[[ ! -s "$format_case/trace" ]] || fail 'missing formatter dispatched Cargo before early CI refusal'
+grep -Fq 'missing selected Cargo tool: package=cargo-sort version=9.8.7 target=bin:cargo-sort profile=release' "$format_case/early-refusal.log"
+grep -Fq 'make install-format-tools' "$format_case/early-refusal.log"
+: > "$format_case/trace"
+run_formatter_make -j4 install-dev CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 \
   > "$format_case/setup.log" 2>&1
 run_formatter_make fmt-check > "$format_case/prepared.log" 2>&1 \
   || fail 'install-dev did not prepare the formatter selected by fmt-check'
@@ -718,10 +746,18 @@ printf '%s\n' "host setup --consumer $format_case --versions $format_case/ci/too
 cmp "$format_case/expected" "$format_case/trace" || fail 'formatter setup or offline lookup changed'
 cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
 cmp "$format_case/global-before" "$format_case/bin/cargo-sort"
+cp "$format_case/ci/tool-versions.env" "$format_case/selected-pin"
+printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.8\n' > "$format_case/ci/tool-versions.env"
+: > "$format_case/trace"
+if run_formatter_make -j4 fmt-check > "$format_case/changed-selection.log" 2>&1; then
+  fail 'formatter admission accepted a different installation selection'
+fi
+[[ ! -s "$format_case/trace" ]] || fail 'changed formatter selection dispatched a fallback'
+cp "$format_case/selected-pin" "$format_case/ci/tool-versions.env"
 slot="$format_case/.tools/rust/cargo-sort-9.8.7-bin-cargo-sort-release"
 mv "$slot/installed" "$format_case/prepared-formatter"
 : > "$format_case/trace"
-if FIXTURE_SORT_INSTALL_FAIL=yes run_formatter_make install-dev \
+if FIXTURE_SORT_INSTALL_FAIL=yes run_formatter_make -j4 install-dev \
   CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$format_case/setup-failure.log" 2>&1; then
   fail 'install-dev admitted a failed formatter installation'
 fi

@@ -2,7 +2,7 @@
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
-	install install-dev library-process-boundary-check msrv package \
+	install install-dev install-format-tools format-installation-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
@@ -12,13 +12,6 @@
 
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-
-# MFLAGS preserves invocation modes hidden by a command-line MAKEFLAGS value.
-# Retain this boundary until the shared probe covers that override (Shared #30).
-override icq_make_execution_flags := $(filter-out --% %=%,$(firstword $(MAKEFLAGS)) $(MFLAGS))
-ifneq ($(strip $(foreach mode,i n t q,$(findstring $(mode),$(icq_make_execution_flags)))),)
-$(error IC Query requires execution with errors enforced; remove ignore-errors, dry-run, touch and question modes)
-endif
 
 # GNU Make 3.81 cannot combine target-specific export and override. Preserve
 # caller defaults here so the exported target policies can supersede them.
@@ -53,10 +46,11 @@ export IC_TOOL_PINS
 # Use the shared installer's versioned cargo-sort selection before other copies.
 icq_formatter_version := $(shell if test -f "$(HOST_TOOL_VERSIONS)"; then . "$(HOST_TOOL_VERSIONS)" && printf '%s' "$${SHARED_TOOLING_CARGO_SORT_VERSION:-}"; fi)
 format-tools-check fmt fmt-check: export PATH := $(CURDIR)/.tools/rust/cargo-sort-$(icq_formatter_version)-bin-cargo-sort-release/installed/bin:$(PATH)
+format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := changelog-check shared-tooling-check host-tools-check dependency-pins-check package-contents-check \
+CI_TARGETS := shared-tooling-check host-tools-check format-tools-check changelog-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
@@ -97,6 +91,7 @@ help:
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dev  Prepare local cargo-sort and pinned tools required by CI"
+	@echo "  install-format-tools  Prepare the exact local cargo-sort selection"
 	@echo "  install-tools  Install the repository-local host and IC toolsets"
 	@echo "  tools-check  Verify both toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
@@ -197,9 +192,14 @@ ci:
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
+install-format-tools format-installation-check:
+	@bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
+		--package cargo-sort --version "$(icq_formatter_version)" --bin cargo-sort --profile release \
+		$(if $(filter format-installation-check,$@),--check) > /dev/null || \
+		{ status=$$?; echo 'Prepare the selected formatter with make install-format-tools' >&2; exit $$status; }
+
 install-dev: install-host-tools
-	@. "$(HOST_TOOL_VERSIONS)" && bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
-		--package cargo-sort --version "$$SHARED_TOOLING_CARGO_SORT_VERSION" --bin cargo-sort --profile release
+	+@$(MAKE) --no-print-directory install-format-tools
 	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
 	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
 
@@ -212,7 +212,7 @@ release-files:
 	@bash "$(REPO_ROOT)scripts/release/adapter.sh" files
 
 release-preflight release-verify release-prepared-check release-commit-check release-committed-check release-tagged-check release-push-check:
-	@bash "$(REPO_ROOT)scripts/release/adapter.sh" "$(@:release-%=%)"
+	+@bash "$(REPO_ROOT)scripts/release/adapter.sh" "$(@:release-%=%)"
 
 release-prepare-version:
 	@bash "$(REPO_ROOT)scripts/release/adapter.sh" prepare

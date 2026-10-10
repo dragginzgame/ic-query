@@ -5,6 +5,34 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.53.0]
+
+Detailed release notes: [docs/changelog/0.53.md](docs/changelog/0.53.md)
+
+- Adopts Shared Tooling 0.2.13 and removes Query's duplicated Make execution
+  guard. Shared admission refuses unsafe modes even when caller flags are
+  replaced, preserving normal parallel and recursive commands.
+  [Shared #30](https://github.com/dragginzgame/shared-tooling/issues/30).
+- Snapshot verification refuses line breaks in supplied and resolved directory
+  paths before they can select another checkout, preserving ordinary aliases.
+  [Shared #95](https://github.com/dragginzgame/shared-tooling/issues/95).
+- Selects Host 0.11. Governance smoke uses its current process API and retains
+  typed cleanup failures separately from the original command failure. Durable
+  smoke-file publication refuses directory-required
+  targets before writing, preserving existing bytes and typed failure evidence.
+  [Host #44](https://github.com/dragginzgame/ic-host-tooling/issues/44).
+  [#38](https://github.com/dragginzgame/ic-query/issues/38).
+- Formatting requires the exact prepared local cargo-sort installation. Release
+  preflight prepares and checks it before validation; ordinary CI checks it early
+  and refuses missing selections without installing or falling back to global tools.
+  [#35](https://github.com/dragginzgame/ic-query/issues/35).
+  [Shared #96](https://github.com/dragginzgame/shared-tooling/issues/96).
+
+```bash
+make install-format-tools
+make format-tools-check
+```
+
 ## [0.52.6] - 2026-10-10
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)

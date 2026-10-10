@@ -2,9 +2,9 @@
 
 use crate::{Result, invalid};
 use ic_host_process::{
-    child::{CleanupPolicy, OwnedChild},
+    child::{CleanupError, CleanupPolicy, OwnedChild},
     tool::{
-        ExecutionEvidence, ExecutionFailure, OutputLimits, SuccessfulExit, ToolError,
+        ExecutionEvidence, ExecutionFailure, OutputLimit, OutputLimits, SuccessfulExit, ToolError,
         communicate_child,
     },
 };
@@ -142,7 +142,7 @@ pub struct CommandFailure {
     pub source: Box<dyn Error>,
     pub stdout: Option<Vec<u8>>,
     pub stderr: Option<Vec<u8>>,
-    pub cleanup_errors: Vec<String>,
+    pub cleanup_errors: Vec<CleanupError>,
     pub exited: bool,
     pub interrupted: Option<i32>,
 }
@@ -198,9 +198,9 @@ pub fn supervise(
         &mut child,
         options.input,
         OutputLimits {
-            stdout_bytes: usize::MAX,
-            stderr_bytes: usize::MAX,
-            timeout: options.timeout,
+            stdout: OutputLimit::Terminate(usize::MAX),
+            stderr: OutputLimit::Terminate(usize::MAX),
+            timeout: Some(options.timeout),
         },
         if options.handoff {
             SuccessfulExit::Retain
@@ -213,15 +213,8 @@ pub fn supervise(
     let (evidence, mut failure, exited) = match result {
         Ok(evidence) => (evidence, None, false),
         Err(ToolError::Execution(mut error)) => {
-            for (stage, error) in [
-                ("SIGTERM", &error.term_error),
-                ("SIGKILL", &error.group_error),
-                ("kill leader", &error.kill_error),
-                ("reap leader", &error.wait_error),
-            ] {
-                if let Some(error) = error {
-                    cleanup_errors.push(format!("{stage}: {error}"));
-                }
+            if let Some(cleanup) = error.cleanup.take() {
+                cleanup_errors.push(*cleanup);
             }
             let exited = matches!(error.failure, ExecutionFailure::ExitStatus);
             {
@@ -232,7 +225,7 @@ pub fn supervise(
         }
         Err(error) => {
             if let Err(error) = child.terminate() {
-                cleanup_errors.push(error.to_string());
+                cleanup_errors.push(error);
             }
             (
                 ExecutionEvidence::default(),
@@ -257,7 +250,7 @@ pub fn supervise(
         if options.handoff
             && let Err(error) = child.terminate()
         {
-            cleanup_errors.push(error.to_string());
+            cleanup_errors.push(error);
         }
         return Err(Box::new(CommandFailure {
             source,

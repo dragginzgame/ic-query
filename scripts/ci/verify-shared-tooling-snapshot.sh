@@ -21,6 +21,21 @@ fail() {
     exit 1
 }
 
+# Check before command substitution can trim a pathname, and again after
+# resolving aliases. Absolute cd inputs avoid CDPATH lookup and output.
+resolve_directory() {
+    local path="$1" resolved
+    [[ "$path" == /* ]] || path="$PWD/$path"
+    [[ "$path" != *$'\n'* && "$path" != *$'\r'* ]] ||
+        fail "directory paths must not contain LF or CR characters"
+    resolved="$(cd -P "$path" 2>/dev/null && printf '%s/.' "$PWD")" ||
+        fail "directory does not exist: $path"
+    resolved="${resolved%/.}"
+    [[ "$resolved" != *$'\n'* && "$resolved" != *$'\r'* ]] ||
+        fail "resolved directory paths must not contain LF or CR characters"
+    printf '%s\n' "$resolved"
+}
+
 validate_relative_path() {
     local path="$1"
 
@@ -29,7 +44,7 @@ validate_relative_path() {
     *'/../'* | *'/./'* | *'//'*) fail "path is not canonical: $path" ;;
     esac
     case "$path" in
-    *$'\n'* | *$'\t'*) fail "path contains a forbidden control character" ;;
+    *$'\n'* | *$'\r'* | *$'\t'*) fail "path contains a forbidden control character" ;;
     esac
 }
 
@@ -57,13 +72,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 validate_relative_path "$MANIFEST_PATH"
-CONSUMER_ROOT="$(cd "$CONSUMER_ROOT" 2>/dev/null && pwd -P)" ||
-    fail "consumer repository does not exist: $CONSUMER_ROOT"
+SCRIPT_DIR="$(resolve_directory "$SCRIPT_DIR")"
+CONSUMER_ROOT="$(resolve_directory "$CONSUMER_ROOT")"
 [[ "$CONSUMER_ROOT" != "/" ]] || fail "consumer repository may not be the filesystem root"
 
 manifest="$CONSUMER_ROOT/$MANIFEST_PATH"
 [[ -f "$manifest" && ! -L "$manifest" ]] || fail "manifest is missing or symlinked: $manifest"
-manifest_parent="$(cd "$(dirname "$manifest")" && pwd -P)"
+manifest_parent="$(resolve_directory "${manifest%/*}")"
 case "$manifest_parent/" in
 "$CONSUMER_ROOT/"*) ;;
 *) fail "manifest escapes the consumer repository: $MANIFEST_PATH" ;;
@@ -136,7 +151,7 @@ while IFS=$'\t' read -r record first second third extra || [[ -n "$record" ]]; d
         else
             [[ ! -x "$target" ]] || fail "declared file gained executable mode: $third"
         fi
-        resolved_parent="$(cd "$(dirname "$target")" && pwd -P)"
+        resolved_parent="$(resolve_directory "${target%/*}")"
         case "$resolved_parent/" in
         "$CONSUMER_ROOT/"*) ;;
         *) fail "declared file escapes the consumer repository: $third" ;;

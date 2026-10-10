@@ -429,7 +429,13 @@ impl AttemptOperations for Operations {
                         source: invalid("startup deadline"),
                         stdout: Some(vec![255]),
                         stderr: Some(b"command error".to_vec()),
-                        cleanup_errors: vec!["SIGKILL: refused".into()],
+                        cleanup_errors: vec![ic_host_process::child::CleanupError {
+                            status: None,
+                            term_error: None,
+                            group_error: Some(io::Error::other("refused")),
+                            kill_error: None,
+                            wait_error: None,
+                        }],
                         exited: false,
                         interrupted: None,
                     }))
@@ -494,20 +500,22 @@ fn failed_receipts_keep_command_bytes_and_cleanup_errors_separate_from_the_prima
     };
     let (result, receipt) = run_fixture(&mut operations);
     let error = result.unwrap_err();
+    let command_error = error.downcast_ref::<CommandFailure>().unwrap();
+    assert_eq!(command_error.source.to_string(), "startup deadline");
     assert_eq!(
-        error
-            .downcast_ref::<CommandFailure>()
+        command_error.cleanup_errors[0]
+            .group_error
+            .as_ref()
             .unwrap()
-            .source
-            .to_string(),
-        "startup deadline"
+            .kind(),
+        io::ErrorKind::Other
     );
     assert_eq!(receipt["error"], "startup deadline");
     assert_eq!(receipt["command_stdout"], "\u{fffd}");
     assert_eq!(receipt["command_stderr"], "command error");
     assert_eq!(
         receipt["command_cleanup_errors"],
-        json!(["SIGKILL: refused"])
+        json!(["child cleanup failed; group signal: refused"])
     );
     assert_eq!(receipt["cleanup_error"], "stop failed");
     assert_eq!(
@@ -725,7 +733,21 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
         matches!(error, NamedWriteError::Producer { source, cleanup_error: None }
             if source.kind() == io::ErrorKind::BrokenPipe)
     );
-    assert_eq!(fs::read(path).unwrap(), before);
+    assert_eq!(fs::read(&path).unwrap(), before);
+    let entries = fs::read_dir(&directory.0).unwrap().count();
+    for suffix in ["/", "/.", "//", "/./."] {
+        let mut target = path.as_os_str().to_os_string();
+        target.push(suffix);
+        let error = attempt::save_receipt(Path::new(&target), &json!({"status":"passed"}))
+            .expect_err("directory-required receipt target is refused");
+        assert!(matches!(
+            error.downcast_ref::<NamedWriteError<io::Error>>(),
+            Some(NamedWriteError::BeforePublication { source, cleanup_error: None })
+                if source.kind() == io::ErrorKind::InvalidInput
+        ));
+        assert_eq!(fs::read(&path).unwrap(), before);
+        assert_eq!(fs::read_dir(&directory.0).unwrap().count(), entries);
+    }
 }
 
 #[test]
@@ -948,7 +970,7 @@ fn process_fixture() {
 fn signals_during_startup_publish_failure_and_still_stop_the_network() {
     use ic_host_process::{
         child::OwnedChild,
-        tool::{OutputLimits, SuccessfulExit, communicate_child},
+        tool::{OutputLimit, OutputLimits, SuccessfulExit, communicate_child},
     };
     for signal in [libc::SIGINT, libc::SIGTERM] {
         let directory = Directory::new();
@@ -978,9 +1000,9 @@ fn signals_during_startup_publish_failure_and_still_stop_the_network() {
             &mut child,
             None,
             OutputLimits {
-                stdout_bytes: 64 * 1024,
-                stderr_bytes: 64 * 1024,
-                timeout: Duration::from_secs(15),
+                stdout: OutputLimit::Terminate(64 * 1024),
+                stderr: OutputLimit::Terminate(64 * 1024),
+                timeout: Some(Duration::from_secs(15)),
             },
             SuccessfulExit::Cleanup,
             || false,

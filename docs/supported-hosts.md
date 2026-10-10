@@ -32,6 +32,9 @@ qualified by this matrix.
   and payload digests have one owner in the immutable `ci/tool-versions.env` snapshot.
   Cargo-sort uses the shared selected-package installer and a versioned local
   directory; Cargo Audit and Cargo Machete retain their global Cargo destinations.
+  `make install-format-tools` prepares only that selected formatter. Offline
+  `make format-tools-check` admits its receipt and bytes before version probes;
+  global or optional-bundle copies cannot substitute for a missing selection.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
@@ -900,6 +903,108 @@ was not changed by this adoption.
 passes Linux portable regression and lint/security; both macOS jobs are running.
 These local consumer changes have no remote or native macOS qualification.
 No broad consumer gate or release was run for this update.
+
+The maintainer delivered 0.52.6 at
+`9442a7ab7c5b7c9915d1789c8f4305ca02591980`.
+[Exact-source CI](https://github.com/dragginzgame/ic-query/actions/runs/38035646441)
+passes all nine jobs across Linux, Apple Silicon and Intel macOS. The delivered
+formatting adoption has complete native evidence under
+[#35](https://github.com/dragginzgame/ic-query/issues/35).
+
+The initial review, originally planned for 0.52.7, selected Shared Tooling 0.2.11 at
+`83efac446348dea024798a331d77933b24b429dc` through the canonical exporter,
+retaining 77 files. Its committed version is 0.2.11 despite the 0.2.10 commit
+message. Shared's independent Make flag probes replace Query's supplementary
+parser; overwritten invocation evidence is refused before recipes. CI-script,
+release-cache, metadata, publication and simulated release-command fixtures pass
+on Linux with GNU Make 4.3/Bash 5 and GNU Make 3.81/Bash 3.2. Actual check-only
+formatting passes on both profiles after explicit selected-cache preparation.
+Snapshot integrity and ShellCheck pass; package manifests, lockfile and real
+index remain unchanged. Evidence: `/tmp/ic-query-0527-*.log`.
+[Exact Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38034912323)
+passes all four jobs, including portable regression on both native macOS hosts.
+That producer qualification does not qualify these uncommitted consumer changes;
+no broad consumer gate, native consumer execution or release was run locally.
+
+That review next selected committed Shared Tooling 0.2.12 at
+`a8ba9b461b831846eacf64452e6ddcd2acd000f1` through the canonical exporter,
+retaining 77 files. Its committed version is 0.2.12 despite the 0.2.11 commit
+message. Snapshot verification and refresh reject LF/CR in supplied and physical
+directory paths before trimming can select another checkout, including aliases
+and custom-manifest parents. Existing artifacts remain intact; ordinary spaces,
+relative paths and physical aliases remain supported under `CDPATH`.
+[Shared #95](https://github.com/dragginzgame/shared-tooling/issues/95).
+The upstream snapshot-distribution fixture and actual consumer integrity check
+pass on Linux Bash 5 and genuine Bash 3.2; the fixture remains upstream rather
+than widening consumer CI. ShellCheck passes, and refresh preserves the already
+selected Host lockfile and real Git index. Evidence:
+`/tmp/ic-query-0527-shared0212-*.log`.
+[Exact Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38037750017)
+passes Linux portable regression and lint/security; both native macOS jobs are
+queued. These pending consumer changes have no native qualification; no full
+consumer gate or release was run.
+
+The same initial preparation selected published Host
+artifacts/filesystem/process 0.10.2, whose package VCS metadata matches release
+`6b755763aca71b7ea8c3de40edf032093dfdc62c`. Only those three package versions
+and checksums change in the lockfile. Pathname writers refuse directory-required
+targets before normalization or publication under
+[Host #44](https://github.com/dragginzgame/ic-host-tooling/issues/44).
+The actual smoke receipt regression checks typed pre-publication failure,
+preserved original bytes and unchanged directory entries for trailing `/`, `/.`
+and repeated suffixes. After explicit locked cache preparation, 26 smoke-runner
+and 55 host-feature cache tests pass locked/offline on Linux, along with strict
+smoke-example Clippy. Logs: `/tmp/ic-query-0527-host0102-*.log`.
+[Exact Host release CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38037252544)
+passes Linux native and MSRV checks; Intel macOS is running and Apple Silicon
+remains queued. This dependency
+adoption has no native consumer qualification; no full local gate, release or
+live deployment was run.
+
+The maintainer reassigned the pending batch to the **0.53.0 hard cut**. It selects
+Shared Tooling 0.2.13 at `5864f468d39f8f9d1bd26fca1afe0e20f25f1b5e` through the
+canonical exporter, retaining 77 files and the separately pinned baseline.
+Published Host artifacts/filesystem/process 0.11.0 all record release source
+`1d768c80a5bb87e3330a6b7bacfdfc543063968f` in their package VCS metadata; registry
+entries are unyanked. The incoming manifest's 0.11 requirements remain intact,
+and only the three Host versions/checksums change in the selected lockfile.
+Package release versions remain 0.52.6 for the maintainer's version transaction.
+
+Smoke commands use current Host output policies and retain typed cleanup causes
+separately from the original failure. Captured parsing bytes, deadlines, TERM
+grace, bounded reaping and handoff policy retain their consumer ownership.
+After explicit locked cache preparation, all 26 smoke tests, 55 host-feature
+cache tests and strict smoke-example Clippy pass locked/offline on Linux.
+[#38](https://github.com/dragginzgame/ic-query/issues/38).
+
+Formatter admission now requires the exact selected local receipt and bytes;
+another installation cannot satisfy it. This checkout initially refused before
+formatting because that selected installation was absent. Explicit
+`make install-format-tools` prepared it through the canonical installer.
+Release fixtures prove setup/check ordering after source admission and fetching,
+setup/admission failure, explicit offline refusal, source changes during setup,
+reuse, preservation of prior selections and lock bytes, and saved-evidence
+recovery without setup/fetch against partial metadata. The actual consumer CI
+fixture refuses a missing selection before any Cargo dispatch under parallel
+Make, and formatting also refuses a changed selection without fallback.
+CI-script, selected-tool and release-cache fixtures pass on Linux with GNU Make
+4.3/Bash 5 and GNU Make 3.81/Bash 3.2. Real-Git metadata fixtures and simulated
+release-command routing pass on both profiles. Evidence:
+`/tmp/ic-query-0530-*.log`. The initially refused formatter admission identified
+a missing local preparation input, not a source failure; final checks use the
+explicitly prepared selection. Current 0.52.6 changelog admission passes; the
+0.53.0 HEAD-bound check refuses the uncommitted new detailed file as expected.
+No broad consumer gate or real release was run.
+[Shared #96](https://github.com/dragginzgame/shared-tooling/issues/96).
+
+[Exact Shared 0.2.13 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38039035514)
+passes Linux portable regression, lint/security and Apple Silicon regression;
+Intel regression also passes, completing all four producer jobs.
+[Exact Host 0.11 release CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38040092044)
+passes Linux native/MSRV and Apple Silicon; Intel macOS remains running.
+These producer observations and Linux compatibility profiles do not qualify the
+uncommitted 0.53.0 consumer changes. Native consumer macOS acceptance remains a
+gap, alongside the complete consumer gate.
 
 ## Tool-specific dependencies
 

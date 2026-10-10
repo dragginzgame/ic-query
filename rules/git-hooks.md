@@ -77,6 +77,9 @@ The adjacent `make/execution.mk` companion uses the existing execution probe to
 reject Make ignore-errors and non-executing modes before recipes run. Select its
 declared companion when exporting; a failing prerequisite alone cannot enforce
 failure propagation under ignore-errors mode.
+Admission checks both `MAKEFLAGS` and Make's retained `MFLAGS`, including when
+`MAKEFLAGS` is cleared or replaced. Do not assign `MFLAGS` on the command line or
+in a Makefile; the guard requires GNU Make's generated invocation flags.
 
 Keep local recipes for multiple independent workspaces, sort-derives, custom
 manifest ordering or frontend formatting. Those recipes still use the shared

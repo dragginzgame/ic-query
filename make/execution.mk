@@ -2,8 +2,13 @@
 # Shared companions: scripts/ci/check-make-execution.sh
 ifneq ($(origin _shared_make_execution_checked),override)
 override _shared_make_execution_checked := yes
+# GNU Make retains actual invocation options in MFLAGS even if MAKEFLAGS is
+# replaced. Refuse assignments which erase that independent execution evidence.
+ifeq ($(filter environment,$(origin MFLAGS)),)
+$(error Shared tooling requires GNU Make's generated MFLAGS; remove command-line or Makefile MFLAGS assignments)
+endif
 # $(shell) does not reliably export this invocation's computed Make flags.
-# Pass them explicitly, shell-quoted, to the existing behavioral probe. Its
+# Pass both explicitly, shell-quoted, for independent behavioral probes. The
 # isolated Makefile never loads consumer recipes. Keep real caller flags intact.
 # Resolve the probe beside this selected include, before target-specific runtime
 # roots apply. MAKE_COMMAND identifies this Make executable; MAKE may instead

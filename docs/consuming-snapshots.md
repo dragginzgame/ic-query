@@ -4,6 +4,14 @@ CI and release behavior must not depend on a sibling checkout, a moving Git
 branch, or network availability. Consumers vendor a reviewed file set and
 record its exact Shared Tooling source revision.
 
+Directory paths must not contain LF or CR characters. Snapshot refresh and
+verification reject them in both supplied and resolved physical paths, including
+ancestor directories and symlink destinations. They never trim a forbidden name
+into another checkout. Rename an affected operational directory explicitly before
+using these commands; existing artifacts are not renamed or deleted automatically.
+Spaces and ordinary physical aliases remain supported. Snapshot-relative file
+and manifest paths also reject LF, CR and tab characters.
+
 ## Initial snapshot
 
 Run the refresh helper from a clean Shared Tooling checkout:

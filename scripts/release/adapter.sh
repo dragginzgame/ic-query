@@ -77,6 +77,15 @@ case "$operation" in
         echo 'release dependency preparation failed; prepare the selected cache with cargo fetch --locked, then retry' >&2
         exit "$status"
       fi
+      if [[ "$prepare_cache" == 1 ]]; then
+        make --no-print-directory install-format-tools
+      else
+        CARGO_NET_OFFLINE=true make --no-print-directory install-format-tools
+      fi
+      [[ "$(git rev-parse HEAD)" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
+      bash scripts/ci/check-release-source.sh
+      metadata preflight
+      make --no-print-directory format-tools-check
     fi
     ;;
   verify)

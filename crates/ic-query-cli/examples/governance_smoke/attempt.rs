@@ -208,7 +208,13 @@ fn retain_failure(receipt: &mut Value, error: &(dyn std::error::Error + 'static)
             }
         }
         if !error.cleanup_errors.is_empty() {
-            receipt["command_cleanup_errors"] = json!(error.cleanup_errors);
+            receipt["command_cleanup_errors"] = json!(
+                error
+                    .cleanup_errors
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+            );
         }
     }
 }

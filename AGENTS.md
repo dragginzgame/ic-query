@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `43a0dc46cdc3c77e70a68e192561642ed50a3e0f`; the selected
+  Shared Tooling at reviewed revision `5864f468d39f8f9d1bd26fca1afe0e20f25f1b5e`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -39,6 +39,12 @@ If code or habit conflicts with this file, this file wins.
   registry/Git access, and standard release/deployment preparation fetches the
   selected lock before offline validation. Explicit caller offline settings
   remain authoritative; the agent-run release prohibition below still applies.
+  Selected executable-tool preparation uses `make install-format-tools` and
+  offline `make format-tools-check` after coherent release admission. Complete
+  delivery validation remains subject to the local Testing authority below.
+  Snapshot refresh and verification adopt the directory-path admission in
+  `docs/consuming-snapshots.md`: refuse LF/CR in supplied and resolved paths,
+  preserving existing artifacts until an explicitly selected rename.
   `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
   they do not silently replace the explicitly
   pinned engineering baseline or activate unrelated hook/tooling adoption.

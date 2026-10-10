@@ -244,7 +244,8 @@ receipt publication also fails. Failed receipts retain available command stdout
 and stderr in `command_stdout` and `command_stderr`; incomplete byte diagnostics
 are decoded as UTF-8 with replacement for invalid bytes. Command
 signal, reaping and pipe cleanup failures appear as `command_cleanup_errors`
-on the failed receipt; a refusal is not successful cleanup. Receipt
+on the failed receipt, with one Host-rendered string per typed cleanup attempt;
+the original command failure remains separate. A refusal is not successful cleanup. Receipt
 publication failures are reported separately as `receipt_errors` and retained
 in a later complete receipt when storage recovers. If storage remains unavailable,
 the previous complete receipt remains the on-disk evidence. Cleanup or publication
