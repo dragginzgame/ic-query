@@ -59,7 +59,18 @@ case "$1" in
       --show-toplevel) pwd ;;
       --show-prefix) printf '\n' ;;
       release-state) echo .release-state ;;
-      HEAD) cat head ;;
+      HEAD)
+        cat head
+        if [[ -n "${FIXTURE_HEAD_FAILURE_AT:-}" ]]; then
+          observation=0
+          [[ ! -f head-observations ]] || observation="$(cat head-observations)"
+          observation=$((observation + 1))
+          printf '%s\n' "$observation" > head-observations
+          if [[ "$observation" == "$FIXTURE_HEAD_FAILURE_AT" ]]; then
+            echo 'fixture source observation failed' >&2
+            exit 23
+          fi
+        fi ;;
       *'^{tree}') name="${!#}"; name="$(resolve "${name%\^\{tree\}}")"; cat "commits/$name/tree" ;;
       refs/tags/*'^{commit}') name="${!#}"; cat "tags/${name#refs/tags/}" ;;
       refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]]; echo "$tag_sha" ;;
@@ -348,6 +359,53 @@ check_old_evidence() {
   [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
+for observation in increment-files increment-preflight source-initial source-prepared; do
+  new_fixture "observation-$observation" patch
+  operation=preflight
+  head_failure_at=''
+  diagnostic='fixture source observation failed'
+  case "$observation" in
+    increment-*)
+      [[ "$observation" != increment-files ]] || operation=files
+      mv scripts/ci/next-release-version.sh scripts/ci/next-release-version-real.sh
+      cat > scripts/ci/next-release-version.sh <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+bash scripts/ci/next-release-version-real.sh "$@"
+echo 'fixture increment observation failed' >&2
+exit 23
+STUB
+      diagnostic='fixture increment observation failed' ;;
+    source-initial) head_failure_at=1 ;;
+    source-prepared) head_failure_at=2 ;;
+  esac
+  mkdir original-source
+  cp Cargo.toml Cargo.lock README.md CHANGELOG.md head target/original-artifact original-source/
+  cp -R docs original-source/
+  status=0
+  FIXTURE_HEAD_FAILURE_AT="$head_failure_at" IC_QUERY_RELEASE_PREPARE_CACHE=1 \
+    RELEASE_KIND=patch RELEASE_PREVIOUS=0.46.5 RELEASE_VERSION=0.46.6 \
+    RELEASE_DATE=2026-10-07 RELEASE_SOURCE=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    RELEASE_REMOTE=origin RELEASE_BRANCH=main \
+    bash scripts/release/adapter.sh "$operation" > output 2>&1 || status=$?
+  [[ "$status" == 23 ]] || fail "$observation did not preserve failed observation status: $status"
+  grep -Fq "$diagnostic" output || fail "$observation lost observation diagnostics"
+  for file in Cargo.toml Cargo.lock README.md CHANGELOG.md head; do
+    cmp "original-source/$file" "$file"
+  done
+  cmp original-source/original-artifact target/original-artifact
+  diff -r original-source/docs docs
+  [[ ! -e index && ! -e tag && ! -e pushes && ! -e target/retained-output ]] \
+    || fail "$observation reached validation or release effects"
+  if [[ "$observation" == source-prepared ]]; then
+    printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
+    cmp expected events || fail 'failed prepared source observation continued to offline admission'
+  else
+    [[ ! -e events && ! -e selected-formatter ]] || fail "$observation reached preparation"
+  fi
+  case "$observation" in increment-*) [[ ! -e .release-state ]] ;; esac
+done
+
 new_fixture unsupported-delivery patch
 if RELEASE_DELIVERY=pr RELEASE_KIND=patch RELEASE_PREVIOUS=0.46.5 \
   RELEASE_VERSION=0.46.6 RELEASE_DATE=2026-10-07 \

@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `a744d7f1990b9e1451ef45cd6d495de00a141cd3`; the selected
+  Shared Tooling at reviewed revision `34e5ad7aac3599306c9572bb547f2239d09df1a3`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -42,7 +42,7 @@ If code or habit conflicts with this file, this file wins.
   Selected executable-tool preparation uses `make install-format-tools` and
   offline `make format-tools-check` after coherent release admission. Complete
   delivery validation remains subject to the local Testing authority below.
-  Complete local setup adopts the 0.3.5 ordered host, IC and Cargo aggregates;
+  Complete local setup adopts the 0.3.7 ordered host, IC and Cargo aggregates;
   read-only IC-platform and Rust-toolchain preflight runs before downloads.
   Query's selected formatter and dependency tools extend the local target lists.
   Ordinary offline checks never install tools. Narrow release preflight remains
@@ -60,6 +60,10 @@ If code or habit conflicts with this file, this file wins.
   The root virtual workspace and packages under `crates/` follow
   `rules/rust-workspaces.md`; `docs/supported-hosts.md` remains the consumer-owned
   host matrix rather than a shared snapshot file.
+- Routine CI adopts the reviewed 0.3.7 newest-run policy: a stable workflow/ref
+  concurrency group cancels superseded queued and running checks. Retain the
+  required host matrix on the newest run; cancelled jobs leave their source
+  unqualified on unfinished hosts. Release effects keep their separate boundary.
 - Contribution and PR authority adopts `rules/contributions.md` and the
   corresponding Scope and authorization guidance at that same reviewed revision.
   This scoped adoption replaces the older baseline's blanket agent-commit ban;

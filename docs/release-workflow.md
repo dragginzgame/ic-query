@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a744d7f1990b9e1451ef45cd6d495de00a141cd3`](https://github.com/dragginzgame/shared-tooling/tree/a744d7f1990b9e1451ef45cd6d495de00a141cd3) (0.3.5),
+[`34e5ad7aac3599306c9572bb547f2239d09df1a3`](https://github.com/dragginzgame/shared-tooling/tree/34e5ad7aac3599306c9572bb547f2239d09df1a3) (0.3.7),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a744d7f1990b9e1451ef45cd6d495de00a141cd3/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/34e5ad7aac3599306c9572bb547f2239d09df1a3/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -143,10 +143,12 @@ bash scripts/dev/gh-ci.sh --commit HEAD --all-workflows --limit 100
 The listing is bounded and describes committed source. Pending working-tree
 changes need their own qualification; a historical failure search is labelled
 separately and does not establish the latest status.
-Pushed commits have separate CI concurrency groups so a newer release does not
-cancel or displace an older commit's native qualification. PR revisions share
-their PR group and supersede older checks. This retains execution evidence;
-it does not change runner capacity or establish a passing gate before execution.
+CI keeps only the newest run per workflow and branch or PR ref, cancelling
+older queued and running checks under
+[the shared policy](https://github.com/dragginzgame/shared-tooling/issues/108).
+The retained run keeps the complete native matrix and gates. Cancelled revisions
+remain unqualified on unfinished hosts; a later pass does not certify an older
+release. This scheduling policy does not change runner capacity.
 
 Automatic native qualification runs on `main` pushes and pull requests. All
 three gate families (complete checks, MSRV and canister integration) run on

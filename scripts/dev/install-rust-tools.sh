@@ -10,10 +10,10 @@ consumer="$ROOT"
 versions_file="$ROOT/ci/tool-versions.env"
 check_only=false
 preflight=false
-package='' selected_version='' kind='' target='' profile=''
+package='' selected_version='' lockfile='' kind='' target='' profile=''
 usage() {
     echo 'usage: install-rust-tools.sh [--consumer DIR] [--versions FILE] [--check | --preflight]' >&2
-    echo '   or: install-rust-tools.sh [--consumer DIR] --package NAME --version X.Y.Z (--bin NAME | --example NAME) --profile (debug | release) [--check]' >&2
+    echo '   or: install-rust-tools.sh [--consumer DIR] --package NAME (--version X.Y.Z | --lockfile FILE) (--bin NAME | --example NAME) --profile (debug | release) [--check]' >&2
 }
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -23,11 +23,12 @@ while [[ $# -gt 0 ]]; do
             shift 2 ;;
         --check) check_only=true; shift ;;
         --preflight) preflight=true; shift ;;
-        --package|--version|--bin|--example|--profile)
+        --package|--version|--lockfile|--bin|--example|--profile)
             [[ $# -ge 2 && -n "$2" ]] || { usage; exit 2; }
             case "$1" in
                 --package) package="$2" ;;
                 --version) selected_version="$2" ;;
+                --lockfile) lockfile="$2" ;;
                 --bin|--example)
                     [[ -z "$kind" ]] || { usage; exit 2; }
                     kind="${1#--}"; target="$2" ;;
@@ -42,13 +43,50 @@ done
 [[ "$consumer" == /* ]] || consumer="$PWD/$consumer"
 consumer="$(cd -P "$consumer" && printf '%s/.' "$PWD")"
 consumer="${consumer%/.}"
+
+read_locked_version() (
+    [[ -f "$lockfile" && ! -L "$lockfile" ]] || {
+        printf 'Cargo tool selection requires a regular lockfile: %s\n' "$lockfile" >&2
+        return 2
+    }
+    # Reuse explicitly prepared host tools; never resolve/build a Cargo graph.
+    export PATH="$consumer/.tools/host/bin:$PATH"
+    yq -p toml -o json -I 0 '.' "$lockfile" | jq -ers --arg package "$package" '
+        if length != 1 then error("expected one lock document") else .[0] end
+        | [.package[] | select(.name == $package)]
+        | if length != 1 then error("expected exactly one locked package: " + $package) else .[0] end
+        | if .source != "registry+https://github.com/rust-lang/crates.io-index"
+          then error("Cargo tool requires a published crates.io package") else . end
+        | .version
+        | if type != "string" then error("locked version must be a string") else . end
+        | if test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$") and (contains("\n") | not)
+          then . else error("Cargo tool requires an exact stable version") end
+    ' || return $?
+)
+
+check_locked_selection() {
+    [[ -n "$lockfile" ]] || return 0
+    local observed
+    observed="$(read_locked_version)" || return $?
+    [[ "$observed" == "$selected_version" ]] || {
+        printf 'Cargo tool lock selection changed: package=%s expected=%s observed=%s; retry with the current lockfile\n' \
+            "$package" "$selected_version" "$observed" >&2
+        return 1
+    }
+}
+
 selected=false
-if [[ -n "$package$selected_version$kind$target$profile" ]]; then
+if [[ -n "$package$selected_version$lockfile$kind$target$profile" ]]; then
     [[ "$preflight" == false ]] || { usage; exit 2; }
     selected=true
     [[ "$package" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ &&
        "$target" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ && -n "$kind" &&
        ( "$profile" == debug || "$profile" == release ) ]] || { usage; exit 2; }
+    if [[ -n "$lockfile" ]]; then
+        [[ -z "$selected_version" ]] || { usage; exit 2; }
+        [[ "$lockfile" == /* ]] || lockfile="$consumer/$lockfile"
+        selected_version="$(read_locked_version)" || exit $?
+    fi
     tool_names=("$target")
     tool_versions=("$selected_version")
 else
@@ -162,7 +200,7 @@ install_selected() (
     selected_paths "$destination"
     [[ ! -e "$lock" && ! -L "$lock" ]] || { echo "Cargo tool installation locked: $lock" >&2; return 1; }
     host="$(rustc -vV | sed -n 's/^host: //p')"
-    [[ -n "$host" ]]
+    [[ -n "$host" ]] || return 1
     if [[ -e "$destination" ]]; then
         check_selected || {
             printf 'invalid selected Cargo tool: package=%s version=%s target=%s:%s profile=%s destination=%s\n' \
@@ -202,12 +240,13 @@ install_selected() (
             check_install_paths
             selected_paths "$slot"
             selected_paths "$stage"
-            [[ -x "$stage/bin/$target" ]]
+            [[ -x "$stage/bin/$target" ]] || return 1
             selected_receipt "$stage"
             [[ ! -e "$stage/selection.json" ]] || { echo 'unexpected candidate selection receipt' >&2; return 1; }
             selected_identity "$stage" > "$stage/selection.json"
             selected_paths "$destination"
             [[ ! -e "$destination" ]] || { echo 'Cargo tool destination appeared during install' >&2; return 1; }
+            check_locked_selection || return $?
             perl -e 'rename($ARGV[0], $ARGV[1]) or die "activate Cargo tool: $!\n"' "$stage" "$destination"
             stage=''
             check_selected
@@ -215,6 +254,7 @@ install_selected() (
         rmdir "$lock"
         trap - EXIT INT TERM
     fi
+    check_locked_selection || return $?
     printf '%s\n' "$destination/bin/$target"
 )
 

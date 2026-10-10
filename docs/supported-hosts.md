@@ -1163,6 +1163,62 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.4 release-guard qualification
+
+The consumer release adapter now admits selected-increment and both preflight
+HEAD observations before comparing successful output. Against released 0.54.3
+`fcd9214970ad38332f3d653db4591e4fb629b189`, matching-output fault injection
+reproduces all four paths returning success after an observation exits 23. The
+repair preserves status 23 and diagnostics, source and prior artifacts, and
+refuses subsequent preparation, validation or release effects. Targeted cases
+and complete simulated release/recovery fixtures pass on Linux Bash 5/Make 4.3
+and genuine Bash 3.2.57/Make 3.81. Evidence:
+`/tmp/ic-query-0544-before-*.log`, `/tmp/ic-query-0544-after-*.log` and
+`/tmp/ic-query-0544-release-{modern,portable}.log`.
+[Query #41](https://github.com/dragginzgame/ic-query/issues/41).
+
+The same pending slice adopts committed Shared Tooling 0.3.7
+`34e5ad7aac3599306c9572bb547f2239d09df1a3` canonically with 78 selected files.
+The new lockfile-selected Cargo-tool fixtures pass on both Bash/Make profiles
+using real yq/jq and substitute Cargo, including matching-output parser failures,
+selection changes, retained candidates and offline reuse, plus absent-host and
+non-executable-candidate refusal. The shared release simulation passes with
+explicit assertion failures on both profiles. Actual parallel offline common
+and Query tool checks pass on both profiles. Evidence:
+`/tmp/ic-query-0544-shared037-{rust,release,tools}-{modern,portable}.log`.
+The incoming workflow uses the reviewed newest-run concurrency policy while
+retaining all nine required host jobs; event/host fixtures and actionlint pass.
+Cancelled jobs leave their exact source unqualified on unfinished hosts.
+The pre-commit hook and its
+adoption checker remain unselected; no hook is activated.
+
+The incoming Host artifacts/filesystem/process 0.12.5 selection is preserved.
+Published registry checksums match the lock and packaged VCS identities match
+released source `85f051c60b2a6f37717c4274b1e31caf5b9d3453`. After explicit locked
+fetching, all 26 Governance smoke tests and 55 host-feature cache tests pass
+locked/offline on Linux. Evidence: `/tmp/ic-query-0544-host-{fetch,smoke-tests,cache-tests}.log`
+and `/tmp/ic-query-host0125-registry-{artifacts,fs,process}/`.
+
+The separate [Query #42](https://github.com/dragginzgame/ic-query/issues/42) /
+[Shared #107](https://github.com/dragginzgame/shared-tooling/issues/107)
+inspection confirms a consumer assertion gap: a disposable copy of Query's
+completion checker accepts deliberately contradictory payload bytes on Bash 3.2,
+while current Bash rejects them. This is an injected false assertion, not an
+observed lost production payload. Evidence:
+`/tmp/ic-query-0544-assertion-review.*/`; normal portable passes do not qualify
+that checker's refusal behavior. The completed installer fixtures and original
+status-23 release probes remain their own source-bound evidence.
+
+ShellCheck, both Bash syntax checks, snapshot integrity, current-version
+changelog admission, local documentation links and whitespace checks pass.
+Manifest, incoming lockfile and real index hashes are unchanged during this
+adoption. No full local consumer CI, native macOS execution, actual release/version
+bump, commit, tag or push ran. Delivery and native acceptance remain outstanding;
+released 0.54.3's Linux CI results do not qualify this patch.
+[Shared 0.3.7 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38064027998)
+passes Linux portable regression and lint/security, and Host 0.12.5 passes Linux native
+and MSRV; their native macOS jobs remain queued at inspection.
+
 ## Tool-specific dependencies
 
 Released 0.54.0 selects published Host artifacts/filesystem/process

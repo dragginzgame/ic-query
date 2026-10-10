@@ -14,7 +14,8 @@ fail() { echo "release adapter refused: $*" >&2; exit 1; }
 for selection in RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_REMOTE RELEASE_BRANCH; do
   [[ -n "${!selection:-}" ]] || fail "missing $selection"
 done
-[[ "$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" "$RELEASE_KIND")" == "$RELEASE_VERSION" ]] \
+observed_version="$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" "$RELEASE_KIND")" || exit $?
+[[ "$observed_version" == "$RELEASE_VERSION" ]] \
   || fail 'candidate differs from the selected increment'
 if [[ "$operation" == files ]]; then metadata files; exit; fi
 state_root="$(git rev-parse --git-path release-state)"
@@ -60,7 +61,8 @@ committed_check() {
 }
 case "$operation" in
   preflight)
-    [[ "$(git rev-parse HEAD)" == "$RELEASE_SOURCE" ]] || fail 'source identity changed'
+    observed_source="$(git rev-parse HEAD)" || exit $?
+    [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed'
     if [[ -e "$binding" ]]; then
       load_evidence
       admit_paths "$RELEASE_SOURCE"
@@ -82,7 +84,8 @@ case "$operation" in
       else
         CARGO_NET_OFFLINE=true make --no-print-directory install-format-tools
       fi
-      [[ "$(git rev-parse HEAD)" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
+      observed_source="$(git rev-parse HEAD)" || exit $?
+      [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
       bash scripts/ci/check-release-source.sh
       metadata preflight
       make --no-print-directory format-tools-check

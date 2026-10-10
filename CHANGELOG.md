@@ -5,6 +5,31 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.4]
+
+- Release preparation stops when version or source observations fail, even if
+  they print the expected value. Original failure status and diagnostics survive;
+  subsequent preparation and release effects are refused.
+  [#41](https://github.com/dragginzgame/ic-query/issues/41).
+- Adopts Shared Tooling 0.3.7. Cargo tool setup and offline checks can select
+  exact published versions directly from an explicit consumer lockfile.
+  [Shared #96](https://github.com/dragginzgame/shared-tooling/issues/96).
+- Shared fixtures explicitly reject failed assertions on Bash 3.2. Cargo tool
+  setup refuses an absent host identity and non-executable candidates before
+  activation. [Shared #107](https://github.com/dragginzgame/shared-tooling/issues/107).
+- Selects Host 0.12.5: invalid publication paths containing NUL fail before
+  creating parent directories. Existing errors and valid-path behavior remain
+  unchanged. [Host #54](https://github.com/dragginzgame/ic-host-tooling/issues/54).
+
+```bash
+bash scripts/dev/install-rust-tools.sh --consumer /path/to/consumer \
+  --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release
+```
+
+- Keep only the newest CI run per workflow and branch or PR, cancelling older
+  queued and running checks while retaining the existing host matrix and gates
+  ([Shared #108](https://github.com/dragginzgame/shared-tooling/issues/108)).
+
 ## [0.54.3] - 2026-10-10
 
 - Adopts Shared Tooling 0.3.5 and its reviewed Binaryen 133 tool pins. Prepare

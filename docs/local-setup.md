@@ -219,6 +219,26 @@ and product qualification. Use `--bin NAME` for a published binary. This mode
 does not install the formatter bundle or read its versions catalog; `make
 install-rust-tools` continues to install that existing three-tool bundle.
 
+For a tool selected by a consumer lockfile, replace `--version` with `--lockfile`:
+
+```bash
+bash scripts/dev/install-rust-tools.sh --consumer "$PWD" \
+  --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release
+```
+
+Relative lockfile paths resolve beneath `--consumer`; absolute paths select an
+explicit independent graph. The prepared host yq/jq tools read TOML without Cargo
+resolution, downloads or lockfile writes. Exactly one package with the selected
+name must exist, with an exact stable version and the crates.io registry source.
+Missing, malformed, symlinked, ambiguous, local/Git/other-registry or prerelease
+selections refuse before installation. `--version` and `--lockfile` are mutually
+exclusive. Consumer-local `.tools/host/bin` takes precedence for the reader.
+The same arguments with `--check` admit the selected installation offline.
+Selection is read again before candidate activation and before returning a path;
+a changed selection fails and retains any build attempt. Retry against the new
+lock selection; prior installations remain intact. Consumers still own the
+selected graph, package, target/profile and Testkit's separate server setup/check.
+
 The command prints the admitted executable path under
 `.tools/rust/<package>-<version>-<kind>-<target>-<profile>/installed/bin/`.
 Use that returned path in the consumer adapter. Each selection is immutable:

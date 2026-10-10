@@ -8,9 +8,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Preserve each pushed commit's native qualification; supersede older PR revisions.
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A newer run replaces queued and running checks for this workflow and ref.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   push:
