@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`5864f468d39f8f9d1bd26fca1afe0e20f25f1b5e`](https://github.com/dragginzgame/shared-tooling/tree/5864f468d39f8f9d1bd26fca1afe0e20f25f1b5e) (0.2.13),
+[`88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d`](https://github.com/dragginzgame/shared-tooling/tree/88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d) (0.3.0),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/5864f468d39f8f9d1bd26fca1afe0e20f25f1b5e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -217,8 +217,10 @@ database and revision.
 The consumer keeps advisory exemptions, warning policy and subsequent Machete
 ordering. Successful checks remove only their own temporary database.
 
-`make install-dev` prepares checksum-verified jq/yq and ripgrep with PCRE2 under
-`.tools/host/bin`, alongside the existing development tools. `make dependency-pins-check` checks parsed Cargo/Action inputs
+`make install-tools` prepares the complete common host, IC and Cargo sets,
+then Query's selected formatter and pinned Cargo Audit/Machete, sequentially
+even under parallel Make. `make tools-check` admits the same selections offline;
+the complete CI gate runs it before dependent work. `make dependency-pins-check` checks parsed Cargo/Action inputs
 and tracked workspace lockfiles offline; the complete CI and release gate includes
 it with `--cargo-inheritance`. Member versions and normal, development, build and
 target dependencies inherit their owning workspace catalog. The parser identities
@@ -227,17 +229,20 @@ and native setup are documented in
 runtime behavior or replace locked compilation and tests.
 
 `make install-format-tools` installs only cargo-sort 2.1.4 from
-`ci/tool-versions.env`; `make install-dev` reuses that target.
-Development setup finishes host-tool preparation before dispatching formatter
+`ci/tool-versions.env`; `make install-tools` includes that target through the
+ordered product extension list. Development setup finishes host-tool preparation before dispatching formatter
 setup, including under parallel Make. CI admits the required host tools before
 the formatter's receipt check invokes jq.
 It uses the shared selected-package installer with `--bin cargo-sort` and the
 release profile, under `.tools/rust/cargo-sort-2.1.4-bin-cargo-sort-release/installed/`.
 Formatter commands require that exact installation's receipt and bytes before
-version probes; optional-bundle and global copies cannot satisfy admission.
+version probes; common-bundle and global copies cannot satisfy admission.
 Previous installations and failed candidates remain available for inspection.
-Only cargo-sort is selected; cargo-sort-derives and candid-extractor remain
-optional. Cargo Audit and Cargo Machete keep their pinned global Cargo installs.
+Narrow release preflight selects only cargo-sort. Common setup also prepares
+cargo-sort-derives and candid-extractor; Cargo Audit and Cargo Machete keep their
+pinned global Cargo installs. Their owner targets are `install-dependency-tools`
+and offline `dependency-tools-check`. The retired `install-dev` aggregate has no
+replacement alias; callers use `make install-tools`, then `make tools-check`.
 `make format-tools-check` checks that exact installation, pin and prepared rustfmt offline.
 Both `fmt` and `fmt-check` require it, then sort/check the one Cargo workspace
 before formatting/checking Rust. They never install missing tools. The complete

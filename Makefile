@@ -2,7 +2,7 @@
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
-	install install-dev install-format-tools format-installation-check library-process-boundary-check msrv package \
+	install install-dependency-tools dependency-tools-check install-format-tools format-installation-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
@@ -38,6 +38,8 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(REPO_ROOT)
+LOCAL_TOOL_INSTALL_TARGETS += install-format-tools install-dependency-tools
+LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
 include $(REPO_ROOT)make/tools.mk
 include $(REPO_ROOT)make/release.mk
 include $(REPO_ROOT)make/rust-format.mk
@@ -50,7 +52,7 @@ format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := shared-tooling-check host-tools-check format-tools-check changelog-check dependency-pins-check package-contents-check \
+CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
@@ -90,16 +92,17 @@ help:
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
-	@echo "  install-dev  Prepare local cargo-sort and pinned tools required by CI"
+	@echo "  install-dependency-tools  Install pinned Cargo Audit and Cargo Machete"
+	@echo "  dependency-tools-check  Check the selected audit tools offline"
 	@echo "  install-format-tools  Prepare the exact local cargo-sort selection"
-	@echo "  install-tools  Install the repository-local host and IC toolsets"
-	@echo "  tools-check  Verify both toolsets offline"
+	@echo "  install-tools  Prepare the complete common and Query toolsets in order"
+	@echo "  tools-check  Verify the complete common and Query toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
 	@echo "  host-tools-check  Verify the host toolset offline"
 	@echo "  install-ic-tools  Install repository-local Quill, ICP, didc, ic-wasm and wasm-opt"
 	@echo "  ic-tools-check  Verify the IC toolset offline"
-	@echo "  install-rust-tools  Install the optional shared Cargo-tool set locally"
-	@echo "  rust-tools-check  Verify that optional Cargo-tool set offline"
+	@echo "  install-rust-tools  Install the common Cargo-tool set locally"
+	@echo "  rust-tools-check  Verify the common Cargo-tool set offline"
 	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
@@ -193,15 +196,22 @@ install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
 install-format-tools format-installation-check:
-	@bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
+	+@bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
 		--package cargo-sort --version "$(icq_formatter_version)" --bin cargo-sort --profile release \
 		$(if $(filter format-installation-check,$@),--check) > /dev/null || \
 		{ status=$$?; echo 'Prepare the selected formatter with make install-format-tools' >&2; exit $$status; }
 
-install-dev: install-host-tools
-	+@$(MAKE) --no-print-directory install-format-tools
-	cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
-	cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
+install-dependency-tools:
+	+cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
+	+cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
+
+dependency-tools-check: export CARGO_NET_OFFLINE := true
+dependency-tools-check: export RUSTUP_AUTO_INSTALL := 0
+dependency-tools-check:
+	@test "$$(cargo-audit --version)" = "cargo-audit $(CARGO_AUDIT_VERSION)" || \
+		{ echo 'Prepare the selected Cargo Audit with make install-dependency-tools' >&2; exit 1; }
+	@test "$$(cargo-machete --version)" = "$(CARGO_MACHETE_VERSION)" || \
+		{ echo 'Prepare the selected Cargo Machete with make install-dependency-tools' >&2; exit 1; }
 
 publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh

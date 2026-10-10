@@ -4,7 +4,7 @@ set -euo pipefail
 pattern='(eprintln!|println!|print!|dbg!|std::io::stderr|std::io::stdout|io::stderr|io::stdout|std::env::args|std::env::args_os|std::env::current_dir|std::process::exit)'
 
 if ! command -v rg >/dev/null 2>&1; then
-  echo "error: ripgrep is required; run 'make install-dev'" >&2
+  echo "error: ripgrep is required; run 'make install-host-tools'" >&2
   exit 1
 fi
 

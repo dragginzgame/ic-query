@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.0]
+
+Detailed release notes: [docs/changelog/0.54.md](docs/changelog/0.54.md)
+
+- Adopts Shared Tooling 0.3.0: standard setup and offline checks cover the complete
+  host, IC and Cargo toolsets, then Query's formatter and audit tools in order.
+  Removes `install-dev` and optional host-tool flags; prepare a Rust toolchain
+  first, then use the common commands below. Release preflight retains narrow
+  formatter preparation. [#39](https://github.com/dragginzgame/ic-query/issues/39).
+- CI inspection reports unavailable failed-step logs and preserves partial
+  evidence. [Shared #97](https://github.com/dragginzgame/shared-tooling/issues/97).
+- Selects published Host 0.12.0, retaining the current cache, artifact and process
+  APIs. Its release adopts the same complete tooling setup contract.
+  [Host #47](https://github.com/dragginzgame/ic-host-tooling/issues/47).
+
+```bash
+make install-tools
+make tools-check
+make dependency-tools-check
+```
+
 ## [0.53.0] - 2026-10-10
 
 Detailed release notes: [docs/changelog/0.53.md](docs/changelog/0.53.md)

@@ -41,9 +41,12 @@ qualified by this matrix.
 - `make install-tools` prepares host tools followed by the complete IC set:
   Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
-  owner in `ci/ic-tools.tsv`; `make tools-check` verifies both sets offline.
+  owner in `ci/ic-tools.tsv`, followed by common cargo-sort, cargo-sort-derives
+  and candid-extractor. Query's formatter receipt and Audit/Machete owners follow
+  through the ordered local extension lists. `make tools-check` verifies all
+  those selections offline; neither command prepares a Rust toolchain.
   Make selects the local paths; interactive shells use
-  `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PATH"`.
+  `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/bin:$PATH"`.
   See [local setup](local-setup.md) and [IC tools](ic-tools.md) for bootstrap
   packages, complete-set activation, locks and retained failed/previous sets.
   Shared 0.2.0 requires explicit setup to replace an active six-tool bundle;
@@ -1006,7 +1009,68 @@ These producer observations and Linux compatibility profiles do not qualify the
 uncommitted 0.53.0 consumer changes. Native consumer macOS acceptance remains a
 gap, alongside the complete consumer gate.
 
+## Pending 0.54.0 toolset qualification
+
+Query adopts committed Shared Tooling 0.3.0
+`88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d`, retaining 77 selected files and
+the separate engineering baseline. Actual Linux setup prepares all common sets
+and Query's selected formatter/Audit/Machete owners. Subsequent explicitly offline
+reuse and offline checks pass under parallel GNU Make 4.3 and 3.81/Bash 3.2.
+Earlier installed toolsets, selected formatter receipts and build evidence remain
+available. Evidence: `/tmp/ic-query-shared030-setup.log`,
+`/tmp/ic-query-shared030-setup-reuse-verified.log`,
+`/tmp/ic-query-shared030-setup-reuse-portable.log`, and
+`/tmp/ic-query-shared030-tools-check-*.log`.
+
+Consumer script fixtures pass on both profiles, exercising complete common and
+product ordering, exact pin/owner overrides, setup/check refusal at each step and
+formatter failure retention. Simulated release guards pass, including retained
+and descendant recovery plus real-Git source/index/metadata preservation. Shared
+CI-log fixtures pass on both profiles. Evidence:
+`/tmp/ic-query-shared030-ci-scripts-*-verified.log`,
+`/tmp/ic-query-shared030-release-guards-*.log`, and
+`/tmp/ic-query-shared030-gh-fixtures*.log`. No real release effects occur.
+
+The owned Cargo setup recipes preserve Make's jobserver. The immutable shared
+formatter recipes still emit closed-descriptor warnings on GNU Make 4.3 parallel
+checks, although checks succeed; this reproduced producer gap is tracked in
+[Shared #99](https://github.com/dragginzgame/shared-tooling/issues/99), with a
+separate effect-free common-recipe reproduction retained at
+`/tmp/ic-query-shared030-jobserver-reproduction.log`.
+
+Full pending-source consumer CI and native macOS execution have not run. At the
+recorded inspection, [Shared 0.3.0 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38044218125)
+passed Linux portable regression and lint/security, with both native macOS jobs
+queued. [Released Query 0.53.0 CI](https://github.com/dragginzgame/ic-query/actions/runs/38044026763)
+passed its three Linux jobs, with all six macOS jobs queued. Those observations
+do not qualify these working-tree changes. Native complete setup, reuse, failure
+retention and full consumer delivery remain required through the owning workflow.
+
 ## Tool-specific dependencies
+
+The pending 0.54.0 batch also selects published Host artifacts/filesystem/process
+0.12.0, with the incoming manifest and matching lockfile preserved. All three
+crates.io entries are unyanked; registry checksums match the lock and packaged VCS
+metadata identifies release `1ba4591868a83b367d56bae9e3c213418c66a192`.
+Library source/APIs are unchanged from 0.11.0; the minor release changes Host's
+complete setup/CI/release tooling contract. Its
+[exact-source CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38045025680)
+passes Linux native, MSRV and both macOS architectures.
+
+After explicit locked fetching, Query's 26 Governance smoke tests and 55
+host-feature cache tests pass locked/offline on Linux. Evidence:
+`/tmp/ic-query-host012-fetch.log`, `/tmp/ic-query-host012-smoke-tests.log`,
+`/tmp/ic-query-host012-cache-tests.log`, and
+`/tmp/ic-query-host012-registry-{artifacts,fs,process}/`. No full workspace gate,
+native consumer execution or release/deployment ran for this selection. Producer
+passes do not qualify pending consumer macOS coverage.
+
+The shared IC executable pins still match current Quill, ICP CLI, didc and
+ic-wasm releases. Binaryen 133 is newer than the selected verified wasm-opt 132;
+its archive metadata and required owner/native qualification are reported in
+[Shared #102](https://github.com/dragginzgame/shared-tooling/issues/102).
+Query retains the immutable shared pins and existing installations pending a
+reviewed owner update; 133 has not been installed or tested here.
 
 | Workflow | Explicit prerequisites |
 | --- | --- |
@@ -1014,8 +1078,8 @@ gap, alongside the complete consumer gate.
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
 | Workspace version queries, changelog defaults and release/publication version admission | Prepared Cargo toolchain, local jq/yq; offline manifest validation without dependency resolution |
-| Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; installed explicitly by `install-dev` |
-| Optional shared Cargo-tool set | Prepared Cargo toolchain and native compilation prerequisites; explicit `install-rust-tools` / offline `rust-tools-check`, using the three pins in `ci/tool-versions.env` |
+| Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; selected receipt installed explicitly by `install-format-tools`, included in `install-tools` |
+| Common Cargo-tool set | Prepared Cargo toolchain and native compilation prerequisites; `install-rust-tools` / offline `rust-tools-check`, included in the complete aggregates, using the three pins in `ci/tool-versions.env` |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
 | Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
@@ -1098,15 +1162,16 @@ IC Query's formatting gate now requires the same reviewed cargo-sort pin used
 by explicit development setup. `fmt-check` checks dependency order before Rust
 formatting and preserves source, the Git index, lockfiles and unrelated edits.
 
-The shared Cargo-tool set is optional for Query. `make install-rust-tools`
+The shared Cargo-tool set is required for Query. `make install-rust-tools`
 prepares cargo-sort, cargo-sort-derives and candid-extractor under `.tools/rust`;
-`make rust-tools-check` verifies that complete local set offline. Query does not
-need the latter two executables for its current workflows, so `install-tools`
-and `tools-check` retain their existing selections. `install-dev` selects only
-cargo-sort through the shared package installer, with a release-profile binary
+`make rust-tools-check` verifies that complete local set offline. The standard
+aggregates include all three tools, followed by Query's selected cargo-sort
+through the shared package installer, with a release-profile binary
 under `.tools/rust/cargo-sort-<pin>-bin-cargo-sort-release/installed/bin`.
 Formatter targets prepend that directory to the shared Make include's paths,
-so an older optional bundle or global copy cannot shadow successful setup.
+so a common bundle or global copy cannot shadow successful setup.
 Those existing copies remain intact. Cargo Audit and Cargo Machete keep their
-pinned global Cargo installations. Installer substitution tests establish
+pinned global Cargo installations, with explicit owner targets and exact-version
+offline admission. `install-dev` is removed; callers use the complete aggregate.
+Installer substitution tests establish
 dispatch and failure handling, not native compilation of these executables.

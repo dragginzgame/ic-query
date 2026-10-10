@@ -117,9 +117,9 @@ jobs:
         run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_INTERNAL_TOOLCHAIN" >> "$GITHUB_ENV"
       # Swatinem/rust-cache v2
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
-      - name: Install development tools
+      - name: Prepare the complete common and Query toolsets
         shell: /bin/bash --noprofile --norc -eo pipefail {0}
-        run: PATH="/bin:$PATH" make install-dev
+        run: PATH="/bin:$PATH" make install-tools
       - name: Select repository-local host tools
         shell: bash
         run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/host/bin" >> "$GITHUB_PATH"
