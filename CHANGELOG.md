@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.3]
+
+- Adopts Shared Tooling 0.3.5 and its reviewed Binaryen 133 tool pins. Prepare
+  the selection with `make install-ic-tools`; previous tool bundles are retained.
+  Query's canister builds remain unoptimized.
+  [Shared #102](https://github.com/dragginzgame/shared-tooling/issues/102).
+- Selects Host artifacts, filesystem and process 0.12.4, with unchanged library
+  APIs and stored contracts. [Host #53](https://github.com/dragginzgame/ic-host-tooling/issues/53).
+
 ## [0.54.2] - 2026-10-10
 
 - Adopts Shared Tooling 0.3.3: parallel Cargo tooling preserves Make's jobserver,

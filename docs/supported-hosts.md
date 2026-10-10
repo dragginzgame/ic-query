@@ -1118,6 +1118,51 @@ portable regression and lint/security, with both macOS jobs queued. Released
 Query 0.54.1 CI passes all three Linux jobs, with six macOS jobs queued. Those
 observations do not qualify the uncommitted 0.54.2 consumer changes.
 
+## Pending 0.54.3 tooling qualification
+
+Query adopts committed Shared Tooling 0.3.5
+`a744d7f1990b9e1451ef45cd6d495de00a141cd3` through the canonical exporter,
+retaining 78 selected files and the separate engineering baseline. The producer's
+validation-runner fixture remains outside that selection. Its complete exact-source
+regression passes on Linux Bash 5/Make 4.3 and genuine Bash 3.2.57/Make 3.81 with
+inherited parent log, failure-log and GitHub summary destinations. Parent sentinel
+bytes and directory contents remain unchanged while the fixture's own nested
+logging and failure cases execute. Evidence:
+`/tmp/ic-query-0543-runner-{modern,portable}.log` and the retained
+`/tmp/ic-query-0543-runner-{modern,portable}.*/` directories.
+[Shared #105](https://github.com/dragginzgame/shared-tooling/issues/105).
+
+The reviewed common matrix now selects Binaryen 133. Actual Linux installation,
+parallel offline IC checks and download-disabled setup reuse pass on both Make
+profiles. The previous 132 bundle's files, pins and receipt remain intact. The
+shared exact-source offline Wasm optimization/execution smoke passes with the
+prepared tools and pinned Node 24.21.0: its unoptimized input and `-O3`, `-Os`,
+`-Oz` variants retain the tested branch, integer-boundary and IC-style reply
+behavior. This is a shared fixture, not a deployed Query canister. Query's
+product build flow remains unoptimized. Evidence:
+`/tmp/ic-query-0543-ic-{setup,check-*,reuse-*}.log`,
+`/tmp/ic-query-0543-old-ic-{before,after}.log` and
+`/tmp/ic-query-0543-wasm-opt.log`; retained modules and qualification metadata
+live under `/tmp/ic-query-shared035-review.JRaWTs/binaryen133/`.
+[Shared #102](https://github.com/dragginzgame/shared-tooling/issues/102).
+
+The incoming Host artifacts/filesystem/process 0.12.4 lock selection is preserved.
+All three registry entries are unyanked, their checksums match the lock and
+packaged VCS metadata identifies released source
+`5400f159474cebac1ec7ae7c8763abfd258bde03`. Library source is unchanged from
+0.12.3. After explicit locked fetching, all 26 Governance smoke tests and 55
+host-feature cache tests pass locked/offline on Linux. Consumer CI-script fixtures
+also pass on both Bash/Make profiles. Evidence:
+`/tmp/ic-query-0543-{fetch,smoke-tests,cache-tests,ci-*}.log` and
+`/tmp/ic-query-host0124-registry-{artifacts,fs,process}/`.
+
+No full consumer CI, native macOS execution, actual deployment or release ran
+for this working-tree batch. Package manifest, incoming lockfile and real index
+hashes are preserved. Native macOS common-tool setup, reuse and consumer checks
+remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
+separate optimized product/startup acceptance would be required before introducing
+an optimization policy.
+
 ## Tool-specific dependencies
 
 Released 0.54.0 selects published Host artifacts/filesystem/process
