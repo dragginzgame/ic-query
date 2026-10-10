@@ -7,7 +7,16 @@ ROOT="$(cd -P "${ROOT%/*}/../.." && printf '%s/.' "$PWD")"
 ROOT="${ROOT%/.}"
 fixture="$(mktemp -d "${TMPDIR:-/tmp}/rust-tools-test.XXXXXX")"
 fixture="$(cd "$fixture" && pwd -P)"
-trap 'if [[ $? == 0 ]]; then rm -rf "$fixture"; else printf "Failed Rust tool fixture retained: %s\n" "$fixture" >&2; fi' EXIT
+# Bash 3.2 can enter EXIT with status zero after nounset; require completion too.
+fixture_complete=false
+finish() {
+    local status=$?
+    [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+    if [[ "$status" == 0 ]]; then rm -rf "$fixture"
+    else printf "Failed Rust tool fixture retained: %s\n" "$fixture" >&2; fi
+    exit "$status"
+}
+trap finish EXIT
 mkdir -p "$fixture/bin" "$fixture/consumer with spaces & [glob]"
 consumer="$fixture/consumer with spaces & [glob]"
 cat > "$fixture/versions.env" <<'ENV'
@@ -356,3 +365,4 @@ bash "$installer" "${next_args[@]}" > "$fixture/concurrent-retry"
 cmp "$fixture/concurrent-first.log" "$fixture/concurrent-retry"
 cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-contention"
 echo 'Selected Cargo binary/example admission, offline reuse, failure retention and locking passed (substitute Cargo)'
+fixture_complete=true

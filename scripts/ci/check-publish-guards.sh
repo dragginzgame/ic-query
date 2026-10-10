@@ -9,7 +9,16 @@ export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
-trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Publication guard fixtures retained: $work_dir" >&2; fi' EXIT
+# Bash 3.2 may report zero after nounset; success requires completion.
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
+  else echo "Publication guard fixtures retained: $work_dir" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
 
 fail() {
   echo "error: $*" >&2
@@ -241,3 +250,4 @@ for invalid_release in dirty untracked inventory-empty inventory-partial stale-t
     inventory-*) grep -Fq 'cannot inspect release-source status' "$make_case/$invalid_release.log" ;;
   esac
 done
+fixture_complete=true

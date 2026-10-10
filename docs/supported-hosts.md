@@ -1081,6 +1081,43 @@ queued. These runs do not qualify the pending consumer snapshot. No broad local
 consumer gate or native macOS execution was run for 0.54.1; required native
 acceptance remains outstanding.
 
+## Pending 0.54.2 tooling qualification
+
+Query adopts committed Shared Tooling 0.3.3
+`d63f0cfaba8ab2961d6012064adbf051c1898bc1` through the canonical exporter,
+with 78 files including the new advisory README catalog task. The separately
+pinned engineering baseline and scheduling authority are unchanged. Shared
+validation-runner qualification passes against the isolated committed source on
+Linux Bash 5/Make 4.3 and genuine Bash 3.2.57/Make 3.81; retained logs are
+`/tmp/ic-query-shared033-runner-review-{modern,portable}.log`.
+
+Consumer handler injection checks pass on both profiles for nounset, failed
+commands, explicit nonzero exits, premature zero exits and completed success or
+failure. Failed evidence and status survive; only completed success cleans up.
+The actual consumer CI-script, complete simulated release and publication suites
+pass on both profiles, including normal diagnostic checks with substitute Cargo,
+real-Git source/index/metadata preservation, nested failure retention and saved
+recovery. Evidence: `/tmp/ic-query-0542-completion-*.log`,
+`/tmp/ic-query-0542-ci-*-final.log`, `/tmp/ic-query-0542-release-*.log` and
+`/tmp/ic-query-0542-publish-*.log`.
+
+The producer's actual tool-command and formatting-include fixtures pass on both
+profiles, covering real descriptor inheritance and unsafe-mode refusal with
+substituted effects. Selected Cargo-tool fixtures also pass. Actual parallel
+offline `tools-check` passes on both Make profiles without jobserver warnings;
+actual parallel `fmt-check` passes on Linux. Logs:
+`/tmp/ic-query-0542-test-{tool-commands,make-format}-*.log`,
+`/tmp/ic-query-0542-rust-*.log`, `/tmp/ic-query-0542-tools-*.log` and
+`/tmp/ic-query-0542-format.log`. Package manifest, incoming Host 0.12.2 lockfile
+and real index hashes are preserved. All copied Shared files retain their
+reviewed producer bytes. [#40](https://github.com/dragginzgame/ic-query/issues/40).
+
+No full consumer CI, real release, native macOS execution or broad feature/API
+matrix was run for this working-tree batch. Shared 0.3.3 producer CI passes Linux
+portable regression and lint/security, with both macOS jobs queued. Released
+Query 0.54.1 CI passes all three Linux jobs, with six macOS jobs queued. Those
+observations do not qualify the uncommitted 0.54.2 consumer changes.
+
 ## Tool-specific dependencies
 
 Released 0.54.0 selects published Host artifacts/filesystem/process

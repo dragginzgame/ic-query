@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `fa452afaa5012866eb1c20820dfa8038c106e7ec`; the selected
+  Shared Tooling at reviewed revision `d63f0cfaba8ab2961d6012064adbf051c1898bc1`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -42,7 +42,7 @@ If code or habit conflicts with this file, this file wins.
   Selected executable-tool preparation uses `make install-format-tools` and
   offline `make format-tools-check` after coherent release admission. Complete
   delivery validation remains subject to the local Testing authority below.
-  Complete local setup adopts the 0.3.1 ordered host, IC and Cargo aggregates;
+  Complete local setup adopts the 0.3.3 ordered host, IC and Cargo aggregates;
   read-only IC-platform and Rust-toolchain preflight runs before downloads.
   Query's selected formatter and dependency tools extend the local target lists.
   Ordinary offline checks never install tools. Narrow release preflight remains

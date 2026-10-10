@@ -364,7 +364,8 @@ After the new files are committed and reviewed, add `ci/ic-tools.tsv`,
 `scripts/dev/install-ic-tools.sh`, `scripts/ci/ic-tool-pins.awk`,
 `scripts/ci/verify-evidence-checksums.sh` and
 `scripts/ci/verify-file-checksum.sh` to the snapshot, with `docs/ic-tools.md`.
-Also include `make/tools.mk`, `scripts/dev/install-host-tools.sh`,
+Also include `make/tools.mk`, `make/execution.mk`,
+`scripts/ci/check-make-execution.sh`, `scripts/dev/install-host-tools.sh`,
 `scripts/dev/install-rust-tools.sh`, `scripts/dev/cloc.sh`, `ci/tool-versions.env`
 and `docs/local-setup.md` for the
 common commands and pinned host setup. Adopt the complete
@@ -432,6 +433,20 @@ Refresh `make/tools.mk`, both installers and the improved host installer togethe
 Consumer setup fixtures that substitute installer commands must admit these
 non-mutating calls separately from simulated installation failures. Ordinary
 `tools-check` and narrow setup commands keep their existing offline/setup roles.
+
+The compatible 0.3.2 correction preserves Cargo's jobserver descriptors through
+shared Rust setup/check, LOC metadata and formatting recipes. Refresh
+`make/tools.mk` and `make/rust-format.mk` with `make/execution.mk` and its
+`scripts/ci/check-make-execution.sh` companion, including in isolated Makefile
+exports. The execution guard now applies even when only `make/tools.mk` is
+included: unsafe Make modes must fail before any installer runs. Consumer-owned
+Cargo recipes still need their own descriptor handoff and execution admission;
+this shared correction does not change those recipes automatically.
+
+Refresh selected shared fixtures too. Their cleanup now requires explicit
+completion as well as a successful exit, preserving evidence and failing on
+early exits, including Bash 3.2 nounset errors. Native consumer qualification
+remains separate from upstream source acceptance.
 
 Defaults use scripts and pins at the checkout root. For a snapshot stored below
 that root, set `SHARED_TOOLING_ROOT` to its reviewed local directory before the

@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.2]
+
+- Adopts Shared Tooling 0.3.3: parallel Cargo tooling preserves Make's jobserver,
+  and validation rejects malformed nesting depth and premature success while
+  retaining failure evidence. [Shared #99](https://github.com/dragginzgame/shared-tooling/issues/99),
+  [Shared #104](https://github.com/dragginzgame/shared-tooling/issues/104).
+- Query's fixture and diagnostic checks require complete execution before
+  successful cleanup, preventing Bash 3.2 errors from appearing to pass and
+  deleting evidence. [#40](https://github.com/dragginzgame/ic-query/issues/40).
+
 ## [0.54.1] - 2026-10-10
 
 - Adopts Shared Tooling 0.3.1: complete tool setup refuses unsupported IC

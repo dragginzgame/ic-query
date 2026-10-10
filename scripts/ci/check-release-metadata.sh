@@ -9,7 +9,16 @@ export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-metadata.XXXXXX")"
-trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release metadata fixtures retained: $work_dir" >&2; fi' EXIT
+# Bash 3.2 may report zero after nounset; success requires completion.
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
+  else echo "Release metadata fixtures retained: $work_dir" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 
 # Reuse history and a real index. A synthetic source tree models validated
@@ -113,3 +122,4 @@ cmp "$first_log" "$work_dir/first-retained.log"
 printf '%s\n' "$evidence" > "$work_dir/expected-binding"
 cmp "$work_dir/expected-binding" ".git/release-state/$RELEASE_VERSION.validation"
 echo 'IC Query real-Git metadata and actual validation-log fixtures passed'
+fixture_complete=true

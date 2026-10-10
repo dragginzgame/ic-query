@@ -3,13 +3,16 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-dependency-check.XXXXXX")"
+fixture_complete=false
 finish() {
   local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
   if [[ "$status" == 0 ]]; then
     rm -rf -- "$work_dir"
   else
     echo "Dependency check failed; evidence retained: $work_dir" >&2
   fi
+  exit "$status"
 }
 trap finish EXIT
 
@@ -25,3 +28,4 @@ cargo audit --no-fetch --db "${work_dir}/rustsec/db" --deny warnings \
   --ignore RUSTSEC-2024-0436
 
 CARGO_NET_OFFLINE=true cargo machete --with-metadata
+fixture_complete=true

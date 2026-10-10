@@ -4,11 +4,20 @@ set -euo pipefail
 # Release effects are file-backed stubs, never real Git mutations.
 export RELEASE_DELIVERY=direct
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
+# Bash 3.2 may report zero after nounset; success requires completion.
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
+  else echo "Release guard fixtures retained: $work_dir" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
 bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
-trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release guard fixtures retained: $work_dir" >&2; fi' EXIT
 export REAL_MAKE REAL_GIT
 export REAL_CARGO YQ
 REAL_MAKE="$(command -v make)"
@@ -594,3 +603,4 @@ PATH="$fixture_native_path" FIXTURE_REPOSITORY_ROOT="$repo_root" \
   bash "$repo_root/scripts/ci/run-validation-targets.sh" --fail-fast metadata-check
 [[ ! -e "$metadata_context/parent-routing.log" ]] \
   || fail 'metadata fixture validation escaped its checkout'
+fixture_complete=true

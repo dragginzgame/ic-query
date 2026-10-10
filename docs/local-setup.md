@@ -73,6 +73,12 @@ snapshot's file instead of maintaining copied recipes or installer flags. Shared
 Tooling's own Makefile and CI use the same commands. Snapshot adoption brings
 command updates; explicit setup brings newly required executables.
 
+The include also selects `make/execution.mk` and its
+`scripts/ci/check-make-execution.sh` companion. It rejects dry-run, touch,
+question and ignore-errors modes before recipes execute. Cargo recipes retain
+Make's jobserver descriptors for parallel execution; this does not grant
+installation authority to an inspection command or change the setup order.
+
 The installed `cloc` executable and local workspace `make cloc` are common setup.
 Fleet reports such as `make cloc-tooling` normally run in Shared Tooling; consumers
 need not vendor those reporters or run their regression suites. See the

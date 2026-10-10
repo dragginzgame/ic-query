@@ -6,7 +6,16 @@ unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS IC_QUERY_RELEASE_PREPARE_CACHE
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 make_bin="$(command -v make)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-cache.XXXXXX")"
-trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release cache fixtures retained: $work_dir" >&2; fi' EXIT
+# Bash 3.2 may report zero after nounset; success requires completion.
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
+  else echo "Release cache fixtures retained: $work_dir" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
 fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,ci,scripts/ci,scripts/dev,scripts/release} "$work_dir/bin"
 cd "$work_dir/repository"
@@ -241,3 +250,4 @@ IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight
 [[ ! -s "$TRACE_FILE" && ! -e prepared-cache ]] || fail 'recovery fetched against interrupted metadata'
 cmp Cargo.lock "$work_dir/interrupted-lock"
 echo 'IC Query locked release-cache preparation and recovery fixtures passed'
+fixture_complete=true

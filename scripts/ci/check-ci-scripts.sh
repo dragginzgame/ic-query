@@ -5,7 +5,17 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 make_bin="$(command -v make)"
 export CI_FIXTURE_REAL_MAKE="$make_bin"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-scripts.XXXXXX")"
-trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "CI script fixtures retained: $work_dir" >&2; fi' EXIT
+# Bash 3.2 may report zero after nounset; success requires completion.
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
+  else echo "CI script fixtures retained: $work_dir" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
+bash "$repo_root/scripts/ci/test-fixture-completion.sh"
 
 fail() {
   echo "error: $*" >&2
@@ -984,10 +994,11 @@ for fixture in release-metadata publish-guards release-guards; do
     > "$retention_case/$fixture.log" 2>&1 || status=$?
   [[ "$status" == 23 ]] || fail "$fixture lost the failed fixture setup status"
   retained=("$retention_case/$fixture/"ic-query-*)
-  [[ "${#retained[@]}" == 1 && -d "${retained[0]}" ]] \
-    || fail "$fixture discarded its failed setup"
-  grep -Fq "retained: ${retained[0]}" "$retention_case/$fixture.log" \
-    || fail "$fixture did not identify its retained evidence"
+  for directory in "${retained[@]}"; do
+    [[ -d "$directory" ]] || fail "$fixture discarded its failed setup"
+    grep -Fq "retained: $directory" "$retention_case/$fixture.log" \
+      || fail "$fixture did not identify its retained evidence"
+  done
   grep -Fxq 'caller evidence' "$retention_case/$fixture/evidence" \
     || fail "$fixture changed caller-owned evidence"
 done
@@ -1142,3 +1153,4 @@ for failed_package in ic-query ic-query-cli; do
   cmp -s "${package_workspace_case}/expected-trace" "${package_workspace_case}/trace" \
     || fail "workspace packaging repeated a command or continued after failure"
 done
+fixture_complete=true
