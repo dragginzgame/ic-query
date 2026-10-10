@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.4]
+## [0.54.4] - 2026-10-10
 
 - Release preparation stops when version or source observations fail, even if
   they print the expected value. Original failure status and diagnostics survive;
