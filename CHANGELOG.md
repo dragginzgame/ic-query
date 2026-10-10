@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.3]
+## [0.54.3] - 2026-10-10
 
 - Adopts Shared Tooling 0.3.5 and its reviewed Binaryen 133 tool pins. Prepare
   the selection with `make install-ic-tools`; previous tool bundles are retained.
