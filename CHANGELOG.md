@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.1]
+
+- Adopts Shared Tooling 0.3.1: complete tool setup refuses unsupported IC
+  platforms or unavailable Rust/Cargo toolchains before downloading tools.
+  Host-tool failures identify the selected tool, version, path and repair command.
+  [#39](https://github.com/dragginzgame/ic-query/issues/39).
+  [Shared #101](https://github.com/dragginzgame/shared-tooling/issues/101).
+
+```bash
+bash scripts/dev/install-ic-tools.sh --preflight
+bash scripts/dev/install-rust-tools.sh --preflight
+```
+
 ## [0.54.0] - 2026-10-10
 
 Detailed release notes: [docs/changelog/0.54.md](docs/changelog/0.54.md)

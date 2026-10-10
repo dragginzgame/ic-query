@@ -426,6 +426,13 @@ contract, not the retained Cargo installation layout. Qualify setup reuse,
 missing-tool refusal, failure retention and product extensions under parallel
 Make on supported native hosts before claiming consumer adoption.
 
+The compatible 0.3.1 setup improvement adds read-only `--preflight` calls to the
+existing IC and Rust installers before the aggregate starts any installation.
+Refresh `make/tools.mk`, both installers and the improved host installer together.
+Consumer setup fixtures that substitute installer commands must admit these
+non-mutating calls separately from simulated installation failures. Ordinary
+`tools-check` and narrow setup commands keep their existing offline/setup roles.
+
 Defaults use scripts and pins at the checkout root. For a snapshot stored below
 that root, set `SHARED_TOOLING_ROOT` to its reviewed local directory before the
 include, and include its `make/tools.mk`. `HOST_TOOL_VERSIONS` and `IC_TOOL_PINS`

@@ -496,6 +496,10 @@ else
   [[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:"* ]] || exit 71
 fi
 printf '%s %s\n' "$family" "$*" >> "$TRACE_FILE"
+if [[ "${!#}" == --preflight ]]; then
+  [[ "$family" != "${FAIL_PREFLIGHT:-}" ]] || exit 72
+  exit 0
+fi
 [[ "$family" != "${FAIL_FAMILY:-}" ]] || exit 73
 EOF
 done
@@ -533,10 +537,15 @@ for mode in install check; do
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$mode.log" 2>&1
+  : > "$tools_case/expected"
+  if [[ "$mode" == install ]]; then
+    printf '%s\n' "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv --preflight" \
+      "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
+  fi
   printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
     "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" \
     "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
-    "formatter --consumer $tools_case --package cargo-sort --version 9.8.7 --bin cargo-sort --profile release$suffix" > "$tools_case/expected"
+    "formatter --consumer $tools_case --package cargo-sort --version 9.8.7 --bin cargo-sort --profile release$suffix" >> "$tools_case/expected"
   if [[ "$mode" == install ]]; then
     printf '%s\n' 'cargo install --locked cargo-audit --version 8.7.6' \
       'cargo install --locked cargo-machete --version 7.6.5' >> "$tools_case/expected"
@@ -555,11 +564,27 @@ for mode in install check; do
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null 2>&1; then
     fail "tool setup/check accepted a $family failure"
   fi
-  awk -v family="$family" '{ print; if ($1 == family || ($1 == "cargo" && $4 == "cargo-" family)) exit }' \
+  awk -v family="$family" '{ print; if ($NF != "--preflight" && ($1 == family || ($1 == "cargo" && $4 == "cargo-" family))) exit }' \
     "$tools_case/expected" > "$tools_case/expected-failure"
   cmp "$tools_case/expected-failure" "$tools_case/trace" \
     || fail "tool setup/check continued after a failed $family command"
   done
+done
+
+for family in ic rust; do
+  : > "$tools_case/trace"
+  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT="$family" \
+    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-$family.log" 2>&1; then
+    fail "tool setup accepted a failed $family preflight"
+  fi
+  printf 'ic --consumer %s --pins %s/ci/ic-tools.tsv --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
+  if [[ "$family" == rust ]]; then
+    printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" >> "$tools_case/expected-preflight"
+  fi
+  cmp "$tools_case/expected-preflight" "$tools_case/trace" \
+    || fail 'failed setup preflight reached installation or a product extension'
 done
 
 for tool in audit machete; do

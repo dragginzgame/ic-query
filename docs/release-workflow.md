@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d`](https://github.com/dragginzgame/shared-tooling/tree/88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d) (0.3.0),
+[`fa452afaa5012866eb1c20820dfa8038c106e7ec`](https://github.com/dragginzgame/shared-tooling/tree/fa452afaa5012866eb1c20820dfa8038c106e7ec) (0.3.1),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/88a73139a0f083344c41a6f6f4b5c3a8aca7dc1d/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/fa452afaa5012866eb1c20820dfa8038c106e7ec/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -217,7 +217,10 @@ database and revision.
 The consumer keeps advisory exemptions, warning policy and subsequent Machete
 ordering. Successful checks remove only their own temporary database.
 
-`make install-tools` prepares the complete common host, IC and Cargo sets,
+`make install-tools` first admits the complete IC platform/pins and probes the
+selected Rust/Cargo toolchain without downloading or auto-installing a toolchain.
+Missing prerequisites stop before host-tool downloads. It then prepares the
+complete common host, IC and Cargo sets,
 then Query's selected formatter and pinned Cargo Audit/Machete, sequentially
 even under parallel Make. `make tools-check` admits the same selections offline;
 the complete CI gate runs it before dependent work. `make dependency-pins-check` checks parsed Cargo/Action inputs

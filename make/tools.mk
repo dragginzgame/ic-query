@@ -20,6 +20,8 @@ export PATH := $(CURDIR)/.tools/host/bin:$(CURDIR)/.tools/ic/bin:$(CURDIR)/.tool
 .PHONY: install-rust-tools rust-tools-check
 
 install-tools:
+	bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-ic-tools.sh" --consumer "$(CURDIR)" --pins "$(IC_TOOL_PINS)" --preflight
+	bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --versions "$(RUST_TOOL_VERSIONS)" --preflight
 	+$(MAKE) --no-print-directory install-host-tools
 	+$(MAKE) --no-print-directory install-ic-tools
 	+$(MAKE) --no-print-directory install-rust-tools

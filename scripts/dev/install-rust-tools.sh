@@ -9,9 +9,10 @@ ROOT="${ROOT%/.}"
 consumer="$ROOT"
 versions_file="$ROOT/ci/tool-versions.env"
 check_only=false
+preflight=false
 package='' selected_version='' kind='' target='' profile=''
 usage() {
-    echo 'usage: install-rust-tools.sh [--consumer DIR] [--versions FILE] [--check]' >&2
+    echo 'usage: install-rust-tools.sh [--consumer DIR] [--versions FILE] [--check | --preflight]' >&2
     echo '   or: install-rust-tools.sh [--consumer DIR] --package NAME --version X.Y.Z (--bin NAME | --example NAME) --profile (debug | release) [--check]' >&2
 }
 while [[ $# -gt 0 ]]; do
@@ -21,6 +22,7 @@ while [[ $# -gt 0 ]]; do
             if [[ "$1" == --consumer ]]; then consumer="$2"; else versions_file="$2"; fi
             shift 2 ;;
         --check) check_only=true; shift ;;
+        --preflight) preflight=true; shift ;;
         --package|--version|--bin|--example|--profile)
             [[ $# -ge 2 && -n "$2" ]] || { usage; exit 2; }
             case "$1" in
@@ -36,11 +38,13 @@ while [[ $# -gt 0 ]]; do
         *) usage; exit 2 ;;
     esac
 done
+[[ "$check_only" == false || "$preflight" == false ]] || { usage; exit 2; }
 [[ "$consumer" == /* ]] || consumer="$PWD/$consumer"
 consumer="$(cd -P "$consumer" && printf '%s/.' "$PWD")"
 consumer="${consumer%/.}"
 selected=false
 if [[ -n "$package$selected_version$kind$target$profile" ]]; then
+    [[ "$preflight" == false ]] || { usage; exit 2; }
     selected=true
     [[ "$package" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ &&
        "$target" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ && -n "$kind" &&
@@ -215,6 +219,26 @@ install_selected() (
 )
 
 check_install_paths
+if [[ "$preflight" == true ]]; then
+    # Rustup selects by working directory. Probe the consumer's toolchain without
+    # auto-installing one or touching existing tools, receipts or build output.
+    cd "$consumer"
+    for prerequisite in rustc cargo; do
+        executable="$(command -v "$prerequisite")" || {
+            printf 'missing Rust setup prerequisite: tool=%s; prepare the declared Rust/Cargo toolchain and select it on PATH, then rerun make install-tools\n' "$prerequisite" >&2
+            exit 1
+        }
+        if output="$("$executable" --version 2>&1)"; then
+            continue
+        else
+            status=$?
+            printf 'unavailable Rust setup prerequisite: tool=%s path=%s status=%s\n%s\nPrepare the declared Rust/Cargo toolchain, then rerun make install-tools\n' \
+                "$prerequisite" "$executable" "$status" "$output" >&2
+            exit "$status"
+        fi
+    done
+    exit 0
+fi
 if [[ "$selected" == true ]]; then
     install_selected
     exit 0

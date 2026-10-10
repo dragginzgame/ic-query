@@ -25,12 +25,12 @@ qualified by this matrix.
   Python 3 for the maintained documentation tools, and standard Unix
   utilities. macOS needs Xcode Command Line Tools for its compiler, Git and Make.
   Release/checksum helpers support both GNU `sha256sum` and macOS `shasum`.
-- `make install-dev` explicitly installs the exact Cargo Audit and Cargo Machete
-  versions declared in `Makefile`, cargo-sort 2.1.4 from `ci/tool-versions.env`,
-  plus common jq 1.8.2, Mike Farah yq 4.47.2 and
-  ripgrep 15.2.0 with PCRE2 and cloc 2.10 under `.tools/host/bin`. Host versions
+- `make install-dependency-tools` explicitly installs the exact Cargo Audit and Cargo Machete
+  versions declared in `Makefile`. `make install-host-tools` prepares common
+  jq 1.8.2, Mike Farah yq 4.47.2, ripgrep 15.2.0 with PCRE2 and cloc 2.10
+  under `.tools/host/bin`. Host versions
   and payload digests have one owner in the immutable `ci/tool-versions.env` snapshot.
-  Cargo-sort uses the shared selected-package installer and a versioned local
+  Cargo-sort 2.1.4 uses the shared selected-package installer and a versioned local
   directory; Cargo Audit and Cargo Machete retain their global Cargo destinations.
   `make install-format-tools` prepares only that selected formatter. Offline
   `make format-tools-check` admits its receipt and bytes before version probes;
@@ -38,7 +38,10 @@ qualified by this matrix.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
   `make dependency-pins-check`. Installation is separate from ordinary validation.
-- `make install-tools` prepares host tools followed by the complete IC set:
+- `make install-tools` first admits the complete IC platform/pins and probes the
+  selected Rust/Cargo toolchain, with Rustup auto-installation disabled. This
+  read-only preflight runs before downloads and creates no tool/build directories.
+  It then prepares host tools followed by the complete IC set:
   Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
   owner in `ci/ic-tools.tsv`, followed by common cargo-sort, cargo-sort-derives
@@ -1046,9 +1049,41 @@ passed its three Linux jobs, with all six macOS jobs queued. Those observations
 do not qualify these working-tree changes. Native complete setup, reuse, failure
 retention and full consumer delivery remain required through the owning workflow.
 
+## Pending 0.54.1 setup qualification
+
+The working tree adopts committed Shared Tooling 0.3.1
+`fa452afaa5012866eb1c20820dfa8038c106e7ec` through the canonical exporter,
+retaining 77 files. Focused consumer CI-script and selected Cargo-tool fixtures
+pass on Linux with Bash 5/GNU Make 4.3 and genuine Bash 3.2.57/GNU Make 3.81.
+Parallel setup admits both read-only preflights before installation and stops
+before any common/product setup when either fails. The producer's actual
+tool-command, host/IC setup and failed-fixture retention suites pass on both
+profiles against that isolated committed source, including unsupported platforms,
+missing/unavailable Rust commands, authenticated diagnostics and retained evidence.
+Logs: `/tmp/ic-query-shared031-ci-{modern,portable}.log`,
+`/tmp/ic-query-shared031-rust-fixtures-{modern,portable}.log` and
+`/tmp/ic-query-shared031-test-*-{modern,portable}.log`.
+
+Actual read-only preflight, explicitly offline complete setup reuse and parallel
+offline checks pass on Linux with both Make profiles. Global Cargo setup needed
+filesystem access to the existing Cargo installation receipt outside the agent
+sandbox; the initial sandbox refusal and successful authorized reuse logs are
+retained at `/tmp/ic-query-shared031-setup-reuse-*.log`. Check logs are
+`/tmp/ic-query-shared031-tools-check-*.log`. Package manifest, lockfile and real
+index hashes are unchanged. Shared formatter jobserver warnings still reproduce;
+[Shared #99](https://github.com/dragginzgame/shared-tooling/issues/99) remains open.
+
+[Released Query 0.54.0 CI](https://github.com/dragginzgame/ic-query/actions/runs/38048774180)
+passes checks, MSRV and canister integration on Linux; all six macOS jobs are
+queued at this inspection. [Shared 0.3.1 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38049622600)
+passes lint/security, with Linux portable regression running and both macOS jobs
+queued. These runs do not qualify the pending consumer snapshot. No broad local
+consumer gate or native macOS execution was run for 0.54.1; required native
+acceptance remains outstanding.
+
 ## Tool-specific dependencies
 
-The pending 0.54.0 batch also selects published Host artifacts/filesystem/process
+Released 0.54.0 selects published Host artifacts/filesystem/process
 0.12.0, with the incoming manifest and matching lockfile preserved. All three
 crates.io entries are unyanked; registry checksums match the lock and packaged VCS
 metadata identifies release `1ba4591868a83b367d56bae9e3c213418c66a192`.
