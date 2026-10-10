@@ -8,11 +8,14 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`b2646cde9abbc8861857a4379c683a0c19eba43e`](https://github.com/dragginzgame/shared-tooling/tree/b2646cde9abbc8861857a4379c683a0c19eba43e) (0.2.8),
+[`43a0dc46cdc3c77e70a68e192561642ed50a3e0f`](https://github.com/dragginzgame/shared-tooling/tree/43a0dc46cdc3c77e70a68e192561642ed50a3e0f) (0.2.10),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/b2646cde9abbc8861857a4379c683a0c19eba43e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/43a0dc46cdc3c77e70a68e192561642ed50a3e0f/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
-modes without a network request. This snapshot selects read-only workspace
+modes without a network request, reporting the recorded upstream version and
+exact source commit. The version annotation comes from the exporter's committed
+source, stays descriptive, and does not replace commit identity or establish
+publication or host qualification. This snapshot selects read-only workspace
 version checking and release mechanics,
 lockfile transformation, publication tag and registry checking, dependency-pin
 and documentation-link checking, isolated RustSec preparation, repository-local
@@ -32,7 +35,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 76 shared files. Its governance selection keeps the linked
+The snapshot contains 77 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -69,6 +72,11 @@ uses prepared tools offline and disables automatic rustup installation.
 `FORMAT_CARGO` selects one executable name or path for admission and execution;
 use `RUSTUP_TOOLCHAIN` for explicit toolchain selection. Setup and checkout hook
 configuration remain separate; Query does not select the shared formatting hook.
+The shared formatting reporter prints one success line, or a failure summary
+with the original formatter exit status and a complete diagnostic log path.
+Failed logs remain under `RUNNER_TEMP`, otherwise `TMPDIR` or `/tmp`; CI retains
+`formatting.*` alongside the existing validation evidence. Only a successful
+invocation's own temporary log is removed.
 
 After confirmed URL-form release delivery, the runner refreshes an eligible
 matching local upstream tracking ref without fetching or repeating the push.

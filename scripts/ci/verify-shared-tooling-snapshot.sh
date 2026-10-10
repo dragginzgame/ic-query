@@ -84,6 +84,9 @@ checksum_pattern='^([0-9a-f]{64}) [ *]-$'
 format_count=0
 source_count=0
 revision_count=0
+version_count=0
+snapshot_version=unrecorded
+snapshot_revision=''
 file_count=0
 declared_files=()
 checksum_tool_declared=false
@@ -91,6 +94,12 @@ snapshot_verifier_declared=false
 
 while IFS=$'\t' read -r record first second third extra || [[ -n "$record" ]]; do
     case "$record" in
+    '# version')
+        [[ "$first" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ && -z "$second" && -z "$third" && -z "$extra" ]] ||
+            fail "malformed version annotation"
+        version_count=$((version_count + 1))
+        snapshot_version="$first"
+        ;;
     '' | \#*) continue ;;
     format)
         [[ "$first" == "1" && -z "$second" && -z "$third" && -z "$extra" ]] ||
@@ -106,6 +115,7 @@ while IFS=$'\t' read -r record first second third extra || [[ -n "$record" ]]; d
         [[ "$first" =~ ^[0-9a-f]{40,64}$ && -z "$second" && -z "$third" && -z "$extra" ]] ||
             fail "malformed revision record"
         revision_count=$((revision_count + 1))
+        snapshot_revision="$first"
         ;;
     file)
         [[ "$first" =~ ^[0-9a-f]{64}$ && "$second" =~ ^(-|x)$ && -n "$third" && -z "$extra" ]] ||
@@ -144,8 +154,9 @@ done <"$manifest"
 [[ "$format_count" -eq 1 ]] || fail "manifest must contain exactly one format record"
 [[ "$source_count" -eq 1 ]] || fail "manifest must contain exactly one source record"
 [[ "$revision_count" -eq 1 ]] || fail "manifest must contain exactly one revision record"
+[[ "$version_count" -le 1 ]] || fail "manifest has duplicate version annotations"
 [[ "$file_count" -gt 0 ]] || fail "manifest contains no files"
 [[ "$checksum_tool_declared" == "true" ]] || fail "manifest does not declare the checksum verifier"
 [[ "$snapshot_verifier_declared" == "true" ]] || fail "manifest does not declare the snapshot verifier"
 
-echo "shared-tooling snapshot verified: $file_count file(s)"
+echo "shared-tooling snapshot verified: $file_count file(s), version $snapshot_version ($snapshot_revision)"

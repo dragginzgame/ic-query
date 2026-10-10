@@ -25,6 +25,22 @@ cannot change the exported bytes. The manifest
 records format version `1`, source remote, source commit, and the SHA-256 digest
 and executable state of every vendored file.
 
+Refresh also writes a `# version<TAB>X.Y.Z` annotation from `VERSION` at that
+exact source commit. The committed file must contain a canonical stable version;
+the exporter never reads its display version from mutable working-tree bytes or
+changes the consumer's own `VERSION`. This descriptive annotation keeps the
+existing v1 integrity records intact and is understood by the current verifier
+and fleet report. A snapshot without it displays `unrecorded`; its next refresh
+records the selected source version. Malformed or duplicate version annotations
+are rejected by the current verifier and refresh helper.
+
+The commit remains the exact source identity: several commits can carry the same
+version, and an annotation does not prove a release tag or publication. Local
+verification checks files against the reviewed manifest, not the truth of its
+source claims against GitHub. The annotation is not a second version selection
+to edit independently. Review the manifest with its snapshot refresh; no Cargo
+dependency or duplicate Cargo metadata is needed.
+
 Use `--manifest <relative-path>` to choose a different manifest location. Its
 parent directories are created before consumer files are replaced. Pass the
 same option to subsequent refreshes and drift verification.
@@ -390,7 +406,10 @@ policy:
   validation adapters. See the [release example](releases.md#makefile-example).
 - `make/rust-format.mk`, included after `make/tools.mk`,
   supplies the simple root-workspace formatting commands. Select both includes,
-  `scripts/ci/check-format-tools.sh` and the reviewed pin file. Keep richer
+  `scripts/ci/check-format-tools.sh`, `scripts/ci/run-formatting.sh` and the
+  reviewed pin file. The wrapper reports one success line and retains failure
+  diagnostics behind a two-line summary. Include it in isolated hook fixtures.
+  Refresh the failure collector to retain `formatting.*` logs in CI. Keep richer
   workspace/frontend recipes local under the [formatting rules](../rules/git-hooks.md).
 
 Both includes require the adjacent `make/execution.mk` and its execution-probe
@@ -414,6 +433,13 @@ Shared Tooling by default. A consumer that intentionally needs its own command
 can explicitly select `scripts/dev/cloc-tooling.pl`; existing selections continue
 to work. Without that file the target explains where to run or adopt the report,
 and never invokes another checkout implicitly.
+
+The report includes each recorded `version@revision` and complete declared-file
+integrity, with separate identities for multiple bundles. Missing versions remain
+`unrecorded`; missing, modified or symlinked files and mode differences show
+`DRIFT`, including declared documents outside the LOC scope. `OK` means declared
+hashes and modes match, not that provenance or consumer behavior was qualified.
+The JSON output retains full revisions and each manifest's drifted paths.
 
 To retire unnecessary fleet copies, review their local callers first, then remove
 the report/test files and their snapshot records together with Make/CI/help
@@ -474,6 +500,12 @@ document and each selected helper in the snapshot, and move callers before
 deleting duplicated code. Keep product-specific checks and publication policy
 local. Adoption must wait for a reviewed committed source revision; local
 upstream tests do not establish that consumers have refreshed their snapshots.
+
+Exact registry metadata uses the existing `check-crates-io-version.sh` selection
+with `--metadata NEW-DIRECTORY`; no additional shared script is required. Prepare
+jq and curl 8.4.0+ for that mode. Retain each attempt's directory and handle all
+three statuses before removing local transport/parsing. The consumer still owns
+payload verification, yanked-version acceptance and publication reconciliation.
 
 File-digest generation uses the checksum verifier's additive `--print` interface,
 so its existing snapshot file set is sufficient. Refresh that verifier before

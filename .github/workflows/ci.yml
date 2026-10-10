@@ -151,6 +151,7 @@ jobs:
           name: validation-failures-${{ matrix.host }}
           path: |
             ${{ runner.temp }}/ic-query-validation/
+            ${{ runner.temp }}/formatting.*
             target/validation-failures/
           include-hidden-files: true
           if-no-files-found: ignore

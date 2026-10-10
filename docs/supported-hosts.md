@@ -871,6 +871,36 @@ passes Linux native and MSRV jobs; both macOS jobs remain queued. Pending consum
 source remains uncommitted and has no remote qualification. No full consumer gate,
 native macOS execution, deployment or release was performed for this update.
 
+The maintainer delivered 0.52.5 at
+`52e924412562273e19cc29e2f92aff556391e86b`.
+[Exact-source CI](https://github.com/dragginzgame/ic-query/actions/runs/37968228194)
+passes all nine jobs: complete checks, MSRV and live canister integration on
+Linux, Intel macOS and Apple Silicon. This qualifies the delivered Host 0.10
+migration and 0.10.1 selection, formatter setup, five-tool setup and smoke/cache
+changes tracked in issues #28–33, #36 and #37; those issues are closed.
+The manual-dispatch acceptance path in
+[#34](https://github.com/dragginzgame/ic-query/issues/34) remains unexecuted.
+
+Pending 0.52.6 selects Shared Tooling 0.2.10 at
+`43a0dc46cdc3c77e70a68e192561642ed50a3e0f` through the canonical exporter,
+selecting 77 files with the new formatting reporter. An isolated clean consumer
+export was reconciled against the verified pending 0.2.9 files, preserving the
+real index and caller-owned lockfile changes. Formatting reports compact success
+and retains full failure stdout/stderr with its original status; CI uploads
+`RUNNER_TEMP/formatting.*` alongside existing validation evidence.
+Consumer CI-script, release-cache, metadata and simulated release-command
+fixtures pass on Linux with GNU Make 4.3/Bash 5 and GNU Make 3.81/Bash 3.2.
+Actual check-only formatting passes on both profiles. The maintained registry
+observation fixture, Actionlint and ShellCheck pass. After explicit selected-cache
+preparation, locked/offline workspace metadata passes. Evidence:
+`/tmp/ic-query-0526-shared0210-*.log`. Query retains its stronger Make execution
+guard; the shared probe is unchanged. The existing caller lockfile selection
+was not changed by this adoption.
+[Exact Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38033580922)
+passes Linux portable regression and lint/security; both macOS jobs are running.
+These local consumer changes have no remote or native macOS qualification.
+No broad consumer gate or release was run for this update.
+
 ## Tool-specific dependencies
 
 | Workflow | Explicit prerequisites |

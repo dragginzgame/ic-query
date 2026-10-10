@@ -1,23 +1,24 @@
 # Shared Tooling snapshot v1
+# version	0.2.10
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	b2646cde9abbc8861857a4379c683a0c19eba43e
+revision	43a0dc46cdc3c77e70a68e192561642ed50a3e0f
 file	0d472a74369e6aa772d585305e19b398fb86f0ef9698f1564356ddc11c60e0b6	-	DRAGGINZGAME.md
 file	b5a6e8fb723a861b722834675e27b4b16f3d296112622c1b40cdc8714f575404	-	rules/changelogs.md
 file	a7d6612e6c9cfea5f8e920f82109094851876d0dfc117ecc454f966cb50d7c66	-	rules/cargo-dependencies.md
-file	a2e97546221bfad33c4a82d7022570655a05b2d493a5f210c4599306651e7676	-	rules/git-hooks.md
+file	91a9ab1fa6e19dc1b447d18c78e977b52c9b182dc66ac7593a0054c5cccb8535	-	rules/git-hooks.md
 file	e9a4f50ec386838698a44946f44aa777c4ad37bcfe1c65f4d63da281058cac97	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	ee68649246bad21f0f28df4ea3809d8e2c7bcf1cd2a3d68e44684b855badc1c2	-	docs/principles/reviewable-changes.md
 file	27a04aeee753252b310fef363856edf83577337bfaea1e63a50017460eddde59	-	docs/principles/rust-code-hygiene.md
 file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
-file	039f9e043059985a60e3022e53d243c8430ca67ae813fa926be5e7ffb67ef65e	-	docs/consuming-snapshots.md
+file	951aa062682f46542bfa44ab649a3332e534c104505a98de66416987715b029e	-	docs/consuming-snapshots.md
 file	fc689ff5d636be1049a527f6cafa74a768005211dcbecb074b8b327d8e6bab04	x	scripts/ci/run-release.sh
 file	37e028e2d9fee271ffdc06d06fc15d7a148ec524def3d9ed2afcd9910c0ec642	x	scripts/ci/next-release-version.sh
 file	e7f4c82566858b89b50c5c2f929097bdde85345a2c0c1bf553bb1170cc4f5960	-	scripts/ci/finalize-release-changelog.awk
 file	4c981184847462ab3c01cac087e28309f8e054253fd95c7bbe56f643877aa708	x	scripts/ci/verify-file-checksum.sh
-file	ba5c6b76d15bec4ac226f1ab0732d5087446152d64107993c52642a68d2ff464	x	scripts/ci/verify-shared-tooling-snapshot.sh
+file	5f3037e3e9a6114b23b425a8f36e280181ae05b1a6af00bab332dde4c1302537	x	scripts/ci/verify-shared-tooling-snapshot.sh
 file	d0e3e07844d06f46ffe01d406ffb29624b31079c1402b899262aabb718cbb436	-	rules/agent-maintenance.md
 file	49ec78ab63a587a2f74f0f7da3e06d9f9942f831129b9201cba5bcd0698548fe	x	scripts/ci/run-validation-targets.sh
 file	4692d760ea97861b52c183bb69e24c929d9baf7c292795c61d65ea3166368787	-	rules/dependency-pinning.md
@@ -25,7 +26,7 @@ file	de68acd7ba25355c73fa3e9a32cbde5525debf081862c1f1a52eccb4a66c48de	x	scripts/
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq
 file	077c98e506e8b3998b3b9e668b656c60a502610df06a513e4241bf93bc01b790	-	docs/local-setup.md
 file	67cc50a0c95ad7d9d50b4a50ec2969ce3455c7fdefc4a4a61e00f3a68a7d501c	-	docs/ic-tools.md
-file	1a0d1d6f2a87a0d77378fdda605f5700cc7e2ca8c8dfac79418248da30b7e657	-	docs/provenance.md
+file	15315edad497b9b165671c3f57e9f56e6ba1d206bbc635eb0ff51afaa8456bb3	-	docs/provenance.md
 file	a906686771b89c83b9382a29e73c185fde6658093b704cea1d62ac028c78cc04	-	ci/ic-tools.tsv
 file	82892e25292fe47c26035a0031aa4ad1996fcf181732163e75039bd657f2f84b	-	ci/tool-versions.env
 file	74134f6567746b2071ecfca28829b0ea4da69ed207b958b38fd181e722a3aea9	x	scripts/dev/install-host-tools.sh
@@ -39,8 +40,8 @@ file	8f415bcb0e97fcc0e27519e727e7aefae94686e6e5e3619d24e3df3ace5d7708	-	audits/m
 file	1b64cf2ba0393ab329ec29eb05a696d47ef5933f5ab9bff6e1fe4a7e7b294075	-	audits/module-surface-hardening.md
 file	8a14c80cec16a2cb07454c4e0f741150bc8385cd51ebc720a84ee3af1cc63043	x	scripts/dev/cloc.sh
 file	d7b179f9ceaec6e11c690c975b61f91bedc80526415f71571615064db14f0c9c	x	scripts/ci/check-release-tag.sh
-file	ff1ebbbb5058171553b49ce28d5812d2711ae2d658a792bcf8a92cbf537a1ef5	x	scripts/ci/check-crates-io-version.sh
-file	8ea130d767dd83ea491f8321b34b6498538220a99b1685ccbec0cbbef0522b48	-	docs/verification-helpers.md
+file	41e6d60c7110e0d554d49c4aa98d9f2703e45212049992064207950c6d00a037	x	scripts/ci/check-crates-io-version.sh
+file	96082282847ad61680223226755ff5cc21582e0749eccb191db8a0417b84ca10	-	docs/verification-helpers.md
 file	a04ef3105e7851b83bb682120873e29a6c3c604183c275bc53051dd9e4b300a7	x	scripts/ci/check-documentation-links.pl
 file	771cc142805d6200caddd32a2f10783516fe297e4424c051ac92a40884607e5f	x	scripts/ci/prepare-rustsec-db.sh
 file	eea5a0604ae646ce98402f7494c79e26c6a77f539db2da8ac8f1d583b23cd825	x	scripts/ci/check-release-commands.sh
@@ -76,5 +77,6 @@ file	f7b95816164980993403d2d6eae13336db1c476c58217c8e8d356e6d01fe9b27	-	tasks/sy
 file	dfccb5fa0194b343d140512c892a31eac902cb1a489e641feae3c18e1cf70a1c	-	scripts/dev/run-maintenance.sh
 file	a3af7084956384262842be33100f91a22fdd82b0f91b6091a00e90f8726f67fe	x	scripts/ci/check-release-source.sh
 file	f1a92a42f6e5000b40c8f44a5f89fa8c5b254f204bcc9f2af8d2bbf5f123ec15	-	make/release.mk
-file	1fd9242abe9dfcfe2dc4639644c178c59e92e55efed7ec90443b56f4590a57d8	-	make/rust-format.mk
+file	5f435b99ccce8beb9c735934a2d5e10622fc48e54460a4fff91fdfa335b48049	-	make/rust-format.mk
 file	6b3532abce23f8fe3a57a1c3327455c8975d9ba6e66529255cdc566dfbbe914e	-	make/execution.mk
+file	4ff0a961d5fb8639edf798d64bbe3abc0fcd83c6f703d7a6875c6f5174e76201	x	scripts/ci/run-formatting.sh

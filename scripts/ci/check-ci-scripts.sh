@@ -16,7 +16,7 @@ copy_makefile() {
   mkdir -p "$1/make" "$1/scripts/ci"
   cp "$repo_root/Makefile" "$1/Makefile"
   cp "$repo_root/make/"{tools,release,rust-format,execution}.mk "$1/make/"
-  cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution}.sh "$1/scripts/ci/"
+  cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution,run-formatting}.sh "$1/scripts/ci/"
 }
 
 check_clean_worktree() {
@@ -550,7 +550,7 @@ if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" CLOC_RESULT=73 \
 fi
 
 format_case="$work_dir/format"
-mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format_case/scripts/dev"
+mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format_case/scripts/dev" "$format_case/logs"
 copy_makefile "$format_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$format_case/scripts/ci/"
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/tool-versions.env"
@@ -565,7 +565,11 @@ case "$*" in
   'sort --version') echo "cargo-sort ${FIXTURE_SORT_VERSION:-9.8.7}" ;;
   'fmt --version') echo rustfmt ;;
 esac
-[[ "$*" != "${FAIL_FORMAT_COMMAND:-}" ]] || exit 78
+if [[ "$*" == "${FAIL_FORMAT_COMMAND:-}" ]]; then
+  printf 'formatter stdout: %s\n' "$*"
+  printf 'formatter stderr: %s\n' "$*" >&2
+  exit 78
+fi
 EOF
 cat > "$format_case/scripts/dev/install-host-tools.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -574,10 +578,13 @@ EOF
 chmod +x "$format_case/bin/cargo"
 for target in fmt fmt-check; do
   : > "$format_case/trace"
-  PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
+  RUNNER_TEMP="$format_case/logs" PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
     CARGO_NET_OFFLINE=false RUSTUP_AUTO_INSTALL=1 MAKEFLAGS='' MAKEOVERRIDES='' \
     HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
-    "$make_bin" --no-print-directory -C "$format_case" "$target" >/dev/null
+    "$make_bin" --no-print-directory -C "$format_case" "$target" > "$format_case/success.log" 2>&1
+  if [[ "$target" == fmt ]]; then printf 'Formatting... ok\n' > "$format_case/expected-output";
+  else printf 'Checking formatting... ok\n' > "$format_case/expected-output"; fi
+  cmp "$format_case/expected-output" "$format_case/success.log" || fail 'formatter success output changed'
   if [[ "$target" == fmt ]]; then sort_command='sort --workspace'; fmt_command='fmt --all';
   else sort_command='sort --workspace --check'; fmt_command='fmt --all -- --check'; fi
   printf '%s\n' 'sort --version' 'fmt --version' "$sort_command" "$fmt_command" > "$format_case/expected"
@@ -585,14 +592,27 @@ for target in fmt fmt-check; do
     || fail "$target changed formatter order, check flags or the selected setup pin"
   for command in 'sort --version' 'fmt --version' "$sort_command" "$fmt_command"; do
     : > "$format_case/trace"
-    if PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" FAIL_FORMAT_COMMAND="$command" \
+    if RUNNER_TEMP="$format_case/logs" PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" FAIL_FORMAT_COMMAND="$command" \
       MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
-      "$make_bin" --no-print-directory -C "$format_case" "$target" >/dev/null 2>&1; then
+      "$make_bin" --no-print-directory -C "$format_case" "$target" > "$format_case/failure.log" 2>&1; then
       fail "$target accepted a failed $command"
     fi
     awk -v stop="$command" '{print; if ($0 == stop) exit}' "$format_case/expected" > "$format_case/expected-failure"
     cmp "$format_case/expected-failure" "$format_case/trace" \
       || fail "$target continued after failed formatter admission or execution"
+    if [[ "$command" == "$sort_command" || "$command" == "$fmt_command" ]]; then
+      grep -Fq 'FAILED (exit 78)' "$format_case/failure.log" || fail 'formatter failure status was lost'
+      retained=false
+      for diagnostic in "$format_case/logs/"formatting.*; do
+        [[ -f "$diagnostic" ]] || continue
+        printf 'Details: %q\n' "$diagnostic" > "$format_case/expected-details"
+        grep -Fxf "$format_case/expected-details" "$format_case/failure.log" >/dev/null || continue
+        grep -Fxq "formatter stdout: $command" "$diagnostic"
+        grep -Fxq "formatter stderr: $command" "$diagnostic"
+        retained=true
+      done
+      [[ "$retained" == true ]] || fail 'formatter failure lost its readable stdout/stderr log'
+    fi
   done
 done
 # Both admission and execution must use the selected executable, even with spaces.

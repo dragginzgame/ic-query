@@ -20,7 +20,7 @@ mkdir -p scripts/release scripts/ci make "$work_dir/bin"
 cp "$repo_root/Makefile" Makefile
 cp "$repo_root/make/"{tools,release,rust-format,execution}.mk make/
 cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,check-make-execution.sh,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,check-make-execution.sh,run-formatting.sh,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -49,7 +49,7 @@ for notes in CHANGELOG.md "$detail"; do
 done
 git add -- Makefile make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/release/adapter.sh scripts/release/metadata.pl \
   scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk \
-  scripts/ci/run-validation-targets.sh scripts/ci/check-make-execution.sh \
+  scripts/ci/run-validation-targets.sh scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh \
   scripts/ci/rewrite-local-lock-versions.pl \
   scripts/ci/read-cargo-workspace-version.sh scripts/ci/check-release-source.sh \
   Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"

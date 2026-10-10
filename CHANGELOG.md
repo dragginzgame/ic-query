@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.52.6]
+
+Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)
+
+- Adopts Shared Tooling 0.2.10. Offline snapshot verification reports its recorded
+  upstream version and exact commit, and rejects malformed version annotations.
+- Formatting prints a compact success line or a failure summary pointing to
+  complete retained diagnostics, also preserved in failed CI artifacts.
+  [#35](https://github.com/dragginzgame/ic-query/issues/35).
+- The shared registry helper supports optional exact package metadata with
+  bounded, retained responses; publication keeps its existing observation policy.
+
+```bash
+bash scripts/ci/check-crates-io-version.sh --metadata /tmp/ic-query-registry-observation ic-query 0.52.5
+```
+
 ## [0.52.5] - 2026-10-09
 
 Detailed release notes: [docs/changelog/0.52.md](docs/changelog/0.52.md)

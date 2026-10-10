@@ -5,7 +5,7 @@ set -euo pipefail
 export RELEASE_DELIVERY=direct
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 bash "$repo_root/scripts/ci/check-release-cache.sh"
-bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh
+bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
 trap 'if [[ $? == 0 ]]; then rm -rf -- "$work_dir"; else echo "Release guard fixtures retained: $work_dir" >&2; fi' EXIT
