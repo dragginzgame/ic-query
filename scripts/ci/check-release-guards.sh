@@ -168,10 +168,36 @@ if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 printf 'cargo %s\n' "$*" >> events
 case "$*" in
   'fetch --locked'|'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
+  'sort --version'|'fmt --version')
+    [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true && "${RUSTUP_AUTO_INSTALL:-}" == 0 ]]
+    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+    if [[ "$1" == sort ]]; then
+      . ci/tool-versions.env
+      printf 'cargo-sort %s\n' "$SHARED_TOOLING_CARGO_SORT_VERSION"
+    else
+      echo rustfmt
+    fi ;;
   'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
   generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
   *) exit 2 ;;
 esac
+STUB
+cat > "$work_dir/install-rust-tools.sh" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+. ci/tool-versions.env
+expected="--consumer $PWD --package cargo-sort --version $SHARED_TOOLING_CARGO_SORT_VERSION --bin cargo-sort --profile release"
+if [[ "$*" == "$expected --check" ]]; then
+  echo 'formatter check' >> events
+  [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true ]]
+  [[ "${FIXTURE_FORMAT_CHECK_FAILURE:-}" != yes ]] || exit 51
+else
+  [[ "$*" == "$expected" ]]
+  echo 'formatter setup' >> events
+  [[ "${FIXTURE_FORMAT_SETUP_FAILURE:-}" != yes ]] || exit 49
+  : > selected-formatter
+fi
 STUB
 cat > "$work_dir/bin/make" <<'STUB'
 #!/usr/bin/env bash
@@ -184,6 +210,7 @@ for argument in "$@"; do
     printf 'retained build output\n' > target/retained-output
     [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
     [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+    [[ -f selected-formatter ]]
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
     exit
   fi
@@ -196,7 +223,7 @@ export PATH="$work_dir/bin:$PATH"
 fail() { echo "release fixture failed: $*" >&2; exit 1; }
 new_fixture() {
   local name="$1" kind="$2" candidate minor
-  mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/release" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
+  mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/dev" "$work_dir/$name/scripts/release" "$work_dir/$name/ci" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
   mkdir -p make
@@ -204,6 +231,9 @@ new_fixture() {
   cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
+  cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
+  cp "$repo_root/ci/tool-versions.env" ci/
+  cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"
   printf '%s\n' "$candidate" > candidate
@@ -323,8 +353,9 @@ for kind in patch minor major; do
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \
     || { cat output; fail "$kind"; }
   check_complete
-  awk '/^(validate|stage|commit|tag|push)$/ { print }' events > observed
-  printf '%s\n' validate stage commit tag push > expected
+  awk '/^cargo metadata / { next } { print }' events > observed
+  printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'formatter check' \
+    'cargo sort --version' 'cargo fmt --version' validate stage commit tag push > expected
   cmp expected observed
 done
 new_fixture prepared-payload-retry patch
@@ -447,11 +478,13 @@ for notes in root detail; do
   cmp original-lock Cargo.lock
   [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]]
 done
-for failure in gate missing-dependency dirty staged untracked unusual observation; do
+for failure in gate missing-dependency formatter-setup formatter-check dirty staged untracked unusual observation; do
   new_fixture "failure-$failure" patch
   case "$failure" in
     gate) FIXTURE_GATE_FAILURE=yes expect_failure patch ;;
     missing-dependency) FIXTURE_MISSING_DEPENDENCY=yes expect_failure patch ;;
+    formatter-setup) FIXTURE_FORMAT_SETUP_FAILURE=yes expect_failure patch ;;
+    formatter-check) FIXTURE_FORMAT_CHECK_FAILURE=yes expect_failure patch ;;
     dirty) FIXTURE_DIRTY=yes expect_failure patch ;;
     staged) FIXTURE_STAGED=yes expect_failure patch ;;
     untracked) FIXTURE_UNTRACKED=caller-owned.txt expect_failure patch ;;
@@ -462,6 +495,11 @@ for failure in gate missing-dependency dirty staged untracked unusual observatio
   cmp original-lock Cargo.lock
   [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]]
   case "$failure" in
+    formatter-setup|formatter-check)
+      [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]]
+      printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
+      if [[ "$failure" == formatter-check ]]; then echo 'formatter check' >> expected; fi
+      cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
       [[ ! -e events && ! -e .release-state/0.46.6.validation ]]
       grep -Fq 'this attempt has not started validation or version preparation' output

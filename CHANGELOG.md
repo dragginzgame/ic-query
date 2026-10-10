@@ -27,6 +27,8 @@ Detailed release notes: [docs/changelog/0.53.md](docs/changelog/0.53.md)
   and refuses missing selections without installing or falling back to global tools.
   [#35](https://github.com/dragginzgame/ic-query/issues/35).
   [Shared #96](https://github.com/dragginzgame/shared-tooling/issues/96).
+- Release guard fixtures include formatter preparation and offline admission,
+  preventing missing setup helpers from blocking release validation.
 
 ```bash
 make install-format-tools
