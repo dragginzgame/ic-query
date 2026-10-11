@@ -15,6 +15,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 
 # Always start from one coherent RustSec snapshot. cargo-audit's shared cache
 # can retain files removed by upstream advisory moves, causing unrelated parse

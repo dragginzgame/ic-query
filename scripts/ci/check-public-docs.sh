@@ -13,6 +13,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 
 # Cargo replays cached diagnostics; the parser rejects an incomplete set.
 if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \

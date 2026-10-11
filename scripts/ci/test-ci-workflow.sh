@@ -38,6 +38,113 @@ jq="$repo_root/.tools/host/bin/jq"
     (.strategy.matrix.host | sort == ["macos-15", "macos-15-intel", "ubuntu-24.04"]) and
     all(.steps[]; .with.ref == null))) and
   ($workflow.jobs.canister.steps | any(.[]; .if == "always()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
-  ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@"))))
+  ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
+  ([$workflow.jobs.checks, $workflow.jobs.canister] | all(.[];
+    any(.steps[]; ((.uses // "") | startswith("actions/upload-artifact@")) and
+      ((.with.path // "") | contains("ic-query-tool-evidence.*/")) and
+      .with["include-hidden-files"] == true and .with["retention-days"] == 30)))
 ' > /dev/null
 echo 'CI event selection and nine-job native coverage fixtures passed'
+
+fixture="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-retention.XXXXXX")"
+fixture_complete=false
+finish() {
+  local status=$?
+  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
+  if [[ "$status" == 0 ]]; then rm -rf -- "$fixture"
+  else echo "CI retention fixtures retained: $fixture" >&2; fi
+  exit "$status"
+}
+trap finish EXIT
+fixture="$(cd -P "$fixture" && printf '%s/.' "$PWD")"
+fixture="${fixture%/.}"
+# shellcheck disable=SC2016 # Dollar-prefixed names belong to jq.
+"$yq" -o=json '.' "$repo_root/.github/workflows/ci.yml" | "$jq" -er '
+  [.jobs.checks.steps[], .jobs.canister.steps[] | select(.name == "Archive retained tool evidence")]
+  | . as $collectors
+  | if length == 2 and all(.[]; .if == "failure()" and .run == $collectors[0].run) then .[0].run
+    else error("missing tool evidence owner") end
+' > "$fixture/collect.sh"
+mkdir -p "$fixture/repository/.tools/rust/slot/installed" "$fixture/temp" "$fixture/outside"
+printf 'retained build\n' > "$fixture/repository/.tools/rust/slot/build.log"
+printf 'retained receipt\n' > "$fixture/repository/.tools/rust/slot/installed/selection.json"
+printf 'private outside bytes\n' > "$fixture/outside/private"
+ln -s "$fixture/outside" "$fixture/repository/.tools/rust/external-link"
+export SHARED_TOOLING_STORE="$fixture/store"
+host_slot="host-$(printf '%064d' 0)"
+mkdir -p "$fixture/store/$host_slot/set.fixture" "$fixture/store/unrelated" \
+  "$fixture/repository/.tools/ic-set.retained"
+chmod 0700 "$fixture/store" "$fixture/store/$host_slot" "$fixture/store/$host_slot/set.fixture"
+printf 'shared bundle diagnostics\n' > "$fixture/store/$host_slot/set.fixture/install.log"
+printf 'retained local IC diagnostics\n' > "$fixture/repository/.tools/ic-set.retained/install.log"
+printf 'unrelated checkout bytes\n' > "$fixture/store/unrelated/private"
+ln -s "$fixture/store/$host_slot/set.fixture" "$fixture/repository/.tools/host-set.fixture"
+ln -s host-set.fixture "$fixture/repository/.tools/host"
+ln -s "$fixture/outside" "$fixture/repository/.tools/host-set.external"
+(
+  cd "$repo_root"
+  GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
+)
+archives=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+shared_archives=("$fixture/temp/"ic-query-tool-evidence.*/shared-tools.tar.gz)
+[[ "${#archives[@]}" == 1 && -f "${archives[0]}" ]] || exit 1
+[[ "${#shared_archives[@]}" == 1 && -f "${shared_archives[0]}" ]] || exit 1
+mkdir "$fixture/unpacked"
+tar -xzf "${archives[0]}" -C "$fixture/unpacked"
+tar -xzf "${shared_archives[0]}" -C "$fixture/unpacked"
+cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/unpacked/.tools/rust/slot/build.log" || exit 1
+cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/unpacked/.tools/rust/slot/installed/selection.json" || exit 1
+[[ -L "$fixture/unpacked/.tools/rust/external-link" ]] || exit 1
+[[ -L "$fixture/unpacked/.tools/host-set.fixture" && -L "$fixture/unpacked/.tools/host-set.external" ]] || exit 1
+cmp "$fixture/store/$host_slot/set.fixture/install.log" "$fixture/unpacked/$host_slot/set.fixture/install.log" || exit 1
+cmp "$fixture/repository/.tools/ic-set.retained/install.log" "$fixture/unpacked/.tools/ic-set.retained/install.log" || exit 1
+tar -tzf "${archives[0]}" > "$fixture/archive-paths"
+tar -tzf "${shared_archives[0]}" >> "$fixture/archive-paths"
+if grep -Eq '/external-link/|/host-set.external/|unrelated|/private$' "$fixture/archive-paths"; then exit 1; fi
+# A redirected Rust root must never select its target for archiving.
+mv "$fixture/repository/.tools/rust" "$fixture/retained-rust"
+ln -s "$fixture/retained-rust" "$fixture/repository/.tools/rust"
+(
+  cd "$repo_root"
+  GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
+)
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+[[ "${#remaining[@]}" == 2 ]] || exit 1
+for archive in "${remaining[@]}"; do
+  [[ "$archive" != "${archives[0]}" ]] || continue
+  tar -tzf "$archive" > "$fixture/redirected-paths"
+  if grep -Fq '.tools/rust/' "$fixture/redirected-paths"; then exit 1; fi
+done
+# A rejected store still retains safe local bytes and its original diagnostic.
+rm "$fixture/repository/.tools/rust"
+mv "$fixture/retained-rust" "$fixture/repository/.tools/rust"
+ln -s "$fixture/store" "$fixture/rejected-store"
+if (
+  cd "$repo_root"
+  SHARED_TOOLING_STORE="$fixture/rejected-store" GITHUB_WORKSPACE="$fixture/repository" \
+    RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
+) > "$fixture/rejected-store.log" 2>&1; then exit 1; fi
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+shared_remaining=("$fixture/temp/"ic-query-tool-evidence.*/shared-tools.tar.gz)
+[[ "${#remaining[@]}" == 3 && "${#shared_remaining[@]}" == 2 ]] || exit 1
+diagnostics=("$fixture/temp/"ic-query-tool-evidence.*/selection.log)
+for diagnostic in "${diagnostics[@]}"; do
+  grep -Fq 'tool store root may not be a symlink' "$diagnostic" || continue
+  mkdir "$fixture/partial"
+  tar -xzf "${diagnostic%/*}/local-tools.tar.gz" -C "$fixture/partial"
+done
+cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/partial/.tools/rust/slot/build.log" || exit 1
+cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/partial/.tools/rust/slot/installed/selection.json" || exit 1
+# A redirected checkout tool root cannot select any outside tree.
+mv "$fixture/repository/.tools" "$fixture/retained-tools"
+ln -s "$fixture/retained-tools" "$fixture/repository/.tools"
+(
+  cd "$repo_root"
+  GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
+)
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+[[ "${#remaining[@]}" == 3 ]] || exit 1
+cmp <(printf 'private outside bytes\n') "$fixture/outside/private" || exit 1
+cmp <(printf 'unrelated checkout bytes\n') "$fixture/store/unrelated/private" || exit 1
+echo 'CI retains local Rust/IC evidence and selected shared bundles without traversing unknown links or unrelated storage'
+fixture_complete=true

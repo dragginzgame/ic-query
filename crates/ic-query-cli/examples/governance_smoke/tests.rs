@@ -780,6 +780,36 @@ fn command_io_drains_input_and_both_outputs_without_text_loss() {
 }
 
 #[test]
+fn command_exit_failure_preserves_status_and_both_streams_before_text_admission() {
+    let mut child = Command::new("sh");
+    child.args(["-c", "printf 'stdout'; printf '\\377' >&2; exit 7"]);
+    let error = command::supervise(
+        &mut child,
+        &CommandOptions {
+            stderr: StderrMode::Capture,
+            handoff: true,
+            ..Default::default()
+        },
+        || false,
+    )
+    .unwrap_err();
+    let error = error.downcast_ref::<CommandFailure>().unwrap();
+    let execution = error
+        .source
+        .downcast_ref::<ic_host_process::tool::ExecutionError>()
+        .unwrap();
+    assert!(matches!(
+        execution.failure,
+        ic_host_process::tool::ExecutionFailure::ExitStatus
+    ));
+    assert_eq!(execution.evidence.status.unwrap().code(), Some(7));
+    assert_eq!(error.stdout.as_deref(), Some(b"stdout".as_slice()));
+    assert_eq!(error.stderr.as_deref(), Some([255].as_slice()));
+    assert!(error.exited);
+    assert!(error.cleanup_errors.is_empty());
+}
+
+#[test]
 fn command_deadline_retains_bytes_and_is_not_replaced_by_text_admission() {
     let mut child = Command::new("sh");
     child.args(["-c", "printf '\\377'; printf 'stderr' >&2; sleep 30"]);

@@ -2,7 +2,7 @@
 	canister-build canister-bundle canister-smoke \
 	build changelog-check check ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
-	install install-dependency-tools dependency-tools-check install-format-tools format-installation-check library-process-boundary-check msrv package \
+	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
@@ -38,16 +38,13 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(REPO_ROOT)
-LOCAL_TOOL_INSTALL_TARGETS += install-format-tools install-dependency-tools
+LOCAL_TOOL_INSTALL_TARGETS += install-dependency-tools
 LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
 include $(REPO_ROOT)make/tools.mk
 include $(REPO_ROOT)make/release.mk
 include $(REPO_ROOT)make/rust-format.mk
 export IC_TOOL_PINS
 
-# Use the shared installer's versioned cargo-sort selection before other copies.
-icq_formatter_version := $(shell if test -f "$(HOST_TOOL_VERSIONS)"; then . "$(HOST_TOOL_VERSIONS)" && printf '%s' "$${SHARED_TOOLING_CARGO_SORT_VERSION:-}"; fi)
-format-tools-check fmt fmt-check: export PATH := $(CURDIR)/.tools/rust/cargo-sort-$(icq_formatter_version)-bin-cargo-sort-release/installed/bin:$(PATH)
 format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
@@ -94,7 +91,6 @@ help:
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dependency-tools  Install pinned Cargo Audit and Cargo Machete"
 	@echo "  dependency-tools-check  Check the selected audit tools offline"
-	@echo "  install-format-tools  Prepare the exact local cargo-sort selection"
 	@echo "  install-tools  Prepare the complete common and Query toolsets in order"
 	@echo "  tools-check  Verify the complete common and Query toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
@@ -195,11 +191,9 @@ ci:
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq
 
-install-format-tools format-installation-check:
+format-installation-check:
 	+@bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
-		--package cargo-sort --version "$(icq_formatter_version)" --bin cargo-sort --profile release \
-		$(if $(filter format-installation-check,$@),--check) > /dev/null || \
-		{ status=$$?; echo 'Prepare the selected formatter with make install-format-tools' >&2; exit $$status; }
+		--versions "$(RUST_TOOL_VERSIONS)" --check > /dev/null
 
 install-dependency-tools:
 	+cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)

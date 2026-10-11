@@ -12,6 +12,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 
 forbidden_pure_library_dependencies=(
   clap

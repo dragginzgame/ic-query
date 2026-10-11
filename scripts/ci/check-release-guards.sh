@@ -15,6 +15,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
@@ -207,7 +210,7 @@ cat > "$work_dir/install-rust-tools.sh" <<'STUB'
 set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 . ci/tool-versions.env
-expected="--consumer $PWD --package cargo-sort --version $SHARED_TOOLING_CARGO_SORT_VERSION --bin cargo-sort --profile release"
+expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   echo 'formatter check' >> events
   [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true ]] || exit 1

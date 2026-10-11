@@ -18,6 +18,61 @@ use std::os::unix::fs::PermissionsExt;
 const NETWORK: &str = "ic";
 const STALE_AFTER_SECONDS: u64 = 60;
 
+#[cfg(feature = "host")]
+#[test]
+fn guarded_refresh_releases_after_success_and_preserves_action_failure() {
+    let fixture = LockFixture::new("ic-query-guarded-refresh-outcome");
+    for outcome in [Ok(7), Err("collection failed")] {
+        let result = super::run::with_refresh_lock(
+            fixture.request(120),
+            |_| "cache operation failed",
+            || {
+                assert!(fixture.lock_path.exists());
+                outcome
+            },
+        );
+        assert_eq!(result, outcome);
+        assert!(!fixture.lock_path.exists());
+    }
+    fixture.cleanup();
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn async_refresh_releases_after_success_and_preserves_action_failure() {
+    let fixture = LockFixture::new("ic-query-async-refresh-outcome");
+    for outcome in [Ok(7), Err("collection failed")] {
+        let result = futures::executor::block_on(super::run::with_refresh_lock_async(
+            fixture.request(120),
+            |_| "cache operation failed",
+            || async {
+                assert!(fixture.lock_path.exists());
+                outcome
+            },
+        ));
+        assert_eq!(result, outcome);
+        assert!(!fixture.lock_path.exists());
+    }
+    fixture.cleanup();
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[test]
+fn dropping_a_pending_refresh_releases_its_lock() {
+    let fixture = LockFixture::new("ic-query-cancelled-refresh");
+    let mut refresh = Box::pin(super::run::with_refresh_lock_async(
+        fixture.request(120),
+        |_| "cache operation failed",
+        std::future::pending::<Result<(), &str>>,
+    ));
+    let mut context = std::task::Context::from_waker(futures::task::noop_waker_ref());
+    assert!(std::future::Future::poll(refresh.as_mut(), &mut context).is_pending());
+    assert!(fixture.lock_path.exists());
+    drop(refresh);
+    assert!(!fixture.lock_path.exists());
+    fixture.cleanup();
+}
+
 #[test]
 fn new_refresh_lock_records_its_stale_policy() {
     let fixture = LockFixture::new("ic-query-recorded-refresh-lock-policy");

@@ -30,10 +30,14 @@ qualified by this matrix.
   jq 1.8.2, Mike Farah yq 4.47.2, ripgrep 15.2.0 with PCRE2 and cloc 2.10
   under `.tools/host/bin`. Host versions
   and payload digests have one owner in the immutable `ci/tool-versions.env` snapshot.
-  Cargo-sort 2.1.4 uses the shared selected-package installer and a versioned local
-  directory; Cargo Audit and Cargo Machete retain their global Cargo destinations.
-  `make install-format-tools` prepares only that selected formatter. Offline
-  `make format-tools-check` admits its receipt and bytes before version probes;
+  Host and IC paths reference verified bundles in the per-user store described
+  in [shared executable storage](local-setup.md#shared-executable-storage).
+  Use the same `SHARED_TOOLING_STORE` setting for setup, offline checks and
+  failure collection. Previous physical checkout-local bundles remain retained.
+  Cargo-sort 2.1.4, cargo-sort-derives and candid-extractor use the shared exact-slot
+  installer and `.tools/rust/common/bin`; Cargo Audit and Cargo Machete retain
+  their global Cargo destinations. `make install-rust-tools` prepares the common
+  selection. Offline `make format-tools-check` admits its receipts and bytes before version probes;
   global or optional-bundle copies cannot substitute for a missing selection.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
@@ -45,11 +49,11 @@ qualified by this matrix.
   Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
   owner in `ci/ic-tools.tsv`, followed by common cargo-sort, cargo-sort-derives
-  and candid-extractor. Query's formatter receipt and Audit/Machete owners follow
+  and candid-extractor. Query's Audit/Machete owners follow
   through the ordered local extension lists. `make tools-check` verifies all
   those selections offline; neither command prepares a Rust toolchain.
   Make selects the local paths; interactive shells use
-  `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/bin:$PATH"`.
+  `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"`.
   See [local setup](local-setup.md) and [IC tools](ic-tools.md) for bootstrap
   packages, complete-set activation, locks and retained failed/previous sets.
   Shared 0.2.0 requires explicit setup to replace an active six-tool bundle;
@@ -1163,7 +1167,139 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.6 cleanup qualification
+
+Released 0.54.5's explicitly authorized tag `workflow_dispatch`
+[run](https://github.com/dragginzgame/ic-query/actions/runs/38123499895)
+now passes all nine checks/MSRV/canister jobs on Linux and both macOS
+architectures at `9cda0af83d873433a49cf813ae1336cf3aeb5575`.
+This completes [#34](https://github.com/dragginzgame/ic-query/issues/34)'s manual
+tag-route acceptance. It does not qualify the pending source below.
+
+The pending consumer cleanup is based on released 0.54.5 commit
+`9cda0af83d873433a49cf813ae1336cf3aeb5575`. Host 0.13.1 is selected through
+a narrow lockfile update; the immutable 81-file Shared Tooling 0.5.0 snapshot
+is selected at `a306180ce534227fcb98b882fba9a526d5d747e0`. Cache refresh-lock
+completion is consolidated without changing public APIs or schema-1 evidence;
+the development smoke supervisor preserves the original typed Host execution
+error without double boxing. Its TERM grace and bounded reaping remain intact.
+
+After explicit `cargo fetch --locked`, all 17 cache-lock tests and 27 Governance
+smoke-runner tests pass locked/offline on Linux with Host 0.13.1. Clippy with
+warnings denied passes for the host-feature library/tests and the smoke
+example/tests. Evidence: `/tmp/ic-query-0546-host0131-cache-tests.log`,
+`/tmp/ic-query-0546-host0131-smoke-tests.log`,
+`/tmp/ic-query-0546-host0131-cache-clippy.log`, and
+`/tmp/ic-query-0546-host0131-smoke-clippy.log`. The preceding Host 0.13.0
+qualification logs remain intact. The original typed-error regression failure
+is retained in `/tmp/ic-query-0546-smoke-tests-before-unboxing.log`.
+
+All three published packages are unyanked in Cargo's registry observations;
+archive checksums match the lock, and packaged VCS metadata identifies release
+`95fa4828996a6116e84b5ed01909b6e8590a355d`. Library sources match the reviewed
+0.13.0 owner sources. Evidence:
+`/tmp/ic-query-0546-host0131-registry-observations.log`.
+
+Consumer temporary paths are now physically anchored across directory changes.
+The actual setup/handler reproduction fails before repair and succeeds after
+repair; original failed evidence survives. Its directory is recorded in
+`/tmp/ic-query-0546-relative-path-review`. The nine-owner completion checker and
+focused CI-script fixtures pass on modern Bash/Make and genuine Bash 3.2.57/Make
+3.81. Evidence: `/tmp/ic-query-0546-relative-{modern,portable}.log` and
+`/tmp/ic-query-0546-ci-scripts-{modern,portable}.log`.
+[#45](https://github.com/dragginzgame/ic-query/issues/45) retains delivery and
+native consumer qualification.
+
+Targeted formatting, local documentation links, current-version changelog
+admission, snapshot integrity, ShellCheck, both Bash syntax checks and whitespace
+checks pass. Manifest, real Git index and snapshot hashes remain unchanged.
+The final lock changes only the three Host versions/checksums and remains
+unchanged through validation. Evidence: `/tmp/ic-query-0546-continuation-static.log`,
+`/tmp/ic-query-0546-continuation-preserved`, and
+`/tmp/ic-query-0546-host0131-lock-selected`. Initial cleanup evidence in
+`/tmp/ic-query-0546-cleanup-static.log` and
+`/tmp/ic-query-0546-cleanup-inputs-before` remains intact.
+No full workspace CI, native macOS execution, live canister smoke, release gate,
+version bump, commit, tag or push ran for this cleanup. Released 0.54.5's remote
+CI does not qualify these uncommitted changes.
+
+Contributor-tooling adoption remains in 0.54.6 under the reviewed package-impact
+guidance and explicit maintainer selection. Public APIs, product CLI/runtime,
+schema-1 contracts and consumer build requirements remain unchanged. The canonical
+export adds the evidence archiver explicitly; the engineering baseline stays pinned.
+Query removes its duplicate cargo-sort setup and formatter PATH override, admits
+the common slot selection before formatting, and retains physical Rust build/receipt
+evidence in CI without following symlinks. Old tools and failed evidence remain intact.
+
+`/tmp/ic-query-shared041-adoption-path` records the exact-source checkout and logs.
+Real Linux common setup and offline admission pass (`real-install.log`,
+`real-check.log`); reuse passes with Cargo replaced by a refusing recorder and no
+Cargo dispatch (`real-reuse.log`). Prior tool hashes remain unchanged.
+Canonical common/selected installer fixtures, consumer CI-script fixtures and
+simulated preparation/cache dispatch pass on modern Bash/Make and genuine Bash
+3.2.57/Make 3.81 (`rust-{modern,portable}.log`,
+`consumer-{modern,portable}.log`, `cache-{modern,portable}.log`). The consumer
+workflow collector preserves build/receipt bytes and archives symbolic links
+without dereferencing them; redirected roots do not select outside evidence.
+Real formatting admission, snapshot integrity, local links, ShellCheck, both
+Bash syntax checks, actionlint and whitespace checks pass (`static.log`).
+Manifest, selected Host lock and real index hashes match `preserved-before.sha256`.
+Native macOS installation/reuse and consumer CI remain required under
+[#44](https://github.com/dragginzgame/ic-query/issues/44); upstream CI and Linux
+fixtures do not qualify this uncommitted consumer source.
+
+The preceding canonical 0.4.2 refresh changed only storage-ownership guidance and source
+annotation from the tested 0.4.1 selection; all 77 other selected payloads,
+including installer, Make helpers, fixtures and archiver, have identical hashes.
+Evidence: `preview-042.log`, `refresh-042.log`, and `helpers-{041,042}` in that
+same retained adoption directory. At that revision storage remained at physical
+checkout-local `.tools` paths; 0.5.0 now replaces host/IC storage admission.
+The preceding exact-source [0.4.1 Linux CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38130259856)
+passes real setup, portable regressions and formatting-hook qualification, but
+fails a later native-retention qualification because its Cargo substitute still
+expects the retired invocation and evidence path. Its qualification marker is
+empty; this is not evidence that a qualified payload was lost. The source owner
+has reports in [Shared #118](https://github.com/dragginzgame/shared-tooling/issues/118).
+That fixture is outside Query's snapshot. Both macOS jobs were cancelled by the
+successor; neither establishes native acceptance.
+
+The canonical 0.5.0 refresh selects 81 files, explicitly adding the shared store
+companion and evidence selector. `/tmp/ic-query-shared050-adoption-path` identifies
+the clean pinned source, reviewed preview and refresh logs. Real Linux host/IC
+setup and offline checks pass (`real-setup-check.log`). A second temporary
+checkout selects the same physical bundles with a refusing curl recorder and
+zero download dispatch (`real-reuse.log`); no physical executable payload is
+created there. Prior tool bytes, Cargo metadata/lock and index retain their hashes.
+Store and installer fixtures pass under modern Bash and genuine Bash 3.2.57/Make
+3.81 (`host-{modern,portable}.log`, `ic-{modern,portable}.log`), as do consumer
+CI-script and actual collector fixtures (`consumer-{modern,portable}.log`,
+`workflow-{modern,portable}.log`). The collector retains admitted shared bundles,
+local references and Rust builds/receipts, excludes unrelated store entries and
+unknown-link targets, and archives safe local evidence before a rejected store
+aborts shared collection ([Shared #121](https://github.com/dragginzgame/shared-tooling/issues/121)).
+Both checks and canister jobs upload these archives/diagnostics for 30 days.
+
+Real portable host/IC/formatter offline admission passes in
+`offline-portable-recheck.log`. The initial IC refusal without detailed diagnostics
+is retained in `offline-portable.log`; a direct traced check and subsequent
+complete admission pass without reinstalling or changing selections. Its original
+cause was not established. Static checks, snapshot integrity and local links pass
+in `static.log`. The [exact-source upstream run](https://github.com/dragginzgame/shared-tooling/actions/runs/38132790945)
+passes Linux setup/reuse, native failure/archive round-trip qualification and
+lint/security; both macOS jobs remain queued at inspection. The former CI-only
+Rust retention fixture is aligned with the current slot invocation in this source.
+No full consumer CI or native macOS execution ran locally. Matching native
+consumer qualification remains required after delivery; package version, real
+index, release refs and retained installations are unchanged by this adoption.
+
 ## Pending 0.54.5 Shared 0.3.11 qualification
+
+Released 0.54.5 `9cda0af83d873433a49cf813ae1336cf3aeb5575` now passes
+all nine [exact-source branch CI jobs](https://github.com/dragginzgame/ic-query/actions/runs/38122851819):
+complete checks, MSRV and live canister smoke on Linux, Intel macOS and Apple
+Silicon macOS. This accepts the delivered Shared 0.3.11 adoption and consumer
+assertion repair, closing #42 and #43. The earlier pending evidence below records
+the original adoption attempt; it does not qualify pending 0.54.6 source.
 
 Canonical refresh now selects Shared 0.3.11
 `db143ae9ae140eb66826c413360723d23c078f66`. It corrects the source-version
@@ -1363,7 +1499,7 @@ reviewed owner update; 133 has not been installed or tested here.
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed `ci/ic-tools.tsv` |
 | Dependency declaration checks | Git, local jq/yq, Cargo for workspace discovery |
 | Workspace version queries, changelog defaults and release/publication version admission | Prepared Cargo toolchain, local jq/yq; offline manifest validation without dependency resolution |
-| Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; selected receipt installed explicitly by `install-format-tools`, included in `install-tools` |
+| Formatting and its offline checks | Prepared rustfmt and exact cargo-sort 2.1.4 from `ci/tool-versions.env`; common receipts installed by `install-rust-tools`, included in `install-tools` |
 | Common Cargo-tool set | Prepared Cargo toolchain and native compilation prerequisites; `install-rust-tools` / offline `rust-tools-check`, included in the complete aggregates, using the three pins in `ci/tool-versions.env` |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
@@ -1450,11 +1586,10 @@ formatting and preserves source, the Git index, lockfiles and unrelated edits.
 The shared Cargo-tool set is required for Query. `make install-rust-tools`
 prepares cargo-sort, cargo-sort-derives and candid-extractor under `.tools/rust`;
 `make rust-tools-check` verifies that complete local set offline. The standard
-aggregates include all three tools, followed by Query's selected cargo-sort
-through the shared package installer, with a release-profile binary
-under `.tools/rust/cargo-sort-<pin>-bin-cargo-sort-release/installed/bin`.
-Formatter targets prepend that directory to the shared Make include's paths,
-so a common bundle or global copy cannot shadow successful setup.
+aggregates include all three tools through the same exact-slot installer and
+activate `.tools/rust/common/bin` after complete admission. Formatter targets
+require this common selection before checking cargo-sort's pin and rustfmt;
+global copies cannot substitute for missing slots.
 Those existing copies remain intact. Cargo Audit and Cargo Machete keep their
 pinned global Cargo installations, with explicit owner targets and exact-version
 offline admission. `install-dev` is removed; callers use the complete aggregate.

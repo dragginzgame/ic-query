@@ -43,6 +43,7 @@ done
 [[ "$consumer" == /* ]] || consumer="$PWD/$consumer"
 consumer="$(cd -P "$consumer" && printf '%s/.' "$PWD")"
 consumer="${consumer%/.}"
+export PATH="$consumer/.tools/host/bin:$PATH"
 
 read_locked_version() (
     [[ -f "$lockfile" && ! -L "$lockfile" ]] || {
@@ -50,7 +51,6 @@ read_locked_version() (
         return 2
     }
     # Reuse explicitly prepared host tools; never resolve/build a Cargo graph.
-    export PATH="$consumer/.tools/host/bin:$PATH"
     yq -p toml -o json -I 0 '.' "$lockfile" | jq -ers --arg package "$package" '
         if length != 1 then error("expected one lock document") else .[0] end
         | [.package[] | select(.name == $package)]
@@ -106,37 +106,26 @@ export RUSTUP_AUTO_INSTALL=0
 
 check_install_paths() {
     local path
-    local files=("$install_root/.crates.toml" "$install_root/.crates2.json")
     # Admit the whole fixed route before any tool probe or Cargo dispatch. Do
     # not follow even dangling links, or inspect unrelated host/IC bundle links.
-    for path in "$consumer/.tools" "$install_root" "$install_root/bin" "$install_root/build"; do
+    for path in "$consumer/.tools" "$install_root" "$install_root/build"; do
         if [[ -L "$path" || ( -e "$path" && ! -d "$path" ) ]]; then
             printf 'Rust tool directory must be a physical directory: %s\n' "$path" >&2
-            return 1
-        fi
-    done
-    # Cargo writes its receipts here too; executable/receipt symlinks must not
-    # redirect a later install after apparently valid version probes.
-    for path in "${tool_names[@]}"; do files+=("$install_root/bin/$path"); done
-    for path in "${files[@]}"; do
-        if [[ -L "$path" || ( -e "$path" && ! -f "$path" ) ]]; then
-            printf 'Rust tool executable or receipt must be a regular file: %s\n' "$path" >&2
             return 1
         fi
     done
 }
 
 check_tool() {
-    local tool="$1" version="$2" actual
+    local executable="$1" tool="$2" version="$3" actual
     local arguments=(--version)
     [[ "$tool" != cargo-sort-derives ]] || arguments=(sort-derives --version)
-    [[ -x "$install_root/bin/$tool" ]] &&
-        actual="$("$install_root/bin/$tool" "${arguments[@]}")" &&
+    [[ -x "$executable" ]] &&
+        actual="$("$executable" "${arguments[@]}")" &&
         [[ "$actual" == "$tool $version" ]]
 }
 
-# Both entry points use Cargo's locked registry installer. Selected targets add
-# explicit target/profile arguments; the established formatter bundle is intact.
+# All Cargo tools use the same locked installer and immutable slot admission.
 install_cargo_tool() {
     local package_name="$1" version="$2" destination="$3"; shift 3
     cargo install "$package_name" --version "=$version" --locked \
@@ -186,7 +175,8 @@ check_selected() {
     selected_receipt "$destination" || return 1
     local expected
     expected="$(selected_identity "$destination")" || return 1
-    jq -se --argjson expected "$expected" 'length == 1 and .[0] == $expected' "$destination/selection.json" > /dev/null
+    jq -se --argjson expected "$expected" 'length == 1 and .[0] == $expected' "$destination/selection.json" > /dev/null || return 1
+    [[ "$selected" == true ]] || check_tool "$destination/bin/$target" "$target" "$selected_version"
 }
 
 install_selected() (
@@ -242,6 +232,9 @@ install_selected() (
             selected_paths "$stage"
             [[ -x "$stage/bin/$target" ]] || return 1
             selected_receipt "$stage"
+            if [[ "$selected" == false ]]; then
+                check_tool "$stage/bin/$target" "$target" "$selected_version"
+            fi
             [[ ! -e "$stage/selection.json" ]] || { echo 'unexpected candidate selection receipt' >&2; return 1; }
             selected_identity "$stage" > "$stage/selection.json"
             selected_paths "$destination"
@@ -256,6 +249,76 @@ install_selected() (
     fi
     check_locked_selection || return $?
     printf '%s\n' "$destination/bin/$target"
+)
+
+# The common PATH is a projection of the three admitted slots. It is activated
+# only after all installs succeed; the previous projection and slots are retained.
+common_paths() {
+    check_install_paths || return 1
+    local active="$install_root/common" name path
+    if [[ -L "$active" ]]; then
+        name="$(readlink "$active" && printf '.')" || return 1
+        name="${name%.}"; name="${name%$'\n'}"
+        [[ "$name" =~ ^common-set\.[[:alnum:]]+$ ]] || return 1
+        for path in "$install_root/$name" "$install_root/$name/bin"; do
+            [[ -d "$path" && ! -L "$path" ]] || return 1
+        done
+    else
+        [[ ! -e "$active" ]] || return 1
+    fi
+}
+
+check_common_links() {
+    common_paths || return 1
+    [[ -L "$install_root/common" ]] || return 1
+    local index tool version link
+    for index in "${!tool_names[@]}"; do
+        tool="${tool_names[$index]}"; version="${tool_versions[$index]}"
+        link="$install_root/common/bin/$tool"
+        [[ -L "$link" && "$(readlink "$link" && printf '.')" == "../../$tool-$version-bin-$tool-release/installed/bin/$tool"$'\n.' ]] || return 1
+    done
+}
+
+install_common() (
+    common_paths || { echo 'invalid common Rust tool PATH selection' >&2; return 1; }
+    common_lock="$install_root/common.lock"
+    [[ ! -e "$common_lock" && ! -L "$common_lock" ]] || { echo 'Common Rust tool installation locked' >&2; return 1; }
+    if [[ "$check_only" == true ]]; then
+        check_common_links || { echo 'missing or mismatched common Rust tool set; run make install-rust-tools' >&2; return 1; }
+    else
+        mkdir -p "$install_root"
+        mkdir "$common_lock" || return 1
+        trap 'rm -f "$common_lock/selected"; rmdir "$common_lock"' EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+    fi
+    # Admit every slot's path before any common executable is probed.
+    for index in "${!tool_names[@]}"; do
+        target="${tool_names[$index]}"
+        slot="$install_root/$target-${tool_versions[$index]}-bin-$target-release"
+        selected_paths "$slot"
+        selected_paths "$slot/installed"
+    done
+    for index in "${!tool_names[@]}"; do
+        package="${tool_names[$index]}"; target="$package"
+        selected_version="${tool_versions[$index]}"; kind=bin; profile=release
+        install_selected > /dev/null
+    done
+    if ! check_common_links; then
+        [[ "$check_only" == false ]] || return 1
+        common_paths || return 1
+        bundle="$(mktemp -d "$install_root/common-set.XXXXXX")"
+        mkdir "$bundle/bin"
+        for index in "${!tool_names[@]}"; do
+            target="${tool_names[$index]}"; version="${tool_versions[$index]}"
+            ln -s "../../$target-$version-bin-$target-release/installed/bin/$target" "$bundle/bin/$target"
+        done
+        ln -s "${bundle##*/}" "$common_lock/selected"
+        common_paths || return 1
+        perl -e 'rename($ARGV[0], $ARGV[1]) or die "activate common Rust tools: $!\n"' "$common_lock/selected" "$install_root/common"
+        check_common_links
+    fi
+    printf '%s\n' "$install_root/common/bin"
 )
 
 check_install_paths
@@ -286,20 +349,4 @@ if [[ "$selected" == true ]]; then
     install_selected
     exit 0
 fi
-for index in "${!tool_names[@]}"; do
-    tool="${tool_names[$index]}"
-    version="${tool_versions[$index]}"
-    if check_tool "$tool" "$version"; then continue; fi
-    if [[ "$check_only" == true ]]; then
-        echo "missing or mismatched $tool $version; run make install-rust-tools" >&2
-        exit 1
-    fi
-    # Cargo owns registry integrity, install locking and receipts. Keep build
-    # output in the selected checkout, including after a failed installation.
-    install_cargo_tool "$tool" "$version" "$install_root"
-    check_install_paths
-    check_tool "$tool" "$version" || {
-        echo "installed $tool failed its version check" >&2; exit 1;
-    }
-done
-printf '%s\n' "$install_root/bin"
+install_common

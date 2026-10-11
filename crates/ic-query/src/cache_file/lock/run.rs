@@ -23,11 +23,7 @@ pub fn with_refresh_lock<T, E>(
     action: impl FnOnce() -> Result<T, E>,
 ) -> Result<T, E> {
     let lock = acquire_refresh_lock(request).map_err(&cache_error)?;
-    let result = action();
-    if result.is_ok() {
-        lock.release().map_err(cache_error)?;
-    }
-    result
+    lock.finish(action(), cache_error)
 }
 
 /// Run one async action while holding the shared filesystem refresh lock.
@@ -42,8 +38,5 @@ where
 {
     let lock = acquire_refresh_lock(request).map_err(&cache_error)?;
     let result = action().await;
-    if result.is_ok() {
-        lock.release().map_err(cache_error)?;
-    }
-    result
+    lock.finish(result, cache_error)
 }

@@ -5,7 +5,7 @@ From the checkout root, prepare the common executables explicitly:
 ```bash
 make install-tools
 make tools-check
-export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/bin:$PATH"
+export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"
 ```
 
 Prepare the declared Rust/Cargo toolchain and native build prerequisites first,
@@ -35,7 +35,7 @@ different support scopes require an explicitly approved exception.
 | System bootstrap | Bash, Git, GNU Make, curl, CA certificates, tar, gzip, xz, Perl, a SHA-256 implementation and standard Unix utilities | Host package manager; see [bootstrap prerequisites](#bootstrap-prerequisites) |
 | Common host tools | `jq`, Mike Farah `yq`, `rg` with PCRE2, `cloc` | `make install-host-tools`; offline `make host-tools-check`; `.tools/host/bin` |
 | Common IC tools | `quill`, `icp`, `didc`, `ic-wasm`, `wasm-opt` | `make install-ic-tools`; offline `make ic-tools-check`; `.tools/ic/bin` |
-| Common Cargo tools | `cargo-sort`, `cargo-sort-derives`, `candid-extractor` | `make install-rust-tools`; offline `make rust-tools-check`; `.tools/rust/bin`. All repositories prepare a declared Rust/Cargo toolchain and native build prerequisites first. |
+| Common Cargo tools | `cargo-sort`, `cargo-sort-derives`, `candid-extractor` | `make install-rust-tools`; offline `make rust-tools-check`; `.tools/rust/common/bin`. All repositories prepare a declared Rust/Cargo toolchain and native build prerequisites first. |
 | Rust development | rustfmt and product compilation targets | Consumer toolchain setup and the [formatter prerequisite check](verification-helpers.md#formatter-prerequisites) |
 | Workflow-specific tools | ShellCheck, actionlint, Gitleaks, authenticated `gh`, Node/SDKs and other tools used by that repository | Explicit consumer setup; declare the tools required by each workflow |
 
@@ -89,9 +89,54 @@ Fleet reports such as `make cloc-tooling` normally run in Shared Tooling; consum
 need not vendor those reporters or run their regression suites. See the
 [optional fleet selection](consuming-snapshots.md#local-ic-tool-adoption).
 
+## Shared executable storage
+
+Shared Tooling owns storage for the common executable sets. Host and IC setup
+reuse verified bundles in a per-user store across checkouts with the same host
+and pins. Each repository retains its own pins and command
+selection; changing one repository's selection must not change another's.
+Providing every common command does not require duplicating its binary in every
+checkout. Consumers must adopt the canonical implementation through reviewed
+snapshots rather than create independent stores or new bespoke `.tools`
+installers. Reviewed script snapshots remain repository-local.
+
+The default store is `${XDG_DATA_HOME:-$HOME/.local/share}/shared-tooling/tools`.
+Set `SHARED_TOOLING_STORE` to an absolute directory to choose another location;
+use the same setting for setup, checks and evidence collection. Fixtures use
+isolated temporary stores. Store directories must be owned by the current user,
+physical, and not writable by other users. Existing ancestor aliases such as
+macOS `/var` are resolved; managed directories and payloads cannot redirect
+outside their admitted locations. CR/LF paths are refused.
+
+The existing `.tools/host/bin` and `.tools/ic/bin` command paths remain, backed
+by lightweight local references to exact shared bundle generations. No new host
+or IC payload is stored inside the checkout. A complete matching bundle is
+verified again before reuse without downloads. Changed pins or platforms select
+a different store entry; updating its reusable selection never retargets other
+checkouts. Locks protect setup across repositories as well as local activation.
+Offline checks never install or repair tools. Corrupt bundles are refused;
+explicit setup can prepare a fresh generation without overwriting retained ones.
+
+Adoption requires refreshed installers, `scripts/dev/tool-store.sh`, and the
+evidence selector, followed by `make install-host-tools`, `make install-ic-tools`
+and their offline checks. Older physical checkout-local bundles are preserved
+but no longer admitted as active installations. Do not manually relocate them
+or delete them during adoption. Failed attempts and earlier selections remain
+referenced from the originating checkout for evidence collection. The collector
+archives those admitted shared bundles, not the entire machine's store. Deleting
+a checkout or a reference does not reclaim its stored payload; cleanup remains
+an explicitly authorized separate operation.
+
+Cargo tool slots and their build output still live under `.tools/rust`.
+Cross-repository reuse of compiled tools requires matching compiler, dependency,
+target, profile and relevant build configuration; a package version alone is
+insufficient. That remaining work and native qualification are tracked in
+[#120](https://github.com/dragginzgame/shared-tooling/issues/120).
+
 ## Diagnosing a missing command
 
-Installing tools in Shared Tooling does not install them in another checkout.
+Installing tools in Shared Tooling does not select them in another checkout.
+Run setup in each checkout; matching host/IC bundles reuse the shared store.
 From the affected repository's root, compare:
 
 ```bash
@@ -103,7 +148,7 @@ If the first command works but the second is missing or points elsewhere, select
 this checkout's tools in the current terminal:
 
 ```bash
-export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/bin:$PATH"
+export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"
 ```
 
 Select the paths again when switching repositories; do not permanently select a
@@ -136,9 +181,11 @@ Host setup downloads official native binaries for Linux x86-64/ARM64 and macOS
 Intel/Apple Silicon and cloc's portable standalone Perl script. It checks their
 pinned SHA-256 values and exact versions, and
 atomically activates the selected set. Previous sets and failed candidates
-remain under `.tools/host-set.*`. A lock prevents simultaneous installations;
+remain in the shared store, referenced by `.tools/host-set.*`. Locks prevent
+simultaneous installation of the same shared selection and local activation;
 inspect `.tools/.host-tools.lock/owner` and confirm its process has stopped before
-removing an abandoned lock. Cleanup remains explicit. The `--versions` option
+removing an abandoned lock; shared slots also retain `install.lock/owner`.
+Cleanup remains explicit. The `--versions` option
 selects a reviewed shell file, which is executable code like a Makefile.
 
 Setup and offline checks admit the literal `.tools/host` link target. Malformed
@@ -174,7 +221,7 @@ PocketIC consumers additionally use their selected IC Testkit CLI's explicit
 After preparing the consumer's declared Rust/Cargo toolchain and compilation
 prerequisites, use `make install-rust-tools` and offline `make rust-tools-check`.
 The shared helper installs cargo-sort, cargo-sort-derives and candid-extractor
-under `.tools/rust/bin`, using their exact versions from
+into versioned slots and exposes the complete set at `.tools/rust/common/bin`, using their exact versions from
 [ci/tool-versions.env](../ci/tool-versions.env) and Cargo's `--locked` installation.
 Preflight, installed-tool probes and Cargo installation all run from the selected
 consumer directory, including when the helper is invoked from elsewhere. Explicit
@@ -188,28 +235,38 @@ and remove duplicate consumer constants when adopting the shared pins.
 The complete common aggregate includes this set in every repository, including
 non-Rust repositories. The narrow commands remain useful for explicit retries
 or diagnostics; they do not establish that the complete toolset is ready.
-Shared Make commands include `.tools/rust/bin` on PATH; interactive shells use
+Shared Make commands include `.tools/rust/common/bin` on PATH; interactive shells use
 the export at the top of this guide. The standard formatting hook and its
 adoption check preserve the original checkout's host, IC and Rust tool paths
 while formatting isolated index inputs. The helper never prepares or upgrades a
 toolchain implicitly. Installation may fetch registry dependencies and compile;
-build output stays in `.tools/rust/build`, including on failure. Cargo owns
-installation locking and registry checksum verification. Tools install one at
-a time, so an interrupted setup can leave earlier tools installed; rerun setup
-and require the complete offline check before use. Cleanup remains explicit.
+failed candidates stay in `.tools/rust/build/cargo-attempt.*`. Completed candidates,
+including their build output and install logs, move into their immutable slots.
+Both common tools and consumer-selected tools use the same locked installer,
+Cargo receipt and observed byte-digest admission described below. Common tools
+add a successful exact-version probe after byte admission. Shared host tools
+(including jq) and the selected Rust toolchain must be prepared first.
 
-Setup and offline checking reject symlinks or wrong file types along the Rust
-installation route: `.tools`, `rust`, `bin`, `build`, the three executables and
-Cargo's `.crates.toml`/`.crates2.json` receipts. The complete route is admitted
-before executing a tool or Cargo, and rechecked after installation. Existing
-managed `.tools/host` and `.tools/ic` links remain supported. A checkout alias
-resolves to its physical root; this path check does not sandbox Cargo, authenticate
-tool bytes or defend against concurrent replacement of the admitted paths.
+The common setup holds `.tools/rust/common.lock`, prepares all three slots, then
+atomically selects a retained `common-set.*` directory through the `common` link.
+Its `bin` contains only the three selected slot links. A partial failure leaves
+the previous complete set active; rerunning setup reuses completed slots. Offline
+checks refuse missing selections, locks, changed receipts/bytes and redirected
+paths without installing or repairing them. The only permitted projection links
+are the generated relative common-set/slot links. Slots and their executables,
+builds and receipts must be physical. Existing host/IC links and checkout aliases
+remain supported. Path admission does not sandbox Cargo or defend against an
+unrelated process replacing admitted paths concurrently.
 
-Offline checks require each local executable to report its selected version
-successfully. They do not authenticate installed bytes or replace product/native
-host qualification. A matching set is reused without invoking Cargo. Formatting
-still requires rustfmt and the [formatter check](verification-helpers.md#formatter-prerequisites).
+The 0.4 hard cut stops installing into or accepting `.tools/rust/bin`. Old
+executables, Cargo receipts, builds and prior sets remain untouched for inspection;
+there is no fallback or automatic cleanup. Refresh the shared Make/hook/CI callers,
+change shell PATH exports to `.tools/rust/common/bin`, then explicitly run setup
+and offline checks. The evidence action retains the full physical `.tools/rust`
+tree, including admitted slots and failed attempts, without following links.
+Observed digests detect local changes; they are not publisher signatures or
+product/native qualification. Formatting still requires rustfmt and the
+[formatter check](verification-helpers.md#formatter-prerequisites).
 
 ### Consumer-selected Cargo tools
 
@@ -227,7 +284,7 @@ This example is a caller selection, not a new fleet-wide package pin. Consumers
 own package versions, profiles, compiler selection, explicit executable overrides
 and product qualification. Use `--bin NAME` for a published binary. This mode
 does not install the formatter bundle or read its versions catalog; `make
-install-rust-tools` continues to install that existing three-tool bundle.
+install-rust-tools` prepares the three common tools through this same engine.
 
 For a tool selected by a consumer lockfile, replace `--version` with `--lockfile`:
 
@@ -278,8 +335,8 @@ its owner finishes. An abruptly killed process may leave a lock: inspect that
 owner and retained attempt before explicitly removing the empty lock. The tool
 never guesses that a lock is stale. Redirected output, receipt and lock paths
 refuse. After Cargo returns, setup rechecks the shared directory ancestors and
-selection slot before admitting or activating the candidate. As with the fixed
-bundle, path admission is not a sandbox against another
+selection slot before admitting or activating the candidate. As with the common
+tools, path admission is not a sandbox against another
 process deliberately replacing paths while setup runs. Installation may fetch
 dependencies; `CARGO_NET_OFFLINE=true` remains authoritative.
 
@@ -361,7 +418,7 @@ and select its paths before invoking scripts directly:
 ```bash
 make install-tools
 make tools-check
-export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/bin:$PATH"
+export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"
 ```
 
 Before starting portable fixtures, `test-portable-tools.sh` checks the required

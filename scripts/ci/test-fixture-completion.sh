@@ -12,17 +12,24 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 
 mkdir -p "$work_dir/scripts/ci" "$work_dir/attempts"
+ln -s "$work_dir/attempts" "$work_dir/relative-parent"
 for owner in check-ci-scripts check-release-cache check-release-metadata \
   check-release-guards check-publish-guards check-public-docs \
   check-library-feature-boundaries check-dependencies test-fixture-completion; do
   # Execute the actual setup/handler prefix; stop before any validation effects.
-  awk '{ print } /^trap finish EXIT$/ { found=1; exit } END { if (!found) exit 1 }' \
+  awk '{ print } /^export TMPDIR=/ { found=1; exit } END { if (!found) exit 1 }' \
     "$repo_root/scripts/ci/$owner.sh" > "$work_dir/scripts/ci/$owner.sh"
   cat >> "$work_dir/scripts/ci/$owner.sh" <<'PROBE'
 printf '%s\n' "$work_dir" > "$COMPLETION_DIRECTORY"
 printf 'retained evidence\n' > "$work_dir/payload"
+mkdir "$work_dir/child"
+cd "$work_dir/child"
+[[ "$(cat "$work_dir/payload")" == 'retained evidence' ]] || exit 1
 case "$COMPLETION_MODE" in
   nounset) unset COMPLETION_UNDEFINED; printf '%s\n' "$COMPLETION_UNDEFINED" ;;
   command) false ;;
@@ -34,9 +41,11 @@ esac
 PROBE
   for mode in nounset command nonzero premature success completed-failure; do
     status=0
-    COMPLETION_MODE="$mode" COMPLETION_DIRECTORY="$work_dir/directory" \
-      TMPDIR="$work_dir/attempts" "$BASH" "$work_dir/scripts/ci/$owner.sh" \
-      > "$work_dir/$owner-$mode.log" 2>&1 || status=$?
+    (
+      cd "$work_dir"
+      COMPLETION_MODE="$mode" COMPLETION_DIRECTORY="$work_dir/directory" \
+        TMPDIR=relative-parent "$BASH" "$work_dir/scripts/ci/$owner.sh"
+    ) > "$work_dir/$owner-$mode.log" 2>&1 || status=$?
     selected="$(cat "$work_dir/directory")"
     case "$selected" in "$work_dir/attempts/"*) ;; *) exit 1 ;; esac
     expected=1

@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.6]
+
+- Consolidates synchronous and asynchronous cache refresh-lock completion,
+  preserving lock lifetime, cancellation cleanup and the original query failure.
+- Simplifies the development Governance smoke runner and preserves the original
+  typed Host execution error, exit status and captured diagnostics.
+- Consumer tooling anchors temporary paths before directory changes, preserving
+  diagnostics and cleanup with relative or symlinked `TMPDIR` selections.
+  [#45](https://github.com/dragginzgame/ic-query/issues/45).
+- Selects Host artifacts, filesystem and process 0.13.1 with unchanged library
+  APIs and behavior.
+- Adopts Shared Tooling 0.5.0: host and IC binaries reuse verified per-user
+  bundles across checkouts; existing command paths and previous bundles remain.
+  Run `make install-host-tools install-ic-tools` to prepare the selection.
+  Common Rust tools use one local selection, removing duplicate formatter setup.
+  CI retains referenced shared bundles and local Rust builds and receipts.
+  Local evidence survives refused shared-store collection.
+  [#44](https://github.com/dragginzgame/ic-query/issues/44).
+
 ## [0.54.5] - 2026-10-11
 
 - Adopts Shared Tooling 0.3.11: Cargo tool setup consistently

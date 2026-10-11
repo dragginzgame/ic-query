@@ -210,18 +210,16 @@ pub fn supervise(
         &cancelled,
     );
     let mut cleanup_errors = Vec::new();
-    let (evidence, mut failure, exited) = match result {
+    let (evidence, failure, exited) = match result {
         Ok(evidence) => (evidence, None, false),
         Err(ToolError::Execution(mut error)) => {
             if let Some(cleanup) = error.cleanup.take() {
                 cleanup_errors.push(*cleanup);
             }
             let exited = matches!(error.failure, ExecutionFailure::ExitStatus);
-            {
-                let evidence = std::mem::take(&mut error.evidence);
-                error.evidence.status = evidence.status;
-                (evidence, Some(Box::new(error) as Box<dyn Error>), exited)
-            }
+            let evidence = std::mem::take(&mut error.evidence);
+            error.evidence.status = evidence.status;
+            (evidence, Some(error as Box<dyn Error>), exited)
         }
         Err(error) => {
             if let Err(error) = child.terminate() {
@@ -234,34 +232,28 @@ pub fn supervise(
             )
         }
     };
-    let text = if failure.is_none() {
-        let admitted = admit_output(&evidence, options, &mut child, started, &cancelled);
-        match admitted {
-            Ok(text) => Some(text),
-            Err(error) => {
-                failure = Some(error);
-                None
+    let admitted = failure.map_or_else(
+        || admit_output(&evidence, options, &mut child, started, &cancelled),
+        Err,
+    );
+    match admitted {
+        Ok(text) => Ok(text),
+        Err(source) => {
+            if options.handoff
+                && let Err(error) = child.terminate()
+            {
+                cleanup_errors.push(error);
             }
+            Err(Box::new(CommandFailure {
+                source,
+                stdout: options.capture.then_some(evidence.stdout),
+                stderr: matches!(options.stderr, StderrMode::Capture).then_some(evidence.stderr),
+                cleanup_errors,
+                exited,
+                interrupted: (!options.cleanup).then(interruption).flatten(),
+            }))
         }
-    } else {
-        None
-    };
-    if let Some(source) = failure {
-        if options.handoff
-            && let Err(error) = child.terminate()
-        {
-            cleanup_errors.push(error);
-        }
-        return Err(Box::new(CommandFailure {
-            source,
-            stdout: options.capture.then_some(evidence.stdout),
-            stderr: matches!(options.stderr, StderrMode::Capture).then_some(evidence.stderr),
-            cleanup_errors,
-            exited,
-            interrupted: (!options.cleanup).then(interruption).flatten(),
-        }));
     }
-    Ok(text.unwrap_or_default())
 }
 
 fn admit_output(

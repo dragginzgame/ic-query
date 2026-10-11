@@ -38,7 +38,7 @@ jobs:
           components: clippy
       - name: Prepare the selected dependency cache
         run: cargo fetch --locked
-      - name: Install repository-local IC tools
+      - name: Prepare the selected IC tools
         shell: /bin/bash --noprofile --norc -eo pipefail {0}
         run: PATH="/bin:$PATH" make install-ic-tools ic-tools-check
       - name: Select repository-local tools
@@ -56,6 +56,10 @@ jobs:
         env:
           CARGO_NET_OFFLINE: 'true'
         run: make canister-bundle
+      - name: Archive retained tool evidence
+        if: failure()
+        shell: bash
+        run: bash scripts/ci/retain-tool-evidence.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - name: Retain execution evidence and bundle
         if: always()
         # actions/upload-artifact v4
@@ -67,6 +71,9 @@ jobs:
             target/canister-smoke/receipt-*/*.candid
             target/canister-smoke/governance_probe.wasm
             target/canister-smoke/governance-probe.tar.gz
+            ${{ runner.temp }}/ic-query-tool-evidence.*/
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 30
 
   msrv:
@@ -143,6 +150,10 @@ jobs:
         env:
           CARGO_NET_OFFLINE: 'true'
         run: make ci
+      - name: Archive retained tool evidence
+        if: failure()
+        shell: bash
+        run: bash scripts/ci/retain-tool-evidence.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
       - name: Retain failed validation fixtures and logs
         if: failure()
         # actions/upload-artifact v4
@@ -152,6 +163,7 @@ jobs:
           path: |
             ${{ runner.temp }}/ic-query-validation/
             ${{ runner.temp }}/formatting.*
+            ${{ runner.temp }}/ic-query-tool-evidence.*/
             target/validation-failures/
           include-hidden-files: true
           if-no-files-found: ignore

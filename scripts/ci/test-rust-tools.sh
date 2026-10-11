@@ -26,164 +26,12 @@ SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=99.3.0
 ENV
 export RUST_TOOL_FIXTURE_LOG="$fixture/install.log"
 export RUST_TOOL_FIXTURE_PROBES="$fixture/probes.log"
-cat > "$fixture/bin/rustc" <<'SCRIPT'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ "$PWD" == "$RUST_TOOL_EXPECTED_CWD" && "$RUSTUP_TOOLCHAIN" == fixture-override ]] || exit 71
-[[ "$1" == --version && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-echo 'fixture rustc'
-SCRIPT
-cat > "$fixture/bin/cargo" <<'SCRIPT'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ "$PWD" == "${RUST_TOOL_EXPECTED_CWD:-$PWD}" ]] || exit 71
-if [[ "$1" == --version ]]; then
-    [[ "$RUSTUP_TOOLCHAIN" == fixture-override && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-    echo 'fixture cargo'; exit 0
-fi
-[[ $# == 9 && "$1" == install && "$3" == --version && "$4" == =99.* && "$5" == --locked && "$6" == --root && "$8" == --target-dir && "$9" == "$7/build" ]] || exit 1
-[[ "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-printf '%s\n' "$2 $4" >> "$RUST_TOOL_FIXTURE_LOG"
-mkdir -p "$7/bin" "$9"
-printf 'retained build evidence\n' > "$9/retained"
-[[ "${RUST_TOOL_INSTALL_FAIL:-}" != "$2" ]] || exit 23
-cat > "$7/bin/$2" <<TOOL
-#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\\n' '$2' >> "\$RUST_TOOL_FIXTURE_PROBES"
-[[ "\$PWD" == "\${RUST_TOOL_EXPECTED_CWD:-\$PWD}" ]] || exit 71
-if [[ "$2" == cargo-sort-derives ]]; then
-    [[ \$# == 2 && \$1 == sort-derives && \$2 == --version ]] || exit 1
-else
-    [[ \$# == 1 && \$1 == --version ]] || exit 1
-fi
-printf '%s %s\\n' '$2' '${4#=}'
-exit "\${RUST_TOOL_VERSION_STATUS:-0}"
-TOOL
-chmod +x "$7/bin/$2"
-if [[ "${RUST_TOOL_INSTALL_LINK:-}" == "$2" ]]; then
-    mv "$7/bin/$2" "$7/linked-$2"
-    ln -s "../linked-$2" "$7/bin/$2"
-fi
-SCRIPT
-chmod +x "$fixture/bin/cargo" "$fixture/bin/rustc"
-export PATH="$fixture/bin:$PATH"
-installer="$ROOT/scripts/dev/install-rust-tools.sh"
-args=(--consumer "$consumer" --versions "$fixture/versions.env")
-if bash "$installer" "${args[@]}" --check > "$fixture/absent.log" 2>&1; then exit 1; fi
-[[ ! -e "$RUST_TOOL_FIXTURE_LOG" && ! -e "$consumer/.tools" ]] || exit 1
-# Preflight, installation and offline probes share the consumer context even
-# with a caller-relative catalog, a relative consumer and a toolchain override.
-(
-    cd "$fixture"
-    export RUST_TOOL_EXPECTED_CWD="$consumer" RUSTUP_TOOLCHAIN=fixture-override
-    relative_args=(--consumer "${consumer##*/}" --versions versions.env)
-    bash "$installer" "${relative_args[@]}" --preflight
-    [[ ! -e "$consumer/.tools" && ! -e "$RUST_TOOL_FIXTURE_LOG" ]] || exit 1
-    bash "$installer" "${relative_args[@]}" > "$fixture/install-path"
-    bash "$installer" "${relative_args[@]}" --check > "$fixture/context-check"
-)
-cmp "$fixture/install-path" "$fixture/context-check"
-[[ "$(cat "$fixture/install-path")" == "$consumer/.tools/rust/bin" ]] || exit 1
-[[ "$(wc -l < "$RUST_TOOL_FIXTURE_LOG" | tr -d ' ')" == 3 ]] || exit 1
-cp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
-bash "$installer" "${args[@]}" --check > "$fixture/check-path"
-bash "$installer" "${args[@]}" > "$fixture/repeated-path"
-cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
-cmp "$fixture/install-path" "$fixture/check-path"
-# Matching version text from a failed executable is never accepted.
-if RUST_TOOL_VERSION_STATUS=23 bash "$installer" "${args[@]}" --check > "$fixture/failed-probe.log" 2>&1; then exit 1; fi
-cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
-printf 'SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=latest\n' >> "$fixture/versions.env"
-if bash "$installer" "${args[@]}" > "$fixture/invalid.log" 2>&1; then exit 1; fi
-cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
-printf 'SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=99.3.0\n' >> "$fixture/versions.env"
-mkdir "$fixture/failed-consumer"
-status=0
-RUST_TOOL_INSTALL_FAIL=cargo-sort-derives bash "$installer" \
-    --consumer "$fixture/failed-consumer" --versions "$fixture/versions.env" \
-    > "$fixture/failed-install.log" 2>&1 || status=$?
-[[ "$status" == 23 && -f "$fixture/failed-consumer/.tools/rust/build/retained" ]] || exit 1
-[[ -x "$fixture/failed-consumer/.tools/rust/bin/cargo-sort" && ! -e "$fixture/failed-consumer/.tools/rust/bin/candid-extractor" ]] || exit 1
-
-# Retry keeps the earlier tool and build evidence, then completes the set.
-cp "$fixture/failed-consumer/.tools/rust/build/retained" "$fixture/expected-retained"
-bash "$installer" --consumer "$fixture/failed-consumer" --versions "$fixture/versions.env" > "$fixture/retry.log"
-bash "$installer" --consumer "$fixture/failed-consumer" --versions "$fixture/versions.env" --check > "$fixture/retry-check.log"
-cmp "$fixture/failed-consumer/.tools/rust/build/retained" "$fixture/expected-retained"
-
-# Check the complete route before probing even the first tool. Existing and
-# dangling links both redirect installation; regular files cannot be parents.
-for selected in .tools .tools/rust .tools/rust/bin .tools/rust/build \
-    .tools/rust/bin/cargo-sort .tools/rust/bin/cargo-sort-derives .tools/rust/bin/candid-extractor \
-    .tools/rust/.crates.toml .tools/rust/.crates2.json; do
-    for shape in symlink dangling wrong-type; do
-        probe="$fixture/boundary-${selected//\//-}-$shape"
-        mkdir -p "$probe/consumer" "$probe/outside"
-        cp -R "$consumer/.tools" "$probe/consumer/"
-        case "$selected" in
-            */.crates*) printf 'retained Cargo receipt\n' > "$probe/consumer/$selected" ;;
-        esac
-        mv "$probe/consumer/$selected" "$probe/outside/original"
-        case "$shape" in
-            symlink) ln -s "$probe/outside/original" "$probe/consumer/$selected" ;;
-            dangling) ln -s "$probe/outside/missing" "$probe/consumer/$selected" ;;
-            wrong-type)
-                if [[ -d "$probe/outside/original" ]]; then
-                    printf 'not a directory\n' > "$probe/consumer/$selected"
-                else
-                    mkdir "$probe/consumer/$selected"
-                fi ;;
-        esac
-        cp -R "$probe/outside" "$probe/expected-outside"
-        for mode in install check; do
-            mode_args=()
-            [[ "$mode" != check ]] || mode_args=(--check)
-            status=0
-            RUST_TOOL_FIXTURE_LOG="$probe/$mode-install.log" \
-                RUST_TOOL_FIXTURE_PROBES="$probe/$mode-probes.log" \
-                bash "$installer" --consumer "$probe/consumer" --versions "$fixture/versions.env" \
-                ${mode_args[@]+"${mode_args[@]}"} > "$probe/$mode.log" 2>&1 || status=$?
-            [[ "$status" == 1 && ! -e "$probe/$mode-install.log" && ! -e "$probe/$mode-probes.log" ]] || {
-                printf 'Rust path boundary accepted/dispatched %s (%s, %s)\n' "$selected" "$shape" "$mode" >&2
-                exit 1
-            }
-            diff -r "$probe/expected-outside" "$probe/outside"
-        done
-    done
-done
-
-# A newly produced link must be refused before its version probe, preserving
-# the install candidate and build evidence for diagnosis.
-mkdir "$fixture/linked-result"
-status=0
-RUST_TOOL_INSTALL_LINK=cargo-sort RUST_TOOL_FIXTURE_PROBES="$fixture/linked-result-probes.log" \
-    bash "$installer" --consumer "$fixture/linked-result" --versions "$fixture/versions.env" \
-    > "$fixture/linked-result.log" 2>&1 || status=$?
-[[ "$status" == 1 && ! -e "$fixture/linked-result-probes.log" ]] || exit 1
-[[ -L "$fixture/linked-result/.tools/rust/bin/cargo-sort" && -f "$fixture/linked-result/.tools/rust/build/retained" ]] || exit 1
-
-# The selected checkout may be addressed through an alias. The Rust route below
-# its physical root must stay local, without rejecting the other managed sets.
-mkdir -p "$consumer/.tools/host-set.fixture" "$consumer/.tools/ic-set.fixture"
-ln -s host-set.fixture "$consumer/.tools/host"
-ln -s ic-set.fixture "$consumer/.tools/ic"
-ln -s "$consumer" "$fixture/consumer-alias"
-cp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-alias-install.log"
-bash "$installer" --consumer "$fixture/consumer-alias" --versions "$fixture/versions.env" > "$fixture/alias-path"
-bash "$installer" --consumer "$fixture/consumer-alias" --versions "$fixture/versions.env" --check > "$fixture/alias-check-path"
-cmp "$fixture/install-path" "$fixture/alias-path"
-cmp "$fixture/alias-path" "$fixture/alias-check-path"
-cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-alias-install.log"
-[[ "$(readlink "$consumer/.tools/host")" == host-set.fixture && "$(readlink "$consumer/.tools/ic")" == ic-set.fixture ]] || exit 1
-echo 'Pinned Rust tool setup, offline checks and failure retention passed (substitute Cargo)'
-
-# Selected targets need Cargo provenance and local byte identity, not --version.
 cat > "$fixture/bin/rustc" <<'RUSTC'
 #!/usr/bin/env bash
 [[ "$PWD" == "${RUST_TOOL_EXPECTED_CWD:-$PWD}" ]] || exit 71
 [[ "${RUSTUP_TOOLCHAIN:-}" == "${RUST_TOOL_EXPECTED_TOOLCHAIN:-${RUSTUP_TOOLCHAIN:-}}" ]] || exit 71
 [[ "${SELECTED_HOST_EMPTY:-}" != yes ]] || exit 0
+[[ "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
 printf 'host: fixture-host\n'
 RUSTC
 cat > "$fixture/bin/cargo" <<'CARGO'
@@ -191,20 +39,35 @@ cat > "$fixture/bin/cargo" <<'CARGO'
 set -euo pipefail
 [[ "$PWD" == "${RUST_TOOL_EXPECTED_CWD:-$PWD}" ]] || exit 71
 [[ "${RUSTUP_TOOLCHAIN:-}" == "${RUST_TOOL_EXPECTED_TOOLCHAIN:-${RUSTUP_TOOLCHAIN:-}}" ]] || exit 71
+if [[ "$1" == --version ]]; then echo 'fixture cargo'; exit 0; fi
 [[ $# == 13 || $# == 14 ]] || exit 1
 [[ "$1" == install && "$3" == --version && "$5" == --locked && "$6" == --root && "$8" == --target-dir ]] || exit 1
 [[ "$9" == "$7/build" && "${12}" == --registry && "${13}" == crates-io ]] || exit 1
 [[ "${10}" == --bin || "${10}" == --example ]] || exit 1
-printf 'install\n' >> "$RUST_TOOL_FIXTURE_LOG"
+printf '%s\n' "$2 $4" >> "$RUST_TOOL_FIXTURE_LOG"
 mkdir -p "$7/bin" "$9"
 printf 'retained build\n' > "$9/evidence"
 if [[ -n "${SELECTED_PAUSE:-}" ]]; then
     touch "$SELECTED_PAUSE/started"
     while [[ ! -f "$SELECTED_PAUSE/continue" ]]; do sleep 0.1; done
 fi
-[[ "${SELECTED_FAIL:-}" != build ]] || exit 23
-# Executing this target during admission would be a test failure.
-printf '#!/usr/bin/env bash\nexit 97\n' > "$7/bin/${11}"
+[[ "${SELECTED_FAIL:-}" != build && "${RUST_TOOL_INSTALL_FAIL:-}" != "$2" ]] || exit 23
+if [[ "$2" == cargo-sort || "$2" == cargo-sort-derives || "$2" == candid-extractor ]]; then
+    cat > "$7/bin/${11}" <<TOOL
+#!/usr/bin/env bash
+[[ "\$PWD" == "\${RUST_TOOL_EXPECTED_CWD:-\$PWD}" ]] || exit 71
+if [[ "$2" == cargo-sort-derives ]]; then
+    [[ "\$*" == 'sort-derives --version' ]] || exit 1
+else
+    [[ "\$*" == --version ]] || exit 1
+fi
+printf '%s %s\\n' '$2' '${4#=}'
+exit "\${RUST_TOOL_VERSION_STATUS:-0}"
+TOOL
+else
+    # Selected product tools must never be executed during admission.
+    printf '#!/usr/bin/env bash\nexit 97\n' > "$7/bin/${11}"
+fi
 chmod +x "$7/bin/${11}"
 profile=release
 [[ "${14:-}" != --debug ]] || profile="${SELECTED_DEBUG_PROFILE:-debug}"
@@ -229,6 +92,114 @@ if [[ -n "${SELECTED_REDIRECT:-}" ]]; then
 fi
 CARGO
 chmod +x "$fixture/bin/rustc" "$fixture/bin/cargo"
+export PATH="$fixture/bin:$PATH"
+installer="$ROOT/scripts/dev/install-rust-tools.sh"
+args=(--consumer "$consumer" --versions "$fixture/versions.env")
+# Preserve the retired in-place installation; it is never accepted as the new set.
+mkdir -p "$consumer/.tools/rust/bin" "$consumer/.tools/rust/build"
+printf 'previous executable\n' > "$consumer/.tools/rust/bin/cargo-sort"
+printf 'previous receipt\n' > "$consumer/.tools/rust/.crates2.json"
+printf 'previous evidence\n' > "$consumer/.tools/rust/build/retained"
+cp -R "$consumer/.tools" "$fixture/previous-tools"
+if bash "$installer" "${args[@]}" --check > "$fixture/absent.log" 2>&1; then exit 1; fi
+diff -r "$fixture/previous-tools" "$consumer/.tools"
+[[ ! -e "$RUST_TOOL_FIXTURE_LOG" ]] || exit 1
+(
+    cd "$fixture"
+    export RUST_TOOL_EXPECTED_CWD="$consumer" RUSTUP_TOOLCHAIN=fixture-override
+    relative_args=(--consumer "${consumer##*/}" --versions versions.env)
+    bash "$installer" "${relative_args[@]}" --preflight
+    [[ ! -e "$RUST_TOOL_FIXTURE_LOG" ]] || exit 1
+    bash "$installer" "${relative_args[@]}" > "$fixture/install-path"
+    bash "$installer" "${relative_args[@]}" --check > "$fixture/context-check"
+)
+cmp "$fixture/install-path" "$fixture/context-check"
+[[ "$(cat "$fixture/install-path")" == "$consumer/.tools/rust/common/bin" ]] || exit 1
+[[ "$(wc -l < "$RUST_TOOL_FIXTURE_LOG" | tr -d ' ')" == 3 ]] || exit 1
+cp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
+bash "$installer" "${args[@]}" --check > "$fixture/check-path"
+bash "$installer" "${args[@]}" > "$fixture/repeated-path"
+cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
+cmp "$fixture/install-path" "$fixture/check-path"
+for preserved in bin/cargo-sort .crates2.json build/retained; do
+    cmp "$consumer/.tools/rust/$preserved" "$fixture/previous-tools/rust/$preserved"
+done
+if RUST_TOOL_VERSION_STATUS=23 bash "$installer" "${args[@]}" --check > "$fixture/failed-probe.log" 2>&1; then exit 1; fi
+cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
+# Common tools use the same byte admission as selected tools: version text alone
+# cannot admit modified executables or receipts, nor trigger a repair install.
+common_slot="$consumer/.tools/rust/cargo-sort-99.1.0-bin-cargo-sort-release/installed"
+for file in bin/cargo-sort .crates2.json selection.json; do
+    cp "$common_slot/$file" "$fixture/good-common-file"
+    printf '\nchanged\n' >> "$common_slot/$file"
+    for mode in install check; do
+        extra=(); [[ "$mode" != check ]] || extra=(--check)
+        if bash "$installer" "${args[@]}" ${extra[@]+"${extra[@]}"} > "$fixture/common-corrupt.log" 2>&1; then exit 1; fi
+        cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
+    done
+    cp "$fixture/good-common-file" "$common_slot/$file"
+done
+printf 'SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=latest\n' >> "$fixture/versions.env"
+if bash "$installer" "${args[@]}" > "$fixture/invalid.log" 2>&1; then exit 1; fi
+cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/expected-log"
+printf 'SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=99.3.0\n' >> "$fixture/versions.env"
+# A new set never replaces the active PATH on a partial failure. Retry reuses
+# the completed slot, retains the failed attempt, and switches the complete set.
+old_set="$(readlink "$consumer/.tools/rust/common")"
+cp "$fixture/versions.env" "$fixture/next-versions.env"
+printf 'SHARED_TOOLING_CARGO_SORT_VERSION=99.1.1\nSHARED_TOOLING_CARGO_SORT_DERIVES_VERSION=99.2.1\n' >> "$fixture/next-versions.env"
+status=0
+RUST_TOOL_INSTALL_FAIL=cargo-sort-derives bash "$installer" --consumer "$consumer" --versions "$fixture/next-versions.env" > "$fixture/failed-install.log" 2>&1 || status=$?
+[[ "$status" == 23 && "$(readlink "$consumer/.tools/rust/common")" == "$old_set" ]] || exit 1
+[[ -x "$consumer/.tools/rust/cargo-sort-99.1.1-bin-cargo-sort-release/installed/bin/cargo-sort" ]] || exit 1
+[[ "$(find "$consumer/.tools/rust/build" -name evidence | wc -l | tr -d ' ')" == 1 ]] || exit 1
+bash "$installer" "${args[@]}" --check > /dev/null
+bash "$installer" --consumer "$consumer" --versions "$fixture/next-versions.env" > "$fixture/retry.log"
+bash "$installer" --consumer "$consumer" --versions "$fixture/next-versions.env" --check > "$fixture/retry-check.log"
+[[ "$(readlink "$consumer/.tools/rust/common")" != "$old_set" && -d "$consumer/.tools/rust/$old_set" ]] || exit 1
+[[ "$(find "$consumer/.tools/rust/build" -name evidence | wc -l | tr -d ' ')" == 1 ]] || exit 1
+# Switch back explicitly for remaining checks; all slots are reused.
+bash "$installer" "${args[@]}" > /dev/null
+mkdir "$consumer/.tools/rust/common.lock"
+cp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-lock"
+for mode in install check; do
+    extra=(); [[ "$mode" != check ]] || extra=(--check)
+    if bash "$installer" "${args[@]}" ${extra[@]+"${extra[@]}"} > "$fixture/common-locked.log" 2>&1; then exit 1; fi
+    cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-lock"
+done
+rmdir "$consumer/.tools/rust/common.lock"
+# Never follow a redirected common projection, even if it contains valid tools.
+active="$(readlink "$consumer/.tools/rust/common")"
+rm "$consumer/.tools/rust/common"
+ln -s "$consumer/.tools/rust/$active" "$consumer/.tools/rust/common"
+if bash "$installer" "${args[@]}" > "$fixture/redirected-common.log" 2>&1; then exit 1; fi
+cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/before-lock"
+rm "$consumer/.tools/rust/common"
+ln -s "$active" "$consumer/.tools/rust/common"
+# Hold the actual common upgrade open at Cargo; another setup/check cannot
+# enter, and no partial common selection becomes visible.
+cp "$fixture/versions.env" "$fixture/concurrent-versions.env"
+printf 'SHARED_TOOLING_CARGO_SORT_VERSION=99.1.2\n' >> "$fixture/concurrent-versions.env"
+mkdir "$fixture/common-pause"
+SELECTED_PAUSE="$fixture/common-pause" bash "$installer" --consumer "$consumer" \
+    --versions "$fixture/concurrent-versions.env" > "$fixture/common-first.log" 2>&1 &
+first=$!
+for ((attempt=0; attempt<200; attempt++)); do
+    [[ ! -e "$fixture/common-pause/started" ]] || break
+    sleep 0.1
+done
+[[ -e "$fixture/common-pause/started" && "$(readlink "$consumer/.tools/rust/common")" == "$active" ]] || exit 1
+cp "$RUST_TOOL_FIXTURE_LOG" "$fixture/common-before-contention"
+if bash "$installer" "${args[@]}" > "$fixture/common-second.log" 2>&1; then exit 1; fi
+cmp "$RUST_TOOL_FIXTURE_LOG" "$fixture/common-before-contention"
+touch "$fixture/common-pause/continue"
+wait "$first"
+bash "$installer" "${args[@]}" > /dev/null
+ln -s "$consumer" "$fixture/consumer-alias"
+bash "$installer" --consumer "$fixture/consumer-alias" --versions "$fixture/versions.env" --check > "$fixture/alias-path"
+cmp "$fixture/install-path" "$fixture/alias-path"
+echo 'Common Cargo slots, atomic PATH selection, offline checks and retained evidence passed (substitute Cargo)'
+
 mkdir "$fixture/selected"
 selected_args=(--consumer "$fixture/selected" --package sample --version 1.2.3 --example prepare --profile debug)
 slot="$fixture/selected/.tools/rust/sample-1.2.3-example-prepare-debug"

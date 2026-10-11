@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`db143ae9ae140eb66826c413360723d23c078f66`](https://github.com/dragginzgame/shared-tooling/tree/db143ae9ae140eb66826c413360723d23c078f66) (0.3.11),
+[`a306180ce534227fcb98b882fba9a526d5d747e0`](https://github.com/dragginzgame/shared-tooling/tree/a306180ce534227fcb98b882fba9a526d5d747e0) (0.5.0),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/db143ae9ae140eb66826c413360723d23c078f66/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a306180ce534227fcb98b882fba9a526d5d747e0/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -35,7 +35,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 78 shared files. Its governance selection keeps the linked
+The snapshot contains 81 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -199,7 +199,7 @@ examples and the Governance probe share that graph. Verify it with
 `cargo metadata --locked --offline --format-version 1` after preparation.
 Release cache fetching preserves the prepared selection.
 After source/notes admission and successful fetching, standard preflight runs
-`make install-format-tools` followed by offline `make format-tools-check`.
+`make install-rust-tools` followed by offline `make format-tools-check`.
 Standalone preflight also keeps selected setup offline. Preparation reuses valid
 installations and fails before validation if setup or admission fails. Saved
 source-bound recovery bypasses both setup and fetching against interrupted inputs.
@@ -233,22 +233,19 @@ and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
 
-`make install-format-tools` installs only cargo-sort 2.1.4 from
-`ci/tool-versions.env`; `make install-tools` includes that target through the
-ordered product extension list. Development setup finishes host-tool preparation before dispatching formatter
-setup, including under parallel Make. CI admits the required host tools before
-the formatter's receipt check invokes jq.
-It uses the shared selected-package installer with `--bin cargo-sort` and the
-release profile, under `.tools/rust/cargo-sort-2.1.4-bin-cargo-sort-release/installed/`.
-Formatter commands require that exact installation's receipt and bytes before
-version probes; common-bundle and global copies cannot satisfy admission.
-Previous installations and failed candidates remain available for inspection.
-Narrow release preflight selects only cargo-sort. Common setup also prepares
-cargo-sort-derives and candid-extractor; Cargo Audit and Cargo Machete keep their
+`make install-rust-tools` prepares pinned cargo-sort, cargo-sort-derives and
+candid-extractor from `ci/tool-versions.env` through the shared exact-slot
+installer. The complete set is activated under `.tools/rust/common/bin` only
+after all three pass receipt, byte and version admission. `make install-tools`
+prepares host tools first, including under parallel Make. Formatter commands
+check that common selection before probing the exact cargo-sort pin and rustfmt;
+global copies cannot substitute for missing slots. Old installations, previous
+common selections and failed candidates remain available for inspection.
+Narrow release preflight prepares this same common set. Cargo Audit and Cargo Machete keep their
 pinned global Cargo installs. Their owner targets are `install-dependency-tools`
 and offline `dependency-tools-check`. The retired `install-dev` aggregate has no
 replacement alias; callers use `make install-tools`, then `make tools-check`.
-`make format-tools-check` checks that exact installation, pin and prepared rustfmt offline.
+`make format-tools-check` checks the common installation, formatter pin and prepared rustfmt offline.
 Both `fmt` and `fmt-check` require it, then sort/check the one Cargo workspace
 before formatting/checking Rust. They never install missing tools. The complete
 CI/release gate admits the selected formatter before expensive checks and retains

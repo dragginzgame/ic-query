@@ -80,9 +80,9 @@ case "$operation" in
         exit "$status"
       fi
       if [[ "$prepare_cache" == 1 ]]; then
-        make --no-print-directory install-format-tools
+        make --no-print-directory install-rust-tools
       else
-        CARGO_NET_OFFLINE=true make --no-print-directory install-format-tools
+        CARGO_NET_OFFLINE=true make --no-print-directory install-rust-tools
       fi
       observed_source="$(git rev-parse HEAD)" || exit $?
       [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'

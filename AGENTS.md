@@ -25,7 +25,7 @@ If code or habit conflicts with this file, this file wins.
   checking, dependency-pin and documentation-link checking, isolated RustSec
   preparation, formatter prerequisites, local tool setup, LOC reporting,
   exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `db143ae9ae140eb66826c413360723d23c078f66`; the selected
+  Shared Tooling at reviewed revision `a306180ce534227fcb98b882fba9a526d5d747e0`; the selected
   immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
   tooling adoption does not upgrade the engineering baseline reference above.
   Apply the runner contract in `docs/releases.md` and local adapters described
@@ -39,14 +39,18 @@ If code or habit conflicts with this file, this file wins.
   registry/Git access, and standard release/deployment preparation fetches the
   selected lock before offline validation. Explicit caller offline settings
   remain authoritative; the agent-run release prohibition below still applies.
-  Selected executable-tool preparation uses `make install-format-tools` and
+  Common executable-tool preparation uses `make install-rust-tools` and
   offline `make format-tools-check` after coherent release admission. Complete
   delivery validation remains subject to the local Testing authority below.
-  Complete local setup adopts the 0.3.7 ordered host, IC and Cargo aggregates;
+  Complete local setup adopts the 0.5.0 ordered host, IC and Cargo aggregates;
   read-only IC-platform and Rust-toolchain preflight runs before downloads.
-  Query's selected formatter and dependency tools extend the local target lists.
+  Query's formatter admission and dependency tools extend the local target lists.
   Ordinary offline checks never install tools. Narrow release preflight remains
   limited to its admitted dependency-cache and formatter preparation.
+  Host and IC payloads use the canonical per-user store and checkout references;
+  Cargo-built tools remain local. Setup, checks and evidence collection use the
+  same `SHARED_TOOLING_STORE` selection. Previous bundles and failed attempts
+  remain retained; this adoption does not authorize reclamation.
   Snapshot refresh and verification adopt the directory-path admission in
   `docs/consuming-snapshots.md`: refuse LF/CR in supplied and resolved paths,
   preserving existing artifacts until an explicitly selected rename.
@@ -99,6 +103,10 @@ If code or habit conflicts with this file, this file wins.
 - Breaking public API or semantic changes require a minor release before 1.0.
   Do not fit an incompatible change into an assigned patch release; schema-1
   hard cuts do not waive release selection or consumer retirement obligations.
+- Classify changes at Query's published consumer boundary. Contributor-only
+  tooling, CI, formatting and PATH changes use patch notes when public APIs,
+  product behavior and supported consumer build requirements remain unchanged;
+  an upstream tooling minor does not automatically require a Query minor.
 - Before `1.0.0`, every current emitted or persisted schema version must remain
   `1`, including report, cache, sidecar, and lock schemas. Breaking shape
   changes replace the version-1 contract in place; do not increment a schema

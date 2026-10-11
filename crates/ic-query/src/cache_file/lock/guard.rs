@@ -45,8 +45,17 @@ impl RefreshLockGuard {
         Ok(self)
     }
 
-    pub(super) fn release(self) -> Result<(), CacheFileError> {
-        self.release_with_sync(ConfinedManagedPath::sync_parent)
+    pub(super) fn finish<T, E>(
+        self,
+        result: Result<T, E>,
+        cache_error: impl FnOnce(CacheFileError) -> E,
+    ) -> Result<T, E> {
+        // Keep an action failure primary; Drop handles its best-effort cleanup.
+        if result.is_ok() {
+            self.release_with_sync(ConfinedManagedPath::sync_parent)
+                .map_err(cache_error)?;
+        }
+        result
     }
 
     fn release_with_sync(

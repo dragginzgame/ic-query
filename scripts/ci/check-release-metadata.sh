@@ -19,6 +19,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 
 # Reuse history and a real index. A synthetic source tree models validated

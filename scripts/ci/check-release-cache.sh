@@ -16,6 +16,9 @@ finish() {
   exit "$status"
 }
 trap finish EXIT
+work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="${work_dir%/.}"
+export TMPDIR="${work_dir%/*}"
 fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,ci,scripts/ci,scripts/dev,scripts/release} "$work_dir/bin"
 cd "$work_dir/repository"
@@ -138,7 +141,7 @@ cat > scripts/dev/install-rust-tools.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
-expected="--consumer $PWD --package cargo-sort --version 2.1.4 --bin cargo-sort --profile release"
+expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   printf 'formatter check\n' >> "$TRACE_FILE"
   [[ -f selected-formatter && "${FIXTURE_FORMAT_CHECK_FAILURE:-}" != yes ]] || exit 51
