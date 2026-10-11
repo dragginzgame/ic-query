@@ -37,7 +37,10 @@ qualified by this matrix.
   Cargo-sort 2.1.4, cargo-sort-derives and candid-extractor use the shared exact-slot
   installer and `.tools/rust/common/bin`; Cargo Audit and Cargo Machete retain
   their global Cargo destinations. `make install-rust-tools` prepares the common
-  selection. Offline `make format-tools-check` admits its receipts and bytes before version probes;
+  selection. Dependency setup skips an already matching Audit/Machete only
+  after a successful offline exact-version probe; failed or mismatched probes
+  still invoke the pinned installation.
+  Offline `make format-tools-check` admits its receipts and bytes before version probes;
   global or optional-bundle copies cannot substitute for a missing selection.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
   the complete CI/release gate includes that offline check and
@@ -1291,6 +1294,22 @@ Rust retention fixture is aligned with the current slot invocation in this sourc
 No full consumer CI or native macOS execution ran locally. Matching native
 consumer qualification remains required after delivery; package version, real
 index, release refs and retained installations are unchanged by this adoption.
+
+The subsequent local Audit/Machete setup correction is based on the maintainer's
+source commit `03f8c7a5`, with the same package version and 0.54.6 draft.
+`/tmp/ic-query-idempotent-audit-path` identifies retained evidence. Two complete
+real `make install-tools` runs pass offline with a Cargo recorder refusing any
+installation: zero Cargo install dispatch and no force-overwrite advice
+(`real-{first,second}.log`, `real-reuse.log`). Existing Audit/Machete binaries,
+Cargo metadata/lock, immutable snapshot and real index retain their hashes.
+Consumer aggregate/extension fixtures pass on modern Bash/Make and genuine Bash
+3.2.57/Make 3.81, including missing tools, exact reuse, mismatched versions,
+failed matching probes and both installation failure boundaries
+(`consumer-{modern,portable}.log`). ShellCheck, both syntax profiles, changelog
+admission, local links and whitespace checks pass (`static.log`). Shared
+ownership is requested in [#123](https://github.com/dragginzgame/shared-tooling/issues/123).
+No full CI, native macOS execution, package version edit, staging or release
+effect ran for this consumer correction.
 
 ## Pending 0.54.5 Shared 0.3.11 qualification
 

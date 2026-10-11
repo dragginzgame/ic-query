@@ -23,6 +23,9 @@ crate follows [Semantic Versioning](https://semver.org/).
   CI retains referenced shared bundles and local Rust builds and receipts.
   Local evidence survives refused shared-store collection.
   [#44](https://github.com/dragginzgame/ic-query/issues/44).
+- Repeated tool setup skips matching Cargo Audit and Cargo Machete installations,
+  avoiding Cargo's unnecessary force-overwrite advice.
+  [Shared #123](https://github.com/dragginzgame/shared-tooling/issues/123).
 
 ## [0.54.5] - 2026-10-11
 

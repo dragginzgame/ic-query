@@ -622,17 +622,24 @@ set -euo pipefail
 [[ "$*" == --version && "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
 tool="${0##*/cargo-}"
 printf '%s check\n' "$tool" >> "$TRACE_FILE"
+[[ "${FIXTURE_TOOL_STATE:-prepared}" != missing ]] || exit 127
 [[ "$tool" != "${FAIL_FAMILY:-}" ]] || exit 75
-if [[ "$tool" == audit ]]; then echo "cargo-audit ${FIXTURE_AUDIT_VERSION:-8.7.6}";
-else echo "${FIXTURE_MACHETE_VERSION:-7.6.5}"; fi
+if [[ "$tool" == audit ]]; then
+  echo "cargo-audit ${FIXTURE_AUDIT_VERSION:-8.7.6}"
+  exit "${FIXTURE_AUDIT_STATUS:-0}"
+else
+  echo "${FIXTURE_MACHETE_VERSION:-7.6.5}"
+  exit "${FIXTURE_MACHETE_STATUS:-0}"
+fi
 EOF
 done
 chmod +x "$tools_case/bin/"*
 for mode in install check; do
   : > "$tools_case/trace"
-  if [[ "$mode" == install ]]; then target=install-tools; suffix='';
-  else target=tools-check; suffix=' --check'; fi
+  if [[ "$mode" == install ]]; then target=install-tools; suffix=''; tool_state=missing;
+  else target=tools-check; suffix=' --check'; tool_state=prepared; fi
   PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+    FIXTURE_TOOL_STATE="$tool_state" \
     MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
@@ -646,8 +653,8 @@ for mode in install check; do
     "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" \
     "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" >> "$tools_case/expected"
   if [[ "$mode" == install ]]; then
-    printf '%s\n' 'cargo install --locked cargo-audit --version 8.7.6' \
-      'cargo install --locked cargo-machete --version 7.6.5' >> "$tools_case/expected"
+    printf '%s\n' 'audit check' 'cargo install --locked cargo-audit --version 8.7.6' \
+      'machete check' 'cargo install --locked cargo-machete --version 7.6.5' >> "$tools_case/expected"
   else
     printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --check" \
       'cargo sort --version' 'cargo fmt --version' 'audit check' 'machete check' >> "$tools_case/expected"
@@ -658,18 +665,48 @@ for mode in install check; do
   for family in host ic rust audit machete; do
   : > "$tools_case/trace"
   if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY="$family" \
+    FIXTURE_TOOL_STATE="$tool_state" \
     MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null 2>&1; then
     fail "tool setup/check accepted a $family failure"
   fi
-  awk -v family="$family" '{ print; if ($NF != "--preflight" && ($1 == family || ($1 == "cargo" && $4 == "cargo-" family))) exit }' \
+  awk -v family="$family" -v mode="$mode" '{
+    print
+    if ($NF != "--preflight" && ($1 == family || ($1 == "cargo" && $4 == "cargo-" family))) {
+      if (mode == "install" && ($1 == "audit" || $1 == "machete")) next
+      exit
+    }
+  }' \
     "$tools_case/expected" > "$tools_case/expected-failure"
   cmp "$tools_case/expected-failure" "$tools_case/trace" \
     || fail "tool setup/check continued after a failed $family command"
   done
 done
+
+for setup_case in prepared audit-version machete-version audit-probe machete-probe; do
+  : > "$tools_case/trace"
+  audit_version=8.7.6; machete_version=7.6.5; audit_status=0; machete_status=0
+  case "$setup_case" in
+    audit-version) audit_version=8.7.5 ;;
+    machete-version) machete_version=7.6.4 ;;
+    audit-probe) audit_status=75 ;;
+    machete-probe) machete_status=75 ;;
+  esac
+  PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" \
+    FIXTURE_AUDIT_VERSION="$audit_version" FIXTURE_MACHETE_VERSION="$machete_version" \
+    FIXTURE_AUDIT_STATUS="$audit_status" FIXTURE_MACHETE_STATUS="$machete_status" \
+    "$make_bin" --no-print-directory -C "$tools_case" install-dependency-tools \
+      CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$setup_case.log" 2>&1
+  printf 'audit check\n' > "$tools_case/expected-setup"
+  case "$setup_case" in audit-*) printf 'cargo install --locked cargo-audit --version 8.7.6\n' >> "$tools_case/expected-setup" ;; esac
+  printf 'machete check\n' >> "$tools_case/expected-setup"
+  case "$setup_case" in machete-*) printf 'cargo install --locked cargo-machete --version 7.6.5\n' >> "$tools_case/expected-setup" ;; esac
+  cmp "$tools_case/expected-setup" "$tools_case/trace" \
+    || fail "dependency tool setup mishandled $setup_case admission"
+done
+echo 'Dependency setup skips matching versions and installs missing, mismatched or failed probes'
 
 for family in ic rust; do
   : > "$tools_case/trace"

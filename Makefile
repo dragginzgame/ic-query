@@ -196,8 +196,14 @@ format-installation-check:
 		--versions "$(RUST_TOOL_VERSIONS)" --check > /dev/null
 
 install-dependency-tools:
-	+cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION)
-	+cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION)
+	+@if observed="$$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo-audit --version 2>/dev/null)" && \
+		test "$$observed" = "cargo-audit $(CARGO_AUDIT_VERSION)"; then \
+		printf 'Cargo Audit $(CARGO_AUDIT_VERSION) is already prepared\n'; \
+	else cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION); fi
+	+@if observed="$$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo-machete --version 2>/dev/null)" && \
+		test "$$observed" = "$(CARGO_MACHETE_VERSION)"; then \
+		printf 'Cargo Machete $(CARGO_MACHETE_VERSION) is already prepared\n'; \
+	else cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION); fi
 
 dependency-tools-check: export CARGO_NET_OFFLINE := true
 dependency-tools-check: export RUSTUP_AUTO_INSTALL := 0
