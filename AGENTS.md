@@ -1,81 +1,35 @@
 # AGENTS.md
 
 This file is normative for automated coding agents working in this repository.
-If code or habit conflicts with this file, this file wins.
+Apply the shared baseline and the explicit local exceptions below; code and habit
+do not override them.
 
-## Shared Baseline And Local Overlay
+## Shared baseline and local overlay
 
-- Adopt the [Shared Tooling engineering baseline](https://github.com/dragginzgame/shared-tooling/blob/5a65686d1da9e039b22b3e17694ea083d82cfa9e/AGENTS.md)
-  at reviewed revision `5a65686d1da9e039b22b3e17694ea083d82cfa9e`.
-  This file is the local overlay; a moving sibling checkout is not inherited
-  automatically. Review a new revision before changing this reference.
-- Retain these standing maintainer instructions as scoped exceptions:
-  numbered changelog drafts use the explicitly selected version or the next
-  patch, rather than an undecided `Draft`; repository-owned public-metadata
-  schemas remain `1` and breaking shapes use the hard-cut policy below, rather
-  than retaining a frozen older discriminator. The reasons are one numbered
-  release ledger and one current pre-1.0 metadata contract without migrations.
-  These exceptions do not authorize deleting caller-owned evidence or ignoring
-  external consumers; identify required explicit resets and coordinated updates.
-- Product authority, cache/network identities, supported features, numeric
-  limits, formatting, and exact validation/release commands remain local.
-  The stricter prohibition on agent-run release effects below remains in force.
-- Read-only workspace version checking, release execution and lockfile
-  transformation, publication tag and registry
-  checking, dependency-pin and documentation-link checking, isolated RustSec
-  preparation, formatter prerequisites, local tool setup, LOC reporting,
-  exact-commit CI inspection and the standard Rust workspace layout adopt
-  Shared Tooling at reviewed revision `4fd979d13c32adb3cb2f51f213ebfc4f98339b3d`; the selected
-  immutable helpers are recorded in `.shared-tooling.snapshot`. This scoped
-  tooling adoption does not upgrade the engineering baseline reference above.
-  Apply the runner contract in `docs/releases.md` and local adapters described
-  in `docs/release-workflow.md`, and dependency rules in
-  `rules/dependency-pinning.md` with local setup in `docs/local-setup.md`,
-  `docs/ic-tools.md`, registry observation and local link checks in
-  `docs/verification-helpers.md`,
-  and the consumer host matrix in `docs/supported-hosts.md`.
-  Dependency preparation adopts the Cargo network policy in
-  `rules/cargo-dependencies.md`: authorized dependency updates include their
-  registry/Git access, and standard release/deployment preparation fetches the
-  selected lock before offline validation. Explicit caller offline settings
-  remain authoritative; the agent-run release prohibition below still applies.
-  Common executable-tool preparation uses `make install-rust-tools` and
-  offline `make format-tools-check` after coherent release admission. Complete
-  delivery validation remains subject to the local Testing authority below.
-  Complete local setup adopts the 0.6.3 ordered host, IC and Cargo aggregates;
-  read-only IC-platform and Rust-toolchain preflight runs before downloads.
-  Query's formatter admission and dependency tools extend the local target lists.
-  Ordinary offline checks never install tools. Narrow release preflight remains
-  limited to its admitted dependency-cache and formatter preparation.
-  Host, IC and Cargo payloads use the canonical per-user store and checkout references.
-  Cargo tool builds use the prepared consumer compiler and shared standard build
-  environment; application flags and configuration remain local. Audit/Machete
-  extensions use the shared installer and execute its returned checked paths.
-  Setup, checks and evidence collection use the
-  same `SHARED_TOOLING_STORE` selection. Previous bundles and failed attempts
-  remain retained; this adoption does not authorize reclamation.
-  Snapshot refresh and verification adopt the directory-path admission in
-  `docs/consuming-snapshots.md`: refuse LF/CR in supplied and resolved paths,
-  preserving existing artifacts until an explicitly selected rename.
-  `DRAGGINZGAME.md` and linked snapshot guides accompany those contracts;
-  they do not silently replace the explicitly
-  pinned engineering baseline or activate unrelated hook/tooling adoption.
-  The linked `tasks/` catalog and local schedule templates are available offline;
-  their adoption does not activate scheduled execution. Consumer release tests
-  select the simulation-only `scripts/ci/test-release-runner.sh`; native tracking,
-  PR and owner metadata fixtures remain outside that selection.
-  The root virtual workspace and packages under `crates/` follow
-  `rules/rust-workspaces.md`; `docs/supported-hosts.md` remains the consumer-owned
-  host matrix rather than a shared snapshot file.
-- Routine CI adopts the reviewed 0.3.7 newest-run policy: a stable workflow/ref
-  concurrency group cancels superseded queued and running checks. Retain the
-  required host matrix on the newest run; cancelled jobs leave their source
-  unqualified on unfinished hosts. Release effects keep their separate boundary.
-- Contribution and PR authority adopts `rules/contributions.md` and the
-  corresponding Scope and authorization guidance at that same reviewed revision.
-  This scoped adoption replaces the older baseline's blanket agent-commit ban;
-  the engineering baseline remains separately pinned. The local prohibition on
-  agent-run release effects below remains stricter than the shared release rule.
+Apply the local [engineering baseline](DRAGGINZGAME.md) first.
+[.shared-tooling.snapshot](.shared-tooling.snapshot) owns its reviewed revision
+and selected tooling identities; this overlay no longer inherits the historical
+upstream AGENTS.md as a separate policy baseline.
+
+Preserve these standing maintainer exceptions and their local scope:
+
+- Release execution, version bumps and release refs remain maintainer-only,
+  as described below; contribution PR authority is separate.
+- Focused development checks run automatically; broad gates require an explicit
+  request or configured CI under Testing. This retains Query’s selected validation
+  cadence rather than silently activating the common full-delivery gate.
+- The Changelog section retains Query’s requested/active-release note cadence,
+  selected-or-next-patch default and CLI examples, for one explicit release ledger.
+- Public-metadata schemas remain `1`, with breaking shapes replaced through
+  the local hard-cut contract. Identify explicit resets and coordinate consumers;
+  no exception authorizes deleting caller evidence or ignoring external obligations.
+
+Tool setup and local extension targets follow [local setup](docs/local-setup.md);
+release adapters follow [the local release workflow](docs/release-workflow.md).
+Consumer release fixtures select only `scripts/ci/test-release-runner.sh` with
+simulated Git effects; native tracking, PR and owner-metadata fixtures are not
+selected. The local [host matrix](docs/supported-hosts.md) owns qualification.
+Policy adoption does not activate hooks, schedules, installers or release commands.
 
 ## Session Handoff
 
@@ -237,32 +191,14 @@ If code or habit conflicts with this file, this file wins.
   text is the contract.
 - Report which checks passed and which checks were not run.
 
-## Tooling And Feedback
+## Tooling, feedback and host support
 
-- Keep wrappers small and effects explicit. Use the maintained implementation
-  language for substantial tooling; do not add new Python tooling. Existing
-  consumer tools are not permission to introduce another implementation.
-- Keep CI/release shared tools as reviewed snapshots, never symlinks or mutable
-  sibling dependencies. Fix shared tooling upstream only when authorized; do
-  not patch a vendored copy in place.
-- Apply the [shared repair and owning-repository feedback workflow](rules/agent-maintenance.md)
-  and the Scope and authorization / Feedback and handoff sections in
-  `DRAGGINZGAME.md` from the reviewed snapshot above. This scoped adoption carries
-  the maintainer's standing issue-reporting authorization and replaces the local
-  workflow duplication; the separately pinned engineering baseline and local
-  release boundaries remain authoritative for other obligations.
-
-## Host Support
-
-- Preserve required macOS support for dependency setup, native tools, builds,
-  tests, CI, and release tooling. Declare macOS versions, architectures, and
-  prerequisites in a local host matrix; isolate GNU/BSD and process differences
-  at their owning boundary. Portable scripts target Bash 3.2 unless an explicit
-  support-matrix decision changes that requirement.
-- Qualify affected workflows through native CI or recorded native execution.
-  Linux passes and installer branches do not qualify macOS. Report missing
-  host coverage and portability failures as gaps without weakening the support
-  requirement or claiming unexecuted checks passed.
+Use the adopted [maintenance and feedback rules](rules/agent-maintenance.md),
+[shared setup](docs/local-setup.md) and [host matrix](docs/supported-hosts.md).
+Keep ordinary checks offline and installation explicit; authorised dependency
+preparation follows [Cargo network policy](rules/cargo-dependencies.md#cargo-network-policy).
+The snapshot owns shared tooling; never patch its exports in place. Native host
+qualification remains distinct from source review or Linux-only evidence.
 
 ## Security And Network
 
