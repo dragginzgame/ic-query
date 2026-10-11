@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`34e5ad7aac3599306c9572bb547f2239d09df1a3`](https://github.com/dragginzgame/shared-tooling/tree/34e5ad7aac3599306c9572bb547f2239d09df1a3) (0.3.7),
+[`db143ae9ae140eb66826c413360723d23c078f66`](https://github.com/dragginzgame/shared-tooling/tree/db143ae9ae140eb66826c413360723d23c078f66) (0.3.11),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/34e5ad7aac3599306c9572bb547f2239d09df1a3/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/db143ae9ae140eb66826c413360723d23c078f66/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -35,7 +35,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 77 shared files. Its governance selection keeps the linked
+The snapshot contains 78 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.

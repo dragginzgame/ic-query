@@ -29,7 +29,7 @@ printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "${IC_QUERY_RELEASE_PREPARE_CACHE:-}" == 1 ]]
+[[ "${IC_QUERY_RELEASE_PREPARE_CACHE:-}" == 1 ]] || exit 1
 printf '%s\n' "$*" >> "$TRACE_FILE"
 exit "${FIXTURE_RUNNER_RESULT:-0}"
 STUB
@@ -115,13 +115,13 @@ STUB
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 printf '%s\n' "$*" >> "$TRACE_FILE"
 case "$*" in
-  'sort --version') [[ -f selected-formatter ]]; echo cargo-sort 2.1.4; exit ;;
+  'sort --version') [[ -f selected-formatter ]] || exit 1; echo cargo-sort 2.1.4; exit ;;
   'fmt --version') echo rustfmt; exit ;;
 esac
-[[ "$*" == 'fetch --locked' || "$*" == 'fetch --locked --offline' ]]
+[[ "$*" == 'fetch --locked' || "$*" == 'fetch --locked --offline' ]] || exit 1
 if [[ ! -e prepared-cache ]]; then
   if [[ "$*" == *--offline || "${CARGO_NET_OFFLINE:-}" == true ]]; then
     echo 'fixture missing dependency: offline request refused' >&2
@@ -137,13 +137,13 @@ STUB
 cat > scripts/dev/install-rust-tools.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 expected="--consumer $PWD --package cargo-sort --version 2.1.4 --bin cargo-sort --profile release"
 if [[ "$*" == "$expected --check" ]]; then
   printf 'formatter check\n' >> "$TRACE_FILE"
   [[ -f selected-formatter && "${FIXTURE_FORMAT_CHECK_FAILURE:-}" != yes ]] || exit 51
 else
-  [[ "$*" == "$expected" ]]
+  [[ "$*" == "$expected" ]] || exit 1
   if [[ -f selected-formatter ]]; then
     printf 'formatter reuse\n' >> "$TRACE_FILE"
   else

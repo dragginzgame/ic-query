@@ -45,9 +45,9 @@ PROBE
       echo "$owner $mode returned $status, expected $expected" >&2; exit 1;
     }
     if [[ "$mode" == success ]]; then
-      [[ ! -e "$selected" ]]
+      [[ ! -e "$selected" ]] || exit 1
     else
-      [[ "$(cat "$selected/payload")" == 'retained evidence' ]]
+      [[ "$(cat "$selected/payload")" == 'retained evidence' ]] || exit 1
     fi
   done
 done

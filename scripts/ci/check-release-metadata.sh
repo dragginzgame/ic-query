@@ -34,7 +34,7 @@ cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
-[[ "$*" == 'metadata --locked --offline --no-deps --format-version 1' ]]
+[[ "$*" == 'metadata --locked --offline --no-deps --format-version 1' ]] || exit 1
 printf '{}\n'
 STUB
 chmod +x "$work_dir/bin/cargo"
@@ -110,12 +110,12 @@ for attempt in first second; do
   fi
   failed_logs=(.git/release-state/"$RELEASE_VERSION".verify.*/validation-failures/*-0-ci.log)
   if [[ "$attempt" == first ]]; then
-    [[ "${#failed_logs[@]}" == 1 ]]
+    [[ "${#failed_logs[@]}" == 1 ]] || exit 1
     first_log="${failed_logs[0]}"
     cp "$first_log" "$work_dir/first-retained.log"
   fi
 done
-[[ "${#failed_logs[@]}" == 2 ]]
+[[ "${#failed_logs[@]}" == 2 ]] || exit 1
 grep -Fq release-gate-failure-marker "$first_log" \
   || fail 'validation logger did not run the fixture gate'
 cmp "$first_log" "$work_dir/first-retained.log"

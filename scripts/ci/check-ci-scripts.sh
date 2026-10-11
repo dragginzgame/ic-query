@@ -22,6 +22,98 @@ fail() {
   exit 1
 }
 
+check_completion_assertions() {
+  local fixture="$work_dir/completion-assertions" fault status
+  local completion_directories payloads payload_file
+  mkdir -p "$fixture/bin" "$fixture/repository/scripts/ci"
+  cp "$repo_root/scripts/ci/"*.sh "$fixture/repository/scripts/ci/"
+  cat > "$fixture/bin/cat" <<'STUB'
+#!/usr/bin/env bash
+if [[ "$COMPLETION_ASSERTION_FAULT" == payload && $# == 1 && "$1" == */payload ]]; then
+  printf 'contradictory evidence\n'
+else
+  exec "$COMPLETION_REAL_CAT" "$@"
+fi
+STUB
+  cat > "$fixture/bin/rm" <<'STUB'
+#!/usr/bin/env bash
+if [[ "$COMPLETION_ASSERTION_FAULT" == cleanup && "${COMPLETION_MODE:-}" == success ]]; then
+  exit 0
+fi
+exec "$COMPLETION_REAL_RM" "$@"
+STUB
+  chmod +x "$fixture/bin/"{cat,rm}
+  printf 'retained evidence\n' > "$fixture/expected-payload"
+  for fault in payload cleanup; do
+    mkdir -p "$fixture/$fault"
+    status=0
+    COMPLETION_ASSERTION_FAULT="$fault" COMPLETION_REAL_CAT="$(command -v cat)" \
+      COMPLETION_REAL_RM="$(command -v rm)" PATH="$fixture/bin:$PATH" \
+      TMPDIR="$fixture/$fault" "$BASH" \
+      "$fixture/repository/scripts/ci/test-fixture-completion.sh" \
+      > "$fixture/$fault.log" 2>&1 || status=$?
+    [[ "$status" == 1 ]] || fail "completion checker accepted contradictory $fault evidence"
+    completion_directories=("$fixture/$fault/"ic-query-fixture-completion.*)
+    [[ "${#completion_directories[@]}" == 1 && -d "${completion_directories[0]}" ]] \
+      || fail "completion checker discarded $fault refusal diagnostics"
+    payloads=("${completion_directories[0]}/attempts/"*/payload)
+    [[ -f "${payloads[0]}" ]] || fail "completion checker discarded $fault payload"
+    for payload_file in "${payloads[@]}"; do
+      cmp "$fixture/expected-payload" "$payload_file" \
+        || fail "completion checker changed original $fault payload bytes"
+    done
+  done
+  echo 'Completion checker rejects contradictory payload and cleanup observations'
+}
+
+check_completion_assertions
+
+check_release_assertions() {
+  local fixture="$work_dir/release-assertions" status=0 release_directories
+  mkdir -p "$fixture/bin" "$fixture/attempts"
+  # Reuse actual fixture setup and assertions, without its unrelated test cases.
+  awk '
+    /^for observation in / { found=1; exit }
+    /^repo_root=/ { print "repo_root=\"$RELEASE_ASSERTION_ROOT\""; next }
+    /^bash "\$repo_root\/scripts\/ci\// { next }
+    { print }
+    END { if (!found) exit 1 }
+  ' "$repo_root/scripts/ci/check-release-guards.sh" > "$fixture/probe.sh"
+  cat >> "$fixture/probe.sh" <<'PROBE'
+new_fixture assertion-phase patch
+run_release patch
+check_complete
+fixture_complete=true
+PROBE
+  cat > "$fixture/bin/tail" <<'STUB'
+#!/usr/bin/env bash
+if [[ $# == 3 && "$1" == -n && "$2" == 1 && "$3" == .release-state/*.plan ]]; then
+  "$RELEASE_ASSERTION_REAL_TAIL" "$@" >> "$RELEASE_ASSERTION_OBSERVATIONS"
+  printf 'contradictory phase\n'
+else
+  exec "$RELEASE_ASSERTION_REAL_TAIL" "$@"
+fi
+STUB
+  chmod +x "$fixture/bin/tail"
+  RELEASE_ASSERTION_ROOT="$repo_root" RELEASE_ASSERTION_REAL_TAIL="$(command -v tail)" \
+    RELEASE_ASSERTION_OBSERVATIONS="$fixture/observations" \
+    TMPDIR="$fixture/attempts" PATH="$fixture/bin:$PATH" "$BASH" "$fixture/probe.sh" \
+    > "$fixture/refusal.log" 2>&1 || status=$?
+  [[ "$status" == 1 ]] || fail 'release fixture accepted contradictory plan-phase evidence'
+  release_directories=("$fixture/attempts/"ic-query-release-guards.*)
+  [[ "${#release_directories[@]}" == 1 && -d "${release_directories[0]}" ]] \
+    || fail 'release fixture discarded assertion-refusal diagnostics'
+  printf 'complete\n' > "$fixture/expected-observation"
+  cmp "$fixture/expected-observation" "$fixture/observations" \
+    || fail 'release assertion probe changed the actual completion phase'
+  cmp <(printf 'retained artifact\n') \
+    "${release_directories[0]}/assertion-phase/target/original-artifact" \
+    || fail 'release fixture changed prior artifact bytes after refusal'
+  echo 'Release fixture rejects contradictory plan-phase observations'
+}
+
+check_release_assertions
+
 copy_makefile() {
   mkdir -p "$1/make" "$1/scripts/ci"
   cp "$repo_root/Makefile" "$1/Makefile"
@@ -529,7 +621,7 @@ for tool in audit machete; do
   cat > "$tools_case/bin/cargo-$tool" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$*" == --version && "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+[[ "$*" == --version && "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
 tool="${0##*/cargo-}"
 printf '%s check\n' "$tool" >> "$TRACE_FILE"
 [[ "$tool" != "${FAIL_FAMILY:-}" ]] || exit 75
@@ -660,7 +752,7 @@ printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/too
 cat > "$format_case/scripts/dev/install-rust-tools.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$*" == "--consumer $PWD --package cargo-sort --version 9.8.7 --bin cargo-sort --profile release --check" ]]
+[[ "$*" == "--consumer $PWD --package cargo-sort --version 9.8.7 --bin cargo-sort --profile release --check" ]] || exit 1
 EOF
 cat > "$format_case/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
@@ -770,8 +862,8 @@ cat > "$format_case/bin/cargo" <<'CARGO'
 set -euo pipefail
 case "$1" in
   install)
-    [[ -f host-setup-ready ]]
-    [[ "$2" == cargo-sort ]]
+    [[ -f host-setup-ready ]] || exit 1
+    [[ "$2" == cargo-sort ]] || exit 1
     [[ $# == 13 && "$3" == --version && "$4" == =9.8.7 && "$5" == --locked &&
        "$6" == --root && "$8" == --target-dir && "$9" == "$7/build" &&
        "${10}" == --bin && "${11}" == cargo-sort && "${12}" == --registry &&
@@ -782,7 +874,7 @@ case "$1" in
     cat > "$7/bin/cargo-sort" <<'SORT'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+[[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
 printf 'sort %s\n' "$*" >> "$TRACE_FILE"
 if [[ "$*" == --version ]]; then echo 'cargo-sort 9.8.7';
 else [[ "$*" == '--workspace --check' ]]; fi
@@ -793,7 +885,7 @@ SORT
     ;;
   sort) shift; exec cargo-sort "$@" ;;
   fmt)
-    [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]]
+    [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
     printf '%s\n' "$*" >> "$TRACE_FILE"
     if [[ "$*" == 'fmt --version' ]]; then echo rustfmt;
     else [[ "$*" == 'fmt --all -- --check' ]]; fi
@@ -843,7 +935,7 @@ if FIXTURE_SORT_INSTALL_FAIL=yes run_formatter_make -j4 install-format-tools > "
 fi
 printf '%s\n' 'formatter setup 9.8.7' > "$format_case/expected-failure"
 cmp "$format_case/expected-failure" "$format_case/trace" || fail 'setup continued after formatter failure'
-[[ ! -e "$slot/installed" && ! -e "$slot/install.lock" ]]
+[[ ! -e "$slot/installed" && ! -e "$slot/install.lock" ]] || exit 1
 grep -Fq 'Cargo tool attempt retained:' "$format_case/setup-failure.log"
 cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
 cmp "$format_case/global-before" "$format_case/bin/cargo-sort"

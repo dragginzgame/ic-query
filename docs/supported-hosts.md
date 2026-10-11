@@ -1163,6 +1163,118 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.5 Shared 0.3.11 qualification
+
+Canonical refresh now selects Shared 0.3.11
+`db143ae9ae140eb66826c413360723d23c078f66`. It corrects the source-version
+annotation from the preceding export while all 78 selected file bytes remain
+identical to the prior qualified working-tree snapshot. The producer-only
+validation-runner fixture separates each diagnostic family beyond neighboring
+context windows so one error cannot conceal a missing classifier rule.
+That unmodified exact-source fixture passes on Linux Bash 5/Make 4.3 and genuine
+Bash 3.2.57/Make 3.81. Prior selected-payload qualification below remains applicable;
+the fixture is still outside Query's selection.
+
+Evidence: `/tmp/ic-query-shared0311-review-path` identifies the clean exact-source
+checkout; `/tmp/ic-query-0545-shared0311-{refresh,payloads,validation-modern,validation-portable,static}.log`
+records canonical export, unchanged payloads, focused diagnostics and static
+checks. Snapshot integrity, selected fixture ShellCheck/Bash 3.2 syntax,
+current-version changelog admission, local links and whitespace checks pass.
+Package manifest, incoming lock, real index and consumer-owned fixture hashes
+match `/tmp/ic-query-0545-shared0311-inputs-before`.
+
+The adopted source's [CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38121526696)
+is in progress at inspection. The preceding source's native jobs were cancelled
+by the newer run and do not establish native acceptance. Released Query 0.54.4's
+CI remains green; pending-source native macOS acceptance and delivery remain
+required. No Rust compilation, full local CI, release/version bump, commit, tag
+or push ran for this refresh.
+
+## Earlier pending 0.54.5 Shared snapshot qualification
+
+On released Query 0.54.4 `6fa935e1a0e3fe6cc1dbcee8c1b5f04777b196f1`,
+canonical refresh selects committed Shared revision
+`37af29b2f8fb4532744b600c5f85ce716a8b57cf`, retaining the same 78 files
+and separate engineering baseline. The source includes its 0.3.10 changelog
+fixes but committed `VERSION` remains 0.3.9; the exporter preserves that value
+([Shared #114](https://github.com/dragginzgame/shared-tooling/issues/114)).
+Source and refresh evidence: `/tmp/ic-query-shared0310-review.30MjBL/source`
+and `/tmp/ic-query-0545-shared0310-refresh.log`.
+
+Focused checks pass on Linux Bash 5/Make 4.3 and genuine Bash 3.2.57/Make 3.81:
+selected Rust-tool fixtures (substitute Cargo), exact-source validation-runner,
+release-command and host-tool fixtures, complete consumer CI-script fixtures,
+and actual parallel offline `make -j4 tools-check`. Evidence:
+`/tmp/ic-query-0545-shared-{rust,validation,release,host,consumer,tools}-{modern,portable}.log`.
+The actual consumer release-command checker also passes with both caller-relative
+and symlink-alias `TMPDIR`, with complete successful cleanup under the selected
+physical parent. Dispatch uses a substitute runner and performs no release
+effects. Evidence: `/tmp/ic-query-0545-shared-consumer-release-{modern,portable}-{relative-temp,temp-alias}.log`.
+
+Selected ShellCheck, Bash 3.2 syntax, snapshot integrity, current-version
+changelog admission, local links and whitespace checks pass. Package manifest,
+incoming Host 0.12.9 lock selection and real index hashes remain identical to
+`/tmp/ic-query-0545-shared-adoption-inputs-before`. These fixture checks do not
+qualify the incoming dependency update. No Rust compilation, full local CI,
+release/version bump or Git delivery effect ran.
+
+Released 0.54.4's [CI](https://github.com/dragginzgame/ic-query/actions/runs/38066714998)
+now passes all nine Linux, Intel macOS and Apple Silicon macOS jobs. That source
+does not qualify this uncommitted batch. The exact adopted Shared source's
+[CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38120869060)
+passes Linux portable regression and lint/security at inspection; both native
+macOS jobs remain in progress. Native consumer delivery and acceptance remain
+required. Query retains its existing formatting policy and does not select or
+activate the shared hook or derive-formatting hook fixture.
+
+## Pending 0.54.5 completion-assertion qualification
+
+On released 0.54.4 `6fa935e1a0e3fe6cc1dbcee8c1b5f04777b196f1`, the
+consumer completion checker now explicitly fails retained-payload and cleanup
+comparisons. Its existing child-status and completion/retention contracts remain.
+Behavioral regressions use disposable copies of the actual checker with substitute
+payload reads and skipped successful cleanup; all original payload bytes stay
+unchanged. Only owner setup/EXIT-handler prefixes execute before the refusal.
+[Query #42](https://github.com/dragginzgame/ic-query/issues/42).
+
+The new maintained regression catches the released checker accepting wrong
+payload observations on genuine Bash 3.2.57. With only the payload assertion
+fixed in a disposable copy, it separately catches failed cleanup being accepted.
+Evidence: `/tmp/ic-query-0545-before-portable.log`,
+`/tmp/ic-query-0545-before-cleanup-portable.log` and
+`/tmp/ic-query-0545-cleanup-before/`; failed attempts remain retained.
+The repaired checker and complete consumer CI-script fixtures pass on Linux
+Bash 5/Make 4.3 and genuine Bash 3.2.57/Make 3.81, including both refusal cases,
+54 normal owner/status cases and the eight documentation-parser unit tests.
+Evidence: `/tmp/ic-query-0545-ci-{modern,portable}.log`.
+
+The subsequent issue follow-through extends explicit assertion failure across
+consumer CI-script, release/recovery, cache-preparation, metadata and publication
+fixtures, including their generated stubs. Intentional command predicates retain
+their status contracts. A further maintained regression runs the actual release
+fixture setup and completion assertions with a contradictory plan-phase read;
+the real simulated plan stays complete. The old fixture accepts it on Bash 3.2;
+the repaired fixture refuses with status 1 and retains prior artifacts.
+Before-repair evidence: `/tmp/ic-query-0545-release-assertions-before.sh`,
+`/tmp/ic-query-0545-release-assertions-before-portable.log` and the failed parent
+`/tmp/ic-query-ci-scripts.zRrYeh`. Complete affected CI-script, release/recovery
+(including cache and real-Git metadata) and publication suites pass on both
+Bash/Make profiles. Final evidence:
+`/tmp/ic-query-0545-assertions-{ci-scripts,release-guards,publish-guards}-{modern,portable}.log`.
+
+ShellCheck, Bash 3.2 syntax, snapshot integrity, current-version changelog
+admission, local links and whitespace checks pass. The initial checker batch
+preserved its recorded inputs in `/tmp/ic-query-0545-inputs-before`. This
+follow-through preserves the later incoming lockfile update; package manifest,
+incoming lockfile, real Git index and Shared snapshot hashes match
+`/tmp/ic-query-0545-assertions-inputs-before`. Fixture-only checks do not qualify
+that dependency update.
+No full local CI, Rust compilation, release/version bump or Git delivery effect
+ran; delivery and native macOS acceptance remain outstanding. Released 0.54.4's
+[CI](https://github.com/dragginzgame/ic-query/actions/runs/38066714998) passes its
+three Linux jobs and Apple Silicon canister job, with five macOS jobs queued at
+the latest inspection; that source does not qualify the uncommitted 0.54.5 repair.
+
 ## Pending 0.54.4 release-guard qualification
 
 The consumer release adapter now admits selected-increment and both preflight

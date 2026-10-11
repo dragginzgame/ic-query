@@ -38,7 +38,7 @@ case "${1:-}" in
     if [[ "${package}" == "ic-query" && -n "${HIDE_LIBRARY_INFO:-}" ]]; then
       exit 1
     fi
-    [[ -e "${STATE_DIR}/${package}" ]]
+    [[ -e "${STATE_DIR}/${package}" ]] || exit 1
     ;;
   publish)
     package=""

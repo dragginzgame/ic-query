@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.5]
+
+- Adopts Shared Tooling 0.3.11: Cargo tool setup consistently
+  uses the selected consumer's toolchain context, validation retains the same
+  diagnostics it reports live, and release-command fixtures support relative
+  temporary paths. [#39](https://github.com/dragginzgame/ic-query/issues/39).
+- Fixture completion checks reject contradictory retained payloads and failed
+  cleanup on Bash 3.2, preserving refusal diagnostics and evidence.
+  [#42](https://github.com/dragginzgame/ic-query/issues/42).
+- Consumer CI, release/recovery and publication fixtures explicitly fail
+  mandatory comparisons, including contradictory release-plan observations.
+  [#42](https://github.com/dragginzgame/ic-query/issues/42).
+
 ## [0.54.4] - 2026-10-10
 
 - Release preparation stops when version or source observations fail, even if

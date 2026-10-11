@@ -73,11 +73,11 @@ case "$1" in
         fi ;;
       *'^{tree}') name="${!#}"; name="$(resolve "${name%\^\{tree\}}")"; cat "commits/$name/tree" ;;
       refs/tags/*'^{commit}') name="${!#}"; cat "tags/${name#refs/tags/}" ;;
-      refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]]; echo "$tag_sha" ;;
+      refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]] || exit 1; echo "$tag_sha" ;;
       *) exit 2 ;;
     esac ;;
   status)
-    [[ "$*" == 'status --porcelain=v1 -z --untracked-files=all' ]]
+    [[ "$*" == 'status --porcelain=v1 -z --untracked-files=all' ]] || exit 1
     if [[ "${FIXTURE_STATUS_FAIL:-}" == yes ]]; then
       echo 'fixture Git status observation failed' >&2
       exit 9
@@ -124,17 +124,17 @@ case "$1" in
     case "$2" in
       --list) if [[ -f "tags/$3^{commit}" ]]; then printf '%s\n' "$3"; fi ;;
       -a)
-        [[ "$#" == 6 && -f "commits/$4/parent" && "$5" == -m && "$6" == "Release ${3#v}" ]]
+        [[ "$#" == 6 && -f "commits/$4/parent" && "$5" == -m && "$6" == "Release ${3#v}" ]] || exit 1
         mkdir -p tags
         printf '%s\n' "$4" > "tags/$3^{commit}"
         printf '%s\n' "${3#v}" > tag
         echo tag >> events ;;
       *) exit 2 ;;
     esac ;;
-  cat-file) [[ -f tag ]]; echo tag ;;
+  cat-file) [[ -f tag ]] || exit 1; echo tag ;;
   ls-remote)
     [[ "${FIXTURE_REMOTE_FAIL:-}" != yes ]] || exit 47
-    [[ "$2" == --refs && "$3" == -- && "$4" == https://example.invalid/ic-query ]]
+    [[ "$2" == --refs && "$3" == -- && "$4" == https://example.invalid/ic-query ]] || exit 1
     for ref in "$@"; do
       case "$ref" in
         refs/heads/main) if [[ -f remote-head ]]; then printf '%s\t%s\n' "$(cat remote-head)" "$ref"; fi ;;
@@ -144,13 +144,13 @@ case "$1" in
   add)
     [[ "$#" == 8 && "$2" == -- && "$3" == Cargo.toml && "$4" == Cargo.lock && "$5" == README.md \
       && "$6" == docs/library-usage.md && "$7" == CHANGELOG.md \
-      && "$8" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]]
+      && "$8" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]] || exit 1
     mkdir -p index
     cp Cargo.toml Cargo.lock README.md CHANGELOG.md index/
     cp -R docs index/
     echo stage >> events ;;
   commit)
-    [[ "$#" == 3 && "$2" == -m && "$3" == "Release $(cat candidate)" ]]
+    [[ "$#" == 3 && "$2" == -m && "$3" == "Release $(cat candidate)" ]] || exit 1
     if [[ -d "commits/$release_sha" ]]; then
       release_sha="$(printf '%s\n' "$3" "$(cat head)" | "$REAL_GIT" hash-object --stdin)"
     fi
@@ -163,7 +163,7 @@ case "$1" in
   push)
     [[ "$#" == 7 && "$2" == --no-follow-tags && "$3" == --atomic && "$4" == -- \
       && "$5" == https://example.invalid/ic-query && "$6" == *:refs/heads/main \
-      && "$7" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]]
+      && "$7" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]] || exit 1
     push_head="$(resolve "${6%:refs/heads/main}")"
     if [[ -f remote-head ]]; then ancestor "$(cat remote-head)" "$push_head"; fi
     printf '%s %s\n' "$push_head" "$(cat tag)" >> pushes
@@ -189,8 +189,8 @@ printf 'cargo %s\n' "$*" >> events
 case "$*" in
   'fetch --locked'|'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
   'sort --version'|'fmt --version')
-    [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true && "${RUSTUP_AUTO_INSTALL:-}" == 0 ]]
-    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+    [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true && "${RUSTUP_AUTO_INSTALL:-}" == 0 ]] || exit 1
+    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
     if [[ "$1" == sort ]]; then
       . ci/tool-versions.env
       printf 'cargo-sort %s\n' "$SHARED_TOOLING_CARGO_SORT_VERSION"
@@ -205,15 +205,15 @@ STUB
 cat > "$work_dir/install-rust-tools.sh" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
+[[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 . ci/tool-versions.env
 expected="--consumer $PWD --package cargo-sort --version $SHARED_TOOLING_CARGO_SORT_VERSION --bin cargo-sort --profile release"
 if [[ "$*" == "$expected --check" ]]; then
   echo 'formatter check' >> events
-  [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true ]]
+  [[ -f selected-formatter && "${CARGO_NET_OFFLINE:-}" == true ]] || exit 1
   [[ "${FIXTURE_FORMAT_CHECK_FAILURE:-}" != yes ]] || exit 51
 else
-  [[ "$*" == "$expected" ]]
+  [[ "$*" == "$expected" ]] || exit 1
   echo 'formatter setup' >> events
   [[ "${FIXTURE_FORMAT_SETUP_FAILURE:-}" != yes ]] || exit 49
   : > selected-formatter
@@ -228,9 +228,9 @@ for argument in "$@"; do
   if [[ "$argument" == ci ]]; then
     echo validate >> events
     printf 'retained build output\n' > target/retained-output
-    [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]]
-    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]]
-    [[ -f selected-formatter ]]
+    [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]] || exit 1
+    [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
+    [[ -f selected-formatter ]] || exit 1
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
     exit
   fi
@@ -306,10 +306,10 @@ check_complete() {
   local candidate minor expected_lock
   candidate="$(cat candidate)"
   minor="${candidate%.*}"
-  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$candidate" && "$(cat tag)" == "$candidate" ]]
-  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]]
-  [[ "$(tail -n 1 ".release-state/$candidate.plan")" == complete && ! -e .release-state/lock ]]
-  [[ -f target/original-artifact && -f target/retained-output ]]
+  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$candidate" && "$(cat tag)" == "$candidate" ]] || exit 1
+  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]] || exit 1
+  [[ "$(tail -n 1 ".release-state/$candidate.plan")" == complete && ! -e .release-state/lock ]] || exit 1
+  [[ -f target/original-artifact && -f target/retained-output ]] || exit 1
   grep -Fxq "## [$candidate] - $(date -u +%F)" CHANGELOG.md
   grep -Fxq "## $candidate - $(date -u +%F)" "docs/changelog/$minor.md"
   grep -Fq -- "- \`0.46.5\` historical release." CHANGELOG.md
@@ -354,9 +354,9 @@ check_old_evidence() {
   cmp original-plan reconciled-plan
   cmp original-binding .release-state/0.47.0.validation
   if [[ -f original-tag ]]; then cmp original-tag 'tags/v0.47.0^{commit}'; fi
-  [[ "$(cat 'tags/v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]]
+  [[ "$(cat 'tags/v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]] || exit 1
   diff -r original-evidence .release-state/0.47.0.verify.*
-  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]]
+  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]] || exit 1
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
 for observation in increment-files increment-preflight source-initial source-prepared; do
@@ -403,7 +403,7 @@ STUB
   else
     [[ ! -e events && ! -e selected-formatter ]] || fail "$observation reached preparation"
   fi
-  case "$observation" in increment-*) [[ ! -e .release-state ]] ;; esac
+  case "$observation" in increment-*) [[ ! -e .release-state ]] || exit 1 ;; esac
 done
 
 new_fixture unsupported-delivery patch
@@ -444,41 +444,41 @@ for next_kind in patch minor major resume; do
     cp Cargo.lock original-lock
     if [[ "$next_kind" == resume ]]; then
       run_release resume 0.47.0 || { cat output; fail 'descendant exact resume'; }
-      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.47.0 && "$(count_event validate)" == 1 ]]
-      [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]]
-      [[ ! -e .release-state/0.47.1.plan ]]
+      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.47.0 && "$(count_event validate)" == 1 ]] || exit 1
+      [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]] || exit 1
+      [[ ! -e .release-state/0.47.1.plan ]] || exit 1
     else
       run_release "$next_kind" || { cat output; fail 'descendant ordinary increment'; }
-      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]]
-      [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
-      [[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]]
+      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]] || exit 1
+      [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
+      [[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]] || exit 1
       sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
       cmp expected-lock Cargo.lock
       next_evidence="$(cat ".release-state/$(cat candidate).validation")"
-      [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]]
+      [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
       bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
     fi
     check_old_evidence
     if [[ "$outcome" == before-push ]]; then
-      [[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]]
+      [[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]] || exit 1
     elif [[ "$next_kind" == resume ]]; then
-      [[ "$(count_event push)" == 1 ]]
+      [[ "$(count_event push)" == 1 ]] || exit 1
     else
-      [[ "$(count_event push)" == 2 ]]
+      [[ "$(count_event push)" == 2 ]] || exit 1
     fi
-    [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]]
+    [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]] || exit 1
   done
 done
 for target in release-committed-check release-tagged-check; do
   new_fixture "descendant-late-$target" minor
   FIXTURE_FAIL_TARGET="$target" expect_failure minor
-  [[ "$(count_event commit)" == 1 && "$(count_event push)" == 0 ]]
+  [[ "$(count_event commit)" == 1 && "$(count_event push)" == 0 ]] || exit 1
   save_old_evidence
   commit_fix patch
   run_release patch || { cat output; fail 'historical late callback retry'; }
   check_old_evidence
-  [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
-  [[ "$(cat tag)" == 0.47.1 && "$(tail -n 1 .release-state/0.47.1.plan)" == complete ]]
+  [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
+  [[ "$(cat tag)" == 0.47.1 && "$(tail -n 1 .release-state/0.47.1.plan)" == complete ]] || exit 1
 done
 new_fixture descendant-gate-retry minor
 FIXTURE_BEFORE_PUSH=yes expect_failure minor
@@ -486,12 +486,12 @@ save_old_evidence
 commit_fix patch
 FIXTURE_GATE_FAILURE=yes expect_failure patch
 check_old_evidence
-[[ "$(count_event commit)" == 1 && ! -e .release-state/0.47.1.plan ]]
+[[ "$(count_event commit)" == 1 && ! -e .release-state/0.47.1.plan ]] || exit 1
 failed_next_evidence=(.release-state/0.47.1.verify.*)
 cp "${failed_next_evidence[0]}/validation.log" failed-next-log
 run_release patch || { cat output; fail 'descendant new gate retry'; }
 cmp failed-next-log "${failed_next_evidence[0]}/validation.log"
-[[ "$(count_event validate)" == 3 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]]
+[[ "$(count_event validate)" == 3 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
 check_old_evidence
 new_fixture descendant-remote-tip minor
 FIXTURE_BEFORE_PUSH=yes expect_failure minor
@@ -499,8 +499,8 @@ save_old_evidence
 commit_fix patch
 cp head remote-head
 run_release resume 0.47.0 || { cat output; fail 'confirmed remote descendant'; }
-[[ "$(cat remote-head)" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]]
-[[ "$(sed -n '2p' pushes)" == 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee 0.47.0' ]]
+[[ "$(cat remote-head)" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
+[[ "$(sed -n '2p' pushes)" == 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee 0.47.0' ]] || exit 1
 check_old_evidence
 for output in empty partial; do
   new_fixture "inventory-$output" patch
@@ -509,8 +509,8 @@ for output in empty partial; do
   else
     FIXTURE_INVENTORY_FAIL=yes expect_failure patch
   fi
-  [[ "$(count_event commit)" == 1 && ! -e tag && ! -e remote-head ]]
-  [[ "$(tail -n 1 .release-state/0.46.6.plan)" == commit ]]
+  [[ "$(count_event commit)" == 1 && ! -e tag && ! -e remote-head ]] || exit 1
+  [[ "$(tail -n 1 .release-state/0.46.6.plan)" == commit ]] || exit 1
   run_release patch || { cat output; fail 'inventory recovery'; }
   check_complete
 done
@@ -530,8 +530,8 @@ for conflict in payload history tag destination remote-unavailable remote-diverg
   esac
   expect_failure patch
   cmp saved-plan .release-state/0.47.0.plan
-  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]]
-  [[ "$(count_event validate)" == 1 && ! -e .release-state/0.47.1.plan ]]
+  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]] || exit 1
+  [[ "$(count_event validate)" == 1 && ! -e .release-state/0.47.1.plan ]] || exit 1
   unset FIXTURE_DESTINATION FIXTURE_REMOTE_FAIL FIXTURE_INVENTORY_FAIL
 done
 for notes in root detail; do
@@ -543,7 +543,7 @@ for notes in root detail; do
   expect_failure patch
   cmp conflicting-notes "$notes_path"
   cmp original-lock Cargo.lock
-  [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]]
+  [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]] || exit 1
 done
 for failure in gate missing-dependency formatter-setup formatter-check dirty staged untracked unusual observation; do
   new_fixture "failure-$failure" patch
@@ -558,17 +558,17 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
     unusual) FIXTURE_UNTRACKED=$'caller-owned\nfile.txt' expect_failure patch ;;
     observation) FIXTURE_STATUS_FAIL=yes expect_failure patch ;;
   esac
-  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.46.5 && ! -e tag && ! -e remote-head ]]
+  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.46.5 && ! -e tag && ! -e remote-head ]] || exit 1
   cmp original-lock Cargo.lock
-  [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]]
+  [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]] || exit 1
   case "$failure" in
     formatter-setup|formatter-check)
-      [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]]
+      [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]] || exit 1
       printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
       if [[ "$failure" == formatter-check ]]; then echo 'formatter check' >> expected; fi
       cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
-      [[ ! -e events && ! -e .release-state/0.46.6.validation ]]
+      [[ ! -e events && ! -e .release-state/0.46.6.validation ]] || exit 1
       grep -Fq 'this attempt has not started validation or version preparation' output
       case "$failure" in
         dirty) grep -Fq 'unstaged: Cargo.lock' output ;;
@@ -587,7 +587,7 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
     failed_logs=(.release-state/0.46.6.verify.*/validation.log)
     [[ -f "${failed_logs[0]}" ]] || fail 'failed gate log was discarded'
     run_release patch || { cat output; fail 'fresh gate retry'; }
-    [[ -f "${failed_logs[0]}" && "$(count_event validate)" == 2 ]]
+    [[ -f "${failed_logs[0]}" && "$(count_event validate)" == 2 ]] || exit 1
     check_complete
   fi
 done
@@ -602,7 +602,7 @@ for conflict in payload dependency identity retained-inputs unrelated; do
     unrelated) export FIXTURE_CHANGED_PATH=src/unrelated.rs ;;
   esac
   expect_failure patch
-  [[ ! -e tag && ! -e remote-head && -f target/retained-output ]]
+  [[ ! -e tag && ! -e remote-head && -f target/retained-output ]] || exit 1
   unset FIXTURE_CHANGED_PATH
 done
 echo 'IC Query release adapter fixtures passed'
@@ -639,7 +639,7 @@ PATH="$fixture_native_path" "$REAL_GIT" clone --quiet --shared --no-checkout "$r
   printf '  untracked: %q\n' "$unusual" > "$work_dir/source-expected"
   grep -Fx -f "$work_dir/source-expected" "$work_dir/source-output" > /dev/null
   cmp .git/index "$work_dir/source-index"
-  [[ "$(cat "$unusual")" == 'caller evidence' ]]
+  [[ "$(cat "$unusual")" == 'caller evidence' ]] || exit 1
 )
 echo 'IC Query real-Git source diagnostics and preservation fixtures passed'
 
