@@ -20,8 +20,9 @@ version checking and release mechanics,
 lockfile transformation, publication tag and registry checking, dependency-pin
 and documentation-link checking, isolated RustSec preparation, repository-local
 tool setup, formatter prerequisites, LOC reporting, exact-commit CI inspection
-and the standard virtual-root Rust workspace layout. The engineering baseline
-remains the separate revision pinned in `AGENTS.md`.
+and the standard virtual-root Rust workspace layout. The same snapshot owns the
+local `DRAGGINZGAME.md` engineering baseline; `AGENTS.md` identifies its explicit
+Query exceptions, including maintainer-only releases and focused-check authority.
 Update shared files through the upstream snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
