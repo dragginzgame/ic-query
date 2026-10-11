@@ -1048,22 +1048,22 @@ case "${1:-}" in
     printf 'audit\n' >> "${TRACE_FILE}"
     [[ -z "${FAIL_AUDIT:-}" ]] || exit 52
     ;;
-  machete)
-    shift
-    [[ "${CARGO_NET_OFFLINE:-}" == true ]] || exit 65
-    [[ "$*" == "--with-metadata" ]] || exit 65
-    printf 'machete\n' >> "${TRACE_FILE}"
-    ;;
   *)
     exit 66
     ;;
 esac
 EOF
-cp "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
+cat > "${dependency_check_case}/bin/selected machete" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${CARGO+x}" != x && "${CARGO_NET_OFFLINE:-}" == true && $# == 1 && "$1" == --with-metadata ]] || exit 65
+printf 'machete\n' >> "${TRACE_FILE}"
+[[ -z "${FAIL_MACHETE:-}" ]] || exit 57
+EOF
 chmod +x "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
 TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
-  TRACE_FILE="${dependency_check_case}/trace" \
+  TRACE_FILE="${dependency_check_case}/trace" CARGO=fixture-cargo \
   bash "${repo_root}/scripts/ci/check-dependencies.sh" \
     "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete" >/dev/null
 printf '%s\n' fetch audit machete > "${dependency_check_case}/expected-trace"
@@ -1092,6 +1092,21 @@ audit_evidence=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rusts
   || fail "the failed audit discarded its selected database identity"
 
 : > "${dependency_check_case}/trace"
+dependency_check_status=0
+TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
+  EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
+  TRACE_FILE="${dependency_check_case}/trace" FAIL_MACHETE=1 \
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" \
+    "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete" \
+    > "${dependency_check_case}/machete-failure.log" 2>&1 || dependency_check_status=$?
+[[ "$dependency_check_status" == 57 ]] || fail 'dependency check hid the selected Machete failure'
+printf '%s\n' fetch audit machete > "${dependency_check_case}/expected-trace"
+cmp "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
+  || fail 'dependency check changed Audit/Machete execution order'
+audit_evidence=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rustsec/revision)
+[[ "${#audit_evidence[@]}" == 2 ]] || fail 'failed Machete discarded its database identity'
+
+: > "${dependency_check_case}/trace"
 if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
   TRACE_FILE="${dependency_check_case}/trace" FAIL_FETCH=1 \
@@ -1107,7 +1122,7 @@ printf '%s\n' fetch > "${dependency_check_case}/expected-trace"
 cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check continued after a failed database fetch"
 preparation_logs=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rustsec/prepare.log)
-[[ "${#preparation_logs[@]}" == 2 ]] || fail "the failed fetch discarded its preparation log"
+[[ "${#preparation_logs[@]}" == 3 ]] || fail "the failed fetch discarded its preparation log"
 for log in "${preparation_logs[@]}"; do
   grep -Fq 'fixture clone diagnostic' "$log" || fail "the retained preparation log lost its diagnostic"
 done

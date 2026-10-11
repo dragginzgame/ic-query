@@ -37,5 +37,7 @@ bash "$repo_root/scripts/ci/prepare-rustsec-db.sh" online \
   --ignore RUSTSEC-2021-0127 \
   --ignore RUSTSEC-2024-0436
 
-CARGO_NET_OFFLINE=true "$machete" machete --with-metadata
+# Machete uses CARGO to select Cargo-subcommand argument parsing.
+unset CARGO
+CARGO_NET_OFFLINE=true "$machete" --with-metadata
 fixture_complete=true

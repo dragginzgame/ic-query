@@ -13,6 +13,8 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Audit and Machete setup, checks and execution use the shared Cargo owner,
   removing local installation/probe recipes and avoiding repeated Cargo installs.
   [Shared #123](https://github.com/dragginzgame/shared-tooling/issues/123).
+- Direct Machete execution passes its metadata option without an extra Cargo
+  subcommand token, fixing dependency validation during release checks.
 - CI retains local and referenced shared Cargo evidence, including safe local
   evidence when store admission fails, through one shared selection contract.
   [Shared #121](https://github.com/dragginzgame/shared-tooling/issues/121).

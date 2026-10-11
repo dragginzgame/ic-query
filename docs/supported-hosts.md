@@ -1224,6 +1224,23 @@ No full workspace CI, native macOS execution, live canister smoke, release gate,
 package version change, staging, commit, tag, push or CI dispatch ran for this
 adoption.
 
+The subsequent release dependency failure is repaired on source commit
+`4baa9801` within the same pending 0.54.7 slice. Direct Machete execution now
+passes only `--with-metadata` and clears its inherited Cargo launcher marker.
+The separate Audit/Machete fixtures verify tool-specific arguments, original
+failure status and retained advisory-database identity. A plain external call
+preserves Machete's status on Bash 3.2; initial failing subshell attempts remain
+retained. Real `make dependency-check` passes on Linux modern tools and genuine
+Bash 3.2.57/Make 3.81, including an inherited real Cargo path. Consumer fixtures
+pass on both profiles. Evidence: `/tmp/ic-query-machete-0547-fix/`, especially
+`real-dependency-check.log`, `real-dependency-cargo-path.log`,
+`consumer-{modern,portable}-direct.log` and `static-final.log`. The deliberately
+invalid Cargo-marker checks retain their Audit registry warning; the final real
+Cargo-path check has no such warning. The incoming Host 0.13.3 lock, manifest,
+shared snapshot and real index retain their captured hashes. No remote workflow
+run matches that local source at inspection; native macOS and full-gate acceptance
+remain outstanding. Original release-failure logs are preserved.
+
 ## Pending 0.54.6 cleanup qualification
 
 Released 0.54.5's explicitly authorized tag `workflow_dispatch`
