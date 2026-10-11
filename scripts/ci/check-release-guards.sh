@@ -435,6 +435,66 @@ run_release patch || { cat output; fail 'prepared Query payload retry'; }
 check_complete
 cmp saved-lock Cargo.lock
 [[ "$(count_event validate)" == 1 ]] || fail 'prepared Query payload required new validation'
+
+# A committed fix supersedes old validation for the same unprepared candidate.
+new_fixture committed-preparation-restart patch
+FIXTURE_FAIL_TARGET=release-prepare-version expect_failure patch
+old_candidate="$(cat candidate)"
+old_evidence="$(cat ".release-state/$old_candidate.validation")"
+cp ".release-state/$old_candidate.validation" saved-binding
+cp ".release-state/$old_candidate.plan" saved-plan
+cp -R "$old_evidence" saved-evidence
+printf 'Reviewed preparation fix\n' >> README.md
+fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+mkdir -p "commits/$fix/files"
+cp head "commits/$fix/parent"
+cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$fix/files/"
+cp -R docs "commits/$fix/files/"
+printf '%s\n' "$fix" > 'head'
+for conflict in selections dirty; do
+  cp "$old_evidence/identity" saved-identity
+  if [[ "$conflict" == selections ]]; then
+    sed '8s/main/other/' saved-identity > "$old_evidence/identity"
+  else
+    export FIXTURE_DIRTY=yes
+  fi
+  if RELEASE_KIND=patch RELEASE_PREVIOUS=0.46.5 RELEASE_VERSION="$old_candidate" \
+    RELEASE_DATE="$(date -u +%F)" RELEASE_SOURCE="$fix" RELEASE_REMOTE=origin \
+    RELEASE_BRANCH=main bash scripts/release/adapter.sh preflight > output 2>&1; then
+    fail 'conflicting superseded receipt admitted'
+  fi
+  cmp saved-binding ".release-state/$old_candidate.validation"
+  [[ "$(count_event validate)" == 1 ]] || fail 'conflicting receipt dispatched validation'
+  cp saved-identity "$old_evidence/identity"
+  unset FIXTURE_DIRTY
+done
+FIXTURE_GATE_FAILURE=yes expect_failure patch
+set -- .release-state/"$old_candidate".validation-attempt.*/"$old_candidate".validation
+[[ $# == 1 && -f "$1" ]] || fail 'superseded validation pointer not retained'
+archived_binding="$1"
+cmp saved-binding "$archived_binding"
+set -- .release-state/"$old_candidate".attempt.*/"$old_candidate".plan
+[[ $# == 1 && -f "$1" ]] || fail 'superseded preparation intent not retained'
+cmp saved-plan "$1"
+diff -r saved-evidence "$old_evidence"
+[[ ! -e ".release-state/$old_candidate.validation" && "$(count_event stage)" == 0 ]] \
+  || fail 'failed revalidation admitted old evidence or staged metadata'
+failed_evidence=(.release-state/"$old_candidate".verify.*/validation.log)
+[[ ${#failed_evidence[@]} == 2 ]] || fail 'revalidation evidence missing'
+for log in "${failed_evidence[@]}"; do
+  [[ "$log" == "$old_evidence/validation.log" ]] || failed_log="$log"
+done
+cp "$failed_log" failed-revalidation
+run_release patch || { cat output; fail 'committed preparation restart'; }
+check_complete
+[[ "$(count_event validate)" == 3 ]] || fail 'committed source did not receive fresh validation'
+new_evidence="$(cat ".release-state/$old_candidate.validation")"
+[[ "$new_evidence" != "$old_evidence" && "$(sed -n '6p' "$new_evidence/identity")" == "$fix" ]] \
+  || fail 'fresh receipt did not bind the new source'
+cmp saved-binding "$archived_binding"
+diff -r saved-evidence "$old_evidence"
+cmp failed-revalidation "$failed_log"
+
 for next_kind in patch minor major resume; do
   for outcome in before-push lost-reply; do
     new_fixture "descendant-$next_kind-$outcome" minor

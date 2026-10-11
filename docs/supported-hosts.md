@@ -1173,6 +1173,44 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.9 Shared 0.6.3 and Host 0.14 qualification
+
+Based on released Query `1f6ab7eff5d1d527749412d42f0e7b9ad4b9da98`,
+canonical refresh selects the same 82 files from Shared 0.6.3
+`4fd979d13c32adb3cb2f51f213ebfc4f98339b3d`. The engineering baseline stays
+separate. Incoming Host 0.14.0 manifests/lock and the real index are preserved;
+published archives match their lock checksums and identify
+`4723befe8d65c760c00e05c42652759d691fbd5e`.
+
+`/tmp/ic-query-upstream0549-path` identifies the pinned source, canonical
+preview/refresh and retained logs. Explicit locked fetching and offline metadata
+pass. All 27 Governance smoke fixtures and 58 cache-file tests pass under
+locked/offline validation (`host-smoke-tests.log`, `host-cache-tests.log`). The
+initial required-status compilation failure is retained in
+`host-command-initial.log`; the fixture assertion now uses the current Host API.
+There was no live canister execution. Shared runner and local adapter simulations
+pass on modern Bash/Make and genuine Bash 3.2.57/Make 3.81
+(`consumer-{modern,portable}.log`). Same-candidate restart preserves the original
+pointer/attempt, rejects conflicting selection or dirty source, retains failed
+revalidation and binds successful fresh validation to the new source.
+No real release plan or receipt was modified. Complete offline tool admission,
+Rustfmt, ShellCheck, both Bash syntax checks, snapshot integrity, notes, local
+links, whitespace and input preservation pass (`tools-offline.log`,
+`static-final.log`).
+
+[Exact Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38145666246)
+passes Linux regression and lint/security, with native jobs unfinished.
+[Exact Host CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38146341421)
+passes Linux native and MSRV, with both macOS jobs queued.
+[Released Query CI](https://github.com/dragginzgame/ic-query/actions/runs/38145852854)
+passes Linux canister smoke/MSRV, with Linux checks running and native jobs queued
+at inspection. They do not qualify this uncommitted batch. Native consumer
+acceptance remains required under [#44](https://github.com/dragginzgame/ic-query/issues/44),
+[#45](https://github.com/dragginzgame/ic-query/issues/45) and
+[#46](https://github.com/dragginzgame/ic-query/issues/46).
+No full local CI, release gate, version bump, staging, commit, tag, push or
+workflow dispatch ran.
+
 ## Pending 0.54.8 Shared 0.6.2 qualification
 
 The same pending slice now canonically selects committed Shared 0.6.2

@@ -1038,7 +1038,7 @@ fn signals_during_startup_publish_failure_and_still_stop_the_network() {
             || false,
         )
         .unwrap();
-        assert!(evidence.status.unwrap().success());
+        assert!(evidence.status.success());
         let receipt: Value =
             serde_json::from_slice(&fs::read(directory.0.join("receipt.json")).unwrap()).unwrap();
         assert_eq!(receipt["status"], "failed");

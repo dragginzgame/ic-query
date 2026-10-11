@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.9]
+
+- Adopts Shared Tooling 0.6.3: normal release targets restart superseded local
+  preparation from a clean descendant commit with fresh validation, retaining
+  the original plan and Query validation receipt.
+  [Shared #126](https://github.com/dragginzgame/shared-tooling/issues/126).
+- Adopts Host 0.14.0 and explicitly admits successful process completion in the
+  Governance smoke harness, preserving failure diagnostics and cleanup.
+  [#46](https://github.com/dragginzgame/ic-query/issues/46).
+
 ## [0.54.8] - 2026-10-11
 
 - Adopts Shared Tooling 0.6.2: Cargo setup stops on lock, validation and activation

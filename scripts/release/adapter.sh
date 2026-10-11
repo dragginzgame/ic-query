@@ -25,13 +25,35 @@ identity() {
   printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION" \
     "$RELEASE_DATE" "$RELEASE_SOURCE" "$RELEASE_REMOTE" "$RELEASE_BRANCH"
 }
-load_evidence() {
+read_evidence() {
   [[ -f "$binding" && ! -L "$binding" ]] || fail 'successful source-bound validation evidence is missing'
   IFS= read -r evidence < "$binding"
   case "$evidence" in "$state_root/$RELEASE_VERSION.verify."*) ;; *) fail 'invalid evidence path' ;; esac
   [[ -d "$evidence" && ! -L "$evidence" ]] || fail 'validation evidence is missing or symlinked'
-  identity | cmp -s - "$evidence/identity" || fail 'validation selections differ from retained evidence'
   [[ -f "$evidence/passed" ]] || fail 'validation did not complete'
+}
+load_evidence() {
+  read_evidence
+  identity | cmp -s - "$evidence/identity" || fail 'validation selections differ from retained evidence'
+}
+retain_superseded_validation() {
+  local saved_source saved_date archive
+  saved_source="$(sed -n '6p' "$evidence/identity")"
+  saved_date="$(sed -n '5p' "$evidence/identity")"
+  [[ "$saved_source" =~ ^[0-9a-f]{40,64}$ && "$saved_source" != "$RELEASE_SOURCE" \
+    && "$saved_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] \
+    || fail 'validation selections differ from retained evidence'
+  printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION" \
+    "$saved_date" "$saved_source" "$RELEASE_REMOTE" "$RELEASE_BRANCH" \
+    | cmp -s - "$evidence/identity" || fail 'superseded validation has conflicting selections'
+  git merge-base --is-ancestor "$saved_source" "$RELEASE_SOURCE" \
+    || fail 'superseded validation source is not an ancestor'
+  bash scripts/ci/check-release-source.sh
+  metadata preflight
+  # Keep the original pointer and immutable attempt before a fresh gate binds it.
+  archive="$(mktemp -d "$state_root/$RELEASE_VERSION.validation-attempt.XXXXXX")"
+  mv "$binding" "$archive/$RELEASE_VERSION.validation"
+  printf 'Retained superseded validation: %s\n' "$archive/$RELEASE_VERSION.validation" >&2
 }
 admit_paths() {
   local changes untracked
@@ -63,33 +85,36 @@ case "$operation" in
   preflight)
     observed_source="$(git rev-parse HEAD)" || exit $?
     [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed'
-    if [[ -e "$binding" ]]; then
-      load_evidence
-      admit_paths "$RELEASE_SOURCE"
-      metadata admit "$evidence"
-    else
-      bash scripts/ci/check-release-source.sh
-      metadata preflight
-      fetch_args=(--locked)
-      [[ "$prepare_cache" == 1 ]] || fetch_args+=(--offline)
-      if cargo fetch "${fetch_args[@]}"; then
-        :
-      else
-        status="$?"
-        echo 'release dependency preparation failed; prepare the selected cache with cargo fetch --locked, then retry' >&2
-        exit "$status"
+    if [[ -e "$binding" || -L "$binding" ]]; then
+      read_evidence
+      if identity | cmp -s - "$evidence/identity"; then
+        admit_paths "$RELEASE_SOURCE"
+        metadata admit "$evidence"
+        exit
       fi
-      if [[ "$prepare_cache" == 1 ]]; then
-        make --no-print-directory install-rust-tools
-      else
-        CARGO_NET_OFFLINE=true make --no-print-directory install-rust-tools
-      fi
-      observed_source="$(git rev-parse HEAD)" || exit $?
-      [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
-      bash scripts/ci/check-release-source.sh
-      metadata preflight
-      make --no-print-directory format-tools-check
+      retain_superseded_validation
     fi
+    bash scripts/ci/check-release-source.sh
+    metadata preflight
+    fetch_args=(--locked)
+    [[ "$prepare_cache" == 1 ]] || fetch_args+=(--offline)
+    if cargo fetch "${fetch_args[@]}"; then
+      :
+    else
+      status="$?"
+      echo 'release dependency preparation failed; prepare the selected cache with cargo fetch --locked, then retry' >&2
+      exit "$status"
+    fi
+    if [[ "$prepare_cache" == 1 ]]; then
+      make --no-print-directory install-rust-tools
+    else
+      CARGO_NET_OFFLINE=true make --no-print-directory install-rust-tools
+    fi
+    observed_source="$(git rev-parse HEAD)" || exit $?
+    [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
+    bash scripts/ci/check-release-source.sh
+    metadata preflight
+    make --no-print-directory format-tools-check
     ;;
   verify)
     attempt="$(mktemp -d "$state_root/$RELEASE_VERSION.verify.XXXXXX")"

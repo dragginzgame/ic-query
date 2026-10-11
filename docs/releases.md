@@ -240,66 +240,45 @@ also repeats both gates; use the normal target after committing source fixes.
 
 ### Source changes after saved preparation intent
 
-A `prepare` plan with a changed HEAD is different from an early validation
-failure. The runner writes that phase **before** calling the consumer's metadata
-adapter, so it may describe either an untouched version or a partially executed
-transaction. The refusal reports the plan, phase, previous/candidate versions and
-saved/current source commits. Explicit resume cannot make the old validation
-qualify the new source. Do not edit the plan's source or phase to bypass this check.
+Normal direct release targets automatically restart a saved `prepare` attempt
+when HEAD is a newer descendant commit and the index, worktree and untracked
+source inventory are clean. The saved index tree must be empty, no preparation
+file set (`PLAN.files`, including symlinks) may exist, and the recorded branch,
+remote and exact push destination must still agree. Current canonical metadata
+must read either the saved previous version or the saved candidate.
 
-For example, Testkit can retain a `0.33.7` prepare plan validated against one
-commit while its workspace still reads `0.33.6`. A subsequent dependency-fix
-commit changes HEAD. Neither the unchanged version nor a clean worktree proves
-that no metadata or external effect occurred. The shared runner cannot infer a
-consumer's transaction protocol from the absence of a generically named file.
+The runner archives the original plan unchanged under
+`release-state/X.Y.Z.attempt.*/`, while holding the release lock, then reads the
+**current** canonical version and applies the **requested** increment. It repeats
+preflight and the complete validation gate against current HEAD before saving
+another preparation intent. Earlier logs, receipts and build artifacts remain
+bound to their original attempt; adapters must preserve them on revalidation.
+The archived intent is superseded local preparation, not proof of successful
+release, delivery or publication.
 
-Use this narrowly guarded **maintainer recovery** only for direct delivery when
-the consumer metadata owner can establish that preparation never began:
+For example, a stale `0.6.3 -> 0.6.4` prepare plan must not block a clean newer
+commit whose Cargo workspace already reads `0.6.4`. `make release-patch` archives
+that intent, validates the current checkout, and prepares `0.6.5`. If committed
+metadata still reads `0.6.3`, it validates and prepares `0.6.4` instead. Patch,
+minor and major use this same restart behavior; the saved kind does not override
+the current request after committed preparation has been superseded.
 
-1. Stop concurrent release activity and acquire the same `release-state/lock`
-   directory used by the runner, recording the owner. An occupied lock requires
-   owner inspection; do not remove or steal it. Keep it throughout inspection and
-   archival. Confirm there is exactly one unfinished intent, in phase `prepare`,
-   with an empty saved index tree and no preparation file set (`PLAN.files`,
-   including a dangling symlink).
-2. Verify the selected branch, single push URL and its saved identity, release
-   kind and unchanged base version. Inspect the index and worktree separately,
-   including untracked source; require clean source. The saved source must be an
-   ancestor of current HEAD. Review the intervening changes and the actual
-   consumer preparation implementation, including all manifests, lock entries,
-   changelogs, journals, backups, receipts and possible external effects.
-3. Establish positive consumer-specific proof of no preparation effects. For an
-   adapter that durably journals **before every mutation**, a missing journal
-   can contribute to that proof only after checking that the applicable adapter
-   guaranteed this ordering and that no journal was removed. An unchanged
-   version, missing file or clean index alone is insufficient. Partial, completed,
-   unknown or contradictory effects require exact-version reconciliation instead;
-   leave the plan intact. PR delivery also retains its existing reconciliation,
-   since review-branch/worktree/PR effects need separate identity checks.
-4. Successfully observe that both local and exact-destination remote candidate
-   tags are absent and no release commit or publication occurred. A failed
-   observation is not absence. Conflicting destination, metadata, staging, tag,
-   publication or concurrency state stops recovery without retirement.
-5. Create a unique attempt archive under `release-state`. Preserve the original
-   plan and consumer-owned validation receipts/logs that a new attempt could
-   overwrite, verifying retained bytes. Keep build artifacts and immutable
-   evidence in place and record their paths and identities with that archive.
-   Identify the consumer's real evidence paths; do not assume a filename or use
-   a broad deletion/move glob. Record the no-effect proof and both source commits
-   with that attempt. Retire the original active plan into the archive **last**,
-   while still holding the lock. Do not remove an uncertain consumer journal or
-   rewrite validation as belonging to the new source. Remove only the lock owned
-   by this recovery after inspection/archival finishes.
-6. Rerun the **same normal release target**. The unchanged base and release kind
-   must compute the same candidate. Preflight and the complete validation gate
-   must run against current HEAD before a new preparation intent is saved.
-   If validation fails, retain its new evidence too; do not restore or reuse the
-   old validation. Publication and cleanup remain separate.
+This boundary depends on the consumer adapter contract: preparation changes
+**local release metadata only**. It may retain local backups, journals and
+receipts, but must not stage, commit, create tags, publish, deploy or dispatch
+other external effects. The newer clean commit records the disposition of those
+metadata changes; the runner does not claim preparation never ran or discard
+consumer transaction evidence. Consumers must reconcile any outstanding local
+transaction in preflight before permitting fresh preparation.
 
-This is an inspected recovery procedure, not automatic permission to archive
-every `prepare` plan. If the consumer cannot prove the conditions, stop with the
-reported identities and resolve its transaction state with its owner. Ordinary
-agent repair or issue work does not authorize running this recovery or a release.
+At unchanged HEAD, interrupted preparation still resumes its exact saved version.
+`make release-resume VERSION=X.Y.Z` also retains exact-source recovery and never
+selects another version. Changed source during a running gate/preparation, dirty
+or divergent history, conflicting identities, staging evidence and occupied
+locks still stop the command. Plans stopped at `stage` or later retain exact
+payload and effect reconciliation. PR delivery retains its review-branch,
+worktree and external-effect recovery; it does not use this direct-only restart.
+Ordinary agent repair does not authorize executing a real release or recovery.
 
 ### Consumer adapters
 
@@ -311,7 +290,7 @@ Consumer Make targets provide these adapters:
 | `release-preflight` | Check candidate/changelog agreement; admit only declared release metadata as dirty work; inspect staged and unstaged paths separately, reject unrelated untracked paths, and prepare the selected cache and executable tools. |
 | `release-verify` | Run the same complete gate for every release kind, with offline tool admission before expensive checks. |
 | `release-merged-preflight` | Required for PR delivery: check finalized candidate metadata and prepare the exact merged checkout's dependencies/cache and selected executable tools before repeating the complete gate. Do not bump or require the previous version. |
-| `release-prepare-version` | Apply exactly the saved candidate and finalize notes; preserve dependency selection and verify all directly owned metadata. |
+| `release-prepare-version` | Apply exactly the saved candidate to local metadata and finalize notes; preserve dependency selection and verify all directly owned metadata. No staging, commits, tags or external effects. |
 | `release-prepared-check` | Check the candidate and prepared metadata without another bump. |
 | `release-files` | Print the explicit relative release paths, each terminated by NUL, and no explanatory output. |
 | `release-commit-check` | Admit the entire exact release index, ensure it matches prepared metadata, and check source-bound validation evidence. |
@@ -633,7 +612,11 @@ automatically reconcile the unfinished release at its saved version. The runner
 selects that intent before computing a new candidate, including when metadata
 has already been bumped. It retains the source/commit identity, UTC date,
 destination, completed phases and evidence. Uncommitted preparation remains bound
-to its saved source and kind. After the release commit exists, newer commits are
+to its saved source and kind at unchanged HEAD. A newer clean descendant commit
+can supersede direct `prepare` intent under
+[the restart contract](#source-changes-after-saved-preparation-intent), with current
+metadata selection and fresh complete validation. After the release commit exists,
+newer commits are
 allowed only on its direct descendant history, with the exact staged tree, sole
 source parent and release subject still verified. A dirty tree, changed release
 payload, competing unfinished identities, conflicting tag or destination, or an

@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`7f1ca16b0dfa98021d2671017ecb7de767409b0e`](https://github.com/dragginzgame/shared-tooling/tree/7f1ca16b0dfa98021d2671017ecb7de767409b0e) (0.6.2),
+[`4fd979d13c32adb3cb2f51f213ebfc4f98339b3d`](https://github.com/dragginzgame/shared-tooling/tree/4fd979d13c32adb3cb2f51f213ebfc4f98339b3d) (0.6.3),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/7f1ca16b0dfa98021d2671017ecb7de767409b0e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/4fd979d13c32adb3cb2f51f213ebfc4f98339b3d/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -321,18 +321,25 @@ are retained; release targets never run cleanup.
 
 ## Evidence and recovery
 
-When source changes after saved preparation intent, follow the shared
-[maintainer recovery guidance](releases.md#source-changes-after-saved-preparation-intent).
-Query's `scripts/release/metadata.pl` owns the complete metadata roster listed
-above and retains authenticated inputs under the validation attempt's `before/`
-directory. Preparation replaces those files individually, with `Cargo.toml`
-last; an unchanged package version therefore cannot prove that no earlier file
-was replaced. Query has no separate durable pre-mutation journal whose absence
-proves no effects. The metadata owner must inspect the entire roster, retained
-inputs, source history and any partial replacements before establishing the
-shared recovery prerequisites. Preserve the plan and evidence when that proof
-is incomplete. Retiring an attempt and running fresh release validation remain
-maintainer operations; ordinary agent repair does not perform them.
+After a clean descendant commit supersedes direct preparation, the normal
+maintainer release target follows the shared
+[restart contract](releases.md#source-changes-after-saved-preparation-intent).
+It retains the old plan and selects the requested increment from current
+committed metadata before fresh preflight and complete validation. Query's
+`scripts/release/metadata.pl` owns only the complete local metadata roster above;
+preparation replaces those files individually, with `Cargo.toml` last, and never
+stages, commits or dispatches external effects. The clean commit records their
+disposition, rather than proving preparation never ran.
+
+When the candidate is unchanged, Query's adapter retains the original validation
+pointer under a unique `X.Y.Z.validation-attempt.*` directory after verifying
+the saved selections, ancestor source, clean checkout and pending notes. Original
+`X.Y.Z.verify.*` inputs, logs and artifacts stay in place. Fresh validation must
+succeed before a new pointer is published. At unchanged source, exact recovery
+uses its matching receipt; conflicting selections, dirty or divergent source
+and incomplete evidence stop preflight. Explicit resume remains bound to the
+saved source/version. Real restart and release execution remain maintainer
+operations; ordinary agent repair does not perform them.
 
 Unique validation directories under Git's `release-state` directory retain the
 selected source, previous/candidate versions, kind, UTC date, remote/branch,
@@ -366,7 +373,8 @@ Interrupted runs retain completed target evidence. This optional selection does
 not replace failure logs or enable additional validation targets.
 
 A normal target rerun first reconciles an unfinished release at its saved
-candidate. An unchanged same-kind retry finishes only that release. After its
+candidate, except superseded direct preparation restarts under the contract
+above. An unchanged same-kind retry finishes only that release. After its
 release commit exists, a newer descendant or different requested increment is
 handled internally: finish the older release, then read the current manifest
 version and run fresh preflight and complete validation for the next increment.

@@ -4,8 +4,8 @@ use crate::{Result, invalid};
 use ic_host_process::{
     child::{CleanupError, CleanupPolicy, OwnedChild},
     tool::{
-        ExecutionEvidence, ExecutionFailure, OutputLimit, OutputLimits, SuccessfulExit, ToolError,
-        communicate_child,
+        CompletedExecution, ExecutionEvidence, ExecutionFailure, OutputLimit, OutputLimits,
+        SuccessfulExit, ToolError, communicate_child,
     },
 };
 use std::{
@@ -208,7 +208,9 @@ pub fn supervise(
             SuccessfulExit::Cleanup
         },
         &cancelled,
-    );
+    )
+    .and_then(CompletedExecution::require_success)
+    .map(ExecutionEvidence::from);
     let mut cleanup_errors = Vec::new();
     let (evidence, failure, exited) = match result {
         Ok(evidence) => (evidence, None, false),
