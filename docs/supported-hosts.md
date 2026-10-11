@@ -1173,6 +1173,88 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.8 Shared 0.6.2 qualification
+
+The same pending slice now canonically selects committed Shared 0.6.2
+`7f1ca16b0dfa98021d2671017ecb7de767409b0e`, retaining 82 files. The follow-up
+changes only the release runner, its simulation fixture, release recovery guide
+and local setup guide. The four Cargo payloads qualified below remain
+byte-identical; their setup/reuse evidence still applies.
+`/tmp/ic-query-shared062-adoption-path` identifies the clean pinned source,
+preview, refresh and follow-up evidence. Canonical runner simulations pass on
+modern Bash/Make and genuine Bash 3.2.57/Make 3.81, covering preparation-source
+conflicts, retained evidence and fresh validation after simulated retirement
+(`runner-{modern,portable}.log`). No real release plan is retired or rewritten.
+
+The maintainer's incoming Host 0.13.5 lock replaces the previously qualified
+0.13.4 selection. Explicit locked fetching, offline metadata and all 58
+cache-file tests pass (`host-fetch.log`, `metadata.json`, `host-cache-tests.log`).
+Published archive checksums match the lock and identify release
+`b32021c67515f0a0dcf35f1dd0b2029b9599ac75` (`host-published-source.log`).
+The released Host library sources are unchanged from 0.13.4. The current
+manifest, incoming lock and real index remain preserved.
+Complete offline tool admission also passes (`tools-offline.log`). ShellCheck
+with sourced companions, both Bash syntax checks, snapshot integrity,
+current-version notes, documentation links and whitespace checks pass
+(`static-final.log`); the initial lint observation without companion following
+is retained separately (`static-initial.log`).
+
+The [exact Shared 0.6.2 run](https://github.com/dragginzgame/shared-tooling/actions/runs/38143010876)
+passes lint/security and Linux portable regression; both macOS jobs remain
+unfinished at inspection.
+The [exact Host 0.13.5 run](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38142886238)
+and [released Query 0.54.7 run](https://github.com/dragginzgame/ic-query/actions/runs/38142141323)
+are recorded in `host-ci.json` and `query-ci.json`. Host's Linux native and
+MSRV jobs pass, with both macOS jobs running. Query's Linux checks, canister smoke
+and MSRV, plus Intel macOS canister smoke, pass; its other macOS jobs remain queued. Those results
+do not qualify this uncommitted source or establish native acceptance. Issues
+[#44](https://github.com/dragginzgame/ic-query/issues/44) and
+[#45](https://github.com/dragginzgame/ic-query/issues/45) remain open for native
+consumer qualification. No full local CI, release gate or release effect ran.
+
+### Earlier 0.6.1 qualification in this slice
+
+Based on released Query `4f4f8e97ea60bce180efb4fb5bec6ed2618de8e0`,
+canonical refresh selects the same 82 files from committed Shared 0.6.1
+`731909525038c58d6f80b498e80f8630b11c685d`. Only the Cargo build companion,
+installer, store and Cargo fixture payloads change. The separate engineering
+baseline, release runner, tool pins and Query product contracts remain unchanged.
+`/tmp/ic-query-shared061-adoption-path` identifies the clean pinned source,
+reviewed preview, refresh and retained evidence.
+
+Canonical Cargo fixtures pass on modern Bash/Make and genuine Bash 3.2.57/Make
+3.81, including padded counts and conditional lock, receipt, reference and
+activation failures (`rust-{modern,portable}.log`). Consumer dispatch, execution
+and retention fixtures pass on both profiles (`consumer-{modern,portable}.log`).
+Real complete offline setup passes (`real-install-offline.log`); a second
+temporary checkout selects identical common/Audit/Machete payloads, and repeated
+Query setup preserves generation metadata, receipts and build logs
+(`real-reuse.log`, `reuse-generations-{before,after}`). Complete offline admission
+passes on both profiles (`real-tools-{modern,portable}.log`), as does actual
+Audit/Machete dependency execution with offline metadata (`real-dependency.log`).
+Previous physical and global tools retain their hashes.
+
+The incoming Host 0.13.4 lock selection is preserved. Explicit locked fetching,
+offline workspace metadata and all 58 cache-file tests pass (`host-fetch.log`,
+`metadata.json`, `host-cache-tests.log`). Published archive checksums match the
+lock, and packaged VCS metadata identifies release
+`46483b96c21419aa41ee2cbcdfa2e8efbbfdab21` (`host-published-source.log`).
+The reviewed new path-based private sidecar API does not supply Query's
+descriptor-relative confinement and is not substituted into managed cache IO.
+No package manifest, selected lock or real index changed during qualification.
+ShellCheck, both Bash syntax checks, snapshot integrity, current-version notes,
+local links, whitespace and preservation checks pass (`static-final.log`).
+
+The [exact Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38141614488)
+passes Linux portable regression and lint/security; both macOS jobs were cancelled
+by a successor. [Released Query 0.54.7 CI](https://github.com/dragginzgame/ic-query/actions/runs/38142141323)
+remains queued at inspection. Neither establishes native acceptance for this
+uncommitted consumer batch. Delivery and native setup/reuse/retention qualification
+remain under [#44](https://github.com/dragginzgame/ic-query/issues/44) and
+[Shared #124](https://github.com/dragginzgame/shared-tooling/issues/124).
+No full workspace CI, native macOS execution, live canister smoke, release gate,
+version bump, staging, commit, tag, push or workflow dispatch ran for this batch.
+
 ## Pending 0.54.7 Shared 0.6.0 qualification
 
 Based on released Query 0.54.6 `40bb75ae5bbc8c08f2d29cfc03ae9874e70eef3c`,

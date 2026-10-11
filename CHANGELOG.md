@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.8]
+
+- Adopts Shared Tooling 0.6.2: Cargo setup stops on lock, validation and activation
+  failures, preserving the original error and build evidence. Run
+  `make install-tools`, then offline `make tools-check`.
+  [Shared #120](https://github.com/dragginzgame/shared-tooling/issues/120).
+- Shared Cargo fixtures accept padded macOS build counts and exercise that
+  boundary on every host. [Shared #124](https://github.com/dragginzgame/shared-tooling/issues/124).
+- Release source-conflict errors identify the saved plan, phase and commits,
+  and link maintainer recovery guidance while retaining validation evidence.
+  [Shared #126](https://github.com/dragginzgame/shared-tooling/issues/126).
+- Uses Host artifacts, filesystem and process 0.13.5 with unchanged Query cache
+  behavior.
+
 ## [0.54.7] - 2026-10-11
 
 - Adopts Shared Tooling 0.6.0: Cargo-built tools reuse verified shared selections

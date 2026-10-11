@@ -445,6 +445,55 @@ cmp failed-log validation.1.log
 cmp failed-evidence build.1.evidence
 [[ "$(cat validation.2.log)" == 'validation source: ffffffffffffffffffffffffffffffffffffffff' ]] || exit 1
 
+# The durable prepare phase alone cannot prove whether consumer effects began.
+# Exercise the no-effect case and the documented, separately inspected retirement
+# using only this fixture's substituted metadata/Git owners, never a real release.
+for kind in patch minor major; do
+    new_fixture "prepare-source-conflict-$kind"
+    case "$kind" in patch) candidate=0.1.1 ;; minor) candidate=0.2.0 ;; major) candidate=1.0.0 ;; esac
+    FIXTURE_FAIL_TARGET=release-prepare-version expect_failure "$kind" origin main
+    [[ "$(cat version)" == 0.1.0 && "$(tail -n 1 ".release-state/$candidate.plan")" == prepare ]] || exit 1
+    cp ".release-state/$candidate.plan" saved-plan
+    cp events saved-events
+    cp validation.1.log saved-validation
+    cp build.1.evidence saved-build
+    echo eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee > 'head'
+    for invocation in normal resume; do
+        if [[ "$invocation" == normal ]]; then expect_failure "$kind" origin main
+        else expect_failure resume "$candidate" origin main; fi
+        grep -F "plan: .release-state/$candidate.plan" output >/dev/null
+        grep -F 'phase: prepare' output >/dev/null
+        grep -F "version: 0.1.0 -> $candidate" output >/dev/null
+        grep -F 'saved source: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' output >/dev/null
+        grep -F 'current source: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' output >/dev/null
+        grep -F 'docs/releases.md#source-changes-after-saved-preparation-intent' output >/dev/null
+        cmp saved-plan ".release-state/$candidate.plan"
+        cmp saved-events events
+    done
+    [[ ! -e .release-state/lock && ! -e tag && ! -e remote-tag ]] || exit 1
+    # Here the substitute explicitly failed before its first write. Simulate the
+    # maintainer retaining its evidence and retiring the plan last under the lock.
+    mkdir .release-state/lock
+    archive="$(mktemp -d ".release-state/$candidate.attempt.XXXXXX")"
+    cp validation.1.log build.1.evidence "$archive/"
+    mv ".release-state/$candidate.plan" "$archive/$candidate.plan"
+    rmdir .release-state/lock
+    FIXTURE_FAIL_TARGET=release-verify expect_failure "$kind" origin main
+    [[ ! -e ".release-state/$candidate.plan" && "$(cat version)" == 0.1.0 ]] || exit 1
+    [[ "$(count_event release-prepare-version)" == 1 && "$(count_event commit)" == 0 ]] || exit 1
+    cp validation.2.log failed-revalidation
+    bash "$ROOT/scripts/ci/run-release.sh" "$kind" origin main > output
+    [[ "$(cat version)" == "$candidate" && "$(count_event release-verify)" == 3 ]] || exit 1
+    [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]] || exit 1
+    [[ "$(cat validation.3.log)" == 'validation source: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' ]] || exit 1
+    cmp saved-plan "$archive/$candidate.plan"
+    cmp saved-validation "$archive/validation.1.log"
+    cmp saved-build "$archive/build.1.evidence"
+    cmp saved-validation validation.1.log
+    cmp saved-build build.1.evidence
+    cmp failed-revalidation validation.2.log
+done
+
 new_fixture early-exact-resume
 early_plan patch validate
 bash "$ROOT/scripts/ci/run-release.sh" resume 0.1.1 origin main > output

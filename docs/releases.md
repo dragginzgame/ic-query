@@ -238,6 +238,71 @@ indicates possible preparation effects. It retains that plan unchanged in a uniq
 validation. Exact resume of an early plan remains bound to its saved source and
 also repeats both gates; use the normal target after committing source fixes.
 
+### Source changes after saved preparation intent
+
+A `prepare` plan with a changed HEAD is different from an early validation
+failure. The runner writes that phase **before** calling the consumer's metadata
+adapter, so it may describe either an untouched version or a partially executed
+transaction. The refusal reports the plan, phase, previous/candidate versions and
+saved/current source commits. Explicit resume cannot make the old validation
+qualify the new source. Do not edit the plan's source or phase to bypass this check.
+
+For example, Testkit can retain a `0.33.7` prepare plan validated against one
+commit while its workspace still reads `0.33.6`. A subsequent dependency-fix
+commit changes HEAD. Neither the unchanged version nor a clean worktree proves
+that no metadata or external effect occurred. The shared runner cannot infer a
+consumer's transaction protocol from the absence of a generically named file.
+
+Use this narrowly guarded **maintainer recovery** only for direct delivery when
+the consumer metadata owner can establish that preparation never began:
+
+1. Stop concurrent release activity and acquire the same `release-state/lock`
+   directory used by the runner, recording the owner. An occupied lock requires
+   owner inspection; do not remove or steal it. Keep it throughout inspection and
+   archival. Confirm there is exactly one unfinished intent, in phase `prepare`,
+   with an empty saved index tree and no preparation file set (`PLAN.files`,
+   including a dangling symlink).
+2. Verify the selected branch, single push URL and its saved identity, release
+   kind and unchanged base version. Inspect the index and worktree separately,
+   including untracked source; require clean source. The saved source must be an
+   ancestor of current HEAD. Review the intervening changes and the actual
+   consumer preparation implementation, including all manifests, lock entries,
+   changelogs, journals, backups, receipts and possible external effects.
+3. Establish positive consumer-specific proof of no preparation effects. For an
+   adapter that durably journals **before every mutation**, a missing journal
+   can contribute to that proof only after checking that the applicable adapter
+   guaranteed this ordering and that no journal was removed. An unchanged
+   version, missing file or clean index alone is insufficient. Partial, completed,
+   unknown or contradictory effects require exact-version reconciliation instead;
+   leave the plan intact. PR delivery also retains its existing reconciliation,
+   since review-branch/worktree/PR effects need separate identity checks.
+4. Successfully observe that both local and exact-destination remote candidate
+   tags are absent and no release commit or publication occurred. A failed
+   observation is not absence. Conflicting destination, metadata, staging, tag,
+   publication or concurrency state stops recovery without retirement.
+5. Create a unique attempt archive under `release-state`. Preserve the original
+   plan and consumer-owned validation receipts/logs that a new attempt could
+   overwrite, verifying retained bytes. Keep build artifacts and immutable
+   evidence in place and record their paths and identities with that archive.
+   Identify the consumer's real evidence paths; do not assume a filename or use
+   a broad deletion/move glob. Record the no-effect proof and both source commits
+   with that attempt. Retire the original active plan into the archive **last**,
+   while still holding the lock. Do not remove an uncertain consumer journal or
+   rewrite validation as belonging to the new source. Remove only the lock owned
+   by this recovery after inspection/archival finishes.
+6. Rerun the **same normal release target**. The unchanged base and release kind
+   must compute the same candidate. Preflight and the complete validation gate
+   must run against current HEAD before a new preparation intent is saved.
+   If validation fails, retain its new evidence too; do not restore or reuse the
+   old validation. Publication and cleanup remain separate.
+
+This is an inspected recovery procedure, not automatic permission to archive
+every `prepare` plan. If the consumer cannot prove the conditions, stop with the
+reported identities and resolve its transaction state with its owner. Ordinary
+agent repair or issue work does not authorize running this recovery or a release.
+
+### Consumer adapters
+
 Consumer Make targets provide these adapters:
 
 | Target | Contract |

@@ -204,7 +204,18 @@ save_phase() {
         "$source" "$remote" "$branch" "$remote_identity" "$index_tree" "$phase" > "$temporary_plan"
     mv "$temporary_plan" "$plan"
 }
-assert_source() { [[ "$(git rev-parse HEAD)" == "$source" ]] || fail 'validated source commit changed'; }
+assert_source() {
+    local current_source
+    current_source="$(git rev-parse HEAD)" || fail 'cannot inspect current release source'
+    [[ "$current_source" == "$source" ]] && return 0
+    printf 'Release source conflict:\n  plan: %s\n  phase: %s\n  version: %s -> %s\n  saved source: %s\n  current source: %s\n' \
+        "$plan" "$phase" "$previous" "$candidate" "$source" "$current_source" >&2
+    if [[ "$phase" == prepare ]]; then
+        echo 'Preparation may have started; an unchanged version does not prove absence of effects.' >&2
+        echo 'Keep the plan and evidence. Review docs/releases.md#source-changes-after-saved-preparation-intent with the consumer metadata owner before retiring this attempt.' >&2
+    fi
+    fail 'validated source commit changed; saved validation cannot qualify the current source'
+}
 assert_release_commit() {
     # The first direct descendant must be the exact staged release. Later fixes
     # may be committed without changing its identity or repeating its commit.

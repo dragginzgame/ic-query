@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`75180980a0c4e4252d8a915aaecfaefd92bf9a4e`](https://github.com/dragginzgame/shared-tooling/tree/75180980a0c4e4252d8a915aaecfaefd92bf9a4e) (0.6.0),
+[`7f1ca16b0dfa98021d2671017ecb7de767409b0e`](https://github.com/dragginzgame/shared-tooling/tree/7f1ca16b0dfa98021d2671017ecb7de767409b0e) (0.6.2),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/75180980a0c4e4252d8a915aaecfaefd92bf9a4e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/7f1ca16b0dfa98021d2671017ecb7de767409b0e/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -320,6 +320,19 @@ restoring a working file does not hide an unrelated staged edit. Build outputs
 are retained; release targets never run cleanup.
 
 ## Evidence and recovery
+
+When source changes after saved preparation intent, follow the shared
+[maintainer recovery guidance](releases.md#source-changes-after-saved-preparation-intent).
+Query's `scripts/release/metadata.pl` owns the complete metadata roster listed
+above and retains authenticated inputs under the validation attempt's `before/`
+directory. Preparation replaces those files individually, with `Cargo.toml`
+last; an unchanged package version therefore cannot prove that no earlier file
+was replaced. Query has no separate durable pre-mutation journal whose absence
+proves no effects. The metadata owner must inspect the entire roster, retained
+inputs, source history and any partial replacements before establishing the
+shared recovery prerequisites. Preserve the plan and evidence when that proof
+is incomplete. Retiring an attempt and running fresh release validation remain
+maintainer operations; ordinary agent repair does not perform them.
 
 Unique validation directories under Git's `release-state` directory retain the
 selected source, previous/candidate versions, kind, UTC date, remote/branch,
