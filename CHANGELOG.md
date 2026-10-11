@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.7]
+## [0.54.7] - 2026-10-11
 
 - Adopts Shared Tooling 0.6.0: Cargo-built tools reuse verified shared selections
   across checkouts. Run `make install-tools`, then offline `make tools-check`.
