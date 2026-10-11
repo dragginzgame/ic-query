@@ -127,11 +127,12 @@ archives those admitted shared bundles, not the entire machine's store. Deleting
 a checkout or a reference does not reclaim its stored payload; cleanup remains
 an explicitly authorized separate operation.
 
-Cargo tool slots and their build output still live under `.tools/rust`.
-Cross-repository reuse of compiled tools requires matching compiler, dependency,
-target, profile and relevant build configuration; a package version alone is
-insufficient. That remaining work and native qualification are tracked in
-[#120](https://github.com/dragginzgame/shared-tooling/issues/120).
+Cargo tools and their build output also live in the shared store. Local
+`.tools/rust` contains selections and references; previous physical installations
+are retained. Reuse requires the exact compiler, native environment, published
+source/lock, target and profile under the standard environment described below.
+The store's `cargo-cache` holds Cargo-managed registry sources separately from
+retained installation generations; preserve it for offline admission and reuse.
 
 ## Diagnosing a missing command
 
@@ -185,6 +186,8 @@ remain in the shared store, referenced by `.tools/host-set.*`. Locks prevent
 simultaneous installation of the same shared selection and local activation;
 inspect `.tools/.host-tools.lock/owner` and confirm its process has stopped before
 removing an abandoned lock; shared slots also retain `install.lock/owner`.
+Offline checks report the shared lock path and refuse while that selection's
+shared lock is held, including when another checkout owns the installation.
 Cleanup remains explicit. The `--versions` option
 selects a reviewed shell file, which is executable code like a Makefile.
 
@@ -221,11 +224,12 @@ PocketIC consumers additionally use their selected IC Testkit CLI's explicit
 After preparing the consumer's declared Rust/Cargo toolchain and compilation
 prerequisites, use `make install-rust-tools` and offline `make rust-tools-check`.
 The shared helper installs cargo-sort, cargo-sort-derives and candid-extractor
-into versioned slots and exposes the complete set at `.tools/rust/common/bin`, using their exact versions from
+into shared build-identity slots and exposes the complete set at `.tools/rust/common/bin`, using their exact versions from
 [ci/tool-versions.env](../ci/tool-versions.env) and Cargo's `--locked` installation.
-Preflight, installed-tool probes and Cargo installation all run from the selected
-consumer directory, including when the helper is invoked from elsewhere. Explicit
-toolchain environment overrides remain authoritative. A relative `--versions`
+Preflight selects the consumer's prepared compiler, including explicit Rustup
+toolchain overrides. Installation then uses that compiler's real Cargo/rustc
+binaries in a standard environment, separate from the consumer's build settings.
+A relative `--versions`
 catalog is read from the caller's directory before entering the consumer;
 relative `--lockfile` paths retain their consumer-relative meaning.
 `RUST_TOOL_VERSIONS` selects a reviewed alternative catalog; it defaults to
@@ -240,33 +244,57 @@ the export at the top of this guide. The standard formatting hook and its
 adoption check preserve the original checkout's host, IC and Rust tool paths
 while formatting isolated index inputs. The helper never prepares or upgrades a
 toolchain implicitly. Installation may fetch registry dependencies and compile;
-failed candidates stay in `.tools/rust/build/cargo-attempt.*`. Completed candidates,
-including their build output and install logs, move into their immutable slots.
+failed candidates, completed build output and install logs remain in shared
+`rust-<identity>/set.*` generations, referenced from the originating checkout.
 Both common tools and consumer-selected tools use the same locked installer,
 Cargo receipt and observed byte-digest admission described below. Common tools
 add a successful exact-version probe after byte admission. Shared host tools
 (including jq) and the selected Rust toolchain must be prepared first.
 
-The common setup holds `.tools/rust/common.lock`, prepares all three slots, then
+The common setup holds `.tools/rust/common.lock`, prepares all three selections, then
 atomically selects a retained `common-set.*` directory through the `common` link.
 Its `bin` contains only the three selected slot links. A partial failure leaves
 the previous complete set active; rerunning setup reuses completed slots. Offline
 checks refuse missing selections, locks, changed receipts/bytes and redirected
 paths without installing or repairing them. The only permitted projection links
-are the generated relative common-set/slot links. Slots and their executables,
-builds and receipts must be physical. Existing host/IC links and checkout aliases
+are generated common-set/selection links and validated references into the store.
+Shared generations and their executables, builds and receipts must be physical. Existing host/IC links and checkout aliases
 remain supported. Path admission does not sandbox Cargo or defend against an
 unrelated process replacing admitted paths concurrently.
 
-The 0.4 hard cut stops installing into or accepting `.tools/rust/bin`. Old
-executables, Cargo receipts, builds and prior sets remain untouched for inspection;
-there is no fallback or automatic cleanup. Refresh the shared Make/hook/CI callers,
-change shell PATH exports to `.tools/rust/common/bin`, then explicitly run setup
-and offline checks. The evidence action retains the full physical `.tools/rust`
-tree, including admitted slots and failed attempts, without following links.
+The 0.6 hard cut requires explicit setup of shared Cargo selections; previous
+local installations are retained but never used as a fallback. Refresh the
+installers and evidence selector together, then run setup and offline checks.
+The evidence action retains the local `.tools/rust` tree without following its
+links and separately archives only its admitted shared generations, including
+successful builds and failed attempts. This Rust retention remains full even
+when host/IC compaction is enabled.
 Observed digests detect local changes; they are not publisher signatures or
 product/native qualification. Formatting still requires rustfmt and the
 [formatter check](verification-helpers.md#formatter-prerequisites).
+
+### Standard Cargo tool-build environment
+
+Tool builds have a cleared environment, a fresh private HOME per attempt, the
+selected compiler's bin directory followed by system executable directories,
+fixed C locale/UTC timezone, private permissions and two compilation jobs.
+Repository flags, wrappers, custom targets, user Cargo configuration and arbitrary
+environment variables are not inherited. Application builds are unaffected.
+Explicit `CARGO_NET_OFFLINE` or user Cargo `net.offline` is preserved; no check
+downloads or repairs tools. Custom registries, extra native search paths and
+proxy/credential configuration are not supplied to these public crates.io builds.
+
+The key records the exact build-helper digest, Cargo/rustc verbose identities and executable digests, host,
+native compiler/linker digests, Linux package inventory or macOS/Xcode/SDK
+identity, package/version, executable kind/name, profile, published crate digest
+and packaged lock digest. Cargo owns registry downloads and `--locked` builds.
+Missing packaged locks and non-registry dependency sources refuse reuse/builds;
+unexpected Cargo configuration in the managed cache is rejected. This contract
+supports managed Debian/RPM Linux hosts and the qualified macOS toolchain; it
+does not model arbitrary custom native toolchains or out-of-band SDK/library
+mutations. Such environments require a separately qualified contract before
+sharing tools. It is a same-user build cache, not a hermetic sandbox or a signed
+publisher attestation.
 
 ### Consumer-selected Cargo tools
 
@@ -306,15 +334,45 @@ a changed selection fails and retains any build attempt. Retry against the new
 lock selection; prior installations remain intact. Consumers still own the
 selected graph, package, target/profile and Testkit's separate server setup/check.
 
+Consumer extensions such as cargo-audit and cargo-machete use this same owner.
+Keep their exact pins in the consumer and register their existing setup/check
+targets in `LOCAL_TOOL_INSTALL_TARGETS` / `LOCAL_TOOL_CHECK_TARGETS`. For example,
+with `AUDIT_VERSION` defined by the consumer's reviewed pins:
+
+```make
+AUDIT_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-audit --version "$(AUDIT_VERSION)" --bin cargo-audit --profile release
+LOCAL_TOOL_INSTALL_TARGETS += install-audit-tool
+LOCAL_TOOL_CHECK_TARGETS += audit-tool-check
+
+.PHONY: install-audit-tool audit-tool-check audit
+install-audit-tool:
+	+@$(AUDIT_TOOL) > /dev/null
+audit-tool-check:
+	+@$(AUDIT_TOOL) --check > /dev/null
+audit:
+	+@tool="$$( $(AUDIT_TOOL) --check )" && "$$tool" audit
+```
+
+Use the equivalent package/binary selection for cargo-machete. Repeated setup
+verifies and returns the existing path without Cargo installation or force advice;
+checks never build or download. Only the returned path is suppressed above;
+failure diagnostics and status remain visible. The `+` prefix preserves Make's
+recursive-command handling to the installer; standard tool builds themselves
+use the documented two-job limit rather than inheriting the caller's jobserver.
+Adopting this route changes global Cargo destinations to shared selections:
+update execution callers to use the returned checked path, explicitly prepare
+and check the tools, and retain old global installations. Do not add version-probe
+fallbacks, force overwrites or another installer around the shared owner.
+
 The command prints the admitted executable path under
-`.tools/rust/<package>-<version>-<kind>-<target>-<profile>/installed/bin/`.
+`.tools/rust/selected-<build-identity>/bin/`.
 Use that returned path in the consumer adapter. Each selection is immutable:
 an existing installation must pass physical-path, exact Cargo receipt and local
-byte-digest checks. Changed bytes or receipts fail without repair or execution;
+byte-digest checks. Checks reject changed bytes or receipts without repair or execution;
 each receipt must contain exactly one JSON document. Cargo installation failures
 return Cargo's original exit status along with the retained attempt location;
 no invented `--version` probe runs for examples. Checks invoke rustc for the
-selected host but never Cargo or downloads. Digests detect local changes; they
+selected host and Cargo identity, but never build or download. Digests detect local changes; they
 are not publisher signatures. The consumer still owns compiler compatibility.
 
 Missing or invalid selected-installation diagnostics identify the package, exact
@@ -326,10 +384,11 @@ in [preflight](releases.md#selected-executable-tools-before-validation); fetchin
 Cargo sources alone is insufficient. Complete gates and standalone qualification
 check tools offline before builds, without implicit installation.
 
-Setup compiles through the same locked Cargo installation command into a fresh
-attempt directory under `.tools/rust/build`, the existing CI evidence route.
-Only an admitted candidate is renamed into place. Failed
-attempts retain logs/builds, and earlier version selections remain untouched.
+Setup reuses a matching verified generation or compiles through the same locked
+Cargo installation command into a fresh shared attempt. Only an admitted
+candidate is activated. Explicit setup can replace a corrupt selection with a
+new generation, preserving the old generation and other checkouts' references.
+Failed attempts retain logs/builds, and earlier version selections remain untouched.
 A directory lock rejects concurrent setup for the same selection; retry after
 its owner finishes. An abruptly killed process may leave a lock: inspect that
 owner and retained attempt before explicitly removing the empty lock. The tool
@@ -385,7 +444,7 @@ duration limits and failure evidence collection. It does not add registry builds
 to the default portable gate. Native results, consumer-specific versions and an actual shared
 installer's path/receipt/lock refusal still need qualification before extraction
 under [#65](https://github.com/dragginzgame/shared-tooling/issues/65). The current
-fixed Rust installer remains the supported setup contract.
+shared Rust installer remains the supported setup contract.
 
 ## Bootstrap prerequisites
 

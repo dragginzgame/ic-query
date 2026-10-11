@@ -155,7 +155,7 @@ if [[ -L "$active" ]]; then
         echo 'refusing an unmanaged .tools/ic link' >&2; exit 1;
     }
     if bundle="$(tool_store_resolve "$tool_root/$selection" "$store_slot")" &&
-        [[ ! -e "$store_slot/install.lock" && ! -L "$store_slot/install.lock" ]] && verify_bundle "$bundle"; then
+        tool_store_unlocked && verify_bundle "$bundle"; then
         printf '%s\n' "$active/bin"
         exit 0
     fi

@@ -600,6 +600,16 @@ if [[ "${!#}" == --preflight ]]; then
   [[ "$family" != "${FAIL_PREFLIGHT:-}" ]] || exit 72
   exit 0
 fi
+if [[ "$family" == rust && "${3:-}" == --package ]]; then
+  [[ $# == 10 || ( $# == 11 && "${11}" == --check ) ]] || exit 74
+  tool="${4#cargo-}"
+  case "$tool" in audit) version=8.7.6 ;; machete) version=7.6.5 ;; *) exit 74 ;; esac
+  [[ "$5" == --version && "$6" == "$version" && "$7" == --bin &&
+     "$8" == "$4" && "$9" == --profile && "${10}" == release ]] || exit 74
+  printf '%s/bin/selected %s\n' "$EXPECTED_ROOT" "$tool"
+  [[ "$tool" != "${FAIL_FAMILY:-}" ]] || exit 73
+  exit 0
+fi
 [[ "$family" != "${FAIL_FAMILY:-}" ]] || exit 73
 EOF
 done
@@ -610,36 +620,15 @@ printf 'cargo %s\n' "$*" >> "$TRACE_FILE"
 case "$*" in
   'sort --version') echo cargo-sort 9.8.7 ;;
   'fmt --version') echo rustfmt ;;
-  'install --locked cargo-audit --version 8.7.6') [[ "${FAIL_FAMILY:-}" != audit ]] ;;
-  'install --locked cargo-machete --version 7.6.5') [[ "${FAIL_FAMILY:-}" != machete ]] ;;
   *) exit 74 ;;
 esac
 EOF
-for tool in audit machete; do
-  cat > "$tools_case/bin/cargo-$tool" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ "$*" == --version && "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-tool="${0##*/cargo-}"
-printf '%s check\n' "$tool" >> "$TRACE_FILE"
-[[ "${FIXTURE_TOOL_STATE:-prepared}" != missing ]] || exit 127
-[[ "$tool" != "${FAIL_FAMILY:-}" ]] || exit 75
-if [[ "$tool" == audit ]]; then
-  echo "cargo-audit ${FIXTURE_AUDIT_VERSION:-8.7.6}"
-  exit "${FIXTURE_AUDIT_STATUS:-0}"
-else
-  echo "${FIXTURE_MACHETE_VERSION:-7.6.5}"
-  exit "${FIXTURE_MACHETE_STATUS:-0}"
-fi
-EOF
-done
-chmod +x "$tools_case/bin/"*
+chmod +x "$tools_case/bin/cargo"
 for mode in install check; do
   : > "$tools_case/trace"
-  if [[ "$mode" == install ]]; then target=install-tools; suffix=''; tool_state=missing;
-  else target=tools-check; suffix=' --check'; tool_state=prepared; fi
+  if [[ "$mode" == install ]]; then target=install-tools; suffix='';
+  else target=tools-check; suffix=' --check'; fi
   PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
-    FIXTURE_TOOL_STATE="$tool_state" \
     MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
     HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
@@ -652,61 +641,29 @@ for mode in install check; do
   printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
     "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" \
     "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" >> "$tools_case/expected"
-  if [[ "$mode" == install ]]; then
-    printf '%s\n' 'audit check' 'cargo install --locked cargo-audit --version 8.7.6' \
-      'machete check' 'cargo install --locked cargo-machete --version 7.6.5' >> "$tools_case/expected"
-  else
+  if [[ "$mode" == check ]]; then
     printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --check" \
-      'cargo sort --version' 'cargo fmt --version' 'audit check' 'machete check' >> "$tools_case/expected"
+      'cargo sort --version' 'cargo fmt --version' >> "$tools_case/expected"
   fi
-  cmp -s "$tools_case/expected" "$tools_case/trace" \
-    || fail "local tool setup/check changed ordering, pins or offline selection"
+  printf '%s\n' "rust --consumer $tools_case --package cargo-audit --version 8.7.6 --bin cargo-audit --profile release$suffix" \
+    "rust --consumer $tools_case --package cargo-machete --version 7.6.5 --bin cargo-machete --profile release$suffix" >> "$tools_case/expected"
+  cmp "$tools_case/expected" "$tools_case/trace" || fail 'tool aggregate changed shared selections or ordering'
   if grep -Ei 'jobserver unavailable|jobserver.*forced' "$tools_case/$mode.log"; then fail 'tool aggregate lost the Make jobserver'; fi
   for family in host ic rust audit machete; do
-  : > "$tools_case/trace"
-  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY="$family" \
-    FIXTURE_TOOL_STATE="$tool_state" \
-    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
-    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
-    "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
-      CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 >/dev/null 2>&1; then
-    fail "tool setup/check accepted a $family failure"
-  fi
-  awk -v family="$family" -v mode="$mode" '{
-    print
-    if ($NF != "--preflight" && ($1 == family || ($1 == "cargo" && $4 == "cargo-" family))) {
-      if (mode == "install" && ($1 == "audit" || $1 == "machete")) next
-      exit
-    }
-  }' \
-    "$tools_case/expected" > "$tools_case/expected-failure"
-  cmp "$tools_case/expected-failure" "$tools_case/trace" \
-    || fail "tool setup/check continued after a failed $family command"
+    : > "$tools_case/trace"
+    if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY="$family" \
+      MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+      HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+      "$make_bin" --no-print-directory -j4 -C "$tools_case" "$target" \
+        CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$mode-$family-failure.log" 2>&1; then
+      fail "tool aggregate admitted a failed $family selection"
+    fi
+    awk -v family="$family" '{ print; if ($NF != "--preflight" &&
+      (($1 == family && $4 != "--package") || ($4 == "--package" && $5 == "cargo-" family))) exit }' \
+      "$tools_case/expected" > "$tools_case/expected-failure"
+    cmp "$tools_case/expected-failure" "$tools_case/trace" || fail "tool aggregate continued after $family failure"
   done
 done
-
-for setup_case in prepared audit-version machete-version audit-probe machete-probe; do
-  : > "$tools_case/trace"
-  audit_version=8.7.6; machete_version=7.6.5; audit_status=0; machete_status=0
-  case "$setup_case" in
-    audit-version) audit_version=8.7.5 ;;
-    machete-version) machete_version=7.6.4 ;;
-    audit-probe) audit_status=75 ;;
-    machete-probe) machete_status=75 ;;
-  esac
-  PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" \
-    FIXTURE_AUDIT_VERSION="$audit_version" FIXTURE_MACHETE_VERSION="$machete_version" \
-    FIXTURE_AUDIT_STATUS="$audit_status" FIXTURE_MACHETE_STATUS="$machete_status" \
-    "$make_bin" --no-print-directory -C "$tools_case" install-dependency-tools \
-      CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$setup_case.log" 2>&1
-  printf 'audit check\n' > "$tools_case/expected-setup"
-  case "$setup_case" in audit-*) printf 'cargo install --locked cargo-audit --version 8.7.6\n' >> "$tools_case/expected-setup" ;; esac
-  printf 'machete check\n' >> "$tools_case/expected-setup"
-  case "$setup_case" in machete-*) printf 'cargo install --locked cargo-machete --version 7.6.5\n' >> "$tools_case/expected-setup" ;; esac
-  cmp "$tools_case/expected-setup" "$tools_case/trace" \
-    || fail "dependency tool setup mishandled $setup_case admission"
-done
-echo 'Dependency setup skips matching versions and installs missing, mismatched or failed probes'
 
 for family in ic rust; do
   : > "$tools_case/trace"
@@ -720,26 +677,37 @@ for family in ic rust; do
   if [[ "$family" == rust ]]; then
     printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" >> "$tools_case/expected-preflight"
   fi
-  cmp "$tools_case/expected-preflight" "$tools_case/trace" \
-    || fail 'failed setup preflight reached installation or a product extension'
+  cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
 done
 
-for tool in audit machete; do
-  fixture_audit_version=8.7.6
-  fixture_machete_version=7.6.5
-  if [[ "$tool" == audit ]]; then fixture_audit_version=1.2.3;
-  else fixture_machete_version=1.2.3; fi
-  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" \
-    FIXTURE_AUDIT_VERSION="$fixture_audit_version" FIXTURE_MACHETE_VERSION="$fixture_machete_version" \
-    "$make_bin" --no-print-directory -C "$tools_case" dependency-tools-check \
-      CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/wrong-version.log" 2>&1; then
-    fail 'dependency tools admitted the wrong version'
+cat > "$tools_case/scripts/ci/check-dependencies.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ $# == 2 && "$1" == "$EXPECTED_ROOT/bin/selected audit" && "$2" == "$EXPECTED_ROOT/bin/selected machete" ]] || exit 76
+printf 'dependency execution\n' >> "$TRACE_FILE"
+EOF
+: > "$tools_case/trace"
+PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
+  "$make_bin" --no-print-directory -C "$tools_case" dependency-check \
+  CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/dependency-paths.log" 2>&1
+printf '%s\n' "rust --consumer $tools_case --package cargo-audit --version 8.7.6 --bin cargo-audit --profile release --check" \
+  "rust --consumer $tools_case --package cargo-machete --version 7.6.5 --bin cargo-machete --profile release --check" \
+  'dependency execution' > "$tools_case/expected-dependency"
+cmp "$tools_case/expected-dependency" "$tools_case/trace" || fail 'dependency check changed verified executable paths'
+for family in audit machete; do
+  : > "$tools_case/trace"
+  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY="$family" \
+    "$make_bin" --no-print-directory -C "$tools_case" dependency-check \
+    CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/dependency-$family-refusal.log" 2>&1; then
+    fail 'dependency check accepted a failed selection with valid path stdout'
   fi
+  if grep -Fq 'dependency execution' "$tools_case/trace"; then fail 'failed selection dispatched dependency checks'; fi
 done
+echo 'Dependency setup/check/execution use shared pinned paths and stop on failed admission'
 
 : > "$tools_case/trace"
 TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
-  "$make_bin" --no-print-directory -C "$tools_case" >/dev/null
+  "$make_bin" --no-print-directory -C "$tools_case" > /dev/null
 [[ ! -s "$tools_case/trace" ]] || fail 'default Make goal installed tools'
 for target in install-rust-tools rust-tools-check; do
   : > "$tools_case/trace"
@@ -747,15 +715,9 @@ for target in install-rust-tools rust-tools-check; do
   [[ "$target" != rust-tools-check ]] || suffix=' --check'
   TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" \
     "$make_bin" --no-print-directory -C "$tools_case" "$target" \
-    RUST_TOOL_VERSIONS="$tools_case/selected Rust pins.env" >/dev/null
-  printf 'rust --consumer %s --versions %s%s\n' "$tools_case" \
-    "$tools_case/selected Rust pins.env" "$suffix" > "$tools_case/expected"
-  cmp "$tools_case/expected" "$tools_case/trace" \
-    || fail 'Rust setup/check lost its selected catalog or offline mode'
-  if TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY=rust \
-    "$make_bin" --no-print-directory -C "$tools_case" "$target" >/dev/null 2>&1; then
-    fail 'Rust setup/check accepted installer failure'
-  fi
+    RUST_TOOL_VERSIONS="$tools_case/selected Rust pins.env" > /dev/null
+  printf 'rust --consumer %s --versions %s%s\n' "$tools_case" "$tools_case/selected Rust pins.env" "$suffix" > "$tools_case/expected"
+  cmp "$tools_case/expected" "$tools_case/trace" || fail 'Rust tool catalog override was lost'
 done
 : > "$tools_case/trace"
 cat > "$tools_case/scripts/dev/cloc.sh" <<'EOF'
@@ -788,6 +750,8 @@ cat > "$format_case/scripts/dev/install-rust-tools.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ "$*" == "--consumer $PWD --versions $PWD/ci/tool-versions.env --check" ]] || exit 1
+if [[ "${FORMAT_ADMISSION_STATUS:-0}" != 0 ]]; then echo 'fixture common admission failure' >&2; fi
+exit "${FORMAT_ADMISSION_STATUS:-0}"
 EOF
 cat > "$format_case/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
@@ -880,117 +844,14 @@ for target in fmt fmt-check; do
   fi
   [[ ! -s "$format_case/trace" ]] || fail 'absent formatter dispatched fallback Cargo'
 done
-cp "$repo_root/scripts/dev/install-rust-tools.sh" "$format_case/scripts/dev/"
-cp "$repo_root/scripts/ci/verify-file-checksum.sh" "$format_case/scripts/ci/"
-cp "$repo_root/scripts/ci/run-validation-targets.sh" "$format_case/scripts/ci/"
-printf '#!/usr/bin/env bash\nexit 0\n' > "$format_case/scripts/ci/verify-shared-tooling-snapshot.sh"
-cat >> "$format_case/ci/tool-versions.env" <<'PINS'
-export SHARED_TOOLING_CARGO_SORT_DERIVES_VERSION=9.8.6
-export SHARED_TOOLING_CANDID_EXTRACTOR_VERSION=9.8.5
-PINS
-mkdir -p "$format_case/.tools/rust/bin"
-printf '#!/usr/bin/env bash\necho cargo-sort 9.8.6\n' > "$format_case/.tools/rust/bin/cargo-sort"
-printf '#!/usr/bin/env bash\necho cargo-sort 9.8.5\n' > "$format_case/bin/cargo-sort"
-chmod +x "$format_case/.tools/rust/bin/cargo-sort" "$format_case/bin/cargo-sort"
-cp "$format_case/.tools/rust/bin/cargo-sort" "$format_case/local-before"
-cp "$format_case/bin/cargo-sort" "$format_case/global-before"
-printf '#!/usr/bin/env bash\necho "host: fixture-host"\n' > "$format_case/bin/rustc"
-chmod +x "$format_case/bin/rustc"
-cat > "$format_case/bin/cargo" <<'CARGO'
-#!/usr/bin/env bash
-set -euo pipefail
-case "$1" in
-  install)
-    [[ -f host-setup-ready ]] || exit 1
-    package="$2"
-    case "$package" in
-      cargo-sort) version=9.8.7 ;;
-      cargo-sort-derives) version=9.8.6 ;;
-      candid-extractor) version=9.8.5 ;;
-      *) exit 1 ;;
-    esac
-    [[ $# == 13 && "$3" == --version && "$4" == "=$version" && "$5" == --locked &&
-       "$6" == --root && "$8" == --target-dir && "$9" == "$7/build" &&
-       "${10}" == --bin && "${11}" == "$package" && "${12}" == --registry &&
-       "${13}" == crates-io && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-    printf 'formatter setup %s %s\n' "$package" "$version" >> "$TRACE_FILE"
-    [[ "${FIXTURE_SORT_INSTALL_FAIL:-}" != yes ]] || exit 23
-    mkdir -p "$7/bin"
-    printf '#!/usr/bin/env bash\npackage=%q\nversion=%q\n' "$package" "$version" > "$7/bin/$package"
-    cat >> "$7/bin/$package" <<'SORT'
-set -euo pipefail
-[[ "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-if [[ "$*" == --version || "$*" == 'sort-derives --version' ]]; then
-  printf '%s %s\n' "$package" "$version"
-else
-  [[ "$package" == cargo-sort && "$*" == '--workspace --check' && "$CARGO_NET_OFFLINE" == true ]] || exit 1
-  printf 'sort %s\n' "$*" >> "$TRACE_FILE"
-fi
-SORT
-    chmod +x "$7/bin/$package"
-    jq -n --arg package "$package" --arg version "$version" \
-      '{installs:{($package+" "+$version+" (registry+https://github.com/rust-lang/crates.io-index)"):
-      {version_req:("="+$version),bins:[$package],profile:"release",target:"fixture-host",rustc:"fixture rustc"}}}' > "$7/.crates2.json"
-    ;;
-  sort)
-    [[ "$2" != --version ]] || printf 'sort --version\n' >> "$TRACE_FILE"
-    shift; exec cargo-sort "$@" ;;
-  fmt)
-    [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 1
-    printf '%s\n' "$*" >> "$TRACE_FILE"
-    if [[ "$*" == 'fmt --version' ]]; then echo rustfmt;
-    else [[ "$*" == 'fmt --all -- --check' ]]; fi
-    ;;
-  *) exit 80 ;;
-esac
-CARGO
-run_formatter_make() {
-  PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" \
-    MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
-    "$make_bin" --no-print-directory -C "$format_case" "$@"
-}
-if run_formatter_make fmt-check > "$format_case/stale.log" 2>&1; then
-  fail 'formatting admitted the stale local formatter'
-fi
 : > "$format_case/trace"
-if run_formatter_make -j4 ci CI_TARGETS='shared-tooling-check host-tools-check format-tools-check' > "$format_case/early-refusal.log" 2>&1; then
-  fail 'CI admitted a missing selected formatter'
+if PATH="$format_case/bin:$PATH" TRACE_FILE="$format_case/trace" FORMAT_ADMISSION_STATUS=23 \
+  MAKEFLAGS='' MAKEOVERRIDES='' HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
+  "$make_bin" --no-print-directory -C "$format_case" fmt-check > "$format_case/shared-admission-failure.log" 2>&1; then
+  fail 'formatter accepted failed common tool admission'
 fi
-[[ ! -s "$format_case/trace" ]] || fail 'missing formatter dispatched Cargo before early CI refusal'
-grep -Fq 'missing or mismatched common Rust tool set' "$format_case/early-refusal.log" || fail 'missing common selection lost its diagnostic'
-grep -Fq 'make install-rust-tools' "$format_case/early-refusal.log" || fail 'missing common selection lost its repair command'
-: > "$format_case/trace"
-run_formatter_make install-host-tools > "$format_case/host-setup.log" 2>&1
-run_formatter_make -j4 install-rust-tools > "$format_case/setup.log" 2>&1
-run_formatter_make fmt-check > "$format_case/prepared.log" 2>&1 \
-  || fail 'selected setup did not prepare the formatter selected by fmt-check'
-printf '%s\n' "host setup --consumer $format_case --versions $format_case/ci/tool-versions.env" \
-  'formatter setup cargo-sort 9.8.7' 'formatter setup cargo-sort-derives 9.8.6' \
-  'formatter setup candid-extractor 9.8.5' 'sort --version' 'fmt --version' \
-  'sort --workspace --check' 'fmt --all -- --check' > "$format_case/expected"
-cmp "$format_case/expected" "$format_case/trace" || fail 'formatter setup or offline lookup changed'
-cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
-cmp "$format_case/global-before" "$format_case/bin/cargo-sort"
-cp "$format_case/ci/tool-versions.env" "$format_case/selected-pin"
-printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.8\n' >> "$format_case/ci/tool-versions.env"
-: > "$format_case/trace"
-if run_formatter_make -j4 fmt-check > "$format_case/changed-selection.log" 2>&1; then
-  fail 'formatter admission accepted a different installation selection'
-fi
-[[ ! -s "$format_case/trace" ]] || fail 'changed formatter selection dispatched a fallback'
-cp "$format_case/selected-pin" "$format_case/ci/tool-versions.env"
-slot="$format_case/.tools/rust/cargo-sort-9.8.7-bin-cargo-sort-release"
-mv "$slot/installed" "$format_case/prepared-formatter"
-: > "$format_case/trace"
-if FIXTURE_SORT_INSTALL_FAIL=yes run_formatter_make -j4 install-rust-tools > "$format_case/setup-failure.log" 2>&1; then
-  fail 'selected setup admitted a failed formatter installation'
-fi
-printf '%s\n' 'formatter setup cargo-sort 9.8.7' > "$format_case/expected-failure"
-cmp "$format_case/expected-failure" "$format_case/trace" || fail 'setup continued after formatter failure'
-[[ ! -e "$slot/installed" && ! -e "$slot/install.lock" ]] || exit 1
-grep -Fq 'Cargo tool attempt retained:' "$format_case/setup-failure.log"
-cmp "$format_case/local-before" "$format_case/.tools/rust/bin/cargo-sort"
-cmp "$format_case/global-before" "$format_case/bin/cargo-sort"
+[[ ! -s "$format_case/trace" ]] || fail 'formatter executed after common admission failure'
+grep -Fq 'fixture common admission failure' "$format_case/shared-admission-failure.log" || exit 1
 
 python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
 
@@ -1166,7 +1027,7 @@ echo 'fixture clone diagnostic' >&2
 [[ -z "${FAIL_FETCH:-}" ]] || exit 53
 EOF
 chmod +x "${dependency_check_case}/bin/git"
-cat > "${dependency_check_case}/bin/cargo" <<'EOF'
+cat > "${dependency_check_case}/bin/selected audit" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -1198,11 +1059,13 @@ case "${1:-}" in
     ;;
 esac
 EOF
-chmod +x "${dependency_check_case}/bin/cargo"
+cp "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
+chmod +x "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
 TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
   TRACE_FILE="${dependency_check_case}/trace" \
-  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" \
+    "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete" >/dev/null
 printf '%s\n' fetch audit machete > "${dependency_check_case}/expected-trace"
 cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace" \
   || fail "the dependency check did not run one isolated audit before cargo machete"
@@ -1213,7 +1076,8 @@ cmp -s "${dependency_check_case}/expected-trace" "${dependency_check_case}/trace
 if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
   TRACE_FILE="${dependency_check_case}/trace" FAIL_AUDIT=1 \
-  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null 2>&1; then
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" \
+    "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete" >/dev/null 2>&1; then
   dependency_check_status=0
 else
   dependency_check_status="$?"
@@ -1231,7 +1095,8 @@ audit_evidence=("${dependency_check_case}/tmp/"ic-query-dependency-check.*/rusts
 if TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \
   TRACE_FILE="${dependency_check_case}/trace" FAIL_FETCH=1 \
-  bash "${repo_root}/scripts/ci/check-dependencies.sh" >/dev/null 2>&1; then
+  bash "${repo_root}/scripts/ci/check-dependencies.sh" \
+    "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete" >/dev/null 2>&1; then
   dependency_check_status=0
 else
   dependency_check_status="$?"

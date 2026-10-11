@@ -195,6 +195,12 @@ Run `test-snapshot-distribution.sh` from Shared Tooling for upstream exporter an
 governance qualification. Consumers should normally omit that integration fixture
 and its invocation, retaining actual snapshot verification and local adoption
 checks rather than importing its growing upstream test roster.
+If a consumer retains it, the optional companion-pair catalog checks only
+entrypoints present in that checkout; omitted fleet reporters do not become
+dependencies. Present entries still undergo required-companion refusal checks.
+The remaining exporter, focused-fixture and governance integration inputs must
+be available. Shared Tooling runs the complete catalog; a reduced consumer run
+reports omissions and does not qualify the omitted upstream cases.
 
 The validation-runner fixture is different: `test-validation-target-runner.sh`
 invokes `scripts/ci/test-release-metadata.sh` in nested Make/release contexts.
@@ -414,7 +420,8 @@ After the new files are committed and reviewed, add `ci/ic-tools.tsv`,
 `scripts/ci/verify-file-checksum.sh` to the snapshot, with `docs/ic-tools.md`.
 Also include `make/tools.mk`, `make/execution.mk`,
 `scripts/ci/check-make-execution.sh`, `scripts/dev/install-host-tools.sh`,
-`scripts/dev/install-rust-tools.sh`, `scripts/dev/cloc.sh`, `ci/tool-versions.env`
+`scripts/dev/install-rust-tools.sh`, `scripts/dev/cargo-tool-build.sh`,
+`scripts/dev/cloc.sh`, `ci/tool-versions.env`
 and `docs/local-setup.md` for the
 common commands and pinned host setup. Adopt the complete
 [required tool inventory](local-setup.md#required-tool-inventory), including
@@ -470,6 +477,30 @@ installations and failed evidence; do not add fallback paths or copy old binarie
 into slots. Selected product CLI paths remain unchanged, and Testkit still owns
 PocketIC. Remove duplicated installation recipes only after their callers use
 the shared owner. Upstream acceptance and consumer adoption remain distinct.
+
+### Shared Cargo storage adoption in 0.6.0
+
+Refresh the Cargo installer, `scripts/dev/cargo-tool-build.sh`, shared store,
+evidence selector/action and their declared companions together. Preserve
+`.tools/rust/common/bin` on PATH. Selected CLI adapters must use the installer’s
+returned path, not reconstruct the old version-only slot name.
+
+Prepare the consumer's selected Rust compiler, then run `make install-rust-tools`
+and `make rust-tools-check`, plus explicit setup/check for selected product CLIs.
+Tool builds now use the [standard environment](local-setup.md#standard-cargo-tool-build-environment)
+instead of inheriting application flags, wrappers or custom Cargo configuration.
+Both offline checks and subsequent setup require the managed source cache.
+Old local slots, common sets, failed attempts and shared generations stay intact;
+adoption never deletes or silently reuses the old physical installations.
+
+Use the same shared-store setting in setup/checks and evidence collection. The
+selector now owns both local Rust evidence and referenced shared generations;
+custom collectors must remove duplicate `.tools/rust` selections when adopting
+that output. The common action uploads safe local evidence if store admission
+fails, records incomplete collection, then fails after upload. Qualify same-host
+two-checkout reuse and failure retention before claiming consumer adoption.
+Library consumers classify this contributor tooling change at their own API
+boundary; it does not itself require a library minor release.
 
 ### Complete toolset adoption in 0.3.0
 

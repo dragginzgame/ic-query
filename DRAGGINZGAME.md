@@ -307,9 +307,10 @@ Consumer choices described in those guides remain subject to this baseline.
   Adopt `make/tools.mk` from the reviewed snapshot for these common commands
   and LOC reporting, replacing copied recipes; CI calls the same targets.
 - Shared Tooling owns common executable storage as well as installation commands.
-  Host and IC installers share verified bundles per user across checkouts while
-  retaining each repository's pinned selection; Cargo installations remain local
-  until their build inputs can be safely matched across repositories. Consumers
+  Host, IC and Cargo installers share verified bundles per user across checkouts
+  while retaining each repository's pinned selection. Cargo tools use the standard
+  tool-build environment and exact build identities; application compiler flags
+  and wrappers remain repository-owned and do not configure these tool builds. Consumers
   must not create independent stores or new bespoke `.tools` installers. Follow
   the [shared storage adoption boundary](docs/local-setup.md#shared-executable-storage)
   through reviewed canonical tooling; `.tools/host` and `.tools/ic` select shared

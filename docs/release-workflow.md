@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a306180ce534227fcb98b882fba9a526d5d747e0`](https://github.com/dragginzgame/shared-tooling/tree/a306180ce534227fcb98b882fba9a526d5d747e0) (0.5.0),
+[`75180980a0c4e4252d8a915aaecfaefd92bf9a4e`](https://github.com/dragginzgame/shared-tooling/tree/75180980a0c4e4252d8a915aaecfaefd92bf9a4e) (0.6.0),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a306180ce534227fcb98b882fba9a526d5d747e0/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/75180980a0c4e4252d8a915aaecfaefd92bf9a4e/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -35,7 +35,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 81 shared files. Its governance selection keeps the linked
+The snapshot contains 82 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -241,9 +241,12 @@ prepares host tools first, including under parallel Make. Formatter commands
 check that common selection before probing the exact cargo-sort pin and rustfmt;
 global copies cannot substitute for missing slots. Old installations, previous
 common selections and failed candidates remain available for inspection.
-Narrow release preflight prepares this same common set. Cargo Audit and Cargo Machete keep their
-pinned global Cargo installs. Their owner targets are `install-dependency-tools`
-and offline `dependency-tools-check`. The retired `install-dev` aggregate has no
+Narrow release preflight prepares this same common set. Cargo Audit and Cargo Machete
+use shared build-identity selections through `install-dependency-tools` and
+offline `dependency-tools-check`; execution admits both paths before collecting
+the isolated advisory database. Their exact pins remain in `Makefile`. Prepare
+these tools explicitly after refreshing the snapshot; previous global installs
+remain retained. The retired `install-dev` aggregate has no
 replacement alias; callers use `make install-tools`, then `make tools-check`.
 `make format-tools-check` checks the common installation, formatter pin and prepared rustfmt offline.
 Both `fmt` and `fmt-check` require it, then sort/check the one Cargo workspace

@@ -44,7 +44,8 @@ product-specific collection and identity records.
 ## Tool-bundle evidence selection
 
 `select-tool-evidence.sh full REPOSITORY DIAGNOSTICS` emits NUL-separated
-root/relative-path pairs for every host/IC candidate. Both directories must
+root/relative-path pairs for host/IC candidates, local Rust evidence and referenced
+shared Cargo generations. Both directories must
 already exist; diagnostics must be a regular directory. The neutral archiver
 continues to own path admission, namespace collision checks and tar creation.
 
@@ -72,14 +73,22 @@ The selector requires Perl core modules and the declared host/IC check companion
 it never installs or downloads tools. Invalid selections refuse before dispatch.
 
 The common failure action defaults to full retention. Set
+upstream store configuration consistently with setup. If store admission fails,
+the selector still emits safe local references and bundles without following
+their targets, and returns nonzero. The action archives those selections plus
+local logs/builds and the selection diagnostic/status, sets
+`collection-complete=false`, uploads that partial evidence, then fails its final
+completeness step. A rejected store never authorizes traversal or repair, and
+partial evidence is not reported as complete retention. Set
 `compact-successful-tools: 'true'` to opt in; `host-versions` and `ic-pins` select
 absolute caller pin files, defaulting to the repository's common configuration.
 Its native CI control uploads/downloads successful-set diagnostics alongside a
 failed candidate, separately from the existing full-failure control. Native
 acceptance requires matching executed jobs; a configured control is not evidence
-of a successful hosted transport. The full physical `.tools/rust` tree (admitted
-slots, receipts, builds and failed attempts) and original logs retain their
-independent collection contract; links are archived without following targets.
+of a successful hosted transport. The selector owns the full physical
+`.tools/rust` tree plus its admitted shared generations and original build/log
+evidence, independently of host/IC compaction. Custom callers must not also add
+the same local tree to the archive. Links are archived without following targets.
 Consumers adopt the selector only from a
 reviewed committed snapshot, rather than recreating its classifier locally.
 

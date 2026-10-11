@@ -81,26 +81,33 @@ printf 'unrelated checkout bytes\n' > "$fixture/store/unrelated/private"
 ln -s "$fixture/store/$host_slot/set.fixture" "$fixture/repository/.tools/host-set.fixture"
 ln -s host-set.fixture "$fixture/repository/.tools/host"
 ln -s "$fixture/outside" "$fixture/repository/.tools/host-set.external"
+rust_slot="rust-$(printf '%064d' 1)"
+mkdir -p "$fixture/store/$rust_slot/set.complete" "$fixture/store/$rust_slot/set.failed/build"
+chmod 0700 "$fixture/store/$rust_slot" "$fixture/store/$rust_slot/set.complete" "$fixture/store/$rust_slot/set.failed"
+printf 'shared Cargo receipt\n' > "$fixture/store/$rust_slot/set.complete/selection.json"
+printf 'failed Cargo build\n' > "$fixture/store/$rust_slot/set.failed/build/install.log"
+ln -s "$fixture/store/$rust_slot/set.complete" "$fixture/repository/.tools/rust/rust-set.complete"
+ln -s "$fixture/store/$rust_slot/set.failed" "$fixture/repository/.tools/rust/rust-set.failed"
+ln -s "$fixture/outside" "$fixture/repository/.tools/rust/rust-set.external"
 (
   cd "$repo_root"
   GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
 )
-archives=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
-shared_archives=("$fixture/temp/"ic-query-tool-evidence.*/shared-tools.tar.gz)
+archives=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#archives[@]}" == 1 && -f "${archives[0]}" ]] || exit 1
-[[ "${#shared_archives[@]}" == 1 && -f "${shared_archives[0]}" ]] || exit 1
 mkdir "$fixture/unpacked"
 tar -xzf "${archives[0]}" -C "$fixture/unpacked"
-tar -xzf "${shared_archives[0]}" -C "$fixture/unpacked"
 cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/unpacked/.tools/rust/slot/build.log" || exit 1
 cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/unpacked/.tools/rust/slot/installed/selection.json" || exit 1
 [[ -L "$fixture/unpacked/.tools/rust/external-link" ]] || exit 1
 [[ -L "$fixture/unpacked/.tools/host-set.fixture" && -L "$fixture/unpacked/.tools/host-set.external" ]] || exit 1
 cmp "$fixture/store/$host_slot/set.fixture/install.log" "$fixture/unpacked/$host_slot/set.fixture/install.log" || exit 1
 cmp "$fixture/repository/.tools/ic-set.retained/install.log" "$fixture/unpacked/.tools/ic-set.retained/install.log" || exit 1
+cmp "$fixture/store/$rust_slot/set.complete/selection.json" "$fixture/unpacked/$rust_slot/set.complete/selection.json" || exit 1
+cmp "$fixture/store/$rust_slot/set.failed/build/install.log" "$fixture/unpacked/$rust_slot/set.failed/build/install.log" || exit 1
+[[ -L "$fixture/unpacked/.tools/rust/rust-set.external" ]] || exit 1
 tar -tzf "${archives[0]}" > "$fixture/archive-paths"
-tar -tzf "${shared_archives[0]}" >> "$fixture/archive-paths"
-if grep -Eq '/external-link/|/host-set.external/|unrelated|/private$' "$fixture/archive-paths"; then exit 1; fi
+if grep -Eq '/external-link/|/host-set.external/|/rust-set.external/|unrelated|/private$' "$fixture/archive-paths"; then exit 1; fi
 # A redirected Rust root must never select its target for archiving.
 mv "$fixture/repository/.tools/rust" "$fixture/retained-rust"
 ln -s "$fixture/retained-rust" "$fixture/repository/.tools/rust"
@@ -108,7 +115,7 @@ ln -s "$fixture/retained-rust" "$fixture/repository/.tools/rust"
   cd "$repo_root"
   GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
 )
-remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#remaining[@]}" == 2 ]] || exit 1
 for archive in "${remaining[@]}"; do
   [[ "$archive" != "${archives[0]}" ]] || continue
@@ -124,17 +131,18 @@ if (
   SHARED_TOOLING_STORE="$fixture/rejected-store" GITHUB_WORKSPACE="$fixture/repository" \
     RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
 ) > "$fixture/rejected-store.log" 2>&1; then exit 1; fi
-remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
-shared_remaining=("$fixture/temp/"ic-query-tool-evidence.*/shared-tools.tar.gz)
-[[ "${#remaining[@]}" == 3 && "${#shared_remaining[@]}" == 2 ]] || exit 1
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
+[[ "${#remaining[@]}" == 3 ]] || exit 1
 diagnostics=("$fixture/temp/"ic-query-tool-evidence.*/selection.log)
 for diagnostic in "${diagnostics[@]}"; do
   grep -Fq 'tool store root may not be a symlink' "$diagnostic" || continue
   mkdir "$fixture/partial"
-  tar -xzf "${diagnostic%/*}/local-tools.tar.gz" -C "$fixture/partial"
+  grep -Fq 'Shared tool evidence incomplete:' "$diagnostic" || exit 1
+  tar -xzf "${diagnostic%/*}/tools.tar.gz" -C "$fixture/partial"
 done
 cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/partial/.tools/rust/slot/build.log" || exit 1
 cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/partial/.tools/rust/slot/installed/selection.json" || exit 1
+[[ ! -e "$fixture/partial/$rust_slot" && ! -e "$fixture/partial/$host_slot" ]] || exit 1
 # A redirected checkout tool root cannot select any outside tree.
 mv "$fixture/repository/.tools" "$fixture/retained-tools"
 ln -s "$fixture/retained-tools" "$fixture/repository/.tools"
@@ -142,7 +150,7 @@ ln -s "$fixture/retained-tools" "$fixture/repository/.tools"
   cd "$repo_root"
   GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/temp" "$BASH" "$fixture/collect.sh"
 )
-remaining=("$fixture/temp/"ic-query-tool-evidence.*/local-tools.tar.gz)
+remaining=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#remaining[@]}" == 3 ]] || exit 1
 cmp <(printf 'private outside bytes\n') "$fixture/outside/private" || exit 1
 cmp <(printf 'unrelated checkout bytes\n') "$fixture/store/unrelated/private" || exit 1

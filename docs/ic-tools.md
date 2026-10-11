@@ -87,8 +87,10 @@ or downloads; the existing link and bundles remain intact.
 A shared selection lock and a checkout lock prevent competing installers. After an abrupt kill, inspect
 `.tools/.ic-tools.lock/owner` and confirm the process has stopped before removing
 that exact stale lock; the store slot also records `install.lock/owner`.
-Never steal an active installation lock. The offline
-check can inspect the previous complete set during installation.
+Never steal an active installation lock. A checkout activation lock alone does
+not prevent checking its previous complete set. A held shared-slot lock does:
+offline checks refuse with the exact lock path until its owner finishes, even
+when the checkout already references a verified generation in that slot.
 
 The installed hash receipt detects accidental byte changes; it is not a signed
 attestation against an attacker who can rewrite the checkout and receipts.

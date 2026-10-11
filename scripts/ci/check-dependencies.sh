@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+[[ $# == 2 && -x "$1" && -x "$2" ]] || {
+  echo 'usage: check-dependencies.sh AUDIT-EXECUTABLE MACHETE-EXECUTABLE' >&2
+  exit 2
+}
+audit="$1"
+machete="$2"
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-dependency-check.XXXXXX")"
 fixture_complete=false
@@ -26,9 +33,9 @@ echo "Fetching a fresh RustSec snapshot (shallow clone; Git progress follows)" >
 bash "$repo_root/scripts/ci/prepare-rustsec-db.sh" online \
   https://github.com/RustSec/advisory-db.git "$work_dir/rustsec" > /dev/null
 
-cargo audit --no-fetch --db "${work_dir}/rustsec/db" --deny warnings \
+"$audit" audit --no-fetch --db "${work_dir}/rustsec/db" --deny warnings \
   --ignore RUSTSEC-2021-0127 \
   --ignore RUSTSEC-2024-0436
 
-CARGO_NET_OFFLINE=true cargo machete --with-metadata
+CARGO_NET_OFFLINE=true "$machete" machete --with-metadata
 fixture_complete=true

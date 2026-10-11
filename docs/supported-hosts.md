@@ -35,11 +35,14 @@ qualified by this matrix.
   Use the same `SHARED_TOOLING_STORE` setting for setup, offline checks and
   failure collection. Previous physical checkout-local bundles remain retained.
   Cargo-sort 2.1.4, cargo-sort-derives and candid-extractor use the shared exact-slot
-  installer and `.tools/rust/common/bin`; Cargo Audit and Cargo Machete retain
-  their global Cargo destinations. `make install-rust-tools` prepares the common
-  selection. Dependency setup skips an already matching Audit/Machete only
-  after a successful offline exact-version probe; failed or mismatched probes
-  still invoke the pinned installation.
+  installer and `.tools/rust/common/bin`; Cargo Audit and Cargo Machete use the
+  same shared build-identity owner through their consumer-pinned binary selections.
+  `make install-rust-tools` prepares the common selection and
+  `make install-dependency-tools` prepares the extensions. Dependency execution
+  uses their returned checked paths; old global installs remain retained.
+  Cargo tool builds use the prepared compiler and the
+  [standard tool environment](local-setup.md#standard-cargo-tool-build-environment).
+  Preserve the managed source cache for offline checks and reuse.
   Offline `make format-tools-check` admits its receipts and bytes before version probes;
   global or optional-bundle copies cannot substitute for a missing selection.
   `make host-tools-check` authenticates all payloads before version and PCRE2 checks;
@@ -1170,6 +1173,57 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.7 Shared 0.6.0 qualification
+
+Based on released Query 0.54.6 `40bb75ae5bbc8c08f2d29cfc03ae9874e70eef3c`,
+the canonical refresh selects 82 files from committed Shared Tooling 0.6.0
+`75180980a0c4e4252d8a915aaecfaefd92bf9a4e`, explicitly adding the Cargo
+build companion. The engineering baseline remains separately pinned. This
+contributor-tooling adoption preserves published APIs, runtime/CLI, schema-1
+contracts and the consumer build floor, and uses the next patch's notes.
+
+`/tmp/ic-query-shared060-adoption-path` identifies the clean pinned source,
+reviewed preview, canonical refresh and retained logs. Real Linux complete
+setup passes (`real-install-initial.log`), followed by complete offline admission
+on modern Bash/Make and genuine Bash 3.2.57/Make 3.81
+(`real-tools-check.log`, `real-tools-portable.log`). Audit 0.22.2 and Machete
+0.9.2 use the same selected Cargo owner as the common tools. A second temporary
+checkout selects the identical physical common/Audit/Machete payloads; repeated
+complete Query setup passes offline without force-overwrite advice. The selected
+generations' metadata, receipts and build logs remain unchanged through reuse
+(`real-reuse.log`, `reuse-generations-{before,after}`). Original local and global
+executables retain their hashes. Builds use the shared standard environment,
+the prepared Rust 1.99.0 compiler and managed source cache; these results do not
+establish reuse across arbitrary application build configurations.
+
+Canonical installer fixtures pass on both shell/Make profiles
+(`rust-{modern,portable}.log`), as do consumer Make dispatch, explicit executable
+execution, formatting admission and actual workflow-retention fixtures
+(`consumer-second.log`, `consumer-portable.log`, `workflow-initial.log`).
+The collector consumes the canonical selector's safe partial output, archives
+original local build/receipt bytes before reporting incomplete collection, and
+retains only referenced shared Cargo generations without following unknown links.
+Both native failure upload paths retain this evidence for 30 days. The initial
+completion-fixture failure remains in `consumer-initial.log`; the current fixture
+supplies the dependency owner's required selected executable arguments.
+
+Snapshot integrity, ShellCheck, both Bash syntax checks, actionlint,
+current-version changelog admission, local documentation links and whitespace
+checks pass (`static.log`, `static-final.log`). Manifest and real Git index hashes
+remain unchanged. A concurrent lockfile update selected Host 0.13.2; its observed
+hash remains preserved in `concurrent-host-lock.sha256`. This tooling task did
+not select or run product tests for that dependency update.
+
+At inspection, [the exact Shared source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38136593268)
+and [released Query base CI](https://github.com/dragginzgame/ic-query/actions/runs/38135439111)
+are queued. Neither establishes complete or native acceptance for this pending
+consumer source. Native macOS setup/reuse, consumer CI and hosted retention
+qualification remain required under [#44](https://github.com/dragginzgame/ic-query/issues/44)
+and the owning [Shared #123](https://github.com/dragginzgame/shared-tooling/issues/123).
+No full workspace CI, native macOS execution, live canister smoke, release gate,
+package version change, staging, commit, tag, push or CI dispatch ran for this
+adoption.
+
 ## Pending 0.54.6 cleanup qualification
 
 Released 0.54.5's explicitly authorized tag `workflow_dispatch`
@@ -1603,14 +1657,14 @@ by explicit development setup. `fmt-check` checks dependency order before Rust
 formatting and preserves source, the Git index, lockfiles and unrelated edits.
 
 The shared Cargo-tool set is required for Query. `make install-rust-tools`
-prepares cargo-sort, cargo-sort-derives and candid-extractor under `.tools/rust`;
-`make rust-tools-check` verifies that complete local set offline. The standard
-aggregates include all three tools through the same exact-slot installer and
+prepares shared cargo-sort, cargo-sort-derives and candid-extractor selections
+with references under `.tools/rust`; `make rust-tools-check` verifies the complete
+set offline. The standard aggregates include all three through the same installer and
 activate `.tools/rust/common/bin` after complete admission. Formatter targets
 require this common selection before checking cargo-sort's pin and rustfmt;
-global copies cannot substitute for missing slots.
-Those existing copies remain intact. Cargo Audit and Cargo Machete keep their
-pinned global Cargo installations, with explicit owner targets and exact-version
-offline admission. `install-dev` is removed; callers use the complete aggregate.
+global copies cannot substitute for missing selections. Existing copies remain
+intact. Cargo Audit and Cargo Machete use explicit setup/check extension targets
+through the shared installer; dependency execution uses its returned checked
+paths. Caller pins remain in `Makefile`. Callers use the complete aggregate.
 Installer substitution tests establish
 dispatch and failure handling, not native compilation of these executables.

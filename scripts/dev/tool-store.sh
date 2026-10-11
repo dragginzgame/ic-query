@@ -79,6 +79,13 @@ tool_store_release() {
     fi
 }
 
+tool_store_unlocked() {
+    [[ ! -e "$store_slot/install.lock" && ! -L "$store_slot/install.lock" ]] || {
+        printf 'tool store installation locked: %s/install.lock; retry after its owner finishes\n' "$store_slot" >&2
+        return 1
+    }
+}
+
 tool_store_cached() {
     local name
     [[ -L "$store_slot/current" ]] || return 1
@@ -109,6 +116,7 @@ tool_store_activate() {
     # The store's current pointer is a reuse hint; consumers point directly at
     # immutable generations, so updating the hint never upgrades another repo.
     [[ ! -e "$store_slot/current" || -L "$store_slot/current" ]] || { echo 'unmanaged tool store selection' >&2; return 1; }
+    [[ ! -e "$active" || -L "$active" ]] || { echo 'unmanaged local tool selection' >&2; return 1; }
     ln -s "${bundle##*/}" "$store_lock/selected" || return 1
     perl -e 'rename($ARGV[0],$ARGV[1]) or die "select tool store bundle: $!\n"' "$store_lock/selected" "$store_slot/current" || return 1
     ln -s "$store_reference" "$lock/selected" || return 1

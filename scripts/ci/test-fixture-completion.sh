@@ -39,12 +39,14 @@ case "$COMPLETION_MODE" in
   completed-failure) fixture_complete=true; exit 23 ;;
 esac
 PROBE
+  arguments=()
+  [[ "$owner" != check-dependencies ]] || arguments=(/bin/true /bin/true)
   for mode in nounset command nonzero premature success completed-failure; do
     status=0
     (
       cd "$work_dir"
       COMPLETION_MODE="$mode" COMPLETION_DIRECTORY="$work_dir/directory" \
-        TMPDIR=relative-parent "$BASH" "$work_dir/scripts/ci/$owner.sh"
+        TMPDIR=relative-parent "$BASH" "$work_dir/scripts/ci/$owner.sh" ${arguments[@]+"${arguments[@]}"}
     ) > "$work_dir/$owner-$mode.log" 2>&1 || status=$?
     selected="$(cat "$work_dir/directory")"
     case "$selected" in "$work_dir/attempts/"*) ;; *) exit 1 ;; esac

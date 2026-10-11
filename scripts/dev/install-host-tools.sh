@@ -139,7 +139,7 @@ if [[ -L "$active" ]]; then
     selection="${selection%/.}"
     [[ "$selection" =~ ^host-set\.[[:alnum:]]+$ ]] || { echo 'unmanaged host-tool selection' >&2; exit 1; }
     if bundle="$(tool_store_resolve "$tool_root/$selection" "$store_slot")" &&
-        [[ ! -e "$store_slot/install.lock" && ! -L "$store_slot/install.lock" ]] && verify "$bundle"; then
+        tool_store_unlocked && verify "$bundle"; then
         printf '%s\n' "$active/bin"; exit 0
     fi
 elif [[ "$check" == true ]]; then

@@ -27,11 +27,21 @@ shopt -s nullglob
 # shellcheck source=scripts/dev/tool-store.sh
 source "$ROOT/scripts/dev/tool-store.sh"
 emitted=()
-for kind in host ic; do
-    tool_store_init "$kind" evidence
+status=0
+if [[ ! -L "$repository/.tools" && ! -L "$repository/.tools/rust" && -d "$repository/.tools/rust" ]]; then
+    printf '%s\0%s\0' "$repository" .tools/rust
+fi
+for kind in host ic rust; do
+    store_available=true
+    if ! tool_store_init "$kind" evidence ||
+        { [[ -e "$store_root" || -L "$store_root" ]] && ! tool_store_directory "$store_root"; }; then
+        store_available=false
+        status=1
+        echo 'Shared tool evidence incomplete: store admission failed; retaining local evidence without following references.' >&2
+    fi
     compact=""
     active="$repository/.tools/$kind"
-    if [[ "$mode" == compact && ! -L "$repository/.tools" && -L "$active" ]]; then
+    if [[ "$kind" != rust && "$store_available" == true && "$mode" == compact && ! -L "$repository/.tools" && -L "$active" ]]; then
         selected="$(selection "$active")" || selected=""
         selected="${selected%/.}"
         if [[ "$selected" =~ ^$kind-set\.[[:alnum:]]+$ ]] && bundle="$(tool_store_resolve "$repository/.tools/$selected")"; then
@@ -65,12 +75,19 @@ for kind in host ic; do
             fi
         fi
     fi
-    for bundle in "$repository/.tools/$kind-set."*; do
+    # Never enumerate through a redirected checkout root.
+    [[ ! -L "$repository/.tools" ]] || continue
+    references=("$repository/.tools/$kind-set."*)
+    if [[ "$kind" == rust ]]; then
+        [[ ! -L "$repository/.tools/rust" ]] || continue
+        references=("$repository/.tools/rust/rust-set."*)
+    fi
+    for bundle in ${references[@]+"${references[@]}"}; do
         [[ "${bundle##*/}" != "$compact" ]] || continue
-        printf '%s\0%s\0' "$repository" ".tools/${bundle##*/}"
+        if [[ "$kind" != rust ]]; then printf '%s\0%s\0' "$repository" ".tools/${bundle##*/}"; fi
         # Preserve the local reference itself plus its admitted physical bundle.
         # Unknown links stay links in the archive; never traverse them.
-        if [[ ! -L "$repository/.tools" ]] && physical="$(tool_store_resolve "$bundle")"; then
+        if [[ "$store_available" == true ]] && physical="$(tool_store_resolve "$bundle")"; then
             duplicate=false
             for prior in ${emitted[@]+"${emitted[@]}"}; do
                 [[ "$prior" != "$physical" ]] || duplicate=true
@@ -82,3 +99,4 @@ for kind in host ic; do
         fi
     done
 done
+exit "$status"

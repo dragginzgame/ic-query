@@ -31,6 +31,8 @@ endif
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
+AUDIT_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-audit --version "$(CARGO_AUDIT_VERSION)" --bin cargo-audit --profile release
+MACHETE_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-machete --version "$(CARGO_MACHETE_VERSION)" --bin cargo-machete --profile release
 CARGO_HTTP_MULTIPLEXING ?= false
 CARGO_NET_RETRY ?= 10
 CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
@@ -170,7 +172,9 @@ public-docs-check:
 	bash scripts/ci/check-public-docs.sh
 
 dependency-check:
-	bash scripts/ci/check-dependencies.sh
+	+@audit="$$( $(AUDIT_TOOL) --check )" && \
+		machete="$$( $(MACHETE_TOOL) --check )" && \
+		bash scripts/ci/check-dependencies.sh "$$audit" "$$machete"
 
 clippy:
 	cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings
@@ -196,22 +200,14 @@ format-installation-check:
 		--versions "$(RUST_TOOL_VERSIONS)" --check > /dev/null
 
 install-dependency-tools:
-	+@if observed="$$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo-audit --version 2>/dev/null)" && \
-		test "$$observed" = "cargo-audit $(CARGO_AUDIT_VERSION)"; then \
-		printf 'Cargo Audit $(CARGO_AUDIT_VERSION) is already prepared\n'; \
-	else cargo install --locked cargo-audit --version $(CARGO_AUDIT_VERSION); fi
-	+@if observed="$$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 cargo-machete --version 2>/dev/null)" && \
-		test "$$observed" = "$(CARGO_MACHETE_VERSION)"; then \
-		printf 'Cargo Machete $(CARGO_MACHETE_VERSION) is already prepared\n'; \
-	else cargo install --locked cargo-machete --version $(CARGO_MACHETE_VERSION); fi
+	+@$(AUDIT_TOOL) > /dev/null
+	+@$(MACHETE_TOOL) > /dev/null
 
 dependency-tools-check: export CARGO_NET_OFFLINE := true
 dependency-tools-check: export RUSTUP_AUTO_INSTALL := 0
 dependency-tools-check:
-	@test "$$(cargo-audit --version)" = "cargo-audit $(CARGO_AUDIT_VERSION)" || \
-		{ echo 'Prepare the selected Cargo Audit with make install-dependency-tools' >&2; exit 1; }
-	@test "$$(cargo-machete --version)" = "$(CARGO_MACHETE_VERSION)" || \
-		{ echo 'Prepare the selected Cargo Machete with make install-dependency-tools' >&2; exit 1; }
+	+@$(AUDIT_TOOL) --check > /dev/null
+	+@$(MACHETE_TOOL) --check > /dev/null
 
 publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh
