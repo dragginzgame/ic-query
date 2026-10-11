@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.10]
+## [0.54.10] - 2026-10-11
 
 - Aligns release documentation with the delivered shared engineering baseline
   and Query's explicit release and validation exceptions.
