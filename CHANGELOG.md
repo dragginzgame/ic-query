@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.11]
+## [0.54.11] - 2026-10-12
 
 - Adopts Shared Tooling 0.6.4 through one Make entrypoint, consolidating common
   setup, formatting, snapshot checks and release routing while preserving Query's
