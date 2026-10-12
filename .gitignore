@@ -24,4 +24,5 @@ __pycache__/
 .env
 /.tmp/
 /.shared-tooling-refresh.*/
+.shared-tooling-payload.*
 /.codex/

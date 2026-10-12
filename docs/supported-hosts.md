@@ -1173,7 +1173,119 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.54.14 Shared 0.8.1 qualification
+## Pending 0.54.15 Shared 0.9.0 qualification
+
+Canonical refresh retains 82 entrypoints and 89 payloads at finalized Shared
+0.9.0 `aec7a149f581a42b9531fc747b46024fc0314fcf`. Query's formatting
+fixture uses the trusted shared reader against its copied manifest before
+projecting file records. Syntax admission rejects NUL and malformed late input
+without emitting partial records, preserving order and literal filename spaces;
+payload integrity and committed-source ownership remain separate checks.
+
+Reader boundary tests and actual Query formatting/hook/reuse pass on modern
+Bash/Make and genuine Bash 3.2.57/GNU Make 3.81 against implementation commit
+`019ce8236cc7cee14ea5540d468b939a2053ef30`. The final commit changes only
+`VERSION`, retaining identical helper code. Final 0.9.0 integrity and record
+output checks pass on both profiles. ShellCheck, syntax, notes, links and captured
+non-lock input hashes pass. Final preservation checks detected an external Host
+lock change to 0.14.9; the original failed logs remain retained and the incoming
+lock is preserved. Repeated actual hook/reuse checks pass on both profiles with
+the current 0.9.0 snapshot and incoming lock; `incoming-preservation.log` confirms
+all newly captured inputs remain unchanged. This does not qualify the Host
+library update or relabel the earlier failed preservation checks.
+Evidence:
+`/tmp/ic-query-shared090-adoption.htYCwG/`.
+
+The superseded implementation CI failed on an HTTP 504 during IC tool download;
+its complete log is retained. This is transport evidence, not a reader failure.
+[Final source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38246537047)
+passes lint/security, with Linux regression running and native jobs queued at
+inspection. Full local CI, library tests, release gates and native consumer
+execution were not run. Pending consumer native acceptance remains under
+[#44](https://github.com/dragginzgame/ic-query/issues/44).
+
+## Prior 0.54.15 Shared 0.8.4 qualification
+
+Canonical refresh retains all 82 entrypoints and 89 payloads at Shared 0.8.4
+`dca2bdd018afa6be598f03bb3cce1bab79c66973`, matching upstream main at
+review. Only the selected LOC reporter and snapshot guidance change for this
+delta; no files or pins are added or retired.
+
+The exact-source LOC fixtures pass with modern Bash and genuine Bash 3.2.57,
+covering JSON/text agreement, independent workspace selection, generated-output
+exclusion and original failure status without partial JSON. The actual Query
+workspace JSON/text counts agree under locked/offline metadata. Snapshot,
+ShellCheck, syntax, notes and local links pass; incoming Host lock, manifests,
+local policy, Makefile and real index retain captured hashes. Evidence:
+`/tmp/ic-query-shared084-adoption.z1WKRO/`.
+
+Earlier 0.8.2/0.8.3 evidence below retains its original identity and was not
+repeated for unchanged boundaries. No full local CI, library tests, release gate
+or native consumer execution ran.
+[Exact Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38243170578)
+passes lint/security, with Linux regression running and both macOS jobs queued
+at inspection. Matching consumer native qualification remains open under
+[#44](https://github.com/dragginzgame/ic-query/issues/44).
+
+## Prior 0.54.15 Shared 0.8.3 qualification
+
+Canonical refresh retains all 82 entrypoints and 89 payloads at Shared 0.8.3
+`8cca7e67b03ce6e701b6e7dcec2e9753eb98337e`, matching upstream main at
+review. No files are added or retired. Interrupted payload copies preserve the
+original bytes, manifest and fixture index; same-source retry completes on
+modern Bash and genuine Bash 3.2.57. New payload scratch names are ignored at
+any depth, preserving existing orphaned artifacts.
+
+The updated canonical Cargo fixtures pass on modern Bash/Make and genuine
+Bash 3.2.57/GNU Make 3.81, including redirected observation refusal, unchanged
+outside evidence/prior selection and retained archive links. Query's actual
+formatting admission passes with distinct host/Rust catalogs on both profiles;
+complete offline tool admission passes and successful PCRE2 checks remain quiet.
+Snapshot, ShellCheck, syntax, notes, links and captured manifests, incoming Host
+lock, policy, Makefile and real index pass preservation checks. Evidence:
+`/tmp/ic-query-shared083-adoption.y9nLnP/`.
+
+The 0.8.2 freshness feature and its qualified wrapper remain in this slice;
+unchanged checks below were not repeated for the 0.8.3 delta. Full local CI,
+release gates, library tests and native consumer execution were not run.
+Matching remote consumer native acceptance remains outstanding under
+[#44](https://github.com/dragginzgame/ic-query/issues/44); upstream native
+qualification is tracked by its
+[exact-source CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38238988308).
+
+## Prior 0.54.15 Shared 0.8.2 qualification
+
+Canonical refresh selects clean committed Shared 0.8.2
+`aaf75a37717357dd62f4b0b15001eaa3ba1629cf`, with 82 entrypoints and
+89 payloads. The three additions are the Cargo-tool freshness checker, its task
+guide and offline substitute-registry fixture. The explicit online Make target
+delegates to the shared Perl owner; CI registers only its offline fixture.
+No pins or product behavior change, and the incoming Host 0.14.7 lock is preserved.
+
+The fixture passes on modern Bash and genuine Bash 3.2.57. Make wrapper argument
+preservation and failure propagation pass with modern Make and GNU Make 3.81.
+The actual online target observes 17 common/user packages as current and retains
+registry responses under `/tmp/ic-query-shared082-adoption.VftHrc/`. These are
+receipt-version observations, not executable byte or build admission; Query's
+Audit/Machete setup and offline checks retain their own scope. Snapshot, Perl,
+ShellCheck, notes, local links and index/manifest/lock preservation checks pass.
+The initial dry-run guard refusal remains retained; wrapper qualification uses
+substituted command effects with real Make execution.
+
+At source review, upstream main still selected 0.8.1 and no matching 0.8.2 CI run
+was available. The snapshot is from the exact clean committed checkout; this is
+not upstream publication or native qualification. Full local CI, library tests,
+release gates and native execution were not run for this tooling-only delta.
+Matching native acceptance remains outstanding under
+[#44](https://github.com/dragginzgame/ic-query/issues/44).
+
+## Delivered 0.54.14 Shared 0.8.1 qualification
+
+Released Query `08182547d9d93680f6ab38e9ba6981acb091716f` matches remote
+main and selects the snapshot reviewed below. Its
+[exact-source CI](https://github.com/dragginzgame/ic-query/actions/runs/38236368356)
+passes Linux MSRV/canister integration, with Linux checks running and all native
+jobs queued at inspection. No additional current-source failure is observed.
 
 Canonical refresh retains the same 79 entrypoints and 86 payloads at Shared
 0.8.1 `c97f9f9c7b7c706fffdcfc5925cf58759b58093f`. No files are added or

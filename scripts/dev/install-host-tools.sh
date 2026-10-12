@@ -121,7 +121,7 @@ verify() {
         tool_failure "$tool" "$directory/bin/$tool" version-mismatch "$output"; return 1
     done
     if output="$("$directory/bin/rg" --pcre2-version)"; then
-        printf '%s\n' "$output" >&2
+        :
     else
         status=$?
         tool_failure rg "$directory/bin/rg" "PCRE2-probe-failed(exit=$status)" "$output"; return 1

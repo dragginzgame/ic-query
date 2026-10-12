@@ -1,6 +1,6 @@
 .PHONY: \
 	canister-build canister-bundle canister-smoke \
-	build changelog-check check ci ci-scripts-check clean clippy \
+	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
@@ -102,6 +102,7 @@ help:
 	@echo "  ic-tools-check  Verify the IC toolset offline"
 	@echo "  install-rust-tools  Install the common Cargo-tool set locally"
 	@echo "  rust-tools-check  Verify the common Cargo-tool set offline"
+	@echo "  check-cargo-tool-versions  Check common Cargo pins and user receipts against crates.io (online, read-only)"
 	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
 	@echo "  publish    Publish the library, then the CLI, to crates.io"
 	@echo "  version    Show current version"
@@ -148,6 +149,7 @@ release-guards-check:
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
 	bash scripts/ci/test-rust-tools.sh
+	bash scripts/ci/test-cargo-tool-versions.sh
 	bash scripts/ci/check-formatting-hook.sh
 	cargo test -p ic-query-cli --example governance_smoke --locked --offline
 
@@ -198,6 +200,10 @@ install:
 format-installation-check:
 	+@bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" \
 		--versions "$(RUST_TOOL_VERSIONS)" --check > /dev/null
+
+check-cargo-tool-versions:
+	@perl "$(SHARED_TOOLING_ROOT)/scripts/dev/check-cargo-tool-versions.pl" \
+		--consumer "$(CURDIR)" --versions "$(RUST_TOOL_VERSIONS)"
 
 install-dependency-tools:
 	+@$(AUDIT_TOOL) > /dev/null

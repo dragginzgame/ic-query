@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`c97f9f9c7b7c706fffdcfc5925cf58759b58093f`](https://github.com/dragginzgame/shared-tooling/tree/c97f9f9c7b7c706fffdcfc5925cf58759b58093f) (0.8.1),
+[`aec7a149f581a42b9531fc747b46024fc0314fcf`](https://github.com/dragginzgame/shared-tooling/tree/aec7a149f581a42b9531fc747b46024fc0314fcf) (0.9.0),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/c97f9f9c7b7c706fffdcfc5925cf58759b58093f/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/aec7a149f581a42b9531fc747b46024fc0314fcf/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,7 +36,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot records 79 entrypoints and derives their 86-file companion closure.
+The snapshot records 82 entrypoints and derives their 89-file companion closure.
 The entrypoints retain all existing operational helpers, selected fixtures and
 offline governance documents. Common Make, consumer-owned callers and optional
 features still require local review; companion declarations do not infer them.
@@ -55,6 +55,13 @@ the selection. Refresh automatically retires unchanged owned files outside the
 new closure after checking prior source bytes, mode, index and path identity.
 Local edits refuse retirement. Preserve manifest ownership records and caller
 evidence, and review every removal in preview before applying.
+
+`make check-cargo-tool-versions` explicitly performs online registry inspection
+of common Cargo pins, checkout receipts and user installations. It retains
+response evidence and does not prepare tools or change selections. The substitute
+registry fixture runs offline in CI; live freshness is outside the validation
+gate. See the [Cargo tool task](../tasks/cargo-tool-versions.md). Offline byte
+and build admission remains owned by `make tools-check`.
 
 Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host

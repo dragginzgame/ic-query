@@ -148,7 +148,8 @@ selected_paths() {
     done
     for path in "$directory/bin/$target" "$directory/.crates.toml" \
         "$directory/.crates2.json" "$directory/selection.json" "$directory/inputs.json" \
-        "$directory/source.crate" "$directory/Cargo.lock" "$directory/native-environment.txt"; do
+        "$directory/source.crate" "$directory/Cargo.lock" "$directory/native-environment.txt" \
+        "$directory/build-identity.observed.json" "$directory/native-environment.observed.txt"; do
         [[ ! -L "$path" && ( ! -e "$path" || -f "$path" ) ]] || {
             printf 'Cargo tool file must be regular: %s\n' "$path" >&2; return 1;
         }
@@ -240,6 +241,7 @@ install_selected() (
         tool_store_reference "$destination" || exit $?
     else
         tool_store_new || exit $?
+        selected_paths "$stage" || exit $?
         printf '%s\n' "$inputs" > "$stage/inputs.json" || exit $?
         printf '%s\n' "$packaged_lock" > "$stage/Cargo.lock" || exit $?
         printf '%s\n' "$native_identity" > "$stage/native-environment.txt" || exit $?

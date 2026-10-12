@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.15]
+
+- Adopts Shared Tooling 0.9.0. Snapshot callers share validated
+  records and reject NUL bytes; syntax inspection remains separate from integrity.
+- Adds a read-only, online Cargo-tool freshness
+  check. It compares common pins, checkout receipts and user-installed packages
+  with non-yanked stable releases, retaining registry evidence without installing
+  tools or changing selections.
+- Formatting admits the selected Rust catalog consistently with setup. Tool
+  diagnostics refuse redirected files, snapshot replacement preserves intact
+  destinations on copy failure, and successful PCRE2 checks stay quiet.
+- The workspace LOC reporter also emits JSON crate rows and numeric totals,
+  preserving the existing human-readable report.
+
+```bash
+make check-cargo-tool-versions
+bash scripts/dev/cloc.sh --json .
+bash scripts/ci/verify-shared-tooling-snapshot.sh --read-manifest .shared-tooling.snapshot
+```
+
 ## [0.54.14] - 2026-10-12
 
 - Adopts Shared Tooling 0.8.1: malformed snapshot fields are rejected consistently,

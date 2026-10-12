@@ -26,12 +26,14 @@ for input in Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.tom
   cp "$repo_root/$input" "$fixture/$input"
   git -C "$fixture" add -- "$input"
 done
+bash "$repo_root/scripts/ci/verify-shared-tooling-snapshot.sh" \
+  --read-manifest "$fixture/.shared-tooling.snapshot" > "$work_dir/shared-records"
 while IFS=$'\t' read -r kind _digest _mode path; do
   [[ "$kind" == file ]] || continue
   mkdir -p "$fixture/$(dirname "$path")"
   cp -p "$repo_root/$path" "$fixture/$path"
   git -C "$fixture" add -- "$path"
-done < "$repo_root/.shared-tooling.snapshot"
+done < "$work_dir/shared-records"
 git -C "$fixture" add -- Makefile .shared-tooling.snapshot
 
 # Explicit fixture preparation must reuse the checkout's verified payloads.
