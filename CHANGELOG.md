@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.11]
+
+- Adopts Shared Tooling 0.6.4 through one Make entrypoint, consolidating common
+  setup, formatting, snapshot checks and release routing while preserving Query's
+  admission checks. [#44](https://github.com/dragginzgame/ic-query/issues/44).
+- Uses a fixture-owned executable for completion checks, removing a Linux-only
+  path assumption that blocked Intel macOS CI.
+  [#45](https://github.com/dragginzgame/ic-query/issues/45).
+- Selects Host artifacts, filesystem and process 0.14.2, with unchanged library
+  APIs and Query behavior.
+
 ## [0.54.10] - 2026-10-11
 
 - Aligns release documentation with the delivered shared engineering baseline

@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`4fd979d13c32adb3cb2f51f213ebfc4f98339b3d`](https://github.com/dragginzgame/shared-tooling/tree/4fd979d13c32adb3cb2f51f213ebfc4f98339b3d) (0.6.3),
+[`6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d`](https://github.com/dragginzgame/shared-tooling/tree/6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d) (0.6.4),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/4fd979d13c32adb3cb2f51f213ebfc4f98339b3d/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,7 +36,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 82 shared files. Its governance selection keeps the linked
+The snapshot contains 85 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -56,8 +56,9 @@ remain in Shared Tooling's owner suite. The linked maintenance task catalog and
 schedule templates are retained offline, without enabling a timer or recurring
 agent execution.
 
-The reviewed `make/release.mk` and `make/rust-format.mk` includes own standard
-release routing, root-workspace formatting and parse-time Make admission.
+The reviewed [consumer Make entrypoint](make-interface.md), `make/consumer.mk`,
+owns common tool setup/checks, snapshot verification, release routing,
+root-workspace formatting and parse-time Make admission through its companions.
 Query retains local adapters and target-specific cache preparation on
 all four release entrypoints. Release and formatter helper paths remain bound
 to this checkout before includes are loaded, including in disposable fixtures
@@ -75,6 +76,9 @@ uses prepared tools offline and disables automatic rustup installation.
 `FORMAT_CARGO` selects one executable name or path for admission and execution;
 use `RUSTUP_TOOLCHAIN` for explicit toolchain selection. Setup and checkout hook
 configuration remain separate; Query does not select the shared formatting hook.
+The entrypoint exposes `install-hooks`, but it refuses activation without the
+tracked hook. Query's receipt admission must first be qualified against an
+exported index tree before adopting that hook; ordinary setup does not activate it.
 The shared formatting reporter prints one success line, or a failure summary
 with the original formatter exit status and a complete diagnostic log path.
 Failed logs remain under `RUNNER_TEMP`, otherwise `TMPDIR` or `/tmp`; CI retains

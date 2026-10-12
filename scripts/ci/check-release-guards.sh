@@ -19,7 +19,7 @@ work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
 export TMPDIR="${work_dir%/*}"
 bash "$repo_root/scripts/ci/check-release-cache.sh"
-bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
+bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
 export REAL_MAKE REAL_GIT
 export REAL_CARGO YQ
@@ -250,7 +250,7 @@ new_fixture() {
   cd "$work_dir/$name"
   cp "$repo_root/Makefile" Makefile
   mkdir -p make
-  cp "$repo_root/make/"{tools,release,rust-format,execution}.mk make/
+  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
   cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/

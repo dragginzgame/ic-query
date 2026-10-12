@@ -7,7 +7,7 @@
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
-	release-tagged-check release-push-check release-tag-check shared-tooling-check \
+	release-tagged-check release-push-check release-tag-check \
 	schema-version-check tags test type-docs-check version
 
 .DEFAULT_GOAL := help
@@ -42,9 +42,7 @@ YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(REPO_ROOT)
 LOCAL_TOOL_INSTALL_TARGETS += install-dependency-tools
 LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
-include $(REPO_ROOT)make/tools.mk
-include $(REPO_ROOT)make/release.mk
-include $(REPO_ROOT)make/rust-format.mk
+include $(REPO_ROOT)make/consumer.mk
 export IC_TOOL_PINS
 
 format-tools-check: format-installation-check
@@ -143,9 +141,6 @@ library-process-boundary-check:
 
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
-
-shared-tooling-check:
-	bash scripts/ci/verify-shared-tooling-snapshot.sh
 
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh

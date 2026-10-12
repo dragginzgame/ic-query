@@ -120,7 +120,7 @@ check_release_assertions
 copy_makefile() {
   mkdir -p "$1/make" "$1/scripts/ci"
   cp "$repo_root/Makefile" "$1/Makefile"
-  cp "$repo_root/make/"{tools,release,rust-format,execution}.mk "$1/make/"
+  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk "$1/make/"
   cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution,run-formatting}.sh "$1/scripts/ci/"
 }
 

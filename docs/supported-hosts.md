@@ -1173,6 +1173,51 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.11 Shared 0.6.4 qualification
+
+Based on released Query `4a18ccfe04198482352c6effa8ff17abc16e690b`, the
+canonical exporter selects 85 files from Shared 0.6.4
+`6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d`. The root Makefile uses the
+combined consumer entrypoint; all isolated Make exports include it. Cargo
+installer/store helpers retain their previous bytes. Offline tool admission,
+actual formatting, consumer CI-script and simulated release checks pass on
+Linux. The fixtures also pass with genuine Bash 3.2.57/GNU Make 3.81. These
+portable checks do not qualify native macOS. The incoming lockfile and real
+index are preserved; all 58 cache-file tests pass with its current serde_json
+1.0.154 and syn 3.0.8 selection under locked/offline validation. The initial
+pass selected Host 0.14.1; the follow-up selects published 0.14.2 below.
+
+The follow-up admits the published artifacts, filesystem and process 0.14.2
+archives from `fed8724e79862d8273d01823619fe648c981c019`. Registry checksums
+and archive VCS identities match; their library source trees match 0.14.1.
+Only the three Host package records change in the selected lock, preserving
+other versions and dependency edges. Locked/offline metadata, all 58 cache-file
+tests and all 27 Governance smoke fixtures pass. Manifests and the real index
+remain unchanged. `/tmp/ic-query-05411-host0142-path` identifies this separate
+registry/archive review, scoped lock diff and validation evidence.
+[Exact Host CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38159733484)
+passes Linux native checks and MSRV with macOS jobs queued; it does not qualify
+this pending consumer source or replace native consumer acceptance.
+
+Released-source [Intel macOS CI](https://github.com/dragginzgame/ic-query/actions/runs/38152148553/job/114507631316)
+stops in the completion fixture before its injected nounset fault: the dependency
+owner returns setup status 2 instead of the expected failure status 1. That
+fixture assumes executable `/bin/true` inputs. The pending repair uses its own
+executable, preserving completion and failure-evidence assertions. Focused
+completion and CI-script checks pass on both Linux shell/Make profiles; matching
+native execution remains required under [#45](https://github.com/dragginzgame/ic-query/issues/45).
+
+The shared formatting hook remains unselected. A disposable, explicitly prepared
+Query clone passes actual formatting but the canonical hook cannot admit tool
+receipts in its exported index tree. Refusal preserves the staged payload,
+selected source and unrelated evidence. The owning
+[Shared #130 feedback](https://github.com/dragginzgame/shared-tooling/issues/130#issuecomment-6111442463)
+requests shared read-only receipt admission without weakening Query's prerequisite.
+`/tmp/ic-query-shared064-adoption-path` identifies the pinned source, canonical
+export, native failure log, reproduction and focused validation logs. Full local
+CI and release gates were not run; native adoption acceptance remains outstanding
+under [#44](https://github.com/dragginzgame/ic-query/issues/44).
+
 ## Pending 0.54.9 Shared 0.6.3 and Host 0.14 qualification
 
 Based on released Query `1f6ab7eff5d1d527749412d42f0e7b9ad4b9da98`,

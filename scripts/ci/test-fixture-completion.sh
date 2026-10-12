@@ -18,6 +18,8 @@ export TMPDIR="${work_dir%/*}"
 
 mkdir -p "$work_dir/scripts/ci" "$work_dir/attempts"
 ln -s "$work_dir/attempts" "$work_dir/relative-parent"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$work_dir/fixture-tool"
+chmod +x "$work_dir/fixture-tool"
 for owner in check-ci-scripts check-release-cache check-release-metadata \
   check-release-guards check-publish-guards check-public-docs \
   check-library-feature-boundaries check-dependencies test-fixture-completion; do
@@ -40,7 +42,7 @@ case "$COMPLETION_MODE" in
 esac
 PROBE
   arguments=()
-  [[ "$owner" != check-dependencies ]] || arguments=(/bin/true /bin/true)
+  [[ "$owner" != check-dependencies ]] || arguments=("$work_dir/fixture-tool" "$work_dir/fixture-tool")
   for mode in nounset command nonzero premature success completed-failure; do
     status=0
     (
