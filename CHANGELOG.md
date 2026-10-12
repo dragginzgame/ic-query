@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.14]
+## [0.54.14] - 2026-10-12
 
 - Adopts Shared Tooling 0.8.1: malformed snapshot fields are rejected consistently,
   while filenames retain literal spaces. Tool-installation failures identify
