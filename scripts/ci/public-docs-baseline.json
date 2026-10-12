@@ -877,7 +877,6 @@
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::MissingNeuronsCacheForId",
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::MissingProposalId",
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::MissingProposalsCache",
-  "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::Runtime",
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::UnknownSnsId",
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::UnknownSnsRoot",
   "crates/ic-query/src/sns/report/model/errors.rs::enum SnsHostError::a variant::UnsupportedNetwork",

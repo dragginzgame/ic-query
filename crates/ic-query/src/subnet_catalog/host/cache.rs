@@ -306,6 +306,11 @@ pub async fn load_subnet_catalog_detailed_with_source(
     load_subnet_catalog_detailed_with_progress(request, source, &mut IgnoreQueryProgress).await
 }
 
+/// Apply a catalog read policy with a supplied source and refresh progress.
+///
+/// Calls the source only when the selected policy authorizes a refresh.
+/// Cache hits emit no refresh events. Failures retain request, stage and
+/// cache-disposition evidence in [`SubnetCatalogLoadFailure`].
 pub async fn load_subnet_catalog_detailed_with_progress(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
