@@ -7,14 +7,7 @@
 use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
 use crate::cache_file::CacheFileError;
 
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
+#[cfg(any(feature = "subnet-catalog-host", test))]
 pub fn with_refresh_lock<T, E>(
     request: RefreshLockRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> E,

@@ -6,6 +6,13 @@
 
 use crate::http_endpoint::parse_http_endpoint;
 use ic_agent::Agent;
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    test
+))]
 use std::sync::OnceLock;
 #[cfg(feature = "certified-subnet-catalog-host")]
 use std::time::Duration;
@@ -20,10 +27,24 @@ pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 ///
 
 #[derive(Clone, Default)]
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    test
+))]
 pub struct EndpointAgent {
     transport: OnceLock<(String, usize, Agent)>,
 }
 
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    test
+))]
 impl EndpointAgent {
     pub(crate) fn get<Error>(
         &self,
@@ -49,6 +70,13 @@ impl EndpointAgent {
     }
 }
 
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    test
+))]
 impl std::fmt::Debug for EndpointAgent {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -62,6 +90,12 @@ impl std::fmt::Debug for EndpointAgent {
 }
 
 /// Validate a clean HTTP(S) endpoint and construct one response-bounded IC agent.
+#[cfg(any(
+    feature = "ic-state-host",
+    feature = "cmc-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 pub fn build_ic_agent<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,

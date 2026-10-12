@@ -175,7 +175,8 @@ check_tree_absent() {
   shift
 
   local tree
-  tree="$(cargo tree "$@" -e features --locked --offline)" || return "$?"
+  # Consumer runtime/build boundaries exclude caller-runtime test dependencies.
+  tree="$(cargo tree "$@" -e normal,build,features --locked --offline)" || return "$?"
 
   local failed=0
   for dependency in "${dependencies[@]}"; do
@@ -344,7 +345,7 @@ check_tree_absent "ic-query --features ic-state-host" \
   --features ic-state-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# Certified IC state collection directly needs only the agent, runtime bridge,
+# Certified IC state collection directly needs only the agent, timers,
 # and endpoint validation; it must not activate cache, Dashboard, Registry, or
 # independent certificate-decoding dependencies.
 check_tree_absent "ic-query --features ic-state-host direct dependencies" \
@@ -403,7 +404,7 @@ check_tree_absent "ic-query --features cloud-engine-host" \
   --features cloud-engine-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# CloudEngine queries need only the agent, runtime bridge, and URL validation;
+# CloudEngine queries need only the agent, timers, and URL validation;
 # cache, Registry, and certification dependencies must remain disabled directly.
 check_tree_absent "ic-query --features cloud-engine-host direct dependencies" \
   "${forbidden_direct_cloud_engine_host_dependencies[@]}" \

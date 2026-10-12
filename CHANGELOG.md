@@ -7,6 +7,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.55.0]
 
+- Restricts native test networking to native targets so the Governance Wasm
+  probe compiles without Mio. Feature checks inspect production dependency
+  boundaries separately from test runtimes and admit individual host features.
 - **Breaking:** live collection and cache reads that may refresh now return
   futures on the caller's runtime. Await host operations; synchronous wrappers
   and library runtime error variants are removed. Pure projections, rendering
@@ -25,8 +28,7 @@ crate follows [Semantic Versioning](https://semver.org/).
   download failures within bounded attempts/time; snapshot/recovery identities
   require complete Git IDs. Native acceptance remains
   tracked in [#44](https://github.com/dragginzgame/ic-query/issues/44).
-- Selects Host artifacts, filesystem and process 0.14.10, with unchanged runtime
-  source, dependency contracts and supported builds.
+- Selects Host artifacts, filesystem and process 0.15.1.
 - Release preparation preserves reviewed README/library examples and treats
   their freshness as advisory, avoiding rejection of already-updated examples.
   [Shared #100](https://github.com/dragginzgame/shared-tooling/issues/100).

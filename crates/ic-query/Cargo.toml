@@ -96,7 +96,10 @@ unicode-width.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros", "time", "net"] }
+tokio = { workspace = true, features = ["rt", "macros", "time"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true, features = ["net"] }
 
 [[test]]
 name = "ic_public_api"
