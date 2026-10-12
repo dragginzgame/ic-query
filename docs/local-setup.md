@@ -248,6 +248,11 @@ while formatting isolated index inputs. The helper never prepares or upgrades a
 toolchain implicitly. Installation may fetch registry dependencies and compile;
 failed candidates, completed build output and install logs remain in shared
 `rust-<identity>/set.*` generations, referenced from the originating checkout.
+If build identity changes during installation, activation refuses and reports the
+changed field names. The retained attempt contains the original `.build` identity
+in `inputs.json` and `native-environment.txt`, alongside the exact new observation
+in `build-identity.observed.json` and `native-environment.observed.txt`. These files
+are included by the normal evidence collector; no automatic rebuild is attempted.
 Both common tools and consumer-selected tools use the same locked installer,
 Cargo receipt and observed byte-digest admission described below. Common tools
 add a successful exact-version probe after byte admission. Shared host tools

@@ -1173,7 +1173,37 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.54.13 Shared 0.8.0 qualification
+## Pending 0.54.14 Shared 0.8.1 qualification
+
+Canonical refresh retains the same 79 entrypoints and 86 payloads at Shared
+0.8.1 `c97f9f9c7b7c706fffdcfc5925cf58759b58093f`. No files are added or
+retired. Both refresh and verification reject 12 malformed header/file/root
+records on modern Bash and genuine Bash 3.2.57; verification also admits
+filenames with leading, internal and trailing literal spaces.
+
+The canonical Cargo fixtures pass on both Bash/Make profiles, exercising
+compiler, native and policy identity changes during substitute installation.
+They confirm original/observed evidence, refusal before activation, preservation
+of the prior selection and inclusion of both observations in the standard
+evidence archive. Complete offline tool admission and Query's actual formatting
+hook/reuse pass, the latter with genuine Bash 3.2.57/GNU Make 3.81. ShellCheck,
+syntax, notes, links and captured manifest/lock/index/payload hashes pass.
+Evidence: `/tmp/ic-query-shared081-adoption.W0i3GW/`.
+
+[Exact Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38231862048)
+passes Linux regression and lint/security; both macOS jobs are queued at
+inspection. No full local CI, release gate, library tests or native consumer
+execution ran for this tooling-only update. Matching pending-source consumer
+native acceptance remains outstanding under
+[#44](https://github.com/dragginzgame/ic-query/issues/44).
+
+## Delivered 0.54.13 Shared 0.8.0 qualification
+
+Released Query `ea3d23391d4ae6936b2b04f9295ae4b0c1760f22` matches remote
+main and selects the snapshot reviewed below. Its
+[exact-source CI](https://github.com/dragginzgame/ic-query/actions/runs/38232523331)
+passes Linux MSRV and canister integration, with Linux checks running and native
+jobs queued at inspection. Delivery does not complete native acceptance.
 
 The canonical exporter refreshes the same 79 entrypoints and 86 payloads to
 Shared 0.8.0 `045a6f22a9de497bfb3af90cb2571957384806f2`. Preview changes

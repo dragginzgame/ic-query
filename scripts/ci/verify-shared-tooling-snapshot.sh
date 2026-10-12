@@ -120,30 +120,30 @@ while IFS= read -r manifest_line || [[ -n "$manifest_line" ]]; do
         entrypoints+=("$first")
         ;;
     '# version')
-        [[ "$first" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ && -z "$second" && -z "$third" && -z "$extra" ]] ||
+        [[ "$first" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ && "$manifest_line" == "$record"$'\t'"$first" ]] ||
             fail "malformed version annotation"
         version_count=$((version_count + 1))
         snapshot_version="$first"
         ;;
     '' | \#*) continue ;;
     format)
-        [[ "$first" == "1" && -z "$second" && -z "$third" && -z "$extra" ]] ||
+        [[ "$first" == "1" && "$manifest_line" == "$record"$'\t'"$first" ]] ||
             fail "unsupported or malformed format record"
         format_count=$((format_count + 1))
         ;;
     source)
-        [[ -n "$first" && -z "$second" && -z "$third" && -z "$extra" ]] ||
+        [[ -n "$first" && "$manifest_line" == "$record"$'\t'"$first" ]] ||
             fail "malformed source record"
         source_count=$((source_count + 1))
         ;;
     revision)
-        [[ "$first" =~ ^[0-9a-f]{40,64}$ && -z "$second" && -z "$third" && -z "$extra" ]] ||
+        [[ "$first" =~ ^[0-9a-f]{40,64}$ && "$manifest_line" == "$record"$'\t'"$first" ]] ||
             fail "malformed revision record"
         revision_count=$((revision_count + 1))
         snapshot_revision="$first"
         ;;
     file)
-        [[ "$first" =~ ^[0-9a-f]{64}$ && "$second" =~ ^(-|x)$ && -n "$third" && -z "$extra" ]] ||
+        [[ "$first" =~ ^[0-9a-f]{64}$ && "$second" =~ ^(-|x)$ && -n "$third" && -z "$extra" && "$manifest_line" == "$record"$'\t'"$first"$'\t'"$second"$'\t'"$third" ]] ||
             fail "malformed file record"
         validate_relative_path "$third"
         # Bash 3.2 treats an empty array expansion as unset under nounset.

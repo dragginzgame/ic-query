@@ -5,6 +5,14 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.14]
+
+- Adopts Shared Tooling 0.8.1: malformed snapshot fields are rejected consistently,
+  while filenames retain literal spaces. Tool-installation failures identify
+  changed build inputs and retain both observations for diagnosis.
+  [Shared #133](https://github.com/dragginzgame/shared-tooling/issues/133),
+  [Shared #134](https://github.com/dragginzgame/shared-tooling/issues/134).
+
 ## [0.54.13] - 2026-10-12
 
 - Adopts Shared Tooling 0.8.0. Snapshot refresh derives companions from recorded

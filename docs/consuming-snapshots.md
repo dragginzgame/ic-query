@@ -75,6 +75,9 @@ uncommitted files cannot enter the snapshot, and concurrent working-tree edits
 cannot change the exported bytes. The manifest
 records format version `1`, source remote, source commit, and the SHA-256 digest
 and executable state of every vendored file.
+Records use exact tab-separated fields: extra, empty or trailing fields are
+malformed. Refresh, verification and the tooling inventory reject them; literal
+spaces within a valid relative filename remain significant and supported.
 
 Refresh also writes a `# version<TAB>X.Y.Z` annotation from `VERSION` at that
 exact source commit. The committed file must contain a canonical stable version;

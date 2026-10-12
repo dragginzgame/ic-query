@@ -1,8 +1,8 @@
 # Shared Tooling snapshot v1
-# version	0.8.0
+# version	0.8.1
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	045a6f22a9de497bfb3af90cb2571957384806f2
+revision	c97f9f9c7b7c706fffdcfc5925cf58759b58093f
 # entrypoint	DRAGGINZGAME.md
 # entrypoint	rules/changelogs.md
 # entrypoint	rules/cargo-dependencies.md
@@ -92,12 +92,12 @@ file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/pri
 file	2b3961ce271d95c2b8d93dcd92cfee42481aa9cb3d5d4eae0d867f2b52fa69fb	-	docs/principles/reviewable-changes.md
 file	90eb28392912af63593a3773eff903c5ef77ebab2b9199e3c720be25a3fcbbbf	-	docs/principles/rust-code-hygiene.md
 file	457fd38e0073c91ba470b918d4facd9faac3c5200ebd38c97e9d6b76acdaea55	-	docs/principles/simplicity-and-maintainability.md
-file	30e5881c8726b10b1ae16274e26b6377646bfdc7380dfb6451e6e29a13080850	-	docs/consuming-snapshots.md
+file	4554119dd5965fe0264917db11facda659781e0125bc5f2cbeeb3fa6bc54499c	-	docs/consuming-snapshots.md
 file	e30f568f7c49d9ac1ce1efb87b02beb02006b65e72cc0c7ea7d4dd936f92733f	-	rules/agent-maintenance.md
 file	e7647e72465b1caf790d8312fc276dda0efc2a8f7dacf1c0ff519ee5b7f1640a	x	scripts/ci/run-validation-targets.sh
 file	4692d760ea97861b52c183bb69e24c929d9baf7c292795c61d65ea3166368787	-	rules/dependency-pinning.md
 file	de68acd7ba25355c73fa3e9a32cbde5525debf081862c1f1a52eccb4a66c48de	x	scripts/ci/check-dependency-pins.sh
-file	059216f91c0c97bdc4686934b501cd5eca286d2c30ee9a8ff03e04f86503d989	-	docs/local-setup.md
+file	b2df37a49cbc62754f83ea8db3ea027e28add6e5bb6e0028f112d1c64ba1867e	-	docs/local-setup.md
 file	bc9014d8e70a309cf2f65658a7c1ea29303375bbe5087150a4087a187efd9b41	-	docs/ic-tools.md
 file	15315edad497b9b165671c3f57e9f56e6ba1d206bbc635eb0ff51afaa8456bb3	-	docs/provenance.md
 file	05da2ac2b805c7cf9597d4af75983efc1268d619a0fb1e42c7f6d3fdb481880b	-	ci/ic-tools.tsv
@@ -123,7 +123,7 @@ file	88baa98488747aab133504718a2efc4a4704044bb0025217f0e8ea119a742a6d	-	scripts/
 file	24130b81f25fe6f60d2074cb8b932dc7874e2f7088933fc87095f3a9e00c5df3	x	scripts/dev/gh-ci.sh
 file	2b8bff6fc708214b8e82b870bdd661f3482286f6a94d0e7aff5c556de7aa5a0a	x	scripts/ci/test-release-runner.sh
 file	94a934651d5cb0c6f77fa429df277856dbda4c1a7441b2b8563e678c416258f6	-	audits/ic-canister-applications.md
-file	fbf128c6aca4a06e12011756486cf73a5668e38f3cf97cf44247fc490d9c9428	x	scripts/ci/test-rust-tools.sh
+file	0b775055ca751e2906f064c3b387eff9811c90f8eb6e169bb8a37eeb632120a2	x	scripts/ci/test-rust-tools.sh
 file	8d32526932bdaf88a6c78ccc2358fb92a49bd89b7631572766deea51923d8f58	-	rules/contributions.md
 file	fc40c8ad1c4ab850fda0e60b8cb0b3201724d020966e4d7e5d07620781f5e814	-	scripts/ci/release-pr.sh
 file	eb2419a5762a3cb02f25811d93becb6b18ca520df0bc3448ea35dfa187a034b4	-	tasks/cargo-machete.md
@@ -158,10 +158,10 @@ file	50875aa80c211f8f5fded06bf75c7a9fc1fc99aac7590480de9be17d4753bf7f	x	scripts/
 file	4c981184847462ab3c01cac087e28309f8e054253fd95c7bbe56f643877aa708	x	scripts/ci/verify-file-checksum.sh
 file	ef7259172673b035dc2cd8d4f231469d5d3f03a2edd3dacfac75458d3655e3ad	x	scripts/dev/install-host-tools.sh
 file	590dfb56f85a6e8d7f0a6705488ef8655f78416f3baef635a0d504ecab237f96	x	scripts/dev/install-ic-tools.sh
-file	f6f870ba6d62c9a3c03eea4fe2faf87b6c5aa3c219ea3dd0186e9e7dd22331d5	x	scripts/dev/install-rust-tools.sh
+file	c913e456a8f1eb4390a1f75404f96a04e4a57f2846784760040056cb998627d5	x	scripts/dev/install-rust-tools.sh
 file	affbb75ea89d33de1570182c7dfae02a63d109a097e11203bff19feb35dcaf77	-	tasks/README.md
 file	087c2188582307b916b12fe6bf45ae50efcdc6f136d18b079e42069a45cd1ae6	-	tasks/maintenance-prompt.md
-file	84f8c0acae3df99b48f0168cf001484a92e86836741cc6d3c0ecb222d97c1d2b	x	scripts/ci/verify-shared-tooling-snapshot.sh
+file	50989bd42028e9ce3bf58d89f27c297eb75a0fb8e9912196808c52bee0cca433	x	scripts/ci/verify-shared-tooling-snapshot.sh
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq
 file	2d49252710ac5edf62cc9c3196147f544c5e2df9a0c4d2402e599452d2655eb6	-	scripts/dev/cargo-tool-build.sh
 file	d09d1ef8b6e5544832bb321eca736a407d9657ce25fe2ced0b35de0e8ad8792b	-	scripts/dev/tool-store.sh
