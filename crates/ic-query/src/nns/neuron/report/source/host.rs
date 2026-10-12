@@ -31,6 +31,7 @@ impl NnsNeuronSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let result: GetNeuronIndexResultWire = query_nns_governance(
+                self,
                 &request,
                 "get_neuron_index",
                 "GetNeuronIndexRequest",
@@ -69,6 +70,7 @@ impl NnsNeuronSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let result: GetNeuronInfoResultWire = query_nns_governance(
+                self,
                 &request,
                 "get_neuron_info",
                 "nat64",

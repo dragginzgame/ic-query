@@ -34,7 +34,7 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
 /// Report operations supplied by a concrete NNS leaf command family.
 ///
 
-pub(in crate::nns) trait NnsLeafReports {
+pub(in crate::nns) trait NnsLeafReports: Send + Sync {
     type ListReport: serde::Serialize;
     type InfoReport: serde::Serialize;
     type RefreshReport: serde::Serialize;
@@ -43,16 +43,16 @@ pub(in crate::nns) trait NnsLeafReports {
         &self,
         request: &NnsInventoryListRequest,
         progress: &mut dyn QueryProgress,
-    ) -> Result<Self::ListReport, Self::HostError>;
+    ) -> impl std::future::Future<Output = Result<Self::ListReport, Self::HostError>> + Send;
     fn build_info_report(
         &self,
         request: &NnsInventoryInfoRequest,
         progress: &mut dyn QueryProgress,
-    ) -> Result<Self::InfoReport, Self::HostError>;
+    ) -> impl std::future::Future<Output = Result<Self::InfoReport, Self::HostError>> + Send;
     fn refresh_report(
         &self,
         request: &NnsInventoryRefreshRequest,
-    ) -> Result<Self::RefreshReport, Self::HostError>;
+    ) -> impl std::future::Future<Output = Result<Self::RefreshReport, Self::HostError>> + Send;
     fn list_report_text(&self, report: &Self::ListReport) -> String;
     fn list_report_verbose_text(&self, report: &Self::ListReport) -> String;
     fn info_report_text(&self, report: &Self::InfoReport) -> String;

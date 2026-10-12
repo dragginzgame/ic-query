@@ -3,30 +3,30 @@ use crate::sns::report::tests::{fixtures::*, *};
 struct NoCallSnsNeuronSource;
 
 impl SnsDiscoverySource for NoCallSnsNeuronSource {
-    fn fetch_sns_inventory(
-        &self,
-        _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        unreachable!("invalid neuron id must fail before discovery")
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { unreachable!("invalid neuron id must fail before discovery") })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        _targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        unreachable!("invalid neuron id must fail before metadata")
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move { unreachable!("invalid neuron id must fail before metadata") })
     }
 }
 
 impl SnsNeuronSource for NoCallSnsNeuronSource {
-    fn fetch_sns_neuron(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-        _neuron_id: &str,
-    ) -> Result<MainnetSnsNeuron, SnsHostError> {
-        unreachable!("invalid neuron id must fail before exact lookup")
+    fn fetch_sns_neuron<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+        _neuron_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+        Box::pin(async move { unreachable!("invalid neuron id must fail before exact lookup") })
     }
 }
 
@@ -35,23 +35,26 @@ struct InvalidPolicySnsNeuronSource;
 delegate_sns_discovery!(InvalidPolicySnsNeuronSource);
 
 impl SnsNeuronSource for InvalidPolicySnsNeuronSource {
-    fn fetch_sns_neuron(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-        _neuron_id: &str,
-    ) -> Result<MainnetSnsNeuron, SnsHostError> {
-        let mut neuron = fixture_sns_neuron();
-        neuron.detail.maturity_mint_conversion_observed_disabled =
-            SnsPolicyObservationStatus::ObservedSatisfied;
-        Ok(neuron)
+    fn fetch_sns_neuron<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+        _neuron_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+        Box::pin(async move {
+            let mut neuron = fixture_sns_neuron();
+            neuron.detail.maturity_mint_conversion_observed_disabled =
+                SnsPolicyObservationStatus::ObservedSatisfied;
+            Ok(neuron)
+        })
     }
 }
 
-#[test]
-fn exact_neuron_detail_preserves_native_permission_and_disbursement_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn exact_neuron_detail_preserves_native_permission_and_disbursement_evidence() {
     let report =
         build_sns_neuron_detail_report_with_source(&neuron_request("1"), &FixtureSnsNeuronSource)
+            .await
             .expect("exact neuron detail");
     let text = sns_neuron_detail_report_text(&report);
 
@@ -101,8 +104,8 @@ fn exact_neuron_detail_preserves_native_permission_and_disbursement_evidence() {
     assert!(text.contains(ROOT_A));
 }
 
-#[test]
-fn exact_neuron_detail_rejects_invalid_input_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn exact_neuron_detail_rejects_invalid_input_before_source_calls() {
     for invalid in [
         "AB".repeat(32),
         "gg".repeat(32),
@@ -115,18 +118,19 @@ fn exact_neuron_detail_rejects_invalid_input_before_source_calls() {
         let mut request = neuron_request("1");
         request.neuron_id = invalid.clone();
         assert!(matches!(
-            build_sns_neuron_detail_report_with_source(&request, &NoCallSnsNeuronSource),
+            build_sns_neuron_detail_report_with_source(&request, &NoCallSnsNeuronSource).await,
             Err(SnsHostError::InvalidNeuronIdText { neuron_id }) if neuron_id == invalid
         ));
     }
 }
 
-#[test]
-fn exact_neuron_detail_recomputes_custom_source_policy_observations() {
+#[tokio::test(flavor = "current_thread")]
+async fn exact_neuron_detail_recomputes_custom_source_policy_observations() {
     let error = build_sns_neuron_detail_report_with_source(
         &neuron_request("1"),
         &InvalidPolicySnsNeuronSource,
     )
+    .await
     .expect_err("tampered derived status rejected");
 
     assert!(matches!(

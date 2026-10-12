@@ -12,7 +12,6 @@ use super::{
 use crate::{
     agent::build_ic_agent,
     leb128::decode_canonical_unsigned_u64,
-    runtime::block_on_current_thread,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
 use candid::Principal;
@@ -33,12 +32,15 @@ const IPV6_ADDRESS_LABEL: &[u8] = b"ipv6_address";
 /// Source capability for one complete authenticated API boundary-node state tree.
 ///
 
-pub trait IcApiBoundaryNodeSource {
+pub trait IcApiBoundaryNodeSource: Sync {
     /// Fetch and authenticate the complete API boundary-node collection.
-    fn fetch_api_boundary_nodes(
-        &self,
-        request: &IcApiBoundaryNodeSourceRequest,
-    ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError>;
+    fn fetch_api_boundary_nodes<'a>(
+        &'a self,
+        request: &'a IcApiBoundaryNodeSourceRequest,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError>,
+    >;
 }
 
 ///
@@ -51,49 +53,53 @@ pub trait IcApiBoundaryNodeSource {
 pub struct LiveIcStateSource;
 
 impl IcApiBoundaryNodeSource for LiveIcStateSource {
-    fn fetch_api_boundary_nodes(
-        &self,
-        request: &IcApiBoundaryNodeSourceRequest,
-    ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
-        validate_live_request(request)?;
-        let agent = build_ic_agent(&request.endpoint, |reason| {
-            IcApiBoundaryNodeHostError::AgentBuild {
-                endpoint: request.endpoint.clone(),
-                reason,
-            }
-        })?;
-        let effective_canister_id =
-            Principal::from_text(&request.effective_canister_id).map_err(|error| {
-                IcApiBoundaryNodeHostError::InvalidSourceData {
-                    reason: format!("effective_canister_id is invalid: {error}"),
+    fn fetch_api_boundary_nodes<'a>(
+        &'a self,
+        request: &'a IcApiBoundaryNodeSourceRequest,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError>,
+    > {
+        Box::pin(async move {
+            validate_live_request(request)?;
+            let agent = build_ic_agent(&request.endpoint, |reason| {
+                IcApiBoundaryNodeHostError::AgentBuild {
+                    endpoint: request.endpoint.clone(),
+                    reason,
                 }
             })?;
-        let certificate = block_on_current_thread(agent.read_state_raw(
-            vec![vec![API_BOUNDARY_NODES_LABEL.into()]],
-            effective_canister_id,
-        ))?
-        .map_err(|error| IcApiBoundaryNodeHostError::CertifiedReadState {
-            endpoint: request.endpoint.clone(),
-            reason: error.to_string(),
-        })?;
-        source_data_from_certificate(request, certificate)
+            let effective_canister_id = Principal::from_text(&request.effective_canister_id)
+                .map_err(|error| IcApiBoundaryNodeHostError::InvalidSourceData {
+                    reason: format!("effective_canister_id is invalid: {error}"),
+                })?;
+            let certificate = (agent.read_state_raw(
+                vec![vec![API_BOUNDARY_NODES_LABEL.into()]],
+                effective_canister_id,
+            ))
+            .await
+            .map_err(|error| IcApiBoundaryNodeHostError::CertifiedReadState {
+                endpoint: request.endpoint.clone(),
+                reason: error.to_string(),
+            })?;
+            source_data_from_certificate(request, certificate)
+        })
     }
 }
 
 /// Build one live complete certified API boundary-node report.
-pub fn build_ic_api_boundary_node_report(
+pub async fn build_ic_api_boundary_node_report(
     request: &IcApiBoundaryNodeRequest,
 ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> {
-    build_ic_api_boundary_node_report_with_source(request, &LiveIcStateSource)
+    build_ic_api_boundary_node_report_with_source(request, &LiveIcStateSource).await
 }
 
 /// Build one complete API boundary-node report through a custom authenticated source.
-pub fn build_ic_api_boundary_node_report_with_source(
+pub async fn build_ic_api_boundary_node_report_with_source(
     request: &IcApiBoundaryNodeRequest,
     source: &dyn IcApiBoundaryNodeSource,
 ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> {
     let source_request = source_request(request);
-    let source_data = source.fetch_api_boundary_nodes(&source_request)?;
+    let source_data = source.fetch_api_boundary_nodes(&source_request).await?;
     report_from_source(&source_request, source_data)
 }
 

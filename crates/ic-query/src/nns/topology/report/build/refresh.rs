@@ -9,24 +9,26 @@ use crate::nns::{
     },
 };
 
-pub fn refresh_nns_topology_report(
+pub async fn refresh_nns_topology_report(
     request: &NnsTopologyRefreshRequest,
 ) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
-    refresh_nns_topology_report_with_source(request, &LiveNnsSource)
+    refresh_nns_topology_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn refresh_nns_topology_report_with_source(
+pub async fn refresh_nns_topology_report_with_source(
     request: &NnsTopologyRefreshRequest,
     source: &dyn NnsTopologyRefreshSource,
 ) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_refresh_source_request_from(request);
-    let subnet_report = source.refresh_subnet_catalog_report(&source_request)?;
-    let node_report = source.refresh_node_report(&source_request)?;
-    let node_provider_report = source.refresh_node_provider_report(&source_request)?;
-    let node_operator_report = source.refresh_node_operator_report(&source_request)?;
-    let data_center_report = source.refresh_data_center_report(&source_request)?;
+    let subnet_report = source
+        .refresh_subnet_catalog_report(&source_request)
+        .await?;
+    let node_report = source.refresh_node_report(&source_request).await?;
+    let node_provider_report = source.refresh_node_provider_report(&source_request).await?;
+    let node_operator_report = source.refresh_node_operator_report(&source_request).await?;
+    let data_center_report = source.refresh_data_center_report(&source_request).await?;
 
     Ok(topology_refresh_report_from_reports(
         request.network().to_string(),

@@ -177,8 +177,8 @@ fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
     let list_request = CloudEngineProviderListRequest::new(
         "ic",
         DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
@@ -191,26 +191,32 @@ fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
         provider_row().principal_id,
     );
     let list = build_cloud_engine_provider_list_report_with_source(&list_request, &ProviderFixture)
+        .await
         .expect("custom provider list source");
     let info = build_cloud_engine_provider_info_report_with_source(&info_request, &ProviderFixture)
+        .await
         .expect("custom provider info source");
 
     assert_eq!(list.source_node_provider_count, 1);
     assert_eq!(list.cloud_engine_provider_count, 1);
     assert!(info.cloud_engine_evidence_present);
-    let _: fn(
-        &CloudEngineProviderListRequest,
-    ) -> Result<CloudEngineProviderListReport, IcHostError> =
-        build_cloud_engine_provider_list_report;
-    let _: fn(
-        &CloudEngineProviderInfoRequest,
-    ) -> Result<CloudEngineProviderInfoReport, IcHostError> =
-        build_cloud_engine_provider_info_report;
+    let _: for<'a> fn(
+        &'a CloudEngineProviderListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineProviderListReport, IcHostError>,
+    > = |arg0| Box::pin(build_cloud_engine_provider_list_report(arg0));
+    let _: for<'a> fn(
+        &'a CloudEngineProviderInfoRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineProviderInfoReport, IcHostError>,
+    > = |arg0| Box::pin(build_cloud_engine_provider_info_report(arg0));
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
     let list_request = CloudEngineNodeListRequest::new(
         "ic",
         DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
@@ -223,22 +229,32 @@ fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
         NODE_ID,
     );
     let list = build_cloud_engine_node_list_report_with_source(&list_request, &ProviderFixture)
+        .await
         .expect("custom Type4 node list source");
     let info = build_cloud_engine_node_info_report_with_source(&info_request, &ProviderFixture)
+        .await
         .expect("custom exact Type4 node source");
 
     assert_eq!(list.node_count, 1);
     assert_eq!(list.status_counts.up, 1);
     assert_eq!(info.node.node_id, NODE_ID);
-    let _: fn(&CloudEngineNodeListRequest) -> Result<CloudEngineNodeListReport, IcHostError> =
-        build_cloud_engine_node_list_report;
-    let _: fn(&CloudEngineNodeInfoRequest) -> Result<CloudEngineNodeInfoReport, IcHostError> =
-        build_cloud_engine_node_info_report;
+    let _: for<'a> fn(
+        &'a CloudEngineNodeListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineNodeListReport, IcHostError>,
+    > = |arg0| Box::pin(build_cloud_engine_node_list_report(arg0));
+    let _: for<'a> fn(
+        &'a CloudEngineNodeInfoRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineNodeInfoReport, IcHostError>,
+    > = |arg0| Box::pin(build_cloud_engine_node_info_report(arg0));
 }
 
 #[cfg(feature = "cloud-engine-host")]
-#[test]
-fn public_cloud_engine_host_api_accepts_a_custom_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_cloud_engine_host_api_accepts_a_custom_source() {
     let request = CloudEngineSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
@@ -247,8 +263,10 @@ fn public_cloud_engine_host_api_accepts_a_custom_source() {
     );
 
     let operator = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &Fixture)
+        .await
         .expect("custom operator source");
     let prices = build_cloud_engine_prices_report_with_source(&request, &Fixture)
+        .await
         .expect("custom prices source");
 
     assert_eq!(operator.context.fetched_at, "2023-11-14T22:13:20Z");
@@ -259,10 +277,13 @@ fn public_cloud_engine_host_api_accepts_a_custom_source() {
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 #[test]
 fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
-    let _: fn(
-        &SubnetCatalogListRequest,
-        &CloudEngineSourceRequest,
-    ) -> Result<CloudEngineListReport, CloudEngineHostError> = build_cloud_engine_list_report;
+    let _: for<'a> fn(
+        &'a SubnetCatalogListRequest,
+        &'a CloudEngineSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineListReport, CloudEngineHostError>,
+    > = |arg0, arg1| Box::pin(build_cloud_engine_list_report(arg0, arg1));
     assert_eq!(
         std::mem::size_of_val(&build_cloud_engine_list_report_with_sources),
         0
@@ -280,107 +301,132 @@ struct ProviderFixture;
 
 #[cfg(feature = "dashboard-host")]
 impl CloudEngineProviderSource for ProviderFixture {
-    fn fetch_cloud_engine_provider_list(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<CloudEngineProviderListSourceData, IcHostError> {
-        Ok(CloudEngineProviderListSourceData {
-            source: request.clone(),
-            providers: vec![provider_row()],
+    fn fetch_cloud_engine_provider_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<CloudEngineProviderListSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            Ok(CloudEngineProviderListSourceData {
+                source: request.clone(),
+                providers: vec![provider_row()],
+            })
         })
     }
 
-    fn fetch_cloud_engine_provider_info(
-        &self,
-        request: &IcSourceRequest,
-        node_provider_id: &str,
-    ) -> Result<CloudEngineProviderInfoSourceData, IcHostError> {
-        let mut provider = provider_row();
-        provider.principal_id = node_provider_id.to_string();
-        Ok(CloudEngineProviderInfoSourceData {
-            source: request.clone(),
-            provider,
+    fn fetch_cloud_engine_provider_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_provider_id: &'a str,
+    ) -> ic_query::report::SourceFuture<'a, Result<CloudEngineProviderInfoSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            let mut provider = provider_row();
+            provider.principal_id = node_provider_id.to_string();
+            Ok(CloudEngineProviderInfoSourceData {
+                source: request.clone(),
+                provider,
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl CloudEngineNodeSource for ProviderFixture {
-    fn fetch_cloud_engine_node_list(
-        &self,
-        request: &IcSourceRequest,
-        node_provider_id: Option<&str>,
-    ) -> Result<CloudEngineNodeListSourceData, IcHostError> {
-        Ok(CloudEngineNodeListSourceData {
-            source: request.clone(),
-            requested_node_provider_id: node_provider_id.map(str::to_string),
-            node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
-            included_statuses: CLOUD_ENGINE_NODE_INCLUDED_STATUSES
-                .map(str::to_string)
-                .to_vec(),
-            nodes: vec![cloud_engine_node_row()],
+    fn fetch_cloud_engine_node_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_provider_id: Option<&'a str>,
+    ) -> ic_query::report::SourceFuture<'a, Result<CloudEngineNodeListSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            Ok(CloudEngineNodeListSourceData {
+                source: request.clone(),
+                requested_node_provider_id: node_provider_id.map(str::to_string),
+                node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+                included_statuses: CLOUD_ENGINE_NODE_INCLUDED_STATUSES
+                    .map(str::to_string)
+                    .to_vec(),
+                nodes: vec![cloud_engine_node_row()],
+            })
         })
     }
 
-    fn fetch_cloud_engine_node_info(
-        &self,
-        request: &IcSourceRequest,
-        node_id: &str,
-    ) -> Result<CloudEngineNodeInfoSourceData, IcHostError> {
-        let mut node = cloud_engine_node_row();
-        node.node_id = node_id.to_string();
-        Ok(CloudEngineNodeInfoSourceData {
-            source: request.clone(),
-            node_id: node_id.to_string(),
-            node,
+    fn fetch_cloud_engine_node_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_id: &'a str,
+    ) -> ic_query::report::SourceFuture<'a, Result<CloudEngineNodeInfoSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            let mut node = cloud_engine_node_row();
+            node.node_id = node_id.to_string();
+            Ok(CloudEngineNodeInfoSourceData {
+                source: request.clone(),
+                node_id: node_id.to_string(),
+                node,
+            })
         })
     }
 }
 
 #[cfg(feature = "cloud-engine-host")]
 impl CloudEngineSource for Fixture {
-    fn fetch_operator(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
-        Ok(CloudEngineOperatorSourceData {
-            source: request.clone(),
-            subnet_id: subnet_id.to_string(),
-            operator_canister_id: Some(OPERATOR_ID.to_string()),
-            engine_owner: Some("aaaaa-aa".to_string()),
-            platform_admin: None,
-            caffeine_enabled: Some(true),
-            claimed_domains: Some(vec!["example.com".to_string()]),
-            query_call_count: 5,
+    fn fetch_operator<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineOperatorSourceData, CloudEngineHostError>,
+    > {
+        Box::pin(async move {
+            Ok(CloudEngineOperatorSourceData {
+                source: request.clone(),
+                subnet_id: subnet_id.to_string(),
+                operator_canister_id: Some(OPERATOR_ID.to_string()),
+                engine_owner: Some("aaaaa-aa".to_string()),
+                platform_admin: None,
+                caffeine_enabled: Some(true),
+                claimed_domains: Some(vec!["example.com".to_string()]),
+                query_call_count: 5,
+            })
         })
     }
 
-    fn fetch_prices(
-        &self,
-        request: &CloudEngineSourceRequest,
-    ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
-        Ok(CloudEnginePricesSourceData {
-            source: request.clone(),
-            network_fee: 0.25,
-            prices: vec![price_row()],
-            query_call_count: 2,
+    fn fetch_prices<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
+    {
+        Box::pin(async move {
+            Ok(CloudEnginePricesSourceData {
+                source: request.clone(),
+                network_fee: 0.25,
+                prices: vec![price_row()],
+                query_call_count: 2,
+            })
         })
     }
 }
 
 #[cfg(feature = "cloud-engine-host")]
 impl CloudEngineOperatorBindingSource for Fixture {
-    fn fetch_operator_binding(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
-        Ok(CloudEngineOperatorBindingSourceData {
-            source: request.clone(),
-            subnet_id: subnet_id.to_string(),
-            operator_canister_id: Some(OPERATOR_ID.to_string()),
-            query_call_count: 1,
+    fn fetch_operator_binding<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>,
+    > {
+        Box::pin(async move {
+            Ok(CloudEngineOperatorBindingSourceData {
+                source: request.clone(),
+                subnet_id: subnet_id.to_string(),
+                operator_canister_id: Some(OPERATOR_ID.to_string()),
+                query_call_count: 1,
+            })
         })
     }
 }

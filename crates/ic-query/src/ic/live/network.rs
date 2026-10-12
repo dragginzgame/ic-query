@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, canisters, or metric series.
 //! Boundary: fetches bounded daily statistics or one finite boundary-node resource.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersSourceData, IcDailyStatsQuery,
     IcDailyStatsRow, IcDailyStatsSourceData, IcHostError, IcNetworkSource, IcSourceRequest, source,
@@ -13,38 +13,43 @@ use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcNetworkSource for LiveIcSource {
-    fn fetch_boundary_node_data_centers(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
-        let url = boundary_node_data_centers_url(&request.endpoint)?;
-        let wire: DashboardBoundaryNodeDataCenters = fetch_live(url)?;
-        Ok(IcBoundaryNodeDataCentersSourceData {
-            source: request.clone(),
-            rows: wire
-                .data
-                .into_iter()
-                .map(DashboardBoundaryNodeDataCenter::into_public)
-                .collect(),
+    fn fetch_boundary_node_data_centers<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcBoundaryNodeDataCentersSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            let url = boundary_node_data_centers_url(&request.endpoint)?;
+            let wire: DashboardBoundaryNodeDataCenters = self.fetch_live(url).await?;
+            Ok(IcBoundaryNodeDataCentersSourceData {
+                source: request.clone(),
+                rows: wire
+                    .data
+                    .into_iter()
+                    .map(DashboardBoundaryNodeDataCenter::into_public)
+                    .collect(),
+            })
         })
     }
 
-    fn fetch_daily_stats(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcDailyStatsQuery,
-    ) -> Result<IcDailyStatsSourceData, IcHostError> {
-        source::validate_daily_stats_query(query)?;
-        let url = daily_stats_url(&request.endpoint, query)?;
-        let wire: DashboardDailyStats = fetch_live(url)?;
-        Ok(IcDailyStatsSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            rows: wire
-                .daily_stats
-                .into_iter()
-                .map(DashboardDailyStatsRow::into_public)
-                .collect(),
+    fn fetch_daily_stats<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcDailyStatsQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcDailyStatsSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_daily_stats_query(query)?;
+            let url = daily_stats_url(&request.endpoint, query)?;
+            let wire: DashboardDailyStats = self.fetch_live(url).await?;
+            Ok(IcDailyStatsSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                rows: wire
+                    .daily_stats
+                    .into_iter()
+                    .map(DashboardDailyStatsRow::into_public)
+                    .collect(),
+            })
         })
     }
 }

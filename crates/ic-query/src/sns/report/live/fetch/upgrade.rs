@@ -3,8 +3,6 @@
 //! Responsibility: fetch one SNS running version and its next blessed version.
 //! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
 //! Boundary: performs exactly two bounded native queries and retains only next-version failure.
-
-use super::block_on_sns;
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsCanisterMethod, SnsHostError,
     SnsRunningVersionResponse, SnsSourceRequest, SnsUpgradeQueryGap,
@@ -20,33 +18,18 @@ use crate::sns::report::{
 use candid::Principal;
 use ic_agent::Agent;
 
-/// Fetch the complete native Governance running-version response.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_running_version(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-) -> Result<SnsRunningVersionResponse, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_running_version_async(request, sns))
-}
-
-/// Fetch bounded native upgrade-version state for one resolved SNS.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_upgrade(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsUpgrade, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_upgrade_async(request, sns))
-}
-
-async fn fetch_mainnet_sns_upgrade_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-) -> Result<MainnetSnsUpgrade, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
 
-    let running = query_running_sns_version(&agent, &governance_canister).await?;
+    let running = query_running_sns_version(agent, &governance_canister).await?;
     let deployed_wire =
         running
             .deployed_version
@@ -62,7 +45,7 @@ async fn fetch_mainnet_sns_upgrade_async(
         current_version: Some(deployed_wire),
     };
     let (next_version, next_version_gap) = match query_canister::<_, GetNextSnsVersionResponse>(
-        &agent,
+        agent,
         &sns_wasm_canister,
         SnsCanisterMethod::GetNextSnsVersion.as_str(),
         "GetNextSnsVersionRequest",
@@ -97,14 +80,15 @@ async fn fetch_mainnet_sns_upgrade_async(
     })
 }
 
-async fn fetch_mainnet_sns_running_version_async(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_running_version(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<SnsRunningVersionResponse, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let response = query_running_sns_version(&agent, &governance_canister).await?;
+    let response = query_running_sns_version(agent, &governance_canister).await?;
     Ok(sns_running_version_response(response))
 }
 

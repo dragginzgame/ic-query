@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, metrics, or network resources.
 //! Boundary: builds official canister URLs and preserves raw wire values in source data.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcCanisterCollectionSource, IcCanisterCountSourceData, IcCanisterFilters,
     IcCanisterPageController, IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterSource,
@@ -14,64 +14,71 @@ use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcCanisterSource for LiveIcSource {
-    fn fetch_canister(
-        &self,
-        request: &IcSourceRequest,
-        canister_id: &str,
-    ) -> Result<IcCanisterSourceData, IcHostError> {
-        let canister_id = source::canonical_canister_id(canister_id)?;
-        let url = canister_url(&request.endpoint, &canister_id)?;
-        let wire = fetch_live(url)?;
-        Ok(DashboardCanister::into_source_data(wire, request))
+    fn fetch_canister<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        canister_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>> {
+        Box::pin(async move {
+            let canister_id = source::canonical_canister_id(canister_id)?;
+            let url = canister_url(&request.endpoint, &canister_id)?;
+            let wire = self.fetch_live(url).await?;
+            Ok(DashboardCanister::into_source_data(wire, request))
+        })
     }
 }
 
 impl IcCanisterCollectionSource for LiveIcSource {
-    fn fetch_canister_count(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
-    ) -> Result<IcCanisterCountSourceData, IcHostError> {
-        let filters = source::normalized_filters(filters)?;
-        let url = canister_collection_url(&request.endpoint, &filters, CollectionOperation::Count)?;
-        let wire: DashboardCanisterCount = fetch_live(url)?;
-        Ok(IcCanisterCountSourceData {
-            source: request.clone(),
-            filters,
-            total: wire.total,
+    fn fetch_canister_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            let filters = source::normalized_filters(filters)?;
+            let url =
+                canister_collection_url(&request.endpoint, &filters, CollectionOperation::Count)?;
+            let wire: DashboardCanisterCount = self.fetch_live(url).await?;
+            Ok(IcCanisterCountSourceData {
+                source: request.clone(),
+                filters,
+                total: wire.total,
+            })
         })
     }
 
-    fn fetch_canister_page(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
+    fn fetch_canister_page<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
         limit: u16,
-        after: Option<&str>,
-        before: Option<&str>,
-    ) -> Result<IcCanisterPageSourceData, IcHostError> {
-        source::validate_page_limit(limit)?;
-        source::validate_page_cursor_exclusivity(after, before)?;
-        let filters = source::normalized_filters(filters)?;
-        let (after, before) = source::canonical_page_cursors(after, before)?;
-        let url = canister_collection_url(
-            &request.endpoint,
-            &filters,
-            CollectionOperation::Page {
+        after: Option<&'a str>,
+        before: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterPageSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_page_limit(limit)?;
+            source::validate_page_cursor_exclusivity(after, before)?;
+            let filters = source::normalized_filters(filters)?;
+            let (after, before) = source::canonical_page_cursors(after, before)?;
+            let url = canister_collection_url(
+                &request.endpoint,
+                &filters,
+                CollectionOperation::Page {
+                    limit,
+                    after: after.as_deref(),
+                    before: before.as_deref(),
+                },
+            )?;
+            let wire = self.fetch_live(url).await?;
+            Ok(DashboardCanisterPage::into_source_data(
+                wire,
+                request,
+                &filters,
                 limit,
-                after: after.as_deref(),
-                before: before.as_deref(),
-            },
-        )?;
-        let wire = fetch_live(url)?;
-        Ok(DashboardCanisterPage::into_source_data(
-            wire,
-            request,
-            &filters,
-            limit,
-            after.as_deref(),
-            before.as_deref(),
-        ))
+                after.as_deref(),
+                before.as_deref(),
+            ))
+        })
     }
 }
 

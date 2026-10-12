@@ -12,7 +12,6 @@ use crate::{
     agent::build_ic_agent,
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
-    runtime::block_on_current_thread,
     subnet_catalog::format_utc_timestamp_secs,
 };
 use candid::Principal;
@@ -79,12 +78,12 @@ impl CmcSourceRequest {
 /// Source capability for the certified CMC ICP/XDR conversion rate.
 ///
 
-pub trait CmcSource {
+pub trait CmcSource: Sync {
     /// Fetch and authenticate the native CMC ICP/XDR conversion rate.
-    fn fetch_certified_icp_xdr_rate(
-        &self,
-        request: &CmcSourceRequest,
-    ) -> Result<CmcCertifiedRate, CmcHostError>;
+    fn fetch_certified_icp_xdr_rate<'a>(
+        &'a self,
+        request: &'a CmcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>>;
 }
 
 ///
@@ -97,12 +96,14 @@ pub trait CmcSource {
 pub struct LiveCmcSource;
 
 impl CmcSource for LiveCmcSource {
-    fn fetch_certified_icp_xdr_rate(
-        &self,
-        request: &CmcSourceRequest,
-    ) -> Result<CmcCertifiedRate, CmcHostError> {
-        enforce_mainnet_network(&request.network)?;
-        block_on_current_thread(fetch_live_certified_rate(request))?
+    fn fetch_certified_icp_xdr_rate<'a>(
+        &'a self,
+        request: &'a CmcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
+        Box::pin(async move {
+            enforce_mainnet_network(&request.network)?;
+            fetch_live_certified_rate(request).await
+        })
     }
 }
 

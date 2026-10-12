@@ -17,7 +17,6 @@ use crate::{
             source::NnsNeuronSource,
         },
     },
-    runtime::block_on_current_thread,
     snapshot_cache::{
         PagedCollectionPage, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
@@ -26,7 +25,7 @@ use crate::{
 };
 use std::path::Path;
 
-pub(super) fn fetch_complete_neuron_collection(
+pub(super) async fn fetch_complete_neuron_collection(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     attempt_path: &Path,
@@ -51,6 +50,7 @@ pub(super) fn fetch_complete_neuron_collection(
         },
         progress,
     )
+    .await
 }
 
 struct NeuronRefreshPages<'a> {
@@ -88,20 +88,25 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
         }
     }
 
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let step = block_on_current_thread(advance_nns_neuron_collection_with_source(
-            &self.fetch_request,
-            &self.collection_state,
-            self.source,
-        ))??;
-        let page_len = step.page.neurons.len();
-        let cursor = step.state.next_start_neuron_id();
-        self.neurons.extend(step.page.neurons);
-        self.collection_state = step.state;
-        Ok(PagedCollectionPage::new(
-            page_len,
-            cursor.map(|cursor| cursor.to_string()),
-        ))
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            let step = advance_nns_neuron_collection_with_source(
+                &self.fetch_request,
+                &self.collection_state,
+                self.source,
+            )
+            .await?;
+            let page_len = step.page.neurons.len();
+            let cursor = step.state.next_start_neuron_id();
+            self.neurons.extend(step.page.neurons);
+            self.collection_state = step.state;
+            Ok(PagedCollectionPage::new(
+                page_len,
+                cursor.map(|cursor| cursor.to_string()),
+            ))
+        })
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

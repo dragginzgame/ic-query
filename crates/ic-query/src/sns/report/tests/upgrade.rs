@@ -1,9 +1,10 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
     let report =
         build_sns_upgrade_report_with_source(&upgrade_request("1"), &FixtureSnsUpgradeSource)
+            .await
             .expect("sns upgrade report");
     let text = sns_upgrade_report_text(&report);
 
@@ -31,12 +32,13 @@ fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
     assert!(text.contains("proposal_id"));
 }
 
-#[test]
-fn sns_upgrade_distinguishes_successful_no_successor_from_a_query_gap() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_upgrade_distinguishes_successful_no_successor_from_a_query_gap() {
     let report = build_sns_upgrade_report_with_source(
         &upgrade_request("1"),
         &MutatingFixtureSnsUpgradeSource(clear_next_version),
     )
+    .await
     .expect("successful empty next version");
 
     assert_eq!(report.successful_component_query_count, 2);
@@ -46,12 +48,13 @@ fn sns_upgrade_distinguishes_successful_no_successor_from_a_query_gap() {
     assert!(sns_upgrade_report_text(&report).contains("no blessed successor"));
 }
 
-#[test]
-fn sns_upgrade_retains_next_version_failure_as_a_typed_gap() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_upgrade_retains_next_version_failure_as_a_typed_gap() {
     let report = build_sns_upgrade_report_with_source(
         &upgrade_request("1"),
         &MutatingFixtureSnsUpgradeSource(fail_next_version),
     )
+    .await
     .expect("partial upgrade report");
 
     assert_eq!(report.component_query_count, 2);
@@ -68,8 +71,8 @@ fn sns_upgrade_retains_next_version_failure_as_a_typed_gap() {
     assert!(sns_upgrade_report_text(&report).contains("query failed"));
 }
 
-#[test]
-fn live_sns_upgrade_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_upgrade_source_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new(
         "local",
         "not a valid endpoint",
@@ -77,8 +80,9 @@ fn live_sns_upgrade_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveSnsSource
+    let error = LiveSnsSource::default()
         .fetch_sns_upgrade(&request, &fixture_sns_a())
+        .await
         .expect_err("non-mainnet must fail");
 
     assert!(matches!(
@@ -87,8 +91,8 @@ fn live_sns_upgrade_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn sns_upgrade_rejects_invalid_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_upgrade_rejects_invalid_custom_source_evidence() {
     for (mutate, expected_reason) in [
         (
             wrong_governance_target as fn(&mut MainnetSnsUpgrade),
@@ -104,6 +108,7 @@ fn sns_upgrade_rejects_invalid_custom_source_evidence() {
             &upgrade_request("1"),
             &MutatingFixtureSnsUpgradeSource(mutate),
         )
+        .await
         .expect_err("invalid custom upgrade evidence must fail");
 
         assert!(matches!(

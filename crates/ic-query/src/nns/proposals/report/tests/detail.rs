@@ -1,7 +1,7 @@
 use super::*;
 
-#[test]
-fn nns_proposal_report_renders_detail() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_report_renders_detail() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -21,8 +21,9 @@ fn nns_proposal_report_renders_detail() {
         verbose: true,
     };
 
-    let report =
-        build_nns_proposal_report_with_source(&request, &source).expect("build proposal report");
+    let report = build_nns_proposal_report_with_source(&request, &source)
+        .await
+        .expect("build proposal report");
     let text = nns_proposal_report_text(&report);
 
     assert_eq!(
@@ -46,8 +47,8 @@ fn nns_proposal_report_renders_detail() {
     assert!(text.contains("NEURON_ID"));
 }
 
-#[test]
-fn nns_proposal_report_truncates_summary_without_verbose() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_report_truncates_summary_without_verbose() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -68,8 +69,9 @@ fn nns_proposal_report_truncates_summary_without_verbose() {
         verbose: false,
     };
 
-    let report =
-        build_nns_proposal_report_with_source(&request, &source).expect("build proposal report");
+    let report = build_nns_proposal_report_with_source(&request, &source)
+        .await
+        .expect("build proposal report");
     let text = nns_proposal_report_text(&report);
 
     assert!(!report.verbose);

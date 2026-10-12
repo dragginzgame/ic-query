@@ -146,8 +146,8 @@ fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProv
     }
 }
 
-#[test]
-fn nns_proposal_refresh_rejects_invalid_public_page_size() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_refresh_rejects_invalid_public_page_size() {
     let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
     for page_size in [0, 101] {
         let request = NnsGovernanceRefreshRequest::new(
@@ -158,6 +158,7 @@ fn nns_proposal_refresh_rejects_invalid_public_page_size() {
             page_size,
         );
         let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+            .await
             .expect_err("page size must be in 1..=100");
         assert!(matches!(
             err,
@@ -173,8 +174,8 @@ fn nns_proposal_refresh_rejects_invalid_public_page_size() {
     }
 }
 
-#[test]
-fn nns_proposal_failed_refresh_preserves_page_progress() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_failed_refresh_preserves_page_progress() {
     let root = temp_dir("ic-query-nns-proposal-failed-progress");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -186,6 +187,7 @@ fn nns_proposal_failed_refresh_preserves_page_progress() {
     .with_max_pages(Some(1));
 
     let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+        .await
         .expect_err("capped refresh is incomplete");
 
     assert!(matches!(
@@ -207,8 +209,8 @@ fn nns_proposal_failed_refresh_preserves_page_progress() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one() {
     let root = temp_dir("ic-query-nns-proposal-full-terminal-page");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -219,6 +221,7 @@ fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one(
     )
     .with_max_pages(Some(1));
     let report = refresh_nns_proposal_cache_with_source(&request, &FullTerminalPageSource)
+        .await
         .expect("id one proves exhaustion even with a full page");
 
     assert!(report.complete);
@@ -240,8 +243,8 @@ fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one(
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[test]
-fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     let root = temp_dir("ic-query-nns-proposal-cache");
     let request = NnsGovernanceRefreshRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -252,8 +255,9 @@ fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         max_pages: None,
     };
 
-    let report =
-        refresh_nns_proposal_cache_with_source(&request, &FixtureSource).expect("refresh cache");
+    let report = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
+        .await
+        .expect("refresh cache");
     let refresh_text = nns_proposal_refresh_report_text(&report);
 
     assert_eq!(report.network, MAINNET_NETWORK);
@@ -349,8 +353,8 @@ fn nns_proposal_cache_status_reports_missing_cache() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
     let root = temp_dir("ic-query-nns-proposal-malformed-attempt");
     let paths = nns_proposal_cache_paths(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &paths.refresh_attempt_path, "{")
@@ -376,6 +380,7 @@ fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
         },
         &FixtureSource,
     )
+    .await
     .expect("create complete snapshot");
     for invalid_snapshot in [false, true] {
         if invalid_snapshot {
@@ -426,8 +431,8 @@ fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-list-cache");
     refresh_nns_proposal_cache_with_source(
         &NnsGovernanceRefreshRequest {
@@ -440,6 +445,7 @@ fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         },
         &FixtureSource,
     )
+    .await
     .expect("refresh cache");
 
     let request = NnsProposalListRequest {
@@ -546,8 +552,8 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
     fs::remove_dir_all(root).expect("remove cache fixture");
 }
 
-#[test]
-fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries() {
     let root = temp_dir("ic-query-nns-cached-activity");
     let cache_request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     assert!(matches!(
@@ -558,7 +564,7 @@ fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries(
         Err(NnsProposalHostError::MissingProposalCache { .. })
     ));
     assert!(!root.exists());
-    let path = refresh_fixture_nns_proposal_cache(&root);
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
     let original = fs::read(&path).expect("read snapshot");
     let report = build_nns_proposal_activity_report_from_cache(
         &cache_request,
@@ -596,10 +602,10 @@ fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries(
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
-#[test]
-fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
     let root = temp_dir("ic-query-nns-cached-activity-invalid");
-    let path = refresh_fixture_nns_proposal_cache(&root);
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     for (field, value) in [
@@ -629,10 +635,10 @@ fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
-#[test]
-fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
     let root = temp_dir("ic-query-nns-proposal-invalid-ids");
-    let path = refresh_fixture_nns_proposal_cache(&root);
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
     let original: serde_json::Value =
         serde_json::from_slice(&fs::read(&path).expect("read cache")).expect("parse cache");
     let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_100_000), 25);
@@ -671,10 +677,10 @@ fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
     fs::remove_dir_all(root).expect("remove cache fixture");
 }
 
-#[test]
-fn nns_proposal_cache_status_reports_snapshot_identity_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_status_reports_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-nns-proposal-identity-mismatch");
-    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let cache_path = refresh_fixture_nns_proposal_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["entity"] = serde_json::json!("wrong-governance");
@@ -689,10 +695,10 @@ fn nns_proposal_cache_status_reports_snapshot_identity_mismatch() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_cache_status_reports_unsupported_schema() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_status_reports_unsupported_schema() {
     let root = temp_dir("ic-query-nns-proposal-unsupported-schema");
-    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let cache_path = refresh_fixture_nns_proposal_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["schema_version"] = serde_json::json!(999);
@@ -707,10 +713,10 @@ fn nns_proposal_cache_status_reports_unsupported_schema() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_cache_rejects_false_point_in_time_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_rejects_false_point_in_time_authority() {
     let root = temp_dir("ic-query-nns-proposal-point-in-time");
-    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let cache_path = refresh_fixture_nns_proposal_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["completeness"]["point_in_time_guaranteed"] = serde_json::json!(true);
@@ -725,10 +731,10 @@ fn nns_proposal_cache_rejects_false_point_in_time_authority() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_cache_status_reports_malformed_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_cache_status_reports_malformed_json() {
     let root = temp_dir("ic-query-nns-proposal-malformed-json");
-    let cache_path = refresh_fixture_nns_proposal_cache(&root);
+    let cache_path = refresh_fixture_nns_proposal_cache(&root).await;
     fs::write(&cache_path, "{").expect("write malformed cache");
 
     assert_invalid_nns_proposal_cache_status(&root, "failed to parse NNS proposal cache");
@@ -736,8 +742,8 @@ fn nns_proposal_cache_status_reports_malformed_json() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache");
     refresh_nns_proposal_cache_with_source(
         &NnsGovernanceRefreshRequest {
@@ -750,6 +756,7 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
         },
         &FixtureSource,
     )
+    .await
     .expect("refresh cache");
 
     let request = NnsProposalRequest {
@@ -783,8 +790,8 @@ fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     assert!(text.contains("cache_path: "));
 }
 
-#[test]
-fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache-missing");
     refresh_nns_proposal_cache_with_source(
         &NnsGovernanceRefreshRequest {
@@ -797,6 +804,7 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
         },
         &FixtureSource,
     )
+    .await
     .expect("refresh cache");
 
     let report = build_nns_proposal_report_from_cache(
@@ -813,7 +821,7 @@ fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
     assert!(report.is_none());
 }
 
-fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::PathBuf {
+async fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::PathBuf {
     refresh_nns_proposal_cache_with_source(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
@@ -825,6 +833,7 @@ fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::Path
         },
         &FixtureSource,
     )
+    .await
     .expect("refresh cache");
     nns_proposal_cache_paths(root, MAINNET_NETWORK).snapshot_path
 }

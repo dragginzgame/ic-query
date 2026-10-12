@@ -9,13 +9,16 @@ use ic_query::nns::node::{
     NnsNodeListRequest, build_nns_node_list_report_with_progress, nns_node_list_report_text,
     nns_node_list_report_verbose_text,
 };
-pub(super) fn run_node_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(super) async fn run_node_list(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     let options = node_list_options_from_matches(matches, network);
     let cache = cache_request(&options.network)?;
     let request = NnsNodeListRequest::new(cache, options.source_endpoint, now_unix_secs()?)
         .with_filters(options.filters);
     let report =
-        build_nns_node_list_report_with_progress(&request, &mut StderrQueryProgress::new())?;
+        build_nns_node_list_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;
     write_text_or_json_verbose(
         options.format,
         &report,

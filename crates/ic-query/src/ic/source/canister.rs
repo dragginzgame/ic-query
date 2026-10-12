@@ -24,13 +24,13 @@ use std::collections::HashSet;
 /// Source contract for fetching one canister from an IC Dashboard-compatible API.
 ///
 
-pub trait IcCanisterSource {
+pub trait IcCanisterSource: Sync {
     /// Fetch one canister with explicit endpoint and collection provenance.
-    fn fetch_canister(
-        &self,
-        request: &IcSourceRequest,
-        canister_id: &str,
-    ) -> Result<IcCanisterSourceData, IcHostError>;
+    fn fetch_canister<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        canister_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>>;
 }
 
 ///
@@ -39,23 +39,23 @@ pub trait IcCanisterSource {
 /// Source contract for bounded IC Dashboard canister discovery.
 ///
 
-pub trait IcCanisterCollectionSource {
+pub trait IcCanisterCollectionSource: Sync {
     /// Fetch one filtered canister count with explicit collection provenance.
-    fn fetch_canister_count(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
-    ) -> Result<IcCanisterCountSourceData, IcHostError>;
+    fn fetch_canister_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterCountSourceData, IcHostError>>;
 
     /// Fetch at most `limit` rows without automatically following a cursor.
-    fn fetch_canister_page(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
+    fn fetch_canister_page<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
         limit: u16,
-        after: Option<&str>,
-        before: Option<&str>,
-    ) -> Result<IcCanisterPageSourceData, IcHostError>;
+        after: Option<&'a str>,
+        before: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterPageSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn canonical_canister_id(value: &str) -> Result<String, IcHostError> {

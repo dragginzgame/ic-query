@@ -11,19 +11,21 @@ use crate::sns::report::{
 };
 
 /// Build a live SNS Root canister inventory and health report.
-pub fn build_sns_canister_report(
+pub async fn build_sns_canister_report(
     request: &SnsLookupRequest,
 ) -> Result<SnsCanisterReport, SnsHostError> {
-    build_sns_canister_report_with_source(request, &LiveSnsSource)
+    build_sns_canister_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build an SNS Root canister report through a custom source capability.
-pub fn build_sns_canister_report_with_source(
+pub async fn build_sns_canister_report_with_source(
     request: &SnsLookupRequest,
     source: &dyn SnsCanisterSource,
 ) -> Result<SnsCanisterReport, SnsHostError> {
-    let lookup = resolve_sns_lookup(request, source)?;
-    let mut inventory = source.fetch_sns_canisters(&lookup.fetch_request, &lookup.sns)?;
+    let lookup = resolve_sns_lookup(request, source).await?;
+    let mut inventory = source
+        .fetch_sns_canisters(&lookup.fetch_request, &lookup.sns)
+        .await?;
     canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
     Ok(sns_canister_report_from_parts(
         lookup.fetch_request,

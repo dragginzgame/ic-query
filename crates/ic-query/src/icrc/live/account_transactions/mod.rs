@@ -37,9 +37,11 @@ use ic_agent::Agent;
 const INDEX_LEDGER_ID_METHOD: &str = "ledger_id";
 
 pub(super) async fn fetch_account_transaction_page_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcAccountTransactionPageRequest,
 ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
     let context = resolve_account_transaction_context(
+        source,
         &request.source_endpoint,
         &request.ledger_canister_id,
         request.index_canister_id.as_deref(),
@@ -62,10 +64,12 @@ pub(super) async fn fetch_account_transaction_page_async(
 }
 
 pub(super) async fn fetch_complete_account_transactions_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcAccountTransactionRefreshRequest,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
     let context = resolve_account_transaction_context(
+        source,
         &request.cache.source_endpoint,
         &request.cache.ledger_canister_id,
         request.index_canister_id.as_deref(),
@@ -123,13 +127,14 @@ struct AccountTransactionQueryContext {
 }
 
 async fn resolve_account_transaction_context(
+    source: &crate::icrc::LiveIcrcSource,
     source_endpoint: &str,
     ledger_canister_id: &str,
     index_canister_id: Option<&str>,
     account_owner: &str,
     subaccount_hex: Option<&str>,
 ) -> Result<AccountTransactionQueryContext, IcrcAccountTransactionError> {
-    let (agent, ledger_canister) = live_query_context(source_endpoint, ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(source, source_endpoint, ledger_canister_id)?;
     let index_canister = match index_canister_id {
         Some(index_canister_id) => {
             principal_from_text::<IcrcError>(index_canister_id, "index_canister_id")?

@@ -4,12 +4,8 @@
 //! Does not own: report-specific errors, wire projections, or cache policy.
 //! Boundary: centralizes agent construction, Candid encoding, transport, decoding, and errors.
 
-use crate::{
-    agent::build_ic_agent_with_response_limit,
-    nns::{
-        MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest,
-        governance::MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
-    },
+use crate::nns::{
+    MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest, governance::MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
 };
 use candid::{CandidType, Deserialize, Principal};
 use thiserror::Error as ThisError;
@@ -57,6 +53,7 @@ pub enum NnsGovernanceQueryError {
 }
 
 pub async fn query_nns_governance<Arg, Response>(
+    source: &crate::nns::LiveNnsSource,
     request: &NnsSourceRequest,
     method: &'static str,
     request_message: &'static str,
@@ -71,11 +68,12 @@ where
         message: request_message,
         reason: error.to_string(),
     })?;
-    let bytes = query_nns_governance_bytes(request, method, arg).await?;
+    let bytes = query_nns_governance_bytes(source, request, method, arg).await?;
     decode_response(&bytes, response_message)
 }
 
 pub async fn query_nns_governance_no_args<Response>(
+    source: &crate::nns::LiveNnsSource,
     request: &NnsSourceRequest,
     method: &'static str,
     response_message: &'static str,
@@ -87,22 +85,23 @@ where
         message: "()",
         reason: error.to_string(),
     })?;
-    let bytes = query_nns_governance_bytes(request, method, arg).await?;
+    let bytes = query_nns_governance_bytes(source, request, method, arg).await?;
     decode_response(&bytes, response_message)
 }
 
 async fn query_nns_governance_bytes(
+    source: &crate::nns::LiveNnsSource,
     request: &NnsSourceRequest,
     method: &'static str,
     arg: Vec<u8>,
 ) -> Result<Vec<u8>, NnsGovernanceQueryError> {
-    let agent = build_ic_agent_with_response_limit(
+    let agent = source.agent.get(
         &request.endpoint,
+        MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
         |reason| NnsGovernanceQueryError::AgentBuild {
             endpoint: request.endpoint.clone(),
             reason,
         },
-        MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
     )?;
     let canister = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).map_err(|error| {
         NnsGovernanceQueryError::CandidDecode {

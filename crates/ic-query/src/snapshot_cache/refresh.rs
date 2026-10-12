@@ -20,14 +20,16 @@ pub trait PagedSnapshotRefresh {
     fn progress_text(&self) -> String;
     fn max_pages_reached(&self) -> bool;
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error;
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error>;
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>>;
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error>;
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool;
     fn into_complete(self) -> Self::Complete;
 }
 
 /// Run a complete paged snapshot refresh and emit structured progress events.
-pub fn run_paged_snapshot_refresh_with_progress<Refresh>(
+pub async fn run_paged_snapshot_refresh_with_progress<Refresh>(
     mut refresh: Refresh,
     progress: &mut dyn QueryProgress,
 ) -> Result<Refresh::Complete, Refresh::Error>
@@ -50,7 +52,7 @@ where
             return Err(refresh.incomplete_refresh_error("max pages reached before API exhaustion"));
         }
 
-        let page = match refresh.fetch_next_page() {
+        let page = match refresh.fetch_next_page().await {
             Ok(page) => page,
             Err(err) => {
                 report_progress(

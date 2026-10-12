@@ -5,15 +5,17 @@ struct InvalidSnsProposalSource;
 delegate_sns_discovery!(InvalidSnsProposalSource);
 
 impl SnsProposalSource for InvalidSnsProposalSource {
-    fn fetch_sns_proposal(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _proposal_id: u64,
-    ) -> Result<MainnetSnsProposal, SnsHostError> {
-        let mut proposal = fixture_proposal_row();
-        proposal.action = SnsProposalAction::UpgradeSnsControlledCanister;
-        Ok(MainnetSnsProposal { proposal })
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+        Box::pin(async move {
+            let mut proposal = fixture_proposal_row();
+            proposal.action = SnsProposalAction::UpgradeSnsControlledCanister;
+            Ok(MainnetSnsProposal { proposal })
+        })
     }
 }
 
@@ -22,41 +24,46 @@ struct InvalidSnsProposalsSource;
 delegate_sns_discovery!(InvalidSnsProposalsSource);
 
 impl SnsProposalsSource for InvalidSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        let mut proposal = fixture_proposal_row();
-        proposal.ballots[0].vote_text = SnsProposalVote::No;
-        Ok(MainnetSnsProposals {
-            proposals: vec![proposal],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move {
+            let mut proposal = fixture_proposal_row();
+            proposal.ballots[0].vote_text = SnsProposalVote::No;
+            Ok(MainnetSnsProposals {
+                proposals: vec![proposal],
+            })
         })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        let mut proposal = fixture_proposal_row();
-        proposal.ballot_count = 2;
-        Ok(MainnetSnsProposalPage {
-            proposals: vec![proposal],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            let mut proposal = fixture_proposal_row();
+            proposal.ballot_count = 2;
+            Ok(MainnetSnsProposalPage {
+                proposals: vec![proposal],
+            })
         })
     }
 }
 
-#[test]
-fn sns_proposal_builders_reject_invalid_custom_source_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
     let detail_error =
         build_sns_proposal_report_with_source(&proposal_request("1"), &InvalidSnsProposalSource)
+            .await
             .expect_err("invalid exact proposal");
     assert!(matches!(
         detail_error,
@@ -68,6 +75,7 @@ fn sns_proposal_builders_reject_invalid_custom_source_rows() {
 
     let list_error =
         build_sns_proposals_report_with_source(&proposals_request("1"), &InvalidSnsProposalsSource)
+            .await
             .expect_err("invalid bounded proposals");
     assert!(matches!(
         list_error,
@@ -78,13 +86,14 @@ fn sns_proposal_builders_reject_invalid_custom_source_rows() {
     ));
 }
 
-#[test]
-fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
     let root = crate::test_support::temp_dir("ic-query-invalid-sns-proposal-page");
     let error = refresh_sns_proposals_cache_with_source(
         &sns_proposals_refresh_request(&root, None),
         &InvalidSnsProposalsSource,
     )
+    .await
     .expect_err("invalid proposal page");
 
     assert!(matches!(
@@ -97,11 +106,12 @@ fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
     let _ = std::fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     let request = proposal_request("1");
 
     let report = build_sns_proposal_report_with_source(&request, &FixtureSnsProposalSource)
+        .await
         .expect("sns proposal report");
     let text = sns_proposal_report_text(&report);
 
@@ -135,11 +145,12 @@ fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert!(text.contains("reject_cost: 1.00"));
 }
 
-#[test]
-fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     let request = proposals_request("1");
 
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("sns proposals report");
     let text = sns_proposals_report_text(&report);
 
@@ -191,12 +202,13 @@ fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert!(text.contains("Fixture proposal"));
 }
 
-#[test]
-fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.proposer_neuron_id = Some("000102".to_string());
 
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("sns proposals report");
 
     assert_eq!(report.data_source.as_str(), "live");
@@ -205,12 +217,13 @@ fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     assert_eq!(report.proposals[0].proposal_id, 42);
 }
 
-#[test]
-fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.eligibility = SnsProposalEligibilityFilter::No;
 
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("sns proposals report");
 
     assert_eq!(report.data_source.as_str(), "live");
@@ -219,12 +232,13 @@ fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     assert_eq!(report.proposals, Vec::new());
 }
 
-#[test]
-fn sns_proposals_live_query_filter_applies_to_returned_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.query = Some("fixture proposal".to_string());
 
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("sns proposals report");
     let text = sns_proposals_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
@@ -237,13 +251,14 @@ fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     assert!(text.contains("query_filter: fixture proposal"));
 }
 
-#[test]
-fn sns_proposals_status_decided_requires_cache_root() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_status_decided_requires_cache_root() {
     let mut request = proposals_request("1");
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Governance;
 
     let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect_err("decided without cache rejected");
 
     assert!(matches!(
@@ -253,6 +268,7 @@ fn sns_proposals_status_decided_requires_cache_root() {
 
     request.topic = SnsProposalTopicFilter::Any;
     let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect_err("decided without cache rejected");
 
     assert!(matches!(

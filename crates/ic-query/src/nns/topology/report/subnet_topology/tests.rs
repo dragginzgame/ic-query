@@ -8,7 +8,7 @@ use crate::{
     test_support::temp_dir,
 };
 use candid::Principal;
-use std::{cell::Cell, fs, path::PathBuf};
+use std::{fs, path::PathBuf, sync::Mutex};
 
 const NOW: u64 = 1_700_000_000;
 
@@ -32,17 +32,18 @@ fn report_validation_enforces_canonical_counts_and_order() {
     ));
 }
 
-#[test]
-fn refresh_holds_one_lock_and_publishes_one_validated_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_holds_one_lock_and_publishes_one_validated_snapshot() {
     let root = temp_dir("ic-query-subnet-topology-refresh");
     let request = refresh_request(&root, NOW);
     let lock_path = nns_subnet_topology_refresh_lock_path(&root, MAINNET_NETWORK);
     let source = FixtureSource::new(42, Some(lock_path.clone()));
 
-    let cached =
-        refresh_nns_subnet_topology_with_source(&request, &source).expect("refresh snapshot");
+    let cached = refresh_nns_subnet_topology_with_source(&request, &source)
+        .await
+        .expect("refresh snapshot");
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(cached.report.registry_version, 42);
     assert_eq!(
         cached.path,
@@ -54,39 +55,43 @@ fn refresh_holds_one_lock_and_publishes_one_validated_snapshot() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn missing_and_stale_refresh_policies_are_explicitly_distinct() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_and_stale_refresh_policies_are_explicitly_distinct() {
     let root = temp_dir("ic-query-subnet-topology-policies");
     let old_request = refresh_request(&root, NOW);
     refresh_nns_subnet_topology_with_source(&old_request, &FixtureSource::new(1, None))
+        .await
         .expect("initial refresh");
 
     let later_request = refresh_request(&root, NOW + 100);
     let missing_source = FixtureSource::new(2, None);
     let loaded =
         load_or_refresh_missing_nns_subnet_topology_with_source(&later_request, &missing_source)
+            .await
             .expect("existing cache");
     assert_eq!(loaded.report.registry_version, 1);
-    assert_eq!(missing_source.calls.get(), 0);
+    assert_eq!((*missing_source.calls.lock().unwrap()), 0);
 
     let stale_source = FixtureSource::new(2, None);
     let refreshed =
         load_or_refresh_stale_nns_subnet_topology_with_source(&later_request, 10, &stale_source)
+            .await
             .expect("stale refresh");
     assert_eq!(refreshed.report.registry_version, 2);
-    assert_eq!(stale_source.calls.get(), 1);
+    assert_eq!((*stale_source.calls.lock().unwrap()), 1);
 
     let fresh_source = FixtureSource::new(3, None);
     let fresh =
         load_or_refresh_stale_nns_subnet_topology_with_source(&later_request, 10, &fresh_source)
+            .await
             .expect("fresh cache");
     assert_eq!(fresh.report.registry_version, 2);
-    assert_eq!(fresh_source.calls.get(), 0);
+    assert_eq!((*fresh_source.calls.lock().unwrap()), 0);
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict() {
+#[tokio::test(flavor = "current_thread")]
+async fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict() {
     let root = temp_dir("ic-query-subnet-topology-invalid-cache");
     let request = refresh_request(&root, NOW);
     let path = nns_subnet_topology_cache_path(&root, MAINNET_NETWORK);
@@ -107,10 +112,11 @@ fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict()
 
     let source = FixtureSource::new(42, None);
     let cached = load_or_refresh_missing_nns_subnet_topology_with_source(&request, &source)
+        .await
         .expect("invalid cache refreshes");
 
     assert_eq!(cached.report.registry_version, 42);
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_ne!(
         fs::read_to_string(path).expect("refreshed cache"),
         invalid_json
@@ -118,15 +124,17 @@ fn read_through_topology_refreshes_invalid_cache_but_cache_only_remains_strict()
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn invalid_refresh_preserves_the_last_complete_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_refresh_preserves_the_last_complete_snapshot() {
     let root = temp_dir("ic-query-subnet-topology-invalid-refresh");
     let request = refresh_request(&root, NOW);
     refresh_nns_subnet_topology_with_source(&request, &FixtureSource::new(1, None))
+        .await
         .expect("initial refresh");
 
     let invalid_source = InvalidFixtureSource;
     let error = refresh_nns_subnet_topology_with_source(&request, &invalid_source)
+        .await
         .expect_err("invalid report");
     assert!(matches!(
         error,
@@ -168,7 +176,7 @@ fn text_preserves_raw_subnet_kind_and_provider_counts() {
 struct FixtureSource {
     registry_version: u64,
     expected_lock_path: Option<PathBuf>,
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
 }
 
 impl FixtureSource {
@@ -176,37 +184,43 @@ impl FixtureSource {
         Self {
             registry_version,
             expected_lock_path,
-            calls: Cell::new(0),
+            calls: Mutex::new(0),
         }
     }
 }
 
 impl NnsSubnetTopologySource for FixtureSource {
-    fn fetch_subnet_topology_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-        self.calls.set(self.calls.get() + 1);
-        if let Some(lock_path) = &self.expected_lock_path {
-            assert!(
-                lock_path.is_file(),
-                "source fetch must run under the cache lock"
-            );
-        }
-        Ok(fixture_report(self.registry_version, &request.fetched_at))
+    fn fetch_subnet_topology_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
+    {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            if let Some(lock_path) = &self.expected_lock_path {
+                assert!(
+                    lock_path.is_file(),
+                    "source fetch must run under the cache lock"
+                );
+            }
+            Ok(fixture_report(self.registry_version, &request.fetched_at))
+        })
     }
 }
 
 struct InvalidFixtureSource;
 
 impl NnsSubnetTopologySource for InvalidFixtureSource {
-    fn fetch_subnet_topology_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-        let mut report = fixture_report(2, &request.fetched_at);
-        report.subnets[0].node_providers[0].node_count = 0;
-        Ok(report)
+    fn fetch_subnet_topology_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
+    {
+        Box::pin(async move {
+            let mut report = fixture_report(2, &request.fetched_at);
+            report.subnets[0].node_providers[0].node_count = 0;
+            Ok(report)
+        })
     }
 }
 

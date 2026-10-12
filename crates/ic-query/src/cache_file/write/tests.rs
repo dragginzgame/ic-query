@@ -14,8 +14,8 @@ fn assert_alias(output: &Path, managed: &Path) {
     ));
 }
 
-#[test]
-fn output_rejects_missing_managed_paths_and_parent_traversal_aliases() {
+#[tokio::test(flavor = "current_thread")]
+async fn output_rejects_missing_managed_paths_and_parent_traversal_aliases() {
     let root = temp_dir("ic-query-output-missing-alias");
     let managed = root.join("cache/catalog.json");
     assert_alias(&managed, &managed);
@@ -35,8 +35,8 @@ fn output_compares_relative_and_absolute_paths() {
     ));
 }
 
-#[test]
-fn distinct_output_replaces_export_and_preserves_managed_file() {
+#[tokio::test(flavor = "current_thread")]
+async fn distinct_output_replaces_export_and_preserves_managed_file() {
     let root = temp_dir("ic-query-output-distinct");
     fs::create_dir_all(&root).expect("directory");
     let managed = root.join("catalog.json");
@@ -53,8 +53,8 @@ fn distinct_output_replaces_export_and_preserves_managed_file() {
 }
 
 #[cfg(unix)]
-#[test]
-fn output_rejects_file_symlink_parent_symlink_and_hard_link_aliases() {
+#[tokio::test(flavor = "current_thread")]
+async fn output_rejects_file_symlink_parent_symlink_and_hard_link_aliases() {
     let root = temp_dir("ic-query-output-link-aliases");
     fs::create_dir_all(root.join("cache")).expect("directory");
     let managed = root.join("cache/catalog.json");
@@ -76,8 +76,8 @@ fn output_rejects_file_symlink_parent_symlink_and_hard_link_aliases() {
 }
 
 #[cfg(unix)]
-#[test]
-fn output_rejects_dangling_symlink_aliases_before_creating_managed_files() {
+#[tokio::test(flavor = "current_thread")]
+async fn output_rejects_dangling_symlink_aliases_before_creating_managed_files() {
     let root = temp_dir("ic-query-output-dangling-alias");
     fs::create_dir_all(&root).expect("directory");
     let managed = root.join("cache/catalog.json");
@@ -93,8 +93,8 @@ fn output_rejects_dangling_symlink_aliases_before_creating_managed_files() {
 }
 
 #[cfg(unix)]
-#[test]
-fn output_bounds_nested_missing_symlinks_before_filesystem_mutation() {
+#[tokio::test(flavor = "current_thread")]
+async fn output_bounds_nested_missing_symlinks_before_filesystem_mutation() {
     let root = temp_dir("ic-query-output-symlink-budget");
     fs::create_dir_all(&root).expect("directory");
     let managed = root.join("cache/catalog.json");
@@ -118,8 +118,8 @@ fn output_bounds_nested_missing_symlinks_before_filesystem_mutation() {
     fs::remove_dir_all(root).expect("cleanup");
 }
 
-#[test]
-fn output_preserves_directory_traversal_errors_before_filesystem_mutation() {
+#[tokio::test(flavor = "current_thread")]
+async fn output_preserves_directory_traversal_errors_before_filesystem_mutation() {
     let root = temp_dir("ic-query-output-directory-traversal");
     fs::create_dir_all(&root).expect("directory");
     fs::write(root.join("file"), "original").expect("regular file");
@@ -142,8 +142,8 @@ fn output_preserves_directory_traversal_errors_before_filesystem_mutation() {
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn json_refresh_rejects_output_aliases_for_cache_and_lock_including_dry_runs() {
+#[tokio::test(flavor = "current_thread")]
+async fn json_refresh_rejects_output_aliases_for_cache_and_lock_including_dry_runs() {
     use super::{RefreshCacheWriteRequest, write_json_refresh_cache};
     use crate::cache_file::write_managed_text_atomically;
 

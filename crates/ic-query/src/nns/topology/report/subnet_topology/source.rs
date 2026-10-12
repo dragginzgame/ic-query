@@ -14,23 +14,26 @@ use crate::{
 /// Source contract for one complete, exact-version Subnet topology report.
 ///
 
-pub trait NnsSubnetTopologySource {
+pub trait NnsSubnetTopologySource: Sync {
     /// Fetch and join a complete topology report at one Registry version.
-    fn fetch_subnet_topology_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>;
+    fn fetch_subnet_topology_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>;
 }
 
 impl NnsSubnetTopologySource for LiveNnsSource {
-    fn fetch_subnet_topology_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-        let fetch_request = mainnet_registry_fetch_request(request, |network| {
-            NnsSubnetTopologyHostError::UnsupportedNetwork { network }
-        })?;
-        report_from_mainnet_topology(fetch_mainnet_subnet_topology(&fetch_request)?)
+    fn fetch_subnet_topology_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
+    {
+        Box::pin(async move {
+            let fetch_request = mainnet_registry_fetch_request(request, |network| {
+                NnsSubnetTopologyHostError::UnsupportedNetwork { network }
+            })?;
+            report_from_mainnet_topology(fetch_mainnet_subnet_topology(&fetch_request).await?)
+        })
     }
 }
 

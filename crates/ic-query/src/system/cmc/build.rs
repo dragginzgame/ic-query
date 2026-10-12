@@ -15,17 +15,19 @@ const CYCLES_PER_ICP_FORMULA: &str = "xdr_permyriad_per_icp * cycles_per_xdr / 1
 const CYCLES_PER_XDR_SOURCE: &str = "ic_protocol_constant";
 
 /// Build one live certified CMC ICP/XDR conversion-rate report.
-pub fn build_cmc_xdr_report(request: &CmcSourceRequest) -> Result<CmcXdrReport, CmcHostError> {
-    build_cmc_xdr_report_with_source(request, &LiveCmcSource)
+pub async fn build_cmc_xdr_report(
+    request: &CmcSourceRequest,
+) -> Result<CmcXdrReport, CmcHostError> {
+    build_cmc_xdr_report_with_source(request, &LiveCmcSource).await
 }
 
 /// Build one certified CMC ICP/XDR report from a custom source.
-pub fn build_cmc_xdr_report_with_source(
+pub async fn build_cmc_xdr_report_with_source(
     request: &CmcSourceRequest,
     source: &dyn CmcSource,
 ) -> Result<CmcXdrReport, CmcHostError> {
     enforce_mainnet_network(&request.network)?;
-    let certified = source.fetch_certified_icp_xdr_rate(request)?;
+    let certified = source.fetch_certified_icp_xdr_rate(request).await?;
     validate_certified_rate(&certified)?;
     Ok(CmcXdrReport {
         context: report_context(request),
@@ -35,19 +37,19 @@ pub fn build_cmc_xdr_report_with_source(
 }
 
 /// Build one live cycles conversion report from the certified CMC ICP/XDR rate.
-pub fn build_cmc_cycles_report(
+pub async fn build_cmc_cycles_report(
     request: &CmcSourceRequest,
 ) -> Result<CmcCyclesReport, CmcHostError> {
-    build_cmc_cycles_report_with_source(request, &LiveCmcSource)
+    build_cmc_cycles_report_with_source(request, &LiveCmcSource).await
 }
 
 /// Build one cycles conversion report from a custom certified CMC source.
-pub fn build_cmc_cycles_report_with_source(
+pub async fn build_cmc_cycles_report_with_source(
     request: &CmcSourceRequest,
     source: &dyn CmcSource,
 ) -> Result<CmcCyclesReport, CmcHostError> {
     enforce_mainnet_network(&request.network)?;
-    let certified = source.fetch_certified_icp_xdr_rate(request)?;
+    let certified = source.fetch_certified_icp_xdr_rate(request).await?;
     validate_certified_rate(&certified)?;
     let cycles_per_icp = u128::from(certified.rate.xdr_permyriad_per_icp) * CYCLES_PER_XDR
         / ICP_XDR_PERMYRIAD_DENOMINATOR;

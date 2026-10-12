@@ -47,33 +47,33 @@ resolved_max_proposal_index as --max-proposal-index when requesting a later
 page so newly indexed proposals do not move the selected ceiling. The response
 is off-chain, non-certified, not runtime-version evidence, and is not cached.";
 
-pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
-        Some(("info", matches)) => run_info(matches),
-        Some(("list", matches)) => run_list(matches),
+        Some(("info", matches)) => run_info(matches).await,
+        Some(("list", matches)) => run_list(matches).await,
         _ => unreachable!("clap requires a known ic replica-version subcommand"),
     }
 }
 
-fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionInfoOptions::from_matches(matches);
     let request = IcReplicaVersionInfoRequest::new(
         options.source_endpoint,
         current_unix_secs()?,
         options.replica_version_id,
     );
-    let report = build_ic_replica_version_info_report(&request)?;
+    let report = build_ic_replica_version_info_report(&request).await?;
     write_text_or_json(options.format, &report, ic_replica_version_info_report_text)
 }
 
-fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionListOptions::from_matches(matches);
     let request = IcReplicaVersionListRequest::new(
         options.source_endpoint,
         current_unix_secs()?,
         IcReplicaVersionListQuery::new(options.limit, options.offset, options.max_proposal_index),
     );
-    let report = build_ic_replica_version_list_report(&request)?;
+    let report = build_ic_replica_version_list_report(&request).await?;
     write_text_or_json(options.format, &report, ic_replica_version_list_report_text)
 }
 

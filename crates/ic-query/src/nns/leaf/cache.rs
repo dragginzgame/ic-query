@@ -39,7 +39,11 @@ where
 }
 
 /// Write a refreshed generic NNS leaf JSON cache using component-labelled errors.
-pub(in crate::nns) fn write_nns_leaf_json_refresh_cache<Request, Report>(
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub(in crate::nns) async fn write_nns_leaf_json_refresh_cache<Request, Report>(
     request: &Request,
     component_dir: &'static str,
     cache_file: &str,

@@ -73,22 +73,24 @@ impl From<MainnetRegistryVersion> for NnsRegistryVersionData {
 /// Source contract for fetching NNS registry version data.
 ///
 
-pub trait NnsRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError>;
+pub trait NnsRegistrySource: Sync {
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>;
 }
 
 impl NnsRegistrySource for LiveNnsSource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        let fetch_request = mainnet_registry_fetch_request(request, |network| {
-            NnsRegistryHostError::UnsupportedNetwork { network }
-        })?;
-        Ok(fetch_mainnet_registry_version(&fetch_request)?.into())
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+        Box::pin(async move {
+            let fetch_request = mainnet_registry_fetch_request(request, |network| {
+                NnsRegistryHostError::UnsupportedNetwork { network }
+            })?;
+            Ok(fetch_mainnet_registry_version(&fetch_request).await?.into())
+        })
     }
 }
 

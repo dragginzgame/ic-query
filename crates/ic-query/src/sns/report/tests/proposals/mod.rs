@@ -9,9 +9,10 @@ mod cached_filters;
 mod cached_sorts;
 mod live;
 
-fn refresh_fixture_sns_proposals_cache(root: &std::path::Path) -> std::path::PathBuf {
+async fn refresh_fixture_sns_proposals_cache(root: &std::path::Path) -> std::path::PathBuf {
     let request = sns_proposals_refresh_request(root, None);
     let refresh = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("refresh proposals");
     std::path::PathBuf::from(refresh.cache_path)
 }
@@ -93,91 +94,95 @@ struct UnsortedSnsProposalsSource;
 delegate_sns_discovery!(UnsortedSnsProposalsSource);
 
 impl SnsProposalsSource for UnsortedSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        Err(SnsHostError::AgentCall {
-            method: "fetch_sns_proposals",
-            reason: "unexpected bounded live proposal call".to_string(),
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move {
+            Err(SnsHostError::AgentCall {
+                method: "fetch_sns_proposals",
+                reason: "unexpected bounded live proposal call".to_string(),
+            })
         })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 100);
-        assert_eq!(before_proposal_id, None);
-        Ok(MainnetSnsProposalPage {
-            proposals: vec![
-                proposal_row_with_fixture(ProposalRowFixture {
-                    proposal_id: 10,
-                    created_at_secs: 1_700_000_100,
-                    decided_at_secs: Some(1_700_001_100),
-                    executed_at_secs: Some(1_700_002_300),
-                    failed_at_secs: Some(1_700_003_100),
-                    decision_state: SnsProposalDecisionState::Executed,
-                    status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
-                    topic: SnsProposalTopicFilter::Governance,
-                    title: "Zulu proposal",
-                    action_id: 2,
-                    tally: (1_700_005_100, 90, 10, 100),
-                    ballot_count: 4,
-                    reject_cost_e8s: 100_000_000,
-                    reward_event_round: 7,
-                    reward_event_end_timestamp_seconds: Some(1_700_004_100),
-                    is_eligible_for_rewards: false,
-                    proposer_neuron_id: Some("bbbb"),
-                }),
-                proposal_row_with_fixture(ProposalRowFixture {
-                    proposal_id: 20,
-                    created_at_secs: 1_700_000_300,
-                    decided_at_secs: None,
-                    executed_at_secs: None,
-                    failed_at_secs: None,
-                    decision_state: SnsProposalDecisionState::Open,
-                    status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
-                    topic: SnsProposalTopicFilter::TreasuryAssetManagement,
-                    title: "Alpha proposal",
-                    action_id: 9,
-                    tally: (1_700_005_300, 5, 10, 15),
-                    ballot_count: 2,
-                    reject_cost_e8s: 50_000_000,
-                    reward_event_round: 10,
-                    reward_event_end_timestamp_seconds: None,
-                    is_eligible_for_rewards: true,
-                    proposer_neuron_id: None,
-                }),
-                proposal_row_with_fixture(ProposalRowFixture {
-                    proposal_id: 30,
-                    created_at_secs: 1_700_000_200,
-                    decided_at_secs: Some(1_700_001_300),
-                    executed_at_secs: Some(1_700_002_100),
-                    failed_at_secs: Some(1_700_003_300),
-                    decision_state: SnsProposalDecisionState::Decided,
-                    status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
-                    topic: SnsProposalTopicFilter::Governance,
-                    title: "Beta proposal",
-                    action_id: 5,
-                    tally: (1_700_005_200, 50, 25, 75),
-                    ballot_count: 6,
-                    reject_cost_e8s: 200_000_000,
-                    reward_event_round: 8,
-                    reward_event_end_timestamp_seconds: Some(1_700_004_300),
-                    is_eligible_for_rewards: true,
-                    proposer_neuron_id: Some("aaaa"),
-                }),
-            ],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 100);
+            assert_eq!(before_proposal_id, None);
+            Ok(MainnetSnsProposalPage {
+                proposals: vec![
+                    proposal_row_with_fixture(ProposalRowFixture {
+                        proposal_id: 10,
+                        created_at_secs: 1_700_000_100,
+                        decided_at_secs: Some(1_700_001_100),
+                        executed_at_secs: Some(1_700_002_300),
+                        failed_at_secs: Some(1_700_003_100),
+                        decision_state: SnsProposalDecisionState::Executed,
+                        status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
+                        topic: SnsProposalTopicFilter::Governance,
+                        title: "Zulu proposal",
+                        action_id: 2,
+                        tally: (1_700_005_100, 90, 10, 100),
+                        ballot_count: 4,
+                        reject_cost_e8s: 100_000_000,
+                        reward_event_round: 7,
+                        reward_event_end_timestamp_seconds: Some(1_700_004_100),
+                        is_eligible_for_rewards: false,
+                        proposer_neuron_id: Some("bbbb"),
+                    }),
+                    proposal_row_with_fixture(ProposalRowFixture {
+                        proposal_id: 20,
+                        created_at_secs: 1_700_000_300,
+                        decided_at_secs: None,
+                        executed_at_secs: None,
+                        failed_at_secs: None,
+                        decision_state: SnsProposalDecisionState::Open,
+                        status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
+                        topic: SnsProposalTopicFilter::TreasuryAssetManagement,
+                        title: "Alpha proposal",
+                        action_id: 9,
+                        tally: (1_700_005_300, 5, 10, 15),
+                        ballot_count: 2,
+                        reject_cost_e8s: 50_000_000,
+                        reward_event_round: 10,
+                        reward_event_end_timestamp_seconds: None,
+                        is_eligible_for_rewards: true,
+                        proposer_neuron_id: None,
+                    }),
+                    proposal_row_with_fixture(ProposalRowFixture {
+                        proposal_id: 30,
+                        created_at_secs: 1_700_000_200,
+                        decided_at_secs: Some(1_700_001_300),
+                        executed_at_secs: Some(1_700_002_100),
+                        failed_at_secs: Some(1_700_003_300),
+                        decision_state: SnsProposalDecisionState::Decided,
+                        status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
+                        topic: SnsProposalTopicFilter::Governance,
+                        title: "Beta proposal",
+                        action_id: 5,
+                        tally: (1_700_005_200, 50, 25, 75),
+                        ballot_count: 6,
+                        reject_cost_e8s: 200_000_000,
+                        reward_event_round: 8,
+                        reward_event_end_timestamp_seconds: Some(1_700_004_300),
+                        is_eligible_for_rewards: true,
+                        proposer_neuron_id: Some("aaaa"),
+                    }),
+                ],
+            })
         })
     }
 }
@@ -190,7 +195,7 @@ fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
         .collect()
 }
 
-fn assert_cached_proposal_sort(
+async fn assert_cached_proposal_sort(
     sort: SnsProposalsSort,
     direction: SnsProposalSortDirection,
     expected_proposal_ids: &[u64],
@@ -206,6 +211,7 @@ fn assert_cached_proposal_sort(
     request.limit = 2;
 
     let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh sorted proposals cache");
 
     assert_eq!(report.data_source.as_str(), "cache");
@@ -215,7 +221,10 @@ fn assert_cached_proposal_sort(
     let _ = fs::remove_dir_all(root);
 }
 
-fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposal_ids: &[u64]) {
+async fn assert_cached_status_filter(
+    status: SnsProposalStatusFilter,
+    expected_proposal_ids: &[u64],
+) {
     let root = temp_dir(&format!(
         "ic-query-sns-proposals-status-{}",
         status.as_str()
@@ -229,6 +238,7 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
     request.limit = 10;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh status-filtered proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -236,6 +246,7 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse status-filtered proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -245,7 +256,7 @@ fn assert_cached_status_filter(status: SnsProposalStatusFilter, expected_proposa
     let _ = fs::remove_dir_all(root);
 }
 
-fn assert_cached_eligibility_filter(
+async fn assert_cached_eligibility_filter(
     eligibility: SnsProposalEligibilityFilter,
     expected_proposal_ids: &[u64],
 ) {
@@ -263,6 +274,7 @@ fn assert_cached_eligibility_filter(
     request.limit = 10;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh eligibility-filtered proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -270,6 +282,7 @@ fn assert_cached_eligibility_filter(
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse eligibility-filtered proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -282,7 +295,7 @@ fn assert_cached_eligibility_filter(
     let _ = fs::remove_dir_all(root);
 }
 
-fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids: &[u64]) {
+async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids: &[u64]) {
     let root = temp_dir(&format!(
         "ic-query-sns-proposals-proposer-{proposer_neuron_id}"
     ));
@@ -296,6 +309,7 @@ fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids
     request.limit = 10;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh proposer-filtered proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -303,6 +317,7 @@ fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse proposer-filtered proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -315,7 +330,7 @@ fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_proposal_ids
     let _ = fs::remove_dir_all(root);
 }
 
-fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
+async fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     let root = temp_dir(&format!("ic-query-sns-proposals-query-{query}"));
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -327,6 +342,7 @@ fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     request.limit = 10;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh query-filtered proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -334,6 +350,7 @@ fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse query-filtered proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");

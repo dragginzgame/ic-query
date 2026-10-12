@@ -35,7 +35,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["host"] }
+ic-query = { version = "0.55", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -56,7 +56,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["canister"] }
+ic-query = { version = "0.55", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -240,7 +240,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -258,7 +258,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -272,7 +272,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -285,7 +285,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -303,7 +303,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
@@ -311,7 +311,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -327,7 +327,7 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -345,7 +345,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -374,7 +374,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -390,7 +390,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -406,7 +406,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -513,13 +513,43 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false }
+ic-query = { version = "0.55", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
 `ic-agent`, Reqwest, Tokio, or `futures`. That is a host-dependency boundary,
 not a `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`,
 and other normal `std`-using crates.
+
+## Async host execution
+
+Live collection and cache reads that may refresh return futures. Poll them on
+the caller's runtime; native IC/HTTP operations require a Tokio runtime with IO
+and timers enabled. Pure report projection, rendering and explicit cache-only
+readers remain synchronous. The CLI owns one runtime per command.
+
+Custom host capability traits require `Sync` and return
+`ic_query::report::SourceFuture`, a boxed `Send` future. Progress sinks implement
+`QueryProgress: Send`. The portable Governance future aliases keep their own
+typed source/provenance contracts. Callers can await host reports in an existing
+runtime or move suitable owned queries into Tokio tasks.
+
+Construct stateful built-in adapters with `LiveCloudEngineSource::default()`,
+`LiveIcSource::default()`, `LiveIcrcSource::default()`,
+`LiveNnsSource::default()` and `LiveSnsSource::default()`. Native agent adapters
+bind to the first admitted request endpoint and reuse its response-bounded
+agent. Reuse one source within a collection; create a new source for a different
+endpoint. The Dashboard adapter reuses its bounded HTTP client. Explicit
+endpoints, mainnet/local root-key policy, response ceilings and deadlines retain
+their existing owners. Library code never installs a runtime or changes a
+caller's root key.
+
+Synchronous host call signatures and runtime error variants are replaced in
+0.55. Await current operation names, including `load_subnet_catalog` and
+`refresh_subnet_catalog`. Existing JSON report/cache shapes remain schema 1;
+cache identity and retained refresh evidence are unchanged. Caller cancellation
+releases owned refresh locks without publishing an incomplete snapshot, and
+interrupted attempt evidence stays available for inspection.
 
 ## Progress Ownership
 
@@ -531,9 +561,8 @@ updates. ICRC complete account-history refreshes expose the same pattern.
 Observed node-status report builders accept the sink directly because an
 ordinary read can visibly refresh one missing, invalid, or 60-second-stale
 shared snapshot.
-The sink supplied to that ICRC entry point must also be `Send` because its
-synchronous host adapter may move the caller-owned sink across its internal
-runtime boundary.
+All progress sinks are `Send`, allowing native host futures to run on
+caller-owned Tokio tasks. The library never moves a sink onto a helper runtime.
 
 Downstream libraries can ignore progress by using the ordinary entry points,
 record the events for their own UI, or render them at an executable boundary.
@@ -697,15 +726,15 @@ struct FixtureRegistrySource {
 }
 
 impl NnsRegistrySource for FixtureRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        Ok(self.version.clone())
+    fn fetch_registry_version<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+        Box::pin(async move { Ok(self.version.clone()) })
     }
 }
 
-fn render_registry_version_with_source(
+async fn render_registry_version_with_source(
     source: &dyn NnsRegistrySource,
     now_unix_secs: u64,
 ) -> Result<String, NnsRegistryHostError> {
@@ -714,7 +743,7 @@ fn render_registry_version_with_source(
         "https://mirror.example",
         now_unix_secs,
     );
-    let report = build_nns_registry_version_report_with_source(&request, source)?;
+    let report = build_nns_registry_version_report_with_source(&request, source).await?;
     Ok(nns_registry_version_report_text(&report))
 }
 ```
@@ -745,7 +774,7 @@ use ic_query::ic::{
     build_ic_canister_report, ic_canister_report_text,
 };
 
-fn render_canister(
+async fn render_canister(
     canister_id: &str,
     now_unix_secs: u64,
 ) -> Result<String, IcHostError> {
@@ -754,7 +783,7 @@ fn render_canister(
         now_unix_secs,
         canister_id,
     );
-    let report = build_ic_canister_report(&request)?;
+    let report = build_ic_canister_report(&request).await?;
     Ok(ic_canister_report_text(&report))
 }
 ```
@@ -800,7 +829,7 @@ use ic_query::ic::{
     build_ic_replica_version_list_report,
 };
 
-fn recent_replica_versions(
+async fn recent_replica_versions(
     now_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
     let request = IcReplicaVersionListRequest::new(
@@ -808,7 +837,7 @@ fn recent_replica_versions(
         now_unix_secs,
         IcReplicaVersionListQuery::new(25, 0, None),
     );
-    let report = build_ic_replica_version_list_report(&request)?;
+    let report = build_ic_replica_version_list_report(&request).await?;
     Ok(report
         .rows
         .into_iter()
@@ -835,7 +864,7 @@ use ic_query::ic::{
     build_ic_node_provider_reward_history_report,
 };
 
-fn node_provider_reward_history(
+async fn node_provider_reward_history(
     now_unix_secs: u64,
 ) -> Result<Vec<(u64, u64)>, IcHostError> {
     let request = IcNodeProviderRewardHistoryRequest::new(
@@ -847,7 +876,7 @@ fn node_provider_reward_history(
             86_400,
         ),
     );
-    let report = build_ic_node_provider_reward_history_report(&request)?;
+    let report = build_ic_node_provider_reward_history_report(&request).await?;
     Ok(report
         .observations
         .into_iter()
@@ -873,7 +902,7 @@ use ic_query::ic::{
     build_ic_canister_page_report,
 };
 
-fn discover_named_canisters(
+async fn discover_named_canisters(
     now_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
     let filters = IcCanisterFilters {
@@ -886,7 +915,7 @@ fn discover_named_canisters(
     )
     .with_filters(filters)
     .with_limit(25);
-    let report = build_ic_canister_page_report(&request)?;
+    let report = build_ic_canister_page_report(&request).await?;
     Ok(report.rows.into_iter().map(|row| row.canister_id).collect())
 }
 ```
@@ -905,7 +934,7 @@ use ic_query::ic::{
     build_ic_metric_report,
 };
 
-fn instruction_rate(
+async fn instruction_rate(
     start_unix_secs: u64,
     end_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
@@ -920,7 +949,7 @@ fn instruction_rate(
         end_unix_secs,
         query,
     );
-    let report = build_ic_metric_report(&request)?;
+    let report = build_ic_metric_report(&request).await?;
     Ok(report.series[0]
         .observations
         .iter()
@@ -944,14 +973,14 @@ use ic_query::ic::{
     build_ic_boundary_node_data_centers_report,
 };
 
-fn boundary_node_data_center_ids(
+async fn boundary_node_data_center_ids(
     now_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
     let request = IcBoundaryNodeDataCentersRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
         now_unix_secs,
     );
-    let report = build_ic_boundary_node_data_centers_report(&request)?;
+    let report = build_ic_boundary_node_data_centers_report(&request).await?;
     Ok(report.rows.into_iter().map(|row| row.dc_id).collect())
 }
 ```
@@ -968,7 +997,7 @@ use ic_query::ic::{
     IcDailyStatsRequest, IcHostError, build_ic_daily_stats_report,
 };
 
-fn daily_average_transaction_rates(
+async fn daily_average_transaction_rates(
     start_unix_secs: u64,
     end_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
@@ -977,7 +1006,7 @@ fn daily_average_transaction_rates(
         end_unix_secs,
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
-    let report = build_ic_daily_stats_report(&request)?;
+    let report = build_ic_daily_stats_report(&request).await?;
     Ok(report
         .rows
         .into_iter()
@@ -1008,7 +1037,7 @@ use ic_query::ic::{
     build_icrc_indexed_count_report, build_icrc_token_value_report, build_icrc_total_supply_report,
 };
 
-fn account_page(
+async fn account_page(
     ledger_canister_id: &str,
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcAccountRow>, IcHostError> {
@@ -1018,10 +1047,10 @@ fn account_page(
         ledger_canister_id,
         IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::BalanceDescending),
     );
-    Ok(build_icrc_account_list_report(&request)?.rows)
+    Ok(build_icrc_account_list_report(&request).await?.rows)
 }
 
-fn exact_account(
+async fn exact_account(
     ledger_canister_id: &str,
     account_id: &str,
     now_unix_secs: u64,
@@ -1032,10 +1061,10 @@ fn exact_account(
         ledger_canister_id,
         account_id,
     );
-    Ok(build_icrc_account_info_report(&request)?.account)
+    Ok(build_icrc_account_info_report(&request).await?.account)
 }
 
-fn indexed_count(
+async fn indexed_count(
     ledger_canister_id: &str,
     now_unix_secs: u64,
     kind: IcIcrcIndexedCountKind,
@@ -1046,10 +1075,10 @@ fn indexed_count(
         ledger_canister_id,
         kind,
     );
-    Ok(build_icrc_indexed_count_report(&request)?.total)
+    Ok(build_icrc_indexed_count_report(&request).await?.total)
 }
 
-fn total_supply_history(
+async fn total_supply_history(
     ledger_canister_id: &str,
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcTotalSupplyObservation>, IcHostError> {
@@ -1063,10 +1092,10 @@ fn total_supply_history(
             DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
         ),
     );
-    Ok(build_icrc_total_supply_report(&request)?.observations)
+    Ok(build_icrc_total_supply_report(&request).await?.observations)
 }
 
-fn token_value_history(
+async fn token_value_history(
     ledger_canister_id: &str,
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcTokenValueRow>, IcHostError> {
@@ -1080,7 +1109,7 @@ fn token_value_history(
             DEFAULT_ICRC_TOKEN_VALUE_LIMIT,
         ),
     );
-    Ok(build_icrc_token_value_report(&request)?.rows)
+    Ok(build_icrc_token_value_report(&request).await?.rows)
 }
 ```
 
@@ -1114,14 +1143,14 @@ use ic_query::system::cmc::{
     build_cmc_cycles_report,
 };
 
-fn cycles_per_icp(now_unix_secs: u64) -> Result<u128, CmcHostError> {
+async fn cycles_per_icp(now_unix_secs: u64) -> Result<u128, CmcHostError> {
     let request = CmcSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CMC_SOURCE_ENDPOINT,
         now_unix_secs,
         "my-tool",
     );
-    Ok(build_cmc_cycles_report(&request)?.cycles_per_icp)
+    Ok(build_cmc_cycles_report(&request).await?.cycles_per_icp)
 }
 ```
 
@@ -1198,7 +1227,7 @@ use ic_query::subnet_catalog::{
     build_subnet_catalog_info_report, subnet_catalog_info_report_text,
 };
 
-fn render_subnet_info(
+async fn render_subnet_info(
     cache_root: &Path,
     canister_or_subnet: &str,
     now_unix_secs: u64,
@@ -1213,7 +1242,7 @@ fn render_subnet_info(
     )
     .with_forced(ResolveAs::Canister);
 
-    let report = build_subnet_catalog_info_report(&request)?;
+    let report = build_subnet_catalog_info_report(&request).await?;
     Ok(subnet_catalog_info_report_text(&report))
 }
 ```
@@ -1244,7 +1273,7 @@ use ic_query::subnet_catalog::{
     SubnetCatalogHostError, SubnetCatalogLoadRequest, load_subnet_catalog,
 };
 
-fn load_catalog(
+async fn load_catalog(
     cache: SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> Result<CatalogSnapshotAuthorityEvidence, SubnetCatalogHostError> {
@@ -1255,7 +1284,7 @@ fn load_catalog(
         ),
         now_unix_secs,
     );
-    let loaded = load_subnet_catalog(&request)?;
+    let loaded = load_subnet_catalog(&request).await?;
     let stable_authority = loaded.snapshot_authority();
 
     // Acquisition diagnostics remain separate from stable authority identity.
@@ -1268,9 +1297,8 @@ fn load_catalog(
 
 Callers that need failure provenance use
 `load_cached_subnet_catalog_detailed`, `load_subnet_catalog_detailed`,
-`load_subnet_catalog_detailed_async`,
 `load_subnet_catalog_detailed_with_source`, or
-`load_subnet_catalog_detailed_with_source_async`. These return
+`load_subnet_catalog_detailed_with_progress`. These return
 `Box<SubnetCatalogLoadFailure>`, whose request retains the requested network,
 selected `CatalogSourceSelection`, and minimum assurance. Its typed stage and
 failure-side cache disposition distinguish cache-only loading, cache bypass,
@@ -1301,7 +1329,7 @@ identity. Snapshot evidence is not a substitute for validated catalog content.
 The digest detects a payload that was edited without being resealed; it is not
 a signature or local-tamper boundary.
 Async embedders can use `fetch_subnet_catalog_async`,
-`load_subnet_catalog_async`, and `refresh_subnet_catalog_async` on their own
+`load_subnet_catalog`, and `refresh_subnet_catalog` on their own
 runtime. The async source seam returns `SubnetCatalogSourceFuture`; custom
 sources must return single-endpoint evidence for the exact requested endpoint.
 The detailed source seam returns `SubnetCatalogDetailedSourceFuture`.
@@ -1316,7 +1344,7 @@ use std::path::Path;
 use ic_query::subnet_catalog::{
     CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
-    SubnetCatalogRefreshRequest, refresh_subnet_catalog_async,
+    SubnetCatalogRefreshRequest, refresh_subnet_catalog,
 };
 
 async fn refresh_agreed_catalog(
@@ -1330,7 +1358,7 @@ async fn refresh_agreed_catalog(
         now_unix_secs,
         DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     );
-    refresh_subnet_catalog_async(&request).await
+    refresh_subnet_catalog(&request).await
 }
 ```
 
@@ -1359,7 +1387,7 @@ use ic_query::nns::topology::{
     NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
 };
 
-fn refresh_subnet_topology(
+async fn refresh_subnet_topology(
     cache_root: &Path,
     now_unix_secs: u64,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
@@ -1369,7 +1397,7 @@ fn refresh_subnet_topology(
         now_unix_secs,
         DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     );
-    refresh_nns_subnet_topology(&request)
+    refresh_nns_subnet_topology(&request).await
 }
 ```
 
@@ -1394,7 +1422,7 @@ use ic_query::icrc::{
     IcrcAccountTransactionRefreshReport, refresh_icrc_account_transaction_cache,
 };
 
-fn refresh_account_history(
+async fn refresh_account_history(
     cache_root: &Path,
     now_unix_secs: u64,
     ledger_canister_id: &str,
@@ -1412,7 +1440,7 @@ fn refresh_account_history(
         100,
         DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     );
-    refresh_icrc_account_transaction_cache(&request)
+    refresh_icrc_account_transaction_cache(&request).await
 }
 ```
 
@@ -1445,7 +1473,7 @@ use ic_query::nns::{
 };
 use ic_query::subnet_catalog::SubnetKind;
 
-fn render_application_nodes(
+async fn render_application_nodes(
     cache_root: &Path,
     now_unix_secs: u64,
 ) -> Result<String, NnsNodeHostError> {
@@ -1454,7 +1482,7 @@ fn render_application_nodes(
         NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
             .with_subnet_kind(SubnetKind::Application);
 
-    let report = build_nns_node_list_report(&request)?;
+    let report = build_nns_node_list_report(&request).await?;
     Ok(nns_node_list_report_text(&report))
 }
 ```
@@ -1472,7 +1500,7 @@ use ic_query::sns::{
     build_sns_metrics_report, sns_metrics_report_text,
 };
 
-fn render_sns_metrics(
+async fn render_sns_metrics(
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
@@ -1484,7 +1512,7 @@ fn render_sns_metrics(
     )
     .with_time_window_seconds(90 * 24 * 60 * 60);
 
-    let report = build_sns_metrics_report(&request)?;
+    let report = build_sns_metrics_report(&request).await?;
     Ok(sns_metrics_report_text(&report))
 }
 ```
@@ -1503,7 +1531,7 @@ use ic_query::sns::{
     SnsRewardCheckpointRequest, build_sns_reward_checkpoint_report,
 };
 
-fn collect_reward_checkpoint(
+async fn collect_reward_checkpoint(
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<SnsRewardCheckpointReport, SnsHostError> {
@@ -1513,7 +1541,7 @@ fn collect_reward_checkpoint(
         now_unix_secs,
         sns_input,
     );
-    build_sns_reward_checkpoint_report(&request)
+    build_sns_reward_checkpoint_report(&request).await
 }
 ```
 
@@ -1567,7 +1595,7 @@ use ic_query::sns::{
     sns_proposals_report_text,
 };
 
-fn render_recent_sns_proposals(
+async fn render_recent_sns_proposals(
     cache_root: &Path,
     sns_input: &str,
     now_unix_secs: u64,
@@ -1583,11 +1611,11 @@ fn render_recent_sns_proposals(
     .with_sort(SnsProposalsSort::Created)
     .with_sort_direction(SnsProposalSortDirection::Desc);
 
-    let report = build_sns_proposals_report(&request)?;
+    let report = build_sns_proposals_report(&request).await?;
     Ok(sns_proposals_report_text(&report))
 }
 
-fn render_cached_sns_neurons(
+async fn render_cached_sns_neurons(
     cache_root: &Path,
     sns_input: &str,
     now_unix_secs: u64,
@@ -1602,7 +1630,7 @@ fn render_cached_sns_neurons(
     .with_cache_root(cache_root)
     .with_sort(SnsNeuronsSort::Stake);
 
-    let report = build_sns_neurons_report(&request)?;
+    let report = build_sns_neurons_report(&request).await?;
     Ok(sns_neurons_report_text(&report))
 }
 ```
@@ -1643,13 +1671,13 @@ use ic_query::icrc::{
     build_icrc_token_report, icrc_token_report_text,
 };
 
-fn render_token(
+async fn render_token(
     ledger_canister_id: &str,
     now_unix_secs: u64,
 ) -> Result<String, IcrcError> {
     let request =
         IcrcLedgerRequest::new(DEFAULT_ICRC_SOURCE_ENDPOINT, now_unix_secs, ledger_canister_id);
-    let report = build_icrc_token_report(&request)?;
+    let report = build_icrc_token_report(&request).await?;
     Ok(icrc_token_report_text(&report))
 }
 ```

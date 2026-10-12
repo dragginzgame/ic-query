@@ -46,19 +46,21 @@ and every request is capped at one year and 366 returned rows. It never follows
 up, paginates, or creates a cache. Rate values remain the raw strings returned
 by this off-chain, non-certified API.";
 
-pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
-        Some(("boundary-node-data-centers", matches)) => run_boundary_node_data_centers(matches),
-        Some(("daily-stats", matches)) => run_daily_stats(matches),
+        Some(("boundary-node-data-centers", matches)) => {
+            run_boundary_node_data_centers(matches).await
+        }
+        Some(("daily-stats", matches)) => run_daily_stats(matches).await,
         _ => unreachable!("clap requires a known ic network subcommand"),
     }
 }
 
-fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = NetworkReportOptions::from_matches(matches);
     let request =
         IcBoundaryNodeDataCentersRequest::new(options.source_endpoint, current_unix_secs()?);
-    let report = build_ic_boundary_node_data_centers_report(&request)?;
+    let report = build_ic_boundary_node_data_centers_report(&request).await?;
     write_text_or_json(
         options.format,
         &report,
@@ -66,7 +68,7 @@ fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandE
     )
 }
 
-fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = DailyStatsOptions::from_matches(matches);
     let now_unix_secs = current_unix_secs()?;
     let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
@@ -78,7 +80,7 @@ fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
         now_unix_secs,
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
-    let report = build_ic_daily_stats_report(&request)?;
+    let report = build_ic_daily_stats_report(&request).await?;
     write_text_or_json(options.format, &report, ic_daily_stats_report_text)
 }
 

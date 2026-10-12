@@ -1,12 +1,14 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn info_report_resolves_canister_and_marks_application_chargeable() {
+#[tokio::test(flavor = "current_thread")]
+async fn info_report_resolves_canister_and_marks_application_chargeable() {
     let root = temp_dir("ic-query-subnet-info");
     write_catalog(&root, fixture_catalog());
     let request = info_request(&root, CANISTER_A);
 
-    let report = build_subnet_catalog_info_report(&request).expect("info report");
+    let report = build_subnet_catalog_info_report(&request)
+        .await
+        .expect("info report");
     let json = serde_json::to_value(&report).expect("serialize subnet info report");
 
     let _ = fs::remove_dir_all(root);
@@ -25,13 +27,15 @@ fn info_report_resolves_canister_and_marks_application_chargeable() {
     assert_eq!(json["cycles_per_billion_instructions"], 2_615_384_616_u64);
 }
 
-#[test]
-fn info_report_resolves_unique_subnet_prefix() {
+#[tokio::test(flavor = "current_thread")]
+async fn info_report_resolves_unique_subnet_prefix() {
     let root = temp_dir("ic-query-subnet-info-subnet-prefix");
     write_catalog(&root, fixture_catalog());
     let request = info_request(&root, "pzp");
 
-    let report = build_subnet_catalog_info_report(&request).expect("info report");
+    let report = build_subnet_catalog_info_report(&request)
+        .await
+        .expect("info report");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.input_principal, "pzp");
@@ -41,13 +45,15 @@ fn info_report_resolves_unique_subnet_prefix() {
     assert_eq!(report.matched_canister_principal, None);
 }
 
-#[test]
-fn info_report_rejects_canister_prefix() {
+#[tokio::test(flavor = "current_thread")]
+async fn info_report_rejects_canister_prefix() {
     let root = temp_dir("ic-query-subnet-info-canister-prefix");
     write_catalog(&root, fixture_catalog());
     let request = info_request(&root, "ryj");
 
-    let err = build_subnet_catalog_info_report(&request).expect_err("canister prefix rejected");
+    let err = build_subnet_catalog_info_report(&request)
+        .await
+        .expect_err("canister prefix rejected");
 
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
@@ -57,8 +63,8 @@ fn info_report_rejects_canister_prefix() {
     ));
 }
 
-#[test]
-fn system_subnet_has_no_catalog_rate() {
+#[tokio::test(flavor = "current_thread")]
+async fn system_subnet_has_no_catalog_rate() {
     let root = temp_dir("ic-query-subnet-system");
     let mut catalog = fixture_catalog();
     catalog.subnets[0].registry_subnet_type = 2;
@@ -68,7 +74,9 @@ fn system_subnet_has_no_catalog_rate() {
     write_catalog(&root, catalog);
     let request = info_request(&root, CANISTER_A);
 
-    let report = build_subnet_catalog_info_report(&request).expect("info report");
+    let report = build_subnet_catalog_info_report(&request)
+        .await
+        .expect("info report");
 
     let _ = fs::remove_dir_all(root);
     assert!(!report.charges_apply_to_subject);
@@ -79,8 +87,8 @@ fn system_subnet_has_no_catalog_rate() {
     assert_eq!(report.cycles_per_billion_instructions, None);
 }
 
-#[test]
-fn cloud_engine_subnet_keeps_application_rate_class() {
+#[tokio::test(flavor = "current_thread")]
+async fn cloud_engine_subnet_keeps_application_rate_class() {
     let root = temp_dir("ic-query-subnet-cloud-engine");
     let mut catalog = fixture_catalog();
     catalog.subnets[0].registry_subnet_type = 5;
@@ -91,7 +99,9 @@ fn cloud_engine_subnet_keeps_application_rate_class() {
     write_catalog(&root, catalog);
     let request = info_request(&root, CANISTER_A);
 
-    let report = build_subnet_catalog_info_report(&request).expect("info report");
+    let report = build_subnet_catalog_info_report(&request)
+        .await
+        .expect("info report");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.subnet_kind, SubnetKind::CloudEngine);

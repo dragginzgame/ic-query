@@ -37,8 +37,8 @@ mod host {
 
     static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-    #[test]
-    fn public_live_source_rejects_non_mainnet_before_agent_construction() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn public_live_source_rejects_non_mainnet_before_agent_construction() {
         let request = NnsSourceRequest::new(
             "local",
             "not a valid replica endpoint",
@@ -46,8 +46,9 @@ mod host {
             "public-api-test",
         );
 
-        let error = LiveNnsSource
+        let error = LiveNnsSource::default()
             .fetch_subnet_topology_report(&request)
+            .await
             .expect_err("unsupported network");
 
         assert!(matches!(
@@ -57,14 +58,28 @@ mod host {
         ));
     }
 
-    #[test]
-    fn public_subnet_topology_host_api_accepts_custom_source_and_shared_cache_root() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn public_subnet_topology_host_api_accepts_custom_source_and_shared_cache_root() {
+        fn accepts_async_loaders(
+            _missing: impl AsyncFn(
+                &NnsSubnetTopologyRefreshRequest,
+            )
+                -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
+            _stale: impl AsyncFn(
+                &NnsSubnetTopologyRefreshRequest,
+                u64,
+            )
+                -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
+        ) {
+        }
+
         let root = temp_root();
         let cache = NnsSubnetTopologyCacheRequest::new(&root, "ic");
         let request =
             NnsSubnetTopologyRefreshRequest::new(cache.clone(), "https://mirror.example", 100, 30);
 
         let refreshed = refresh_nns_subnet_topology_with_source(&request, &FixtureSource)
+            .await
             .expect("refreshed report");
         let loaded = load_cached_nns_subnet_topology(&cache).expect("cached report");
 
@@ -73,15 +88,10 @@ mod host {
         assert_eq!(loaded.path, nns_subnet_topology_cache_path(&root, "ic"));
         assert!(!nns_subnet_topology_freshness(&loaded.report, 100, 30).stale);
 
-        let _: fn(
-            &NnsSubnetTopologyRefreshRequest,
-        ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> =
-            load_or_refresh_missing_nns_subnet_topology;
-        let _: fn(
-            &NnsSubnetTopologyRefreshRequest,
-            u64,
-        ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> =
-            load_or_refresh_stale_nns_subnet_topology;
+        accepts_async_loaders(
+            load_or_refresh_missing_nns_subnet_topology,
+            load_or_refresh_stale_nns_subnet_topology,
+        );
 
         let _ = fs::remove_dir_all(root);
     }
@@ -89,11 +99,14 @@ mod host {
     struct FixtureSource;
 
     impl NnsSubnetTopologySource for FixtureSource {
-        fn fetch_subnet_topology_report(
-            &self,
-            request: &NnsSourceRequest,
-        ) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-            Ok(fixture_report(77, &request.fetched_at, &request.endpoint))
+        fn fetch_subnet_topology_report<'a>(
+            &'a self,
+            request: &'a NnsSourceRequest,
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
+        > {
+            Box::pin(async move { Ok(fixture_report(77, &request.fetched_at, &request.endpoint)) })
         }
     }
 

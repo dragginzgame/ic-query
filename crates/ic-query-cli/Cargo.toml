@@ -23,6 +23,7 @@ ic-query = { workspace = true, features = ["host"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "time"] }
 
 [dev-dependencies]
 futures.workspace = true
@@ -35,7 +36,7 @@ reqwest.workspace = true
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 sha2.workspace = true
 time.workspace = true
-tokio = { workspace = true, features = ["rt", "time"] }
+tokio = { workspace = true, features = ["rt", "macros", "time"] }
 url.workspace = true
 
 [[example]]

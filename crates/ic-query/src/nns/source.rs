@@ -15,8 +15,10 @@ use crate::{
 /// Built-in live adapter for supported NNS Registry and governance report capabilities.
 ///
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct LiveNnsSource;
+#[derive(Clone, Debug, Default)]
+pub struct LiveNnsSource {
+    pub(crate) agent: crate::agent::EndpointAgent,
+}
 
 ///
 /// NnsSourceRequest

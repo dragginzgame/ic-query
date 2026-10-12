@@ -22,19 +22,23 @@ pub(in crate::nns) fn command() -> clap::Command {
     .subcommand(reward::command())
 }
 
-pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(in crate::nns) async fn run(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("reward", matches)) => return reward::run(matches, network),
+        Some(("reward", matches)) => return reward::run(matches, network).await,
         Some(("status", matches)) => {
             return crate::nns::operational_status::run(
                 crate::nns::operational_status::OperationalStatusSubject::NodeProvider,
                 matches,
                 network,
-            );
+            )
+            .await;
         }
         _ => {}
     }
-    leaf::run_cached_leaf(matches, network, reports::NnsNodeProviderReports)
+    leaf::run_cached_leaf(matches, network, reports::NnsNodeProviderReports).await
 }
 
 #[cfg(test)]

@@ -35,6 +35,8 @@ use super::{
     },
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
+#[cfg(feature = "nns-host")]
+use crate::nns::LiveNnsSource;
 use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
@@ -42,28 +44,22 @@ use crate::nns::{
         NnsGovernanceSourceProvenance, validate_governance_request, validate_source_provenance,
     },
 };
-#[cfg(feature = "nns-host")]
-use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
 use std::{collections::HashSet, future::Future, pin::Pin};
 
 /// Build one bounded proposal list through the native replica adapter.
 #[cfg(feature = "nns-host")]
-pub fn build_nns_proposal_list_report(
+pub async fn build_nns_proposal_list_report(
     request: &NnsProposalListRequest,
 ) -> Result<NnsProposalListReport, super::NnsProposalHostError> {
-    Ok(block_on_current_thread(
-        build_nns_proposal_list_report_with_source(request, &LiveNnsSource),
-    )??)
+    Ok(build_nns_proposal_list_report_with_source(request, &LiveNnsSource::default()).await?)
 }
 
 /// Build one exact proposal detail through the native replica adapter.
 #[cfg(feature = "nns-host")]
-pub fn build_nns_proposal_report(
+pub async fn build_nns_proposal_report(
     request: &NnsProposalRequest,
 ) -> Result<NnsProposalReport, super::NnsProposalHostError> {
-    Ok(block_on_current_thread(
-        build_nns_proposal_report_with_source(request, &LiveNnsSource),
-    )??)
+    Ok(build_nns_proposal_report_with_source(request, &LiveNnsSource::default()).await?)
 }
 
 /// Build one bounded proposal list from a caller-owned async source.

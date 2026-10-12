@@ -10,8 +10,6 @@ mod text;
 mod wire;
 
 #[cfg(feature = "cmc-host")]
-use crate::runtime::RuntimeError;
-#[cfg(feature = "cmc-host")]
 use thiserror::Error as ThisError;
 
 #[cfg(feature = "cmc-host")]
@@ -123,10 +121,6 @@ pub enum CmcHostError {
         /// Deterministic source-contract failure.
         reason: String,
     },
-
-    /// The synchronous host runtime could not execute the live query.
-    #[error(transparent)]
-    Runtime(#[from] RuntimeError),
 }
 
 #[cfg(feature = "cmc-host")]

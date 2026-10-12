@@ -18,14 +18,14 @@ use crate::sns::report::{
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Build one live API-exhausted observed SNS reward checkpoint.
-pub fn build_sns_reward_checkpoint_report(
+pub async fn build_sns_reward_checkpoint_report(
     request: &SnsRewardCheckpointRequest,
 ) -> Result<SnsRewardCheckpointReport, SnsHostError> {
-    build_sns_reward_checkpoint_report_with_source(request, &LiveSnsSource)
+    build_sns_reward_checkpoint_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build one SNS reward checkpoint through an explicit source adapter.
-pub fn build_sns_reward_checkpoint_report_with_source(
+pub async fn build_sns_reward_checkpoint_report_with_source(
     request: &SnsRewardCheckpointRequest,
     source: &dyn SnsRewardSource,
 ) -> Result<SnsRewardCheckpointReport, SnsHostError> {
@@ -36,13 +36,17 @@ pub fn build_sns_reward_checkpoint_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
 
-    let running_version_before =
-        source.fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)?;
-    let parameters_before =
-        source.fetch_sns_reward_parameters(&lookup.fetch_request, &lookup.sns)?;
-    let reward_event_before = source.fetch_sns_reward_event(&lookup.fetch_request, &lookup.sns)?;
+    let running_version_before = source
+        .fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)
+        .await?;
+    let parameters_before = source
+        .fetch_sns_reward_parameters(&lookup.fetch_request, &lookup.sns)
+        .await?;
+    let reward_event_before = source
+        .fetch_sns_reward_event(&lookup.fetch_request, &lookup.sns)
+        .await?;
     validate_sns_reward_running_version_evidence(&running_version_before)
         .map_err(invalid_checkpoint)?;
     validate_sns_reward_event_evidence(&reward_event_before).map_err(invalid_checkpoint)?;
@@ -54,13 +58,18 @@ pub fn build_sns_reward_checkpoint_report_with_source(
         &lookup.fetch_request,
         &lookup.sns,
         collection_row_ceiling,
-    )?;
+    )
+    .await?;
 
-    let reward_event_after = source.fetch_sns_reward_event(&lookup.fetch_request, &lookup.sns)?;
-    let parameters_after =
-        source.fetch_sns_reward_parameters(&lookup.fetch_request, &lookup.sns)?;
-    let running_version_after =
-        source.fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)?;
+    let reward_event_after = source
+        .fetch_sns_reward_event(&lookup.fetch_request, &lookup.sns)
+        .await?;
+    let parameters_after = source
+        .fetch_sns_reward_parameters(&lookup.fetch_request, &lookup.sns)
+        .await?;
+    let running_version_after = source
+        .fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)
+        .await?;
     validate_stable_brackets(
         &parameters_before,
         &parameters_after,
@@ -96,7 +105,7 @@ pub fn build_sns_reward_checkpoint_report_with_source(
     Ok(report)
 }
 
-fn collect_reward_neurons(
+async fn collect_reward_neurons(
     request: &SnsRewardCheckpointRequest,
     source: &dyn SnsRewardSource,
     source_request: &crate::sns::report::SnsSourceRequest,
@@ -112,12 +121,14 @@ fn collect_reward_neurons(
     let mut collection = SnsRewardCollectionState::new();
     while !collection.exhausted() {
         enforce_page_limits(request, &collection, mandatory_page_limit)?;
-        let page = source.fetch_sns_reward_neuron_page(
-            source_request,
-            sns,
-            SNS_REWARD_CHECKPOINT_PAGE_SIZE,
-            collection.next_cursor(),
-        )?;
+        let page = source
+            .fetch_sns_reward_neuron_page(
+                source_request,
+                sns,
+                SNS_REWARD_CHECKPOINT_PAGE_SIZE,
+                collection.next_cursor(),
+            )
+            .await?;
         collection.ingest_page(page)?;
         let row_count = u64::try_from(collection.row_count())
             .map_err(|_| SnsHostError::RewardCheckpointArithmetic { field: "row_count" })?;

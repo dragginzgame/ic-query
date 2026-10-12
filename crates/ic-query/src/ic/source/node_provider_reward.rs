@@ -29,27 +29,27 @@ use std::collections::HashSet;
 /// Source contract for bounded official Dashboard node-provider reward reports.
 ///
 
-pub trait IcNodeProviderRewardSource {
+pub trait IcNodeProviderRewardSource: Sync {
     /// Fetch one explicitly bounded reward page without automatically paginating.
-    fn fetch_node_provider_reward_list(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcNodeProviderRewardListQuery,
-    ) -> Result<IcNodeProviderRewardListSourceData, IcHostError>;
+    fn fetch_node_provider_reward_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardListSourceData, IcHostError>>;
 
     /// Fetch one exact reward record by Dashboard id.
-    fn fetch_node_provider_reward_info(
-        &self,
-        request: &IcSourceRequest,
+    fn fetch_node_provider_reward_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
         reward_id: u64,
-    ) -> Result<IcNodeProviderRewardInfoSourceData, IcHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardInfoSourceData, IcHostError>>;
 
     /// Fetch one bounded aggregate reward history window.
-    fn fetch_node_provider_reward_history(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcNodeProviderRewardHistoryQuery,
-    ) -> Result<IcNodeProviderRewardHistorySourceData, IcHostError>;
+    fn fetch_node_provider_reward_history<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardHistoryQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardHistorySourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn validate_node_provider_reward_list_query(
@@ -301,10 +301,10 @@ mod tests {
         build_ic_node_provider_reward_list_report_with_source,
         ic_node_provider_reward_history_report_text, ic_node_provider_reward_list_report_text,
     };
-    use std::{cell::Cell, collections::BTreeMap};
+    use std::{collections::BTreeMap, sync::Mutex};
 
-    #[test]
-    fn builders_make_one_call_and_preserve_explicit_contracts() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn builders_make_one_call_and_preserve_explicit_contracts() {
         let source = FixtureSource::default();
         let list = build_ic_node_provider_reward_list_report_with_source(
             &IcNodeProviderRewardListRequest::new(
@@ -314,6 +314,7 @@ mod tests {
             ),
             &source,
         )
+        .await
         .expect("reward list");
         let info = build_ic_node_provider_reward_info_report_with_source(
             &IcNodeProviderRewardInfoRequest::new(
@@ -323,6 +324,7 @@ mod tests {
             ),
             &source,
         )
+        .await
         .expect("reward info");
         let history = build_ic_node_provider_reward_history_report_with_source(
             &IcNodeProviderRewardHistoryRequest::new(
@@ -332,9 +334,10 @@ mod tests {
             ),
             &source,
         )
+        .await
         .expect("reward history");
 
-        assert_eq!(source.calls.get(), 3);
+        assert_eq!((*source.calls.lock().unwrap()), 3);
         assert_eq!(list.returned_count, 1);
         assert_eq!(list.next_offset_hint, Some(1));
         assert!(list.pages_may_overlap);
@@ -349,8 +352,8 @@ mod tests {
         assert!(ic_node_provider_reward_history_report_text(&history).contains("AMOUNT_E8S"));
     }
 
-    #[test]
-    fn invalid_requests_fail_before_custom_source_calls() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn invalid_requests_fail_before_custom_source_calls() {
         let source = FixtureSource::default();
         for limit in [0, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT + 1] {
             let error = build_ic_node_provider_reward_list_report_with_source(
@@ -361,6 +364,7 @@ mod tests {
                 ),
                 &source,
             )
+            .await
             .expect_err("out-of-range limit must fail");
             assert!(matches!(error, IcHostError::InvalidRequest { .. }));
         }
@@ -373,9 +377,10 @@ mod tests {
             ),
             &source,
         )
+        .await
         .expect_err("future end must fail");
         assert!(matches!(error, IcHostError::InvalidRequest { .. }));
-        assert_eq!(source.calls.get(), 0);
+        assert_eq!((*source.calls.lock().unwrap()), 0);
     }
 
     #[test]
@@ -449,50 +454,61 @@ mod tests {
 
     #[derive(Default)]
     struct FixtureSource {
-        calls: Cell<usize>,
+        calls: Mutex<usize>,
     }
 
     impl IcNodeProviderRewardSource for FixtureSource {
-        fn fetch_node_provider_reward_list(
-            &self,
-            request: &IcSourceRequest,
-            query: &IcNodeProviderRewardListQuery,
-        ) -> Result<IcNodeProviderRewardListSourceData, IcHostError> {
-            self.calls.set(self.calls.get() + 1);
-            Ok(IcNodeProviderRewardListSourceData {
-                source: request.clone(),
-                query: query.clone(),
-                resolved_max_reward_index: 6_470,
-                total_reward_records: 6_470,
-                rows: vec![reward_row(7_562)],
+        fn fetch_node_provider_reward_list<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            query: &'a IcNodeProviderRewardListQuery,
+        ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardListSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.calls.lock().unwrap() += 1;
+                Ok(IcNodeProviderRewardListSourceData {
+                    source: request.clone(),
+                    query: query.clone(),
+                    resolved_max_reward_index: 6_470,
+                    total_reward_records: 6_470,
+                    rows: vec![reward_row(7_562)],
+                })
             })
         }
 
-        fn fetch_node_provider_reward_info(
-            &self,
-            request: &IcSourceRequest,
+        fn fetch_node_provider_reward_info<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
             reward_id: u64,
-        ) -> Result<IcNodeProviderRewardInfoSourceData, IcHostError> {
-            self.calls.set(self.calls.get() + 1);
-            Ok(IcNodeProviderRewardInfoSourceData {
-                source: request.clone(),
-                reward: reward_row(reward_id),
+        ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardInfoSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.calls.lock().unwrap() += 1;
+                Ok(IcNodeProviderRewardInfoSourceData {
+                    source: request.clone(),
+                    reward: reward_row(reward_id),
+                })
             })
         }
 
-        fn fetch_node_provider_reward_history(
-            &self,
-            request: &IcSourceRequest,
-            query: &IcNodeProviderRewardHistoryQuery,
-        ) -> Result<IcNodeProviderRewardHistorySourceData, IcHostError> {
-            self.calls.set(self.calls.get() + 1);
-            Ok(IcNodeProviderRewardHistorySourceData {
-                source: request.clone(),
-                query: query.clone(),
-                observations: vec![IcNodeProviderRewardHistoryObservation {
-                    timestamp_unix_secs: 1_784_073_600,
-                    amount_e8s: 66_852_931_445_000,
-                }],
+        fn fetch_node_provider_reward_history<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            query: &'a IcNodeProviderRewardHistoryQuery,
+        ) -> crate::report::SourceFuture<
+            'a,
+            Result<IcNodeProviderRewardHistorySourceData, IcHostError>,
+        > {
+            Box::pin(async move {
+                *self.calls.lock().unwrap() += 1;
+                Ok(IcNodeProviderRewardHistorySourceData {
+                    source: request.clone(),
+                    query: query.clone(),
+                    observations: vec![IcNodeProviderRewardHistoryObservation {
+                        timestamp_unix_secs: 1_784_073_600,
+                        amount_e8s: 66_852_931_445_000,
+                    }],
+                })
             })
         }
     }

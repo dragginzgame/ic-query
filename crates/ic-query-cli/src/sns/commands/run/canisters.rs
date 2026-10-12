@@ -7,14 +7,20 @@
 use crate::sns::commands::SnsCommandError;
 use clap::ArgMatches;
 use ic_query::sns::{build_sns_canister_report, sns_canister_report_text};
-pub(super) fn run_sns_canister(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+pub(super) async fn run_sns_canister(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => super::lookup::run_sns_lookup(
-            matches,
-            network,
-            build_sns_canister_report,
-            sns_canister_report_text,
-        ),
+        Some(("list", matches)) => {
+            super::lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_canister_report,
+                sns_canister_report_text,
+            )
+            .await
+        }
         _ => unreachable!("clap requires a known SNS canister subcommand"),
     }
 }

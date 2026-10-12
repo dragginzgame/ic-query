@@ -23,11 +23,12 @@ fn sns_neurons_cache_status_surfaces_malformed_attempt_sidecar() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
     let root = temp_dir("ic-query-sns-neurons-unknown-attempt-field");
     let request = sns_neurons_refresh_request(&root, None);
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("refresh neurons");
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut attempt: serde_json::Value =
@@ -51,11 +52,12 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_during_parsing() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_during_parsing() {
     let root = temp_dir("ic-query-sns-neurons-unknown-attempt-lifecycle");
     let request = sns_neurons_refresh_request(&root, None);
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("refresh neurons");
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut attempt: serde_json::Value =
@@ -82,12 +84,13 @@ fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_during_parsing() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
     let request = sns_neurons_refresh_request(&root, None);
 
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("refresh neurons");
 
     let list = build_sns_neurons_cache_list_report(&SnsCacheListRequest {
@@ -159,10 +162,10 @@ fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_snapshot_identity_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-sns-neurons-status-identity-mismatch");
-    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["entity"] = serde_json::json!("wrong-root");
@@ -177,10 +180,10 @@ fn sns_neurons_cache_status_reports_snapshot_identity_mismatch() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_unsupported_schema() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_unsupported_schema() {
     let root = temp_dir("ic-query-sns-neurons-status-unsupported-schema");
-    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["schema_version"] = serde_json::json!(999);
@@ -195,8 +198,8 @@ fn sns_neurons_cache_status_reports_unsupported_schema() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_rejects_unknown_fields_and_false_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_rejects_unknown_fields_and_false_authority() {
     for (field, value, expected_error) in [
         (
             "unexpected",
@@ -210,7 +213,7 @@ fn sns_neurons_cache_status_rejects_unknown_fields_and_false_authority() {
         ),
     ] {
         let root = temp_dir(&format!("ic-query-sns-neurons-status-{field}"));
-        let cache_path = refresh_fixture_sns_neurons_cache(&root);
+        let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
         let mut cache: serde_json::Value =
             serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
                 .expect("parse cache");
@@ -230,10 +233,10 @@ fn sns_neurons_cache_status_rejects_unknown_fields_and_false_authority() {
     }
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_malformed_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_malformed_json() {
     let root = temp_dir("ic-query-sns-neurons-status-malformed-json");
-    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     fs::write(&cache_path, "{").expect("write malformed cache");
 
     assert_invalid_sns_neurons_cache_status(&root, "failed to parse SNS cache");
@@ -241,10 +244,10 @@ fn sns_neurons_cache_status_reports_malformed_json() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_inconsistent_row_count() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_inconsistent_row_count() {
     let root = temp_dir("ic-query-sns-neurons-status-row-count");
-    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["completeness"]["row_count"] = serde_json::json!(999);
@@ -259,10 +262,10 @@ fn sns_neurons_cache_status_reports_inconsistent_row_count() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_duplicate_neuron_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_duplicate_neuron_ids() {
     let root = temp_dir("ic-query-sns-neurons-status-duplicate-id");
-    let cache_path = refresh_fixture_sns_neurons_cache(&root);
+    let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     let duplicate = cache["neurons"][0].clone();
@@ -282,12 +285,13 @@ fn sns_neurons_cache_status_reports_duplicate_neuron_ids() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-cache-failed-status");
     let request = sns_neurons_refresh_request(&root, Some(1));
 
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect_err("incomplete refresh");
 
     let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
@@ -343,9 +347,10 @@ fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache() {
     let _ = fs::remove_dir_all(root);
 }
 
-fn refresh_fixture_sns_neurons_cache(root: &std::path::Path) -> std::path::PathBuf {
+async fn refresh_fixture_sns_neurons_cache(root: &std::path::Path) -> std::path::PathBuf {
     let request = sns_neurons_refresh_request(root, None);
     refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("refresh neurons");
     sns_neurons_cache_path(root, MAINNET_NETWORK, ROOT_A)
 }

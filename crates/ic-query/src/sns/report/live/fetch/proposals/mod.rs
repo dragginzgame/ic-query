@@ -6,8 +6,6 @@
 
 mod list;
 mod single;
-
-use super::block_on_sns;
 use crate::sns::report::{
     SnsHostError, SnsProposalTopicFilter,
     source::{
@@ -19,16 +17,18 @@ use list::{fetch_mainnet_sns_proposal_page_async, fetch_mainnet_sns_proposals_as
 use single::fetch_mainnet_sns_proposal_async;
 
 /// Fetch one SNS governance proposal by id.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<MainnetSnsProposal, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_proposal_async(request, sns, proposal_id))
+    fetch_mainnet_sns_proposal_async(source, request, sns, proposal_id).await
 }
 
 /// Fetch a bounded SNS governance proposal listing.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposals(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
@@ -36,27 +36,25 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposals(
     include_status: &[i32],
     topic: SnsProposalTopicFilter,
 ) -> Result<MainnetSnsProposals, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_proposals_async(
+    fetch_mainnet_sns_proposals_async(
+        source,
         request,
         sns,
         limit,
         before_proposal_id,
         include_status,
         topic,
-    ))
+    )
+    .await
 }
 
 /// Fetch one proposal page for complete proposal snapshot refresh.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_proposal_page(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal_page(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
 ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_proposal_page_async(
-        request,
-        sns,
-        limit,
-        before_proposal_id,
-    ))
+    fetch_mainnet_sns_proposal_page_async(source, request, sns, limit, before_proposal_id).await
 }

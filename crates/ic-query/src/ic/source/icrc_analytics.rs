@@ -22,30 +22,30 @@ use crate::ic::{
 /// Source contract for bounded official Dashboard ICRC analytics queries.
 ///
 
-pub trait IcIcrcAnalyticsSource {
+pub trait IcIcrcAnalyticsSource: Sync {
     /// Fetch one current scalar count without requesting indexed rows.
-    fn fetch_indexed_count(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
+    fn fetch_indexed_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
         kind: IcIcrcIndexedCountKind,
-    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcIndexedCountSourceData, IcHostError>>;
 
     /// Fetch one bounded token-value series without pagination or follow-up calls.
-    fn fetch_token_value_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTokenValueQuery,
-    ) -> Result<IcIcrcTokenValueSourceData, IcHostError>;
+    fn fetch_token_value_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTokenValueQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTokenValueSourceData, IcHostError>>;
 
     /// Fetch one total-supply series without pagination or automatic follow-up calls.
-    fn fetch_total_supply_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTotalSupplyQuery,
-    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError>;
+    fn fetch_total_supply_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTotalSupplyQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTotalSupplySourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn validate_icrc_token_value_request(

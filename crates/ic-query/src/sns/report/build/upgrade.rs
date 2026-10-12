@@ -11,19 +11,21 @@ use crate::sns::report::{
 };
 
 /// Build a live bounded upgrade report for one deployed SNS.
-pub fn build_sns_upgrade_report(
+pub async fn build_sns_upgrade_report(
     request: &SnsLookupRequest,
 ) -> Result<SnsUpgradeReport, SnsHostError> {
-    build_sns_upgrade_report_with_source(request, &LiveSnsSource)
+    build_sns_upgrade_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build a bounded upgrade report through a custom SNS source capability.
-pub fn build_sns_upgrade_report_with_source(
+pub async fn build_sns_upgrade_report_with_source(
     request: &SnsLookupRequest,
     source: &dyn SnsUpgradeSource,
 ) -> Result<SnsUpgradeReport, SnsHostError> {
-    let lookup = resolve_sns_lookup(request, source)?;
-    let upgrade = source.fetch_sns_upgrade(&lookup.fetch_request, &lookup.sns)?;
+    let lookup = resolve_sns_lookup(request, source).await?;
+    let upgrade = source
+        .fetch_sns_upgrade(&lookup.fetch_request, &lookup.sns)
+        .await?;
     canonicalize_mainnet_sns_upgrade(&upgrade, &lookup.sns.governance_canister_id)?;
     Ok(sns_upgrade_report_from_parts(
         lookup.fetch_request,

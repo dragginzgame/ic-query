@@ -4,7 +4,7 @@
 //! Does not own: snapshot validation, cache policy, projections, or rendering.
 //! Boundary: performs one finite read-only `/nodes` request with no follow-up calls.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSource, IcNodeStatusSourceData,
     IcSourceRequest,
@@ -13,21 +13,23 @@ use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcNodeStatusSource for LiveIcSource {
-    fn fetch_node_status_snapshot(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcNodeStatusSourceData, IcHostError> {
-        let url = node_status_url(&request.endpoint)?;
-        let wire: DashboardNodes = fetch_live(url)?;
-        Ok(IcNodeStatusSourceData {
-            source: request.clone(),
-            scope: IcNodeStatusScope::DashboardMainnetDefault,
-            cloud_engine_nodes_included: false,
-            nodes: wire
-                .nodes
-                .into_iter()
-                .map(DashboardNode::into_public)
-                .collect(),
+    fn fetch_node_status_snapshot<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeStatusSourceData, IcHostError>> {
+        Box::pin(async move {
+            let url = node_status_url(&request.endpoint)?;
+            let wire: DashboardNodes = self.fetch_live(url).await?;
+            Ok(IcNodeStatusSourceData {
+                source: request.clone(),
+                scope: IcNodeStatusScope::DashboardMainnetDefault,
+                cloud_engine_nodes_included: false,
+                nodes: wire
+                    .nodes
+                    .into_iter()
+                    .map(DashboardNode::into_public)
+                    .collect(),
+            })
         })
     }
 }

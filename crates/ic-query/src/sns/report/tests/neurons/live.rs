@@ -5,37 +5,41 @@ struct InvalidBoundedSnsNeuronsSource;
 delegate_sns_discovery!(InvalidBoundedSnsNeuronsSource);
 
 impl SnsNeuronsSource for InvalidBoundedSnsNeuronsSource {
-    fn fetch_sns_neurons(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        let mut neurons =
-            FixtureSnsNeuronsSource.fetch_sns_neurons(request, sns, limit, owner_principal_id)?;
-        neurons.neurons[0].neuron_id = "0A".to_string();
-        Ok(neurons)
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(async move {
+            let mut neurons = FixtureSnsNeuronsSource
+                .fetch_sns_neurons(request, sns, limit, owner_principal_id)
+                .await?;
+            neurons.neurons[0].neuron_id = "0A".to_string();
+            Ok(neurons)
+        })
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
-        _start_page_at: Option<&SnsNeuronId>,
-        _owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        unreachable!("bounded validation fixture does not refresh")
+        _start_page_at: Option<&'a SnsNeuronId>,
+        _owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(async move { unreachable!("bounded validation fixture does not refresh") })
     }
 }
 
-#[test]
-fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     let mut request = neurons_request("1");
     request.owner_principal_id = Some(GOVERNANCE_A.to_string());
 
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
+        .await
         .expect("sns neurons report");
     let text = sns_neurons_report_text(&report);
 
@@ -90,12 +94,13 @@ fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
     assert_eq!(text::optional_e8s_decimal_text(Some(50_000_000)), "0.50");
 }
 
-#[test]
-fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
     let mut request = neurons_request("1");
     request.owner_principal_id = Some(GOVERNANCE_A.to_string());
 
     let error = build_sns_neurons_report_with_source(&request, &InvalidBoundedSnsNeuronsSource)
+        .await
         .expect_err("invalid custom-source row rejected");
 
     assert!(matches!(
@@ -107,13 +112,14 @@ fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
     ));
 }
 
-#[test]
-fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
     let mut request = neurons_request("1");
     request.owner_principal_id = Some(GOVERNANCE_A.to_string());
     request.verbose = true;
 
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
+        .await
         .expect("sns neurons report");
     let text = sns_neurons_report_text(&report);
 

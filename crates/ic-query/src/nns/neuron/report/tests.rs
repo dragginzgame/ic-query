@@ -23,7 +23,6 @@ use crate::{
 };
 use std::{
     fs,
-    future::Future,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
@@ -159,22 +158,8 @@ fn assert_replica_request(request: &NnsGovernanceRequest, expected_endpoint: &st
     assert_eq!(fetched_by, "ic-query");
 }
 
-fn run_ready<T>(future: impl Future<Output = T>) -> T {
-    use std::{
-        pin::pin,
-        task::{Context, Poll, Waker},
-    };
-
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    match future.as_mut().poll(&mut context) {
-        Poll::Ready(value) => value,
-        Poll::Pending => panic!("fixture future unexpectedly returned Pending"),
-    }
-}
-
-#[test]
-fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
     let root = temp_dir("ic-query-nns-cached-distribution");
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     assert!(matches!(
@@ -192,6 +177,7 @@ fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
         ),
         &FixtureSource,
     )
+    .await
     .expect("refresh fixture");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
     let original = fs::read(&path).unwrap();
@@ -211,8 +197,8 @@ fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
-#[test]
-fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
     let root = temp_dir("ic-query-nns-cached-distribution-invalid");
     refresh_nns_neuron_cache_with_source(
         &NnsGovernanceRefreshRequest::new(
@@ -224,6 +210,7 @@ fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
         ),
         &FixtureSource,
     )
+    .await
     .expect("refresh fixture");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -252,14 +239,12 @@ fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
-#[test]
-fn public_list_and_info_reports_preserve_governance_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_list_and_info_reports_preserve_governance_rows() {
     let list_request = NnsNeuronListRequest::new(governance_request(1_700_000_000), 2);
-    let list = run_ready(build_nns_neuron_list_report_with_source(
-        &list_request,
-        &FixtureSource,
-    ))
-    .expect("live list report");
+    let list = build_nns_neuron_list_report_with_source(&list_request, &FixtureSource)
+        .await
+        .expect("live list report");
 
     assert!(!list.from_cache);
     assert_eq!(list.cache_path, None);
@@ -275,11 +260,9 @@ fn public_list_and_info_reports_preserve_governance_rows() {
     assert_eq!(list.neurons[0].visibility_text, NnsNeuronVisibility::Public);
 
     let info_request = NnsNeuronInfoRequest::new(governance_request(1_700_000_000), 42);
-    let info = run_ready(build_nns_neuron_info_report_with_source(
-        &info_request,
-        &FixtureSource,
-    ))
-    .expect("live info report");
+    let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureSource)
+        .await
+        .expect("live info report");
 
     assert!(!info.from_cache);
     assert_eq!(info.cache_path, None);
@@ -294,8 +277,8 @@ fn public_list_and_info_reports_preserve_governance_rows() {
     );
 }
 
-#[test]
-fn public_builders_reject_non_mainnet_before_invoking_a_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_builders_reject_non_mainnet_before_invoking_a_source() {
     LIVE_SOURCE_CALLS.store(0, Ordering::SeqCst);
     let list_request = NnsNeuronListRequest::new(
         NnsGovernanceRequest::replica_query_from_unix_secs(
@@ -306,11 +289,9 @@ fn public_builders_reject_non_mainnet_before_invoking_a_source() {
         ),
         2,
     );
-    let list_error = run_ready(build_nns_neuron_list_report_with_source(
-        &list_request,
-        &CountingSource,
-    ))
-    .expect_err("non-mainnet list must fail");
+    let list_error = build_nns_neuron_list_report_with_source(&list_request, &CountingSource)
+        .await
+        .expect_err("non-mainnet list must fail");
     assert!(matches!(
         list_error,
         NnsNeuronError::Governance(NnsGovernanceError::UnsupportedNetwork { ref network })
@@ -326,11 +307,9 @@ fn public_builders_reject_non_mainnet_before_invoking_a_source() {
         ),
         1,
     );
-    let info_error = run_ready(build_nns_neuron_info_report_with_source(
-        &info_request,
-        &CountingSource,
-    ))
-    .expect_err("non-mainnet info must fail");
+    let info_error = build_nns_neuron_info_report_with_source(&info_request, &CountingSource)
+        .await
+        .expect_err("non-mainnet info must fail");
     assert!(matches!(
         info_error,
         NnsNeuronError::Governance(NnsGovernanceError::UnsupportedNetwork { ref network })
@@ -339,8 +318,8 @@ fn public_builders_reject_non_mainnet_before_invoking_a_source() {
     assert_eq!(LIVE_SOURCE_CALLS.load(Ordering::SeqCst), 0);
 }
 
-#[test]
-fn live_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsGovernanceRequest::replica_query(
         "local",
         "not a valid replica endpoint",
@@ -348,7 +327,9 @@ fn live_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = run_ready(LiveNnsSource.fetch_neuron_page(&request, None, 2))
+    let error = LiveNnsSource::default()
+        .fetch_neuron_page(&request, None, 2)
+        .await
         .expect_err("live source must reject non-mainnet");
 
     assert!(matches!(
@@ -358,8 +339,8 @@ fn live_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn list_rejects_a_cursor_that_does_not_match_the_page() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_rejects_a_cursor_that_does_not_match_the_page() {
     struct InvalidCursorSource;
 
     impl NnsNeuronSource for InvalidCursorSource {
@@ -390,17 +371,15 @@ fn list_rejects_a_cursor_that_does_not_match_the_page() {
     }
 
     let request = NnsNeuronListRequest::new(governance_request(1_700_000_000), 2);
-    let error = run_ready(build_nns_neuron_list_report_with_source(
-        &request,
-        &InvalidCursorSource,
-    ))
-    .expect_err("invalid cursor must fail");
+    let error = build_nns_neuron_list_report_with_source(&request, &InvalidCursorSource)
+        .await
+        .expect_err("invalid cursor must fail");
 
     assert!(matches!(error, NnsNeuronError::InvalidResponse { .. }));
 }
 
-#[test]
-fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     let root = temp_dir("ic-query-nns-neuron-cache");
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -411,6 +390,7 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     );
 
     let refresh = refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
+        .await
         .expect("refresh complete neuron cache");
 
     assert_eq!(refresh.neuron_count, 3);
@@ -469,8 +449,8 @@ fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
     let root = temp_dir("ic-query-nns-neuron-cache-identity");
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -480,6 +460,7 @@ fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
         2,
     );
     refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
+        .await
         .expect("refresh complete neuron cache");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
     let mut cache: serde_json::Value =
@@ -508,8 +489,8 @@ fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-invalid-page");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -519,6 +500,7 @@ fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
         2,
     );
     refresh_nns_neuron_cache_with_source(&request, &FixtureSource)
+        .await
         .expect("publish initial complete cache");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
     let original = fs::read(&path).expect("read initial snapshot");
@@ -529,6 +511,7 @@ fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
         |page| page.next_start_neuron_id = Some(3),
     ] {
         let error = refresh_nns_neuron_cache_with_source(&request, &MutatingLastPageSource(mutate))
+            .await
             .expect_err("invalid page must stop refresh");
         assert!(matches!(
             error,
@@ -559,8 +542,8 @@ fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
     let root = temp_dir("ic-query-nns-neuron-empty-terminal-page");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -572,6 +555,7 @@ fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
     .with_max_pages(Some(2));
     let source = MutatingLastPageSource(|page| page.neurons.clear());
     let report = refresh_nns_neuron_cache_with_source(&request, &source)
+        .await
         .expect("empty terminal page proves exhaustion at the page cap");
 
     assert!(report.complete);
@@ -594,8 +578,8 @@ fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
-#[test]
-fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-incomplete");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -607,6 +591,7 @@ fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     .with_max_pages(Some(1));
 
     let error = refresh_nns_neuron_cache_with_source(&request, &FixtureSource)
+        .await
         .expect_err("capped refresh must remain incomplete");
 
     assert!(matches!(
@@ -632,8 +617,8 @@ fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-invalid-attempt");
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -643,6 +628,7 @@ fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot() {
         2,
     );
     refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
+        .await
         .expect("refresh complete neuron cache");
     let attempt_path = nns_neuron_refresh_attempt_path(&root, MAINNET_NETWORK);
     let mut attempt: serde_json::Value =

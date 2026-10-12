@@ -41,25 +41,25 @@ reward filter and all four currently documented statuses. It accepts at most
 cloud_engine_subnet_id is preserved as an unassigned observation. The result
 is off-chain, uncertified, uncached, and not point-in-time guaranteed.";
 
-pub(super) fn run_matches(
+pub(super) async fn run_matches(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), CloudEngineCommandError> {
     match matches.subcommand() {
-        Some(("info", matches)) => run_info(matches, network),
-        Some(("list", matches)) => run_list(matches, network),
+        Some(("info", matches)) => run_info(matches, network).await,
+        Some(("list", matches)) => run_list(matches, network).await,
         _ => unreachable!("clap requires a known cloud-engine node subcommand"),
     }
 }
 
-fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineNodeInfoRequest::new(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,
         required_string(matches, "node-id"),
     );
-    let report = build_cloud_engine_node_info_report(&request)?;
+    let report = build_cloud_engine_node_info_report(&request).await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -67,7 +67,7 @@ fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
     )
 }
 
-fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineNodeListRequest::new(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
@@ -77,7 +77,7 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
         Some(provider) => request.with_node_provider_id(provider),
         None => request,
     };
-    let report = build_cloud_engine_node_list_report(&request)?;
+    let report = build_cloud_engine_node_list_report(&request).await?;
     write_text_or_json(
         output_format(matches),
         &report,

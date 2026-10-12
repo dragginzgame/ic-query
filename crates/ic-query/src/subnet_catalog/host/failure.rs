@@ -67,8 +67,6 @@ pub enum SubnetCatalogLoadStage {
     RefreshFailed,
     /// Refresh completed, but loading the newly published cache failed.
     PostRefreshCacheLoadFailed,
-    /// The synchronous adapter could not execute the async load.
-    RuntimeAdapter,
 }
 
 impl SubnetCatalogLoadStage {
@@ -85,7 +83,6 @@ impl SubnetCatalogLoadStage {
             Self::RefreshAttempted => "refresh_attempted",
             Self::RefreshFailed => "refresh_failed",
             Self::PostRefreshCacheLoadFailed => "post_refresh_cache_load_failed",
-            Self::RuntimeAdapter => "runtime_adapter",
         }
     }
 }

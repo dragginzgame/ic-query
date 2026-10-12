@@ -186,7 +186,7 @@ pub enum NnsCertifiedRegistryArchiveCleanupError {
 /// This operation makes no network call. It scans only the archive's exact `objects` directory,
 /// validates every entry as a confined regular file, applies all ceilings before the first
 /// deletion, and returns the authenticated retained archive with exact deletion accounting.
-pub fn cleanup_nns_certified_registry_archive(
+pub async fn cleanup_nns_certified_registry_archive(
     request: &NnsCertifiedRegistryArchiveCleanupRequest,
 ) -> Result<NnsCertifiedRegistryArchiveCleanupReport, NnsCertifiedRegistryArchiveCleanupError> {
     cleanup_archive_with_authenticator(request, &BuiltInArchiveAuthenticator)

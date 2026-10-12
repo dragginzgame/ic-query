@@ -12,28 +12,30 @@ pub(in crate::sns::report::tests) struct FixtureSnsProposalSource;
 delegate_sns_discovery!(FixtureSnsProposalSource);
 
 impl SnsProposalSource for FixtureSnsProposalSource {
-    fn fetch_sns_proposal(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> Result<MainnetSnsProposal, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(proposal_id, 42);
-        Ok(MainnetSnsProposal {
-            proposal: fixture_proposal_row(),
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(proposal_id, 42);
+            Ok(MainnetSnsProposal {
+                proposal: fixture_proposal_row(),
+            })
         })
     }
 }
 
 impl SnsProposalSource for NoLiveSnsProposalsSource {
-    fn fetch_sns_proposal(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _proposal_id: u64,
-    ) -> Result<MainnetSnsProposal, SnsHostError> {
-        Err(no_live_error("fetch_sns_proposal"))
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+        Box::pin(async move { Err(no_live_error("fetch_sns_proposal")) })
     }
 }
 
@@ -48,37 +50,41 @@ pub(in crate::sns::report::tests) struct FixtureSnsProposalsSource;
 delegate_sns_discovery!(FixtureSnsProposalsSource);
 
 impl SnsProposalsSource for FixtureSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
+        include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 10);
-        assert_eq!(before_proposal_id, Some(99));
-        assert_eq!(include_status, &[1]);
-        assert_eq!(topic, SnsProposalTopicFilter::Governance);
-        Ok(MainnetSnsProposals {
-            proposals: vec![fixture_proposal_row()],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 10);
+            assert_eq!(before_proposal_id, Some(99));
+            assert_eq!(include_status, &[1]);
+            assert_eq!(topic, SnsProposalTopicFilter::Governance);
+            Ok(MainnetSnsProposals {
+                proposals: vec![fixture_proposal_row()],
+            })
         })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 100);
-        assert_eq!(before_proposal_id, None);
-        Ok(MainnetSnsProposalPage {
-            proposals: vec![fixture_proposal_row()],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 100);
+            assert_eq!(before_proposal_id, None);
+            Ok(MainnetSnsProposalPage {
+                proposals: vec![fixture_proposal_row()],
+            })
         })
     }
 }
@@ -92,43 +98,43 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
 pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
 
 impl SnsDiscoverySource for NoLiveSnsProposalsSource {
-    fn fetch_sns_inventory(
-        &self,
-        _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        Err(no_live_error("fetch_sns_inventory"))
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { Err(no_live_error("fetch_sns_inventory")) })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        _targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        Err(no_live_error("fetch_sns_metadata"))
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move { Err(no_live_error("fetch_sns_metadata")) })
     }
 }
 
 impl SnsProposalsSource for NoLiveSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        Err(no_live_error("fetch_sns_proposals"))
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move { Err(no_live_error("fetch_sns_proposals")) })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        Err(no_live_error("fetch_sns_proposal_page"))
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move { Err(no_live_error("fetch_sns_proposal_page")) })
     }
 }
 

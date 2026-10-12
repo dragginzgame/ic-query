@@ -1,9 +1,10 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
     let report =
         build_sns_metrics_report_with_source(&metrics_request("1"), &FixtureSnsMetricsSource)
+            .await
             .expect("SNS metrics report");
     let text = sns_metrics_report_text(&report);
 
@@ -37,12 +38,13 @@ fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
     assert!(text.contains("governance_total_potential_voting_power"));
 }
 
-#[test]
-fn sns_metrics_preserves_unknown_native_treasury_codes() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_metrics_preserves_unknown_native_treasury_codes() {
     let report = build_sns_metrics_report_with_source(
         &metrics_request("1"),
         &MutatingFixtureSnsMetricsSource(use_unknown_treasury_code),
     )
+    .await
     .expect("unknown native code is preserved");
 
     assert_eq!(report.treasury_metrics[1].treasury, 99);
@@ -52,11 +54,12 @@ fn sns_metrics_preserves_unknown_native_treasury_codes() {
     );
 }
 
-#[test]
-fn sns_metrics_rejects_invalid_windows_before_source_access() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_metrics_rejects_invalid_windows_before_source_access() {
     for seconds in [0, MAX_SNS_METRICS_TIME_WINDOW_SECONDS + 1] {
         let request = metrics_request("1").with_time_window_seconds(seconds);
         let error = build_sns_metrics_report_with_source(&request, &NoCallSnsMetricsSource)
+            .await
             .expect_err("invalid window must fail before source access");
 
         assert!(matches!(
@@ -69,16 +72,17 @@ fn sns_metrics_rejects_invalid_windows_before_source_access() {
     }
 }
 
-#[test]
-fn live_sns_metrics_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_metrics_source_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-08-01T00:00:00Z",
         "test",
     );
-    let error = LiveSnsSource
+    let error = LiveSnsSource::default()
         .fetch_sns_metrics(&request, &fixture_sns_a(), 86_400)
+        .await
         .expect_err("non-mainnet must fail before endpoint parsing");
 
     assert!(matches!(
@@ -87,12 +91,13 @@ fn live_sns_metrics_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn live_sns_metrics_source_rejects_invalid_window_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_metrics_source_rejects_invalid_window_before_agent_construction() {
     let request =
         SnsSourceRequest::new("ic", "not a valid endpoint", "2026-08-01T00:00:00Z", "test");
-    let error = LiveSnsSource
+    let error = LiveSnsSource::default()
         .fetch_sns_metrics(&request, &fixture_sns_a(), 0)
+        .await
         .expect_err("invalid window must fail before endpoint parsing");
 
     assert!(matches!(
@@ -101,13 +106,14 @@ fn live_sns_metrics_source_rejects_invalid_window_before_agent_construction() {
     ));
 }
 
-#[test]
-fn sns_metrics_rejects_invalid_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_metrics_rejects_invalid_custom_source_evidence() {
     for (mutate, expected_reason) in invalid_metrics_mutations() {
         let error = build_sns_metrics_report_with_source(
             &metrics_request("1"),
             &MutatingFixtureSnsMetricsSource(mutate),
         )
+        .await
         .expect_err("invalid custom metrics evidence must fail");
 
         assert!(matches!(

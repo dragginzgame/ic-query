@@ -1,7 +1,7 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
+#[tokio::test(flavor = "current_thread")]
+async fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
     let root = temp_dir("ic-query-catalog-progress");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     let source = FixtureRefreshSource::ok(fixture_catalog());
@@ -41,6 +41,7 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
             &source,
             &mut |event| events.push(event),
         )
+        .await
         .unwrap();
         assert_eq!(report.cache_disposition, disposition);
         assert_eq!(
@@ -58,11 +59,13 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
     build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
         events.push(event);
     })
+    .await
     .unwrap();
     request.read_policy = list_request(&root).read_policy;
     build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |event| {
         events.push(event);
     })
+    .await
     .unwrap();
     assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     assert_eq!(source.call_count(), source_calls);
@@ -74,6 +77,7 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
             &source,
             &mut |event| events.push(event)
         )
+        .await
         .is_err()
     );
     assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
@@ -81,8 +85,8 @@ fn catalog_progress_tracks_live_policy_and_not_cache_hits_or_cache_only() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn catalog_lock_refusal_does_not_announce_a_source_call() {
+#[tokio::test(flavor = "current_thread")]
+async fn catalog_lock_refusal_does_not_announce_a_source_call() {
     let root = temp_dir("ic-query-catalog-progress-lock");
     let request = list_request(&root);
     let refresh = refresh_request(&root);
@@ -96,6 +100,7 @@ fn catalog_lock_refusal_does_not_announce_a_source_call() {
             &source,
             &mut |event| events.push(event)
         )
+        .await
         .is_err()
     );
     assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
@@ -103,13 +108,15 @@ fn catalog_lock_refusal_does_not_announce_a_source_call() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn list_report_loads_cached_catalog_and_caps_ranges() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_loads_cached_catalog_and_caps_ranges() {
     let root = temp_dir("ic-query-subnet-list");
     write_catalog(&root, fixture_catalog());
     let request = list_request(&root);
 
-    let report = build_subnet_catalog_list_report(&request).expect("list report");
+    let report = build_subnet_catalog_list_report(&request)
+        .await
+        .expect("list report");
     let text = subnet_catalog_list_report_text(&report);
 
     let _ = fs::remove_dir_all(root);
@@ -131,8 +138,8 @@ fn list_report_loads_cached_catalog_and_caps_ranges() {
     assert!(text.contains("\n\nSUBNET"));
 }
 
-#[test]
-fn list_report_refreshes_missing_catalog() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_refreshes_missing_catalog() {
     let root = temp_dir("ic-query-subnet-list-refresh");
     let mut catalog = fixture_catalog();
     catalog.provenance.registry_version = 987_654;
@@ -140,8 +147,9 @@ fn list_report_refreshes_missing_catalog() {
     let source = FixtureRefreshSource::ok(catalog);
     let request = list_request(&root);
 
-    let report =
-        build_subnet_catalog_list_report_with_source(&request, &source).expect("list report");
+    let report = build_subnet_catalog_list_report_with_source(&request, &source)
+        .await
+        .expect("list report");
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
 
@@ -151,8 +159,8 @@ fn list_report_refreshes_missing_catalog() {
     assert_eq!(cached.catalog.provenance().registry_version, 987_654);
 }
 
-#[test]
-fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let root = temp_dir("ic-query-subnet-list-invalid-refresh");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
@@ -171,6 +179,7 @@ fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     catalog.canonicalize_and_seal().expect("reseal fixture");
     let report =
         build_subnet_catalog_list_report_with_source(&request, &FixtureRefreshSource::ok(catalog))
+            .await
             .expect("invalid catalog refreshes");
 
     assert_eq!(report.registry_version, 987_654);
@@ -182,8 +191,8 @@ fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn failed_invalid_catalog_refresh_preserves_original_file() {
+#[tokio::test(flavor = "current_thread")]
+async fn failed_invalid_catalog_refresh_preserves_original_file() {
     let root = temp_dir("ic-query-subnet-list-invalid-refresh-failure");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
@@ -193,6 +202,7 @@ fn failed_invalid_catalog_refresh_preserves_original_file() {
         &list_request(&root),
         &FixtureRefreshSource::err(),
     )
+    .await
     .expect_err("failed refresh remains visible");
 
     assert!(matches!(
@@ -206,13 +216,15 @@ fn failed_invalid_catalog_refresh_preserves_original_file() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn list_report_verbose_text_keeps_full_metadata() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_verbose_text_keeps_full_metadata() {
     let root = temp_dir("ic-query-subnet-list-verbose");
     write_catalog(&root, fixture_catalog());
     let request = list_request(&root);
 
-    let report = build_subnet_catalog_list_report(&request).expect("list report");
+    let report = build_subnet_catalog_list_report(&request)
+        .await
+        .expect("list report");
     let text = subnet_catalog_list_report_verbose_text(&report);
 
     let _ = fs::remove_dir_all(root);

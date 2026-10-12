@@ -19,29 +19,30 @@ use crate::{
 
 pub const DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
-pub fn refresh_sns_neurons_cache(
+pub async fn refresh_sns_neurons_cache(
     request: &SnsNeuronsRefreshRequest,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
-    refresh_sns_neurons_cache_with_source(request, &LiveSnsSource)
+    refresh_sns_neurons_cache_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Refresh a complete SNS neuron snapshot and emit structured progress events.
-pub fn refresh_sns_neurons_cache_with_progress(
+pub async fn refresh_sns_neurons_cache_with_progress(
     request: &SnsNeuronsRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
-    refresh_sns_neurons_cache_with_source_and_progress(request, &LiveSnsSource, progress)
+    refresh_sns_neurons_cache_with_source_and_progress(request, &LiveSnsSource::default(), progress)
+        .await
 }
 
-pub fn refresh_sns_neurons_cache_with_source(
+pub async fn refresh_sns_neurons_cache_with_source(
     request: &SnsNeuronsRefreshRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
     let mut progress = IgnoreQueryProgress;
-    refresh_sns_neurons_cache_with_source_and_progress(request, source, &mut progress)
+    refresh_sns_neurons_cache_with_source_and_progress(request, source, &mut progress).await
 }
 
-fn refresh_sns_neurons_cache_with_source_and_progress(
+async fn refresh_sns_neurons_cache_with_source_and_progress(
     request: &SnsNeuronsRefreshRequest,
     source: &dyn SnsNeuronsSource,
     progress: &mut dyn QueryProgress,
@@ -50,9 +51,11 @@ fn refresh_sns_neurons_cache_with_source_and_progress(
         request,
         source,
         DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
-        |context| {
-            let complete = fetch_complete_sns_neurons(context.refresh_context(), source, progress)?;
+        async |context| {
+            let complete =
+                fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;
             publish_complete_sns_neurons_cache(context, complete)
         },
     )
+    .await
 }

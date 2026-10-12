@@ -138,8 +138,8 @@ fn topology_summary_text_renders_count_and_version_tables() {
     assert!(text.contains("\n\n"));
 }
 
-#[test]
-fn topology_summary_rejects_local_network_with_topology_hint() {
+#[tokio::test(flavor = "current_thread")]
+async fn topology_summary_rejects_local_network_with_topology_hint() {
     let request = NnsTopologyReadRequest {
         cache_root: temp_dir("ic-query-topology-local-network"),
         network: "local".to_string(),
@@ -147,7 +147,9 @@ fn topology_summary_rejects_local_network_with_topology_hint() {
         now_unix_secs: 1_780_531_200,
     };
 
-    let err = build_nns_topology_summary_report(&request).expect_err("local rejected");
+    let err = build_nns_topology_summary_report(&request)
+        .await
+        .expect_err("local rejected");
     let message = err.to_string();
 
     assert!(message.contains("supports only the mainnet `ic` network"));

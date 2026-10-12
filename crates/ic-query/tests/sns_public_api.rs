@@ -90,41 +90,92 @@ const SAMPLE_SNS_NEURON_ID: &str =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
 #[cfg(feature = "sns-host")]
-type SnsListBuilder = fn(&SnsListRequest) -> Result<SnsListReport, SnsHostError>;
+type SnsListBuilder =
+    for<'a> fn(
+        &'a SnsListRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsListReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsInfoBuilder = fn(&SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError>;
+type SnsInfoBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsInfoReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsMetricsBuilder = fn(&SnsMetricsRequest) -> Result<SnsMetricsReport, SnsHostError>;
+type SnsMetricsBuilder =
+    for<'a> fn(
+        &'a SnsMetricsRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsMetricsReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsCanisterBuilder = fn(&SnsLookupRequest) -> Result<SnsCanisterReport, SnsHostError>;
+type SnsCanisterBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsCanisterReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsTokenBuilder = fn(&SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError>;
+type SnsTokenBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsTokenReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsParamsBuilder = fn(&SnsLookupRequest) -> Result<SnsParamsReport, SnsHostError>;
+type SnsParamsBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsParamsReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsSwapBuilder = fn(&SnsLookupRequest) -> Result<SnsSwapReport, SnsHostError>;
+type SnsSwapBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsSwapReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsUpgradeBuilder = fn(&SnsLookupRequest) -> Result<SnsUpgradeReport, SnsHostError>;
+type SnsUpgradeBuilder =
+    for<'a> fn(
+        &'a SnsLookupRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsUpgradeReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsProposalsBuilder = fn(&SnsProposalsRequest) -> Result<SnsProposalsReport, SnsHostError>;
+type SnsProposalsBuilder =
+    for<'a> fn(
+        &'a SnsProposalsRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalsReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsProposalBuilder = fn(&SnsProposalRequest) -> Result<SnsProposalReport, SnsHostError>;
+type SnsProposalBuilder =
+    for<'a> fn(
+        &'a SnsProposalRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsNeuronBuilder = fn(&SnsNeuronRequest) -> Result<SnsNeuronDetailReport, SnsHostError>;
+type SnsNeuronBuilder =
+    for<'a> fn(
+        &'a SnsNeuronRequest,
+    )
+        -> ic_query::report::SourceFuture<'a, Result<SnsNeuronDetailReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsRewardCheckpointBuilder =
-    fn(&SnsRewardCheckpointRequest) -> Result<SnsRewardCheckpointReport, SnsHostError>;
+type SnsRewardCheckpointBuilder = for<'a> fn(
+    &'a SnsRewardCheckpointRequest,
+) -> ic_query::report::SourceFuture<
+    'a,
+    Result<SnsRewardCheckpointReport, SnsHostError>,
+>;
 #[cfg(feature = "sns-host")]
-type SnsNeuronsBuilder = fn(&SnsNeuronsRequest) -> Result<SnsNeuronsReport, SnsHostError>;
+type SnsNeuronsBuilder =
+    for<'a> fn(
+        &'a SnsNeuronsRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsNeuronsReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
 type SnsNeuronsRefreshBuilder =
-    fn(&SnsNeuronsRefreshRequest) -> Result<SnsNeuronsRefreshReport, SnsHostError>;
+    for<'a> fn(
+        &'a SnsNeuronsRefreshRequest,
+    )
+        -> ic_query::report::SourceFuture<'a, Result<SnsNeuronsRefreshReport, SnsHostError>>;
 #[cfg(feature = "sns-host")]
-type SnsProposalsRefreshBuilder =
-    fn(&SnsProposalsRefreshRequest) -> Result<SnsProposalsRefreshReport, SnsHostError>;
+type SnsProposalsRefreshBuilder = for<'a> fn(
+    &'a SnsProposalsRefreshRequest,
+) -> ic_query::report::SourceFuture<
+    'a,
+    Result<SnsProposalsRefreshReport, SnsHostError>,
+>;
 #[cfg(feature = "sns-host")]
 type SnsCatalogRefreshBuilder =
-    fn(&SnsCatalogRefreshRequest) -> Result<SnsCatalogRefreshReport, SnsHostError>;
+    for<'a> fn(
+        &'a SnsCatalogRefreshRequest,
+    )
+        -> ic_query::report::SourceFuture<'a, Result<SnsCatalogRefreshReport, SnsHostError>>;
 
 #[test]
 fn public_sns_request_constructors_set_expected_fields() {
@@ -986,31 +1037,41 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 #[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_live_builder_entry_points() {
-    accepts_public_function::<SnsListBuilder>(build_sns_list_report);
-    accepts_public_function::<SnsInfoBuilder>(build_sns_info_report);
-    accepts_public_function::<SnsMetricsBuilder>(build_sns_metrics_report);
-    accepts_public_function::<SnsCanisterBuilder>(build_sns_canister_report);
-    accepts_public_function::<SnsTokenBuilder>(build_sns_token_report);
-    accepts_public_function::<SnsParamsBuilder>(build_sns_params_report);
-    accepts_public_function::<SnsSwapBuilder>(build_sns_swap_report);
-    accepts_public_function::<SnsUpgradeBuilder>(build_sns_upgrade_report);
-    accepts_public_function::<SnsProposalsBuilder>(build_sns_proposals_report);
-    accepts_public_function::<SnsProposalBuilder>(build_sns_proposal_report);
-    accepts_public_function::<SnsNeuronBuilder>(build_sns_neuron_detail_report);
-    accepts_public_function::<SnsRewardCheckpointBuilder>(build_sns_reward_checkpoint_report);
-    accepts_public_function::<SnsNeuronsBuilder>(build_sns_neurons_report);
-    accepts_public_function::<SnsNeuronsRefreshBuilder>(refresh_sns_neurons_cache);
-    accepts_public_function::<SnsProposalsRefreshBuilder>(refresh_sns_proposals_cache);
-    accepts_public_function::<SnsCatalogRefreshBuilder>(refresh_sns_catalog);
-    let live_source = LiveSnsSource;
+    accepts_public_function::<SnsListBuilder>(|arg0| Box::pin(build_sns_list_report(arg0)));
+    accepts_public_function::<SnsInfoBuilder>(|arg0| Box::pin(build_sns_info_report(arg0)));
+    accepts_public_function::<SnsMetricsBuilder>(|arg0| Box::pin(build_sns_metrics_report(arg0)));
+    accepts_public_function::<SnsCanisterBuilder>(|arg0| Box::pin(build_sns_canister_report(arg0)));
+    accepts_public_function::<SnsTokenBuilder>(|arg0| Box::pin(build_sns_token_report(arg0)));
+    accepts_public_function::<SnsParamsBuilder>(|arg0| Box::pin(build_sns_params_report(arg0)));
+    accepts_public_function::<SnsSwapBuilder>(|arg0| Box::pin(build_sns_swap_report(arg0)));
+    accepts_public_function::<SnsUpgradeBuilder>(|arg0| Box::pin(build_sns_upgrade_report(arg0)));
+    accepts_public_function::<SnsProposalsBuilder>(|arg0| {
+        Box::pin(build_sns_proposals_report(arg0))
+    });
+    accepts_public_function::<SnsProposalBuilder>(|arg0| Box::pin(build_sns_proposal_report(arg0)));
+    accepts_public_function::<SnsNeuronBuilder>(|arg0| {
+        Box::pin(build_sns_neuron_detail_report(arg0))
+    });
+    accepts_public_function::<SnsRewardCheckpointBuilder>(|arg0| {
+        Box::pin(build_sns_reward_checkpoint_report(arg0))
+    });
+    accepts_public_function::<SnsNeuronsBuilder>(|arg0| Box::pin(build_sns_neurons_report(arg0)));
+    accepts_public_function::<SnsNeuronsRefreshBuilder>(|arg0| {
+        Box::pin(refresh_sns_neurons_cache(arg0))
+    });
+    accepts_public_function::<SnsProposalsRefreshBuilder>(|arg0| {
+        Box::pin(refresh_sns_proposals_cache(arg0))
+    });
+    accepts_public_function::<SnsCatalogRefreshBuilder>(|arg0| Box::pin(refresh_sns_catalog(arg0)));
+    let live_source = LiveSnsSource::default();
     accepts_public_function(live_source);
     assert_eq!(DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
     assert_eq!(DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
 }
 
 #[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
+#[tokio::test(flavor = "current_thread")]
+async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
     let source_request = SnsSourceRequest::new(
         "ic",
@@ -1022,21 +1083,21 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
     assert_eq!(source_request.network, "ic");
 
     let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
-    let list = build_sns_list_report_with_source(&list_request, &source)?;
+    let list = build_sns_list_report_with_source(&list_request, &source).await?;
     assert_eq!(list.sns_count, 1);
     assert_eq!(list.sns_instances[0].id, 1);
 
     let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
-    let info = build_sns_info_report_with_source(&info_request, &source)?;
+    let info = build_sns_info_report_with_source(&info_request, &source).await?;
     assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
 
     let metrics_request =
         SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
-    let metrics = build_sns_metrics_report_with_source(&metrics_request, &source)?;
+    let metrics = build_sns_metrics_report_with_source(&metrics_request, &source).await?;
     assert_eq!(metrics.method, SnsCanisterMethod::GetMetrics);
     assert_eq!(metrics.treasury_metric_count, 1);
 
-    let canisters = build_sns_canister_report_with_source(&info_request, &source)?;
+    let canisters = build_sns_canister_report_with_source(&info_request, &source).await?;
     assert_eq!(canisters.canister_count, 1);
     assert_eq!(canisters.canisters[0].role, SnsCanisterRole::Root);
 
@@ -1046,22 +1107,22 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
         1_700_000_000,
         SAMPLE_SNS_ROOT_CANISTER_ID,
     );
-    let token = build_sns_token_report_with_source(&token_request, &source)?;
+    let token = build_sns_token_report_with_source(&token_request, &source).await?;
     assert_eq!(token.token_symbol, "EXT");
 
     let params_request =
         SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
-    let params = build_sns_params_report_with_source(&params_request, &source)?;
+    let params = build_sns_params_report_with_source(&params_request, &source).await?;
     assert_eq!(
         params.parameters.neuron_minimum_stake_e8s,
         Some(100_000_000)
     );
 
-    let swap = build_sns_swap_report_with_source(&params_request, &source)?;
+    let swap = build_sns_swap_report_with_source(&params_request, &source).await?;
     assert_eq!(swap.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
     assert_eq!(swap.successful_component_query_count, 3);
 
-    let upgrade = build_sns_upgrade_report_with_source(&params_request, &source)?;
+    let upgrade = build_sns_upgrade_report_with_source(&params_request, &source).await?;
     assert_eq!(
         upgrade.governance_canister_id,
         SAMPLE_SNS_GOVERNANCE_CANISTER_ID
@@ -1072,13 +1133,13 @@ fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostErr
 }
 
 #[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), SnsHostError> {
+#[tokio::test(flavor = "current_thread")]
+async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
     let detail_request =
         SnsProposalRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 42)
             .with_show_ballots(true);
-    let detail = build_sns_proposal_report_with_source(&detail_request, &source)?;
+    let detail = build_sns_proposal_report_with_source(&detail_request, &source).await?;
     assert_eq!(detail.proposal.proposal_id, 42);
     assert_eq!(detail.data_source.as_str(), "live");
 
@@ -1087,7 +1148,7 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
             .with_before_proposal_id(99)
             .with_status(SnsProposalStatusFilter::Open)
             .with_topic(SnsProposalTopicFilter::Governance);
-    let list = build_sns_proposals_report_with_source(&list_request, &source)?;
+    let list = build_sns_proposals_report_with_source(&list_request, &source).await?;
     assert_eq!(list.proposal_count, 1);
     assert_eq!(list.proposals[0].title, "Upgrade SNS");
 
@@ -1102,7 +1163,7 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
         100,
     )
     .with_max_pages(Some(1));
-    let refresh = refresh_sns_proposals_cache_with_source(&refresh_request, &source)?;
+    let refresh = refresh_sns_proposals_cache_with_source(&refresh_request, &source).await?;
     assert_eq!(refresh.proposal_count, 1);
     assert!(refresh.complete);
     let _ = fs::remove_dir_all(cache_root);
@@ -1111,8 +1172,8 @@ fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), S
 }
 
 #[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), SnsHostError> {
+#[tokio::test(flavor = "current_thread")]
+async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
     let detail = build_sns_neuron_detail_report_with_source(
         &SnsNeuronRequest::new(
@@ -1123,7 +1184,8 @@ fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), Sns
             SAMPLE_SNS_NEURON_ID,
         ),
         &source,
-    )?;
+    )
+    .await?;
     assert_eq!(detail.neuron_id, SAMPLE_SNS_NEURON_ID);
     assert_eq!(detail.detail.permissions.len(), 1);
 
@@ -1131,7 +1193,8 @@ fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), Sns
         &SnsNeuronsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1", 50)
             .with_owner_principal_id(SAMPLE_SNS_GOVERNANCE_CANISTER_ID),
         &source,
-    )?;
+    )
+    .await?;
     assert_eq!(report.neuron_count, 1);
     assert_eq!(report.neurons[0].neuron_id, SAMPLE_SNS_NEURON_ID);
 
@@ -1146,7 +1209,7 @@ fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), Sns
         100,
     )
     .with_max_pages(Some(1));
-    let refresh = refresh_sns_neurons_cache_with_source(&refresh_request, &source)?;
+    let refresh = refresh_sns_neurons_cache_with_source(&refresh_request, &source).await?;
     assert_eq!(refresh.neuron_count, 1);
     assert!(refresh.complete);
     let _ = fs::remove_dir_all(cache_root);
@@ -1155,13 +1218,14 @@ fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(), Sns
 }
 
 #[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsHostError> {
+#[tokio::test(flavor = "current_thread")]
+async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsHostError> {
     let report = build_sns_reward_checkpoint_report_with_source(
         &SnsRewardCheckpointRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
             .with_max_pages(Some(1)),
         &FixtureSnsSource,
-    )?;
+    )
+    .await?;
 
     assert_eq!(report.row_count, 1);
     assert_eq!(report.page_count, 1);
@@ -1218,6 +1282,14 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
 #[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_catalog_cache_contract() {
+    type ListProgressBuilder =
+        for<'a> fn(
+            &'a SnsListRequest,
+            &'a Path,
+            &'a mut dyn ic_query::QueryProgress,
+        )
+            -> ic_query::report::SourceFuture<'a, Result<SnsListReport, SnsHostError>>;
+
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
     let catalog_request = SnsCatalogCacheRequest::new(&cache_root, "ic");
     let catalog_path = sns_catalog_cache_path(&cache_root, "ic");
@@ -1230,11 +1302,11 @@ fn public_sns_host_api_exposes_catalog_cache_contract() {
     let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
     let _: fn(&SnsListRequest, &Path) -> Result<SnsListReport, SnsHostError> =
         build_sns_list_report_from_cache;
-    let _: fn(
-        &SnsListRequest,
-        &Path,
-        &mut dyn ic_query::QueryProgress,
-    ) -> Result<SnsListReport, SnsHostError> = build_sns_list_report_from_cache_or_refresh;
+    let _: ListProgressBuilder = |arg0, arg1, arg2| {
+        Box::pin(build_sns_list_report_from_cache_or_refresh(
+            arg0, arg1, arg2,
+        ))
+    };
     assert!(matches!(
         build_sns_list_report_from_cache(&list_request, &cache_root),
         Err(SnsHostError::MissingCatalogCache { .. })
@@ -1427,324 +1499,360 @@ struct FixtureSnsSource;
 
 #[cfg(feature = "sns-host")]
 impl SnsDiscoverySource for FixtureSnsSource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-        Ok(sample_mainnet_sns_inventory(request))
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+            Ok(sample_mainnet_sns_inventory(request))
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-        Ok(targets
-            .iter()
-            .map(|target| MainnetSnsMetadata {
-                root_canister_id: target.root_canister_id.clone(),
-                name: Some("Example SNS".to_string()),
-                description: Some("Example description".to_string()),
-                url: Some("https://example.com/sns".to_string()),
-                metadata_error: None,
-            })
-            .collect())
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+            Ok(targets
+                .iter()
+                .map(|target| MainnetSnsMetadata {
+                    root_canister_id: target.root_canister_id.clone(),
+                    name: Some("Example SNS".to_string()),
+                    description: Some("Example description".to_string()),
+                    url: Some("https://example.com/sns".to_string()),
+                    metadata_error: None,
+                })
+                .collect())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsCatalogSource for FixtureSnsSource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-        Ok(targets
-            .iter()
-            .map(|target| MainnetSnsLifecycle {
-                root_canister_id: target.root_canister_id.clone(),
-                lifecycle: Some(3),
-                lifecycle_name: Some("committed".to_string()),
-                lifecycle_error: None,
-            })
-            .collect())
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+            Ok(targets
+                .iter()
+                .map(|target| MainnetSnsLifecycle {
+                    root_canister_id: target.root_canister_id.clone(),
+                    lifecycle: Some(3),
+                    lifecycle_name: Some("committed".to_string()),
+                    lifecycle_error: None,
+                })
+                .collect())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsCanisterSource for FixtureSnsSource {
-    fn fetch_sns_canisters(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
-        Ok(MainnetSnsCanisterInventory {
-            inventory_method: SnsCanisterMethod::ListSnsCanisters,
-            health_method: SnsCanisterMethod::GetSnsCanistersSummary,
-            health_call_type: SnsCanisterCallType::IngressUpdate,
-            health_update_canister_list: false,
-            point_in_time_guaranteed: false,
-            canisters: vec![SnsCanisterRow {
-                role: SnsCanisterRole::Root,
-                canister_id: sns.root_canister_id.clone(),
-                status: Some(SnsCanisterStatus::Running),
-                module_hash_hex: Some("01020304".to_string()),
-                cycles: Some("1000000".to_string()),
-                cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
-                memory_size: Some("2000000".to_string()),
-                idle_cycles_burned_per_day: Some("3000".to_string()),
-                controllers: vec![sns.governance_canister_id.clone()],
-            }],
-            health_query_gap: None,
-            gaps: Vec::new(),
+    fn fetch_sns_canisters<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
+        Box::pin(async move {
+            Ok(MainnetSnsCanisterInventory {
+                inventory_method: SnsCanisterMethod::ListSnsCanisters,
+                health_method: SnsCanisterMethod::GetSnsCanistersSummary,
+                health_call_type: SnsCanisterCallType::IngressUpdate,
+                health_update_canister_list: false,
+                point_in_time_guaranteed: false,
+                canisters: vec![SnsCanisterRow {
+                    role: SnsCanisterRole::Root,
+                    canister_id: sns.root_canister_id.clone(),
+                    status: Some(SnsCanisterStatus::Running),
+                    module_hash_hex: Some("01020304".to_string()),
+                    cycles: Some("1000000".to_string()),
+                    cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
+                    memory_size: Some("2000000".to_string()),
+                    idle_cycles_burned_per_day: Some("3000".to_string()),
+                    controllers: vec![sns.governance_canister_id.clone()],
+                }],
+                health_query_gap: None,
+                gaps: Vec::new(),
+            })
         })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsTokenSource for FixtureSnsSource {
-    fn fetch_sns_token(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsToken, SnsHostError> {
-        assert_eq!(sns.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
-        Ok(sample_mainnet_sns_token())
+    fn fetch_sns_token<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+            Ok(sample_mainnet_sns_token())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsParamsSource for FixtureSnsSource {
-    fn fetch_sns_params(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        Ok(sample_sns_governance_parameters())
+    fn fetch_sns_params<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            Ok(sample_sns_governance_parameters())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsMetricsSource for FixtureSnsSource {
-    fn fetch_sns_metrics(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_metrics<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         time_window_seconds: u64,
-    ) -> Result<MainnetSnsMetrics, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        Ok(sample_mainnet_sns_metrics(time_window_seconds))
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            Ok(sample_mainnet_sns_metrics(time_window_seconds))
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsSwapSource for FixtureSnsSource {
-    fn fetch_sns_swap(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError> {
-        assert_eq!(sns.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
-        Ok(sample_mainnet_sns_swap())
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
+            Ok(sample_mainnet_sns_swap())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsUpgradeSource for FixtureSnsSource {
-    fn fetch_sns_upgrade(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsUpgrade, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        Ok(sample_mainnet_sns_upgrade())
+    fn fetch_sns_upgrade<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            Ok(sample_mainnet_sns_upgrade())
+        })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsProposalSource for FixtureSnsSource {
-    fn fetch_sns_proposal(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> Result<MainnetSnsProposal, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(proposal_id, 42);
-        Ok(MainnetSnsProposal {
-            proposal: sample_sns_proposal_row(),
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(proposal_id, 42);
+            Ok(MainnetSnsProposal {
+                proposal: sample_sns_proposal_row(),
+            })
         })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsProposalsSource for FixtureSnsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
+        include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(limit, 10);
-        assert_eq!(before_proposal_id, Some(99));
-        assert_eq!(include_status, &[1]);
-        assert_eq!(topic, SnsProposalTopicFilter::Governance);
-        Ok(MainnetSnsProposals {
-            proposals: vec![sample_sns_proposal_row()],
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(limit, 10);
+            assert_eq!(before_proposal_id, Some(99));
+            assert_eq!(include_status, &[1]);
+            assert_eq!(topic, SnsProposalTopicFilter::Governance);
+            Ok(MainnetSnsProposals {
+                proposals: vec![sample_sns_proposal_row()],
+            })
         })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(limit, 100);
-        assert_eq!(before_proposal_id, None);
-        Ok(MainnetSnsProposalPage {
-            proposals: vec![sample_sns_proposal_row()],
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(limit, 100);
+            assert_eq!(before_proposal_id, None);
+            Ok(MainnetSnsProposalPage {
+                proposals: vec![sample_sns_proposal_row()],
+            })
         })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsNeuronSource for FixtureSnsSource {
-    fn fetch_sns_neuron(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-        neuron_id: &str,
-    ) -> Result<MainnetSnsNeuron, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(neuron_id, SAMPLE_SNS_NEURON_ID);
-        Ok(MainnetSnsNeuron {
-            detail: sample_sns_neuron_detail(),
+    fn fetch_sns_neuron<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+        neuron_id: &'a str,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(neuron_id, SAMPLE_SNS_NEURON_ID);
+            Ok(MainnetSnsNeuron {
+                detail: sample_sns_neuron_detail(),
+            })
         })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsNeuronsSource for FixtureSnsSource {
-    fn fetch_sns_neurons(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(limit, 50);
-        assert_eq!(owner_principal_id, Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID));
-        Ok(MainnetSnsNeurons {
-            neurons: vec![sample_sns_neuron_row()],
+        owner_principal_id: Option<&'a str>,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(limit, 50);
+            assert_eq!(owner_principal_id, Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID));
+            Ok(MainnetSnsNeurons {
+                neurons: vec![sample_sns_neuron_row()],
+            })
         })
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        assert_eq!(
-            sns.governance_canister_id,
-            SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-        );
-        assert_eq!(limit, 100);
-        assert!(start_page_at.is_none());
-        assert_eq!(owner_principal_id, None);
-        Ok(MainnetSnsNeuronPage {
-            neurons: vec![sample_sns_neuron_row()],
-            last_cursor: Some(SnsNeuronId {
-                id: (0..32).collect(),
-            }),
+        start_page_at: Option<&'a SnsNeuronId>,
+        owner_principal_id: Option<&'a str>,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(
+                sns.governance_canister_id,
+                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
+            );
+            assert_eq!(limit, 100);
+            assert!(start_page_at.is_none());
+            assert_eq!(owner_principal_id, None);
+            Ok(MainnetSnsNeuronPage {
+                neurons: vec![sample_sns_neuron_row()],
+                last_cursor: Some(SnsNeuronId {
+                    id: (0..32).collect(),
+                }),
+            })
         })
     }
 }
 
 #[cfg(feature = "sns-host")]
 impl SnsRewardSource for FixtureSnsSource {
-    fn fetch_sns_reward_running_version(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<SnsRunningVersionResponse, SnsHostError> {
-        Ok(SnsRunningVersionResponse {
-            deployed_version: Some(sample_sns_version(&"01".repeat(32))),
-            pending_version: None,
+    fn fetch_sns_reward_running_version<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
+        Box::pin(async move {
+            Ok(SnsRunningVersionResponse {
+                deployed_version: Some(sample_sns_version(&"01".repeat(32))),
+                pending_version: None,
+            })
         })
     }
 
-    fn fetch_sns_reward_parameters(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError> {
-        let mut parameters = sample_sns_governance_parameters();
-        parameters.max_number_of_neurons = Some(100);
-        parameters.neuron_grantable_permissions = Some(SnsNeuronPermissionList {
-            permissions: vec![2, 4],
-        });
-        Ok(parameters)
+    fn fetch_sns_reward_parameters<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
+        Box::pin(async move {
+            let mut parameters = sample_sns_governance_parameters();
+            parameters.max_number_of_neurons = Some(100);
+            parameters.neuron_grantable_permissions = Some(SnsNeuronPermissionList {
+                permissions: vec![2, 4],
+            });
+            Ok(parameters)
+        })
     }
 
-    fn fetch_sns_reward_event(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<SnsRewardEvent, SnsHostError> {
-        Ok(sample_sns_reward_checkpoint_report().reward_event_after)
+    fn fetch_sns_reward_event<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
+        Box::pin(async move { Ok(sample_sns_reward_checkpoint_report().reward_event_after) })
     }
 
-    fn fetch_sns_reward_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_reward_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-    ) -> Result<MainnetSnsRewardNeuronPage, SnsHostError> {
-        assert_eq!(limit, 100);
-        assert!(start_page_at.is_none());
-        Ok(MainnetSnsRewardNeuronPage {
-            neurons: sample_sns_reward_checkpoint_report().rows,
-            next_cursor: None,
+        start_page_at: Option<&'a SnsNeuronId>,
+    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(limit, 100);
+            assert!(start_page_at.is_none());
+            Ok(MainnetSnsRewardNeuronPage {
+                neurons: sample_sns_reward_checkpoint_report().rows,
+                next_cursor: None,
+            })
         })
     }
 }

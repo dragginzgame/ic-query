@@ -1,8 +1,5 @@
-use crate::{
-    runtime::RuntimeError,
-    subnet_catalog::{
-        CatalogAssurance, CatalogError, SubnetCatalogRegistryRecordEvidence, SubnetCatalogSubject,
-    },
+use crate::subnet_catalog::{
+    CatalogAssurance, CatalogError, SubnetCatalogRegistryRecordEvidence, SubnetCatalogSubject,
 };
 use thiserror::Error as ThisError;
 
@@ -188,9 +185,6 @@ pub enum RegistryFetchError {
 
     #[error(transparent)]
     Catalog(#[from] CatalogError),
-
-    #[error("failed to create Tokio runtime for registry refresh: {0}")]
-    Runtime(#[from] RuntimeError),
 }
 
 ///

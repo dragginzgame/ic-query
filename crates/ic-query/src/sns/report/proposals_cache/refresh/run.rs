@@ -22,30 +22,35 @@ use crate::{
 pub const DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete SNS proposal snapshot using the live SNS source.
-pub fn refresh_sns_proposals_cache(
+pub async fn refresh_sns_proposals_cache(
     request: &SnsProposalsRefreshRequest,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
-    refresh_sns_proposals_cache_with_source(request, &LiveSnsSource)
+    refresh_sns_proposals_cache_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Refresh a complete SNS proposal snapshot and emit structured progress events.
-pub fn refresh_sns_proposals_cache_with_progress(
+pub async fn refresh_sns_proposals_cache_with_progress(
     request: &SnsProposalsRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
-    refresh_sns_proposals_cache_with_source_and_progress(request, &LiveSnsSource, progress)
+    refresh_sns_proposals_cache_with_source_and_progress(
+        request,
+        &LiveSnsSource::default(),
+        progress,
+    )
+    .await
 }
 
 /// Refresh a complete SNS proposal snapshot using an injected source.
-pub fn refresh_sns_proposals_cache_with_source(
+pub async fn refresh_sns_proposals_cache_with_source(
     request: &SnsProposalsRefreshRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsRefreshReport, SnsHostError> {
     let mut progress = IgnoreQueryProgress;
-    refresh_sns_proposals_cache_with_source_and_progress(request, source, &mut progress)
+    refresh_sns_proposals_cache_with_source_and_progress(request, source, &mut progress).await
 }
 
-pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progress(
+pub(in crate::sns::report) async fn refresh_sns_proposals_cache_with_source_and_progress(
     request: &SnsProposalsRefreshRequest,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
@@ -54,10 +59,11 @@ pub(in crate::sns::report) fn refresh_sns_proposals_cache_with_source_and_progre
         request,
         source,
         DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS,
-        |context| {
+        async |context| {
             let complete =
-                fetch_complete_sns_proposals(context.refresh_context(), source, progress)?;
+                fetch_complete_sns_proposals(context.refresh_context(), source, progress).await?;
             publish_complete_sns_proposals_cache(context, complete)
         },
     )
+    .await
 }

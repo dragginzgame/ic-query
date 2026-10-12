@@ -20,7 +20,6 @@ use super::{
     query::principal_from_text,
 };
 use candid::Principal;
-use std::future::Future;
 
 pub(super) use canisters::fetch_mainnet_sns_canisters;
 pub(super) use list::{
@@ -38,13 +37,6 @@ pub(super) use reward::{fetch_mainnet_sns_reward_event, fetch_mainnet_sns_reward
 pub(super) use swap::fetch_mainnet_sns_swap;
 pub(super) use token::fetch_mainnet_sns_token;
 pub(super) use upgrade::{fetch_mainnet_sns_running_version, fetch_mainnet_sns_upgrade};
-
-/// Run one async SNS query flow on the current-thread runtime.
-fn block_on_sns<T: Send>(
-    future: impl Future<Output = Result<T, SnsHostError>> + Send,
-) -> Result<T, SnsHostError> {
-    crate::runtime::block_on_current_thread(future).map_err(SnsHostError::Runtime)?
-}
 
 /// Parse the governance canister id for one resolved SNS.
 fn governance_canister(sns: &MainnetSns) -> Result<Principal, SnsHostError> {

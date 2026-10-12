@@ -50,14 +50,15 @@ fn cache_entity_changes_with_collection_identity_and_normalizes_subaccounts() {
     );
 }
 
-#[test]
-fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
+#[tokio::test(flavor = "current_thread")]
+async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     let root = temp_dir("ic-query-icrc-account-refresh");
     let cache = cache_request(&root);
     let request = refresh_request(cache.clone(), 1_700_000_000);
     let source = SuccessSource::new(vec![row("12"), row("10"), row("2")]);
 
     let refresh = refresh_icrc_account_transaction_cache_with_source(&request, &source)
+        .await
         .expect("refresh complete cache");
     let cached = load_cached_icrc_account_transactions(&cache).expect("load complete cache");
     let oldest = build_icrc_account_transaction_list_report(
@@ -98,8 +99,8 @@ fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() {
     let root = temp_dir("ic-query-icrc-account-refresh-failure");
     let cache = cache_request(&root);
     let first_request = refresh_request(cache.clone(), 1_700_000_000);
@@ -107,6 +108,7 @@ fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() 
         &first_request,
         &SuccessSource::new(vec![row("7")]),
     )
+    .await
     .expect("seed complete cache");
     let path = icrc_account_transaction_cache_path(&cache).expect("cache path");
     let before = fs::read(&path).expect("read seeded cache");
@@ -114,6 +116,7 @@ fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() 
 
     let error =
         refresh_icrc_account_transaction_cache_with_source(&failed_request, &IncompleteSource)
+            .await
             .expect_err("incomplete refresh must fail");
     let after = fs::read(&path).expect("read preserved cache");
     let status =
@@ -146,8 +149,8 @@ fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evidence() 
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
     let root = temp_dir("ic-query-icrc-account-source-row-validation");
     let cache = cache_request(&root);
     let request = refresh_request(cache.clone(), 1_700_000_000);
@@ -155,6 +158,7 @@ fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
         &request,
         &SuccessSource::new(vec![row("7")]),
     )
+    .await
     .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let before = fs::read(&path).unwrap();
@@ -166,6 +170,7 @@ fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
     ] {
         let source = SuccessSource::new(ids.iter().map(|id| row(id)).collect());
         let error = refresh_icrc_account_transaction_cache_with_source(&request, &source)
+            .await
             .expect_err("invalid custom-source rows must not publish");
         assert!(matches!(
             error,
@@ -189,14 +194,15 @@ fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn cache_only_reads_validate_rows_and_page_capacity_when_declared_counts_match() {
+#[tokio::test(flavor = "current_thread")]
+async fn cache_only_reads_validate_rows_and_page_capacity_when_declared_counts_match() {
     let root = temp_dir("ic-query-icrc-account-persisted-row-validation");
     let cache = cache_request(&root);
     refresh_icrc_account_transaction_cache_with_source(
         &refresh_request(cache.clone(), 1_700_000_000),
         &SuccessSource::new(vec![row("12"), row("10"), row("2")]),
     )
+    .await
     .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -230,13 +236,14 @@ fn cache_only_reads_validate_rows_and_page_capacity_when_declared_counts_match()
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
+#[tokio::test(flavor = "current_thread")]
+async fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
     let root = temp_dir("ic-query-icrc-account-invalid-completion");
     let cache = cache_request(&root);
     let request = refresh_request(cache.clone(), 1_700_000_000);
 
     let error = refresh_icrc_account_transaction_cache_with_source(&request, &WrongCursorSource)
+        .await
         .expect_err("invalid completion evidence must fail");
 
     assert!(matches!(
@@ -260,8 +267,8 @@ fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn custom_source_must_return_the_explicitly_requested_index() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_must_return_the_explicitly_requested_index() {
     let root = temp_dir("ic-query-icrc-account-index-mismatch");
     let cache = cache_request(&root);
     let request = refresh_request(cache.clone(), 1_700_000_000)
@@ -271,6 +278,7 @@ fn custom_source_must_return_the_explicitly_requested_index() {
         &request,
         &SuccessSource::new(vec![row("7")]),
     )
+    .await
     .expect_err("source index must match explicit request");
 
     assert!(matches!(
@@ -290,8 +298,8 @@ fn custom_source_must_return_the_explicitly_requested_index() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
     let root = temp_dir("ic-query-icrc-account-completion-bounds");
     let cache = cache_request(&root);
     let request = refresh_request(cache.clone(), 1_700_000_000);
@@ -299,6 +307,7 @@ fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
         &request,
         &SuccessSource::new(vec![row("7")]),
     )
+    .await
     .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let original = fs::read(&path).unwrap();
@@ -309,6 +318,7 @@ fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
         let mut bounded = request.clone().with_max_pages(max_pages);
         bounded.page_size = page_size;
         let error = refresh_icrc_account_transaction_cache_with_source(&bounded, &source)
+            .await
             .expect_err("contradictory completion must not publish");
         assert!(matches!(
             error,
@@ -332,6 +342,7 @@ fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
     let mut bounded = request.with_max_pages(Some(2));
     bounded.page_size = 1;
     let report = refresh_icrc_account_transaction_cache_with_source(&bounded, &source)
+        .await
         .expect("exhaustion exactly at the page cap is valid");
     assert_eq!(report.page_count, 2);
     assert_eq!(report.transaction_count, 2);
@@ -341,16 +352,18 @@ fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
     let root = temp_dir("ic-query-icrc-account-refresh-policy");
     let cache = cache_request(&root);
     let source = SuccessSource::new(vec![row("1")]);
     let request = refresh_request(cache.clone(), 1_700_000_000);
 
     load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
+        .await
         .expect("refresh missing cache");
     load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
+        .await
         .expect("reuse present cache");
     assert_eq!(source.calls.load(Ordering::Relaxed), 1);
 
@@ -358,6 +371,7 @@ fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
     let started = std::time::Instant::now();
     let refreshed =
         load_or_refresh_stale_icrc_account_transactions_with_source(&stale_request, 60, &source)
+            .await
             .expect("refresh stale cache");
     assert_eq!(source.calls.load(Ordering::Relaxed), 2);
     let completed = crate::subnet_catalog::parse_utc_timestamp_secs(
@@ -374,13 +388,15 @@ fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_explicitly() {
+#[tokio::test(flavor = "current_thread")]
+async fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_explicitly() {
     let root = temp_dir("ic-query-icrc-account-timestamp-interval");
     let cache = cache_request(&root);
     let source = SuccessSource::new(vec![row("6")]);
     let request = refresh_request(cache.clone(), 1_700_000_000);
-    refresh_icrc_account_transaction_cache_with_source(&request, &source).unwrap();
+    refresh_icrc_account_transaction_cache_with_source(&request, &source)
+        .await
+        .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let mut snapshot: serde_json::Value =
         serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -416,13 +432,14 @@ fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_explicitl
         "cache-only reads stay local"
     );
     load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
+        .await
         .expect("authorized read-through replaces reversed interval");
     assert_eq!(source.calls.load(Ordering::Relaxed), 2);
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
     let root = temp_dir("ic-query-icrc-account-invalid-clock");
     let cache = cache_request(&root);
     let source = SuccessSource::new(vec![row("6")]);
@@ -430,6 +447,7 @@ fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
         &refresh_request(cache.clone(), 1_700_000_000),
         &source,
     )
+    .await
     .unwrap();
     let path = icrc_account_transaction_cache_path(&cache).unwrap();
     let before = fs::read(&path).unwrap();
@@ -437,7 +455,8 @@ fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
         refresh_icrc_account_transaction_cache_with_source(
             &refresh_request(cache.clone(), u64::MAX),
             &source,
-        ),
+        )
+        .await,
         Err(IcrcAccountTransactionError::InvalidCache { .. })
     ));
     assert_eq!(fs::read(&path).unwrap(), before);
@@ -458,14 +477,15 @@ fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn read_through_account_history_refreshes_invalid_cache_but_cache_only_remains_strict() {
+#[tokio::test(flavor = "current_thread")]
+async fn read_through_account_history_refreshes_invalid_cache_but_cache_only_remains_strict() {
     let root = temp_dir("ic-query-icrc-account-invalid-cache");
     let cache = cache_request(&root);
     refresh_icrc_account_transaction_cache_with_source(
         &refresh_request(cache.clone(), 1_700_000_000),
         &SuccessSource::new(vec![row("6")]),
     )
+    .await
     .expect("seed complete cache");
     let path = icrc_account_transaction_cache_path(&cache).expect("cache path");
     let mut invalid =
@@ -487,6 +507,7 @@ fn read_through_account_history_refreshes_invalid_cache_but_cache_only_remains_s
         &refresh_request(cache, 1_700_000_000),
         &source,
     )
+    .await
     .expect("invalid cache refreshes");
 
     assert_eq!(cached.snapshot.transactions.len(), 1);
@@ -546,23 +567,28 @@ impl SuccessSource {
 }
 
 impl IcrcAccountTransactionCollectionSource for SuccessSource {
-    fn fetch_complete_account_transactions(
-        &self,
-        _request: &IcrcAccountTransactionRefreshRequest,
-        _progress: &mut (dyn QueryProgress + Send),
-    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
-        self.calls.fetch_add(1, Ordering::Relaxed);
-        Ok(IcrcAccountTransactionCollectionData {
-            index_canister_id: INDEX_CANISTER_ID.to_string(),
-            balance: "42".to_string(),
-            token_symbol: "ICP".to_string(),
-            decimals: 8,
-            transactions: self.transactions.clone(),
-            page_count: self.page_count,
-            last_cursor: self
-                .transactions
-                .last()
-                .map(|transaction| transaction.id.clone()),
+    fn fetch_complete_account_transactions<'a>(
+        &'a self,
+        _request: &'a IcrcAccountTransactionRefreshRequest,
+        _progress: &'a mut (dyn QueryProgress + Send),
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            Ok(IcrcAccountTransactionCollectionData {
+                index_canister_id: INDEX_CANISTER_ID.to_string(),
+                balance: "42".to_string(),
+                token_symbol: "ICP".to_string(),
+                decimals: 8,
+                transactions: self.transactions.clone(),
+                page_count: self.page_count,
+                last_cursor: self
+                    .transactions
+                    .last()
+                    .map(|transaction| transaction.id.clone()),
+            })
         })
     }
 }
@@ -570,18 +596,23 @@ impl IcrcAccountTransactionCollectionSource for SuccessSource {
 struct IncompleteSource;
 
 impl IcrcAccountTransactionCollectionSource for IncompleteSource {
-    fn fetch_complete_account_transactions(
-        &self,
-        request: &IcrcAccountTransactionRefreshRequest,
-        _progress: &mut (dyn QueryProgress + Send),
-    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
-        assert!(request.index_canister_id.is_none());
-        Err(IcrcAccountTransactionError::IncompleteCollection {
-            index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
-            pages_fetched: 2,
-            rows_fetched: 100,
-            last_cursor: Some("50".to_string()),
-            reason: "fixture stopped before API exhaustion".to_string(),
+    fn fetch_complete_account_transactions<'a>(
+        &'a self,
+        request: &'a IcrcAccountTransactionRefreshRequest,
+        _progress: &'a mut (dyn QueryProgress + Send),
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move {
+            assert!(request.index_canister_id.is_none());
+            Err(IcrcAccountTransactionError::IncompleteCollection {
+                index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
+                pages_fetched: 2,
+                rows_fetched: 100,
+                last_cursor: Some("50".to_string()),
+                reason: "fixture stopped before API exhaustion".to_string(),
+            })
         })
     }
 }
@@ -589,19 +620,24 @@ impl IcrcAccountTransactionCollectionSource for IncompleteSource {
 struct WrongCursorSource;
 
 impl IcrcAccountTransactionCollectionSource for WrongCursorSource {
-    fn fetch_complete_account_transactions(
-        &self,
-        _request: &IcrcAccountTransactionRefreshRequest,
-        _progress: &mut (dyn QueryProgress + Send),
-    ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
-        Ok(IcrcAccountTransactionCollectionData {
-            index_canister_id: INDEX_CANISTER_ID.to_string(),
-            balance: "42".to_string(),
-            token_symbol: "ICP".to_string(),
-            decimals: 8,
-            transactions: vec![row("7")],
-            page_count: 1,
-            last_cursor: Some("6".to_string()),
+    fn fetch_complete_account_transactions<'a>(
+        &'a self,
+        _request: &'a IcrcAccountTransactionRefreshRequest,
+        _progress: &'a mut (dyn QueryProgress + Send),
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move {
+            Ok(IcrcAccountTransactionCollectionData {
+                index_canister_id: INDEX_CANISTER_ID.to_string(),
+                balance: "42".to_string(),
+                token_symbol: "ICP".to_string(),
+                decimals: 8,
+                transactions: vec![row("7")],
+                page_count: 1,
+                last_cursor: Some("6".to_string()),
+            })
         })
     }
 }

@@ -12,13 +12,15 @@ pub(in crate::sns::report::tests) struct FixtureSnsUpgradeSource;
 delegate_sns_discovery!(FixtureSnsUpgradeSource);
 
 impl SnsUpgradeSource for FixtureSnsUpgradeSource {
-    fn fetch_sns_upgrade(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsUpgrade, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        Ok(fixture_mainnet_sns_upgrade())
+    fn fetch_sns_upgrade<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            Ok(fixture_mainnet_sns_upgrade())
+        })
     }
 }
 
@@ -35,14 +37,16 @@ pub(in crate::sns::report::tests) struct MutatingFixtureSnsUpgradeSource(
 delegate_sns_discovery!(MutatingFixtureSnsUpgradeSource);
 
 impl SnsUpgradeSource for MutatingFixtureSnsUpgradeSource {
-    fn fetch_sns_upgrade(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<MainnetSnsUpgrade, SnsHostError> {
-        let mut upgrade = fixture_mainnet_sns_upgrade();
-        self.0(&mut upgrade);
-        Ok(upgrade)
+    fn fetch_sns_upgrade<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
+        Box::pin(async move {
+            let mut upgrade = fixture_mainnet_sns_upgrade();
+            self.0(&mut upgrade);
+            Ok(upgrade)
+        })
     }
 }
 

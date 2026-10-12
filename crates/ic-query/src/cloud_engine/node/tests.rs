@@ -99,19 +99,20 @@ mod host {
         },
         ic::{IcHostError, IcSourceRequest},
     };
-    use std::cell::Cell;
+    use std::sync::Mutex;
 
     const NODE_B: &str = "72xg3-cvfed-jrbv3-kal7e-o53wl-tug5y-t432v-5ovop-7et6y-abuzx-oae";
 
     const NOW: u64 = 1_800_000_000;
 
-    #[test]
-    fn list_validates_scope_sorts_rows_and_counts_status_and_assignment() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn list_validates_scope_sorts_rows_and_counts_status_and_assignment() {
         let source = Fixture::default();
         let report = build_cloud_engine_node_list_report_with_source(&list_request(None), &source)
+            .await
             .expect("Type4 nodes");
 
-        assert_eq!(source.list_calls.get(), 1);
+        assert_eq!((*source.list_calls.lock().unwrap()), 1);
         assert_eq!(report.node_count, 2);
         assert_eq!(report.nodes[0].node_id, NODE_A);
         assert_eq!(report.nodes[1].node_id, NODE_B);
@@ -122,24 +123,26 @@ mod host {
         assert_eq!(report.unassigned_cloud_engine_node_count, 1);
     }
 
-    #[test]
-    fn provider_filter_is_canonicalized_before_source_and_enforced_on_rows() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn provider_filter_is_canonicalized_before_source_and_enforced_on_rows() {
         let source = Fixture::default();
         let report =
             build_cloud_engine_node_list_report_with_source(&list_request(Some(PROVIDER)), &source)
+                .await
                 .expect("provider Type4 nodes");
         assert_eq!(report.requested_node_provider_id.as_deref(), Some(PROVIDER));
-        assert_eq!(source.seen_provider.get(), Some(PROVIDER));
+        assert_eq!((*source.seen_provider.lock().unwrap()), Some(PROVIDER));
 
-        source.mutation.set(Some(Mutation::WrongProvider));
+        (*source.mutation.lock().unwrap() = Some(Mutation::WrongProvider));
         assert!(matches!(
-            build_cloud_engine_node_list_report_with_source(&list_request(Some(PROVIDER)), &source),
+            build_cloud_engine_node_list_report_with_source(&list_request(Some(PROVIDER)), &source)
+                .await,
             Err(IcHostError::InvalidSourceData { .. })
         ));
     }
 
-    #[test]
-    fn exact_info_requires_the_requested_type4_node() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn exact_info_requires_the_requested_type4_node() {
         let source = Fixture::default();
         let request = CloudEngineNodeInfoRequest::new(
             "ic",
@@ -148,18 +151,19 @@ mod host {
             NODE_A,
         );
         let report = build_cloud_engine_node_info_report_with_source(&request, &source)
+            .await
             .expect("exact Type4 node");
         assert_eq!(report.node.node_id, NODE_A);
 
-        source.mutation.set(Some(Mutation::WrongRewardType));
+        (*source.mutation.lock().unwrap() = Some(Mutation::WrongRewardType));
         assert!(matches!(
-            build_cloud_engine_node_info_report_with_source(&request, &source),
+            build_cloud_engine_node_info_report_with_source(&request, &source).await,
             Err(IcHostError::InvalidSourceData { .. })
         ));
     }
 
-    #[test]
-    fn list_source_contract_rejects_inconsistent_scope_and_duplicate_rows() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn list_source_contract_rejects_inconsistent_scope_and_duplicate_rows() {
         let source = Fixture::default();
         for mutation in [
             Mutation::WrongSource,
@@ -168,9 +172,9 @@ mod host {
             Mutation::DuplicateNode,
             Mutation::UnknownListStatus,
         ] {
-            source.mutation.set(Some(mutation));
+            (*source.mutation.lock().unwrap() = Some(mutation));
             assert!(matches!(
-                build_cloud_engine_node_list_report_with_source(&list_request(None), &source),
+                build_cloud_engine_node_list_report_with_source(&list_request(None), &source).await,
                 Err(IcHostError::InvalidSourceData { .. })
             ));
         }
@@ -188,69 +192,79 @@ mod host {
 
     #[derive(Default)]
     struct Fixture {
-        list_calls: Cell<usize>,
-        mutation: Cell<Option<Mutation>>,
-        seen_provider: Cell<Option<&'static str>>,
+        list_calls: Mutex<usize>,
+        mutation: Mutex<Option<Mutation>>,
+        seen_provider: Mutex<Option<&'static str>>,
     }
 
     impl CloudEngineNodeSource for Fixture {
-        fn fetch_cloud_engine_node_list(
-            &self,
-            request: &IcSourceRequest,
-            node_provider_id: Option<&str>,
-        ) -> Result<CloudEngineNodeListSourceData, IcHostError> {
-            self.list_calls.set(self.list_calls.get() + 1);
-            self.seen_provider.set(node_provider_id.map(|_| PROVIDER));
-            let mut data = CloudEngineNodeListSourceData {
-                source: request.clone(),
-                requested_node_provider_id: node_provider_id.map(str::to_string),
-                node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
-                included_statuses: included_statuses(),
-                nodes: vec![
-                    {
-                        let mut row = node(NODE_B, "DOWN");
-                        row.cloud_engine_subnet_id = None;
-                        row
-                    },
-                    node(NODE_A, "UP"),
-                ],
-            };
-            match self.mutation.take() {
-                Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
-                Some(Mutation::WrongRewardType) => {
-                    data.node_reward_type = "Type3dot1".to_string();
-                    data.nodes[0].node_reward_type = "Type3dot1".to_string();
+        fn fetch_cloud_engine_node_list<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            node_provider_id: Option<&'a str>,
+        ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeListSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.list_calls.lock().unwrap() += 1;
+                (*self.seen_provider.lock().unwrap() = node_provider_id.map(|_| PROVIDER));
+                let mut data = CloudEngineNodeListSourceData {
+                    source: request.clone(),
+                    requested_node_provider_id: node_provider_id.map(str::to_string),
+                    node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+                    included_statuses: included_statuses(),
+                    nodes: vec![
+                        {
+                            let mut row = node(NODE_B, "DOWN");
+                            row.cloud_engine_subnet_id = None;
+                            row
+                        },
+                        node(NODE_A, "UP"),
+                    ],
+                };
+                let mutation = self.mutation.lock().unwrap().take();
+                match mutation {
+                    Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
+                    Some(Mutation::WrongRewardType) => {
+                        data.node_reward_type = "Type3dot1".to_string();
+                        data.nodes[0].node_reward_type = "Type3dot1".to_string();
+                    }
+                    Some(Mutation::WrongStatuses) => {
+                        data.included_statuses.pop();
+                    }
+                    Some(Mutation::DuplicateNode) => {
+                        data.nodes[1].node_id = data.nodes[0].node_id.clone();
+                    }
+                    Some(Mutation::UnknownListStatus) => {
+                        data.nodes[0].status = "FUTURE".to_string();
+                    }
+                    Some(Mutation::WrongProvider) => {
+                        data.nodes[0].node_provider_id = "aaaaa-aa".to_string();
+                    }
+                    None => {}
                 }
-                Some(Mutation::WrongStatuses) => {
-                    data.included_statuses.pop();
-                }
-                Some(Mutation::DuplicateNode) => {
-                    data.nodes[1].node_id = data.nodes[0].node_id.clone();
-                }
-                Some(Mutation::UnknownListStatus) => {
-                    data.nodes[0].status = "FUTURE".to_string();
-                }
-                Some(Mutation::WrongProvider) => {
-                    data.nodes[0].node_provider_id = "aaaaa-aa".to_string();
-                }
-                None => {}
-            }
-            Ok(data)
+                Ok(data)
+            })
         }
 
-        fn fetch_cloud_engine_node_info(
-            &self,
-            request: &IcSourceRequest,
-            node_id: &str,
-        ) -> Result<CloudEngineNodeInfoSourceData, IcHostError> {
-            let mut row = node(node_id, "UP");
-            if matches!(self.mutation.take(), Some(Mutation::WrongRewardType)) {
-                row.node_reward_type = "Type3dot1".to_string();
-            }
-            Ok(CloudEngineNodeInfoSourceData {
-                source: request.clone(),
-                node_id: node_id.to_string(),
-                node: row,
+        fn fetch_cloud_engine_node_info<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            node_id: &'a str,
+        ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeInfoSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                let mut row = node(node_id, "UP");
+                if matches!(
+                    self.mutation.lock().unwrap().take(),
+                    Some(Mutation::WrongRewardType)
+                ) {
+                    row.node_reward_type = "Type3dot1".to_string();
+                }
+                Ok(CloudEngineNodeInfoSourceData {
+                    source: request.clone(),
+                    node_id: node_id.to_string(),
+                    node: row,
+                })
             })
         }
     }

@@ -29,18 +29,18 @@ use crate::{
 use std::path::{Path, PathBuf};
 
 /// Build a proposal listing report from cache, refreshing when the cache is missing.
-pub(in crate::sns::report) fn build_sns_proposals_report_from_cache_or_refresh(
+pub(in crate::sns::report) async fn build_sns_proposals_report_from_cache_or_refresh(
     request: &SnsProposalsRequest,
     cache_root: &Path,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     let (cache_path, cache) =
-        load_or_refresh_sns_proposals_cache(request, cache_root, source, progress)?;
+        load_or_refresh_sns_proposals_cache(request, cache_root, source, progress).await?;
     Ok(sns_proposals_report_from_cache(request, cache_path, cache))
 }
 
-fn load_or_refresh_sns_proposals_cache(
+async fn load_or_refresh_sns_proposals_cache(
     request: &SnsProposalsRequest,
     cache_root: &Path,
     source: &dyn SnsProposalsSource,
@@ -59,7 +59,7 @@ fn load_or_refresh_sns_proposals_cache(
             SnsHostError::MissingProposalsCache { path } => Ok(CacheRefreshReason::Missing(path)),
             err => Err(err),
         },
-        |reason| {
+        async |reason| {
             let CacheRefreshReason::Missing(path) = reason else {
                 unreachable!("SNS proposal reads refresh only missing caches");
             };
@@ -73,9 +73,11 @@ fn load_or_refresh_sns_proposals_cache(
                 source,
                 progress,
             )
+            .await
             .map(|_| ())
         },
     )
+    .await
 }
 
 fn proposals_refresh_request_from_list_request(

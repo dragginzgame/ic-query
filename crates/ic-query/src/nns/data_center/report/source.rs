@@ -16,28 +16,31 @@ use crate::{
 /// Source contract for fetching complete NNS data-center list reports.
 ///
 
-pub trait NnsDataCenterSource {
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError>;
+pub trait NnsDataCenterSource: Sync {
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>;
 }
 
 impl NnsDataCenterSource for LiveNnsSource {
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-        let fetch_request = mainnet_registry_fetch_request(request, |network| {
-            NnsDataCenterHostError::UnsupportedNetwork { network }
-        })?;
-        Ok(data_center_report_from_list(
-            fetch_mainnet_data_center_list(&fetch_request)?,
-        ))
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
+    {
+        Box::pin(async move {
+            let fetch_request = mainnet_registry_fetch_request(request, |network| {
+                NnsDataCenterHostError::UnsupportedNetwork { network }
+            })?;
+            Ok(data_center_report_from_list(
+                fetch_mainnet_data_center_list(&fetch_request).await?,
+            ))
+        })
     }
 }
 
-pub(super) fn fetch_nns_data_center_list_report_with_source(
+pub(super) async fn fetch_nns_data_center_list_report_with_source(
     network: &str,
     source_endpoint: &str,
     now_unix_secs: u64,
@@ -48,8 +51,9 @@ pub(super) fn fetch_nns_data_center_list_report_with_source(
         source_endpoint,
         now_unix_secs,
         super::enforce_mainnet_network,
-        |request| source.fetch_data_center_list_report(request),
+        async |request| source.fetch_data_center_list_report(request).await,
     )
+    .await
 }
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {

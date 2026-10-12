@@ -31,68 +31,73 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 
-pub fn build_icrc_token_report(request: &IcrcLedgerRequest) -> Result<IcrcTokenReport, IcrcError> {
-    build_icrc_token_report_with_source(request, &LiveIcrcSource)
+pub async fn build_icrc_token_report(
+    request: &IcrcLedgerRequest,
+) -> Result<IcrcTokenReport, IcrcError> {
+    build_icrc_token_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_balance_report(
+pub async fn build_icrc_balance_report(
     request: &IcrcBalanceRequest,
 ) -> Result<IcrcBalanceReport, IcrcError> {
-    build_icrc_balance_report_with_source(request, &LiveIcrcSource)
+    build_icrc_balance_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_allowance_report(
+pub async fn build_icrc_allowance_report(
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
-    build_icrc_allowance_report_with_source(request, &LiveIcrcSource)
+    build_icrc_allowance_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
 /// Resolves an ICRC index and builds one account-transaction page.
-pub fn build_icrc_account_transaction_page_report(
+pub async fn build_icrc_account_transaction_page_report(
     request: &IcrcAccountTransactionPageRequest,
 ) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError> {
-    build_icrc_account_transaction_page_report_with_source(request, &LiveIcrcSource)
+    build_icrc_account_transaction_page_report_with_source(request, &LiveIcrcSource::default())
+        .await
 }
 
-pub fn build_icrc_index_report(request: &IcrcLedgerRequest) -> Result<IcrcIndexReport, IcrcError> {
-    build_icrc_index_report_with_source(request, &LiveIcrcSource)
+pub async fn build_icrc_index_report(
+    request: &IcrcLedgerRequest,
+) -> Result<IcrcIndexReport, IcrcError> {
+    build_icrc_index_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_transactions_report(
+pub async fn build_icrc_transactions_report(
     request: &IcrcTransactionsRequest,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
-    build_icrc_transactions_report_with_source(request, &LiveIcrcSource)
+    build_icrc_transactions_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_block_types_report(
+pub async fn build_icrc_block_types_report(
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
-    build_icrc_block_types_report_with_source(request, &LiveIcrcSource)
+    build_icrc_block_types_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_archives_report(
+pub async fn build_icrc_archives_report(
     request: &IcrcArchivesRequest,
 ) -> Result<IcrcArchivesReport, IcrcError> {
-    build_icrc_archives_report_with_source(request, &LiveIcrcSource)
+    build_icrc_archives_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_tip_certificate_report(
+pub async fn build_icrc_tip_certificate_report(
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
-    build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource)
+    build_icrc_tip_certificate_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_capabilities_report(
+pub async fn build_icrc_capabilities_report(
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
-    build_icrc_capabilities_report_with_source(request, &LiveIcrcSource)
+    build_icrc_capabilities_report_with_source(request, &LiveIcrcSource::default()).await
 }
 
-pub fn build_icrc_token_report_with_source(
+pub async fn build_icrc_token_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcTokenSource,
 ) -> Result<IcrcTokenReport, IcrcError> {
-    let token = source.fetch_token(request)?;
+    let token = source.fetch_token(request).await?;
     Ok(IcrcTokenReport {
         schema_version: ICRC_TOKEN_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),
@@ -111,7 +116,7 @@ pub fn build_icrc_token_report_with_source(
     })
 }
 
-pub fn build_icrc_balance_report_with_source(
+pub async fn build_icrc_balance_report_with_source(
     request: &IcrcBalanceRequest,
     source: &dyn IcrcBalanceSource,
 ) -> Result<IcrcBalanceReport, IcrcError> {
@@ -119,7 +124,7 @@ pub fn build_icrc_balance_report_with_source(
         subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
         ..request.clone()
     };
-    let balance = source.fetch_balance(&request)?;
+    let balance = source.fetch_balance(&request).await?;
     Ok(IcrcBalanceReport {
         schema_version: ICRC_BALANCE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
@@ -134,7 +139,7 @@ pub fn build_icrc_balance_report_with_source(
     })
 }
 
-pub fn build_icrc_allowance_report_with_source(
+pub async fn build_icrc_allowance_report_with_source(
     request: &IcrcAllowanceRequest,
     source: &dyn IcrcAllowanceSource,
 ) -> Result<IcrcAllowanceReport, IcrcError> {
@@ -147,7 +152,7 @@ pub fn build_icrc_allowance_report_with_source(
         )?,
         ..request.clone()
     };
-    let allowance = source.fetch_allowance(&request)?;
+    let allowance = source.fetch_allowance(&request).await?;
     Ok(IcrcAllowanceReport {
         schema_version: ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
@@ -166,7 +171,7 @@ pub fn build_icrc_allowance_report_with_source(
 }
 
 /// Builds one account-transaction page from a caller-supplied index capability.
-pub fn build_icrc_account_transaction_page_report_with_source(
+pub async fn build_icrc_account_transaction_page_report_with_source(
     request: &IcrcAccountTransactionPageRequest,
     source: &dyn IcrcAccountTransactionPageSource,
 ) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError> {
@@ -199,7 +204,7 @@ pub fn build_icrc_account_transaction_page_report_with_source(
             .transpose()?,
         ..request.clone()
     };
-    let transactions = source.fetch_account_transaction_page(&request)?;
+    let transactions = source.fetch_account_transaction_page(&request).await?;
     let actual_index =
         principal_from_text::<IcrcError>(&transactions.index_canister_id, "index_canister_id")?
             .to_text();
@@ -246,11 +251,11 @@ pub fn build_icrc_account_transaction_page_report_with_source(
     })
 }
 
-pub fn build_icrc_index_report_with_source(
+pub async fn build_icrc_index_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcIndexSource,
 ) -> Result<IcrcIndexReport, IcrcError> {
-    let index = source.fetch_index(request)?;
+    let index = source.fetch_index(request).await?;
     Ok(IcrcIndexReport {
         schema_version: ICRC_INDEX_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),
@@ -262,11 +267,11 @@ pub fn build_icrc_index_report_with_source(
     })
 }
 
-pub fn build_icrc_transactions_report_with_source(
+pub async fn build_icrc_transactions_report_with_source(
     request: &IcrcTransactionsRequest,
     source: &dyn IcrcTransactionsSource,
 ) -> Result<IcrcTransactionsReport, IcrcError> {
-    let transactions = source.fetch_transactions(request)?;
+    let transactions = source.fetch_transactions(request).await?;
     super::fetch::validate_transactions_data(request, &transactions)?;
     Ok(IcrcTransactionsReport {
         schema_version: ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
@@ -285,11 +290,11 @@ pub fn build_icrc_transactions_report_with_source(
     })
 }
 
-pub fn build_icrc_block_types_report_with_source(
+pub async fn build_icrc_block_types_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcBlockTypesSource,
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
-    let block_types = source.fetch_block_types(request)?;
+    let block_types = source.fetch_block_types(request).await?;
     Ok(IcrcBlockTypesReport {
         schema_version: ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),
@@ -300,7 +305,7 @@ pub fn build_icrc_block_types_report_with_source(
     })
 }
 
-pub fn build_icrc_archives_report_with_source(
+pub async fn build_icrc_archives_report_with_source(
     request: &IcrcArchivesRequest,
     source: &dyn IcrcArchivesSource,
 ) -> Result<IcrcArchivesReport, IcrcError> {
@@ -315,7 +320,7 @@ pub fn build_icrc_archives_report_with_source(
             .transpose()?,
         ..request.clone()
     };
-    let archives = source.fetch_archives(&request)?;
+    let archives = source.fetch_archives(&request).await?;
     Ok(IcrcArchivesReport {
         schema_version: ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id,
@@ -327,11 +332,11 @@ pub fn build_icrc_archives_report_with_source(
     })
 }
 
-pub fn build_icrc_tip_certificate_report_with_source(
+pub async fn build_icrc_tip_certificate_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcTipCertificateSource,
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
-    let certificate = source.fetch_tip_certificate(request)?;
+    let certificate = source.fetch_tip_certificate(request).await?;
     Ok(IcrcTipCertificateReport {
         schema_version: ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),
@@ -346,11 +351,11 @@ pub fn build_icrc_tip_certificate_report_with_source(
     })
 }
 
-pub fn build_icrc_capabilities_report_with_source(
+pub async fn build_icrc_capabilities_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcCapabilitiesSource,
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
-    let capabilities = source.fetch_capabilities(request)?;
+    let capabilities = source.fetch_capabilities(request).await?;
     Ok(IcrcCapabilitiesReport {
         schema_version: ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),

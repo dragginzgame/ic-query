@@ -14,10 +14,7 @@ use super::{
         ListDomainsResult,
     },
 };
-use crate::{
-    agent::build_ic_agent, runtime::block_on_current_thread,
-    subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::{agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES, subnet_catalog::format_utc_timestamp_secs};
 use candid::{CandidType, Principal};
 use serde::Deserialize;
 
@@ -87,19 +84,19 @@ impl CloudEngineSourceRequest {
 /// Source capabilities for public CloudEngine operator and marketplace data.
 ///
 
-pub trait CloudEngineSource {
+pub trait CloudEngineSource: Sync {
     /// Resolve one Subnet and fetch its public operator details when registered.
-    fn fetch_operator(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError>;
+    fn fetch_operator<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>;
 
     /// Fetch the public network fee and complete bounded marketplace price response.
-    fn fetch_prices(
-        &self,
-        request: &CloudEngineSourceRequest,
-    ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError>;
+    fn fetch_prices<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>;
 }
 
 ///
@@ -108,13 +105,16 @@ pub trait CloudEngineSource {
 /// Focused source capability for one public Subnet-to-operator lookup without details.
 ///
 
-pub trait CloudEngineOperatorBindingSource {
+pub trait CloudEngineOperatorBindingSource: Sync {
     /// Resolve exactly one Subnet through the CloudEngine control plane.
-    fn fetch_operator_binding(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>;
+    fn fetch_operator_binding<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>,
+    >;
 }
 
 ///
@@ -123,46 +123,60 @@ pub trait CloudEngineOperatorBindingSource {
 /// Built-in live adapter for the mainnet CloudEngine control-plane canister.
 ///
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct LiveCloudEngineSource;
+#[derive(Clone, Debug, Default)]
+pub struct LiveCloudEngineSource {
+    agent: crate::agent::EndpointAgent,
+}
 
 impl CloudEngineSource for LiveCloudEngineSource {
-    fn fetch_operator(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
-        enforce_mainnet_network(&request.network)?;
-        let subnet = parse_principal("subnet_id", subnet_id)?;
-        block_on_current_thread(fetch_live_operator(request, subnet))?
+    fn fetch_operator<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>
+    {
+        Box::pin(async move {
+            enforce_mainnet_network(&request.network)?;
+            let subnet = parse_principal("subnet_id", subnet_id)?;
+            fetch_live_operator(self, request, subnet).await
+        })
     }
 
-    fn fetch_prices(
-        &self,
-        request: &CloudEngineSourceRequest,
-    ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
-        enforce_mainnet_network(&request.network)?;
-        block_on_current_thread(fetch_live_prices(request))?
+    fn fetch_prices<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
+    {
+        Box::pin(async move {
+            enforce_mainnet_network(&request.network)?;
+            fetch_live_prices(self, request).await
+        })
     }
 }
 
 impl CloudEngineOperatorBindingSource for LiveCloudEngineSource {
-    fn fetch_operator_binding(
-        &self,
-        request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
-        enforce_mainnet_network(&request.network)?;
-        let subnet = parse_principal("subnet_id", subnet_id)?;
-        block_on_current_thread(fetch_live_operator_binding(request, subnet))?
+    fn fetch_operator_binding<'a>(
+        &'a self,
+        request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>,
+    > {
+        Box::pin(async move {
+            enforce_mainnet_network(&request.network)?;
+            let subnet = parse_principal("subnet_id", subnet_id)?;
+            fetch_live_operator_binding(self, request, subnet).await
+        })
     }
 }
 
 async fn fetch_live_operator_binding(
+    source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
     subnet: Principal,
 ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
-    let (agent, engine_canister) = live_agent_and_canister(request)?;
+    let (agent, engine_canister) = live_agent_and_canister(source, request)?;
     let operator_canister_id = resolve_operator(&agent, &engine_canister, subnet).await?;
     Ok(CloudEngineOperatorBindingSourceData {
         source: request.clone(),
@@ -173,10 +187,11 @@ async fn fetch_live_operator_binding(
 }
 
 async fn fetch_live_operator(
+    source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
     subnet: Principal,
 ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
-    let (agent, engine_canister) = live_agent_and_canister(request)?;
+    let (agent, engine_canister) = live_agent_and_canister(source, request)?;
     let resolved = resolve_operator(&agent, &engine_canister, subnet).await?;
     let Some(operator) = resolved else {
         return Ok(CloudEngineOperatorSourceData {
@@ -260,9 +275,10 @@ async fn resolve_operator(
 }
 
 async fn fetch_live_prices(
+    source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
 ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
-    let (agent, engine_canister) = live_agent_and_canister(request)?;
+    let (agent, engine_canister) = live_agent_and_canister(source, request)?;
     let empty_arg = empty_args()?;
     let network_fee: f64 = query_candid(
         &agent,
@@ -293,20 +309,23 @@ async fn fetch_live_prices(
 }
 
 fn live_agent_and_canister(
+    source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
 ) -> Result<(ic_agent::Agent, Principal), CloudEngineHostError> {
-    let agent = build_ic_agent(&request.endpoint, |reason| {
-        CloudEngineHostError::AgentBuild {
+    let agent = source.agent.get(
+        &request.endpoint,
+        MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+        |reason| CloudEngineHostError::AgentBuild {
             endpoint: request.endpoint.clone(),
             reason,
-        }
-    })?;
+        },
+    )?;
     let canister = Principal::from_text(MAINNET_CLOUD_ENGINE_CANISTER_ID).map_err(|error| {
         CloudEngineHostError::CanisterId {
             reason: error.to_string(),
         }
     })?;
-    Ok((agent, canister))
+    Ok((agent.clone(), canister))
 }
 
 fn parse_principal(field: &'static str, value: &str) -> Result<Principal, CloudEngineHostError> {

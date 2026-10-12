@@ -42,34 +42,36 @@ use std::time::{Duration, Instant};
 const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 /// Force a complete live refresh and atomically replace its cache.
-pub fn refresh_icrc_account_transaction_cache(
+pub async fn refresh_icrc_account_transaction_cache(
     request: &IcrcAccountTransactionRefreshRequest,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    refresh_icrc_account_transaction_cache_with_source(request, &LiveIcrcSource)
+    refresh_icrc_account_transaction_cache_with_source(request, &LiveIcrcSource::default()).await
 }
 
 /// Force a complete live refresh while emitting structured progress.
-pub fn refresh_icrc_account_transaction_cache_with_progress(
+pub async fn refresh_icrc_account_transaction_cache_with_progress(
     request: &IcrcAccountTransactionRefreshRequest,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     refresh_icrc_account_transaction_cache_with_source_and_progress(
         request,
-        &LiveIcrcSource,
+        &LiveIcrcSource::default(),
         progress,
     )
+    .await
 }
 
 /// Refresh with a caller-supplied complete-history source.
-pub fn refresh_icrc_account_transaction_cache_with_source(
+pub async fn refresh_icrc_account_transaction_cache_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     let mut progress = IgnoreQueryProgress;
     refresh_icrc_account_transaction_cache_with_source_and_progress(request, source, &mut progress)
+        .await
 }
 
-fn refresh_icrc_account_transaction_cache_with_source_and_progress(
+async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
     progress: &mut (dyn QueryProgress + Send),
@@ -87,12 +89,13 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         cache_operation_error,
-        |state| {
+        async |state| {
             run_snapshot_refresh_with_attempts(
                 || write_starting_attempt(&paths.refresh_attempt_path, &request),
-                || {
-                    let complete =
-                        source.fetch_complete_account_transactions(&request, progress)?;
+                async || {
+                    let complete = source
+                        .fetch_complete_account_transactions(&request, progress)
+                        .await?;
                     publish_complete_snapshot(
                         &request,
                         &paths,
@@ -103,19 +106,25 @@ fn refresh_icrc_account_transaction_cache_with_source_and_progress(
                 },
                 |error| write_failed_attempt(&paths.refresh_attempt_path, &request, error),
             )
+            .await
         },
     )
+    .await
 }
 
 /// Load a complete cache, refreshing when it is missing or invalid.
-pub fn load_or_refresh_missing_icrc_account_transactions(
+pub async fn load_or_refresh_missing_icrc_account_transactions(
     request: &IcrcAccountTransactionRefreshRequest,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    load_or_refresh_missing_icrc_account_transactions_with_source(request, &LiveIcrcSource)
+    load_or_refresh_missing_icrc_account_transactions_with_source(
+        request,
+        &LiveIcrcSource::default(),
+    )
+    .await
 }
 
 /// Load a complete cache or replace missing or invalid content with the supplied source.
-pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
+pub async fn load_or_refresh_missing_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
@@ -124,27 +133,29 @@ pub fn load_or_refresh_missing_icrc_account_transactions_with_source(
         || load_cached_icrc_account_transactions(&request.cache),
         |_| false,
         |error| account_transaction_cache_refresh_reason(error, &expected_path),
-        |_| {
-            refresh_icrc_account_transaction_cache_with_source(request, source)?;
+        async |_| {
+            refresh_icrc_account_transaction_cache_with_source(request, source).await?;
             Ok(())
         },
     )
+    .await
 }
 
 /// Load a complete cache, refreshing when it is missing, invalid, or stale.
-pub fn load_or_refresh_stale_icrc_account_transactions(
+pub async fn load_or_refresh_stale_icrc_account_transactions(
     request: &IcrcAccountTransactionRefreshRequest,
     stale_after_seconds: u64,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     load_or_refresh_stale_icrc_account_transactions_with_source(
         request,
         stale_after_seconds,
-        &LiveIcrcSource,
+        &LiveIcrcSource::default(),
     )
+    .await
 }
 
 /// Load a complete cache or use the supplied source when it is unusable or stale.
-pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
+pub async fn load_or_refresh_stale_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     stale_after_seconds: u64,
     source: &dyn IcrcAccountTransactionCollectionSource,
@@ -160,11 +171,12 @@ pub fn load_or_refresh_stale_icrc_account_transactions_with_source(
             )
         },
         |error| account_transaction_cache_refresh_reason(error, &expected_path),
-        |_| {
-            refresh_icrc_account_transaction_cache_with_source(request, source)?;
+        async |_| {
+            refresh_icrc_account_transaction_cache_with_source(request, source).await?;
             Ok(())
         },
     )
+    .await
 }
 
 fn publish_complete_snapshot(

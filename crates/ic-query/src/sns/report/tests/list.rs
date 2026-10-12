@@ -1,16 +1,12 @@
 use super::{fixtures::*, *};
 use crate::QueryProgressEvent;
-use std::{
-    cell::{Cell, RefCell},
-    fs,
-    path::PathBuf,
-    time::SystemTime,
-};
+use std::{fs, path::PathBuf, sync::Mutex, time::SystemTime};
 
-#[test]
-fn sns_list_report_uses_names_and_compact_ids_by_default() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     let report =
         build_sns_list_report_with_source(&list_request(false), &FixtureSnsDiscoverySource)
+            .await
             .expect("sns list report");
     let text = sns_list_report_text(&report);
 
@@ -54,8 +50,8 @@ fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(json["sns_instances"][0]["lifecycle_name"], "committed");
 }
 
-#[test]
-fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
     let root = temp_catalog_root("ic-query-sns-catalog-policy");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -67,6 +63,7 @@ fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
         &source,
         &mut progress,
     )
+    .await
     .expect("missing catalog refresh");
     let second = build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
@@ -74,15 +71,16 @@ fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
         &source,
         &mut progress,
     )
+    .await
     .expect("fresh catalog read");
 
     assert_eq!(first.data_source.as_str(), "cache");
     assert_eq!(first.cache_complete, Some(true));
     assert!(sns_list_report_text(&first).contains("cache_complete: yes"));
     assert_eq!(second.data_source.as_str(), "cache");
-    assert_eq!(source.inventory.get(), 1);
-    assert_eq!(source.metadata.get(), 1);
-    assert_eq!(source.lifecycles.get(), 1);
+    assert_eq!((*source.inventory.lock().unwrap()), 1);
+    assert_eq!((*source.metadata.lock().unwrap()), 1);
+    assert_eq!((*source.lifecycles.lock().unwrap()), 1);
 
     let mut stale_request = request;
     stale_request.now_unix_secs += DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS + 1;
@@ -92,16 +90,17 @@ fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
         &source,
         &mut progress,
     )
+    .await
     .expect("stale catalog refresh");
 
-    assert_eq!(source.inventory.get(), 2);
-    assert_eq!(source.metadata.get(), 2);
-    assert_eq!(source.lifecycles.get(), 2);
+    assert_eq!((*source.inventory.lock().unwrap()), 2);
+    assert_eq!((*source.metadata.lock().unwrap()), 2);
+    assert_eq!((*source.lifecycles.lock().unwrap()), 2);
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let root = temp_catalog_root("ic-query-invalid-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -112,6 +111,7 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
         &source,
         &mut progress,
     )
+    .await
     .expect("initial catalog");
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     fs::write(&path, "not-json").expect("corrupt catalog");
@@ -131,6 +131,7 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
         &source,
         &mut recording_progress,
     )
+    .await
     .expect("invalid cache refreshes");
 
     assert!(matches!(
@@ -144,9 +145,9 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
             && source_endpoint == &request.source_endpoint
     ));
     assert_eq!(report.data_source.as_str(), "cache");
-    assert_eq!(source.inventory.get(), 2);
-    assert_eq!(source.metadata.get(), 2);
-    assert_eq!(source.lifecycles.get(), 2);
+    assert_eq!((*source.inventory.lock().unwrap()), 2);
+    assert_eq!((*source.metadata.lock().unwrap()), 2);
+    assert_eq!((*source.lifecycles.lock().unwrap()), 2);
     assert_ne!(
         fs::read_to_string(path).expect("read refreshed cache"),
         "not-json"
@@ -154,8 +155,8 @@ fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_list_refreshes_invalid_catalog_content() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_refreshes_invalid_catalog_content() {
     for (case, mutate) in [
         (
             "schema",
@@ -208,6 +209,7 @@ fn sns_list_refreshes_invalid_catalog_content() {
             &source,
             &mut progress,
         )
+        .await
         .expect("initial catalog");
 
         let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
@@ -228,7 +230,7 @@ fn sns_list_refreshes_invalid_catalog_content() {
                 matches!(error, SnsHostError::InvalidCache { path: actual, .. } if actual == path)
             );
         }
-        assert_eq!(source.inventory.get(), 1);
+        assert_eq!((*source.inventory.lock().unwrap()), 1);
 
         build_sns_list_report_from_cache_or_refresh_with_source(
             &request,
@@ -236,16 +238,17 @@ fn sns_list_refreshes_invalid_catalog_content() {
             &source,
             &mut progress,
         )
+        .await
         .expect("incompatible catalog refreshes");
-        assert_eq!(source.inventory.get(), 2);
-        assert_eq!(source.metadata.get(), 2);
-        assert_eq!(source.lifecycles.get(), 2);
+        assert_eq!((*source.inventory.lock().unwrap()), 2);
+        assert_eq!((*source.metadata.lock().unwrap()), 2);
+        assert_eq!((*source.lifecycles.lock().unwrap()), 2);
         let _ = fs::remove_dir_all(root);
     }
 }
 
-#[test]
-fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
     let root = temp_catalog_root("ic-query-sns-catalog-views");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -256,6 +259,7 @@ fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
         &source,
         &mut progress,
     )
+    .await
     .expect("create complete catalog");
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     let snapshot = fs::read(&path).expect("read complete catalog");
@@ -270,7 +274,9 @@ fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
             view.all_lifecycles = all_lifecycles;
             view.sort = sort;
             view.verbose = true;
-            let live = build_sns_list_report_with_source(&view, &source).expect("live view");
+            let live = build_sns_list_report_with_source(&view, &source)
+                .await
+                .expect("live view");
             let cached = build_sns_list_report_from_cache(&view, &root).expect("cached view");
 
             assert_eq!(cached.sns_instances, live.sns_instances);
@@ -293,8 +299,8 @@ fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
     let root = temp_catalog_root("ic-query-sns-catalog-capacity");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -305,6 +311,7 @@ fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
         &source,
         &mut progress,
     )
+    .await
     .unwrap();
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     let mut invalid: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -323,6 +330,7 @@ fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
         &source,
         &mut |event| events.push(event),
     )
+    .await
     .unwrap();
     assert_eq!(refreshed.catalog_sns_count, 2);
     assert_eq!(refreshed.sns_count, 1);
@@ -333,8 +341,8 @@ fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_list_refreshes_future_dated_catalog() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_refreshes_future_dated_catalog() {
     let root = temp_catalog_root("ic-query-future-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
@@ -345,6 +353,7 @@ fn sns_list_refreshes_future_dated_catalog() {
         &source,
         &mut progress,
     )
+    .await
     .expect("initial catalog");
 
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
@@ -365,20 +374,21 @@ fn sns_list_refreshes_future_dated_catalog() {
         &source,
         &mut progress,
     )
+    .await
     .expect("future cache refreshes");
 
     assert_eq!(
         report.fetched_at,
         format_utc_timestamp_secs(request.now_unix_secs)
     );
-    assert_eq!(source.inventory.get(), 2);
-    assert_eq!(source.metadata.get(), 2);
-    assert_eq!(source.lifecycles.get(), 2);
+    assert_eq!((*source.inventory.lock().unwrap()), 2);
+    assert_eq!((*source.metadata.lock().unwrap()), 2);
+    assert_eq!((*source.lifecycles.lock().unwrap()), 2);
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn failed_invalid_catalog_refresh_preserves_original_file() {
+#[tokio::test(flavor = "current_thread")]
+async fn failed_invalid_catalog_refresh_preserves_original_file() {
     let root = temp_catalog_root("ic-query-failed-invalid-sns-catalog-refresh");
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -388,6 +398,7 @@ fn failed_invalid_catalog_refresh_preserves_original_file() {
         &CountingDiscoverySource::default(),
         &mut progress,
     )
+    .await
     .expect("initial catalog");
 
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
@@ -398,6 +409,7 @@ fn failed_invalid_catalog_refresh_preserves_original_file() {
         &MutatingInventorySource(invalid_inventory_root),
         &mut progress,
     )
+    .await
     .expect_err("failed refresh remains visible");
 
     assert!(matches!(error, SnsHostError::InvalidSourceData { .. }));
@@ -408,8 +420,8 @@ fn failed_invalid_catalog_refresh_preserves_original_file() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failures() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failures() {
     for (mutate, expected_reason) in [
         (
             wrong_inventory_endpoint as fn(&mut MainnetSnsInventory),
@@ -437,8 +449,10 @@ fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failures() {
         let source = MutatingInventorySource(mutate);
         let errors = [
             build_sns_list_report_with_source(&list_request(false), &source)
+                .await
                 .expect_err("invalid custom SNS inventory must fail"),
             build_sns_info_report_with_source(&info_request("1"), &source)
+                .await
                 .expect_err("invalid targeted SNS inventory must fail"),
         ];
         for error in errors {
@@ -453,8 +467,8 @@ fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failures() {
     }
 }
 
-#[test]
-fn sns_list_report_rejects_inexact_metadata_results() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_report_rejects_inexact_metadata_results() {
     for (mutate, expected_reason) in [
         (
             remove_metadata as fn(&mut Vec<MainnetSnsMetadata>),
@@ -472,6 +486,7 @@ fn sns_list_report_rejects_inexact_metadata_results() {
             &list_request(false),
             &MutatingMetadataSource(mutate),
         )
+        .await
         .expect_err("inexact custom SNS metadata must fail");
 
         assert!(matches!(
@@ -484,8 +499,8 @@ fn sns_list_report_rejects_inexact_metadata_results() {
     }
 }
 
-#[test]
-fn sns_list_report_rejects_inexact_lifecycle_results() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_report_rejects_inexact_lifecycle_results() {
     for (mutate, expected_reason) in [
         (
             remove_lifecycle as fn(&mut Vec<MainnetSnsLifecycle>),
@@ -511,6 +526,7 @@ fn sns_list_report_rejects_inexact_lifecycle_results() {
             &list_request(false),
             &MutatingLifecycleSource(mutate),
         )
+        .await
         .expect_err("inexact custom SNS lifecycle must fail");
 
         assert!(matches!(
@@ -523,16 +539,17 @@ fn sns_list_report_rejects_inexact_lifecycle_results() {
     }
 }
 
-#[test]
-fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let root = temp_catalog_root("ic-query-sns-unknown-lifecycle");
     let source = MutatingLifecycleSource(|rows| {
         rows[0].lifecycle = Some(99);
         rows[0].lifecycle_name = Some("unknown".to_string());
     });
     let request = list_request(false).with_all_lifecycles(true);
-    let live =
-        build_sns_list_report_with_source(&request, &source).expect("live unknown lifecycle");
+    let live = build_sns_list_report_with_source(&request, &source)
+        .await
+        .expect("live unknown lifecycle");
     let mut progress = crate::progress::IgnoreQueryProgress;
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
@@ -540,6 +557,7 @@ fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
         &source,
         &mut progress,
     )
+    .await
     .expect("publish unknown lifecycle");
     let cached = build_sns_list_report_from_cache(&request, &root).expect("read unknown lifecycle");
     assert_eq!(cached.sns_instances, live.sns_instances);
@@ -563,6 +581,7 @@ fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
         &invalid_source,
         &mut progress,
     )
+    .await
     .expect_err("missing source lifecycle must fail refresh");
     assert!(matches!(
         error,
@@ -575,13 +594,15 @@ fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
     let source = MutatingLifecycleSource(lifecycle_query_error);
     let default_report = build_sns_list_report_with_source(&list_request(false), &source)
+        .await
         .expect("default list with lifecycle error");
     let all_report =
         build_sns_list_report_with_source(&list_request(false).with_all_lifecycles(true), &source)
+            .await
             .expect("all list with lifecycle error");
 
     assert_eq!(default_report.catalog_sns_count, 1);
@@ -597,9 +618,10 @@ fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
     assert!(sns_list_report_text(&all_report).contains("error"));
 }
 
-#[test]
-fn sns_list_report_verbose_text_keeps_full_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_report_verbose_text_keeps_full_ids() {
     let report = build_sns_list_report_with_source(&list_request(true), &FixtureSnsDiscoverySource)
+        .await
         .expect("sns list report");
     let text = sns_list_report_text(&report);
 
@@ -608,9 +630,10 @@ fn sns_list_report_verbose_text_keeps_full_ids() {
     assert!(text.contains(GOVERNANCE_A));
 }
 
-#[test]
-fn sns_info_resolves_list_id() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_info_resolves_list_id() {
     let report = build_sns_info_report_with_source(&info_request("1"), &FixtureSnsDiscoverySource)
+        .await
         .expect("sns info report");
     let text = sns_info_report_text(&report);
 
@@ -623,23 +646,26 @@ fn sns_info_resolves_list_id() {
     assert!(text.contains("root_canister_id: be2us-64aaa-aaaaa-qaabq-cai"));
 }
 
-#[test]
-fn sns_info_resolves_root_principal() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_info_resolves_root_principal() {
     let report =
         build_sns_info_report_with_source(&info_request(ROOT_A), &FixtureSnsDiscoverySource)
+            .await
             .expect("sns info report");
 
     assert_eq!(report.id, 1);
     assert_eq!(report.root_canister_id, ROOT_A);
 }
 
-#[test]
-fn sns_list_ids_follow_source_order() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_ids_follow_source_order() {
     let request = list_request(false).with_all_lifecycles(true);
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsDiscoverySource)
+        .await
         .expect("sns list report");
     let info =
         build_sns_info_report_with_source(&info_request("1"), &UnsortedFixtureSnsDiscoverySource)
+            .await
             .expect("sns info report");
 
     assert_eq!(report.sns_instances[0].id, 1);
@@ -651,17 +677,19 @@ fn sns_list_ids_follow_source_order() {
     assert_eq!(info.root_canister_id, ROOT_A);
 }
 
-#[test]
-fn sns_list_name_sort_keeps_stable_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_name_sort_keeps_stable_ids() {
     let mut request = list_request(false);
     request.all_lifecycles = true;
     request.sort = SnsListSort::Name;
 
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsDiscoverySource)
+        .await
         .expect("sns list report");
     let text = sns_list_report_text(&report);
     let info =
         build_sns_info_report_with_source(&info_request("1"), &UnsortedFixtureSnsDiscoverySource)
+            .await
             .expect("sns info report");
 
     assert_eq!(report.sort, "name");
@@ -674,15 +702,17 @@ fn sns_list_name_sort_keeps_stable_ids() {
     assert_eq!(info.root_canister_id, ROOT_A);
 }
 
-#[test]
-fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids() {
     let default_report =
         build_sns_list_report_with_source(&list_request(false), &UnsortedFixtureSnsDiscoverySource)
+            .await
             .expect("default SNS list report");
     let all_report = build_sns_list_report_with_source(
         &list_request(false).with_all_lifecycles(true),
         &UnsortedFixtureSnsDiscoverySource,
     )
+    .await
     .expect("all-lifecycle SNS list report");
 
     assert_eq!(default_report.catalog_sns_count, 2);
@@ -703,18 +733,20 @@ fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids() {
     assert!(sns_list_report_text(&all_report).contains("aborted"));
 }
 
-#[test]
-fn sns_list_surfaces_metadata_fallbacks() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_surfaces_metadata_fallbacks() {
     let report = build_sns_list_report_with_source(
         &list_request(true),
         &MetadataErrorFixtureSnsDiscoverySource,
     )
+    .await
     .expect("sns list report");
     let text = sns_list_report_text(&report);
     let info = build_sns_info_report_with_source(
         &info_request("1"),
         &MetadataErrorFixtureSnsDiscoverySource,
     )
+    .await
     .expect("sns info report");
     let info_text = sns_info_report_text(&info);
 
@@ -745,13 +777,14 @@ fn sns_list_surfaces_metadata_fallbacks() {
     assert!(!other_error_text.contains("get_metadata: timed out"));
 }
 
-#[test]
-fn direct_lookup_enriches_only_the_resolved_sns() {
+#[tokio::test(flavor = "current_thread")]
+async fn direct_lookup_enriches_only_the_resolved_sns() {
     for input in ["2", ROOT_B] {
         let source = RecordingDiscoverySource::default();
         let request = info_request(input);
-        let report =
-            build_sns_info_report_with_source(&request, &source).expect("targeted SNS info report");
+        let report = build_sns_info_report_with_source(&request, &source)
+            .await
+            .expect("targeted SNS info report");
 
         assert_eq!(report.id, 2);
         assert_eq!(report.root_canister_id, ROOT_B);
@@ -764,36 +797,38 @@ fn direct_lookup_enriches_only_the_resolved_sns() {
             crate::subnet_catalog::format_utc_timestamp_secs(request.now_unix_secs)
         );
         assert_eq!(
-            source.metadata_targets.borrow().as_slice(),
+            source.metadata_targets.lock().unwrap().as_slice(),
             &[vec![report.root_canister_id]]
         );
     }
 }
 
-#[test]
-fn list_enriches_the_complete_inventory() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_enriches_the_complete_inventory() {
     let source = RecordingDiscoverySource::default();
 
     let report = build_sns_list_report_with_source(&list_request(false), &source)
+        .await
         .expect("complete SNS list report");
 
     assert_eq!(report.catalog_sns_count, 2);
     assert_eq!(report.sns_count, 1);
     assert_eq!(
-        source.metadata_targets.borrow().as_slice(),
+        source.metadata_targets.lock().unwrap().as_slice(),
         &[vec![ROOT_A.to_string(), ROOT_B.to_string()]]
     );
     assert_eq!(
-        source.lifecycle_targets.borrow().as_slice(),
+        source.lifecycle_targets.lock().unwrap().as_slice(),
         &[vec![ROOT_A.to_string(), ROOT_B.to_string()]]
     );
 }
 
-#[test]
-fn unknown_lookup_does_not_request_metadata() {
+#[tokio::test(flavor = "current_thread")]
+async fn unknown_lookup_does_not_request_metadata() {
     let source = RecordingDiscoverySource::default();
 
     let error = build_sns_info_report_with_source(&info_request("3"), &source)
+        .await
         .expect_err("unknown SNS id must fail before metadata");
 
     assert!(matches!(
@@ -803,21 +838,24 @@ fn unknown_lookup_does_not_request_metadata() {
             sns_count: 2
         }
     ));
-    assert!(source.metadata_targets.borrow().is_empty());
+    assert!(source.metadata_targets.lock().unwrap().is_empty());
 }
 
-#[test]
-fn live_sns_discovery_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_discovery_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new("local", "not a valid endpoint", "timestamp", "test");
 
-    let inventory_error = LiveSnsSource
+    let inventory_error = LiveSnsSource::default()
         .fetch_sns_inventory(&request)
+        .await
         .expect_err("non-mainnet inventory must fail");
-    let metadata_error = LiveSnsSource
+    let metadata_error = LiveSnsSource::default()
         .fetch_sns_metadata(&request, &[fixture_canisters_a()])
+        .await
         .expect_err("non-mainnet metadata must fail");
-    let lifecycle_error = LiveSnsSource
+    let lifecycle_error = LiveSnsSource::default()
         .fetch_sns_lifecycles(&request, &[fixture_canisters_a()])
+        .await
         .expect_err("non-mainnet lifecycle must fail");
 
     assert!(matches!(
@@ -834,8 +872,8 @@ fn live_sns_discovery_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn sns_list_rejects_local_network() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_rejects_local_network() {
     let request = SnsListRequest {
         network: "local".to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
@@ -846,6 +884,7 @@ fn sns_list_rejects_local_network() {
     };
 
     let err = build_sns_list_report_with_source(&request, &FixtureSnsDiscoverySource)
+        .await
         .expect_err("local rejected");
 
     assert!(matches!(err, SnsHostError::UnsupportedNetwork { .. }));
@@ -855,38 +894,48 @@ struct MutatingInventorySource(fn(&mut MainnetSnsInventory));
 
 #[derive(Default)]
 struct CountingDiscoverySource {
-    inventory: Cell<usize>,
-    metadata: Cell<usize>,
-    lifecycles: Cell<usize>,
+    inventory: Mutex<usize>,
+    metadata: Mutex<usize>,
+    lifecycles: Mutex<usize>,
 }
 
 impl SnsDiscoverySource for CountingDiscoverySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        self.inventory.set(self.inventory.get() + 1);
-        FixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            *self.inventory.lock().unwrap() += 1;
+            FixtureSnsDiscoverySource.fetch_sns_inventory(request).await
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        self.metadata.set(self.metadata.get() + 1);
-        FixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            *self.metadata.lock().unwrap() += 1;
+            FixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await
+        })
     }
 }
 
 impl SnsCatalogSource for CountingDiscoverySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        self.lifecycles.set(self.lifecycles.get() + 1);
-        FixtureSnsDiscoverySource.fetch_sns_lifecycles(request, targets)
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            *self.lifecycles.lock().unwrap() += 1;
+            FixtureSnsDiscoverySource
+                .fetch_sns_lifecycles(request, targets)
+                .await
+        })
     }
 }
 
@@ -899,138 +948,178 @@ fn temp_catalog_root(label: &str) -> PathBuf {
 }
 
 impl SnsDiscoverySource for MutatingInventorySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        let mut inventory = FixtureSnsDiscoverySource.fetch_sns_inventory(request)?;
-        self.0(&mut inventory);
-        Ok(inventory)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            let mut inventory = FixtureSnsDiscoverySource
+                .fetch_sns_inventory(request)
+                .await?;
+            self.0(&mut inventory);
+            Ok(inventory)
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            FixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await
+        })
     }
 }
 
 impl SnsCatalogSource for MutatingInventorySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_lifecycles(request, targets)
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            FixtureSnsDiscoverySource
+                .fetch_sns_lifecycles(request, targets)
+                .await
+        })
     }
 }
 
 struct MutatingMetadataSource(fn(&mut Vec<MainnetSnsMetadata>));
 
 impl SnsDiscoverySource for MutatingMetadataSource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { FixtureSnsDiscoverySource.fetch_sns_inventory(request).await })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        let mut metadata = FixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)?;
-        self.0(&mut metadata);
-        Ok(metadata)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            let mut metadata = FixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await?;
+            self.0(&mut metadata);
+            Ok(metadata)
+        })
     }
 }
 
 impl SnsCatalogSource for MutatingMetadataSource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_lifecycles(request, targets)
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            FixtureSnsDiscoverySource
+                .fetch_sns_lifecycles(request, targets)
+                .await
+        })
     }
 }
 
 struct MutatingLifecycleSource(fn(&mut Vec<MainnetSnsLifecycle>));
 
 impl SnsDiscoverySource for MutatingLifecycleSource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { FixtureSnsDiscoverySource.fetch_sns_inventory(request).await })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        FixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            FixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await
+        })
     }
 }
 
 impl SnsCatalogSource for MutatingLifecycleSource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        let mut lifecycles = FixtureSnsDiscoverySource.fetch_sns_lifecycles(request, targets)?;
-        self.0(&mut lifecycles);
-        Ok(lifecycles)
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            let mut lifecycles = FixtureSnsDiscoverySource
+                .fetch_sns_lifecycles(request, targets)
+                .await?;
+            self.0(&mut lifecycles);
+            Ok(lifecycles)
+        })
     }
 }
 
 #[derive(Default)]
 struct RecordingDiscoverySource {
-    metadata_targets: RefCell<Vec<Vec<String>>>,
-    lifecycle_targets: RefCell<Vec<Vec<String>>>,
+    metadata_targets: Mutex<Vec<Vec<String>>>,
+    lifecycle_targets: Mutex<Vec<Vec<String>>>,
 }
 
 impl SnsDiscoverySource for RecordingDiscoverySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        UnsortedFixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            UnsortedFixtureSnsDiscoverySource
+                .fetch_sns_inventory(request)
+                .await
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        self.metadata_targets.borrow_mut().push(
-            targets
-                .iter()
-                .map(|target| target.root_canister_id.clone())
-                .collect(),
-        );
-        UnsortedFixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            self.metadata_targets.lock().unwrap().push(
+                targets
+                    .iter()
+                    .map(|target| target.root_canister_id.clone())
+                    .collect(),
+            );
+            UnsortedFixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await
+        })
     }
 }
 
 impl SnsCatalogSource for RecordingDiscoverySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        self.lifecycle_targets.borrow_mut().push(
-            targets
-                .iter()
-                .map(|target| target.root_canister_id.clone())
-                .collect(),
-        );
-        UnsortedFixtureSnsDiscoverySource.fetch_sns_lifecycles(request, targets)
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            self.lifecycle_targets.lock().unwrap().push(
+                targets
+                    .iter()
+                    .map(|target| target.root_canister_id.clone())
+                    .collect(),
+            );
+            UnsortedFixtureSnsDiscoverySource
+                .fetch_sns_lifecycles(request, targets)
+                .await
+        })
     }
 }
 

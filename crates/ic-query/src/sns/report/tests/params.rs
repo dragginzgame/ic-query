@@ -1,10 +1,11 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_params_resolves_list_id_and_renders_governance_parameters() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_params_resolves_list_id_and_renders_governance_parameters() {
     let request = params_request("1");
 
     let report = build_sns_params_report_with_source(&request, &FixtureSnsParamsSource)
+        .await
         .expect("sns params report");
     let text = sns_params_report_text(&report);
 

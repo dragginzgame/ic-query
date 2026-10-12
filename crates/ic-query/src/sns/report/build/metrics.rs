@@ -14,24 +14,26 @@ use crate::sns::report::{
 };
 
 /// Build a live bounded Governance metrics report for one deployed SNS.
-pub fn build_sns_metrics_report(
+pub async fn build_sns_metrics_report(
     request: &SnsMetricsRequest,
 ) -> Result<SnsMetricsReport, SnsHostError> {
-    build_sns_metrics_report_with_source(request, &LiveSnsSource)
+    build_sns_metrics_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build a bounded Governance metrics report through a custom source capability.
-pub fn build_sns_metrics_report_with_source(
+pub async fn build_sns_metrics_report_with_source(
     request: &SnsMetricsRequest,
     source: &dyn SnsMetricsSource,
 ) -> Result<SnsMetricsReport, SnsHostError> {
     validate_sns_metrics_request(request)?;
-    let lookup = resolve_sns_lookup(&sns_metrics_lookup_request(request), source)?;
-    let mut metrics = source.fetch_sns_metrics(
-        &lookup.fetch_request,
-        &lookup.sns,
-        request.time_window_seconds,
-    )?;
+    let lookup = resolve_sns_lookup(&sns_metrics_lookup_request(request), source).await?;
+    let mut metrics = source
+        .fetch_sns_metrics(
+            &lookup.fetch_request,
+            &lookup.sns,
+            request.time_window_seconds,
+        )
+        .await?;
     canonicalize_mainnet_sns_metrics(
         &mut metrics,
         &lookup.sns.governance_canister_id,

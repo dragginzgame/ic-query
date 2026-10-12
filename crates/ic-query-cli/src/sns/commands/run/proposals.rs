@@ -25,17 +25,20 @@ use ic_query::sns::{
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_refresh_report_text, sns_proposals_report_text,
 };
-pub(super) fn run_sns_proposal(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+pub(super) async fn run_sns_proposal(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_sns_proposal_list(matches, network),
-        Some(("info", matches)) => run_sns_proposal_info(matches, network),
-        Some(("refresh", matches)) => run_sns_proposal_refresh(matches, network),
+        Some(("list", matches)) => run_sns_proposal_list(matches, network).await,
+        Some(("info", matches)) => run_sns_proposal_info(matches, network).await,
+        Some(("refresh", matches)) => run_sns_proposal_refresh(matches, network).await,
         Some(("cache", matches)) => run_sns_proposal_cache(matches, network),
         _ => unreachable!("clap requires a known SNS proposal subcommand"),
     }
 }
 
-fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsProposalOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -49,11 +52,11 @@ fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsC
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };
-    let report = build_sns_proposal_report(&request)?;
+    let report = build_sns_proposal_report(&request).await?;
     write_text_or_json(format, &report, sns_proposal_report_text)
 }
 
-fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsProposalsOptions::from_matches(matches, network)?;
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -75,11 +78,14 @@ fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsC
         verbose: options.verbose,
     };
     let mut progress = StderrQueryProgress::new();
-    let report = build_sns_proposals_report_with_progress(&request, &mut progress)?;
+    let report = build_sns_proposals_report_with_progress(&request, &mut progress).await?;
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
-fn run_sns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_proposal_refresh(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     let options = SnsProposalsRefreshOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -93,7 +99,7 @@ fn run_sns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), S
         max_pages: options.max_pages,
     };
     let mut progress = StderrQueryProgress::new();
-    let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress)?;
+    let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(format, &report, sns_proposals_refresh_report_text)
 }
 

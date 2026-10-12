@@ -34,7 +34,7 @@ The default is the preceding hour at a five-minute step, and every request is
 capped at 1000 observations per returned series. Values are preserved as the
 raw value strings returned by this off-chain, non-certified API.";
 
-pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = MetricOptions::from_matches(matches);
     let now_unix_secs = current_unix_secs()?;
     let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
@@ -51,7 +51,7 @@ pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
             options.step_secs,
         ),
     );
-    let report = build_ic_metric_report(&request)?;
+    let report = build_ic_metric_report(&request).await?;
     write_text_or_json(options.format, &report, ic_metric_report_text)
 }
 

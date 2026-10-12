@@ -12,13 +12,15 @@ pub(in crate::sns::report::tests) struct FixtureSnsParamsSource;
 delegate_sns_discovery!(FixtureSnsParamsSource);
 
 impl SnsParamsSource for FixtureSnsParamsSource {
-    fn fetch_sns_params(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        Ok(fixture_sns_governance_parameters())
+    fn fetch_sns_params<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            Ok(fixture_sns_governance_parameters())
+        })
     }
 }
 

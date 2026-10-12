@@ -6,7 +6,7 @@
 
 use crate::cache_file::{
     CacheFileError, RefreshLockRequest, create_managed_parent_directory, managed_file_exists,
-    with_refresh_lock,
+    with_refresh_lock_async,
 };
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 use std::fmt::Display;
@@ -40,14 +40,18 @@ pub struct LockedSnapshotRefreshState {
     pub replaced_existing_snapshot: bool,
 }
 
-pub fn with_locked_snapshot_refresh<T, Error>(
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub async fn with_locked_snapshot_refresh<T, Error>(
     request: LockedSnapshotRefreshRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> Error,
-    action: impl FnOnce(LockedSnapshotRefreshState) -> Result<T, Error>,
+    action: impl AsyncFnOnce(LockedSnapshotRefreshState) -> Result<T, Error>,
 ) -> Result<T, Error> {
     create_managed_parent_directory(request.cache_root, request.snapshot_path)
         .map_err(&cache_error)?;
-    with_refresh_lock(
+    with_refresh_lock_async(
         RefreshLockRequest {
             cache_root: request.cache_root,
             lock_path: request.refresh_lock_path,
@@ -57,7 +61,7 @@ pub fn with_locked_snapshot_refresh<T, Error>(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         &cache_error,
-        || {
+        async || {
             let state = LockedSnapshotRefreshState {
                 replaced_existing_snapshot: managed_file_exists(
                     request.cache_root,
@@ -65,19 +69,20 @@ pub fn with_locked_snapshot_refresh<T, Error>(
                 )
                 .map_err(&cache_error)?,
             };
-            action(state)
+            action(state).await
         },
     )
+    .await
 }
 
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
-pub fn run_snapshot_refresh_with_attempts<Output, Error>(
+pub async fn run_snapshot_refresh_with_attempts<Output, Error>(
     write_running_attempt: impl FnOnce() -> Result<(), Error>,
-    run_refresh: impl FnOnce() -> Result<Output, Error>,
+    run_refresh: impl AsyncFnOnce() -> Result<Output, Error>,
     write_failed_attempt: impl FnOnce(&Error),
 ) -> Result<Output, Error> {
     write_running_attempt()?;
-    match run_refresh() {
+    match run_refresh().await {
         Ok(output) => Ok(output),
         Err(err) => {
             write_failed_attempt(&err);

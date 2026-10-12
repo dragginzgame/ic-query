@@ -8,7 +8,7 @@ use crate::{
     cache_file::{
         CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, RefreshLockRequest,
         create_managed_parent_directory, host_cache_refresh_reason, load_json_cache,
-        load_or_refresh_cache, with_refresh_lock, write_managed_json_pretty_atomically,
+        load_or_refresh_cache, with_refresh_lock_async, write_managed_json_pretty_atomically,
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
@@ -58,14 +58,14 @@ pub fn load_cached_nns_subnet_topology(
 }
 
 /// Explicitly fetch one exact-version report and atomically replace its joined cache.
-pub fn refresh_nns_subnet_topology(
+pub async fn refresh_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    refresh_nns_subnet_topology_with_source(request, &LiveNnsSource)
+    refresh_nns_subnet_topology_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Explicitly refresh with a caller-supplied source, primarily for deterministic collection.
-pub fn refresh_nns_subnet_topology_with_source(
+pub async fn refresh_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
@@ -76,7 +76,7 @@ pub fn refresh_nns_subnet_topology_with_source(
         nns_subnet_topology_refresh_lock_path(&request.cache.cache_root, &request.cache.network);
     create_managed_parent_directory(&request.cache.cache_root, &cache_path)
         .map_err(|error| HostCacheError::operation(CACHE_COMPONENT, error))?;
-    with_refresh_lock(
+    with_refresh_lock_async(
         RefreshLockRequest {
             cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
@@ -86,13 +86,13 @@ pub fn refresh_nns_subnet_topology_with_source(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| HostCacheError::operation(CACHE_COMPONENT, error).into(),
-        || {
+        async || {
             let source_request = source_request(
                 &request.cache.network,
                 &request.source_endpoint,
                 request.now_unix_secs,
             );
-            let report = source.fetch_subnet_topology_report(&source_request)?;
+            let report = source.fetch_subnet_topology_report(&source_request).await?;
             validate_report_identity(
                 &report,
                 &request.cache.network,
@@ -112,17 +112,19 @@ pub fn refresh_nns_subnet_topology_with_source(
             })
         },
     )
+    .await
 }
 
 /// Load the joined cache, refreshing when it is missing or invalid.
-pub fn load_or_refresh_missing_nns_subnet_topology(
+pub async fn load_or_refresh_missing_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    load_or_refresh_missing_nns_subnet_topology_with_source(request, &LiveNnsSource)
+    load_or_refresh_missing_nns_subnet_topology_with_source(request, &LiveNnsSource::default())
+        .await
 }
 
 /// Load the joined cache or replace missing or invalid content with a caller-supplied source.
-pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
+pub async fn load_or_refresh_missing_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
@@ -132,27 +134,29 @@ pub fn load_or_refresh_missing_nns_subnet_topology_with_source(
         || load_cached_nns_subnet_topology(&request.cache),
         |_| false,
         |error| subnet_topology_cache_refresh_reason(error, &expected_path),
-        |_| {
-            refresh_nns_subnet_topology_with_source(request, source)?;
+        async |_| {
+            refresh_nns_subnet_topology_with_source(request, source).await?;
             Ok(())
         },
     )
+    .await
 }
 
 /// Load the joined cache, refreshing when it is missing, invalid, or stale.
-pub fn load_or_refresh_stale_nns_subnet_topology(
+pub async fn load_or_refresh_stale_nns_subnet_topology(
     request: &NnsSubnetTopologyRefreshRequest,
     stale_after_seconds: u64,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     load_or_refresh_stale_nns_subnet_topology_with_source(
         request,
         stale_after_seconds,
-        &LiveNnsSource,
+        &LiveNnsSource::default(),
     )
+    .await
 }
 
 /// Load the joined cache or use a caller-supplied source when it is unusable or stale.
-pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
+pub async fn load_or_refresh_stale_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     stale_after_seconds: u64,
     source: &dyn NnsSubnetTopologySource,
@@ -170,11 +174,12 @@ pub fn load_or_refresh_stale_nns_subnet_topology_with_source(
             .stale
         },
         |error| subnet_topology_cache_refresh_reason(error, &expected_path),
-        |_| {
-            refresh_nns_subnet_topology_with_source(request, source)?;
+        async |_| {
+            refresh_nns_subnet_topology_with_source(request, source).await?;
             Ok(())
         },
     )
+    .await
 }
 
 /// Derive caller-relative cache freshness without changing or refreshing state.

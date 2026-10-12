@@ -4,8 +4,8 @@ use crate::{CacheFileError, HostCacheError};
 #[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
 
-#[test]
-fn invalid_utf8_catalog_obeys_content_repair_policy() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_utf8_catalog_obeys_content_repair_policy() {
     let root = temp_dir("ic-query-catalog-invalid-utf8");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_file_atomically(&root, &path, |file| {
@@ -22,11 +22,13 @@ fn invalid_utf8_catalog_obeys_content_repair_policy() {
         1_780_531_300,
     );
     let failure = load_subnet_catalog_detailed_with_source(&request, &FixtureRefreshSource::err())
+        .await
         .unwrap_err();
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
     assert_eq!(fs::read(&path).unwrap(), [0xff]);
     let repaired =
         load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .await
             .unwrap();
     assert_eq!(repaired.disposition, CacheDisposition::RefreshedInvalid);
     fs::remove_dir_all(root).unwrap();
@@ -116,8 +118,8 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
     ));
 }
 
-#[test]
-fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
     for (index, policy) in [
         CatalogReadPolicy::CacheOnly,
         CatalogReadPolicy::RefreshMissing {
@@ -135,6 +137,7 @@ fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
         let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
 
         let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+            .await
             .expect_err("oversized local evidence rejected");
 
         assert_eq!(source.call_count(), 0);
@@ -166,8 +169,8 @@ fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
     }
 }
 
-#[test]
-fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
+#[tokio::test(flavor = "current_thread")]
+async fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
     let selection =
         CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
     for (index, (policy, disposition)) in [
@@ -198,6 +201,7 @@ fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
         let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
 
         let outcome = load_subnet_catalog_with_source(&request, &source)
+            .await
             .expect("authorized refresh replaces oversized content");
         assert_eq!(outcome.disposition, disposition);
         assert_eq!(source.call_count(), 1);
@@ -208,8 +212,8 @@ fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
     }
 }
 
-#[test]
-fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger() {
+#[tokio::test(flavor = "current_thread")]
+async fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger() {
     let root = temp_dir("ic-query-subnet-oversized-failed-repair");
     let path = write_oversized_catalog(&root);
     let request =
@@ -224,6 +228,7 @@ fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger() {
     );
 
     let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+        .await
         .expect_err("source fails after authorized repair");
     assert_eq!(source.call_count(), 1);
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
@@ -252,8 +257,8 @@ fn write_oversized_catalog(root: &Path) -> PathBuf {
     path
 }
 
-#[test]
-fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryability() {
+#[tokio::test(flavor = "current_thread")]
+async fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryability() {
     let root = temp_dir("ic-query-subnet-detailed-refresh-failure");
     let endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
@@ -272,6 +277,7 @@ fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryabi
         &DetailedFailureSource::new(Some(881_337), Some(subject.clone()), "SubnetListRecord")
             .with_value_response(881_100, endpoint),
     )
+    .await
     .expect_err("refresh fails");
 
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
@@ -311,8 +317,8 @@ fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryabi
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() {
+#[tokio::test(flavor = "current_thread")]
+async fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() {
     let cases = [
         (
             None,
@@ -363,6 +369,7 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
             &request,
             &DetailedFailureSource::new(registry_version, Some(subject.clone()), message),
         )
+        .await
         .expect_err("fixture fails");
 
         assert_eq!(failure.registry_version, registry_version);
@@ -372,8 +379,8 @@ fn detailed_source_failures_before_and_after_version_acquisition_are_truthful() 
     }
 }
 
-#[test]
-fn simple_load_api_returns_the_original_observable_source_error() {
+#[tokio::test(flavor = "current_thread")]
+async fn simple_load_api_returns_the_original_observable_source_error() {
     let root = temp_dir("ic-query-subnet-simple-source-error");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::ForceRefresh {
@@ -386,6 +393,7 @@ fn simple_load_api_returns_the_original_observable_source_error() {
         &request,
         &DetailedFailureSource::new(Some(77), None, "RoutingTable"),
     )
+    .await
     .expect_err("simple API fails");
 
     let _ = fs::remove_dir_all(root);
@@ -400,12 +408,13 @@ fn simple_load_api_returns_the_original_observable_source_error() {
     ));
 }
 
-#[test]
-fn cache_only_policy_never_invokes_the_supplied_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn cache_only_policy_never_invokes_the_supplied_source() {
     let root = temp_dir("ic-query-subnet-cache-only-source");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .await
         .expect_err("missing cache remains a cache-only failure");
 
     let _ = fs::remove_dir_all(root);
@@ -415,8 +424,8 @@ fn cache_only_policy_never_invokes_the_supplied_source() {
     ));
 }
 
-#[test]
-fn missing_refresh_and_following_cache_hit_share_snapshot_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_refresh_and_following_cache_hit_share_snapshot_authority() {
     let root = temp_dir("ic-query-subnet-missing-stable-authority");
     let refresh_request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
         cache_request(&root),
@@ -428,12 +437,14 @@ fn missing_refresh_and_following_cache_hit_share_snapshot_authority() {
         &refresh_request,
         &FixtureRefreshSource::ok(fixture_catalog()),
     )
+    .await
     .expect("missing cache refreshes");
     let refreshed_authority = refreshed.snapshot_authority();
     let cached = load_subnet_catalog_with_source(
         &cache_only_load_request(&root),
         &FixtureRefreshSource::err(),
     )
+    .await
     .expect("cache-only load does not invoke failing source");
 
     assert_eq!(refreshed.disposition, CacheDisposition::RefreshedMissing);
@@ -453,8 +464,8 @@ fn missing_refresh_and_following_cache_hit_share_snapshot_authority() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn invalid_refresh_and_following_cache_hit_share_snapshot_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_refresh_and_following_cache_hit_share_snapshot_authority() {
     let root = temp_dir("ic-query-subnet-invalid-stable-authority");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
@@ -469,12 +480,14 @@ fn invalid_refresh_and_following_cache_hit_share_snapshot_authority() {
         &refresh_request,
         &FixtureRefreshSource::ok(fixture_catalog()),
     )
+    .await
     .expect("invalid cache refreshes");
     let repaired_authority = repaired.snapshot_authority();
     let cached = load_subnet_catalog_with_source(
         &cache_only_load_request(&root),
         &FixtureRefreshSource::err(),
     )
+    .await
     .expect("repaired cache loads without invoking source");
 
     assert_eq!(repaired.disposition, CacheDisposition::RefreshedInvalid);
@@ -483,9 +496,9 @@ fn invalid_refresh_and_following_cache_hit_share_snapshot_authority() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn snapshot_authority_changes_with_registry_version_or_catalog_digest() {
-    let load_authority = |label: &str, catalog: RawSubnetCatalog| {
+#[tokio::test(flavor = "current_thread")]
+async fn snapshot_authority_changes_with_registry_version_or_catalog_digest() {
+    let load_authority = async |label: &str, catalog: RawSubnetCatalog| {
         let root = temp_dir(label);
         let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
             cache_request(&root),
@@ -494,19 +507,21 @@ fn snapshot_authority_changes_with_registry_version_or_catalog_digest() {
         );
         let authority =
             load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(catalog))
+                .await
                 .expect("fixture refreshes")
                 .snapshot_authority();
         let _ = fs::remove_dir_all(root);
         authority
     };
 
-    let base = load_authority("ic-query-subnet-authority-base", fixture_catalog());
+    let base = load_authority("ic-query-subnet-authority-base", fixture_catalog()).await;
     let mut changed_version = fixture_catalog();
     changed_version.provenance.registry_version += 1;
-    let changed_version = load_authority("ic-query-subnet-authority-version", changed_version);
+    let changed_version =
+        load_authority("ic-query-subnet-authority-version", changed_version).await;
     let mut changed_content = fixture_catalog();
     changed_content.subnets[0].node_count = Some(35);
-    let changed_content = load_authority("ic-query-subnet-authority-digest", changed_content);
+    let changed_content = load_authority("ic-query-subnet-authority-digest", changed_content).await;
 
     assert_ne!(base.registry_version, changed_version.registry_version);
     assert_ne!(base, changed_version);
@@ -515,20 +530,21 @@ fn snapshot_authority_changes_with_registry_version_or_catalog_digest() {
     assert_ne!(base, changed_content);
 }
 
-#[test]
-fn every_simple_load_entry_point_preserves_the_missing_catalog_error() {
+#[tokio::test(flavor = "current_thread")]
+async fn every_simple_load_entry_point_preserves_the_missing_catalog_error() {
     let root = temp_dir("ic-query-subnet-simple-load-wrappers");
     let request = cache_only_load_request(&root);
     let source = FixtureRefreshSource::err();
 
     let cached = load_cached_subnet_catalog(&request).expect_err("cached load");
-    let sync = load_subnet_catalog(&request).expect_err("sync load");
-    let sync_source =
-        load_subnet_catalog_with_source(&request, &source).expect_err("sync source load");
+    let sync = load_subnet_catalog(&request).await.expect_err("sync load");
+    let sync_source = load_subnet_catalog_with_source(&request, &source)
+        .await
+        .expect_err("sync source load");
     let async_load =
-        futures::executor::block_on(load_subnet_catalog_async(&request)).expect_err("async load");
+        futures::executor::block_on(load_subnet_catalog(&request)).expect_err("async load");
     let async_source =
-        futures::executor::block_on(load_subnet_catalog_with_source_async(&request, &source))
+        futures::executor::block_on(load_subnet_catalog_with_source(&request, &source))
             .expect_err("async source load");
 
     let _ = fs::remove_dir_all(root);
@@ -561,8 +577,8 @@ fn caller_minimum_assurance_rejects_weaker_cached_evidence() {
     ));
 }
 
-#[test]
-fn insufficient_refresh_selection_fails_before_collection() {
+#[tokio::test(flavor = "current_thread")]
+async fn insufficient_refresh_selection_fails_before_collection() {
     let root = temp_dir("ic-query-subnet-refresh-minimum-assurance");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement)
@@ -573,6 +589,7 @@ fn insufficient_refresh_selection_fails_before_collection() {
         });
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .await
         .expect_err("weak source selection rejected before collection");
 
     let _ = fs::remove_dir_all(root);
@@ -585,8 +602,8 @@ fn insufficient_refresh_selection_fails_before_collection() {
     ));
 }
 
-#[test]
-fn missing_only_policy_does_not_repair_invalid_content() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_only_policy_does_not_repair_invalid_content() {
     let root = temp_dir("ic-query-subnet-missing-only-invalid");
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
@@ -600,6 +617,7 @@ fn missing_only_policy_does_not_repair_invalid_content() {
 
     let error =
         load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .await
             .expect_err("missing-only policy keeps invalid content visible");
 
     assert!(matches!(
@@ -610,8 +628,8 @@ fn missing_only_policy_does_not_repair_invalid_content() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn missing_only_policy_reports_missing_refresh_disposition() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_only_policy_reports_missing_refresh_disposition() {
     let root = temp_dir("ic-query-subnet-missing-only");
     let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
         .with_policy(CatalogReadPolicy::RefreshMissing {
@@ -622,6 +640,7 @@ fn missing_only_policy_reports_missing_refresh_disposition() {
 
     let outcome =
         load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .await
             .expect("missing content refreshes");
 
     let _ = fs::remove_dir_all(root);
@@ -638,7 +657,7 @@ fn async_load_policy_refreshes_without_an_internal_runtime_adapter() {
             ),
         });
 
-    let outcome = futures::executor::block_on(load_subnet_catalog_with_source_async(
+    let outcome = futures::executor::block_on(load_subnet_catalog_with_source(
         &request,
         &FixtureRefreshSource::ok(fixture_catalog()),
     ))
@@ -649,8 +668,8 @@ fn async_load_policy_refreshes_without_an_internal_runtime_adapter() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn stale_and_forced_policies_report_exact_dispositions() {
+#[tokio::test(flavor = "current_thread")]
+async fn stale_and_forced_policies_report_exact_dispositions() {
     let root = temp_dir("ic-query-subnet-stale-disposition");
     let mut old = fixture_catalog();
     old.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
@@ -675,11 +694,13 @@ fn stale_and_forced_policies_report_exact_dispositions() {
         &stale_request,
         &FixtureRefreshSource::ok(replacement.clone()),
     )
+    .await
     .expect("stale content refreshes");
     assert_eq!(stale.disposition, CacheDisposition::RefreshedStale);
     assert_eq!(stale.catalog.provenance().registry_version, 987_654);
 
     let fresh = load_subnet_catalog_with_source(&stale_request, &FixtureRefreshSource::err())
+        .await
         .expect("fresh content does not invoke source");
     assert_eq!(fresh.disposition, CacheDisposition::CacheHit);
 
@@ -695,6 +716,7 @@ fn stale_and_forced_policies_report_exact_dispositions() {
         });
     let forced =
         load_subnet_catalog_with_source(&forced_request, &FixtureRefreshSource::ok(replacement))
+            .await
             .expect("forced content refreshes");
 
     let _ = fs::remove_dir_all(root);
@@ -703,8 +725,8 @@ fn stale_and_forced_policies_report_exact_dispositions() {
 }
 
 #[cfg(unix)]
-#[test]
-fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
+#[tokio::test(flavor = "current_thread")]
+async fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
     let root = temp_dir("ic-query-subnet-symlink-parent");
     let outside = temp_dir("ic-query-subnet-symlink-outside");
     crate::cache_file::write_managed_text_atomically(&root, &root.join("seed"), "seed")
@@ -719,6 +741,7 @@ fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
         });
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .await
         .expect_err("symlink is not recoverable invalid content");
 
     assert_eq!(error.category(), SubnetCatalogErrorCategory::Confinement);

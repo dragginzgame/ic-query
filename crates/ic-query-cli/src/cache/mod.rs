@@ -94,10 +94,10 @@ mod tests {
         assert!(help.contains(COLLECTION_MODE_CACHE_ONLY));
     }
 
-    #[test]
-    fn help_does_not_inspect_the_filesystem() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn help_does_not_inspect_the_filesystem() {
         for args in [&["cache", "--help"][..], &["cache", "status", "--help"]] {
-            assert!(crate::run(args.iter().map(OsString::from)).is_ok());
+            assert!(crate::run(args.iter().map(OsString::from)).await.is_ok());
         }
     }
 }

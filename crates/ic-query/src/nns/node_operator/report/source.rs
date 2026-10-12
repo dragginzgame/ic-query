@@ -16,28 +16,31 @@ use crate::{
 /// Source contract for fetching complete NNS node-operator list reports.
 ///
 
-pub trait NnsNodeOperatorSource {
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>;
+pub trait NnsNodeOperatorSource: Sync {
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>;
 }
 
 impl NnsNodeOperatorSource for LiveNnsSource {
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-        let fetch_request = mainnet_registry_fetch_request(request, |network| {
-            NnsNodeOperatorHostError::UnsupportedNetwork { network }
-        })?;
-        Ok(node_operator_report_from_list(
-            fetch_mainnet_node_operator_list(&fetch_request)?,
-        ))
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
+    {
+        Box::pin(async move {
+            let fetch_request = mainnet_registry_fetch_request(request, |network| {
+                NnsNodeOperatorHostError::UnsupportedNetwork { network }
+            })?;
+            Ok(node_operator_report_from_list(
+                fetch_mainnet_node_operator_list(&fetch_request).await?,
+            ))
+        })
     }
 }
 
-pub(super) fn fetch_nns_node_operator_list_report_with_source(
+pub(super) async fn fetch_nns_node_operator_list_report_with_source(
     network: &str,
     source_endpoint: &str,
     now_unix_secs: u64,
@@ -48,8 +51,9 @@ pub(super) fn fetch_nns_node_operator_list_report_with_source(
         source_endpoint,
         now_unix_secs,
         super::enforce_mainnet_network,
-        |request| source.fetch_node_operator_list_report(request),
+        async |request| source.fetch_node_operator_list_report(request).await,
     )
+    .await
 }
 
 fn node_operator_report_from_list(list: MainnetNodeOperatorList) -> NnsNodeOperatorListReport {

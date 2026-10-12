@@ -15,13 +15,13 @@ use crate::{
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 
-pub fn build_nns_registry_version_report(
+pub async fn build_nns_registry_version_report(
     request: &NnsRegistryVersionRequest,
 ) -> Result<NnsRegistryVersionReport, NnsRegistryHostError> {
-    build_nns_registry_version_report_with_source(request, &LiveNnsSource)
+    build_nns_registry_version_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_registry_version_report_with_source(
+pub async fn build_nns_registry_version_report_with_source(
     request: &NnsRegistryVersionRequest,
     source: &dyn NnsRegistrySource,
 ) -> Result<NnsRegistryVersionReport, NnsRegistryHostError> {
@@ -33,7 +33,7 @@ pub fn build_nns_registry_version_report_with_source(
         fetched_at,
         "ic-query",
     );
-    let version = source.fetch_registry_version(&fetch_request)?;
+    let version = source.fetch_registry_version(&fetch_request).await?;
     validate_source_result(&fetch_request, &version)?;
     validate_certification(request.now_unix_secs, &version.certification)?;
     Ok(registry_version_report_from_version(version))

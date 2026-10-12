@@ -132,21 +132,26 @@ fn public_certified_api_boundary_node_api_is_constructible_without_host() {
 }
 
 #[cfg(feature = "ic-state-host")]
-#[test]
-fn public_certified_state_host_api_exposes_live_and_custom_builders() {
-    let _: fn(
-        &IcApiBoundaryNodeRequest,
-    ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> =
-        build_ic_api_boundary_node_report;
-    let _: fn(
-        &IcApiBoundaryNodeRequest,
-        &dyn IcApiBoundaryNodeSource,
-    ) -> Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError> =
-        build_ic_api_boundary_node_report_with_source;
+#[tokio::test(flavor = "current_thread")]
+async fn public_certified_state_host_api_exposes_live_and_custom_builders() {
+    let _: for<'a> fn(
+        &'a IcApiBoundaryNodeRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError>,
+    > = |arg0| Box::pin(build_ic_api_boundary_node_report(arg0));
+    let _: for<'a> fn(
+        &'a IcApiBoundaryNodeRequest,
+        &'a dyn IcApiBoundaryNodeSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_api_boundary_node_report_with_source(arg0, arg1));
     let _: LiveIcStateSource = LiveIcStateSource;
 
     let request = IcApiBoundaryNodeRequest::new(DEFAULT_IC_STATE_SOURCE_ENDPOINT, 1_800_000_000);
     let report = build_ic_api_boundary_node_report_with_source(&request, &StateFixtureSource)
+        .await
         .expect("custom certified state source");
 
     assert_eq!(report.node_count, 1);
@@ -158,19 +163,24 @@ struct StateFixtureSource;
 
 #[cfg(feature = "ic-state-host")]
 impl IcApiBoundaryNodeSource for StateFixtureSource {
-    fn fetch_api_boundary_nodes(
-        &self,
-        request: &IcApiBoundaryNodeSourceRequest,
-    ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
-        Ok(IcApiBoundaryNodeSourceData {
-            source: request.clone(),
-            certificate_time_unix_nanos: request.observed_at_unix_seconds * 1_000_000_000,
-            rows: vec![IcApiBoundaryNodeRow {
-                node_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-                domain: "api1.example.com".to_string(),
-                ipv4_address: None,
-                ipv6_address: "2001:db8::1".to_string(),
-            }],
+    fn fetch_api_boundary_nodes<'a>(
+        &'a self,
+        request: &'a IcApiBoundaryNodeSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError>,
+    > {
+        Box::pin(async move {
+            Ok(IcApiBoundaryNodeSourceData {
+                source: request.clone(),
+                certificate_time_unix_nanos: request.observed_at_unix_seconds * 1_000_000_000,
+                rows: vec![IcApiBoundaryNodeRow {
+                    node_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+                    domain: "api1.example.com".to_string(),
+                    ipv4_address: None,
+                    ipv6_address: "2001:db8::1".to_string(),
+                }],
+            })
         })
     }
 }
@@ -722,45 +732,95 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
-    type Builder = fn(&IcCanisterRequest) -> Result<IcCanisterReport, IcHostError>;
+#[tokio::test(flavor = "current_thread")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep the related current API/dependency admission cases together."
+)]
+async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
+    type Builder =
+        for<'a> fn(
+            &'a IcCanisterRequest,
+        )
+            -> ic_query::report::SourceFuture<'a, Result<IcCanisterReport, IcHostError>>;
     type CustomBuilder =
-        fn(&IcCanisterRequest, &dyn IcCanisterSource) -> Result<IcCanisterReport, IcHostError>;
+        for<'a> fn(
+            &'a IcCanisterRequest,
+            &'a dyn IcCanisterSource,
+        )
+            -> ic_query::report::SourceFuture<'a, Result<IcCanisterReport, IcHostError>>;
 
-    let _: Builder = build_ic_canister_report;
-    let _: CustomBuilder = build_ic_canister_report_with_source;
-    let _: fn(&IcCanisterCountRequest) -> Result<IcCanisterCountReport, IcHostError> =
-        build_ic_canister_count_report;
-    let _: fn(
-        &IcCanisterCountRequest,
-        &dyn IcCanisterCollectionSource,
-    ) -> Result<IcCanisterCountReport, IcHostError> = build_ic_canister_count_report_with_source;
-    let _: fn(&IcCanisterPageRequest) -> Result<IcCanisterPageReport, IcHostError> =
-        build_ic_canister_page_report;
-    let _: fn(
-        &IcCanisterPageRequest,
-        &dyn IcCanisterCollectionSource,
-    ) -> Result<IcCanisterPageReport, IcHostError> = build_ic_canister_page_report_with_source;
-    let _: fn(&IcMetricRequest) -> Result<IcMetricReport, IcHostError> = build_ic_metric_report;
-    let _: fn(&IcMetricRequest, &dyn IcMetricSource) -> Result<IcMetricReport, IcHostError> =
-        build_ic_metric_report_with_source;
-    let _: fn(
-        &IcBoundaryNodeDataCentersRequest,
-    ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> =
-        build_ic_boundary_node_data_centers_report;
-    let _: fn(
-        &IcBoundaryNodeDataCentersRequest,
-        &dyn IcNetworkSource,
-    ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> =
-        build_ic_boundary_node_data_centers_report_with_source;
-    let _: fn(&IcDailyStatsRequest) -> Result<IcDailyStatsReport, IcHostError> =
-        build_ic_daily_stats_report;
-    let _: fn(
-        &IcDailyStatsRequest,
-        &dyn IcNetworkSource,
-    ) -> Result<IcDailyStatsReport, IcHostError> = build_ic_daily_stats_report_with_source;
-    let _: LiveIcSource = LiveIcSource;
+    let _: Builder = |request| Box::pin(build_ic_canister_report(request));
+    let _: CustomBuilder =
+        |request, source| Box::pin(build_ic_canister_report_with_source(request, source));
+    let _: for<'a> fn(
+        &'a IcCanisterCountRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcCanisterCountReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_canister_count_report(arg0));
+    let _: for<'a> fn(
+        &'a IcCanisterCountRequest,
+        &'a dyn IcCanisterCollectionSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcCanisterCountReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_canister_count_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcCanisterPageRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcCanisterPageReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_canister_page_report(arg0));
+    let _: for<'a> fn(
+        &'a IcCanisterPageRequest,
+        &'a dyn IcCanisterCollectionSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcCanisterPageReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_canister_page_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcMetricRequest,
+    )
+        -> ic_query::report::SourceFuture<'a, Result<IcMetricReport, IcHostError>> =
+        |arg0| Box::pin(build_ic_metric_report(arg0));
+    let _: for<'a> fn(
+        &'a IcMetricRequest,
+        &'a dyn IcMetricSource,
+    )
+        -> ic_query::report::SourceFuture<'a, Result<IcMetricReport, IcHostError>> =
+        |arg0, arg1| Box::pin(build_ic_metric_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcBoundaryNodeDataCentersRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcBoundaryNodeDataCentersReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_boundary_node_data_centers_report(arg0));
+    let _: for<'a> fn(
+        &'a IcBoundaryNodeDataCentersRequest,
+        &'a dyn IcNetworkSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcBoundaryNodeDataCentersReport, IcHostError>,
+    > = |arg0, arg1| {
+        Box::pin(build_ic_boundary_node_data_centers_report_with_source(
+            arg0, arg1,
+        ))
+    };
+    let _: for<'a> fn(
+        &'a IcDailyStatsRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcDailyStatsReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_daily_stats_report(arg0));
+    let _: for<'a> fn(
+        &'a IcDailyStatsRequest,
+        &'a dyn IcNetworkSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcDailyStatsReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_daily_stats_report_with_source(arg0, arg1));
+    let _: LiveIcSource = LiveIcSource::default();
     assert_eq!(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
         "https://ic-api.internetcomputer.org/api/v3"
@@ -772,8 +832,9 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         1_700_000_000,
         CANISTER_ID,
     );
-    let report =
-        build_ic_canister_report_with_source(&request, &source).expect("custom source report");
+    let report = build_ic_canister_report_with_source(&request, &source)
+        .await
+        .expect("custom source report");
 
     assert_eq!(report.canister_id, CANISTER_ID);
 
@@ -782,6 +843,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         1_700_000_000,
     );
     let count = build_ic_canister_count_report_with_source(&count_request, &source)
+        .await
         .expect("custom count source report");
     assert_eq!(count.total, 1);
 
@@ -791,6 +853,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
     )
     .with_limit(1);
     let page = build_ic_canister_page_report_with_source(&page_request, &source)
+        .await
         .expect("custom page source report");
     assert_eq!(page.returned_count, 1);
 
@@ -805,6 +868,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         ),
     );
     let metric = build_ic_metric_report_with_source(&metric_request, &source)
+        .await
         .expect("custom metric source report");
     assert_eq!(metric.returned_observation_count, 1);
 
@@ -813,6 +877,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         1_700_000_000,
     );
     let network = build_ic_boundary_node_data_centers_report_with_source(&network_request, &source)
+        .await
         .expect("custom network source report");
     assert_eq!(network.data_center_count, 1);
 
@@ -822,6 +887,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400),
     );
     let daily_stats = build_ic_daily_stats_report_with_source(&daily_stats_request, &source)
+        .await
         .expect("custom daily-statistics source report");
     assert_eq!(daily_stats.returned_day_count, 1);
 }
@@ -829,67 +895,111 @@ fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
 #[cfg(feature = "dashboard-host")]
 #[test]
 fn public_dashboard_replica_version_host_api_exposes_builders() {
-    let _: fn(&IcReplicaVersionListRequest) -> Result<IcReplicaVersionListReport, IcHostError> =
-        build_ic_replica_version_list_report;
-    let _: fn(
-        &IcReplicaVersionListRequest,
-        &dyn IcReplicaVersionSource,
-    ) -> Result<IcReplicaVersionListReport, IcHostError> =
-        build_ic_replica_version_list_report_with_source;
-    let _: fn(&IcReplicaVersionInfoRequest) -> Result<IcReplicaVersionInfoReport, IcHostError> =
-        build_ic_replica_version_info_report;
-    let _: fn(
-        &IcReplicaVersionInfoRequest,
-        &dyn IcReplicaVersionSource,
-    ) -> Result<IcReplicaVersionInfoReport, IcHostError> =
-        build_ic_replica_version_info_report_with_source;
+    let _: for<'a> fn(
+        &'a IcReplicaVersionListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcReplicaVersionListReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_replica_version_list_report(arg0));
+    let _: for<'a> fn(
+        &'a IcReplicaVersionListRequest,
+        &'a dyn IcReplicaVersionSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcReplicaVersionListReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_replica_version_list_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcReplicaVersionInfoRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcReplicaVersionInfoReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_replica_version_info_report(arg0));
+    let _: for<'a> fn(
+        &'a IcReplicaVersionInfoRequest,
+        &'a dyn IcReplicaVersionSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcReplicaVersionInfoReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_replica_version_info_report_with_source(arg0, arg1));
 }
 
 #[cfg(feature = "dashboard-host")]
 #[test]
 fn public_dashboard_node_provider_reward_host_api_exposes_builders() {
-    let _: fn(
-        &IcNodeProviderRewardListRequest,
-    ) -> Result<IcNodeProviderRewardListReport, IcHostError> =
-        build_ic_node_provider_reward_list_report;
-    let _: fn(
-        &IcNodeProviderRewardListRequest,
-        &dyn IcNodeProviderRewardSource,
-    ) -> Result<IcNodeProviderRewardListReport, IcHostError> =
-        build_ic_node_provider_reward_list_report_with_source;
-    let _: fn(
-        &IcNodeProviderRewardInfoRequest,
-    ) -> Result<IcNodeProviderRewardInfoReport, IcHostError> =
-        build_ic_node_provider_reward_info_report;
-    let _: fn(
-        &IcNodeProviderRewardInfoRequest,
-        &dyn IcNodeProviderRewardSource,
-    ) -> Result<IcNodeProviderRewardInfoReport, IcHostError> =
-        build_ic_node_provider_reward_info_report_with_source;
-    let _: fn(
-        &IcNodeProviderRewardHistoryRequest,
-    ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> =
-        build_ic_node_provider_reward_history_report;
-    let _: fn(
-        &IcNodeProviderRewardHistoryRequest,
-        &dyn IcNodeProviderRewardSource,
-    ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> =
-        build_ic_node_provider_reward_history_report_with_source;
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardListReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_node_provider_reward_list_report(arg0));
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardListRequest,
+        &'a dyn IcNodeProviderRewardSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardListReport, IcHostError>,
+    > = |arg0, arg1| {
+        Box::pin(build_ic_node_provider_reward_list_report_with_source(
+            arg0, arg1,
+        ))
+    };
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardInfoRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardInfoReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_node_provider_reward_info_report(arg0));
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardInfoRequest,
+        &'a dyn IcNodeProviderRewardSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardInfoReport, IcHostError>,
+    > = |arg0, arg1| {
+        Box::pin(build_ic_node_provider_reward_info_report_with_source(
+            arg0, arg1,
+        ))
+    };
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardHistoryRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardHistoryReport, IcHostError>,
+    > = |arg0| Box::pin(build_ic_node_provider_reward_history_report(arg0));
+    let _: for<'a> fn(
+        &'a IcNodeProviderRewardHistoryRequest,
+        &'a dyn IcNodeProviderRewardSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeProviderRewardHistoryReport, IcHostError>,
+    > = |arg0, arg1| {
+        Box::pin(build_ic_node_provider_reward_history_report_with_source(
+            arg0, arg1,
+        ))
+    };
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
-    let _: fn(&IcNodeStatusSnapshotRequest) -> Result<IcNodeStatusSnapshot, IcHostError> =
-        build_ic_node_status_snapshot;
-    let _: fn(
-        &IcNodeStatusSnapshotRequest,
-        &dyn IcNodeStatusSource,
-    ) -> Result<IcNodeStatusSnapshot, IcHostError> = build_ic_node_status_snapshot_with_source;
+#[tokio::test(flavor = "current_thread")]
+async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
+    let _: for<'a> fn(
+        &'a IcNodeStatusSnapshotRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeStatusSnapshot, IcHostError>,
+    > = |arg0| Box::pin(build_ic_node_status_snapshot(arg0));
+    let _: for<'a> fn(
+        &'a IcNodeStatusSnapshotRequest,
+        &'a dyn IcNodeStatusSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcNodeStatusSnapshot, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_ic_node_status_snapshot_with_source(arg0, arg1));
 
     let request =
         IcNodeStatusSnapshotRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000);
     let snapshot = build_ic_node_status_snapshot_with_source(&request, &FixtureSource)
+        .await
         .expect("custom node-status source snapshot");
 
     assert_eq!(snapshot.node_count, 1);
@@ -909,45 +1019,90 @@ fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
-    let _: fn(&IcIcrcAccountListRequest) -> Result<IcIcrcAccountListReport, IcHostError> =
-        build_icrc_account_list_report;
-    let _: fn(
-        &IcIcrcAccountListRequest,
-        &dyn IcIcrcIndexSource,
-    ) -> Result<IcIcrcAccountListReport, IcHostError> = build_icrc_account_list_report_with_source;
-    let _: fn(&IcIcrcAccountInfoRequest) -> Result<IcIcrcAccountInfoReport, IcHostError> =
-        build_icrc_account_info_report;
-    let _: fn(
-        &IcIcrcAccountInfoRequest,
-        &dyn IcIcrcIndexSource,
-    ) -> Result<IcIcrcAccountInfoReport, IcHostError> = build_icrc_account_info_report_with_source;
-    let _: fn(&IcIcrcHolderListRequest) -> Result<IcIcrcHolderListReport, IcHostError> =
-        build_icrc_holder_list_report;
-    let _: fn(
-        &IcIcrcHolderListRequest,
-        &dyn IcIcrcIndexSource,
-    ) -> Result<IcIcrcHolderListReport, IcHostError> = build_icrc_holder_list_report_with_source;
-    let _: fn(&IcIcrcIndexedCountRequest) -> Result<IcIcrcIndexedCountReport, IcHostError> =
-        build_icrc_indexed_count_report;
-    let _: fn(
-        &IcIcrcIndexedCountRequest,
-        &dyn IcIcrcAnalyticsSource,
-    ) -> Result<IcIcrcIndexedCountReport, IcHostError> =
-        build_icrc_indexed_count_report_with_source;
-    let _: fn(&IcIcrcTokenValueRequest) -> Result<IcIcrcTokenValueReport, IcHostError> =
-        build_icrc_token_value_report;
-    let _: fn(
-        &IcIcrcTokenValueRequest,
-        &dyn IcIcrcAnalyticsSource,
-    ) -> Result<IcIcrcTokenValueReport, IcHostError> = build_icrc_token_value_report_with_source;
-    let _: fn(&IcIcrcTotalSupplyRequest) -> Result<IcIcrcTotalSupplyReport, IcHostError> =
-        build_icrc_total_supply_report;
-    let _: fn(
-        &IcIcrcTotalSupplyRequest,
-        &dyn IcIcrcAnalyticsSource,
-    ) -> Result<IcIcrcTotalSupplyReport, IcHostError> = build_icrc_total_supply_report_with_source;
+#[tokio::test(flavor = "current_thread")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep the related current API/dependency admission cases together."
+)]
+async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
+    let _: for<'a> fn(
+        &'a IcIcrcAccountListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcAccountListReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_account_list_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcAccountListRequest,
+        &'a dyn IcIcrcIndexSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcAccountListReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_account_list_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcIcrcAccountInfoRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcAccountInfoReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_account_info_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcAccountInfoRequest,
+        &'a dyn IcIcrcIndexSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcAccountInfoReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_account_info_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcIcrcHolderListRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcHolderListReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_holder_list_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcHolderListRequest,
+        &'a dyn IcIcrcIndexSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcHolderListReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_holder_list_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcIcrcIndexedCountRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcIndexedCountReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_indexed_count_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcIndexedCountRequest,
+        &'a dyn IcIcrcAnalyticsSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcIndexedCountReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_indexed_count_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcIcrcTokenValueRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcTokenValueReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_token_value_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcTokenValueRequest,
+        &'a dyn IcIcrcAnalyticsSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcTokenValueReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_token_value_report_with_source(arg0, arg1));
+    let _: for<'a> fn(
+        &'a IcIcrcTotalSupplyRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcTotalSupplyReport, IcHostError>,
+    > = |arg0| Box::pin(build_icrc_total_supply_report(arg0));
+    let _: for<'a> fn(
+        &'a IcIcrcTotalSupplyRequest,
+        &'a dyn IcIcrcAnalyticsSource,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcIcrcTotalSupplyReport, IcHostError>,
+    > = |arg0, arg1| Box::pin(build_icrc_total_supply_report_with_source(arg0, arg1));
 
     let source = FixtureSource;
     let count_request = IcIcrcIndexedCountRequest::new(
@@ -957,6 +1112,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         IcIcrcIndexedCountKind::Transaction,
     );
     let count = build_icrc_indexed_count_report_with_source(&count_request, &source)
+        .await
         .expect("custom ICRC indexed-count source report");
     assert_eq!(count.kind, IcIcrcIndexedCountKind::Transaction);
     assert_eq!(count.total, 78_272);
@@ -968,6 +1124,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id),
     );
     let accounts = build_icrc_account_list_report_with_source(&account_request, &source)
+        .await
         .expect("custom ICRC account source report");
     assert_eq!(accounts.returned_count, 1);
 
@@ -978,6 +1135,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         IcIcrcHolderListQuery::new(20, IcIcrcHolderSort::Principal),
     );
     let holders = build_icrc_holder_list_report_with_source(&holder_request, &source)
+        .await
         .expect("custom ICRC holder source report");
     assert_eq!(holders.returned_count, 1);
 
@@ -988,6 +1146,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         IcIcrcTokenValueQuery::new(1_785_542_400, 1_785_628_800, 100),
     );
     let token_values = build_icrc_token_value_report_with_source(&token_value_request, &source)
+        .await
         .expect("custom ICRC token-value source report");
     assert_eq!(token_values.returned_row_count, 1);
 
@@ -998,6 +1157,7 @@ fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
         IcIcrcTotalSupplyQuery::new(1_785_542_400, 1_785_628_800, 86_400),
     );
     let report = build_icrc_total_supply_report_with_source(&request, &source)
+        .await
         .expect("custom ICRC analytics source report");
 
     assert_eq!(report.returned_observation_count, 2);
@@ -1027,198 +1187,218 @@ struct FixtureSource;
 
 #[cfg(feature = "dashboard-host")]
 impl IcCanisterSource for FixtureSource {
-    fn fetch_canister(
-        &self,
-        request: &IcSourceRequest,
-        canister_id: &str,
-    ) -> Result<IcCanisterSourceData, IcHostError> {
-        Ok(IcCanisterSourceData {
-            source: request.clone(),
-            canister_id: canister_id.to_string(),
-            dashboard_id: 1,
-            canister_type: None,
-            name: String::new(),
-            subnet_id: SUBNET_ID.to_string(),
-            controllers: Vec::new(),
-            language: String::new(),
-            module_hash: String::new(),
-            dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
-            upgrades: None,
+    fn fetch_canister<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        canister_id: &'a str,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcCanisterSourceData {
+                source: request.clone(),
+                canister_id: canister_id.to_string(),
+                dashboard_id: 1,
+                canister_type: None,
+                name: String::new(),
+                subnet_id: SUBNET_ID.to_string(),
+                controllers: Vec::new(),
+                language: String::new(),
+                module_hash: String::new(),
+                dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
+                upgrades: None,
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcCanisterCollectionSource for FixtureSource {
-    fn fetch_canister_count(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
-    ) -> Result<IcCanisterCountSourceData, IcHostError> {
-        Ok(IcCanisterCountSourceData {
-            source: request.clone(),
-            filters: filters.clone(),
-            total: 1,
+    fn fetch_canister_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcCanisterCountSourceData {
+                source: request.clone(),
+                filters: filters.clone(),
+                total: 1,
+            })
         })
     }
 
-    fn fetch_canister_page(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
+    fn fetch_canister_page<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
         limit: u16,
-        after: Option<&str>,
-        before: Option<&str>,
-    ) -> Result<IcCanisterPageSourceData, IcHostError> {
-        Ok(IcCanisterPageSourceData {
-            source: request.clone(),
-            filters: filters.clone(),
-            requested_limit: limit,
-            after: after.map(str::to_string),
-            before: before.map(str::to_string),
-            previous_cursor: None,
-            next_cursor: Some(CANISTER_ID.to_string()),
-            rows: vec![public_page_row()],
+        after: Option<&'a str>,
+        before: Option<&'a str>,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterPageSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcCanisterPageSourceData {
+                source: request.clone(),
+                filters: filters.clone(),
+                requested_limit: limit,
+                after: after.map(str::to_string),
+                before: before.map(str::to_string),
+                previous_cursor: None,
+                next_cursor: Some(CANISTER_ID.to_string()),
+                rows: vec![public_page_row()],
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcMetricSource for FixtureSource {
-    fn fetch_metric(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcMetricQuery,
-    ) -> Result<IcMetricSourceData, IcHostError> {
-        Ok(IcMetricSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            series: vec![IcMetricSeries {
-                name: "instruction_rate".to_string(),
-                observations: vec![IcMetricObservation {
-                    timestamp_unix_secs: query.end_unix_secs,
-                    value: "21089992048.10834".to_string(),
+    fn fetch_metric<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcMetricQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcMetricSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcMetricSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                series: vec![IcMetricSeries {
+                    name: "instruction_rate".to_string(),
+                    observations: vec![IcMetricObservation {
+                        timestamp_unix_secs: query.end_unix_secs,
+                        value: "21089992048.10834".to_string(),
+                    }],
                 }],
-            }],
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcIcrcAnalyticsSource for FixtureSource {
-    fn fetch_indexed_count(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
+    fn fetch_indexed_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
         kind: IcIcrcIndexedCountKind,
-    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError> {
-        Ok(IcIcrcIndexedCountSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            kind,
-            total: 78_272,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcIndexedCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcIndexedCountSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                kind,
+                total: 78_272,
+            })
         })
     }
 
-    fn fetch_token_value_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTokenValueQuery,
-    ) -> Result<IcIcrcTokenValueSourceData, IcHostError> {
-        Ok(IcIcrcTokenValueSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            rows: vec![IcIcrcTokenValueSourceRow {
-                price: Some("63710.86993032754".to_string()),
-                volume_24h: None,
-                price_usd: Some("63710.86993032754".to_string()),
-                volume_24h_usd: Some("23337.881075287027".to_string()),
-                source: Some("ICPSwap-API".to_string()),
-                source_url: Some("https://app.icpswap.com/".to_string()),
-                timestamp_unix_secs: Some(query.start_unix_secs),
-            }],
+    fn fetch_token_value_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTokenValueQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcTokenValueSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcTokenValueSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                rows: vec![IcIcrcTokenValueSourceRow {
+                    price: Some("63710.86993032754".to_string()),
+                    volume_24h: None,
+                    price_usd: Some("63710.86993032754".to_string()),
+                    volume_24h_usd: Some("23337.881075287027".to_string()),
+                    source: Some("ICPSwap-API".to_string()),
+                    source_url: Some("https://app.icpswap.com/".to_string()),
+                    timestamp_unix_secs: Some(query.start_unix_secs),
+                }],
+            })
         })
     }
 
-    fn fetch_total_supply_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTotalSupplyQuery,
-    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError> {
-        Ok(IcIcrcTotalSupplySourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            observations: vec![
-                IcIcrcTotalSupplyObservation {
-                    timestamp_unix_secs: query.start_unix_secs,
-                    total_supply_base_units: "23309479199".to_string(),
-                },
-                IcIcrcTotalSupplyObservation {
-                    timestamp_unix_secs: query.end_unix_secs,
-                    total_supply_base_units: "23680995300".to_string(),
-                },
-            ],
+    fn fetch_total_supply_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTotalSupplyQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcTotalSupplySourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcTotalSupplySourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                observations: vec![
+                    IcIcrcTotalSupplyObservation {
+                        timestamp_unix_secs: query.start_unix_secs,
+                        total_supply_base_units: "23309479199".to_string(),
+                    },
+                    IcIcrcTotalSupplyObservation {
+                        timestamp_unix_secs: query.end_unix_secs,
+                        total_supply_base_units: "23680995300".to_string(),
+                    },
+                ],
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcIcrcIndexSource for FixtureSource {
-    fn fetch_account_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcAccountListQuery,
-    ) -> Result<IcIcrcAccountListSourceData, IcHostError> {
-        Ok(IcIcrcAccountListSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            previous_cursor: None,
-            next_cursor: Some("aaaaa-aa".to_string()),
-            rows: vec![public_icrc_account_source_row()],
-        })
-    }
-
-    fn fetch_account_info(
-        &self,
-        request: &IcSourceRequest,
-        _ledger_canister_id: &str,
-        _account_id: &str,
-    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError> {
-        Ok(IcIcrcAccountInfoSourceData {
-            source: request.clone(),
-            account: public_icrc_account_source_row(),
-        })
-    }
-
-    fn fetch_holder_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcHolderListQuery,
-    ) -> Result<IcIcrcHolderListSourceData, IcHostError> {
-        Ok(IcIcrcHolderListSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            previous_cursor: None,
-            next_cursor: Some("aaaaa-aa".to_string()),
-            rows: vec![IcIcrcHolderSourceRow {
-                principal: "aaaaa-aa".to_string(),
-                balance_base_units: "1000".to_string(),
-                total_transactions: 3,
-                created_at_unix_nanos: 1_731_833_720_056_622_711,
+    fn fetch_account_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcAccountListQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcAccountListSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcAccountListSourceData {
+                source: request.clone(),
                 ledger_canister_id: ledger_canister_id.to_string(),
-                latest_transaction_index: 1_898_152,
-                percentage: serde_json::json!(0.25),
-                value_usd: serde_json::Value::Null,
-                dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
-            }],
+                query: query.clone(),
+                previous_cursor: None,
+                next_cursor: Some("aaaaa-aa".to_string()),
+                rows: vec![public_icrc_account_source_row()],
+            })
+        })
+    }
+
+    fn fetch_account_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        _ledger_canister_id: &'a str,
+        _account_id: &'a str,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcAccountInfoSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcAccountInfoSourceData {
+                source: request.clone(),
+                account: public_icrc_account_source_row(),
+            })
+        })
+    }
+
+    fn fetch_holder_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcHolderListQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcIcrcHolderListSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcIcrcHolderListSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                previous_cursor: None,
+                next_cursor: Some("aaaaa-aa".to_string()),
+                rows: vec![IcIcrcHolderSourceRow {
+                    principal: "aaaaa-aa".to_string(),
+                    balance_base_units: "1000".to_string(),
+                    total_transactions: 3,
+                    created_at_unix_nanos: 1_731_833_720_056_622_711,
+                    ledger_canister_id: ledger_canister_id.to_string(),
+                    latest_transaction_index: 1_898_152,
+                    percentage: serde_json::json!(0.25),
+                    value_usd: serde_json::Value::Null,
+                    dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
+                }],
+            })
         })
     }
 }
@@ -1242,40 +1422,47 @@ fn public_icrc_account_source_row() -> IcIcrcAccountSourceRow {
 
 #[cfg(feature = "dashboard-host")]
 impl IcNetworkSource for FixtureSource {
-    fn fetch_boundary_node_data_centers(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
-        Ok(IcBoundaryNodeDataCentersSourceData {
-            source: request.clone(),
-            rows: vec![public_boundary_node_data_center()],
+    fn fetch_boundary_node_data_centers<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcBoundaryNodeDataCentersSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            Ok(IcBoundaryNodeDataCentersSourceData {
+                source: request.clone(),
+                rows: vec![public_boundary_node_data_center()],
+            })
         })
     }
 
-    fn fetch_daily_stats(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcDailyStatsQuery,
-    ) -> Result<IcDailyStatsSourceData, IcHostError> {
-        Ok(IcDailyStatsSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            rows: vec![public_daily_stats_row()],
+    fn fetch_daily_stats<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcDailyStatsQuery,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcDailyStatsSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcDailyStatsSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                rows: vec![public_daily_stats_row()],
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for FixtureSource {
-    fn fetch_node_status_snapshot(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcNodeStatusSourceData, IcHostError> {
-        Ok(IcNodeStatusSourceData {
-            source: request.clone(),
-            scope: IcNodeStatusScope::DashboardMainnetDefault,
-            cloud_engine_nodes_included: false,
-            nodes: vec![public_node_status_row()],
+    fn fetch_node_status_snapshot<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<IcNodeStatusSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcNodeStatusSourceData {
+                source: request.clone(),
+                scope: IcNodeStatusScope::DashboardMainnetDefault,
+                cloud_engine_nodes_included: false,
+                nodes: vec![public_node_status_row()],
+            })
         })
     }
 }

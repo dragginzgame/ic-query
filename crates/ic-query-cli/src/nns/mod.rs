@@ -101,18 +101,18 @@ impl From<SubnetCatalogHostError> for NnsCommandError {
     }
 }
 
-pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("subnet", matches)) => subnet::run(matches, network),
-        Some(("data-center", matches)) => data_center::run(matches, network),
-        Some(("governance", matches)) => governance::run(matches, network),
-        Some(("node", matches)) => node::run(matches, network),
-        Some(("neuron", matches)) => neuron::run(matches, network),
-        Some(("node-provider", matches)) => node_provider::run(matches, network),
-        Some(("node-operator", matches)) => node_operator::run(matches, network),
-        Some(("proposal", matches)) => proposals::run(matches, network),
-        Some(("registry", matches)) => registry::run(matches, network),
-        Some(("topology", matches)) => topology::run(matches, network),
+        Some(("subnet", matches)) => subnet::run(matches, network).await,
+        Some(("data-center", matches)) => data_center::run(matches, network).await,
+        Some(("governance", matches)) => governance::run(matches, network).await,
+        Some(("node", matches)) => node::run(matches, network).await,
+        Some(("neuron", matches)) => neuron::run(matches, network).await,
+        Some(("node-provider", matches)) => node_provider::run(matches, network).await,
+        Some(("node-operator", matches)) => node_operator::run(matches, network).await,
+        Some(("proposal", matches)) => proposals::run(matches, network).await,
+        Some(("registry", matches)) => registry::run(matches, network).await,
+        Some(("topology", matches)) => topology::run(matches, network).await,
         _ => unreachable!("clap requires a known NNS subcommand"),
     }
 }

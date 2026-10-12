@@ -12,13 +12,15 @@ pub(in crate::sns::report::tests) struct FixtureSnsSwapSource;
 delegate_sns_discovery!(FixtureSnsSwapSource);
 
 impl SnsSwapSource for FixtureSnsSwapSource {
-    fn fetch_sns_swap(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError> {
-        assert_eq!(sns.swap_canister_id, SWAP_A);
-        Ok(fixture_mainnet_sns_swap(SWAP_A))
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.swap_canister_id, SWAP_A);
+            Ok(fixture_mainnet_sns_swap(SWAP_A))
+        })
     }
 }
 
@@ -33,19 +35,21 @@ pub(in crate::sns::report::tests) struct PartialFixtureSnsSwapSource;
 delegate_sns_discovery!(PartialFixtureSnsSwapSource);
 
 impl SnsSwapSource for PartialFixtureSnsSwapSource {
-    fn fetch_sns_swap(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError> {
-        let mut swap = fixture_mainnet_sns_swap(SWAP_A);
-        swap.derived_state = None;
-        swap.gaps.push(SnsSwapQueryGap {
-            component: SnsSwapComponent::DerivedState,
-            method: SnsCanisterMethod::GetDerivedState,
-            reason: "query rejected by fixture".to_string(),
-        });
-        Ok(swap)
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
+        Box::pin(async move {
+            let mut swap = fixture_mainnet_sns_swap(SWAP_A);
+            swap.derived_state = None;
+            swap.gaps.push(SnsSwapQueryGap {
+                component: SnsSwapComponent::DerivedState,
+                method: SnsCanisterMethod::GetDerivedState,
+                reason: "query rejected by fixture".to_string(),
+            });
+            Ok(swap)
+        })
     }
 }
 
@@ -60,12 +64,12 @@ pub(in crate::sns::report::tests) struct WrongTargetFixtureSnsSwapSource;
 delegate_sns_discovery!(WrongTargetFixtureSnsSwapSource);
 
 impl SnsSwapSource for WrongTargetFixtureSnsSwapSource {
-    fn fetch_sns_swap(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError> {
-        Ok(fixture_mainnet_sns_swap(INDEX_A))
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
+        Box::pin(async move { Ok(fixture_mainnet_sns_swap(INDEX_A)) })
     }
 }
 
@@ -82,14 +86,16 @@ pub(in crate::sns::report::tests) struct MutatingFixtureSnsSwapSource(
 delegate_sns_discovery!(MutatingFixtureSnsSwapSource);
 
 impl SnsSwapSource for MutatingFixtureSnsSwapSource {
-    fn fetch_sns_swap(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError> {
-        let mut swap = fixture_mainnet_sns_swap(SWAP_A);
-        self.0(&mut swap);
-        Ok(swap)
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
+        Box::pin(async move {
+            let mut swap = fixture_mainnet_sns_swap(SWAP_A);
+            self.0(&mut swap);
+            Ok(swap)
+        })
     }
 }
 

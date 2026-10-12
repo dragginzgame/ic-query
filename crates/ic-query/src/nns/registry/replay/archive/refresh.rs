@@ -103,7 +103,8 @@ pub enum NnsCertifiedRegistryArchiveRefreshError {
 pub async fn refresh_nns_certified_registry_archive_async(
     request: &NnsCertifiedRegistryArchiveRefreshRequest,
 ) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveRefreshError> {
-    refresh_nns_certified_registry_archive_with_source_async(request, &LiveNnsSource).await
+    refresh_nns_certified_registry_archive_with_source_async(request, &LiveNnsSource::default())
+        .await
 }
 
 /// Refresh an existing complete archive from an explicit async source.
@@ -145,7 +146,7 @@ pub(in crate::nns::registry::replay) async fn refresh_archive_with_authenticator
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         archive_filesystem_error,
-        || collect_and_publish_extension(request, source, authenticator),
+        async || collect_and_publish_extension(request, source, authenticator).await,
     )
     .await
 }

@@ -4,7 +4,7 @@
 //! Does not own: native ledger calls, report projection, bounds policy, or rendering.
 //! Boundary: fetches one exact account or one response-bounded cursor page.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcIcrcAccountInfoSourceData, IcIcrcAccountListQuery, IcIcrcAccountListSourceData,
     IcIcrcAccountSourceRow, IcIcrcHolderListQuery, IcIcrcHolderListSourceData,
@@ -15,85 +15,97 @@ use serde_json::Value as JsonValue;
 use url::Url;
 
 impl IcIcrcIndexSource for LiveIcSource {
-    fn fetch_account_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcAccountListQuery,
-    ) -> Result<IcIcrcAccountListSourceData, IcHostError> {
-        let query = source::normalized_account_list_query(query)?;
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: CursorPage<Account> = fetch_live(account_list_url(
-            &request.endpoint,
-            &ledger_canister_id,
-            &query,
-        )?)?;
-        Ok(IcIcrcAccountListSourceData {
-            source: request.clone(),
-            ledger_canister_id,
-            query,
-            previous_cursor: wire.previous_cursor,
-            next_cursor: wire.next_cursor,
-            rows: wire.data.into_iter().map(account_source_row).collect(),
+    fn fetch_account_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcAccountListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountListSourceData, IcHostError>> {
+        Box::pin(async move {
+            let query = source::normalized_account_list_query(query)?;
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let wire: CursorPage<Account> = self
+                .fetch_live(account_list_url(
+                    &request.endpoint,
+                    &ledger_canister_id,
+                    &query,
+                )?)
+                .await?;
+            Ok(IcIcrcAccountListSourceData {
+                source: request.clone(),
+                ledger_canister_id,
+                query,
+                previous_cursor: wire.previous_cursor,
+                next_cursor: wire.next_cursor,
+                rows: wire.data.into_iter().map(account_source_row).collect(),
+            })
         })
     }
 
-    fn fetch_account_info(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        account_id: &str,
-    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError> {
-        source::validate_account_id(account_id)?;
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: Account = fetch_live(account_info_url(
-            &request.endpoint,
-            &ledger_canister_id,
-            account_id,
-        )?)?;
-        Ok(IcIcrcAccountInfoSourceData {
-            source: request.clone(),
-            account: account_source_row(wire),
+    fn fetch_account_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        account_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountInfoSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_account_id(account_id)?;
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let wire: Account = self
+                .fetch_live(account_info_url(
+                    &request.endpoint,
+                    &ledger_canister_id,
+                    account_id,
+                )?)
+                .await?;
+            Ok(IcIcrcAccountInfoSourceData {
+                source: request.clone(),
+                account: account_source_row(wire),
+            })
         })
     }
 
-    fn fetch_holder_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcHolderListQuery,
-    ) -> Result<IcIcrcHolderListSourceData, IcHostError> {
-        source::validate_holder_list_query(query)?;
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: CursorPage<Holder> = fetch_live(holder_list_url(
-            &request.endpoint,
-            &ledger_canister_id,
-            query,
-        )?)?;
-        Ok(IcIcrcHolderListSourceData {
-            source: request.clone(),
-            ledger_canister_id,
-            query: query.clone(),
-            previous_cursor: wire.previous_cursor,
-            next_cursor: wire.next_cursor,
-            rows: wire
-                .data
-                .into_iter()
-                .map(|row| IcIcrcHolderSourceRow {
-                    principal: row.principal,
-                    balance_base_units: row.balance,
-                    total_transactions: row.total_transactions,
-                    created_at_unix_nanos: row.created_timestamp,
-                    ledger_canister_id: row.ledger_canister_id,
-                    latest_transaction_index: row.latest_transaction_index,
-                    percentage: row.percentage,
-                    value_usd: row.value_usd,
-                    dashboard_updated_at: row.updated_at,
-                })
-                .collect(),
+    fn fetch_holder_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcHolderListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcHolderListSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_holder_list_query(query)?;
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let wire: CursorPage<Holder> = self
+                .fetch_live(holder_list_url(
+                    &request.endpoint,
+                    &ledger_canister_id,
+                    query,
+                )?)
+                .await?;
+            Ok(IcIcrcHolderListSourceData {
+                source: request.clone(),
+                ledger_canister_id,
+                query: query.clone(),
+                previous_cursor: wire.previous_cursor,
+                next_cursor: wire.next_cursor,
+                rows: wire
+                    .data
+                    .into_iter()
+                    .map(|row| IcIcrcHolderSourceRow {
+                        principal: row.principal,
+                        balance_base_units: row.balance,
+                        total_transactions: row.total_transactions,
+                        created_at_unix_nanos: row.created_timestamp,
+                        ledger_canister_id: row.ledger_canister_id,
+                        latest_transaction_index: row.latest_transaction_index,
+                        percentage: row.percentage,
+                        value_usd: row.value_usd,
+                        dashboard_updated_at: row.updated_at,
+                    })
+                    .collect(),
+            })
         })
     }
 }

@@ -20,7 +20,6 @@ mod tests;
 use crate::{
     http_endpoint::parse_http_endpoint,
     ic::{IcHostError, MAX_IC_DASHBOARD_RESPONSE_BYTES},
-    runtime::block_on_current_thread,
 };
 use reqwest::{Client, redirect::Policy as RedirectPolicy};
 use serde::de::DeserializeOwned;
@@ -35,17 +34,26 @@ const HTTP_TIMEOUT: Duration = Duration::from_secs(30);
 /// Live official IC Dashboard source used by report builders outside tests.
 ///
 
-pub struct LiveIcSource;
+#[derive(Default)]
+pub struct LiveIcSource {
+    client: std::sync::OnceLock<Client>,
+}
 
-fn fetch_live<T>(url: Url) -> Result<T, IcHostError>
-where
-    T: DeserializeOwned + Send,
-{
-    block_on_current_thread(fetch_json_with_limit(
-        http_client()?,
-        url,
-        MAX_IC_DASHBOARD_RESPONSE_BYTES,
-    ))?
+impl LiveIcSource {
+    async fn fetch_live<T>(&self, url: Url) -> Result<T, IcHostError>
+    where
+        T: DeserializeOwned + Send,
+    {
+        if self.client.get().is_none() {
+            let _ = self.client.set(http_client()?);
+        }
+        fetch_json_with_limit(
+            self.client.get().expect("HTTP client initialized").clone(),
+            url,
+            MAX_IC_DASHBOARD_RESPONSE_BYTES,
+        )
+        .await
+    }
 }
 
 fn http_client() -> Result<Client, IcHostError> {

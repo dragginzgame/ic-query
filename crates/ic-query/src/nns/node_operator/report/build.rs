@@ -10,27 +10,32 @@ use super::{
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
-pub fn build_nns_node_operator_list_report(
+pub async fn build_nns_node_operator_list_report(
     request: &NnsInventoryListRequest,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source(request, &LiveNnsSource)
+    build_nns_node_operator_list_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_node_operator_info_report(
+pub async fn build_nns_node_operator_info_report(
     request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source(request, &LiveNnsSource)
+    build_nns_node_operator_info_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build the report while reporting authorized cache refreshes.
-pub fn build_nns_node_operator_list_report_with_progress(
+pub async fn build_nns_node_operator_list_report_with_progress(
     request: &NnsInventoryListRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source_and_progress(request, &LiveNnsSource, progress)
+    build_nns_node_operator_list_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
-pub fn build_nns_node_operator_list_report_with_source(
+pub async fn build_nns_node_operator_list_report_with_source(
     request: &NnsInventoryListRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
@@ -39,10 +44,11 @@ pub fn build_nns_node_operator_list_report_with_source(
         source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
-pub fn build_nns_node_operator_list_report_with_source_and_progress(
+pub async fn build_nns_node_operator_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
     source: &dyn NnsNodeOperatorSource,
     progress: &mut dyn QueryProgress,
@@ -53,21 +59,29 @@ pub fn build_nns_node_operator_list_report_with_source_and_progress(
         DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS,
         progress,
         |cache| load_cached_nns_node_operator_report(cache).map(|cached| cached.report),
-        |refresh_request| {
-            refresh_nns_node_operator_cache_with_source(refresh_request, source).map(|_| ())
+        async |refresh_request| {
+            refresh_nns_node_operator_cache_with_source(refresh_request, source)
+                .await
+                .map(|_| ())
         },
     )
+    .await
 }
 
 /// Build the report while reporting authorized cache refreshes.
-pub fn build_nns_node_operator_info_report_with_progress(
+pub async fn build_nns_node_operator_info_report_with_progress(
     request: &NnsInventoryInfoRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source_and_progress(request, &LiveNnsSource, progress)
+    build_nns_node_operator_info_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
-pub fn build_nns_node_operator_info_report_with_source(
+pub async fn build_nns_node_operator_info_report_with_source(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeOperatorSource,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
@@ -76,10 +90,11 @@ pub fn build_nns_node_operator_info_report_with_source(
         source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
-pub fn build_nns_node_operator_info_report_with_source_and_progress(
+pub async fn build_nns_node_operator_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeOperatorSource,
     progress: &mut dyn QueryProgress,
@@ -93,7 +108,8 @@ pub fn build_nns_node_operator_info_report_with_source_and_progress(
         &list_request,
         source,
         progress,
-    )?;
+    )
+    .await?;
     let (operator, resolved_from) = resolve_node_operator(&report, &request.input)?;
     Ok(NnsNodeOperatorInfoReport {
         schema_version: NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION,

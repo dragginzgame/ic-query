@@ -9,8 +9,8 @@ mod list;
 mod refresh;
 mod text;
 
-#[test]
-fn live_node_provider_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_node_provider_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -18,8 +18,9 @@ fn live_node_provider_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveNnsSource
+    let error = LiveNnsSource::default()
         .fetch_node_provider_list_report(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(

@@ -14,7 +14,6 @@ use crate::{
         with_refresh_lock_async, write_managed_json_pretty_atomically,
         write_managed_text_atomically, write_text_output,
     },
-    runtime::block_on_current_thread,
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         MAINNET_REGISTRY_CANISTER_ID, SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
@@ -97,23 +96,8 @@ impl SubnetCatalogRefreshRequest {
     }
 }
 
-/// Collect and validate a live catalog using the explicitly selected source policy.
-pub fn refresh_subnet_catalog(
-    request: &SubnetCatalogRefreshRequest,
-) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
-    block_on_current_thread(refresh_subnet_catalog_async(request))?
-}
-
-/// Collect through a caller-owned source and publish only a validated complete catalog.
-pub fn refresh_subnet_catalog_with_source(
-    request: &SubnetCatalogRefreshRequest,
-    source: &dyn SubnetCatalogSource,
-) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
-    block_on_current_thread(refresh_subnet_catalog_with_source_async(request, source))?
-}
-
 /// Refresh a catalog on the caller's async runtime using the live mainnet source.
-pub async fn refresh_subnet_catalog_async(
+pub async fn refresh_subnet_catalog(
     request: &SubnetCatalogRefreshRequest,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
     let source = if request.dry_run {
@@ -121,11 +105,11 @@ pub async fn refresh_subnet_catalog_async(
     } else {
         LiveSubnetCatalogSource::default().with_history_cache(&request.cache.cache_root)
     };
-    refresh_subnet_catalog_with_source_async(request, &source).await
+    refresh_subnet_catalog_with_source(request, &source).await
 }
 
 /// Refresh a catalog on the caller's async runtime using a supplied source.
-pub async fn refresh_subnet_catalog_with_source_async(
+pub async fn refresh_subnet_catalog_with_source(
     request: &SubnetCatalogRefreshRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError> {
@@ -196,7 +180,7 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_progress_async(
                 &cache_error_path,
             )
         },
-        || {
+        async || {
             refresh_subnet_catalog_under_lock(
                 request,
                 source,
@@ -206,6 +190,7 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_progress_async(
                 &known_registry_version,
                 progress,
             )
+            .await
         },
     )
     .await

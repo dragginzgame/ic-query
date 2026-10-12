@@ -22,7 +22,7 @@
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
 //! topology, `nns-host` for the complete NNS host surface, `canister` for the
 //! replicated NNS Governance adapter on `wasm32`, or `host` for every native
-//! live-call adapter and runtime helper. CLI parsing and process IO belong to
+//! live-call adapter. CLI parsing and process IO belong to
 //! the separate `ic-query-cli` crate.
 
 #[cfg(any(
@@ -96,16 +96,6 @@ pub mod nns;
 mod progress;
 pub mod report;
 mod report_sort;
-#[cfg(any(
-    feature = "cloud-engine-host",
-    feature = "cmc-host",
-    feature = "dashboard-host",
-    feature = "ic-state-host",
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
-mod runtime;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",

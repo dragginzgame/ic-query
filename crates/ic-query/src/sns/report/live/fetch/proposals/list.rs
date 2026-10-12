@@ -19,6 +19,7 @@ use crate::sns::report::{
 
 /// Fetch a bounded SNS governance proposal listing from one resolved SNS.
 pub(super) async fn fetch_mainnet_sns_proposals_async(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
@@ -26,10 +27,10 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
     include_status: &[i32],
     topic: SnsProposalTopicFilter,
 ) -> Result<MainnetSnsProposals, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let response: ListProposalsResponse = query_canister(
-        &agent,
+        agent,
         &governance_canister,
         SnsCanisterMethod::ListProposals.as_str(),
         "ListProposalsRequest",
@@ -54,12 +55,14 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
 
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
 pub(super) async fn fetch_mainnet_sns_proposal_page_async(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
 ) -> Result<MainnetSnsProposalPage, SnsHostError> {
     let proposals = fetch_mainnet_sns_proposals_async(
+        source,
         request,
         sns,
         limit,

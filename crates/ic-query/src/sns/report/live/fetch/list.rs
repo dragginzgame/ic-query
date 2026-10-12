@@ -3,8 +3,6 @@
 //! Responsibility: fetch deployed SNS inventory and explicitly targeted catalog enrichment.
 //! Does not own: report assembly, command parsing, cache IO, or rendering.
 //! Boundary: keeps SNS-W inventory separate from bounded Governance metadata and Swap lifecycle queries.
-
-use super::block_on_sns;
 use crate::sns::report::live::{
     convert::{
         bounded_query_error_summary, mainnet_sns_canisters_from_deployed_sns,
@@ -29,21 +27,15 @@ use candid::Principal;
 use futures::{StreamExt, stream};
 use ic_agent::Agent;
 
-/// Fetch the current unenriched deployed-SNS inventory from mainnet SNS-W.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_inventory(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
 ) -> Result<MainnetSnsInventory, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_inventory_async(request))
-}
-
-async fn fetch_mainnet_sns_inventory_async(
-    request: &SnsSourceRequest,
-) -> Result<MainnetSnsInventory, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
     let response: ListDeployedSnsesResponse = query_canister(
-        &agent,
+        agent,
         &sns_wasm_canister,
         SnsCanisterMethod::ListDeployedSnses.as_str(),
         "ListDeployedSnsesRequest",
@@ -73,8 +65,8 @@ fn mainnet_sns_inventory_from_response(
     })
 }
 
-/// Fetch Governance metadata for exactly the requested deployed-SNS targets.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_metadata(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     targets: &[MainnetSnsCanisters],
 ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
@@ -82,19 +74,12 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_metadata(
     if targets.is_empty() {
         return Ok(Vec::new());
     }
-    block_on_sns(fetch_mainnet_sns_metadata_async(request, targets))
-}
-
-async fn fetch_mainnet_sns_metadata_async(
-    request: &SnsSourceRequest,
-    targets: &[MainnetSnsCanisters],
-) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let fetched = stream::iter(
         targets
             .iter()
             .cloned()
-            .map(|sns| fetch_mainnet_sns_metadata_row(&agent, sns)),
+            .map(|sns| fetch_mainnet_sns_metadata_row(agent, sns)),
     )
     .buffered(SNS_METADATA_CONCURRENCY)
     .collect::<Vec<_>>()
@@ -106,7 +91,7 @@ async fn fetch_mainnet_sns_metadata_async(
     Ok(metadata)
 }
 
-async fn fetch_mainnet_sns_metadata_row(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
     agent: &Agent,
     sns: MainnetSnsCanisters,
 ) -> Result<MainnetSnsMetadata, SnsHostError> {
@@ -127,8 +112,8 @@ async fn fetch_mainnet_sns_metadata_row(
     ))
 }
 
-/// Fetch Swap lifecycle evidence for exactly the requested deployed-SNS targets.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_lifecycles(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycles(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     targets: &[MainnetSnsCanisters],
 ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
@@ -136,19 +121,12 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_lifecycles(
     if targets.is_empty() {
         return Ok(Vec::new());
     }
-    block_on_sns(fetch_mainnet_sns_lifecycles_async(request, targets))
-}
-
-async fn fetch_mainnet_sns_lifecycles_async(
-    request: &SnsSourceRequest,
-    targets: &[MainnetSnsCanisters],
-) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let fetched = stream::iter(
         targets
             .iter()
             .cloned()
-            .map(|sns| fetch_mainnet_sns_lifecycle_row(&agent, sns)),
+            .map(|sns| fetch_mainnet_sns_lifecycle_row(agent, sns)),
     )
     .buffered(SNS_METADATA_CONCURRENCY)
     .collect::<Vec<_>>()
@@ -160,7 +138,7 @@ async fn fetch_mainnet_sns_lifecycles_async(
     Ok(lifecycles)
 }
 
-async fn fetch_mainnet_sns_lifecycle_row(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
     agent: &Agent,
     sns: MainnetSnsCanisters,
 ) -> Result<MainnetSnsLifecycle, SnsHostError> {

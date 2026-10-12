@@ -94,20 +94,21 @@ mod host {
         },
         ic::{IcHostError, IcSourceRequest},
     };
-    use std::cell::Cell;
+    use std::sync::Mutex;
 
     const PROVIDER_A: &str = "2wxzd-qrbrs-ailta-kdtyb-ucg35-xcxd4-txevb-ot7hx-wiyus-szcca-nqe";
 
     const NOW: u64 = 1_800_000_000;
 
-    #[test]
-    fn list_validates_complete_resource_then_filters_and_sorts_cloud_engine_rows() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn list_validates_complete_resource_then_filters_and_sorts_cloud_engine_rows() {
         let source = Fixture::default();
         let report = build_cloud_engine_provider_list_report_with_source(&list_request(), &source)
+            .await
             .expect("CloudEngine providers");
 
-        assert_eq!(source.list_calls.get(), 1);
-        assert_eq!(source.info_calls.get(), 0);
+        assert_eq!((*source.list_calls.lock().unwrap()), 1);
+        assert_eq!((*source.info_calls.lock().unwrap()), 0);
         assert_eq!(report.source_node_provider_count, 3);
         assert_eq!(report.cloud_engine_provider_count, 2);
         assert_eq!(report.providers[0].principal_id, PROVIDER_A);
@@ -117,8 +118,8 @@ mod host {
         assert!(!report.provenance.point_in_time_guaranteed);
     }
 
-    #[test]
-    fn exact_info_preserves_zero_cloud_engine_evidence_without_hiding_the_provider() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn exact_info_preserves_zero_cloud_engine_evidence_without_hiding_the_provider() {
         let source = Fixture::default();
         let request = CloudEngineProviderInfoRequest::new(
             "ic",
@@ -126,30 +127,30 @@ mod host {
             NOW,
             PROVIDER_A,
         );
-        source.info_cloud_engine.set(false);
+        (*source.info_cloud_engine.lock().unwrap() = false);
         let report = build_cloud_engine_provider_info_report_with_source(&request, &source)
+            .await
             .expect("exact provider");
 
-        assert_eq!(source.info_calls.get(), 1);
+        assert_eq!((*source.info_calls.lock().unwrap()), 1);
         assert!(!report.cloud_engine_evidence_present);
         assert_eq!(report.provider.principal_id, PROVIDER_A);
     }
 
-    #[test]
-    fn cloud_engine_and_ordinary_location_scopes_are_independent() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn cloud_engine_and_ordinary_location_scopes_are_independent() {
         let source = Fixture::default();
-        source
-            .mutation
-            .set(Some(Mutation::IndependentCloudLocation));
+        (*source.mutation.lock().unwrap() = Some(Mutation::IndependentCloudLocation));
         let report = build_cloud_engine_provider_list_report_with_source(&list_request(), &source)
+            .await
             .expect("independent CloudEngine provider location");
 
         assert_eq!(report.providers[1].cloud_engine_locations[0].dc_key, "ce1");
         assert_eq!(report.providers[1].locations[0].dc_key, "br1");
     }
 
-    #[test]
-    fn requests_and_custom_source_contract_fail_closed() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn requests_and_custom_source_contract_fail_closed() {
         let source = Fixture::default();
         let unsupported = CloudEngineProviderListRequest::new(
             "local",
@@ -157,13 +158,13 @@ mod host {
             NOW,
         );
         assert!(matches!(
-            build_cloud_engine_provider_list_report_with_source(&unsupported, &source),
+            build_cloud_engine_provider_list_report_with_source(&unsupported, &source).await,
             Err(IcHostError::InvalidRequest {
                 field: "network",
                 ..
             })
         ));
-        assert_eq!(source.list_calls.get(), 0);
+        assert_eq!((*source.list_calls.lock().unwrap()), 0);
 
         for mutation in [
             Mutation::WrongSource,
@@ -172,9 +173,9 @@ mod host {
             Mutation::BadLocationCount,
             Mutation::UnassignedOverflow,
         ] {
-            source.mutation.set(Some(mutation));
+            (*source.mutation.lock().unwrap() = Some(mutation));
             assert!(matches!(
-                build_cloud_engine_provider_list_report_with_source(&list_request(), &source),
+                build_cloud_engine_provider_list_report_with_source(&list_request(), &source).await,
                 Err(IcHostError::InvalidSourceData { .. })
             ));
         }
@@ -192,54 +193,61 @@ mod host {
 
     #[derive(Default)]
     struct Fixture {
-        list_calls: Cell<usize>,
-        info_calls: Cell<usize>,
-        info_cloud_engine: Cell<bool>,
-        mutation: Cell<Option<Mutation>>,
+        list_calls: Mutex<usize>,
+        info_calls: Mutex<usize>,
+        info_cloud_engine: Mutex<bool>,
+        mutation: Mutex<Option<Mutation>>,
     }
 
     impl CloudEngineProviderSource for Fixture {
-        fn fetch_cloud_engine_provider_list(
-            &self,
-            request: &IcSourceRequest,
-        ) -> Result<CloudEngineProviderListSourceData, IcHostError> {
-            self.list_calls.set(self.list_calls.get() + 1);
-            let mut data = CloudEngineProviderListSourceData {
-                source: request.clone(),
-                providers: vec![
-                    provider(PROVIDER_B, true),
-                    provider(PROVIDER_A, true),
-                    provider("aaaaa-aa", false),
-                ],
-            };
-            match self.mutation.take() {
-                Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
-                Some(Mutation::Empty) => data.providers.clear(),
-                Some(Mutation::DuplicateProvider) => {
-                    data.providers[1].principal_id = data.providers[0].principal_id.clone();
+        fn fetch_cloud_engine_provider_list<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+        ) -> crate::report::SourceFuture<'a, Result<CloudEngineProviderListSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.list_calls.lock().unwrap() += 1;
+                let mut data = CloudEngineProviderListSourceData {
+                    source: request.clone(),
+                    providers: vec![
+                        provider(PROVIDER_B, true),
+                        provider(PROVIDER_A, true),
+                        provider("aaaaa-aa", false),
+                    ],
+                };
+                let mutation = self.mutation.lock().unwrap().take();
+                match mutation {
+                    Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
+                    Some(Mutation::Empty) => data.providers.clear(),
+                    Some(Mutation::DuplicateProvider) => {
+                        data.providers[1].principal_id = data.providers[0].principal_id.clone();
+                    }
+                    Some(Mutation::BadLocationCount) => data.providers[0].location_count = 2,
+                    Some(Mutation::IndependentCloudLocation) => {
+                        data.providers[0].cloud_engine_locations[0].dc_key = "ce1".to_string();
+                        data.providers[0].cloud_engine_locations[0].owner = "Owner ".to_string();
+                    }
+                    Some(Mutation::UnassignedOverflow) => {
+                        data.providers[0].total_cloud_engine_unassigned_nodes = 6;
+                    }
+                    None => {}
                 }
-                Some(Mutation::BadLocationCount) => data.providers[0].location_count = 2,
-                Some(Mutation::IndependentCloudLocation) => {
-                    data.providers[0].cloud_engine_locations[0].dc_key = "ce1".to_string();
-                    data.providers[0].cloud_engine_locations[0].owner = "Owner ".to_string();
-                }
-                Some(Mutation::UnassignedOverflow) => {
-                    data.providers[0].total_cloud_engine_unassigned_nodes = 6;
-                }
-                None => {}
-            }
-            Ok(data)
+                Ok(data)
+            })
         }
 
-        fn fetch_cloud_engine_provider_info(
-            &self,
-            request: &IcSourceRequest,
-            node_provider_id: &str,
-        ) -> Result<CloudEngineProviderInfoSourceData, IcHostError> {
-            self.info_calls.set(self.info_calls.get() + 1);
-            Ok(CloudEngineProviderInfoSourceData {
-                source: request.clone(),
-                provider: provider(node_provider_id, self.info_cloud_engine.get()),
+        fn fetch_cloud_engine_provider_info<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            node_provider_id: &'a str,
+        ) -> crate::report::SourceFuture<'a, Result<CloudEngineProviderInfoSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.info_calls.lock().unwrap() += 1;
+                Ok(CloudEngineProviderInfoSourceData {
+                    source: request.clone(),
+                    provider: provider(node_provider_id, *self.info_cloud_engine.lock().unwrap()),
+                })
             })
         }
     }

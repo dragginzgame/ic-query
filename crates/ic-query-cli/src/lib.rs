@@ -103,12 +103,16 @@ impl IcqCliError {
 }
 
 /// Run the CLI from process arguments.
-pub fn run_from_env() -> Result<(), IcqCliError> {
-    run(std::env::args_os().skip(1))
+#[expect(
+    clippy::needless_collect,
+    reason = "ArgsOs is not Send; own the arguments before awaiting command dispatch."
+)]
+pub async fn run_from_env() -> Result<(), IcqCliError> {
+    run(std::env::args_os().skip(1).collect::<Vec<_>>()).await
 }
 
 /// Run the CLI from an argument iterator.
-pub fn run<I>(args: I) -> Result<(), IcqCliError>
+pub async fn run<I>(args: I) -> Result<(), IcqCliError>
 where
     I: IntoIterator<Item = OsString>,
 {
@@ -145,22 +149,18 @@ where
             reject_network_for_local_family(command, selected_network.as_deref())?;
             Ok(cache::run_matches(matches)?)
         }
-        "cloud-engine" => Ok(cloud_engine::run_matches(matches, network)?),
+        "cloud-engine" => Ok(cloud_engine::run_matches(matches, network).await?),
         "ic" => {
             reject_network_for_endpoint_family(command, selected_network.as_deref())?;
-            Ok(ic::run_matches(matches)?)
+            Ok(ic::run_matches(matches).await?)
         }
         "icrc" => {
             reject_network_for_endpoint_family(command, selected_network.as_deref())?;
-            Ok(icrc::run_matches(matches)?)
+            Ok(icrc::run_matches(matches).await?)
         }
-        "nns" => Ok(nns::run_matches(matches, network)?),
-        "sns" => Ok(sns::run_matches(
-            matches,
-            network,
-            selected_network.is_some(),
-        )?),
-        "system" => Ok(system::run_matches(matches, network)?),
+        "nns" => Ok(nns::run_matches(matches, network).await?),
+        "sns" => Ok(sns::run_matches(matches, network, selected_network.is_some()).await?),
+        "system" => Ok(system::run_matches(matches, network).await?),
         _ => unreachable!("clap only returns declared top-level commands"),
     }
 }
@@ -318,8 +318,8 @@ mod tests {
         assert_namespace_policy(&cli_command(), &mut vec!["icq".to_string()]);
     }
 
-    #[test]
-    fn native_help_and_propagated_version_return_without_dispatch() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn native_help_and_propagated_version_return_without_dispatch() {
         for args in [
             &["--help"][..],
             &["ic", "canister", "info", "--help"],
@@ -341,7 +341,7 @@ mod tests {
             &["--version"],
             &["nns", "subnet", "list", "--version"],
         ] {
-            assert_run_ok(args);
+            assert_run_ok(args).await;
         }
     }
 
@@ -401,8 +401,8 @@ mod tests {
         assert_leaf_json(&top_level_command(), &mut vec!["icq".to_string()]);
     }
 
-    #[test]
-    fn clap_rejects_non_mainnet_and_command_local_network_options() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn clap_rejects_non_mainnet_and_command_local_network_options() {
         let error = run([
             OsString::from("--network"),
             OsString::from("local"),
@@ -410,6 +410,7 @@ mod tests {
             OsString::from("registry"),
             OsString::from("version"),
         ])
+        .await
         .expect_err("non-mainnet network must fail in Clap");
         assert_eq!(error.exit_code(), 2);
         assert!(error.to_string().contains("invalid value 'local'"));
@@ -421,6 +422,7 @@ mod tests {
             OsString::from("--network"),
             OsString::from("ic"),
         ])
+        .await
         .expect_err("network remains a top-level option");
         assert_eq!(error.exit_code(), 2);
         assert!(
@@ -430,8 +432,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn network_is_rejected_for_endpoint_identified_families() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn network_is_rejected_for_endpoint_identified_families() {
         for args in [
             &["--network", "ic", "ic", "canister", "count"][..],
             &[
@@ -444,28 +446,30 @@ mod tests {
             ],
         ] {
             let error = run(args.iter().map(OsString::from))
+                .await
                 .expect_err("endpoint-identified families must reject --network");
             assert_eq!(error.exit_code(), 2);
             assert!(error.to_string().contains("--source-endpoint"));
         }
     }
 
-    #[test]
-    fn explicit_network_is_rejected_for_cross_network_cache_status() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn explicit_network_is_rejected_for_cross_network_cache_status() {
         let error = run([
             OsString::from("--network"),
             OsString::from("ic"),
             OsString::from("cache"),
             OsString::from("status"),
         ])
+        .await
         .expect_err("cross-network cache status must reject one selected network");
 
         assert_eq!(error.exit_code(), 2);
         assert!(error.to_string().contains("every network"));
     }
 
-    #[test]
-    fn explicit_network_is_rejected_for_local_reward_diff() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn explicit_network_is_rejected_for_local_reward_diff() {
         let error = run([
             OsString::from("--network"),
             OsString::from("ic"),
@@ -475,20 +479,22 @@ mod tests {
             OsString::from("before.json"),
             OsString::from("after.json"),
         ])
+        .await
         .expect_err("local reward diff must reject explicit network identity");
 
         assert_eq!(error.exit_code(), 2);
         assert!(error.to_string().contains("local-only"));
     }
 
-    #[test]
-    fn targeted_sns_leaves_require_their_identifiers() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn targeted_sns_leaves_require_their_identifiers() {
         for args in [
             &["sns", "neuron", "list"][..],
             &["sns", "proposal", "refresh"][..],
             &["sns", "reward", "checkpoint"][..],
         ] {
             let error = run(args.iter().map(OsString::from))
+                .await
                 .expect_err("targeted SNS operation must require an SNS selector");
             assert_eq!(error.exit_code(), 2);
             assert!(error.to_string().contains("<id|root-principal>"));
@@ -525,9 +531,9 @@ mod tests {
         }
     }
 
-    fn assert_run_ok(args: &[&str]) {
+    async fn assert_run_ok(args: &[&str]) {
         let args = args.iter().copied().map(OsString::from).collect::<Vec<_>>();
-        if let Err(err) = run(args.clone()) {
+        if let Err(err) = run(args.clone()).await {
             panic!("expected {args:?} to succeed, got {err}");
         }
     }

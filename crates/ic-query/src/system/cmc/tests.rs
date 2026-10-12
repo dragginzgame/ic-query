@@ -1,38 +1,41 @@
 use super::*;
 use crate::subnet_catalog::MAINNET_NETWORK;
-use std::cell::Cell;
+use std::sync::Mutex;
 
 const FETCHED_AT: &str = "2026-08-01T12:00:00Z";
 
 struct FixtureCmcSource {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
 }
 
 impl FixtureCmcSource {
     const fn new() -> Self {
         Self {
-            calls: Cell::new(0),
+            calls: Mutex::new(0),
         }
     }
 }
 
 impl CmcSource for FixtureCmcSource {
-    fn fetch_certified_icp_xdr_rate(
-        &self,
-        _request: &CmcSourceRequest,
-    ) -> Result<CmcCertifiedRate, CmcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(certified_rate())
+    fn fetch_certified_icp_xdr_rate<'a>(
+        &'a self,
+        _request: &'a CmcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(certified_rate())
+        })
     }
 }
 
-#[test]
-fn xdr_report_preserves_raw_rate_and_certification() {
+#[tokio::test(flavor = "current_thread")]
+async fn xdr_report_preserves_raw_rate_and_certification() {
     let source = FixtureCmcSource::new();
     let report = build_cmc_xdr_report_with_source(&request(MAINNET_NETWORK), &source)
+        .await
         .expect("fixture CMC report");
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.context.schema_version, 1);
     assert_eq!(report.context.network, MAINNET_NETWORK);
     assert_eq!(report.context.cmc_canister_id, MAINNET_CMC_CANISTER_ID);
@@ -51,13 +54,14 @@ fn xdr_report_preserves_raw_rate_and_certification() {
     assert_eq!(json["certification"]["certificate_hex"], "aabb");
 }
 
-#[test]
-fn cycles_report_uses_the_exact_protocol_conversion() {
+#[tokio::test(flavor = "current_thread")]
+async fn cycles_report_uses_the_exact_protocol_conversion() {
     let source = FixtureCmcSource::new();
     let report = build_cmc_cycles_report_with_source(&request(MAINNET_NETWORK), &source)
+        .await
         .expect("fixture CMC cycles report");
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.cycles_per_xdr, 1_000_000_000_000);
     assert_eq!(report.cycles_per_xdr_source, "ic_protocol_constant");
     assert_eq!(report.cycles_per_icp, 4_916_400_000_000);
@@ -72,33 +76,48 @@ fn cycles_report_uses_the_exact_protocol_conversion() {
     assert!(text.contains("cycles_per_icp: 4.92 T"));
 }
 
-#[test]
-fn builders_reject_non_mainnet_before_invoking_a_source() {
-    for build in [
-        |request: &CmcSourceRequest, source: &dyn CmcSource| {
-            build_cmc_xdr_report_with_source(request, source).map(|_| ())
+#[tokio::test(flavor = "current_thread")]
+async fn builders_reject_non_mainnet_before_invoking_a_source() {
+    type Build = for<'a> fn(
+        &'a CmcSourceRequest,
+        &'a dyn CmcSource,
+    ) -> crate::report::SourceFuture<'a, Result<(), CmcHostError>>;
+    let builders: [Build; 2] = [
+        |request, source| {
+            Box::pin(async move {
+                build_cmc_xdr_report_with_source(request, source)
+                    .await
+                    .map(|_| ())
+            })
         },
-        |request: &CmcSourceRequest, source: &dyn CmcSource| {
-            build_cmc_cycles_report_with_source(request, source).map(|_| ())
+        |request, source| {
+            Box::pin(async move {
+                build_cmc_cycles_report_with_source(request, source)
+                    .await
+                    .map(|_| ())
+            })
         },
-    ] {
+    ];
+    for build in builders {
         let source = FixtureCmcSource::new();
         let error = build(&request("local"), &source)
+            .await
             .expect_err("non-mainnet CMC reports must be rejected");
 
         assert!(matches!(
             error,
             CmcHostError::UnsupportedNetwork { network } if network == "local"
         ));
-        assert_eq!(source.calls.get(), 0);
+        assert_eq!((*source.calls.lock().unwrap()), 0);
     }
 }
 
-#[test]
-fn public_live_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_live_source_rejects_non_mainnet_before_agent_construction() {
     let request = CmcSourceRequest::new("local", "://invalid endpoint", FETCHED_AT, "test");
     let error = LiveCmcSource
         .fetch_certified_icp_xdr_rate(&request)
+        .await
         .expect_err("network must be validated before the endpoint");
 
     assert!(matches!(
@@ -107,22 +126,25 @@ fn public_live_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn builders_reject_invalid_custom_certification_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn builders_reject_invalid_custom_certification_evidence() {
     struct InvalidSource;
 
     impl CmcSource for InvalidSource {
-        fn fetch_certified_icp_xdr_rate(
-            &self,
-            _request: &CmcSourceRequest,
-        ) -> Result<CmcCertifiedRate, CmcHostError> {
-            let mut certified = certified_rate();
-            certified.certification.certificate_verified = false;
-            Ok(certified)
+        fn fetch_certified_icp_xdr_rate<'a>(
+            &'a self,
+            _request: &'a CmcSourceRequest,
+        ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
+            Box::pin(async move {
+                let mut certified = certified_rate();
+                certified.certification.certificate_verified = false;
+                Ok(certified)
+            })
         }
     }
 
     let error = build_cmc_xdr_report_with_source(&request(MAINNET_NETWORK), &InvalidSource)
+        .await
         .expect_err("custom sources must return accepted certified evidence");
 
     assert!(matches!(
@@ -132,22 +154,25 @@ fn builders_reject_invalid_custom_certification_evidence() {
     ));
 }
 
-#[test]
-fn builders_reject_inconsistent_custom_evidence_lengths() {
+#[tokio::test(flavor = "current_thread")]
+async fn builders_reject_inconsistent_custom_evidence_lengths() {
     struct InvalidSource;
 
     impl CmcSource for InvalidSource {
-        fn fetch_certified_icp_xdr_rate(
-            &self,
-            _request: &CmcSourceRequest,
-        ) -> Result<CmcCertifiedRate, CmcHostError> {
-            let mut certified = certified_rate();
-            certified.certification.hash_tree_bytes = 2;
-            Ok(certified)
+        fn fetch_certified_icp_xdr_rate<'a>(
+            &'a self,
+            _request: &'a CmcSourceRequest,
+        ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
+            Box::pin(async move {
+                let mut certified = certified_rate();
+                certified.certification.hash_tree_bytes = 2;
+                Ok(certified)
+            })
         }
     }
 
     let error = build_cmc_cycles_report_with_source(&request(MAINNET_NETWORK), &InvalidSource)
+        .await
         .expect_err("custom source byte counts must match evidence hex");
 
     assert!(matches!(

@@ -10,7 +10,10 @@ use ic_query::subnet_catalog::{
     build_subnet_catalog_list_report_with_progress, subnet_catalog_list_report_text,
     subnet_catalog_list_report_verbose_text,
 };
-pub(super) fn run_catalog_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(super) async fn run_catalog_list(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     let options = CatalogListOptions::from_matches(matches, network);
     let format = options.format;
     let verbose = options.verbose;
@@ -26,7 +29,8 @@ pub(super) fn run_catalog_list(matches: &ArgMatches, network: &str) -> Result<()
     .with_range_limit(options.range_limit)
     .with_range_offset(options.range_offset);
     let report =
-        build_subnet_catalog_list_report_with_progress(&request, &mut StderrQueryProgress::new())?;
+        build_subnet_catalog_list_report_with_progress(&request, &mut StderrQueryProgress::new())
+            .await?;
     write_text_or_json_verbose(
         format,
         &report,

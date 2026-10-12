@@ -1,7 +1,7 @@
 use super::*;
 
-#[test]
-fn nns_proposal_list_report_sorts_by_reward_status_text() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_sorts_by_reward_status_text() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -54,6 +54,7 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
     };
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .await
         .expect("build reward-status sorted report");
 
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL);
@@ -61,8 +62,8 @@ fn nns_proposal_list_report_sorts_by_reward_status_text() {
     assert_eq!(proposal_ids(&report), vec![102, 103, 101]);
 }
 
-#[test]
-fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -84,6 +85,7 @@ fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
         &proposal_sort_request(NnsProposalListSort::Deadline),
         &source,
     )
+    .await
     .expect("build deadline sorted report");
 
     assert_eq!(deadline_report.sort, NNS_PROPOSAL_SORT_DEADLINE_LABEL);
@@ -94,6 +96,7 @@ fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
         &proposal_sort_request(NnsProposalListSort::VotingPower),
         &source,
     )
+    .await
     .expect("build voting-power sorted report");
 
     assert_eq!(
@@ -107,8 +110,8 @@ fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
     assert_eq!(proposal_ids(&voting_power_report), vec![102, 101, 103]);
 }
 
-#[test]
-fn nns_proposal_list_report_sorts_by_tally_time() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_sorts_by_tally_time() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -130,6 +133,7 @@ fn nns_proposal_list_report_sorts_by_tally_time() {
         &proposal_sort_request(NnsProposalListSort::TallyTime),
         &source,
     )
+    .await
     .expect("build tally-time sorted report");
 
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TALLY_TIME_LABEL);

@@ -9,8 +9,8 @@ use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
 
-#[test]
-fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -18,8 +18,9 @@ fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveNnsSource
+    let error = LiveNnsSource::default()
         .fetch_node_operator_list_report(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -28,8 +29,8 @@ fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn node_operator_report_uses_live_registry_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_operator_report_uses_live_registry_source() {
     let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -47,6 +48,7 @@ fn node_operator_report_uses_live_registry_source() {
             }],
         },
     )
+    .await
     .expect("node operator report");
 
     assert_eq!(report.schema_version, 1);
@@ -128,31 +130,34 @@ struct FixtureNodeOperatorSource {
 }
 
 impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-        let node_operators = self
-            .node_operators
-            .iter()
-            .map(|operator| NnsNodeOperatorRow {
-                node_operator_principal: operator.principal.clone(),
-                node_provider_principal: operator.node_provider_principal.clone(),
-                node_allowance: operator.node_allowance,
-                data_center_id: operator.data_center_id.clone(),
-                node_count: operator.node_count,
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
+    {
+        Box::pin(async move {
+            let node_operators = self
+                .node_operators
+                .iter()
+                .map(|operator| NnsNodeOperatorRow {
+                    node_operator_principal: operator.principal.clone(),
+                    node_provider_principal: operator.node_provider_principal.clone(),
+                    node_allowance: operator.node_allowance,
+                    data_center_id: operator.data_center_id.clone(),
+                    node_count: operator.node_count,
+                })
+                .collect::<Vec<_>>();
+            Ok(NnsNodeOperatorListReport {
+                schema_version: 1,
+                network: MAINNET_NETWORK.to_string(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                node_operator_count: node_operators.len(),
+                node_operators,
             })
-            .collect::<Vec<_>>();
-        Ok(NnsNodeOperatorListReport {
-            schema_version: 1,
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            node_operator_count: node_operators.len(),
-            node_operators,
         })
     }
 }

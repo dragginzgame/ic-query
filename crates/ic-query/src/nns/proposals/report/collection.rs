@@ -13,6 +13,8 @@ use super::{
         NnsProposalSource, build_nns_proposal_list_report_with_source, validate_proposal_page_size,
     },
 };
+#[cfg(feature = "nns-host")]
+use crate::nns::LiveNnsSource;
 use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
@@ -21,8 +23,6 @@ use crate::nns::{
         validate_governance_time_interval, validate_source_provenance,
     },
 };
-#[cfg(feature = "nns-host")]
-use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
 use serde::{Deserialize, Serialize};
 
 /// Version of the persistable resumable NNS proposal collection state.
@@ -181,13 +181,14 @@ pub struct NnsProposalCollectionStep {
 
 /// Advance a resumable proposal walk through the native replica adapter.
 #[cfg(feature = "nns-host")]
-pub fn advance_nns_proposal_collection(
+pub async fn advance_nns_proposal_collection(
     request: &NnsGovernanceRequest,
     state: &NnsProposalCollectionState,
 ) -> Result<NnsProposalCollectionStep, NnsProposalHostError> {
-    Ok(block_on_current_thread(
-        advance_nns_proposal_collection_with_source(request, state, &LiveNnsSource),
-    )??)
+    Ok(
+        advance_nns_proposal_collection_with_source(request, state, &LiveNnsSource::default())
+            .await?,
+    )
 }
 
 /// Advance a resumable proposal walk by exactly one caller-runtime source call.
@@ -426,8 +427,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn collection_rejects_backward_continuations_and_restored_intervals() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn collection_rejects_backward_continuations_and_restored_intervals() {
         let start = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 100);
         let state = NnsProposalCollectionState::new(&start, 2, 3).unwrap();
         let before = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 99);

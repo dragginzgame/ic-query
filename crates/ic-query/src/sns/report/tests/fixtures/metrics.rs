@@ -12,14 +12,16 @@ pub(in crate::sns::report::tests) struct FixtureSnsMetricsSource;
 delegate_sns_discovery!(FixtureSnsMetricsSource);
 
 impl SnsMetricsSource for FixtureSnsMetricsSource {
-    fn fetch_sns_metrics(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_metrics<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         time_window_seconds: u64,
-    ) -> Result<MainnetSnsMetrics, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        Ok(fixture_mainnet_sns_metrics(time_window_seconds))
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            Ok(fixture_mainnet_sns_metrics(time_window_seconds))
+        })
     }
 }
 
@@ -36,15 +38,17 @@ pub(in crate::sns::report::tests) struct MutatingFixtureSnsMetricsSource(
 delegate_sns_discovery!(MutatingFixtureSnsMetricsSource);
 
 impl SnsMetricsSource for MutatingFixtureSnsMetricsSource {
-    fn fetch_sns_metrics(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_metrics<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         time_window_seconds: u64,
-    ) -> Result<MainnetSnsMetrics, SnsHostError> {
-        let mut metrics = fixture_mainnet_sns_metrics(time_window_seconds);
-        self.0(&mut metrics);
-        Ok(metrics)
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
+        Box::pin(async move {
+            let mut metrics = fixture_mainnet_sns_metrics(time_window_seconds);
+            self.0(&mut metrics);
+            Ok(metrics)
+        })
     }
 }
 
@@ -57,30 +61,30 @@ impl SnsMetricsSource for MutatingFixtureSnsMetricsSource {
 pub(in crate::sns::report::tests) struct NoCallSnsMetricsSource;
 
 impl SnsDiscoverySource for NoCallSnsMetricsSource {
-    fn fetch_sns_inventory(
-        &self,
-        _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        panic!("invalid metrics requests must fail before discovery")
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { panic!("invalid metrics requests must fail before discovery") })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        _targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        panic!("invalid metrics requests must fail before metadata")
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move { panic!("invalid metrics requests must fail before metadata") })
     }
 }
 
 impl SnsMetricsSource for NoCallSnsMetricsSource {
-    fn fetch_sns_metrics(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_metrics<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _time_window_seconds: u64,
-    ) -> Result<MainnetSnsMetrics, SnsHostError> {
-        panic!("invalid metrics requests must fail before Governance")
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
+        Box::pin(async move { panic!("invalid metrics requests must fail before Governance") })
     }
 }
 

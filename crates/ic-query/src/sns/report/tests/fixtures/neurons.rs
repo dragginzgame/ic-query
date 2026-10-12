@@ -15,15 +15,17 @@ pub(in crate::sns::report::tests) struct FixtureSnsNeuronSource;
 delegate_sns_discovery!(FixtureSnsNeuronSource);
 
 impl SnsNeuronSource for FixtureSnsNeuronSource {
-    fn fetch_sns_neuron(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-        neuron_id: &str,
-    ) -> Result<MainnetSnsNeuron, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(neuron_id, NEURON_A);
-        Ok(fixture_sns_neuron())
+    fn fetch_sns_neuron<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+        neuron_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(neuron_id, NEURON_A);
+            Ok(fixture_sns_neuron())
+        })
     }
 }
 
@@ -90,66 +92,70 @@ pub(in crate::sns::report::tests) struct FixtureSnsNeuronsSource;
 delegate_sns_discovery!(FixtureSnsNeuronsSource);
 
 impl SnsNeuronsSource for FixtureSnsNeuronsSource {
-    fn fetch_sns_neurons(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 10);
-        assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
-        Ok(MainnetSnsNeurons {
-            neurons: vec![SnsNeuronRow {
-                neuron_id: NEURON_A.to_string(),
-                cached_neuron_stake_e8s: 123,
-                maturity_e8s_equivalent: 456,
-                staked_maturity_e8s_equivalent: Some(789),
-                created_timestamp_seconds: 1_780_272_000,
-                created_at: "2026-06-01T00:00:00Z".to_string(),
-                source_nns_neuron_id: Some(42),
-                auto_stake_maturity: Some(true),
-                aging_since_timestamp_seconds: 1_780_272_100,
-                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
-                voting_power_percentage_multiplier: 100,
-                vesting_period_seconds: Some(63_072_000),
-                neuron_fees_e8s: 10,
-            }],
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 10);
+            assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
+            Ok(MainnetSnsNeurons {
+                neurons: vec![SnsNeuronRow {
+                    neuron_id: NEURON_A.to_string(),
+                    cached_neuron_stake_e8s: 123,
+                    maturity_e8s_equivalent: 456,
+                    staked_maturity_e8s_equivalent: Some(789),
+                    created_timestamp_seconds: 1_780_272_000,
+                    created_at: "2026-06-01T00:00:00Z".to_string(),
+                    source_nns_neuron_id: Some(42),
+                    auto_stake_maturity: Some(true),
+                    aging_since_timestamp_seconds: 1_780_272_100,
+                    dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+                    voting_power_percentage_multiplier: 100,
+                    vesting_period_seconds: Some(63_072_000),
+                    neuron_fees_e8s: 10,
+                }],
+            })
         })
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 10);
-        assert!(start_page_at.is_none());
-        assert_eq!(owner_principal_id, None);
-        Ok(MainnetSnsNeuronPage {
-            neurons: vec![SnsNeuronRow {
-                neuron_id: NEURON_A.to_string(),
-                cached_neuron_stake_e8s: 123,
-                maturity_e8s_equivalent: 456,
-                staked_maturity_e8s_equivalent: Some(789),
-                created_timestamp_seconds: 1_780_272_000,
-                created_at: "2026-06-01T00:00:00Z".to_string(),
-                source_nns_neuron_id: Some(42),
-                auto_stake_maturity: Some(true),
-                aging_since_timestamp_seconds: 1_780_272_100,
-                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
-                voting_power_percentage_multiplier: 100,
-                vesting_period_seconds: Some(63_072_000),
-                neuron_fees_e8s: 10,
-            }],
-            last_cursor: Some(SnsNeuronId {
-                id: (0..32).collect(),
-            }),
+        start_page_at: Option<&'a SnsNeuronId>,
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 10);
+            assert!(start_page_at.is_none());
+            assert_eq!(owner_principal_id, None);
+            Ok(MainnetSnsNeuronPage {
+                neurons: vec![SnsNeuronRow {
+                    neuron_id: NEURON_A.to_string(),
+                    cached_neuron_stake_e8s: 123,
+                    maturity_e8s_equivalent: 456,
+                    staked_maturity_e8s_equivalent: Some(789),
+                    created_timestamp_seconds: 1_780_272_000,
+                    created_at: "2026-06-01T00:00:00Z".to_string(),
+                    source_nns_neuron_id: Some(42),
+                    auto_stake_maturity: Some(true),
+                    aging_since_timestamp_seconds: 1_780_272_100,
+                    dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+                    voting_power_percentage_multiplier: 100,
+                    vesting_period_seconds: Some(63_072_000),
+                    neuron_fees_e8s: 10,
+                }],
+                last_cursor: Some(SnsNeuronId {
+                    id: (0..32).collect(),
+                }),
+            })
         })
     }
 }
@@ -165,43 +171,47 @@ pub(in crate::sns::report::tests) struct PagedFixtureSnsNeuronsSource;
 delegate_sns_discovery!(PagedFixtureSnsNeuronsSource);
 
 impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
-    fn fetch_sns_neurons(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
-        _owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        unreachable!("paged fixture is only used by complete cache refresh tests")
+        _owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(async move {
+            unreachable!("paged fixture is only used by complete cache refresh tests")
+        })
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        assert_eq!(limit, 2);
-        assert_eq!(owner_principal_id, None);
-        let cursor = start_page_at.map(|cursor| cursor.id.as_slice());
-        let (neurons, last_cursor) = match cursor {
-            None => (
-                vec![neuron_row(1, 10), neuron_row(2, 30)],
-                Some(vec![2; 32]),
-            ),
-            Some(cursor) if cursor == [2; 32] => (
-                vec![neuron_row(2, 300), neuron_row(3, 50)],
-                Some(vec![3; 32]),
-            ),
-            Some(cursor) if cursor == [3; 32] => (vec![neuron_row(3, 500)], Some(vec![3; 32])),
-            Some(other) => panic!("unexpected cursor {other:?}"),
-        };
-        Ok(MainnetSnsNeuronPage {
-            neurons,
-            last_cursor: last_cursor.map(|id| SnsNeuronId { id }),
+        start_page_at: Option<&'a SnsNeuronId>,
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(limit, 2);
+            assert_eq!(owner_principal_id, None);
+            let cursor = start_page_at.map(|cursor| cursor.id.as_slice());
+            let (neurons, last_cursor) = match cursor {
+                None => (
+                    vec![neuron_row(1, 10), neuron_row(2, 30)],
+                    Some(vec![2; 32]),
+                ),
+                Some(cursor) if cursor == [2; 32] => (
+                    vec![neuron_row(2, 300), neuron_row(3, 50)],
+                    Some(vec![3; 32]),
+                ),
+                Some(cursor) if cursor == [3; 32] => (vec![neuron_row(3, 500)], Some(vec![3; 32])),
+                Some(other) => panic!("unexpected cursor {other:?}"),
+            };
+            Ok(MainnetSnsNeuronPage {
+                neurons,
+                last_cursor: last_cursor.map(|id| SnsNeuronId { id }),
+            })
         })
     }
 }
@@ -215,42 +225,50 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
 pub(in crate::sns::report::tests) struct NoLiveSnsNeuronsSource;
 
 impl SnsDiscoverySource for NoLiveSnsNeuronsSource {
-    fn fetch_sns_inventory(
-        &self,
-        _request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        unreachable!("cache-backed neuron report should not fetch SNS inventory")
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            unreachable!("cache-backed neuron report should not fetch SNS inventory")
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        _targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        unreachable!("cache-backed neuron report should not fetch SNS metadata")
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(
+            async move { unreachable!("cache-backed neuron report should not fetch SNS metadata") },
+        )
     }
 }
 
 impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
-    fn fetch_sns_neurons(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
-        _owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        unreachable!("cache-backed neuron report should not fetch live neurons")
+        _owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(
+            async move { unreachable!("cache-backed neuron report should not fetch live neurons") },
+        )
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
-        _start_page_at: Option<&SnsNeuronId>,
-        _owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        unreachable!("cache-backed neuron report should not fetch neuron pages")
+        _start_page_at: Option<&'a SnsNeuronId>,
+        _owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(
+            async move { unreachable!("cache-backed neuron report should not fetch neuron pages") },
+        )
     }
 }
 

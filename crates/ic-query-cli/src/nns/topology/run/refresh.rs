@@ -6,7 +6,7 @@ use clap::ArgMatches;
 use ic_query::nns::topology::{
     NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
 };
-pub(super) fn run_topology_refresh(
+pub(super) async fn run_topology_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
@@ -21,6 +21,6 @@ pub(super) fn run_topology_refresh(
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);
-    let report = refresh_nns_topology_report(&request)?;
+    let report = refresh_nns_topology_report(&request).await?;
     write_text_or_json(format, &report, nns_topology_refresh_report_text)
 }

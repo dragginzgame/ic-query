@@ -423,7 +423,7 @@ pub fn nns_certified_subnet_catalog_cache_refresh_lock_path(cache_directory: &Pa
 /// that archive or makes a network call. Publication completes projection before filesystem mutation
 /// and preserves prior cache content if qualification, lock acquisition, serialization, or atomic
 /// replacement fails. A lock-release error can be reported after replacement has completed.
-pub fn load_nns_certified_subnet_catalog<'a>(
+pub async fn load_nns_certified_subnet_catalog<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     request: &NnsCertifiedSubnetCatalogLoadRequest,

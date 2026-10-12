@@ -25,20 +25,20 @@ use std::collections::HashSet;
 /// Source contract for bounded official Dashboard replica-version reports.
 ///
 
-pub trait IcReplicaVersionSource {
+pub trait IcReplicaVersionSource: Sync {
     /// Fetch one explicitly bounded release page without automatically paginating.
-    fn fetch_replica_version_list(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcReplicaVersionListQuery,
-    ) -> Result<IcReplicaVersionListSourceData, IcHostError>;
+    fn fetch_replica_version_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcReplicaVersionListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionListSourceData, IcHostError>>;
 
     /// Fetch one exact release record by replica-version identifier.
-    fn fetch_replica_version_info(
-        &self,
-        request: &IcSourceRequest,
-        replica_version_id: &str,
-    ) -> Result<IcReplicaVersionInfoSourceData, IcHostError>;
+    fn fetch_replica_version_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        replica_version_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionInfoSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn validate_replica_version_list_query(
@@ -235,23 +235,24 @@ mod tests {
         build_ic_replica_version_list_report_with_source, ic_replica_version_info_report_text,
         ic_replica_version_list_report_text,
     };
-    use std::cell::Cell;
+    use std::sync::Mutex;
 
     const VERSION_A: &str = "e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3";
     const VERSION_B: &str = "0f974949344626daf5d28f578a0de26c5734e580";
     const SUBNET_A: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
     const SUBNET_B: &str = "2fq7c-slacv-26cgz-vzbx2-2jrcs-5edph-i5s2j-tck77-c3rlz-iobzx-mqe";
 
-    #[test]
-    fn bounded_list_preserves_metadata_status_rows_and_provenance() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn bounded_list_preserves_metadata_status_rows_and_provenance() {
         let source = FixtureSource::default();
         let request = list_request();
         let report = build_ic_replica_version_list_report_with_source(&request, &source)
+            .await
             .expect("replica-version list");
         let text = ic_replica_version_list_report_text(&report);
 
-        assert_eq!(source.list_calls.get(), 1);
-        assert_eq!(source.info_calls.get(), 0);
+        assert_eq!((*source.list_calls.lock().unwrap()), 1);
+        assert_eq!((*source.info_calls.lock().unwrap()), 0);
         assert_eq!(report.returned_count, 2);
         assert_eq!(report.total_proposals, 3);
         assert_eq!(report.resolved_max_proposal_index, 438);
@@ -270,16 +271,17 @@ mod tests {
         assert!(text.contains("OPEN"));
     }
 
-    #[test]
-    fn exact_info_preserves_summary_and_canonically_orders_rollouts() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn exact_info_preserves_summary_and_canonically_orders_rollouts() {
         let source = FixtureSource::default();
         let request = info_request();
         let report = build_ic_replica_version_info_report_with_source(&request, &source)
+            .await
             .expect("replica-version info");
         let text = ic_replica_version_info_report_text(&report);
 
-        assert_eq!(source.info_calls.get(), 1);
-        assert_eq!(source.list_calls.get(), 0);
+        assert_eq!((*source.info_calls.lock().unwrap()), 1);
+        assert_eq!((*source.list_calls.lock().unwrap()), 0);
         assert_eq!(report.replica_version_id, VERSION_A);
         assert_eq!(report.summary, "Release notes\nwith raw detail");
         assert_eq!(report.subnet_count, 2);
@@ -298,8 +300,8 @@ mod tests {
         assert_eq!(rollouts[0].executed_timestamp_seconds, 0);
     }
 
-    #[test]
-    fn request_validation_precedes_custom_source_calls() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn request_validation_precedes_custom_source_calls() {
         let invalid_queries = [
             IcReplicaVersionListQuery::new(0, 0, None),
             IcReplicaVersionListQuery::new(MAX_IC_REPLICA_VERSION_PAGE_LIMIT + 1, 0, None),
@@ -312,9 +314,10 @@ mod tests {
                 query,
             );
             let error = build_ic_replica_version_list_report_with_source(&request, &source)
+                .await
                 .expect_err("invalid query must fail");
             assert!(matches!(error, IcHostError::InvalidRequest { .. }));
-            assert_eq!(source.list_calls.get(), 0);
+            assert_eq!((*source.list_calls.lock().unwrap()), 0);
         }
 
         let source = FixtureSource::default();
@@ -324,13 +327,14 @@ mod tests {
             "not-a-version",
         );
         let error = build_ic_replica_version_info_report_with_source(&request, &source)
+            .await
             .expect_err("invalid version id must fail");
         assert!(matches!(error, IcHostError::InvalidRequest { .. }));
-        assert_eq!(source.info_calls.get(), 0);
+        assert_eq!((*source.info_calls.lock().unwrap()), 0);
     }
 
-    #[test]
-    fn custom_source_identity_order_and_metadata_are_validated() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn custom_source_identity_order_and_metadata_are_validated() {
         for mutation in [
             Mutation::WrongQuery,
             Mutation::MaximumAboveRequest,
@@ -342,11 +346,12 @@ mod tests {
             Mutation::InvalidSubnet,
         ] {
             let source = FixtureSource {
-                mutation: Cell::new(Some(mutation)),
+                mutation: Mutex::new(Some(mutation)),
                 ..FixtureSource::default()
             };
             let error = if mutation == Mutation::WrongInfoVersion {
                 build_ic_replica_version_info_report_with_source(&info_request(), &source)
+                    .await
                     .expect_err("invalid info source must fail")
             } else {
                 let mut request = list_request();
@@ -354,6 +359,7 @@ mod tests {
                     request.query.max_proposal_index = Some(438);
                 }
                 build_ic_replica_version_list_report_with_source(&request, &source)
+                    .await
                     .expect_err("invalid list source must fail")
             };
 
@@ -391,89 +397,96 @@ mod tests {
 
     #[derive(Default)]
     struct FixtureSource {
-        list_calls: Cell<usize>,
-        info_calls: Cell<usize>,
-        mutation: Cell<Option<Mutation>>,
+        list_calls: Mutex<usize>,
+        info_calls: Mutex<usize>,
+        mutation: Mutex<Option<Mutation>>,
     }
 
     impl IcReplicaVersionSource for FixtureSource {
-        fn fetch_replica_version_list(
-            &self,
-            request: &IcSourceRequest,
-            query: &IcReplicaVersionListQuery,
-        ) -> Result<IcReplicaVersionListSourceData, IcHostError> {
-            self.list_calls.set(self.list_calls.get() + 1);
-            let mut source = IcReplicaVersionListSourceData {
-                source: request.clone(),
-                query: query.clone(),
-                resolved_max_proposal_index: 438,
-                total_proposals: 3,
-                rows: vec![
-                    list_row(
-                        VERSION_A,
-                        143_250,
-                        1_785_759_673,
-                        IcReplicaVersionStatus::Executed,
-                    ),
-                    list_row(VERSION_A, 143_249, 0, IcReplicaVersionStatus::Open),
-                ],
-            };
-            source.rows[1].title.clear();
-            source.rows[1].url.clear();
-            match self.mutation.take() {
-                Some(Mutation::WrongQuery) => source.query.limit = 0,
-                Some(Mutation::MaximumAboveRequest) => {
-                    source.resolved_max_proposal_index = 439;
+        fn fetch_replica_version_list<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            query: &'a IcReplicaVersionListQuery,
+        ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionListSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.list_calls.lock().unwrap() += 1;
+                let mut source = IcReplicaVersionListSourceData {
+                    source: request.clone(),
+                    query: query.clone(),
+                    resolved_max_proposal_index: 438,
+                    total_proposals: 3,
+                    rows: vec![
+                        list_row(
+                            VERSION_A,
+                            143_250,
+                            1_785_759_673,
+                            IcReplicaVersionStatus::Executed,
+                        ),
+                        list_row(VERSION_A, 143_249, 0, IcReplicaVersionStatus::Open),
+                    ],
+                };
+                source.rows[1].title.clear();
+                source.rows[1].url.clear();
+                let mutation = self.mutation.lock().unwrap().take();
+                match mutation {
+                    Some(Mutation::WrongQuery) => source.query.limit = 0,
+                    Some(Mutation::MaximumAboveRequest) => {
+                        source.resolved_max_proposal_index = 439;
+                    }
+                    Some(Mutation::TooManyRows) => {
+                        source.rows.push(list_row(
+                            "1153c70d98a51ec2f023be9b3ce1d50c6b67da21",
+                            143_248,
+                            0,
+                            IcReplicaVersionStatus::Open,
+                        ));
+                        source.total_proposals = 4;
+                    }
+                    Some(Mutation::DuplicateProposal) => {
+                        source.rows[1].proposal_id = source.rows[0].proposal_id;
+                    }
+                    Some(Mutation::UnorderedRows) => {
+                        source.rows[1].executed_timestamp_seconds = 1_785_759_674;
+                    }
+                    Some(Mutation::ExecutedWithoutTimestamp) => {
+                        source.rows[0].executed_timestamp_seconds = 0;
+                    }
+                    Some(Mutation::InvalidSubnet) => {
+                        source.rows[0].subnets[0].subnet_id = "not a principal".to_string();
+                    }
+                    Some(Mutation::WrongInfoVersion) | None => {}
                 }
-                Some(Mutation::TooManyRows) => {
-                    source.rows.push(list_row(
-                        "1153c70d98a51ec2f023be9b3ce1d50c6b67da21",
-                        143_248,
-                        0,
-                        IcReplicaVersionStatus::Open,
-                    ));
-                    source.total_proposals = 4;
-                }
-                Some(Mutation::DuplicateProposal) => {
-                    source.rows[1].proposal_id = source.rows[0].proposal_id;
-                }
-                Some(Mutation::UnorderedRows) => {
-                    source.rows[1].executed_timestamp_seconds = 1_785_759_674;
-                }
-                Some(Mutation::ExecutedWithoutTimestamp) => {
-                    source.rows[0].executed_timestamp_seconds = 0;
-                }
-                Some(Mutation::InvalidSubnet) => {
-                    source.rows[0].subnets[0].subnet_id = "not a principal".to_string();
-                }
-                Some(Mutation::WrongInfoVersion) | None => {}
-            }
-            Ok(source)
+                Ok(source)
+            })
         }
 
-        fn fetch_replica_version_info(
-            &self,
-            request: &IcSourceRequest,
-            replica_version_id: &str,
-        ) -> Result<IcReplicaVersionInfoSourceData, IcHostError> {
-            self.info_calls.set(self.info_calls.get() + 1);
-            let mut source = IcReplicaVersionInfoSourceData {
-                source: request.clone(),
-                replica_version_id: replica_version_id.to_string(),
-                proposal_id: 143_250,
-                executed_timestamp_seconds: 1_785_759_673,
-                title: "Elect release".to_string(),
-                url: "https://forum.dfinity.org/t/release/1".to_string(),
-                summary: "Release notes\nwith raw detail".to_string(),
-                subnets: vec![
-                    rollout(SUBNET_B, 143_298, 1_785_759_900),
-                    rollout(SUBNET_A, 143_297, 1_785_759_892),
-                ],
-            };
-            if self.mutation.take() == Some(Mutation::WrongInfoVersion) {
-                source.replica_version_id = VERSION_B.to_string();
-            }
-            Ok(source)
+        fn fetch_replica_version_info<'a>(
+            &'a self,
+            request: &'a IcSourceRequest,
+            replica_version_id: &'a str,
+        ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionInfoSourceData, IcHostError>>
+        {
+            Box::pin(async move {
+                *self.info_calls.lock().unwrap() += 1;
+                let mut source = IcReplicaVersionInfoSourceData {
+                    source: request.clone(),
+                    replica_version_id: replica_version_id.to_string(),
+                    proposal_id: 143_250,
+                    executed_timestamp_seconds: 1_785_759_673,
+                    title: "Elect release".to_string(),
+                    url: "https://forum.dfinity.org/t/release/1".to_string(),
+                    summary: "Release notes\nwith raw detail".to_string(),
+                    subnets: vec![
+                        rollout(SUBNET_B, 143_298, 1_785_759_900),
+                        rollout(SUBNET_A, 143_297, 1_785_759_892),
+                    ],
+                };
+                if self.mutation.lock().unwrap().take() == Some(Mutation::WrongInfoVersion) {
+                    source.replica_version_id = VERSION_B.to_string();
+                }
+                Ok(source)
+            })
         }
     }
 

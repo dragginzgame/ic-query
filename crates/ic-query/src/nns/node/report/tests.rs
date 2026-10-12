@@ -10,8 +10,8 @@ use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, Subne
 use crate::test_support::temp_dir;
 use std::fs;
 
-#[test]
-fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
     let cache = test_cache_request(MAINNET_NETWORK, "progress-read-policy");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     let request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_780_531_200);
@@ -21,6 +21,7 @@ fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
     let mut events = Vec::new();
     let mut progress = |event| events.push(event);
     super::build_nns_node_list_report_with_source_and_progress(&request, &source, &mut progress)
+        .await
         .expect("missing cache refreshes");
     assert_eq!(
         events,
@@ -36,20 +37,22 @@ fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
         &InvalidNodeSource,
         &mut |event| events.push(event),
     )
+    .await
     .expect("valid cache avoids invalid source");
     assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json").unwrap();
     super::build_nns_node_list_report_with_source_and_progress(&request, &source, &mut |event| {
         events.push(event);
     })
+    .await
     .expect("invalid cache refreshes");
     assert_eq!(events.len(), 1);
     let _ = fs::remove_dir_all(cache.cache_root);
 }
 
 #[cfg(unix)]
-#[test]
-fn node_authority_refusal_never_announces_or_calls_a_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_authority_refusal_never_announces_or_calls_a_source() {
     use std::os::unix::fs::symlink;
     let cache = test_cache_request(MAINNET_NETWORK, "progress-authority");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
@@ -63,6 +66,7 @@ fn node_authority_refusal_never_announces_or_calls_a_source() {
         &InvalidNodeSource,
         &mut |event| events.push(event),
     )
+    .await
     .expect_err("managed authority refusal");
     assert!(matches!(
         error,
@@ -72,8 +76,8 @@ fn node_authority_refusal_never_announces_or_calls_a_source() {
     let _ = fs::remove_dir_all(cache.cache_root);
 }
 
-#[test]
-fn live_node_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_node_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -81,8 +85,9 @@ fn live_node_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveNnsSource
+    let error = LiveNnsSource::default()
         .fetch_node_list_report(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -91,8 +96,8 @@ fn live_node_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn node_report_uses_live_registry_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_report_uses_live_registry_source() {
     let request = NnsNodeListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -105,6 +110,7 @@ fn node_report_uses_live_registry_source() {
             nodes: vec![node_fixture()],
         },
     )
+    .await
     .expect("node report");
 
     assert_eq!(report.schema_version, 1);
@@ -119,8 +125,8 @@ fn node_report_uses_live_registry_source() {
     );
 }
 
-#[test]
-fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-cache-refresh");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     let mut invalid = node_report_fixture();
@@ -147,6 +153,7 @@ fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
             nodes: vec![node_fixture()],
         },
     )
+    .await
     .expect("invalid cache refreshes");
 
     assert_eq!(report.registry_version, 42);
@@ -157,8 +164,8 @@ fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
     let _ = fs::remove_dir_all(cache.cache_root);
 }
 
-#[test]
-fn invalid_node_source_does_not_replace_existing_invalid_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-source-preserves-cache");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json")
@@ -171,6 +178,7 @@ fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     };
 
     let error = build_nns_node_list_report_with_source(&request, &InvalidNodeSource)
+        .await
         .expect_err("invalid source is rejected before publication");
 
     assert!(
@@ -299,45 +307,49 @@ struct FixtureNodeSource {
 struct InvalidNodeSource;
 
 impl NnsNodeSource for InvalidNodeSource {
-    fn fetch_node_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-        let mut report = node_report_fixture();
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.source_endpoint.clone_from(&request.endpoint);
-        report.node_count = 2;
-        Ok(report)
+    fn fetch_node_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+        Box::pin(async move {
+            let mut report = node_report_fixture();
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.source_endpoint.clone_from(&request.endpoint);
+            report.node_count = 2;
+            Ok(report)
+        })
     }
 }
 
 impl NnsNodeSource for FixtureNodeSource {
-    fn fetch_node_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-        let nodes = self
-            .nodes
-            .iter()
-            .map(|node| NnsNodeRow {
-                node_principal: node.principal.clone(),
-                node_operator_principal: node.node_operator_principal.clone(),
-                node_provider_principal: node.node_provider_principal.clone(),
-                subnet_principal: node.subnet_principal.clone(),
-                subnet_kind: node.subnet_kind,
-                data_center_id: node.data_center_id.clone(),
+    fn fetch_node_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+        Box::pin(async move {
+            let nodes = self
+                .nodes
+                .iter()
+                .map(|node| NnsNodeRow {
+                    node_principal: node.principal.clone(),
+                    node_operator_principal: node.node_operator_principal.clone(),
+                    node_provider_principal: node.node_provider_principal.clone(),
+                    subnet_principal: node.subnet_principal.clone(),
+                    subnet_kind: node.subnet_kind,
+                    data_center_id: node.data_center_id.clone(),
+                })
+                .collect::<Vec<_>>();
+            Ok(NnsNodeListReport {
+                schema_version: 1,
+                network: MAINNET_NETWORK.to_string(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                node_count: nodes.len(),
+                nodes,
             })
-            .collect::<Vec<_>>();
-        Ok(NnsNodeListReport {
-            schema_version: 1,
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            node_count: nodes.len(),
-            nodes,
         })
     }
 }

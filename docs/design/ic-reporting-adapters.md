@@ -12,6 +12,22 @@ collection architecture rather than duplicating milestone status.
 User-facing command and collection-mode guidance lives in
 [CLI Usage](../cli-usage.md).
 
+## Host execution ownership
+
+Live source capabilities and collectors are async. The caller owns the runtime;
+the CLI drives each command with one current-thread Tokio runtime. Pure report
+assembly, rendering and explicit cache-only IO retain synchronous boundaries.
+Object-safe host sources return boxed `Send` futures and require `Sync`;
+progress sinks require `Send`.
+
+Live sources reuse endpoint-bound agents and bounded HTTP clients within their
+collection flow. First request admission preserves family network policy and
+response ceilings. Agent-backed sources reject later endpoint/policy changes;
+callers construct another source for another endpoint. Registry collection
+keeps its existing acquisition/history owner rather than sharing a universal
+transport adapter. Cancellation retains lock/attempt recovery and incomplete
+snapshot protection. No compatibility blocking wrappers remain.
+
 ## Decision
 
 `ic-query` expands by authority family rather than by transport call. Built-in

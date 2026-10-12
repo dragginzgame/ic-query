@@ -6,7 +6,7 @@
 
 use super::SnsHostError;
 use crate::{
-    agent::build_ic_agent,
+    agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     icrc::ledger::IcrcLedgerError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
@@ -14,14 +14,6 @@ use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Agent;
 
 impl IcrcLedgerError for SnsHostError {
-    #[cfg(feature = "icrc-host")]
-    fn agent_build(endpoint: &str, reason: String) -> Self {
-        Self::AgentBuild {
-            endpoint: endpoint.to_string(),
-            reason,
-        }
-    }
-
     #[cfg(feature = "icrc-host")]
     fn invalid_principal(field: &'static str, reason: String) -> Self {
         Self::InvalidPrincipal { field, reason }
@@ -105,12 +97,19 @@ where
 }
 
 /// Build an IC agent after enforcing one explicit SNS source request.
-pub(super) fn sns_agent(request: &SnsSourceRequest) -> Result<Agent, SnsHostError> {
+pub(super) fn sns_agent<'a>(
+    source: &'a crate::sns::LiveSnsSource,
+    request: &SnsSourceRequest,
+) -> Result<&'a Agent, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    build_ic_agent(&request.endpoint, |reason| SnsHostError::AgentBuild {
-        endpoint: request.endpoint.clone(),
-        reason,
-    })
+    source.agent.get(
+        &request.endpoint,
+        MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+        |reason| SnsHostError::AgentBuild {
+            endpoint: request.endpoint.clone(),
+            reason,
+        },
+    )
 }
 
 /// Parse a principal text field into a typed principal or host error.

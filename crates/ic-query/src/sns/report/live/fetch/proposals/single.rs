@@ -17,15 +17,16 @@ use crate::sns::report::{
 
 /// Fetch one SNS governance proposal by id from a resolved governance canister.
 pub(super) async fn fetch_mainnet_sns_proposal_async(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<MainnetSnsProposal, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetProposal.as_str();
     let response: GetProposalResponse = query_canister(
-        &agent,
+        agent,
         &governance_canister,
         method,
         "GetProposalRequest",

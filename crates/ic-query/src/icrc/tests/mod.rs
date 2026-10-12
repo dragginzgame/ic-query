@@ -50,290 +50,323 @@ const LOWER_SUBACCOUNT_HEX: &str =
 struct FixtureIcrcSource;
 
 impl IcrcTokenSource for FixtureIcrcSource {
-    fn fetch_token(&self, request: &IcrcLedgerRequest) -> Result<IcrcTokenData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+    fn fetch_token<'a>(
+        &'a self,
+        request: &'a IcrcLedgerRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcTokenData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-        Ok(IcrcTokenData {
-            token_name: "Fixture Token".to_string(),
-            token_symbol: "FIX".to_string(),
-            decimals: 8,
-            transfer_fee: "123456789".to_string(),
-            total_supply: "100000000000".to_string(),
-            minting_account_owner: Some(ACCOUNT_OWNER.to_string()),
-            minting_account_subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
-            supported_standards: vec![
-                IcrcTokenStandardRow {
-                    name: "ICRC-1".to_string(),
-                    url: "https://github.com/dfinity/ICRC-1".to_string(),
-                },
-                IcrcTokenStandardRow {
-                    name: "ICRC-2".to_string(),
-                    url: "https://github.com/dfinity/ICRC-2".to_string(),
-                },
-            ],
-            metadata: vec![
-                IcrcTokenMetadataRow {
-                    key: "icrc1:name".to_string(),
-                    value_type: IcrcMetadataValueKind::Text,
-                    value: JsonValue::String("Fixture Token".to_string()),
-                },
-                IcrcTokenMetadataRow {
-                    key: "icrc1:fee".to_string(),
-                    value_type: IcrcMetadataValueKind::Nat,
-                    value: JsonValue::String("123456789".to_string()),
-                },
-                IcrcTokenMetadataRow {
-                    key: "icrc1:logo".to_string(),
-                    value_type: IcrcMetadataValueKind::Text,
-                    value: JsonValue::String("data:image/png;base64,fixture".to_string()),
-                },
-            ],
+            Ok(IcrcTokenData {
+                token_name: "Fixture Token".to_string(),
+                token_symbol: "FIX".to_string(),
+                decimals: 8,
+                transfer_fee: "123456789".to_string(),
+                total_supply: "100000000000".to_string(),
+                minting_account_owner: Some(ACCOUNT_OWNER.to_string()),
+                minting_account_subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
+                supported_standards: vec![
+                    IcrcTokenStandardRow {
+                        name: "ICRC-1".to_string(),
+                        url: "https://github.com/dfinity/ICRC-1".to_string(),
+                    },
+                    IcrcTokenStandardRow {
+                        name: "ICRC-2".to_string(),
+                        url: "https://github.com/dfinity/ICRC-2".to_string(),
+                    },
+                ],
+                metadata: vec![
+                    IcrcTokenMetadataRow {
+                        key: "icrc1:name".to_string(),
+                        value_type: IcrcMetadataValueKind::Text,
+                        value: JsonValue::String("Fixture Token".to_string()),
+                    },
+                    IcrcTokenMetadataRow {
+                        key: "icrc1:fee".to_string(),
+                        value_type: IcrcMetadataValueKind::Nat,
+                        value: JsonValue::String("123456789".to_string()),
+                    },
+                    IcrcTokenMetadataRow {
+                        key: "icrc1:logo".to_string(),
+                        value_type: IcrcMetadataValueKind::Text,
+                        value: JsonValue::String("data:image/png;base64,fixture".to_string()),
+                    },
+                ],
+            })
         })
     }
 }
 
 impl IcrcBalanceSource for FixtureIcrcSource {
-    fn fetch_balance(&self, request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.account_owner, ACCOUNT_OWNER);
-        assert_eq!(
-            request.subaccount_hex.as_deref(),
-            Some(LOWER_SUBACCOUNT_HEX)
-        );
+    fn fetch_balance<'a>(
+        &'a self,
+        request: &'a IcrcBalanceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcBalanceData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.account_owner, ACCOUNT_OWNER);
+            assert_eq!(
+                request.subaccount_hex.as_deref(),
+                Some(LOWER_SUBACCOUNT_HEX)
+            );
 
-        Ok(IcrcBalanceData {
-            token_symbol: "FIX".to_string(),
-            decimals: 8,
-            balance: "123456789".to_string(),
+            Ok(IcrcBalanceData {
+                token_symbol: "FIX".to_string(),
+                decimals: 8,
+                balance: "123456789".to_string(),
+            })
         })
     }
 }
 
 impl IcrcAllowanceSource for FixtureIcrcSource {
-    fn fetch_allowance(
-        &self,
-        request: &IcrcAllowanceRequest,
-    ) -> Result<IcrcAllowanceData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.account_owner, ACCOUNT_OWNER);
-        assert_eq!(
-            request.account_subaccount_hex.as_deref(),
-            Some(LOWER_SUBACCOUNT_HEX)
-        );
-        assert_eq!(request.spender_owner, ACCOUNT_OWNER);
-        assert_eq!(
-            request.spender_subaccount_hex.as_deref(),
-            Some(LOWER_SUBACCOUNT_HEX)
-        );
+    fn fetch_allowance<'a>(
+        &'a self,
+        request: &'a IcrcAllowanceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcAllowanceData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.account_owner, ACCOUNT_OWNER);
+            assert_eq!(
+                request.account_subaccount_hex.as_deref(),
+                Some(LOWER_SUBACCOUNT_HEX)
+            );
+            assert_eq!(request.spender_owner, ACCOUNT_OWNER);
+            assert_eq!(
+                request.spender_subaccount_hex.as_deref(),
+                Some(LOWER_SUBACCOUNT_HEX)
+            );
 
-        Ok(IcrcAllowanceData {
-            token_symbol: "FIX".to_string(),
-            decimals: 8,
-            allowance: "123456789".to_string(),
-            expires_at_unix_nanos: Some("1700000000123456789".to_string()),
+            Ok(IcrcAllowanceData {
+                token_symbol: "FIX".to_string(),
+                decimals: 8,
+                allowance: "123456789".to_string(),
+                expires_at_unix_nanos: Some("1700000000123456789".to_string()),
+            })
         })
     }
 }
 
 impl IcrcIndexSource for FixtureIcrcSource {
-    fn fetch_index(&self, request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+    fn fetch_index<'a>(
+        &'a self,
+        request: &'a IcrcLedgerRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcIndexData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-        Ok(IcrcIndexData {
-            index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
-            index_error: None,
+            Ok(IcrcIndexData {
+                index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
+                index_error: None,
+            })
         })
     }
 }
 
 impl IcrcTransactionsSource for FixtureIcrcSource {
-    fn fetch_transactions(
-        &self,
-        request: &IcrcTransactionsRequest,
-    ) -> Result<IcrcTransactionsData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
-        assert_eq!(request.start, 100);
-        assert_eq!(request.limit, 3);
-        assert!(request.follow_archives);
+    fn fetch_transactions<'a>(
+        &'a self,
+        request: &'a IcrcTransactionsRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcTransactionsData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+            assert_eq!(request.start, 100);
+            assert_eq!(request.limit, 3);
+            assert!(request.follow_archives);
 
-        Ok(IcrcTransactionsData {
-            log_length: Some("1000".to_string()),
-            blocks: vec![
-                IcrcTransactionBlockRow {
-                    index: "100".to_string(),
-                    block_type: Some("1xfer".to_string()),
-                    transaction_kind: Some("1xfer".to_string()),
-                    timestamp_unix_nanos: Some("1700000000123456789".to_string()),
-                    amount_base_units: Some("123456789".to_string()),
-                    raw_block: json!({
-                        "Map": {
-                            "btype": { "Text": "1xfer" },
-                            "ts": { "Nat": "1700000000123456789" },
-                            "tx": {
-                                "Map": {
-                                    "amt": { "Nat": "123456789" }
-                                }
-                            }
-                        }
-                    }),
-                },
-                IcrcTransactionBlockRow {
-                    index: "101".to_string(),
-                    block_type: None,
-                    transaction_kind: Some("mint".to_string()),
-                    timestamp_unix_nanos: Some("1700000001123456789".to_string()),
-                    amount_base_units: Some("42".to_string()),
-                    raw_block: json!({
-                        "Map": {
-                            "ts": { "Nat": "1700000001123456789" },
-                            "tx": {
-                                "Map": {
-                                    "op": { "Text": "mint" },
-                                    "amt": { "Nat": "42" }
-                                }
-                            }
-                        }
-                    }),
-                },
-            ],
-            archived_blocks: vec![IcrcArchivedBlocksRow {
-                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-                callback_method: "icrc3_get_blocks".to_string(),
-                ranges: vec![IcrcArchivedRangeRow {
-                    start: "102".to_string(),
-                    length: "1".to_string(),
-                }],
-            }],
-            followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
-                archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-                callback_method: "icrc3_get_blocks".to_string(),
-                index: "102".to_string(),
-                block_type: Some("1mint".to_string()),
-                transaction_kind: Some("1mint".to_string()),
-                timestamp_unix_nanos: Some("1699999999123456789".to_string()),
-                amount_base_units: Some("987654321".to_string()),
-                raw_block: json!({
-                    "Map": {
-                        "btype": { "Text": "1mint" },
-                        "ts": { "Nat": "1699999999123456789" },
-                        "tx": {
+            Ok(IcrcTransactionsData {
+                log_length: Some("1000".to_string()),
+                blocks: vec![
+                    IcrcTransactionBlockRow {
+                        index: "100".to_string(),
+                        block_type: Some("1xfer".to_string()),
+                        transaction_kind: Some("1xfer".to_string()),
+                        timestamp_unix_nanos: Some("1700000000123456789".to_string()),
+                        amount_base_units: Some("123456789".to_string()),
+                        raw_block: json!({
                             "Map": {
-                                "amt": { "Nat": "987654321" }
+                                "btype": { "Text": "1xfer" },
+                                "ts": { "Nat": "1700000000123456789" },
+                                "tx": {
+                                    "Map": {
+                                        "amt": { "Nat": "123456789" }
+                                    }
+                                }
+                            }
+                        }),
+                    },
+                    IcrcTransactionBlockRow {
+                        index: "101".to_string(),
+                        block_type: None,
+                        transaction_kind: Some("mint".to_string()),
+                        timestamp_unix_nanos: Some("1700000001123456789".to_string()),
+                        amount_base_units: Some("42".to_string()),
+                        raw_block: json!({
+                            "Map": {
+                                "ts": { "Nat": "1700000001123456789" },
+                                "tx": {
+                                    "Map": {
+                                        "op": { "Text": "mint" },
+                                        "amt": { "Nat": "42" }
+                                    }
+                                }
+                            }
+                        }),
+                    },
+                ],
+                archived_blocks: vec![IcrcArchivedBlocksRow {
+                    callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                    callback_method: "icrc3_get_blocks".to_string(),
+                    ranges: vec![IcrcArchivedRangeRow {
+                        start: "102".to_string(),
+                        length: "1".to_string(),
+                    }],
+                }],
+                followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
+                    archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                    callback_method: "icrc3_get_blocks".to_string(),
+                    index: "102".to_string(),
+                    block_type: Some("1mint".to_string()),
+                    transaction_kind: Some("1mint".to_string()),
+                    timestamp_unix_nanos: Some("1699999999123456789".to_string()),
+                    amount_base_units: Some("987654321".to_string()),
+                    raw_block: json!({
+                        "Map": {
+                            "btype": { "Text": "1mint" },
+                            "ts": { "Nat": "1699999999123456789" },
+                            "tx": {
+                                "Map": {
+                                    "amt": { "Nat": "987654321" }
+                                }
                             }
                         }
-                    }
-                }),
-            }],
-            archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
-                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-                callback_method: "icrc3_get_blocks".to_string(),
-                ranges: vec![IcrcArchivedRangeRow {
-                    start: "102".to_string(),
-                    length: "1".to_string(),
+                    }),
                 }],
-                error: "archive query failed".to_string(),
-            }],
+                archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
+                    callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                    callback_method: "icrc3_get_blocks".to_string(),
+                    ranges: vec![IcrcArchivedRangeRow {
+                        start: "102".to_string(),
+                        length: "1".to_string(),
+                    }],
+                    error: "archive query failed".to_string(),
+                }],
+            })
         })
     }
 }
 
 impl IcrcBlockTypesSource for FixtureIcrcSource {
-    fn fetch_block_types(
-        &self,
-        request: &IcrcLedgerRequest,
-    ) -> Result<IcrcBlockTypesData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+    fn fetch_block_types<'a>(
+        &'a self,
+        request: &'a IcrcLedgerRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-        Ok(IcrcBlockTypesData {
-            block_types: vec![
-                IcrcBlockTypeRow {
-                    block_type: "1xfer".to_string(),
-                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
-                },
-                IcrcBlockTypeRow {
-                    block_type: "2approve".to_string(),
-                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
-                },
-            ],
+            Ok(IcrcBlockTypesData {
+                block_types: vec![
+                    IcrcBlockTypeRow {
+                        block_type: "1xfer".to_string(),
+                        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3"
+                            .to_string(),
+                    },
+                    IcrcBlockTypeRow {
+                        block_type: "2approve".to_string(),
+                        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3"
+                            .to_string(),
+                    },
+                ],
+            })
         })
     }
 }
 
 impl IcrcArchivesSource for FixtureIcrcSource {
-    fn fetch_archives(&self, request: &IcrcArchivesRequest) -> Result<IcrcArchivesData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
-        assert_eq!(
-            request.from_canister_id.as_deref(),
-            Some(ARCHIVE_CANISTER_ID)
-        );
+    fn fetch_archives<'a>(
+        &'a self,
+        request: &'a IcrcArchivesRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+            assert_eq!(
+                request.from_canister_id.as_deref(),
+                Some(ARCHIVE_CANISTER_ID)
+            );
 
-        Ok(IcrcArchivesData {
-            archives: vec![IcrcArchiveRow {
-                canister_id: ARCHIVE_CANISTER_ID.to_string(),
-                start: "0".to_string(),
-                end: "999".to_string(),
-            }],
+            Ok(IcrcArchivesData {
+                archives: vec![IcrcArchiveRow {
+                    canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                    start: "0".to_string(),
+                    end: "999".to_string(),
+                }],
+            })
         })
     }
 }
 
 impl IcrcTipCertificateSource for FixtureIcrcSource {
-    fn fetch_tip_certificate(
-        &self,
-        request: &IcrcLedgerRequest,
-    ) -> Result<IcrcTipCertificateData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+    fn fetch_tip_certificate<'a>(
+        &'a self,
+        request: &'a IcrcLedgerRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-        Ok(IcrcTipCertificateData {
-            certificate_hex: Some("010203".to_string()),
-            certificate_bytes: Some(3),
-            hash_tree_hex: Some("aabb".to_string()),
-            hash_tree_bytes: Some(2),
+            Ok(IcrcTipCertificateData {
+                certificate_hex: Some("010203".to_string()),
+                certificate_bytes: Some(3),
+                hash_tree_hex: Some("aabb".to_string()),
+                hash_tree_bytes: Some(2),
+            })
         })
     }
 }
 
 impl IcrcCapabilitiesSource for FixtureIcrcSource {
-    fn fetch_capabilities(
-        &self,
-        request: &IcrcLedgerRequest,
-    ) -> Result<IcrcCapabilitiesData, IcrcError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+    fn fetch_capabilities<'a>(
+        &'a self,
+        request: &'a IcrcLedgerRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcCapabilitiesData, IcrcError>> {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-        Ok(IcrcCapabilitiesData {
-            supported_standards: vec![
-                IcrcTokenStandardRow {
-                    name: "ICRC-1".to_string(),
-                    url: "https://github.com/dfinity/ICRC-1".to_string(),
-                },
-                IcrcTokenStandardRow {
-                    name: "ICRC-3".to_string(),
-                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
-                },
-            ],
-            capabilities: vec![
-                IcrcCapabilityRow {
-                    capability: "ICRC-1 supported standards".to_string(),
-                    method: "icrc1_supported_standards".to_string(),
-                    status: IcrcCapabilityStatus::Available,
-                    details: Some("2 standard(s)".to_string()),
-                    error: None,
-                },
-                IcrcCapabilityRow {
-                    capability: "ICRC-3 tip certificate".to_string(),
-                    method: "icrc3_get_tip_certificate".to_string(),
-                    status: IcrcCapabilityStatus::Unsupported,
-                    details: Some("method not exported by target canister".to_string()),
-                    error: Some("Canister has no query method".to_string()),
-                },
-            ],
+            Ok(IcrcCapabilitiesData {
+                supported_standards: vec![
+                    IcrcTokenStandardRow {
+                        name: "ICRC-1".to_string(),
+                        url: "https://github.com/dfinity/ICRC-1".to_string(),
+                    },
+                    IcrcTokenStandardRow {
+                        name: "ICRC-3".to_string(),
+                        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3"
+                            .to_string(),
+                    },
+                ],
+                capabilities: vec![
+                    IcrcCapabilityRow {
+                        capability: "ICRC-1 supported standards".to_string(),
+                        method: "icrc1_supported_standards".to_string(),
+                        status: IcrcCapabilityStatus::Available,
+                        details: Some("2 standard(s)".to_string()),
+                        error: None,
+                    },
+                    IcrcCapabilityRow {
+                        capability: "ICRC-3 tip certificate".to_string(),
+                        method: "icrc3_get_tip_certificate".to_string(),
+                        status: IcrcCapabilityStatus::Unsupported,
+                        details: Some("method not exported by target canister".to_string()),
+                        error: Some("Canister has no query method".to_string()),
+                    },
+                ],
+            })
         })
     }
 }
@@ -341,35 +374,43 @@ impl IcrcCapabilitiesSource for FixtureIcrcSource {
 struct FixtureAccountTransactionsSource;
 
 impl IcrcAccountTransactionPageSource for FixtureAccountTransactionsSource {
-    fn fetch_account_transaction_page(
-        &self,
-        request: &IcrcAccountTransactionPageRequest,
-    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
-        assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(
-            request.index_canister_id.as_deref(),
-            Some(INDEX_CANISTER_ID)
-        );
-        assert_eq!(request.account_owner, ACCOUNT_OWNER);
-        assert_eq!(
-            request.subaccount_hex.as_deref(),
-            Some(LOWER_SUBACCOUNT_HEX)
-        );
-        assert_eq!(request.start.as_deref(), Some("42"));
-        assert_eq!(request.limit, 2);
+    fn fetch_account_transaction_page<'a>(
+        &'a self,
+        request: &'a IcrcAccountTransactionPageRequest,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move {
+            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(
+                request.index_canister_id.as_deref(),
+                Some(INDEX_CANISTER_ID)
+            );
+            assert_eq!(request.account_owner, ACCOUNT_OWNER);
+            assert_eq!(
+                request.subaccount_hex.as_deref(),
+                Some(LOWER_SUBACCOUNT_HEX)
+            );
+            assert_eq!(request.start.as_deref(), Some("42"));
+            assert_eq!(request.limit, 2);
 
-        Ok(fixture_account_transaction_page())
+            Ok(fixture_account_transaction_page())
+        })
     }
 }
 
 struct AccountTransactionsDataSource(IcrcAccountTransactionPageData);
 
 impl IcrcAccountTransactionPageSource for AccountTransactionsDataSource {
-    fn fetch_account_transaction_page(
-        &self,
-        _request: &IcrcAccountTransactionPageRequest,
-    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
-        Ok(self.0.clone())
+    fn fetch_account_transaction_page<'a>(
+        &'a self,
+        _request: &'a IcrcAccountTransactionPageRequest,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move { Ok(self.0.clone()) })
     }
 }
 
@@ -426,28 +467,34 @@ fn fixture_account_transaction_page() -> IcrcAccountTransactionPageData {
 struct PanickingAccountTransactionsSource;
 
 impl IcrcAccountTransactionPageSource for PanickingAccountTransactionsSource {
-    fn fetch_account_transaction_page(
-        &self,
-        _request: &IcrcAccountTransactionPageRequest,
-    ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
-        panic!("account transactions source should not be called")
+    fn fetch_account_transaction_page<'a>(
+        &'a self,
+        _request: &'a IcrcAccountTransactionPageRequest,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>,
+    > {
+        Box::pin(async move { panic!("account transactions source should not be called") })
     }
 }
 
 struct PanickingIcrcSource;
 
 impl IcrcBalanceSource for PanickingIcrcSource {
-    fn fetch_balance(&self, _request: &IcrcBalanceRequest) -> Result<IcrcBalanceData, IcrcError> {
-        panic!("balance source should not be called")
+    fn fetch_balance<'a>(
+        &'a self,
+        _request: &'a IcrcBalanceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcBalanceData, IcrcError>> {
+        Box::pin(async move { panic!("balance source should not be called") })
     }
 }
 
 impl IcrcAllowanceSource for PanickingIcrcSource {
-    fn fetch_allowance(
-        &self,
-        _request: &IcrcAllowanceRequest,
-    ) -> Result<IcrcAllowanceData, IcrcError> {
-        panic!("allowance source should not be called")
+    fn fetch_allowance<'a>(
+        &'a self,
+        _request: &'a IcrcAllowanceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcAllowanceData, IcrcError>> {
+        Box::pin(async move { panic!("allowance source should not be called") })
     }
 }
 #[test]
@@ -573,8 +620,8 @@ fn icrc3_tip_certificate_shape_round_trips_through_candid() {
     assert_eq!(decoded, None);
 }
 
-#[test]
-fn token_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn token_report_builds_text_and_json_friendly_fields() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -582,6 +629,7 @@ fn token_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_token_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC token report");
 
     assert_eq!(report.schema_version, 1);
@@ -610,8 +658,8 @@ fn token_report_builds_text_and_json_friendly_fields() {
     );
 }
 
-#[test]
-fn balance_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn balance_report_builds_text_and_json_friendly_fields() {
     let request = IcrcBalanceRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -621,6 +669,7 @@ fn balance_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_balance_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC balance report");
 
     assert_eq!(report.schema_version, 1);
@@ -636,8 +685,8 @@ fn balance_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["subaccount_hex"], json!(LOWER_SUBACCOUNT_HEX));
 }
 
-#[test]
-fn allowance_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn allowance_report_builds_text_and_json_friendly_fields() {
     let request = IcrcAllowanceRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -649,6 +698,7 @@ fn allowance_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_allowance_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC allowance report");
 
     assert_eq!(report.schema_version, 1);
@@ -678,8 +728,8 @@ fn allowance_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["expires_at_unix_nanos"], json!("1700000000123456789"));
 }
 
-#[test]
-fn index_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn index_report_builds_text_and_json_friendly_fields() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -687,6 +737,7 @@ fn index_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_index_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC index report");
 
     assert_eq!(report.schema_version, 1);
@@ -703,8 +754,8 @@ fn index_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["index_error"], JsonValue::Null);
 }
 
-#[test]
-fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -720,6 +771,7 @@ fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
         &request,
         &FixtureAccountTransactionsSource,
     )
+    .await
     .expect("build ICRC account transaction page report");
 
     assert_eq!(report.schema_version, 1);
@@ -749,8 +801,8 @@ fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
     );
 }
 
-#[test]
-fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -763,6 +815,7 @@ fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
         &request,
         &PanickingAccountTransactionsSource,
     )
+    .await
     .expect_err("zero limit must fail");
 
     assert!(matches!(
@@ -774,8 +827,8 @@ fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
     ));
 }
 
-#[test]
-fn account_transaction_page_report_rejects_explicit_index_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_rejects_explicit_index_mismatch() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -791,6 +844,7 @@ fn account_transaction_page_report_rejects_explicit_index_mismatch() {
         &request,
         &AccountTransactionsDataSource(page),
     )
+    .await
     .expect_err("source index mismatch must fail");
 
     assert!(matches!(
@@ -803,8 +857,8 @@ fn account_transaction_page_report_rejects_explicit_index_mismatch() {
     ));
 }
 
-#[test]
-fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -819,6 +873,7 @@ fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
         &request,
         &AccountTransactionsDataSource(page),
     )
+    .await
     .expect_err("noncanonical source cursor must fail");
 
     assert!(matches!(
@@ -828,8 +883,8 @@ fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
     ));
 }
 
-#[test]
-fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -846,6 +901,7 @@ fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
         &request,
         &AccountTransactionsDataSource(excessive),
     )
+    .await
     .expect_err("excessive page must fail");
     assert!(matches!(
         error,
@@ -869,6 +925,7 @@ fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
         &request,
         &AccountTransactionsDataSource(unordered),
     )
+    .await
     .expect_err("unordered page must fail");
     assert!(matches!(
         error,
@@ -876,8 +933,8 @@ fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     ));
 }
 
-#[test]
-fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
+#[tokio::test(flavor = "current_thread")]
+async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
     let request = IcrcAccountTransactionPageRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
@@ -895,7 +952,8 @@ fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
             build_icrc_account_transaction_page_report_with_source(
                 &request,
                 &AccountTransactionsDataSource(page),
-            ),
+            )
+            .await,
             Err(IcrcAccountTransactionError::InvalidPage { .. })
         ));
     }
@@ -907,6 +965,7 @@ fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
             &request,
             &AccountTransactionsDataSource(page),
         )
+        .await
         .expect("valid sparse row below cursor and at or above oldest id");
     }
     let mut empty = fixture_account_transaction_page();
@@ -916,22 +975,23 @@ fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
         &request.with_start("0"),
         &AccountTransactionsDataSource(empty),
     )
+    .await
     .expect("valid empty page below oldest id");
 }
 
 struct TransactionsDataSource(IcrcTransactionsData);
 
 impl IcrcTransactionsSource for TransactionsDataSource {
-    fn fetch_transactions(
-        &self,
-        _request: &IcrcTransactionsRequest,
-    ) -> Result<IcrcTransactionsData, IcrcError> {
-        Ok(self.0.clone())
+    fn fetch_transactions<'a>(
+        &'a self,
+        _request: &'a IcrcTransactionsRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcrcTransactionsData, IcrcError>> {
+        Box::pin(async move { Ok(self.0.clone()) })
     }
 }
 
-#[test]
-fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
     let request = IcrcTransactionsRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -940,7 +1000,10 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
         limit: 3,
         follow_archives: true,
     };
-    let original = FixtureIcrcSource.fetch_transactions(&request).unwrap();
+    let original = FixtureIcrcSource
+        .fetch_transactions(&request)
+        .await
+        .unwrap();
     for case in 0..12 {
         let mut data = original.clone();
         match case {
@@ -965,7 +1028,8 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
             _ => unreachable!(),
         }
         assert!(matches!(
-            build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(data)),
+            build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(data))
+                .await,
             Err(IcrcError::InvalidTransactionPage { .. })
         ));
     }
@@ -973,6 +1037,7 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
         let mut data = original.clone();
         data.log_length = length;
         build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(data))
+            .await
             .expect("valid page ending at the log length or with unknown length");
     }
     let mut empty = original.clone();
@@ -982,6 +1047,7 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
     empty.followed_archive_blocks.clear();
     empty.archive_follow_errors.clear();
     build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(empty))
+        .await
         .expect("empty page past the end of the log");
     let request = IcrcTransactionsRequest {
         follow_archives: false,
@@ -989,12 +1055,13 @@ fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
     };
     assert!(
         build_icrc_transactions_report_with_source(&request, &TransactionsDataSource(original))
+            .await
             .is_err()
     );
 }
 
-#[test]
-fn transactions_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn transactions_report_builds_text_and_json_friendly_fields() {
     let request = IcrcTransactionsRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1005,6 +1072,7 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_transactions_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC transactions report");
 
     assert_eq!(report.schema_version, 1);
@@ -1059,8 +1127,8 @@ fn transactions_report_builds_text_and_json_friendly_fields() {
     );
 }
 
-#[test]
-fn block_types_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn block_types_report_builds_text_and_json_friendly_fields() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1068,6 +1136,7 @@ fn block_types_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_block_types_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC block types report");
 
     assert_eq!(report.schema_version, 1);
@@ -1085,8 +1154,8 @@ fn block_types_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["block_types"][1]["block_type"], json!("2approve"));
 }
 
-#[test]
-fn archives_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn archives_report_builds_text_and_json_friendly_fields() {
     let request = IcrcArchivesRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1095,6 +1164,7 @@ fn archives_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_archives_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC archives report");
 
     assert_eq!(report.schema_version, 1);
@@ -1124,8 +1194,8 @@ fn archives_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["archives"][0]["end"], json!("999"));
 }
 
-#[test]
-fn tip_certificate_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn tip_certificate_report_builds_text_and_json_friendly_fields() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1133,6 +1203,7 @@ fn tip_certificate_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_tip_certificate_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC tip certificate report");
 
     assert_eq!(report.schema_version, 1);
@@ -1158,8 +1229,8 @@ fn tip_certificate_report_builds_text_and_json_friendly_fields() {
     assert_eq!(json["hash_tree_bytes"], json!(2));
 }
 
-#[test]
-fn capabilities_report_builds_text_and_json_friendly_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn capabilities_report_builds_text_and_json_friendly_fields() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1167,6 +1238,7 @@ fn capabilities_report_builds_text_and_json_friendly_fields() {
     };
 
     let report = build_icrc_capabilities_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC capabilities report");
 
     assert_eq!(report.schema_version, 1);
@@ -1202,14 +1274,15 @@ fn capabilities_report_builds_text_and_json_friendly_fields() {
     );
 }
 
-#[test]
-fn capability_byte_detail_formats_text_and_preserves_raw_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn capability_byte_detail_formats_text_and_preserves_raw_json() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
     };
     let mut report = build_icrc_capabilities_report_with_source(&request, &FixtureIcrcSource)
+        .await
         .expect("build ICRC capabilities report");
     report.capabilities = vec![IcrcCapabilityRow {
         capability: "ICRC-3 tip certificate".to_string(),
@@ -1229,15 +1302,20 @@ fn capability_byte_detail_formats_text_and_preserves_raw_json() {
     );
 }
 
-#[test]
-fn index_report_renders_index_error_when_not_set() {
+#[tokio::test(flavor = "current_thread")]
+async fn index_report_renders_index_error_when_not_set() {
     struct MissingIndexSource;
 
     impl IcrcIndexSource for MissingIndexSource {
-        fn fetch_index(&self, _request: &IcrcLedgerRequest) -> Result<IcrcIndexData, IcrcError> {
-            Ok(IcrcIndexData {
-                index_canister_id: None,
-                index_error: Some("index principal not set".to_string()),
+        fn fetch_index<'a>(
+            &'a self,
+            _request: &'a IcrcLedgerRequest,
+        ) -> crate::report::SourceFuture<'a, Result<IcrcIndexData, IcrcError>> {
+            Box::pin(async move {
+                Ok(IcrcIndexData {
+                    index_canister_id: None,
+                    index_error: Some("index principal not set".to_string()),
+                })
             })
         }
     }
@@ -1249,6 +1327,7 @@ fn index_report_renders_index_error_when_not_set() {
     };
 
     let report = build_icrc_index_report_with_source(&request, &MissingIndexSource)
+        .await
         .expect("build ICRC index report");
 
     let text = icrc_index_report_text(&report);
@@ -1260,8 +1339,8 @@ fn index_report_renders_index_error_when_not_set() {
     assert_eq!(json["index_error"], json!("index principal not set"));
 }
 
-#[test]
-fn invalid_subaccount_is_rejected_before_source_fetch() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_subaccount_is_rejected_before_source_fetch() {
     for value in [
         "abc".to_string(),
         format!("aé{}", "0".repeat(61)),
@@ -1275,13 +1354,14 @@ fn invalid_subaccount_is_rejected_before_source_fetch() {
             subaccount_hex: Some(value),
         };
         let err = build_icrc_balance_report_with_source(&request, &PanickingIcrcSource)
+            .await
             .expect_err("invalid subaccount should fail before source fetch");
         assert!(matches!(err, IcrcError::InvalidSubaccountHex { .. }));
     }
 }
 
-#[test]
-fn invalid_allowance_subaccount_is_rejected_before_source_fetch() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_allowance_subaccount_is_rejected_before_source_fetch() {
     let request = IcrcAllowanceRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1293,6 +1373,7 @@ fn invalid_allowance_subaccount_is_rejected_before_source_fetch() {
     };
 
     let err = build_icrc_allowance_report_with_source(&request, &PanickingIcrcSource)
+        .await
         .expect_err("invalid subaccount should fail before source fetch");
 
     assert!(matches!(err, IcrcError::InvalidSubaccountHex { .. }));

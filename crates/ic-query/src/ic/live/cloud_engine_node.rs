@@ -5,7 +5,7 @@
 //! Boundary: performs one explicitly filtered list request or one exact node request.
 
 use super::{
-    LiveIcSource, append_path_segments, dashboard_base_url, fetch_live,
+    LiveIcSource, append_path_segments, dashboard_base_url,
     node_status::{DashboardNode, DashboardNodes},
 };
 use crate::{
@@ -18,41 +18,45 @@ use crate::{
 use url::Url;
 
 impl CloudEngineNodeSource for LiveIcSource {
-    fn fetch_cloud_engine_node_list(
-        &self,
-        request: &IcSourceRequest,
-        node_provider_id: Option<&str>,
-    ) -> Result<CloudEngineNodeListSourceData, IcHostError> {
-        let node_provider_id = node_provider_id
-            .map(|value| canonical_request_principal("node_provider_id", value))
-            .transpose()?;
-        let url = cloud_engine_node_list_url(&request.endpoint, node_provider_id.as_deref())?;
-        let wire: DashboardNodes = fetch_live(url)?;
-        Ok(CloudEngineNodeListSourceData {
-            source: request.clone(),
-            requested_node_provider_id: node_provider_id,
-            node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
-            included_statuses: included_statuses(),
-            nodes: wire
-                .nodes
-                .into_iter()
-                .map(DashboardNode::into_public)
-                .collect(),
+    fn fetch_cloud_engine_node_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_provider_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeListSourceData, IcHostError>> {
+        Box::pin(async move {
+            let node_provider_id = node_provider_id
+                .map(|value| canonical_request_principal("node_provider_id", value))
+                .transpose()?;
+            let url = cloud_engine_node_list_url(&request.endpoint, node_provider_id.as_deref())?;
+            let wire: DashboardNodes = self.fetch_live(url).await?;
+            Ok(CloudEngineNodeListSourceData {
+                source: request.clone(),
+                requested_node_provider_id: node_provider_id,
+                node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
+                included_statuses: included_statuses(),
+                nodes: wire
+                    .nodes
+                    .into_iter()
+                    .map(DashboardNode::into_public)
+                    .collect(),
+            })
         })
     }
 
-    fn fetch_cloud_engine_node_info(
-        &self,
-        request: &IcSourceRequest,
-        node_id: &str,
-    ) -> Result<CloudEngineNodeInfoSourceData, IcHostError> {
-        let node_id = canonical_request_principal("node_id", node_id)?;
-        let url = cloud_engine_node_info_url(&request.endpoint, &node_id)?;
-        let node: DashboardNode = fetch_live(url)?;
-        Ok(CloudEngineNodeInfoSourceData {
-            source: request.clone(),
-            node_id,
-            node: node.into_public(),
+    fn fetch_cloud_engine_node_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeInfoSourceData, IcHostError>> {
+        Box::pin(async move {
+            let node_id = canonical_request_principal("node_id", node_id)?;
+            let url = cloud_engine_node_info_url(&request.endpoint, &node_id)?;
+            let node: DashboardNode = self.fetch_live(url).await?;
+            Ok(CloudEngineNodeInfoSourceData {
+                source: request.clone(),
+                node_id,
+                node: node.into_public(),
+            })
         })
     }
 }

@@ -8,7 +8,7 @@ use crate::{
     subnet_catalog::parse_utc_timestamp_secs,
 };
 #[cfg(feature = "dashboard-host")]
-use std::{cell::Cell, fs, path::PathBuf, time::SystemTime};
+use std::{fs, path::PathBuf, sync::Mutex, time::SystemTime};
 
 #[test]
 fn raw_operational_status_classification_is_conservative() {
@@ -396,8 +396,8 @@ fn pure_projections_reject_invalid_raw_relation_evidence() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn non_mainnet_refresh_fails_before_calling_the_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn non_mainnet_refresh_fails_before_calling_the_source() {
     let source = FixtureSource::default();
     let request = IcNodeStatusRefreshRequest::new(
         temp_dir("ic-node-status-network"),
@@ -408,18 +408,19 @@ fn non_mainnet_refresh_fails_before_calling_the_source() {
     );
 
     let error = refresh_ic_node_status_snapshot_with_source(&request, &source)
+        .await
         .expect_err("local network is unsupported");
 
     assert!(matches!(
         error,
         IcNodeStatusHostError::UnsupportedNetwork { network } if network == "local"
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
     let root = temp_dir("ic-node-status-stale");
     let source = FixtureSource::default();
     let now = fixture_now();
@@ -429,9 +430,10 @@ fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
 
     let initial =
         load_or_refresh_stale_ic_node_status_snapshot_with_source(&request, &source, &mut progress)
+            .await
             .expect("missing cache refreshes");
     assert_eq!(initial.node_count, 1);
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
 
     let fresh_request = refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS);
     load_or_refresh_stale_ic_node_status_snapshot_with_source(
@@ -439,8 +441,9 @@ fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
         &source,
         &mut progress,
     )
+    .await
     .expect("cache at threshold remains fresh");
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
 
     let stale_request =
         refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS + 1);
@@ -449,8 +452,9 @@ fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
         &source,
         &mut progress,
     )
+    .await
     .expect("expired cache refreshes");
-    assert_eq!(source.calls.get(), 2);
+    assert_eq!((*source.calls.lock().unwrap()), 2);
     assert_eq!(
         stale.observation.cache.expect("cache evidence").age_seconds,
         0
@@ -466,8 +470,8 @@ fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn malformed_cache_recovers_while_strict_load_remains_typed() {
+#[tokio::test(flavor = "current_thread")]
+async fn malformed_cache_recovers_while_strict_load_remains_typed() {
     let root = temp_dir("ic-node-status-invalid");
     let source = FixtureSource::default();
     let now = fixture_now();
@@ -489,23 +493,26 @@ fn malformed_cache_recovers_while_strict_load_remains_typed() {
         &source,
         &mut progress,
     )
+    .await
     .expect("read-through policy repairs malformed cache");
     assert_eq!(recovered.node_count, 1);
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
 
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
+#[tokio::test(flavor = "current_thread")]
+async fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     let root = temp_dir("ic-node-status-cache-order");
     let now = fixture_now();
     let request = refresh_request(&root, now);
     let source = RowsSource {
         nodes: fixture_snapshot().nodes,
     };
-    refresh_ic_node_status_snapshot_with_source(&request, &source).expect("create cache");
+    refresh_ic_node_status_snapshot_with_source(&request, &source)
+        .await
+        .expect("create cache");
     let cache_path = ic_node_status_cache_path(&root, "ic");
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read fixture cache"))
@@ -533,21 +540,24 @@ fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
         &repair_source,
         &mut progress,
     )
+    .await
     .expect("read-through repairs noncanonical cache ordering");
     assert_eq!(repaired.node_count, 1);
-    assert_eq!(repair_source.calls.get(), 1);
+    assert_eq!((*repair_source.calls.lock().unwrap()), 1);
 
     fs::remove_dir_all(root).expect("remove fixture cache");
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
     let root = temp_dir("ic-node-status-cache-provenance");
     let now = fixture_now();
     let request = refresh_request(&root, now);
     let source = FixtureSource::default();
-    refresh_ic_node_status_snapshot_with_source(&request, &source).expect("create cache");
+    refresh_ic_node_status_snapshot_with_source(&request, &source)
+        .await
+        .expect("create cache");
     let cache_path = ic_node_status_cache_path(&root, "ic");
     let valid_cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read fixture cache"))
@@ -581,8 +591,9 @@ fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
             &repair_source,
             &mut progress,
         )
+        .await
         .expect("read-through refreshes invalid observation");
-        assert_eq!(repair_source.calls.get(), 1);
+        assert_eq!((*repair_source.calls.lock().unwrap()), 1);
         assert_eq!(repaired.node_count, 1);
         assert!(!repaired.observation.source.certified);
         assert!(!repaired.observation.source.point_in_time_guaranteed);
@@ -597,7 +608,8 @@ fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
 
     let retained = fs::read(&cache_path).expect("read complete cache");
     let failed_refresh =
-        refresh_ic_node_status_snapshot_with_source(&request, &RowsSource { nodes: Vec::new() });
+        refresh_ic_node_status_snapshot_with_source(&request, &RowsSource { nodes: Vec::new() })
+            .await;
     assert!(matches!(
         failed_refresh,
         Err(IcNodeStatusHostError::Source(
@@ -612,20 +624,22 @@ fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refreshes() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn forced_refresh_reports_atomic_replacement() {
+#[tokio::test(flavor = "current_thread")]
+async fn forced_refresh_reports_atomic_replacement() {
     let root = temp_dir("ic-node-status-force");
     let source = FixtureSource::default();
     let request = refresh_request(&root, fixture_now());
 
     let created = refresh_ic_node_status_snapshot_with_source(&request, &source)
+        .await
         .expect("create complete cache");
     let replaced = refresh_ic_node_status_snapshot_with_source(&request, &source)
+        .await
         .expect("replace complete cache");
 
     assert!(!created.replaced_existing_cache);
     assert!(replaced.replaced_existing_cache);
-    assert_eq!(source.calls.get(), 2);
+    assert_eq!((*source.calls.lock().unwrap()), 2);
     assert_eq!(
         load_cached_ic_node_status_snapshot(&request.cache, request.now_unix_secs)
             .expect("strictly load replacement")
@@ -637,8 +651,8 @@ fn forced_refresh_reports_atomic_replacement() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
     let source = RowsSource {
         nodes: vec![
             fixture_node(
@@ -660,6 +674,7 @@ fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
 
     let snapshot = crate::ic::build_ic_node_status_snapshot_with_source(&request, &source)
+        .await
         .expect("valid custom snapshot");
 
     assert_eq!(snapshot.nodes[0].node_id, "aaaaa-aa");
@@ -668,8 +683,8 @@ fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
     let duplicate = fixture_node(
         "aaaaa-aa",
@@ -684,6 +699,7 @@ fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
             nodes: vec![duplicate.clone(), duplicate],
         },
     )
+    .await
     .expect_err("duplicate node id");
     assert!(matches!(
         duplicate_error,
@@ -713,6 +729,7 @@ fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
             ],
         },
     )
+    .await
     .expect_err("provider name conflict");
     assert!(matches!(
         provider_error,
@@ -721,8 +738,8 @@ fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
     let mut invalid_principal = fixture_node(
         "aaaaa-aa",
@@ -753,14 +770,15 @@ fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
             &request,
             &RowsSource { nodes: vec![node] },
         )
+        .await
         .expect_err("invalid source row");
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn custom_source_rejects_rows_above_the_fixed_ceiling() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_rejects_rows_above_the_fixed_ceiling() {
     let row = fixture_node(
         "aaaaa-aa",
         "UP",
@@ -777,20 +795,22 @@ fn custom_source_rejects_rows_above_the_fixed_ceiling() {
             nodes: vec![row; row_count],
         },
     )
+    .await
     .expect_err("oversized source collection");
 
     assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn custom_source_rejects_an_empty_mainnet_snapshot() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_rejects_an_empty_mainnet_snapshot() {
     let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
 
     let error = crate::ic::build_ic_node_status_snapshot_with_source(
         &request,
         &RowsSource { nodes: Vec::new() },
     )
+    .await
     .expect_err("empty mainnet snapshot");
 
     assert!(matches!(
@@ -876,7 +896,7 @@ fn fixture_node(
 #[cfg(feature = "dashboard-host")]
 #[derive(Default)]
 struct FixtureSource {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -886,37 +906,41 @@ struct RowsSource {
 
 #[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for RowsSource {
-    fn fetch_node_status_snapshot(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcNodeStatusSourceData, IcHostError> {
-        Ok(IcNodeStatusSourceData {
-            source: request.clone(),
-            scope: IcNodeStatusScope::DashboardMainnetDefault,
-            cloud_engine_nodes_included: false,
-            nodes: self.nodes.clone(),
+    fn fetch_node_status_snapshot<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeStatusSourceData, IcHostError>> {
+        Box::pin(async move {
+            Ok(IcNodeStatusSourceData {
+                source: request.clone(),
+                scope: IcNodeStatusScope::DashboardMainnetDefault,
+                cloud_engine_nodes_included: false,
+                nodes: self.nodes.clone(),
+            })
         })
     }
 }
 
 #[cfg(feature = "dashboard-host")]
 impl IcNodeStatusSource for FixtureSource {
-    fn fetch_node_status_snapshot(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcNodeStatusSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(IcNodeStatusSourceData {
-            source: request.clone(),
-            scope: IcNodeStatusScope::DashboardMainnetDefault,
-            cloud_engine_nodes_included: false,
-            nodes: vec![fixture_node(
-                "aaaaa-aa",
-                "DOWN",
-                "REPLICA",
-                Some("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-                "2vxsx-fae",
-            )],
+    fn fetch_node_status_snapshot<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeStatusSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(IcNodeStatusSourceData {
+                source: request.clone(),
+                scope: IcNodeStatusScope::DashboardMainnetDefault,
+                cloud_engine_nodes_included: false,
+                nodes: vec![fixture_node(
+                    "aaaaa-aa",
+                    "DOWN",
+                    "REPLICA",
+                    Some("ryjl3-tyaaa-aaaaa-aaaba-cai"),
+                    "2vxsx-fae",
+                )],
+            })
         })
     }
 }

@@ -4,8 +4,6 @@
 //! Does not own: state-tree collection, validation, command parsing, or text rendering.
 //! Boundary: preserves authenticated node identities, domains, addresses, and certificate time.
 
-#[cfg(feature = "ic-state-host")]
-use crate::runtime::RuntimeError;
 use serde::Serialize;
 #[cfg(feature = "ic-state-host")]
 use thiserror::Error as ThisError;
@@ -155,10 +153,6 @@ pub struct IcApiBoundaryNodeSourceData {
 #[cfg(feature = "ic-state-host")]
 #[derive(Debug, ThisError)]
 pub enum IcApiBoundaryNodeHostError {
-    /// The synchronous adapter could not create its local async runtime.
-    #[error("failed to run certified IC state query: {0}")]
-    Runtime(#[from] RuntimeError),
-
     /// The response-bounded IC agent could not be constructed.
     #[error("failed to build IC state agent for {endpoint}: {reason}")]
     AgentBuild {

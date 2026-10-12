@@ -6,8 +6,8 @@
 
 use super::*;
 
-#[test]
-fn complete_replay_projects_through_shared_catalog_classification() {
+#[tokio::test(flavor = "current_thread")]
+async fn complete_replay_projects_through_shared_catalog_classification() {
     let session = complete_catalog_projection_session(true, false);
 
     let projection =
@@ -47,8 +47,8 @@ fn complete_replay_projects_through_shared_catalog_classification() {
     );
 }
 
-#[test]
-fn diagnostic_replay_explicitly_supports_legacy_historical_routing() {
+#[tokio::test(flavor = "current_thread")]
+async fn diagnostic_replay_explicitly_supports_legacy_historical_routing() {
     let session = complete_legacy_catalog_projection_session();
 
     let projection = project_nns_registry_subnet_catalog(&session)
@@ -61,8 +61,8 @@ fn diagnostic_replay_explicitly_supports_legacy_historical_routing() {
     assert_eq!(projection.routing_ranges().len(), 1);
 }
 
-#[test]
-fn catalog_projection_rejects_incomplete_and_missing_replay_state() {
+#[tokio::test(flavor = "current_thread")]
+async fn catalog_projection_rejects_incomplete_and_missing_replay_state() {
     let empty = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
         1,
         1,
@@ -129,8 +129,8 @@ fn catalog_projection_rejects_registry_version_zero() {
     ));
 }
 
-#[test]
-fn catalog_projection_preserves_typed_record_and_catalog_failures() {
+#[tokio::test(flavor = "current_thread")]
+async fn catalog_projection_preserves_typed_record_and_catalog_failures() {
     let invalid = complete_catalog_projection_session(true, true);
     let error =
         project_nns_registry_subnet_catalog(&invalid).expect_err("malformed replayed subnet list");
@@ -180,8 +180,8 @@ fn authenticated_replay_requires_complete_provenance() {
     ));
 }
 
-#[test]
-fn authenticated_archive_promotes_one_certified_catalog_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn authenticated_archive_promotes_one_certified_catalog_authority() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-projection");
     let archive = complete_catalog_archive(&root);
     let request = certified_catalog_projection_request(
@@ -265,8 +265,8 @@ fn authenticated_archive_promotes_one_certified_catalog_authority() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn certified_latest_policy_rejects_legacy_only_routing_state() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_latest_policy_rejects_legacy_only_routing_state() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-legacy-latest");
     let archive = complete_legacy_catalog_archive(&root);
     let request = certified_catalog_projection_request(
@@ -284,8 +284,8 @@ fn certified_latest_policy_rejects_legacy_only_routing_state() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn certified_catalog_projection_enforces_explicit_certificate_age() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_catalog_projection_enforces_explicit_certificate_age() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-freshness");
     let archive = complete_catalog_archive(&root);
 
@@ -337,8 +337,8 @@ fn certified_catalog_projection_enforces_explicit_certificate_age() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn certified_catalog_projection_makes_known_version_lag_explicit() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_catalog_projection_makes_known_version_lag_explicit() {
     let root = crate::test_support::temp_dir("ic-query-certified-catalog-version-policy");
     let archive = superseded_catalog_archive(&root);
     assert_eq!(archive.manifest().selected_version, 2);

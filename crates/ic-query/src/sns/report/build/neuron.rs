@@ -13,14 +13,14 @@ use crate::sns::report::{
 };
 
 /// Build one exact live SNS neuron detail report.
-pub fn build_sns_neuron_detail_report(
+pub async fn build_sns_neuron_detail_report(
     request: &SnsNeuronRequest,
 ) -> Result<SnsNeuronDetailReport, SnsHostError> {
-    build_sns_neuron_detail_report_with_source(request, &LiveSnsSource)
+    build_sns_neuron_detail_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build one exact SNS neuron detail report through an explicit source adapter.
-pub fn build_sns_neuron_detail_report_with_source(
+pub async fn build_sns_neuron_detail_report_with_source(
     request: &SnsNeuronRequest,
     source: &dyn SnsNeuronSource,
 ) -> Result<SnsNeuronDetailReport, SnsHostError> {
@@ -31,8 +31,10 @@ pub fn build_sns_neuron_detail_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
-    let neuron = source.fetch_sns_neuron(&lookup.fetch_request, &lookup.sns, &request.neuron_id)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let neuron = source
+        .fetch_sns_neuron(&lookup.fetch_request, &lookup.sns, &request.neuron_id)
+        .await?;
     validate_mainnet_sns_neuron(&neuron, &request.neuron_id)?;
     Ok(sns_neuron_detail_report_from_parts(
         SnsNeuronDetailReportParts {

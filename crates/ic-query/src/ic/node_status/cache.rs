@@ -103,15 +103,20 @@ pub fn load_cached_ic_node_status_snapshot(
 }
 
 /// Load a complete snapshot, refreshing missing or recoverably invalid local content.
-pub fn load_or_refresh_missing_ic_node_status_snapshot(
+pub async fn load_or_refresh_missing_ic_node_status_snapshot(
     request: &IcNodeStatusRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
-    load_or_refresh_missing_ic_node_status_snapshot_with_source(request, &LiveIcSource, progress)
+    load_or_refresh_missing_ic_node_status_snapshot_with_source(
+        request,
+        &LiveIcSource::default(),
+        progress,
+    )
+    .await
 }
 
 /// Apply missing/invalid recovery through a caller-supplied Dashboard source.
-pub fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
+pub async fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
     request: &IcNodeStatusRefreshRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
@@ -122,25 +127,31 @@ pub fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
         || load_node_status_cache(&request.cache, request.now_unix_secs),
         |_| false,
         |error| cache_refresh_reason(error, &expected_path),
-        |_| {
+        async |_| {
             report_refresh(progress, request, &expected_path);
-            refresh_ic_node_status_snapshot_with_source(request, source)?;
+            refresh_ic_node_status_snapshot_with_source(request, source).await?;
             Ok(())
         },
-    )?;
+    )
+    .await?;
     Ok(snapshot.snapshot)
 }
 
 /// Load a complete snapshot, refreshing missing, invalid, or older-than-policy content.
-pub fn load_or_refresh_stale_ic_node_status_snapshot(
+pub async fn load_or_refresh_stale_ic_node_status_snapshot(
     request: &IcNodeStatusRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
-    load_or_refresh_stale_ic_node_status_snapshot_with_source(request, &LiveIcSource, progress)
+    load_or_refresh_stale_ic_node_status_snapshot_with_source(
+        request,
+        &LiveIcSource::default(),
+        progress,
+    )
+    .await
 }
 
 /// Apply stale-refresh policy through a caller-supplied Dashboard source.
-pub fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
+pub async fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
     request: &IcNodeStatusRefreshRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
@@ -151,24 +162,25 @@ pub fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
         || load_node_status_cache(&request.cache, request.now_unix_secs),
         |cached| node_status_cache_is_stale(cached, request.now_unix_secs),
         |error| cache_refresh_reason(error, &expected_path),
-        |_| {
+        async |_| {
             report_refresh(progress, request, &expected_path);
-            refresh_ic_node_status_snapshot_with_source(request, source)?;
+            refresh_ic_node_status_snapshot_with_source(request, source).await?;
             Ok(())
         },
-    )?;
+    )
+    .await?;
     Ok(snapshot.snapshot)
 }
 
 /// Force one complete live observed node-status cache replacement.
-pub fn refresh_ic_node_status_snapshot(
+pub async fn refresh_ic_node_status_snapshot(
     request: &IcNodeStatusRefreshRequest,
 ) -> Result<IcNodeStatusRefreshReport, IcNodeStatusHostError> {
-    refresh_ic_node_status_snapshot_with_source(request, &LiveIcSource)
+    refresh_ic_node_status_snapshot_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Force one complete refresh through a caller-supplied Dashboard source.
-pub fn refresh_ic_node_status_snapshot_with_source(
+pub async fn refresh_ic_node_status_snapshot_with_source(
     request: &IcNodeStatusRefreshRequest,
     source: &dyn IcNodeStatusSource,
 ) -> Result<IcNodeStatusRefreshReport, IcNodeStatusHostError> {
@@ -184,7 +196,7 @@ pub fn refresh_ic_node_status_snapshot_with_source(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
-        |state| {
+        async |state| {
             let IcNodeStatusSnapshot {
                 observation,
                 nodes,
@@ -196,7 +208,8 @@ pub fn refresh_ic_node_status_snapshot_with_source(
                     request.now_unix_secs,
                 ),
                 source,
-            )?;
+            )
+            .await?;
             let cache = cache_from_observation(observation, nodes);
             write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
@@ -228,23 +241,24 @@ pub fn refresh_ic_node_status_snapshot_with_source(
             })
         },
     )
+    .await
 }
 
 /// Build a cache-backed node-level status report with stale refresh.
-pub fn build_ic_node_status_report(
+pub async fn build_ic_node_status_report(
     request: &IcNodeStatusReadRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusReport, IcNodeStatusHostError> {
-    build_ic_node_status_report_with_source(request, &LiveIcSource, progress)
+    build_ic_node_status_report_with_source(request, &LiveIcSource::default(), progress).await
 }
 
 /// Build a cache-backed node-level report through a custom source.
-pub fn build_ic_node_status_report_with_source(
+pub async fn build_ic_node_status_report_with_source(
     request: &IcNodeStatusReadRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusReport, IcNodeStatusHostError> {
-    let snapshot = read_snapshot(request, source, progress)?;
+    let snapshot = read_snapshot(request, source, progress).await?;
     Ok(ic_node_status_report_from_snapshot(
         &snapshot,
         &request.view,
@@ -252,20 +266,20 @@ pub fn build_ic_node_status_report_with_source(
 }
 
 /// Build a cache-backed Subnet status report with stale refresh.
-pub fn build_ic_subnet_status_report(
+pub async fn build_ic_subnet_status_report(
     request: &IcNodeStatusReadRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcSubnetStatusReport, IcNodeStatusHostError> {
-    build_ic_subnet_status_report_with_source(request, &LiveIcSource, progress)
+    build_ic_subnet_status_report_with_source(request, &LiveIcSource::default(), progress).await
 }
 
 /// Build a cache-backed Subnet report through a custom source.
-pub fn build_ic_subnet_status_report_with_source(
+pub async fn build_ic_subnet_status_report_with_source(
     request: &IcNodeStatusReadRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcSubnetStatusReport, IcNodeStatusHostError> {
-    let snapshot = read_snapshot(request, source, progress)?;
+    let snapshot = read_snapshot(request, source, progress).await?;
     Ok(ic_subnet_status_report_from_snapshot(
         &snapshot,
         &request.view,
@@ -273,27 +287,28 @@ pub fn build_ic_subnet_status_report_with_source(
 }
 
 /// Build a cache-backed node-provider status report with stale refresh.
-pub fn build_ic_node_provider_status_report(
+pub async fn build_ic_node_provider_status_report(
     request: &IcNodeStatusReadRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeProviderStatusReport, IcNodeStatusHostError> {
-    build_ic_node_provider_status_report_with_source(request, &LiveIcSource, progress)
+    build_ic_node_provider_status_report_with_source(request, &LiveIcSource::default(), progress)
+        .await
 }
 
 /// Build a cache-backed node-provider report through a custom source.
-pub fn build_ic_node_provider_status_report_with_source(
+pub async fn build_ic_node_provider_status_report_with_source(
     request: &IcNodeStatusReadRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeProviderStatusReport, IcNodeStatusHostError> {
-    let snapshot = read_snapshot(request, source, progress)?;
+    let snapshot = read_snapshot(request, source, progress).await?;
     Ok(ic_node_provider_status_report_from_snapshot(
         &snapshot,
         &request.view,
     )?)
 }
 
-fn read_snapshot(
+async fn read_snapshot(
     request: &IcNodeStatusReadRequest,
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
@@ -304,13 +319,14 @@ fn read_snapshot(
             &request.refresh.cache.network,
         );
         report_refresh(progress, &request.refresh, &path);
-        refresh_ic_node_status_snapshot_with_source(&request.refresh, source)?;
+        refresh_ic_node_status_snapshot_with_source(&request.refresh, source).await?;
         return load_cached_ic_node_status_snapshot(
             &request.refresh.cache,
             request.refresh.now_unix_secs,
         );
     }
     load_or_refresh_stale_ic_node_status_snapshot_with_source(&request.refresh, source, progress)
+        .await
 }
 
 fn load_node_status_cache(

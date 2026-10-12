@@ -6,7 +6,10 @@ use ic_query::nns::{
     NnsInventoryInfoRequest,
     node::{build_nns_node_info_report_with_progress, nns_node_info_report_text},
 };
-pub(super) fn run_node_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(super) async fn run_node_info(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
     let cache = cache_request(&options.network)?;
     let request = NnsInventoryInfoRequest::new(
@@ -16,6 +19,6 @@ pub(super) fn run_node_info(matches: &ArgMatches, network: &str) -> Result<(), N
         now_unix_secs()?,
     );
     let report =
-        build_nns_node_info_report_with_progress(&request, &mut StderrQueryProgress::new())?;
+        build_nns_node_info_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;
     write_text_or_json(options.format, &report, nns_node_info_report_text)
 }

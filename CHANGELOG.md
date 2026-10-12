@@ -5,6 +5,31 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.0]
+
+- **Breaking:** live collection and cache reads that may refresh now return
+  futures on the caller's runtime. Await host operations; synchronous wrappers
+  and library runtime error variants are removed. Pure projections, rendering
+  and explicit cache-only reads remain synchronous.
+- Custom host sources require `Sync` and return `Send` futures; progress sinks
+  require `Send`. Construct stateful live adapters with `::default()` and reuse
+  them within a collection. Agents retain their admitted endpoint/response
+  policy, and Dashboard requests reuse a bounded HTTP client.
+- The CLI drives async dispatch with one runtime per command. Command syntax,
+  report/cache JSON shapes, schema 1, deadlines and refresh recovery are preserved.
+
+- Adopts Shared Tooling 0.9.5. Host/IC setup shares lock cleanup, releases shared
+  locks when checkout cleanup fails, and preserves original installation errors
+  and failed candidates. Installers reject CR/LF consumer paths before setup;
+  evidence checks reject NUL bytes before hashing. Asset setup retries transient
+  download failures within bounded attempts/time; snapshot/recovery identities
+  require complete Git IDs. Native acceptance remains
+  tracked in [#44](https://github.com/dragginzgame/ic-query/issues/44).
+- Selects Host artifacts, filesystem and process 0.14.10, with unchanged runtime
+  source, dependency contracts and supported builds.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.54.15] - 2026-10-12
 
 - Adopts Shared Tooling 0.9.0. Snapshot callers share validated

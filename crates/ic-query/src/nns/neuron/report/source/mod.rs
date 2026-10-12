@@ -26,6 +26,8 @@ use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
     wire::{GovernanceResult, NeuronInfoWire},
 };
+#[cfg(feature = "nns-host")]
+use crate::nns::LiveNnsSource;
 use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
@@ -33,8 +35,6 @@ use crate::nns::{
         NnsGovernanceSourceProvenance, validate_governance_request, validate_source_provenance,
     },
 };
-#[cfg(feature = "nns-host")]
-use crate::{nns::LiveNnsSource, runtime::block_on_current_thread};
 use std::{future::Future, pin::Pin};
 
 #[cfg(any(
@@ -60,22 +60,18 @@ pub struct NnsNeuronPage {
 
 /// Build one bounded neuron-index page through the native replica adapter.
 #[cfg(feature = "nns-host")]
-pub fn build_nns_neuron_list_report(
+pub async fn build_nns_neuron_list_report(
     request: &NnsNeuronListRequest,
 ) -> Result<NnsNeuronListReport, super::NnsNeuronHostError> {
-    Ok(block_on_current_thread(
-        build_nns_neuron_list_report_with_source(request, &LiveNnsSource),
-    )??)
+    Ok(build_nns_neuron_list_report_with_source(request, &LiveNnsSource::default()).await?)
 }
 
 /// Build one exact neuron detail through the native replica adapter.
 #[cfg(feature = "nns-host")]
-pub fn build_nns_neuron_info_report(
+pub async fn build_nns_neuron_info_report(
     request: &NnsNeuronInfoRequest,
 ) -> Result<NnsNeuronInfoReport, super::NnsNeuronHostError> {
-    Ok(block_on_current_thread(
-        build_nns_neuron_info_report_with_source(request, &LiveNnsSource),
-    )??)
+    Ok(build_nns_neuron_info_report_with_source(request, &LiveNnsSource::default()).await?)
 }
 
 /// Build one bounded NNS neuron-index page from a caller-owned async source.

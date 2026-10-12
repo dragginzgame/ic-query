@@ -1,9 +1,10 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     let report =
         build_sns_canister_report_with_source(&info_request("1"), &FixtureSnsCanisterSource)
+            .await
             .expect("sns canister report");
     let text = sns_canister_report_text(&report);
 
@@ -44,8 +45,8 @@ fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     assert!(text.contains("health_unsupported"));
 }
 
-#[test]
-fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new(
         "local",
         "not a valid endpoint",
@@ -54,8 +55,9 @@ fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
     );
     let sns = fixture_sns_a();
 
-    let error = LiveSnsSource
+    let error = LiveSnsSource::default()
         .fetch_sns_canisters(&request, &sns)
+        .await
         .expect_err("non-mainnet must fail");
 
     assert!(matches!(
@@ -64,12 +66,13 @@ fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
     let report = build_sns_canister_report_with_source(
         &info_request("1"),
         &MutatingSnsCanisterSource(make_health_unavailable),
     )
+    .await
     .expect("partial SNS canister report");
     let text = sns_canister_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize partial SNS canister report");
@@ -100,8 +103,8 @@ fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
     assert_eq!(json["canisters"][0]["cycle_balance_status"], "unavailable");
 }
 
-#[test]
-fn sns_canister_report_rejects_invalid_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_canister_report_rejects_invalid_custom_source_evidence() {
     for (mutate, expected_reason) in [
         (
             wrong_inventory_method as fn(&mut MainnetSnsCanisterInventory),
@@ -122,6 +125,7 @@ fn sns_canister_report_rejects_invalid_custom_source_evidence() {
             &info_request("1"),
             &MutatingSnsCanisterSource(mutate),
         )
+        .await
         .expect_err("invalid custom Root inventory must fail");
 
         assert!(matches!(
@@ -139,14 +143,18 @@ struct MutatingSnsCanisterSource(fn(&mut MainnetSnsCanisterInventory));
 delegate_sns_discovery!(MutatingSnsCanisterSource);
 
 impl SnsCanisterSource for MutatingSnsCanisterSource {
-    fn fetch_sns_canisters(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
-        let mut inventory = FixtureSnsCanisterSource.fetch_sns_canisters(request, sns)?;
-        self.0(&mut inventory);
-        Ok(inventory)
+    fn fetch_sns_canisters<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
+        Box::pin(async move {
+            let mut inventory = FixtureSnsCanisterSource
+                .fetch_sns_canisters(request, sns)
+                .await?;
+            self.0(&mut inventory);
+            Ok(inventory)
+        })
     }
 }
 

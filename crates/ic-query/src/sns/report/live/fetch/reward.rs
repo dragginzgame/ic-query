@@ -4,7 +4,7 @@
 //! Does not own: target discovery, bracket ordering, checkpoint assembly, or rendering.
 //! Boundary: performs one bounded Governance query per source method invocation.
 
-use super::{block_on_sns, governance_canister};
+use super::governance_canister;
 use crate::sns::report::{
     MainnetSns, MainnetSnsRewardNeuronPage, SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsCanisterMethod,
     SnsHostError, SnsNeuronId, SnsRewardEvent, SnsSourceRequest,
@@ -16,16 +16,27 @@ use crate::sns::report::{
     source::validate_mainnet_sns_reward_neuron_page,
 };
 
-/// Fetch one complete native latest reward event.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_reward_event(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_event(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<SnsRewardEvent, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_reward_event_async(request, sns))
+    let agent = sns_agent(source, request)?;
+    let governance_canister = governance_canister(sns)?;
+    let method = SnsCanisterMethod::GetLatestRewardEvent.as_str();
+    query_canister(
+        agent,
+        &governance_canister,
+        method,
+        method,
+        "SnsRewardEvent",
+        &(),
+    )
+    .await
 }
 
-/// Fetch one strict reward-checkpoint neuron page.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_reward_neuron_page(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_neuron_page(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
@@ -39,40 +50,10 @@ pub(in crate::sns::report::live) fn fetch_mainnet_sns_reward_neuron_page(
             ),
         });
     }
-    block_on_sns(fetch_mainnet_sns_reward_neuron_page_async(
-        request,
-        sns,
-        start_page_at,
-    ))
-}
-
-async fn fetch_mainnet_sns_reward_event_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-) -> Result<SnsRewardEvent, SnsHostError> {
-    let agent = sns_agent(request)?;
-    let governance_canister = governance_canister(sns)?;
-    let method = SnsCanisterMethod::GetLatestRewardEvent.as_str();
-    query_canister(
-        &agent,
-        &governance_canister,
-        method,
-        method,
-        "SnsRewardEvent",
-        &(),
-    )
-    .await
-}
-
-async fn fetch_mainnet_sns_reward_neuron_page_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-    start_page_at: Option<&SnsNeuronId>,
-) -> Result<MainnetSnsRewardNeuronPage, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let response: ListRewardNeuronsResponse = query_canister(
-        &agent,
+        agent,
         &governance_canister,
         SnsCanisterMethod::ListNeurons.as_str(),
         "ListNeuronsRequest",

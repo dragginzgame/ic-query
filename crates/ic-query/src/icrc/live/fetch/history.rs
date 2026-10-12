@@ -37,10 +37,14 @@ pub(super) const ICRC3_GET_ARCHIVES_METHOD: &str = "icrc3_get_archives";
 pub(super) const ICRC3_GET_TIP_CERTIFICATE_METHOD: &str = "icrc3_get_tip_certificate";
 
 pub(in crate::icrc::live) async fn fetch_index_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcIndexData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let result = query_index_principal(&agent, &ledger_canister).await?;
 
     Ok(match result {
@@ -56,10 +60,14 @@ pub(in crate::icrc::live) async fn fetch_index_async(
 }
 
 pub(in crate::icrc::live) async fn fetch_transactions_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcTransactionsRequest,
 ) -> Result<IcrcTransactionsData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let block_args = vec![Icrc3GetBlocksRequest {
         start: Nat::from(request.start),
         length: Nat::from(request.limit),
@@ -330,10 +338,14 @@ fn validate_archive_reply(
 }
 
 pub(in crate::icrc::live) async fn fetch_block_types_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcBlockTypesData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let block_types = query_block_types(&agent, &ledger_canister).await?;
 
     Ok(IcrcBlockTypesData {
@@ -345,10 +357,14 @@ pub(in crate::icrc::live) async fn fetch_block_types_async(
 }
 
 pub(in crate::icrc::live) async fn fetch_archives_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcArchivesRequest,
 ) -> Result<IcrcArchivesData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let args = Icrc3GetArchivesArgs {
         from: request
             .from_canister_id
@@ -364,10 +380,14 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
 }
 
 pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcTipCertificateData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     query_tip_certificate(&agent, &ledger_canister).await
 }
 
@@ -621,7 +641,7 @@ fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{icrc::ledger::Icrc3ArchiveCallback, runtime::block_on_current_thread};
+    use crate::icrc::ledger::Icrc3ArchiveCallback;
     use candid::Func;
     use serde_cbor::Value;
     use std::{
@@ -712,7 +732,7 @@ mod tests {
         assert_eq!(archive.end, "2000");
     }
 
-    fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
+    async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let endpoint = format!("http://{}", listener.local_addr().unwrap());
         let reply = Icrc3GetBlocksResult {
@@ -778,7 +798,7 @@ mod tests {
                 length: Nat::from(2u64),
             }],
         };
-        let followed = block_on_current_thread(fetch_archive_blocks(&agent, &[archive])).unwrap();
+        let followed = fetch_archive_blocks(&agent, &[archive]).await;
         let Value::Map(envelope) = server.join().unwrap() else {
             panic!("request envelope")
         };
@@ -802,18 +822,18 @@ mod tests {
         followed
     }
 
-    #[test]
-    fn follows_the_supplied_query_callback_method_and_arguments() {
-        let followed = follow_callback_fixture(&[12]);
+    #[tokio::test(flavor = "current_thread")]
+    async fn follows_the_supplied_query_callback_method_and_arguments() {
+        let followed = follow_callback_fixture(&[12]).await;
         assert!(followed.errors.is_empty(), "{:?}", followed.errors);
         assert_eq!(followed.blocks[0].index, "12");
         assert_eq!(followed.blocks[0].callback_method, "read_archive_page");
     }
 
-    #[test]
-    fn invalid_archive_rows_are_reported_without_retaining_partial_blocks() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn invalid_archive_rows_are_reported_without_retaining_partial_blocks() {
         for ids in [&[12, 14][..], &[12, 12][..]] {
-            let followed = follow_callback_fixture(ids);
+            let followed = follow_callback_fixture(ids).await;
             assert_eq!(followed.blocks, Vec::<IcrcFollowedArchiveBlockRow>::new());
             assert_eq!(followed.errors.len(), 1);
             assert_eq!(followed.errors[0].callback_method, "read_archive_page");
@@ -837,8 +857,8 @@ mod tests {
         assert_eq!(exact, 0);
     }
 
-    #[test]
-    fn exhausted_archive_budget_rejects_work_before_querying() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn exhausted_archive_budget_rejects_work_before_querying() {
         let agent = Agent::builder()
             .with_url("http://127.0.0.1:1")
             .build()
@@ -854,8 +874,8 @@ mod tests {
             }),
         };
         let mut remaining = 0;
-        let error = block_on_current_thread(query_archive_blocks(&agent, &archive, &mut remaining))
-            .unwrap()
+        let error = query_archive_blocks(&agent, &archive, &mut remaining)
+            .await
             .expect_err("no network work after budget exhaustion");
         assert!(matches!(error, IcrcError::InvalidTransactionPage { .. }));
     }

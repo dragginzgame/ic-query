@@ -4,17 +4,20 @@ use clap::ArgMatches;
 use ic_query::nns::registry::{
     NnsRegistryVersionRequest, build_nns_registry_version_report, nns_registry_version_report_text,
 };
-pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(in crate::nns) async fn run(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("version", matches)) => run_registry_version(matches, network),
+        Some(("version", matches)) => run_registry_version(matches, network).await,
         _ => unreachable!("clap requires a known NNS registry subcommand"),
     }
 }
 
-fn run_registry_version(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_registry_version(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = RegistryVersionOptions::from_matches(matches, network);
     let request =
         NnsRegistryVersionRequest::new(options.network, options.source_endpoint, now_unix_secs()?);
-    let report = build_nns_registry_version_report(&request)?;
+    let report = build_nns_registry_version_report(&request).await?;
     write_text_or_json(options.format, &report, nns_registry_version_report_text)
 }

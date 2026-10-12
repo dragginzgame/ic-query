@@ -18,19 +18,27 @@ pub(super) use history::{
     fetch_transactions_async, query_index_principal, validate_transactions_data,
 };
 
-use crate::icrc::{
-    ledger::{ic_agent, principal_from_text},
-    model::IcrcError,
-};
+use crate::icrc::{ledger::principal_from_text, model::IcrcError};
 use candid::Principal;
 use ic_agent::Agent;
 
 pub(super) fn live_query_context(
+    source: &crate::icrc::LiveIcrcSource,
     source_endpoint: &str,
     ledger_canister_id: &str,
 ) -> Result<(Agent, Principal), IcrcError> {
     Ok((
-        ic_agent::<IcrcError>(source_endpoint)?,
+        source
+            .agent
+            .get(
+                source_endpoint,
+                crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+                |reason| IcrcError::AgentBuild {
+                    endpoint: source_endpoint.to_owned(),
+                    reason,
+                },
+            )?
+            .clone(),
         principal_from_text::<IcrcError>(ledger_canister_id, "ledger_canister_id")?,
     ))
 }

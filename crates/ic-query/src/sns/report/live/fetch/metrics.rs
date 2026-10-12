@@ -3,8 +3,6 @@
 //! Responsibility: fetch one bounded SNS Governance metrics response.
 //! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
 //! Boundary: performs exactly one report-specific composite query.
-
-use super::block_on_sns;
 use crate::sns::report::{
     MainnetSns, MainnetSnsMetrics, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
     live::{
@@ -16,29 +14,17 @@ use crate::sns::report::{
     model::validate_sns_metrics_time_window,
 };
 
-/// Fetch one native metrics response from a resolved SNS Governance canister.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_metrics(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metrics(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     time_window_seconds: u64,
 ) -> Result<MainnetSnsMetrics, SnsHostError> {
     validate_sns_metrics_time_window(time_window_seconds)?;
-    block_on_sns(fetch_mainnet_sns_metrics_async(
-        request,
-        sns,
-        time_window_seconds,
-    ))
-}
-
-async fn fetch_mainnet_sns_metrics_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-    time_window_seconds: u64,
-) -> Result<MainnetSnsMetrics, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let response: GetMetricsResponse = query_canister(
-        &agent,
+        agent,
         &governance_canister,
         SnsCanisterMethod::GetMetrics.as_str(),
         "GetMetricsRequest",
@@ -56,6 +42,7 @@ fn metrics_response(
     time_window_seconds: u64,
     response: GetMetricsResponse,
 ) -> Result<MainnetSnsMetrics, SnsHostError> {
+    validate_sns_metrics_time_window(time_window_seconds)?;
     match response.get_metrics_result {
         Some(GetMetricsResult::Ok(metrics)) => Ok(mainnet_sns_metrics(
             governance_canister_id.to_string(),

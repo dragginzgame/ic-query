@@ -17,7 +17,7 @@ use crate::{
     },
     subnet_catalog::SubnetCatalogListReport,
 };
-use std::cell::RefCell;
+use std::sync::Mutex;
 
 pub(in crate::nns::topology::report::tests) use data_center::{
     complete_data_center_report_fixture, data_center_refresh_report_fixture,
@@ -51,7 +51,7 @@ pub(in crate::nns::topology::report::tests) fn topology_read_request_fixture()
 
 #[derive(Default)]
 pub(in crate::nns::topology::report::tests) struct RecordingTopologySource {
-    pub(in crate::nns::topology::report::tests) calls: RefCell<Vec<&'static str>>,
+    pub(in crate::nns::topology::report::tests) calls: Mutex<Vec<&'static str>>,
     pub(in crate::nns::topology::report::tests) fail_at: Option<&'static str>,
 }
 
@@ -65,7 +65,7 @@ impl RecordingTopologySource {
             request,
             &NnsTopologySourceRequest::new("/cache", "ic", "https://icp-api.io", 1_780_531_200)
         );
-        self.calls.borrow_mut().push(component);
+        self.calls.lock().unwrap().push(component);
         if self.fail_at == Some(component) {
             return Err(NnsNodeHostError::InvalidSourceData {
                 reason: component.to_string(),
@@ -77,43 +77,57 @@ impl RecordingTopologySource {
 }
 
 impl NnsTopologySource for RecordingTopologySource {
-    fn fetch_subnet_catalog_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<SubnetCatalogListReport, NnsTopologyHostError> {
-        self.record("subnet_catalog", request)?;
-        Ok(subnet_report_fixture())
+    fn fetch_subnet_catalog_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            self.record("subnet_catalog", request)?;
+            Ok(subnet_report_fixture())
+        })
     }
 
-    fn fetch_node_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeListReport, NnsTopologyHostError> {
-        self.record("nodes", request)?;
-        Ok(node_report_fixture())
+    fn fetch_node_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>> {
+        Box::pin(async move {
+            self.record("nodes", request)?;
+            Ok(node_report_fixture())
+        })
     }
 
-    fn fetch_node_provider_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeProviderListReport, NnsTopologyHostError> {
-        self.record("node_providers", request)?;
-        Ok(node_provider_report_fixture())
+    fn fetch_node_provider_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            self.record("node_providers", request)?;
+            Ok(node_provider_report_fixture())
+        })
     }
 
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsTopologyHostError> {
-        self.record("node_operators", request)?;
-        Ok(node_operator_report_fixture())
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            self.record("node_operators", request)?;
+            Ok(node_operator_report_fixture())
+        })
     }
 
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsTopologyHostError> {
-        self.record("data_centers", request)?;
-        Ok(data_center_report_fixture())
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            self.record("data_centers", request)?;
+            Ok(data_center_report_fixture())
+        })
     }
 }

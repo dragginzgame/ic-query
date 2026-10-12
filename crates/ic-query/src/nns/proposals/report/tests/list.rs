@@ -1,7 +1,7 @@
 use super::*;
 
-#[test]
-fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     let source = FixtureSource {
         expected_status: vec![NnsProposalStatus::Executed.code()],
         expected_reward_status: vec![NnsProposalRewardStatus::Settled.code()],
@@ -44,6 +44,7 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     };
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .await
         .expect("build proposals report");
     let text = nns_proposal_list_report_text(&report);
 
@@ -89,8 +90,8 @@ fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert!(text.contains("proposal_details:"));
 }
 
-#[test]
-fn nns_proposal_list_report_filters_by_proposer() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_filters_by_proposer() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -105,6 +106,7 @@ fn nns_proposal_list_report_filters_by_proposer() {
     request.proposer_neuron_id = Some(99);
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .await
         .expect("build proposer-filtered report");
     let text = nns_proposal_list_report_text(&report);
 
@@ -113,8 +115,8 @@ fn nns_proposal_list_report_filters_by_proposer() {
     assert!(text.contains("proposer_filter: 99"));
 }
 
-#[test]
-fn nns_proposal_list_report_filters_by_query() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_proposal_list_report_filters_by_query() {
     let source = FixtureSource {
         expected_status: Vec::new(),
         expected_reward_status: Vec::new(),
@@ -146,6 +148,7 @@ fn nns_proposal_list_report_filters_by_query() {
     request.query = Some("subnet".to_string());
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)
+        .await
         .expect("build query-filtered report");
     let text = nns_proposal_list_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize NNS proposal list report");

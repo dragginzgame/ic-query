@@ -100,7 +100,8 @@ pub async fn bootstrap_nns_certified_registry_async(
     request: &NnsCertifiedRegistryBootstrapRequest,
 ) -> Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError> {
     let session =
-        bootstrap_nns_certified_registry_with_source_async(request, &LiveNnsSource).await?;
+        bootstrap_nns_certified_registry_with_source_async(request, &LiveNnsSource::default())
+            .await?;
     NnsAuthenticatedRegistryReplaySession::from_verified_complete(session)
 }
 
@@ -136,7 +137,7 @@ pub async fn bootstrap_nns_certified_registry_with_source_async(
 pub async fn probe_nns_certified_registry_async(
     request: &NnsCertifiedRegistryBootstrapRequest,
 ) -> Result<NnsCertifiedRegistryBootstrapProbeOutcome, NnsRegistryReplayError> {
-    probe_nns_certified_registry_with_source_async(request, &LiveNnsSource).await
+    probe_nns_certified_registry_with_source_async(request, &LiveNnsSource::default()).await
 }
 
 /// Probe bounded certified Registry bootstrap progress from an explicit async source.

@@ -9,16 +9,20 @@ use crate::sns::report::{
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsTokenSource,
 };
 
-pub fn build_sns_token_report(request: &SnsLookupRequest) -> Result<SnsTokenReport, SnsHostError> {
-    build_sns_token_report_with_source(request, &LiveSnsSource)
+pub async fn build_sns_token_report(
+    request: &SnsLookupRequest,
+) -> Result<SnsTokenReport, SnsHostError> {
+    build_sns_token_report_with_source(request, &LiveSnsSource::default()).await
 }
 
-pub fn build_sns_token_report_with_source(
+pub async fn build_sns_token_report_with_source(
     request: &SnsLookupRequest,
     source: &dyn SnsTokenSource,
 ) -> Result<SnsTokenReport, SnsHostError> {
-    let lookup = resolve_sns_lookup(request, source)?;
-    let token = source.fetch_sns_token(&lookup.fetch_request, &lookup.sns)?;
+    let lookup = resolve_sns_lookup(request, source).await?;
+    let token = source
+        .fetch_sns_token(&lookup.fetch_request, &lookup.sns)
+        .await?;
     Ok(sns_token_report_from_parts(
         lookup.fetch_request,
         lookup.sns,

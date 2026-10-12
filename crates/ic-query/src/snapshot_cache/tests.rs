@@ -361,8 +361,8 @@ fn paged_collection_state_tracks_admitted_rows_and_original_page_length() {
     assert_eq!(complete.last_cursor, None);
 }
 
-#[test]
-fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
+#[tokio::test(flavor = "current_thread")]
+async fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
     let refresh = FixturePagedRefresh {
         pages: vec![(vec!["a"], 2, Some("next")), (vec!["b"], 1, None)],
         max_pages: None,
@@ -374,6 +374,7 @@ fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
     let complete = run_paged_snapshot_refresh_with_progress(refresh, &mut |event| {
         events.push(event);
     })
+    .await
     .expect("paged refresh completes");
 
     assert_eq!(complete.rows, vec!["a", "b"]);
@@ -401,8 +402,8 @@ fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
     );
 }
 
-#[test]
-fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
+#[tokio::test(flavor = "current_thread")]
+async fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
     let refresh = FixturePagedRefresh {
         pages: vec![(vec!["a", "b"], 2, Some("next")), (vec!["c"], 1, None)],
         max_pages: Some(1),
@@ -411,6 +412,7 @@ fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
     };
 
     let err = run_paged_snapshot_refresh_with_progress(refresh, &mut |_| {})
+        .await
         .expect_err("max pages rejects incomplete scan");
 
     assert_eq!(
@@ -419,8 +421,8 @@ fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
     );
 }
 
-#[test]
-fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows() {
+#[tokio::test(flavor = "current_thread")]
+async fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows() {
     let refresh = FixturePagedRefresh {
         pages: vec![
             (vec!["a", "b"], 2, Some("next")),
@@ -432,6 +434,7 @@ fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows() {
     };
 
     let err = run_paged_snapshot_refresh_with_progress(refresh, &mut |_| {})
+        .await
         .expect_err("stalled page is incomplete");
 
     assert_eq!(
@@ -440,8 +443,8 @@ fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows() {
     );
 }
 
-#[test]
-fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_write() {
+#[tokio::test(flavor = "current_thread")]
+async fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_write() {
     let events = RefCell::new(Vec::new());
 
     let result: Result<(), &str> = run_snapshot_refresh_with_attempts(
@@ -449,7 +452,7 @@ fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_writ
             events.borrow_mut().push("running");
             Ok(())
         },
-        || {
+        async || {
             events.borrow_mut().push("refresh");
             Err("source failed")
         },
@@ -457,7 +460,8 @@ fn snapshot_refresh_lifecycle_preserves_original_error_after_failed_attempt_writ
             events.borrow_mut().push(*err);
             events.borrow_mut().push("failed-attempt");
         },
-    );
+    )
+    .await;
 
     assert_eq!(result, Err("source failed"));
     assert_eq!(
@@ -505,8 +509,8 @@ fn failed_snapshot_publication_does_not_finalize_the_attempt() {
     assert_eq!(events.into_inner(), vec!["snapshot"]);
 }
 
-#[test]
-fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock() {
+#[tokio::test(flavor = "current_thread")]
+async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock() {
     let root = temp_dir("ic-query-snapshot-cache-locked-refresh");
     let snapshot_path = root
         .join("sns")
@@ -527,7 +531,7 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
             lock_stale_after_seconds: 60,
         },
         identity_cache_error,
-        |state| {
+        async |state| {
             assert!(lock_path.is_file());
             let competing = with_locked_snapshot_refresh(
                 LockedSnapshotRefreshRequest {
@@ -539,8 +543,9 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
                     lock_stale_after_seconds: 60,
                 },
                 identity_cache_error,
-                |_| panic!("competing refresh must not run"),
-            );
+                async |_| panic!("competing refresh must not run"),
+            )
+            .await;
             assert!(matches!(
                 competing,
                 Err::<(), _>(CacheFileError::RefreshAlreadyInProgress { .. })
@@ -551,6 +556,7 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
             Ok(())
         },
     )
+    .await
     .expect("first locked refresh");
 
     with_locked_snapshot_refresh(
@@ -563,11 +569,12 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
             lock_stale_after_seconds: 60,
         },
         identity_cache_error,
-        |state| {
+        async |state| {
             observed.borrow_mut().push(state.replaced_existing_snapshot);
             Ok(())
         },
     )
+    .await
     .expect("second locked refresh");
 
     assert_eq!(observed.into_inner(), vec![false, true]);
@@ -576,8 +583,8 @@ fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_lock()
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure() {
+#[tokio::test(flavor = "current_thread")]
+async fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure() {
     let root = temp_dir("ic-query-snapshot-cache-invalid-target");
     let snapshot_path = root.join("full.json");
     let lock_path = root.join("full.refresh.lock");
@@ -599,8 +606,9 @@ fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure() {
             );
             error
         },
-        |_| panic!("invalid target must not start refresh"),
-    );
+        async |_| panic!("invalid target must not start refresh"),
+    )
+    .await;
     assert!(matches!(
         result,
         Err::<(), _>(CacheFileError::Confinement { .. })
@@ -723,14 +731,18 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
         )
     }
 
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        if self.pages.is_empty() {
-            return Err("no fixture page".to_string());
-        }
-        let (rows, page_len, cursor) = self.pages.remove(0);
-        Ok(self
-            .state
-            .ingest_page(rows, page_len, cursor, |cursor| (*cursor).to_string()))
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            if self.pages.is_empty() {
+                return Err("no fixture page".to_string());
+            }
+            let (rows, page_len, cursor) = self.pages.remove(0);
+            Ok(self
+                .state
+                .ingest_page(rows, page_len, cursor, |cursor| (*cursor).to_string()))
+        })
     }
 
     fn write_running_attempt(&self, _page: &PagedCollectionPage) -> Result<(), Self::Error> {

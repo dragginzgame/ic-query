@@ -9,8 +9,8 @@ use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
 
-#[test]
-fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -18,8 +18,9 @@ fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveNnsSource
+    let error = LiveNnsSource::default()
         .fetch_data_center_list_report(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -28,8 +29,8 @@ fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn data_center_report_uses_live_registry_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn data_center_report_uses_live_registry_source() {
     let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -41,6 +42,7 @@ fn data_center_report_uses_live_registry_source() {
             data_centers: vec![data_center_fixture()],
         },
     )
+    .await
     .expect("data-center report");
 
     assert_eq!(report.schema_version, 1);
@@ -126,34 +128,37 @@ struct FixtureDataCenterSource {
 }
 
 impl NnsDataCenterSource for FixtureDataCenterSource {
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-        let data_centers = self
-            .data_centers
-            .iter()
-            .map(|data_center| NnsDataCenterRow {
-                data_center_id: data_center.id.clone(),
-                region: data_center.region.clone(),
-                owner: data_center.owner.clone(),
-                latitude: data_center.latitude,
-                longitude: data_center.longitude,
-                node_operator_count: data_center.node_operator_count,
-                node_provider_count: data_center.node_provider_count,
-                node_count: data_center.node_count,
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
+    {
+        Box::pin(async move {
+            let data_centers = self
+                .data_centers
+                .iter()
+                .map(|data_center| NnsDataCenterRow {
+                    data_center_id: data_center.id.clone(),
+                    region: data_center.region.clone(),
+                    owner: data_center.owner.clone(),
+                    latitude: data_center.latitude,
+                    longitude: data_center.longitude,
+                    node_operator_count: data_center.node_operator_count,
+                    node_provider_count: data_center.node_provider_count,
+                    node_count: data_center.node_count,
+                })
+                .collect::<Vec<_>>();
+            Ok(NnsDataCenterListReport {
+                schema_version: 1,
+                network: MAINNET_NETWORK.to_string(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                data_center_count: data_centers.len(),
+                data_centers,
             })
-            .collect::<Vec<_>>();
-        Ok(NnsDataCenterListReport {
-            schema_version: 1,
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            data_center_count: data_centers.len(),
-            data_centers,
         })
     }
 }

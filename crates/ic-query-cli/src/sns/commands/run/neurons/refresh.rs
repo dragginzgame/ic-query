@@ -17,7 +17,7 @@ use ic_query::sns::{
     SnsNeuronsRefreshRequest, refresh_sns_neurons_cache_with_progress,
     sns_neurons_refresh_report_text,
 };
-pub(super) fn run_sns_neuron_refresh(
+pub(super) async fn run_sns_neuron_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
@@ -34,6 +34,6 @@ pub(super) fn run_sns_neuron_refresh(
         max_pages: options.max_pages,
     };
     let mut progress = StderrQueryProgress::new();
-    let report = refresh_sns_neurons_cache_with_progress(&request, &mut progress)?;
+    let report = refresh_sns_neurons_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(format, &report, sns_neurons_refresh_report_text)
 }

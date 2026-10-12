@@ -659,7 +659,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false }
+ic-query = { version = "0.55", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -667,7 +667,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["host"] }
+ic-query = { version = "0.55", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -679,7 +679,7 @@ the native host graph:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["canister"] }
+ic-query = { version = "0.55", default-features = false, features = ["canister"] }
 ```
 
 The canister surface collects the four bounded direct NNS Governance point
@@ -845,6 +845,13 @@ Built-in host calls use one adapter per authority family:
 Report-specific capability traits let fixtures, mirrors, proxies, and
 pre-collected sources reuse the same validation and projection path.
 
+Live collection and read-through builders are async and use the caller's Tokio
+runtime. Pure projections, renderers and explicit cache-only reads remain
+synchronous. Construct stateful live adapters with `::default()` and reuse one
+per collection; their validated transports retain the selected endpoint and
+response limits. Custom host sources require `Sync`, source futures are `Send`,
+and progress sinks require `Send`.
+
 Library builders do not write to stdout or stderr. Paged refresh APIs can emit
 typed `QueryProgressEvent` values to a caller-provided sink; terminal rendering
 remains an `ic-query-cli` responsibility.
@@ -854,7 +861,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -867,7 +874,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -876,7 +883,7 @@ node collection, and the shared observed default-scope node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders including
@@ -893,7 +900,7 @@ report:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["ic-state-host"] }
 ```
 
 This exposes `LiveIcStateSource`, its focused source trait, and live/custom
@@ -906,7 +913,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -919,7 +926,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -931,7 +938,7 @@ proposal/neuron caches, reward checkpoints, and local checkpoint diffs:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -942,7 +949,7 @@ surface. There is no direct ic-query edge to Reqwest, Prost, CBOR, or SHA-256;
 
 Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
-decoding, runtime bridge, capability-filesystem dependencies, and other cache
+decoding, capability-filesystem dependencies, and other cache
 dependencies required by that API while leaving `ic-query`'s direct optional
 Dashboard `reqwest` transport and `serde_cbor` certification dependencies
 disabled. Because the feature still includes `ic-agent`, both packages may
@@ -966,7 +973,7 @@ inventory, or derived-topology surface:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 This feature includes `subnet-catalog-host` and adds certified Registry delta
@@ -981,7 +988,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -994,7 +1001,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.54", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.55", default-features = false, features = ["nns-host"] }
 ```
 
 This is a strict superset of both `nns-topology-host` and
@@ -1218,10 +1225,10 @@ and refresh dispositions are deliberately excluded. Validated canister
 resolution returns the matched range, Registry version, catalog digest, and
 full provenance together. Single-endpoint live collection is always labelled
 `CatalogAssurance::UncertifiedQuery`. Async embedders can call
-`fetch_subnet_catalog_async`, `load_subnet_catalog_async`, or
-`refresh_subnet_catalog_async` on their own runtime. Dropping an async refresh
-releases its owned lock without publishing. Synchronous adapters may use a
-scoped helper thread when invoked inside an existing Tokio runtime.
+`fetch_subnet_catalog_async`, `load_subnet_catalog`, or
+`refresh_subnet_catalog` on their own runtime. Dropping an async refresh
+releases its owned lock without publishing. Live operations return futures
+polled by the caller; the library does not create runtimes or helper threads.
 Only schema-1 catalog files are accepted; an explicit read policy may refresh
 unsupported ordinary cache content, but no migration or legacy reader is
 retained.

@@ -272,37 +272,34 @@ fn public_nns_governance_report_api_is_constructible_and_renderable() {
     assert_eq!(json["maturity_modulation"]["current_value_permyriad"], -125);
 }
 
-#[test]
-fn public_nns_governance_portable_api_accepts_custom_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_governance_portable_api_accepts_custom_source() {
     let request = NnsGovernanceRequest::replica_query_from_unix_secs(
         "ic",
         DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT,
         1_700_000_000,
         "fixture",
     );
-    let report = run_ready(build_nns_governance_economics_report_with_source(
-        &request,
-        &FixtureGovernanceSource,
-    ))
-    .expect("custom Governance source");
+    let report =
+        build_nns_governance_economics_report_with_source(&request, &FixtureGovernanceSource)
+            .await
+            .expect("custom Governance source");
 
     assert_eq!(report.economics.transaction_fee_e8s, 10_000);
     assert_eq!(report.context.fetched_at, "2023-11-14T22:13:20Z");
 }
 
-#[test]
-fn public_nns_governance_builder_rejects_invalid_replica_selection_before_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_governance_builder_rejects_invalid_replica_selection_before_source() {
     let request = NnsGovernanceRequest::replica_query(
         "ic",
         "not-an-absolute-url",
         "2026-08-14T00:00:00Z",
         "fixture",
     );
-    let error = run_ready(build_nns_governance_economics_report_with_source(
-        &request,
-        &PanicGovernanceSource,
-    ))
-    .expect_err("invalid endpoint must fail");
+    let error = build_nns_governance_economics_report_with_source(&request, &PanicGovernanceSource)
+        .await
+        .expect_err("invalid endpoint must fail");
 
     assert!(matches!(
         error,
@@ -312,33 +309,30 @@ fn public_nns_governance_builder_rejects_invalid_replica_selection_before_source
 }
 
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
-#[test]
-fn public_nns_governance_canister_source_builds_a_caller_runtime_future() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_governance_canister_source_builds_a_caller_runtime_future() {
     let request =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
-    let future = build_nns_governance_economics_report_with_source(&request, &CanisterNnsSource);
+    let future =
+        build_nns_governance_economics_report_with_source(&request, &CanisterNnsSource).await;
 
     drop(future);
 }
 
-#[test]
-fn public_nns_proposal_portable_api_accepts_custom_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_portable_api_accepts_custom_source() {
     let request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
         .with_status(NnsProposalStatusFilter::Executed)
         .with_reward_status(NnsProposalRewardStatusFilter::Settled)
         .with_topic(NnsProposalTopicFilter::Governance);
-    let report = run_ready(build_nns_proposal_list_report_with_source(
-        &request,
-        &FixtureNnsProposalSource,
-    ))
-    .expect("portable proposal source");
+    let report = build_nns_proposal_list_report_with_source(&request, &FixtureNnsProposalSource)
+        .await
+        .expect("portable proposal source");
     let detail_request =
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
-    let detail = run_ready(build_nns_proposal_report_with_source(
-        &detail_request,
-        &FixtureNnsProposalSource,
-    ))
-    .expect("portable proposal detail source");
+    let detail = build_nns_proposal_report_with_source(&detail_request, &FixtureNnsProposalSource)
+        .await
+        .expect("portable proposal detail source");
 
     assert_eq!(NNS_PROPOSAL_MAX_PAGE_SIZE, 100);
     assert_eq!(report.proposal_count, 1);
@@ -349,16 +343,17 @@ fn public_nns_proposal_portable_api_accepts_custom_source() {
     assert_eq!(detail.proposal_id, 132_411);
 }
 
-#[test]
-fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     let first_request = proposal_governance_request(1_700_000_000);
     let state = NnsProposalCollectionState::new(&first_request, 2, 3)
         .expect("valid proposal collection state");
-    let first = run_ready(advance_nns_proposal_collection_with_source(
+    let first = advance_nns_proposal_collection_with_source(
         &first_request,
         &state,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect("first proposal collection page");
 
     assert_eq!(
@@ -397,11 +392,12 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     let resumed: NnsProposalCollectionState =
         serde_json::from_str(&persisted).expect("deserialize collection state");
     let second_request = proposal_governance_request(1_700_000_100);
-    let second = run_ready(advance_nns_proposal_collection_with_source(
+    let second = advance_nns_proposal_collection_with_source(
         &second_request,
         &resumed,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect("final proposal collection page");
 
     assert_eq!(second.page.proposal_count, 1);
@@ -426,11 +422,12 @@ fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
         serde_json::to_value(&second.state).expect("serialize completed state"),
     )
     .expect("restore completed state");
-    let error = run_ready(advance_nns_proposal_collection_with_source(
+    let error = advance_nns_proposal_collection_with_source(
         &second_request,
         &restored,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect_err("complete collection cannot make another source call");
     assert!(matches!(
         error,
@@ -481,15 +478,16 @@ fn assert_public_nns_proposal_activity(
     ));
 }
 
-#[test]
-fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
     let request = proposal_governance_request(1_700_000_000);
     let state = NnsProposalCollectionState::new(&request, 2, 1).expect("bounded collection state");
-    let step = run_ready(advance_nns_proposal_collection_with_source(
+    let step = advance_nns_proposal_collection_with_source(
         &request,
         &state,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect("bounded collection page");
 
     assert_eq!(
@@ -502,11 +500,12 @@ fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
         serde_json::to_value(&step.state).expect("serialize page-limited state"),
     )
     .expect("restore page-limited state");
-    let error = run_ready(advance_nns_proposal_collection_with_source(
+    let error = advance_nns_proposal_collection_with_source(
         &request,
         &restored,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect_err("page-limited collection cannot advance");
     assert!(matches!(
         error,
@@ -522,11 +521,12 @@ fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
         1_700_000_100,
         "ic-query",
     );
-    let error = run_ready(advance_nns_proposal_collection_with_source(
+    let error = advance_nns_proposal_collection_with_source(
         &changed_request,
         &state,
         &PagedFixtureNnsProposalSource,
-    ))
+    )
+    .await
     .expect_err("collection identity must be fixed before source invocation");
     assert!(matches!(
         error,
@@ -537,26 +537,28 @@ fn public_nns_proposal_collection_stops_at_explicit_page_limit() {
     ));
 }
 
-#[test]
-fn public_nns_proposal_collection_rejects_a_changed_canister_collector() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_collection_rejects_a_changed_canister_collector() {
     let first_request =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
     let state = NnsProposalCollectionState::new(&first_request, 2, 3)
         .expect("valid canister collection state");
-    let first = run_ready(advance_nns_proposal_collection_with_source(
+    let first = advance_nns_proposal_collection_with_source(
         &first_request,
         &state,
         &ChangingCanisterProposalSource,
-    ))
+    )
+    .await
     .expect("first canister proposal page");
     let second_request =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_100);
 
-    let error = run_ready(advance_nns_proposal_collection_with_source(
+    let error = advance_nns_proposal_collection_with_source(
         &second_request,
         &first.state,
         &ChangingCanisterProposalSource,
-    ))
+    )
+    .await
     .expect_err("collector principal must remain fixed");
     assert!(matches!(
         error,
@@ -565,8 +567,8 @@ fn public_nns_proposal_collection_rejects_a_changed_canister_collector() {
 }
 
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
-#[test]
-fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
     let governance =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
     let list_request = NnsProposalListRequest::new(governance.clone(), 25);
@@ -574,13 +576,16 @@ fn public_nns_proposal_canister_source_builds_caller_runtime_futures() {
 
     let collection_state =
         NnsProposalCollectionState::new(&list_request.governance, 25, 10).expect("valid state");
-    let list_future = build_nns_proposal_list_report_with_source(&list_request, &CanisterNnsSource);
-    let detail_future = build_nns_proposal_report_with_source(&detail_request, &CanisterNnsSource);
+    let list_future =
+        build_nns_proposal_list_report_with_source(&list_request, &CanisterNnsSource).await;
+    let detail_future =
+        build_nns_proposal_report_with_source(&detail_request, &CanisterNnsSource).await;
     let collection_future = advance_nns_proposal_collection_with_source(
         &list_request.governance,
         &collection_state,
         &CanisterNnsSource,
-    );
+    )
+    .await;
 
     drop((list_future, detail_future, collection_future));
 }
@@ -665,8 +670,8 @@ impl NnsGovernanceSource for PanicGovernanceSource {
     }
 }
 
-#[test]
-fn governance_rejects_invalid_request_timestamps_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn governance_rejects_invalid_request_timestamps_before_source_calls() {
     for mut request in [
         NnsGovernanceRequest::replica_query_from_unix_secs(
             "ic",
@@ -792,14 +797,12 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     assert!(nns_neuron_info_report_text(&info).contains("neuron_id: 11"));
 }
 
-#[test]
-fn public_nns_neuron_portable_api_accepts_custom_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_neuron_portable_api_accepts_custom_source() {
     let list_request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 1);
-    let list = run_ready(build_nns_neuron_list_report_with_source(
-        &list_request,
-        &FixtureNnsNeuronSource,
-    ))
-    .expect("custom neuron source");
+    let list = build_nns_neuron_list_report_with_source(&list_request, &FixtureNnsNeuronSource)
+        .await
+        .expect("custom neuron source");
     assert_eq!(list.neurons[0].neuron_id, 7);
     assert_eq!(
         list.context.source,
@@ -807,35 +810,32 @@ fn public_nns_neuron_portable_api_accepts_custom_source() {
     );
 
     let info_request = NnsNeuronInfoRequest::new(neuron_governance_request(1_700_000_000), 7);
-    let info = run_ready(build_nns_neuron_info_report_with_source(
-        &info_request,
-        &FixtureNnsNeuronSource,
-    ))
-    .expect("custom neuron detail");
+    let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureNnsNeuronSource)
+        .await
+        .expect("custom neuron detail");
     assert_eq!(info.neuron.neuron_id, 7);
 
     let invalid_request = NnsNeuronListRequest::new(
         neuron_governance_request(1_700_000_000),
         NNS_NEURON_MAX_PAGE_SIZE + 1,
     );
-    let error = run_ready(build_nns_neuron_list_report_with_source(
-        &invalid_request,
-        &FixtureNnsNeuronSource,
-    ))
-    .expect_err("oversized neuron page must fail");
+    let error = build_nns_neuron_list_report_with_source(&invalid_request, &FixtureNnsNeuronSource)
+        .await
+        .expect_err("oversized neuron page must fail");
     assert!(matches!(error, NnsNeuronError::InvalidPageSize { .. }));
 }
 
-#[test]
-fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     let first_request = neuron_governance_request(1_700_000_000);
     let state =
         NnsNeuronCollectionState::new(&first_request, 2, 3).expect("valid neuron collection state");
-    let first = run_ready(advance_nns_neuron_collection_with_source(
+    let first = advance_nns_neuron_collection_with_source(
         &first_request,
         &state,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect("first neuron collection page");
 
     assert_eq!(
@@ -874,11 +874,12 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     let resumed: NnsNeuronCollectionStep =
         serde_json::from_str(&persisted).expect("deserialize collection step");
     let second_request = neuron_governance_request(1_700_000_100);
-    let second = run_ready(advance_nns_neuron_collection_with_source(
+    let second = advance_nns_neuron_collection_with_source(
         &second_request,
         &resumed.state,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect("final neuron collection page");
 
     assert_eq!(second.page.returned_neuron_count, 1);
@@ -899,11 +900,12 @@ fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
         serde_json::to_value(&second.state).expect("serialize completed state"),
     )
     .expect("restore completed state");
-    let error = run_ready(advance_nns_neuron_collection_with_source(
+    let error = advance_nns_neuron_collection_with_source(
         &second_request,
         &restored,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect_err("complete collection cannot make another source call");
     assert!(matches!(
         error,
@@ -947,20 +949,18 @@ fn assert_public_nns_neuron_distribution(
     ));
 }
 
-#[test]
-fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
     let request = neuron_governance_request(1_700_000_000);
     assert!(matches!(
         NnsNeuronCollectionState::new(&request, 2, 0),
         Err(NnsNeuronError::InvalidCollectionMaxPages)
     ));
     let state = NnsNeuronCollectionState::new(&request, 2, 1).expect("bounded collection state");
-    let step = run_ready(advance_nns_neuron_collection_with_source(
-        &request,
-        &state,
-        &PagedFixtureNnsNeuronSource,
-    ))
-    .expect("bounded collection page");
+    let step =
+        advance_nns_neuron_collection_with_source(&request, &state, &PagedFixtureNnsNeuronSource)
+            .await
+            .expect("bounded collection page");
 
     assert_eq!(
         step.state.status(),
@@ -972,11 +972,12 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
         serde_json::to_value(&step.state).expect("serialize page-limited state"),
     )
     .expect("restore page-limited state");
-    let error = run_ready(advance_nns_neuron_collection_with_source(
+    let error = advance_nns_neuron_collection_with_source(
         &request,
         &restored,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect_err("page-limited collection cannot advance");
     assert!(matches!(
         error,
@@ -992,11 +993,12 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
         1_700_000_100,
         "ic-query",
     );
-    let error = run_ready(advance_nns_neuron_collection_with_source(
+    let error = advance_nns_neuron_collection_with_source(
         &changed_request,
         &state,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect_err("collection identity must be fixed before source invocation");
     assert!(matches!(
         error,
@@ -1011,11 +1013,12 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
     invalid_json["status"] = serde_json::json!("complete");
     let invalid_state: NnsNeuronCollectionState =
         serde_json::from_value(invalid_json).expect("deserialize modified collection state");
-    let error = run_ready(advance_nns_neuron_collection_with_source(
+    let error = advance_nns_neuron_collection_with_source(
         &request,
         &invalid_state,
         &PagedFixtureNnsNeuronSource,
-    ))
+    )
+    .await
     .expect_err("a full page cannot be changed into false completion");
     assert!(matches!(
         error,
@@ -1023,26 +1026,28 @@ fn public_nns_neuron_collection_stops_at_explicit_page_limit() {
     ));
 }
 
-#[test]
-fn public_nns_neuron_collection_rejects_a_changed_canister_collector() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_neuron_collection_rejects_a_changed_canister_collector() {
     let first_request =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
     let state = NnsNeuronCollectionState::new(&first_request, 2, 3)
         .expect("valid canister collection state");
-    let first = run_ready(advance_nns_neuron_collection_with_source(
+    let first = advance_nns_neuron_collection_with_source(
         &first_request,
         &state,
         &ChangingCanisterNeuronSource,
-    ))
+    )
+    .await
     .expect("first canister neuron page");
     let second_request =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_100);
 
-    let error = run_ready(advance_nns_neuron_collection_with_source(
+    let error = advance_nns_neuron_collection_with_source(
         &second_request,
         &first.state,
         &ChangingCanisterNeuronSource,
-    ))
+    )
+    .await
     .expect_err("collector principal must remain fixed");
     assert!(matches!(
         error,
@@ -1051,8 +1056,8 @@ fn public_nns_neuron_collection_rejects_a_changed_canister_collector() {
 }
 
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
-#[test]
-fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
     let governance =
         NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 1_700_000_000);
     let list_request = NnsNeuronListRequest::new(governance.clone(), 25);
@@ -1060,13 +1065,14 @@ fn public_nns_neuron_canister_source_builds_caller_runtime_futures() {
 
     let collection_state =
         NnsNeuronCollectionState::new(&list_request.governance, 25, 10).expect("valid state");
-    let list = build_nns_neuron_list_report_with_source(&list_request, &CanisterNnsSource);
-    let info = build_nns_neuron_info_report_with_source(&info_request, &CanisterNnsSource);
+    let list = build_nns_neuron_list_report_with_source(&list_request, &CanisterNnsSource).await;
+    let info = build_nns_neuron_info_report_with_source(&info_request, &CanisterNnsSource).await;
     let collection = advance_nns_neuron_collection_with_source(
         &list_request.governance,
         &collection_state,
         &CanisterNnsSource,
-    );
+    )
+    .await;
 
     drop((list, info, collection));
 }
@@ -1487,20 +1493,21 @@ fn public_certified_registry_archive_storage_contract_is_explicit_and_local() {
         300,
     );
     assert_eq!(cleanup_request.cleanup_limits, cleanup_limits);
-    let cleanup: fn(
-        &NnsCertifiedRegistryArchiveCleanupRequest,
-    ) -> Result<
-        NnsCertifiedRegistryArchiveCleanupReport,
-        NnsCertifiedRegistryArchiveCleanupError,
-    > = cleanup_nns_certified_registry_archive;
+    let cleanup: for<'a> fn(
+        &'a NnsCertifiedRegistryArchiveCleanupRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsCertifiedRegistryArchiveCleanupReport, NnsCertifiedRegistryArchiveCleanupError>,
+    > = |arg0| Box::pin(cleanup_nns_certified_registry_archive(arg0));
     let _ = cleanup;
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_nns_registry_host_api_accepts_custom_source_adapter() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_registry_host_api_accepts_custom_source_adapter() {
     let request = NnsRegistryVersionRequest::new("ic", "https://icp-api.io", 1_700_000_000);
     let report = build_nns_registry_version_report_with_source(&request, &FixtureNnsRegistrySource)
+        .await
         .expect("registry version report");
 
     assert_eq!(report.network, "ic");
@@ -1514,22 +1521,25 @@ struct FixtureNnsRegistrySource;
 
 #[cfg(feature = "nns-host")]
 impl NnsRegistrySource for FixtureNnsRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        assert_eq!(request.endpoint, "https://icp-api.io");
-        assert_eq!(request.fetched_by, "ic-query");
-        assert_ne!(request.fetched_at, "");
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
+    {
+        Box::pin(async move {
+            assert_eq!(request.endpoint, "https://icp-api.io");
+            assert_eq!(request.fetched_by, "ic-query");
+            assert_ne!(request.fetched_at, "");
 
-        Ok(NnsRegistryVersionData {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            certification: public_registry_certification(),
+            Ok(NnsRegistryVersionData {
+                network: "ic".to_string(),
+                registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                certification: public_registry_certification(),
+            })
         })
     }
 }
@@ -1651,8 +1661,8 @@ fn public_catalog_projection_requires_complete_replay_evidence() {
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() {
     fn accept_bootstrap_future<F>(_future: F)
     where
         F: std::future::Future<
@@ -1786,12 +1796,12 @@ fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
     );
     let cache_loader: for<'a> fn(
         &'a NnsAuthenticatedRegistryArchive,
-        &NnsCertifiedSubnetCatalogProjectionRequest,
-        &NnsCertifiedSubnetCatalogLoadRequest,
-    ) -> Result<
-        NnsCertifiedSubnetCatalogLoadOutcome<'a>,
-        NnsCertifiedSubnetCatalogCacheError,
-    > = load_nns_certified_subnet_catalog;
+        &'a NnsCertifiedSubnetCatalogProjectionRequest,
+        &'a NnsCertifiedSubnetCatalogLoadRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError>,
+    > = |arg0, arg1, arg2| Box::pin(load_nns_certified_subnet_catalog(arg0, arg1, arg2));
     let _ = cache_loader;
     let _ = NnsCertifiedSubnetCatalogLoadOutcome::snapshot_authority;
     let _ = NnsCertifiedSubnetCatalogLoadOutcome::cache_evidence;
@@ -2239,34 +2249,34 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
     let root = temp_root("nns-inventory-host-public-api");
     write_nns_inventory_fixture_caches(&root);
 
-    assert_public_nns_node_host_api(&root);
-    assert_public_nns_data_center_host_api(&root);
-    assert_public_nns_node_provider_host_api(&root);
-    assert_public_nns_node_operator_host_api(&root);
+    assert_public_nns_node_host_api(&root).await;
+    assert_public_nns_data_center_host_api(&root).await;
+    assert_public_nns_node_provider_host_api(&root).await;
+    assert_public_nns_node_operator_host_api(&root).await;
 
     let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_inventory_host_api_accepts_custom_source_adapters() {
     let root = temp_root("nns-inventory-source-public-api");
 
-    assert_public_nns_node_custom_source_api(&root);
-    assert_public_nns_data_center_custom_source_api(&root);
-    assert_public_nns_node_provider_custom_source_api(&root);
-    assert_public_nns_node_operator_custom_source_api(&root);
+    assert_public_nns_node_custom_source_api(&root).await;
+    assert_public_nns_data_center_custom_source_api(&root).await;
+    assert_public_nns_node_provider_custom_source_api(&root).await;
+    assert_public_nns_node_operator_custom_source_api(&root).await;
 
     let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_custom_source_api(root: &Path) {
+async fn assert_public_nns_node_custom_source_api(root: &Path) {
     let node_cache = NnsInventoryCacheRequest::new(root.join("node"), "ic");
     let node_list_request = NnsNodeListRequest::new(
         node_cache.clone(),
@@ -2288,12 +2298,15 @@ fn assert_public_nns_node_custom_source_api(root: &Path) {
     .with_dry_run(true);
     let node_list =
         build_nns_node_list_report_with_source(&node_list_request, &FixtureNnsNodeSource)
+            .await
             .expect("node list report");
     let node_info =
         build_nns_node_info_report_with_source(&node_info_request, &FixtureNnsNodeSource)
+            .await
             .expect("node info report");
     let node_refresh =
         refresh_nns_node_report_with_source(&node_refresh_request, &FixtureNnsNodeSource)
+            .await
             .expect("node refresh report");
 
     assert_eq!(node_list.node_count, 1);
@@ -2305,7 +2318,7 @@ fn assert_public_nns_node_custom_source_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_data_center_custom_source_api(root: &Path) {
+async fn assert_public_nns_data_center_custom_source_api(root: &Path) {
     let data_center_cache = NnsInventoryCacheRequest::new(root.join("data-center"), "ic");
     let data_center_list_request = NnsInventoryListRequest::new(
         data_center_cache.clone(),
@@ -2329,16 +2342,19 @@ fn assert_public_nns_data_center_custom_source_api(root: &Path) {
         &data_center_list_request,
         &FixtureNnsDataCenterSource,
     )
+    .await
     .expect("data-center list report");
     let data_center_info = build_nns_data_center_info_report_with_source(
         &data_center_info_request,
         &FixtureNnsDataCenterSource,
     )
+    .await
     .expect("data-center info report");
     let data_center_refresh = refresh_nns_data_center_report_with_source(
         &data_center_refresh_request,
         &FixtureNnsDataCenterSource,
     )
+    .await
     .expect("data-center refresh report");
 
     assert_eq!(data_center_list.data_center_count, 1);
@@ -2350,7 +2366,7 @@ fn assert_public_nns_data_center_custom_source_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
+async fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
     let node_provider_cache = NnsInventoryCacheRequest::new(root.join("node-provider"), "ic");
     let node_provider_list_request = NnsInventoryListRequest::new(
         node_provider_cache.clone(),
@@ -2374,16 +2390,19 @@ fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
         &node_provider_list_request,
         &FixtureNnsNodeProviderSource,
     )
+    .await
     .expect("node-provider list report");
     let node_provider_info = build_nns_node_provider_info_report_with_source(
         &node_provider_info_request,
         &FixtureNnsNodeProviderSource,
     )
+    .await
     .expect("node-provider info report");
     let node_provider_refresh = refresh_nns_node_provider_report_with_source(
         &node_provider_refresh_request,
         &FixtureNnsNodeProviderSource,
     )
+    .await
     .expect("node-provider refresh report");
 
     assert_eq!(node_provider_list.node_provider_count, 1);
@@ -2395,7 +2414,7 @@ fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
+async fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
     let node_operator_cache = NnsInventoryCacheRequest::new(root.join("node-operator"), "ic");
     let node_operator_list_request = NnsInventoryListRequest::new(
         node_operator_cache.clone(),
@@ -2419,16 +2438,19 @@ fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
         &node_operator_list_request,
         &FixtureNnsNodeOperatorSource,
     )
+    .await
     .expect("node-operator list report");
     let node_operator_info = build_nns_node_operator_info_report_with_source(
         &node_operator_info_request,
         &FixtureNnsNodeOperatorSource,
     )
+    .await
     .expect("node-operator info report");
     let node_operator_refresh = refresh_nns_node_operator_report_with_source(
         &node_operator_refresh_request,
         &FixtureNnsNodeOperatorSource,
     )
+    .await
     .expect("node-operator refresh report");
 
     assert_eq!(node_operator_list.node_operator_count, 1);
@@ -2444,22 +2466,24 @@ struct FixtureNnsNodeSource;
 
 #[cfg(feature = "nns-host")]
 impl NnsNodeSource for FixtureNnsNodeSource {
-    fn fetch_node_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-        assert_inventory_source_request(
-            &request.network,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-        );
-        let mut report = sample_nns_node_list_report();
-        report.network.clone_from(&request.network);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.source_endpoint.clone_from(&request.endpoint);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+        Box::pin(async move {
+            assert_inventory_source_request(
+                &request.network,
+                &request.endpoint,
+                &request.fetched_at,
+                &request.fetched_by,
+            );
+            let mut report = sample_nns_node_list_report();
+            report.network.clone_from(&request.network);
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.source_endpoint.clone_from(&request.endpoint);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 }
 
@@ -2468,22 +2492,25 @@ struct FixtureNnsDataCenterSource;
 
 #[cfg(feature = "nns-host")]
 impl NnsDataCenterSource for FixtureNnsDataCenterSource {
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-        assert_inventory_source_request(
-            &request.network,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-        );
-        let mut report = sample_nns_data_center_list_report();
-        report.network.clone_from(&request.network);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.source_endpoint.clone_from(&request.endpoint);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
+    {
+        Box::pin(async move {
+            assert_inventory_source_request(
+                &request.network,
+                &request.endpoint,
+                &request.fetched_at,
+                &request.fetched_by,
+            );
+            let mut report = sample_nns_data_center_list_report();
+            report.network.clone_from(&request.network);
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.source_endpoint.clone_from(&request.endpoint);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 }
 
@@ -2492,22 +2519,27 @@ struct FixtureNnsNodeProviderSource;
 
 #[cfg(feature = "nns-host")]
 impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
-    fn fetch_node_provider_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-        assert_inventory_source_request(
-            &request.network,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-        );
-        let mut report = sample_nns_node_provider_list_report();
-        report.network.clone_from(&request.network);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.source_endpoint.clone_from(&request.endpoint);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_provider_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsNodeProviderListReport, NnsNodeProviderHostError>,
+    > {
+        Box::pin(async move {
+            assert_inventory_source_request(
+                &request.network,
+                &request.endpoint,
+                &request.fetched_at,
+                &request.fetched_by,
+            );
+            let mut report = sample_nns_node_provider_list_report();
+            report.network.clone_from(&request.network);
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.source_endpoint.clone_from(&request.endpoint);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 }
 
@@ -2516,22 +2548,27 @@ struct FixtureNnsNodeOperatorSource;
 
 #[cfg(feature = "nns-host")]
 impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-        assert_inventory_source_request(
-            &request.network,
-            &request.endpoint,
-            &request.fetched_at,
-            &request.fetched_by,
-        );
-        let mut report = sample_nns_node_operator_list_report();
-        report.network.clone_from(&request.network);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.source_endpoint.clone_from(&request.endpoint);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>,
+    > {
+        Box::pin(async move {
+            assert_inventory_source_request(
+                &request.network,
+                &request.endpoint,
+                &request.fetched_at,
+                &request.fetched_by,
+            );
+            let mut report = sample_nns_node_operator_list_report();
+            report.network.clone_from(&request.network);
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.source_endpoint.clone_from(&request.endpoint);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 }
 
@@ -2857,8 +2894,8 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_nns_topology_host_api_accepts_custom_source_adapter() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     let source = FixtureNnsTopologySource;
     let request = NnsTopologyReadRequest::new(
         ".",
@@ -2868,6 +2905,7 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     );
 
     let summary = build_nns_topology_summary_report_with_source(&request, &source)
+        .await
         .expect("topology summary report");
     let coverage = build_nns_topology_coverage_report_with_source(
         &NnsTopologyReadRequest::new(
@@ -2878,6 +2916,7 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
         ),
         &source,
     )
+    .await
     .expect("topology coverage report");
     let check = build_nns_topology_check_report_with_source(
         &NnsTopologyReadRequest::new(
@@ -2888,9 +2927,10 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
         ),
         &source,
     )
+    .await
     .expect("topology check report");
-    let versions = topology_versions_report_with_source(&source);
-    let refresh = topology_refresh_report_with_source(&source);
+    let versions = topology_versions_report_with_source(&source).await;
+    let refresh = topology_refresh_report_with_source(&source).await;
 
     assert_eq!(summary.network, "ic");
     assert_eq!(summary.subnet_count, 1);
@@ -2899,11 +2939,11 @@ fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     assert_eq!(versions.source_count, 5);
     assert_eq!(refresh.component_count, 5);
     assert!(refresh.dry_run);
-    assert_topology_direct_reports_with_source(&source);
+    assert_topology_direct_reports_with_source(&source).await;
 }
 
 #[cfg(feature = "nns-host")]
-fn topology_versions_report_with_source(
+async fn topology_versions_report_with_source(
     source: &dyn NnsTopologySource,
 ) -> NnsTopologyVersionsReport {
     build_nns_topology_versions_report_with_source(
@@ -2915,11 +2955,12 @@ fn topology_versions_report_with_source(
         ),
         source,
     )
+    .await
     .expect("topology versions report")
 }
 
 #[cfg(feature = "nns-host")]
-fn topology_refresh_report_with_source(
+async fn topology_refresh_report_with_source(
     source: &dyn NnsTopologyRefreshSource,
 ) -> NnsTopologyRefreshReport {
     refresh_nns_topology_report_with_source(
@@ -2933,22 +2974,27 @@ fn topology_refresh_report_with_source(
         .with_dry_run(true),
         source,
     )
+    .await
     .expect("topology refresh report")
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySource) {
+async fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySource) {
     let gaps_request: NnsTopologyReadRequest = topology_read_request();
     let capacity_request: NnsTopologyReadRequest = topology_read_request();
     let regions_request: NnsTopologyReadRequest = topology_read_request();
     let providers_request: NnsTopologyReadRequest = topology_read_request();
-    let gaps =
-        build_nns_topology_gaps_report_with_source(&gaps_request, source).expect("gaps report");
+    let gaps = build_nns_topology_gaps_report_with_source(&gaps_request, source)
+        .await
+        .expect("gaps report");
     let capacity = build_nns_topology_capacity_report_with_source(&capacity_request, source)
+        .await
         .expect("capacity report");
     let regions = build_nns_topology_regions_report_with_source(&regions_request, source)
+        .await
         .expect("regions report");
     let providers = build_nns_topology_providers_report_with_source(&providers_request, source)
+        .await
         .expect("providers report");
 
     assert_eq!(gaps.network, "ic");
@@ -2972,106 +3018,155 @@ struct FixtureNnsTopologySource;
 
 #[cfg(feature = "nns-host")]
 impl NnsTopologySource for FixtureNnsTopologySource {
-    fn fetch_subnet_catalog_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<SubnetCatalogListReport, NnsTopologyHostError> {
-        assert_topology_source_request(request);
-        let mut report = sample_subnet_catalog_list_report();
-        report.network.clone_from(&request.network);
-        report.fetched_at.clone_from(&request.fetched_at);
-        Ok(report)
+    fn fetch_subnet_catalog_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_source_request(request);
+            let mut report = sample_subnet_catalog_list_report();
+            report.network.clone_from(&request.network);
+            report.fetched_at.clone_from(&request.fetched_at);
+            Ok(report)
+        })
     }
 
-    fn fetch_node_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeListReport, NnsTopologyHostError> {
-        assert_topology_source_request(request);
-        let mut report = sample_nns_node_list_report();
-        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>> {
+        Box::pin(async move {
+            assert_topology_source_request(request);
+            let mut report = sample_nns_node_list_report();
+            stamp_topology_component_report(
+                request,
+                &mut report.network,
+                &mut report.source_endpoint,
+            );
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 
-    fn fetch_node_provider_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeProviderListReport, NnsTopologyHostError> {
-        assert_topology_source_request(request);
-        let mut report = sample_nns_node_provider_list_report();
-        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_provider_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_source_request(request);
+            let mut report = sample_nns_node_provider_list_report();
+            stamp_topology_component_report(
+                request,
+                &mut report.network,
+                &mut report.source_endpoint,
+            );
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 
-    fn fetch_node_operator_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsNodeOperatorListReport, NnsTopologyHostError> {
-        assert_topology_source_request(request);
-        let mut report = sample_nns_node_operator_list_report();
-        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_node_operator_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_source_request(request);
+            let mut report = sample_nns_node_operator_list_report();
+            stamp_topology_component_report(
+                request,
+                &mut report.network,
+                &mut report.source_endpoint,
+            );
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 
-    fn fetch_data_center_list_report(
-        &self,
-        request: &NnsTopologySourceRequest,
-    ) -> Result<NnsDataCenterListReport, NnsTopologyHostError> {
-        assert_topology_source_request(request);
-        let mut report = sample_nns_data_center_list_report();
-        stamp_topology_component_report(request, &mut report.network, &mut report.source_endpoint);
-        report.fetched_at.clone_from(&request.fetched_at);
-        report.fetched_by.clone_from(&request.fetched_by);
-        Ok(report)
+    fn fetch_data_center_list_report<'a>(
+        &'a self,
+        request: &'a NnsTopologySourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_source_request(request);
+            let mut report = sample_nns_data_center_list_report();
+            stamp_topology_component_report(
+                request,
+                &mut report.network,
+                &mut report.source_endpoint,
+            );
+            report.fetched_at.clone_from(&request.fetched_at);
+            report.fetched_by.clone_from(&request.fetched_by);
+            Ok(report)
+        })
     }
 }
 
 #[cfg(feature = "nns-host")]
 impl NnsTopologyRefreshSource for FixtureNnsTopologySource {
-    fn refresh_subnet_catalog_report(
-        &self,
-        request: &NnsTopologyRefreshSourceRequest,
-    ) -> Result<SubnetCatalogRefreshReport, NnsTopologyHostError> {
-        assert_topology_refresh_source_request(request);
-        Ok(sample_subnet_catalog_refresh_report())
+    fn refresh_subnet_catalog_report<'a>(
+        &'a self,
+        request: &'a NnsTopologyRefreshSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<SubnetCatalogRefreshReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_refresh_source_request(request);
+            Ok(sample_subnet_catalog_refresh_report())
+        })
     }
 
-    fn refresh_node_report(
-        &self,
-        request: &NnsTopologyRefreshSourceRequest,
-    ) -> Result<NnsNodeRefreshReport, NnsTopologyHostError> {
-        assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_refresh_report(&request.cache_root))
+    fn refresh_node_report<'a>(
+        &'a self,
+        request: &'a NnsTopologyRefreshSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeRefreshReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_refresh_source_request(request);
+            Ok(sample_nns_node_refresh_report(&request.cache_root))
+        })
     }
 
-    fn refresh_node_provider_report(
-        &self,
-        request: &NnsTopologyRefreshSourceRequest,
-    ) -> Result<NnsNodeProviderRefreshReport, NnsTopologyHostError> {
-        assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_provider_refresh_report(&request.cache_root))
+    fn refresh_node_provider_report<'a>(
+        &'a self,
+        request: &'a NnsTopologyRefreshSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsNodeProviderRefreshReport, NnsTopologyHostError>,
+    > {
+        Box::pin(async move {
+            assert_topology_refresh_source_request(request);
+            Ok(sample_nns_node_provider_refresh_report(&request.cache_root))
+        })
     }
 
-    fn refresh_node_operator_report(
-        &self,
-        request: &NnsTopologyRefreshSourceRequest,
-    ) -> Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError> {
-        assert_topology_refresh_source_request(request);
-        Ok(sample_nns_node_operator_refresh_report(&request.cache_root))
+    fn refresh_node_operator_report<'a>(
+        &'a self,
+        request: &'a NnsTopologyRefreshSourceRequest,
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError>,
+    > {
+        Box::pin(async move {
+            assert_topology_refresh_source_request(request);
+            Ok(sample_nns_node_operator_refresh_report(&request.cache_root))
+        })
     }
 
-    fn refresh_data_center_report(
-        &self,
-        request: &NnsTopologyRefreshSourceRequest,
-    ) -> Result<NnsDataCenterRefreshReport, NnsTopologyHostError> {
-        assert_topology_refresh_source_request(request);
-        Ok(sample_nns_data_center_refresh_report(&request.cache_root))
+    fn refresh_data_center_report<'a>(
+        &'a self,
+        request: &'a NnsTopologyRefreshSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterRefreshReport, NnsTopologyHostError>>
+    {
+        Box::pin(async move {
+            assert_topology_refresh_source_request(request);
+            Ok(sample_nns_data_center_refresh_report(&request.cache_root))
+        })
     }
 }
 
@@ -3106,12 +3201,6 @@ fn assert_topology_refresh_source_request(request: &NnsTopologyRefreshSourceRequ
     assert_ne!(request.fetched_at, "");
     assert_eq!(request.fetched_by, "ic-query");
 }
-
-#[cfg(feature = "nns-host")]
-type RefreshFn<Request, Report, Error> = fn(&Request) -> Result<Report, Error>;
-
-#[cfg(feature = "nns-host")]
-type RequestReportFn<Request, Report, Error> = fn(&Request) -> Result<Report, Error>;
 
 #[cfg(feature = "nns-host")]
 #[test]
@@ -3169,15 +3258,15 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     assert!(nns_proposal_cache_list_report_text(&cache_list).contains("cache_count: 1"));
     assert!(nns_proposal_cache_status_report_text(&cache_status).contains("found: yes"));
     assert!(nns_proposal_refresh_report_text(&refresh_report).contains("proposal_count: 1"));
-    assert!(request_report_api_accepts_public_types(
+    assert!(async_request_report_api_accepts_public_types(
         build_nns_proposal_list_report,
         &list_request
     ));
-    assert!(request_report_api_accepts_public_types(
+    assert!(async_request_report_api_accepts_public_types(
         build_nns_proposal_report,
         &detail_request
     ));
-    assert!(request_report_api_accepts_public_types(
+    assert!(async_request_report_api_accepts_public_types(
         refresh_nns_proposal_cache,
         &refresh_request
     ));
@@ -3186,8 +3275,8 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 }
 
 #[cfg(feature = "nns-host")]
-#[test]
-fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
     let root = temp_root("nns-proposal-source-public-api");
     let source = FixtureNnsProposalSource;
     let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
@@ -3204,17 +3293,14 @@ fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         2,
     );
 
-    let list = run_ready(build_nns_proposal_list_report_with_source(
-        &list_request,
-        &source,
-    ))
-    .expect("proposal list report");
-    let detail = run_ready(build_nns_proposal_report_with_source(
-        &detail_request,
-        &source,
-    ))
-    .expect("proposal detail report");
+    let list = build_nns_proposal_list_report_with_source(&list_request, &source)
+        .await
+        .expect("proposal list report");
+    let detail = build_nns_proposal_report_with_source(&detail_request, &source)
+        .await
+        .expect("proposal detail report");
     let refresh = refresh_nns_proposal_cache_with_source(&refresh_request, &source)
+        .await
         .expect("proposal refresh report");
 
     assert_eq!(list.proposal_count, 1);
@@ -3446,20 +3532,23 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_host_api(root: &Path) {
+async fn assert_public_nns_node_host_api(root: &Path) {
     let cache = NnsInventoryCacheRequest::new(root, "ic");
     let request = NnsNodeListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let list = build_nns_node_list_report(&request).expect("build node list from cache");
+    let list = build_nns_node_list_report(&request)
+        .await
+        .expect("build node list from cache");
     let info = build_nns_node_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         sample_nns_node_row().node_principal,
         1_700_000_000,
     ))
+    .await
     .expect("build node info from cache");
     let refresh = sample_nns_node_refresh_report(root);
     let refresh_request = NnsInventoryRefreshRequest::new(
@@ -3482,21 +3571,23 @@ fn assert_public_nns_node_host_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_data_center_host_api(root: &Path) {
+async fn assert_public_nns_data_center_host_api(root: &Path) {
     let cache = NnsInventoryCacheRequest::new(root, "ic");
     let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let list =
-        build_nns_data_center_list_report(&request).expect("build data-center list from cache");
+    let list = build_nns_data_center_list_report(&request)
+        .await
+        .expect("build data-center list from cache");
     let info = build_nns_data_center_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         sample_nns_data_center_row().data_center_id,
         1_700_000_000,
     ))
+    .await
     .expect("build data-center info from cache");
     let refresh = sample_nns_data_center_refresh_report(root);
     let refresh_request = NnsInventoryRefreshRequest::new(
@@ -3522,21 +3613,23 @@ fn assert_public_nns_data_center_host_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_provider_host_api(root: &Path) {
+async fn assert_public_nns_node_provider_host_api(root: &Path) {
     let cache = NnsInventoryCacheRequest::new(root, "ic");
     let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let list =
-        build_nns_node_provider_list_report(&request).expect("build node-provider list from cache");
+    let list = build_nns_node_provider_list_report(&request)
+        .await
+        .expect("build node-provider list from cache");
     let info = build_nns_node_provider_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         sample_nns_node_provider_row().node_provider_principal,
         1_700_000_000,
     ))
+    .await
     .expect("build node-provider info from cache");
     let refresh = sample_nns_node_provider_refresh_report(root);
     let refresh_request = NnsInventoryRefreshRequest::new(
@@ -3562,21 +3655,23 @@ fn assert_public_nns_node_provider_host_api(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-fn assert_public_nns_node_operator_host_api(root: &Path) {
+async fn assert_public_nns_node_operator_host_api(root: &Path) {
     let cache = NnsInventoryCacheRequest::new(root, "ic");
     let request = NnsInventoryListRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
     );
-    let list =
-        build_nns_node_operator_list_report(&request).expect("build node-operator list from cache");
+    let list = build_nns_node_operator_list_report(&request)
+        .await
+        .expect("build node-operator list from cache");
     let info = build_nns_node_operator_info_report(&NnsInventoryInfoRequest::new(
         cache.clone(),
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         sample_nns_node_operator_row().node_operator_principal,
         1_700_000_000,
     ))
+    .await
     .expect("build node-operator info from cache");
     let refresh = sample_nns_node_operator_refresh_report(root);
     let refresh_request = NnsInventoryRefreshRequest::new(
@@ -3637,16 +3732,7 @@ where
 #[cfg(feature = "nns-host")]
 #[must_use]
 fn refresh_api_accepts_public_types<Request, Report, Error>(
-    _refresh: RefreshFn<Request, Report, Error>,
-    request: &Request,
-) -> bool {
-    std::mem::size_of_val(request) > 0
-}
-
-#[cfg(feature = "nns-host")]
-#[must_use]
-fn request_report_api_accepts_public_types<Request, Report, Error>(
-    _build: RequestReportFn<Request, Report, Error>,
+    _refresh: impl AsyncFn(&Request) -> Result<Report, Error>,
     request: &Request,
 ) -> bool {
     std::mem::size_of_val(request) > 0
@@ -4024,4 +4110,12 @@ fn sample_topology_registry_version_row() -> NnsTopologyRegistryVersionRow {
         source_endpoint: "https://icp-api.io".to_string(),
         stale: Some(false),
     }
+}
+
+#[cfg(feature = "nns-host")]
+fn async_request_report_api_accepts_public_types<Request, Report, Error>(
+    _build: impl AsyncFn(&Request) -> Result<Report, Error>,
+    request: &Request,
+) -> bool {
+    std::mem::size_of_val(request) > 0
 }

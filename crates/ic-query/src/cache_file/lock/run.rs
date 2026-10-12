@@ -6,8 +6,6 @@
 
 use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
 use crate::cache_file::CacheFileError;
-#[cfg(feature = "subnet-catalog-host")]
-use std::future::Future;
 
 #[cfg(any(
     feature = "dashboard-host",
@@ -27,15 +25,17 @@ pub fn with_refresh_lock<T, E>(
 }
 
 /// Run one async action while holding the shared filesystem refresh lock.
-#[cfg(feature = "subnet-catalog-host")]
-pub async fn with_refresh_lock_async<T, E, Fut>(
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host"
+))]
+pub async fn with_refresh_lock_async<T, E>(
     request: RefreshLockRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> E,
-    action: impl FnOnce() -> Fut,
-) -> Result<T, E>
-where
-    Fut: Future<Output = Result<T, E>>,
-{
+    action: impl AsyncFnOnce() -> Result<T, E>,
+) -> Result<T, E> {
     let lock = acquire_refresh_lock(request).map_err(&cache_error)?;
     let result = action().await;
     lock.finish(result, cache_error)

@@ -49,32 +49,32 @@ use ic_query::icrc::{
 };
 use serde::Serialize;
 
-pub fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+pub async fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("ledger", matches)) => run_icrc_ledger(matches),
-        Some(("account", matches)) => run_icrc_account(matches),
-        Some(("analytics", matches)) => run_icrc_analytics(matches),
+        Some(("ledger", matches)) => run_icrc_ledger(matches).await,
+        Some(("account", matches)) => run_icrc_account(matches).await,
+        Some(("analytics", matches)) => run_icrc_analytics(matches).await,
         _ => unreachable!("clap requires a known ICRC subcommand"),
     }
 }
 
-fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("account", matches)) => run_icrc_analytics_account(matches),
-        Some(("holder", matches)) => run_icrc_analytics_holder(matches),
-        Some(("token-values", matches)) => run_icrc_analytics_token_values(matches),
-        Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches),
+        Some(("account", matches)) => run_icrc_analytics_account(matches).await,
+        Some(("holder", matches)) => run_icrc_analytics_holder(matches).await,
+        Some(("token-values", matches)) => run_icrc_analytics_token_values(matches).await,
+        Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches).await,
         Some(("transaction", matches)) => {
-            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction)
+            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction).await
         }
         _ => unreachable!("clap requires a known ICRC analytics subcommand"),
     }
 }
 
-fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
         Some(("count", matches)) => {
-            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Account)
+            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Account).await
         }
         Some(("info", matches)) => {
             let options = IcrcAnalyticsAccountInfoOptions::from_matches(matches);
@@ -85,7 +85,7 @@ fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcCommandErr
                 target.ledger_canister_id,
                 options.account_id,
             );
-            let report = build_icrc_account_info_report(&request)?;
+            let report = build_icrc_account_info_report(&request).await?;
             write_text_or_json(target.format, &report, icrc_account_info_report_text)
         }
         Some(("list", matches)) => {
@@ -101,17 +101,17 @@ fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcCommandErr
                 target.ledger_canister_id,
                 query,
             );
-            let report = build_icrc_account_list_report(&request)?;
+            let report = build_icrc_account_list_report(&request).await?;
             write_text_or_json(target.format, &report, icrc_account_list_report_text)
         }
         _ => unreachable!("clap requires a known ICRC account analytics subcommand"),
     }
 }
 
-fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
         Some(("count", matches)) => {
-            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Holder)
+            run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Holder).await
         }
         Some(("list", matches)) => {
             let options = IcrcAnalyticsHolderListOptions::from_matches(matches);
@@ -125,14 +125,14 @@ fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcCommandErro
                 target.ledger_canister_id,
                 query,
             );
-            let report = build_icrc_holder_list_report(&request)?;
+            let report = build_icrc_holder_list_report(&request).await?;
             write_text_or_json(target.format, &report, icrc_holder_list_report_text)
         }
         _ => unreachable!("clap requires a known ICRC holder analytics subcommand"),
     }
 }
 
-fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAnalyticsTokenValueOptions::from_matches(matches);
     let window = options.window;
     let target = window.target;
@@ -147,21 +147,21 @@ fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcComma
         target.ledger_canister_id,
         IcIcrcTokenValueQuery::new(start_unix_secs, end_unix_secs, options.limit),
     );
-    let report = build_icrc_token_value_report(&request)?;
+    let report = build_icrc_token_value_report(&request).await?;
     write_text_or_json(target.format, &report, icrc_token_value_report_text)
 }
 
-fn run_icrc_analytics_indexed_count(
+async fn run_icrc_analytics_indexed_count(
     matches: &ArgMatches,
     kind: IcIcrcIndexedCountKind,
 ) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("count", matches)) => run_icrc_analytics_indexed_count_leaf(matches, kind),
+        Some(("count", matches)) => run_icrc_analytics_indexed_count_leaf(matches, kind).await,
         _ => unreachable!("clap requires a known ICRC indexed-count subcommand"),
     }
 }
 
-fn run_icrc_analytics_indexed_count_leaf(
+async fn run_icrc_analytics_indexed_count_leaf(
     matches: &ArgMatches,
     kind: IcIcrcIndexedCountKind,
 ) -> Result<(), IcrcCommandError> {
@@ -172,11 +172,11 @@ fn run_icrc_analytics_indexed_count_leaf(
         options.ledger_canister_id,
         kind,
     );
-    let report = build_icrc_indexed_count_report(&request)?;
+    let report = build_icrc_indexed_count_report(&request).await?;
     write_text_or_json(options.format, &report, icrc_indexed_count_report_text)
 }
 
-fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAnalyticsTotalSupplyOptions::from_matches(matches);
     let window = options.window;
     let target = window.target;
@@ -193,42 +193,51 @@ fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcComma
         target.ledger_canister_id,
         IcIcrcTotalSupplyQuery::new(start_unix_secs, end_unix_secs, options.step_secs),
     );
-    let report = build_icrc_total_supply_report(&request)?;
+    let report = build_icrc_total_supply_report(&request).await?;
     write_text_or_json(target.format, &report, icrc_total_supply_report_text)
 }
 
-fn run_icrc_ledger(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_ledger(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
         Some(("token", matches)) => {
-            run_simple_ledger_report(matches, build_icrc_token_report, icrc_token_report_text)
+            run_simple_ledger_report(matches, build_icrc_token_report, icrc_token_report_text).await
         }
         Some(("index", matches)) => {
-            run_simple_ledger_report(matches, build_icrc_index_report, icrc_index_report_text)
+            run_simple_ledger_report(matches, build_icrc_index_report, icrc_index_report_text).await
         }
-        Some(("transactions", matches)) => run_icrc_transactions(matches),
-        Some(("block-types", matches)) => run_simple_ledger_report(
-            matches,
-            build_icrc_block_types_report,
-            icrc_block_types_report_text,
-        ),
-        Some(("archives", matches)) => run_icrc_archives(matches),
-        Some(("tip-certificate", matches)) => run_simple_ledger_report(
-            matches,
-            build_icrc_tip_certificate_report,
-            icrc_tip_certificate_report_text,
-        ),
-        Some(("capabilities", matches)) => run_simple_ledger_report(
-            matches,
-            build_icrc_capabilities_report,
-            icrc_capabilities_report_text,
-        ),
+        Some(("transactions", matches)) => run_icrc_transactions(matches).await,
+        Some(("block-types", matches)) => {
+            run_simple_ledger_report(
+                matches,
+                build_icrc_block_types_report,
+                icrc_block_types_report_text,
+            )
+            .await
+        }
+        Some(("archives", matches)) => run_icrc_archives(matches).await,
+        Some(("tip-certificate", matches)) => {
+            run_simple_ledger_report(
+                matches,
+                build_icrc_tip_certificate_report,
+                icrc_tip_certificate_report_text,
+            )
+            .await
+        }
+        Some(("capabilities", matches)) => {
+            run_simple_ledger_report(
+                matches,
+                build_icrc_capabilities_report,
+                icrc_capabilities_report_text,
+            )
+            .await
+        }
         _ => unreachable!("clap requires a known ICRC ledger subcommand"),
     }
 }
 
-fn run_simple_ledger_report<Report>(
+async fn run_simple_ledger_report<Report>(
     matches: &ArgMatches,
-    build: fn(&IcrcLedgerRequest) -> Result<Report, IcrcError>,
+    build: impl AsyncFn(&IcrcLedgerRequest) -> Result<Report, IcrcError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), IcrcCommandError>
 where
@@ -240,20 +249,20 @@ where
         now_unix_secs: current_unix_secs()?,
         ledger_canister_id: options.ledger_canister_id,
     };
-    let report = build(&request)?;
+    let report = build(&request).await?;
     write_text_or_json(options.format, &report, render_text)
 }
 
-fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("balance", matches)) => run_icrc_balance(matches),
-        Some(("allowance", matches)) => run_icrc_allowance(matches),
-        Some(("transaction", matches)) => run_icrc_account_transaction(matches),
+        Some(("balance", matches)) => run_icrc_balance(matches).await,
+        Some(("allowance", matches)) => run_icrc_allowance(matches).await,
+        Some(("transaction", matches)) => run_icrc_account_transaction(matches).await,
         _ => unreachable!("clap requires a known ICRC account subcommand"),
     }
 }
 
-fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcBalanceOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcBalanceRequest {
@@ -263,11 +272,11 @@ fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
         account_owner: options.account_owner,
         subaccount_hex: options.subaccount_hex,
     };
-    let report = build_icrc_balance_report(&request)?;
+    let report = build_icrc_balance_report(&request).await?;
     write_text_or_json(ledger.format, &report, icrc_balance_report_text)
 }
 
-fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAllowanceOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcAllowanceRequest {
@@ -279,21 +288,21 @@ fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
         spender_owner: options.spender_owner,
         spender_subaccount_hex: options.spender_subaccount_hex,
     };
-    let report = build_icrc_allowance_report(&request)?;
+    let report = build_icrc_allowance_report(&request).await?;
     write_text_or_json(ledger.format, &report, icrc_allowance_report_text)
 }
 
-fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     match matches.subcommand() {
-        Some(("page", matches)) => run_icrc_account_transaction_page(matches),
+        Some(("page", matches)) => run_icrc_account_transaction_page(matches).await,
         Some(("list", matches)) => run_icrc_account_transaction_list(matches),
-        Some(("refresh", matches)) => run_icrc_account_transaction_refresh(matches),
+        Some(("refresh", matches)) => run_icrc_account_transaction_refresh(matches).await,
         Some(("cache", matches)) => run_icrc_account_transaction_cache(matches),
         _ => unreachable!("clap requires a known ICRC account transaction subcommand"),
     }
 }
 
-fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionPageOptions::from_matches(matches);
     let target = options.target;
     let request = IcrcAccountTransactionPageRequest {
@@ -306,7 +315,7 @@ fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCom
         start: options.start,
         limit: options.limit,
     };
-    let report = build_icrc_account_transaction_page_report(&request)?;
+    let report = build_icrc_account_transaction_page_report(&request).await?;
     write_text_or_json(
         options.format,
         &report,
@@ -329,7 +338,9 @@ fn run_icrc_account_transaction_list(matches: &ArgMatches) -> Result<(), IcrcCom
     )
 }
 
-fn run_icrc_account_transaction_refresh(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_account_transaction_refresh(
+    matches: &ArgMatches,
+) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionRefreshOptions::from_matches(matches);
     let request = IcrcAccountTransactionRefreshRequest {
         cache: account_transaction_cache_request(options.target)?,
@@ -340,7 +351,8 @@ fn run_icrc_account_transaction_refresh(matches: &ArgMatches) -> Result<(), Icrc
         lock_stale_after_seconds: DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     };
     let mut progress = StderrQueryProgress::new();
-    let report = refresh_icrc_account_transaction_cache_with_progress(&request, &mut progress)?;
+    let report =
+        refresh_icrc_account_transaction_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(
         options.format,
         &report,
@@ -378,7 +390,7 @@ fn account_transaction_cache_request(
     })
 }
 
-fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcTransactionsOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcTransactionsRequest {
@@ -389,11 +401,11 @@ fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
         limit: options.limit,
         follow_archives: options.follow_archives,
     };
-    let report = build_icrc_transactions_report(&request)?;
+    let report = build_icrc_transactions_report(&request).await?;
     write_text_or_json(ledger.format, &report, icrc_transactions_report_text)
 }
 
-fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
+async fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcArchivesOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcArchivesRequest {
@@ -402,6 +414,6 @@ fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
         ledger_canister_id: ledger.ledger_canister_id,
         from_canister_id: options.from_canister_id,
     };
-    let report = build_icrc_archives_report(&request)?;
+    let report = build_icrc_archives_report(&request).await?;
     write_text_or_json(ledger.format, &report, icrc_archives_report_text)
 }

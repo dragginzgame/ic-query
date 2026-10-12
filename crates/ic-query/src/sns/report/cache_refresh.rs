@@ -62,11 +62,15 @@ where
 }
 
 /// Resolve one SNS target, acquire its family lock, and run its attempt lifecycle.
-pub(in crate::sns::report) fn run_resolved_sns_snapshot_refresh<Request, Collection, Report>(
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Request, Collection, Report>(
     request: &Request,
     source: &dyn SnsDiscoverySource,
     lock_stale_after_seconds: u64,
-    run_locked: impl FnOnce(
+    run_locked: impl AsyncFnOnce(
         &SnsSnapshotRefreshContext<'_, Request, Collection>,
     ) -> Result<Report, SnsHostError>,
 ) -> Result<Report, SnsHostError>
@@ -81,7 +85,7 @@ where
         request.now_unix_secs(),
         request.input(),
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
     let paths = SnsSnapshotCachePaths::<Collection>::for_root(
         request.cache_root(),
         request.network(),
@@ -97,7 +101,7 @@ where
             lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
-        |refresh_state| {
+        async |refresh_state| {
             let context = SnsSnapshotRefreshContext {
                 request,
                 fetch_request: lookup.fetch_request,
@@ -107,11 +111,13 @@ where
             };
             run_snapshot_refresh_with_attempts(
                 || write_starting_sns_refresh_attempt(context.refresh_context()),
-                || run_locked(&context),
+                async || run_locked(&context).await,
                 |error| write_failed_sns_refresh_attempt(context.refresh_context(), error),
             )
+            .await
         },
     )
+    .await
 }
 
 /// Atomically publish a complete SNS family snapshot, then finalize its attempt sidecar.

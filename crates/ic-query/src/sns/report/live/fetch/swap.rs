@@ -3,8 +3,6 @@
 //! Responsibility: fetch bounded SNS swap lifecycle and sale state.
 //! Does not own: SNS lookup, source validation, report assembly, cache IO, or rendering.
 //! Boundary: attempts exactly three small public queries and retains component failures as gaps.
-
-use super::block_on_sns;
 use crate::sns::report::{
     MainnetSns, MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
     SnsSwapComponent, SnsSwapQueryGap,
@@ -19,25 +17,18 @@ use crate::sns::report::{
     source::sns_swap_component_method,
 };
 
-/// Fetch the three bounded native state components for one resolved SNS swap.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_swap(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsSwap, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_swap_async(request, sns))
-}
-
-async fn fetch_mainnet_sns_swap_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-) -> Result<MainnetSnsSwap, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
     let request = SnsSwapQueryRequest {};
     let mut gaps = Vec::new();
 
     let lifecycle = match query_canister::<_, GetLifecycleResponse>(
-        &agent,
+        agent,
         &swap_canister,
         SnsCanisterMethod::GetLifecycle.as_str(),
         "SnsSwapQueryRequest",
@@ -53,7 +44,7 @@ async fn fetch_mainnet_sns_swap_async(
         }
     };
     let sale_parameters = match query_canister::<_, GetSaleParametersResponse>(
-        &agent,
+        agent,
         &swap_canister,
         SnsCanisterMethod::GetSaleParameters.as_str(),
         "SnsSwapQueryRequest",
@@ -69,7 +60,7 @@ async fn fetch_mainnet_sns_swap_async(
         }
     };
     let derived_state = match query_canister::<_, GetDerivedStateResponse>(
-        &agent,
+        agent,
         &swap_canister,
         SnsCanisterMethod::GetDerivedState.as_str(),
         "SnsSwapQueryRequest",

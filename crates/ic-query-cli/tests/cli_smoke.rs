@@ -88,8 +88,8 @@ impl NnsNeuronSource for EmptyGovernanceSource {
     }
 }
 
-#[test]
-fn binary_nns_cached_analytics_emit_text_and_raw_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn binary_nns_cached_analytics_emit_text_and_raw_json() {
     let root = temp_cache_root("ic-query-cli-nns-analytics");
     let request = NnsGovernanceRefreshRequest::new(
         &root,
@@ -99,8 +99,11 @@ fn binary_nns_cached_analytics_emit_text_and_raw_json() {
         100,
     );
     refresh_nns_proposal_cache_with_source(&request, &EmptyGovernanceSource)
+        .await
         .expect("proposal fixture");
-    refresh_nns_neuron_cache_with_source(&request, &EmptyGovernanceSource).expect("neuron fixture");
+    refresh_nns_neuron_cache_with_source(&request, &EmptyGovernanceSource)
+        .await
+        .expect("neuron fixture");
     for (family, operation, count, table, path) in [
         (
             "proposal",

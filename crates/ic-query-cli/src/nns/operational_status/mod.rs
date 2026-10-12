@@ -111,7 +111,7 @@ pub(in crate::nns) fn command(subject: OperationalStatusSubject) -> ClapCommand 
 }
 
 /// Run one observed status projection over the shared cache identity.
-pub(in crate::nns) fn run(
+pub(in crate::nns) async fn run(
     subject: OperationalStatusSubject,
     matches: &ArgMatches,
     network: &str,
@@ -133,15 +133,15 @@ pub(in crate::nns) fn run(
 
     match subject {
         OperationalStatusSubject::Node => {
-            let report = build_ic_node_status_report(&request, &mut progress)?;
+            let report = build_ic_node_status_report(&request, &mut progress).await?;
             write_text_or_json(options.format, &report, ic_node_status_report_text)
         }
         OperationalStatusSubject::NodeProvider => {
-            let report = build_ic_node_provider_status_report(&request, &mut progress)?;
+            let report = build_ic_node_provider_status_report(&request, &mut progress).await?;
             write_text_or_json(options.format, &report, ic_node_provider_status_report_text)
         }
         OperationalStatusSubject::Subnet => {
-            let report = build_ic_subnet_status_report(&request, &mut progress)?;
+            let report = build_ic_subnet_status_report(&request, &mut progress).await?;
             write_text_or_json(options.format, &report, ic_subnet_status_report_text)
         }
     }

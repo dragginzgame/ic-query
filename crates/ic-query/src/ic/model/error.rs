@@ -4,7 +4,6 @@
 //! Does not own: requests, reports, source data, transport, or validation.
 //! Boundary: preserves deterministic request, source, endpoint, and transport failures.
 
-use crate::runtime::RuntimeError;
 use thiserror::Error as ThisError;
 
 ///
@@ -15,10 +14,6 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum IcHostError {
-    /// The synchronous adapter could not create its local async runtime.
-    #[error("failed to run IC Dashboard query: {0}")]
-    Runtime(#[from] RuntimeError),
-
     /// A request supplied an invalid canister principal.
     #[error("invalid {field}: {reason}")]
     InvalidPrincipal {

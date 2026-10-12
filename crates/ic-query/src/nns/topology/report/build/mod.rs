@@ -38,14 +38,14 @@ struct TopologyInventoryReports {
     data_center: NnsDataCenterListReport,
 }
 
-fn fetch_topology_inventory_reports(
+async fn fetch_topology_inventory_reports(
     request: &NnsTopologySourceRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<TopologyInventoryReports, NnsTopologyHostError> {
     Ok(TopologyInventoryReports {
-        node: source.fetch_node_list_report(request)?,
-        node_provider: source.fetch_node_provider_list_report(request)?,
-        node_operator: source.fetch_node_operator_list_report(request)?,
-        data_center: source.fetch_data_center_list_report(request)?,
+        node: source.fetch_node_list_report(request).await?,
+        node_provider: source.fetch_node_provider_list_report(request).await?,
+        node_operator: source.fetch_node_operator_list_report(request).await?,
+        data_center: source.fetch_data_center_list_report(request).await?,
     })
 }

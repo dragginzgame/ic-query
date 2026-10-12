@@ -4,6 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 ///
+/// SourceFuture
+///
+/// Caller-runtime future returned by an object-safe report source capability.
+///
+
+pub type SourceFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
+
+///
 /// ReportDataSource
 ///
 /// Origin of the data exposed by a report.

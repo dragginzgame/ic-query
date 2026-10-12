@@ -24,12 +24,10 @@ use ic_query::subnet_catalog::{
     build_subnet_catalog_info_report, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_source, fetch_subnet_catalog_async,
     load_cached_subnet_catalog, load_cached_subnet_catalog_detailed, load_subnet_catalog_detailed,
-    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
-    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source_async,
-    refresh_subnet_catalog, refresh_subnet_catalog_with_source_async,
-    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
-    subnet_catalog_list_report_verbose_text, subnet_catalog_path, subnet_catalog_refresh_lock_path,
-    subnet_catalog_refresh_report_text,
+    load_subnet_catalog_detailed_with_source, load_subnet_catalog_with_source,
+    refresh_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_info_report_text,
+    subnet_catalog_list_report_text, subnet_catalog_list_report_verbose_text, subnet_catalog_path,
+    subnet_catalog_refresh_lock_path, subnet_catalog_refresh_report_text,
 };
 #[cfg(all(feature = "subnet-catalog-host", unix))]
 use std::os::unix::fs::PermissionsExt;
@@ -72,8 +70,8 @@ fn public_subnet_catalog_api_parses_and_resolves_without_host() {
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-#[test]
-fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers() {
     let root = temp_root("subnet-catalog-host-public-api");
     let path = write_fixture_catalog(&root);
     let request =
@@ -88,6 +86,7 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
     )
     .with_history_cache(root.join("unused-history-root"));
     let reused = load_subnet_catalog_detailed_with_source(&request, &source)
+        .await
         .expect("reusable source cache hit");
     assert_eq!(events.load(Ordering::Relaxed), 0);
     assert!(!root.join("unused-history-root").exists());
@@ -112,20 +111,22 @@ fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_resolvers(
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-#[test]
-fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
     let root = temp_root("subnet-catalog-host-report-public-api");
     let path = write_fixture_catalog(&root);
     let cache = host_cache_request(&root);
     let now_unix_secs = unix_secs_for_test();
     let info_request = host_info_request(&cache, now_unix_secs);
-    let info_report: SubnetCatalogInfoReport =
-        build_subnet_catalog_info_report(&info_request).expect("build info report");
+    let info_report: SubnetCatalogInfoReport = build_subnet_catalog_info_report(&info_request)
+        .await
+        .expect("build info report");
     let info_text = subnet_catalog_info_report_text(&info_report);
 
     let list_request = host_list_request(&cache, now_unix_secs);
-    let list_report: SubnetCatalogListReport =
-        build_subnet_catalog_list_report(&list_request).expect("build list report");
+    let list_report: SubnetCatalogListReport = build_subnet_catalog_list_report(&list_request)
+        .await
+        .expect("build list report");
     let row: &SubnetCatalogSubnetRow = list_report.subnets.first().expect("subnet row");
     let list_text = subnet_catalog_list_report_text(&list_report);
     let list_verbose_text = subnet_catalog_list_report_verbose_text(&list_report);
@@ -157,7 +158,7 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
         refresh_subnet_catalog,
         &refresh_request
     ));
-    let async_refresh = futures::executor::block_on(refresh_subnet_catalog_with_source_async(
+    let async_refresh = futures::executor::block_on(refresh_subnet_catalog_with_source(
         &refresh_request,
         &FixtureSubnetCatalogSource,
     ))
@@ -166,8 +167,8 @@ fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-#[test]
-fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     let root = temp_root("subnet-catalog-host-custom-source-public-api");
     let cache = host_cache_request(&root);
     let now_unix_secs = unix_secs_for_test();
@@ -175,7 +176,7 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
 
     let load_request = SubnetCatalogLoadRequest::cache_only(cache, now_unix_secs)
         .with_policy(request.read_policy.clone());
-    let loaded = futures::executor::block_on(load_subnet_catalog_with_source_async(
+    let loaded = futures::executor::block_on(load_subnet_catalog_with_source(
         &load_request,
         &FixtureSubnetCatalogSource,
     ))
@@ -183,6 +184,7 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
 
     let report =
         build_subnet_catalog_list_report_with_source(&request, &FixtureSubnetCatalogSource)
+            .await
             .expect("build list report from custom source");
 
     let _ = fs::remove_dir_all(root);
@@ -195,6 +197,23 @@ fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
 #[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_detailed_load_api_exposes_typed_failure_provenance() {
+    fn accepts_async_loaders(
+        _load: impl AsyncFn(
+            &SubnetCatalogLoadRequest,
+        ) -> Result<
+            ic_query::subnet_catalog::CatalogLoadOutcome,
+            Box<SubnetCatalogLoadFailure>,
+        >,
+        _source: impl AsyncFn(
+            &SubnetCatalogLoadRequest,
+            &dyn SubnetCatalogSource,
+        ) -> Result<
+            ic_query::subnet_catalog::CatalogLoadOutcome,
+            Box<SubnetCatalogLoadFailure>,
+        >,
+    ) {
+    }
+
     let root = temp_root("subnet-catalog-host-detailed-public-api");
     let request =
         SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test());
@@ -217,14 +236,12 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
         SubnetCatalogHostError::MissingCatalog { .. }
     ));
 
-    let _: fn(&SubnetCatalogLoadRequest) -> Result<_, Box<SubnetCatalogLoadFailure>> =
-        load_subnet_catalog_detailed;
-    let _: fn(
-        &SubnetCatalogLoadRequest,
-        &dyn SubnetCatalogSource,
-    ) -> Result<_, Box<SubnetCatalogLoadFailure>> = load_subnet_catalog_detailed_with_source;
-    let _ = load_subnet_catalog_detailed_async;
-    let _ = load_subnet_catalog_detailed_with_source_async;
+    accepts_async_loaders(
+        load_subnet_catalog_detailed,
+        load_subnet_catalog_detailed_with_source,
+    );
+    let _ = load_subnet_catalog_detailed;
+    let _ = load_subnet_catalog_detailed_with_source;
     let _ = fs::remove_dir_all(root);
 }
 
@@ -273,8 +290,8 @@ fn public_registry_evidence_builders_derive_exact_subject_keys() {
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-#[test]
-fn public_custom_source_can_supply_exact_failure_version_and_subject() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
     struct DetailedSource;
 
     impl SubnetCatalogSource for DetailedSource {
@@ -316,6 +333,7 @@ fn public_custom_source_can_supply_exact_failure_version_and_subject() {
                 ),
             });
     let failure = load_subnet_catalog_detailed_with_source(&request, &DetailedSource)
+        .await
         .expect_err("fixture source fails");
 
     assert_eq!(failure.registry_version, Some(700_008));
@@ -375,10 +393,6 @@ impl SubnetCatalogSource for FixtureSubnetCatalogSource {
         })
     }
 }
-
-#[cfg(feature = "subnet-catalog-host")]
-type SubnetCatalogRefreshFn =
-    fn(&SubnetCatalogRefreshRequest) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError>;
 
 #[cfg(feature = "subnet-catalog-host")]
 #[must_use]
@@ -504,7 +518,9 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
 #[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 fn refresh_api_accepts_public_types(
-    _refresh: SubnetCatalogRefreshFn,
+    _refresh: impl AsyncFn(
+        &SubnetCatalogRefreshRequest,
+    ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError>,
     request: &SubnetCatalogRefreshRequest,
 ) -> bool {
     request.dry_run

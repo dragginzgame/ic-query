@@ -25,5 +25,10 @@ pub use model::RefreshLockRequest;
     feature = "sns-host"
 ))]
 pub use run::with_refresh_lock;
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "subnet-catalog-host",
+    feature = "sns-host"
+))]
 pub use run::with_refresh_lock_async;

@@ -16,15 +16,17 @@ use crate::sns::report::{
     view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
 
-pub fn build_sns_list_report(request: &SnsListRequest) -> Result<SnsListReport, SnsHostError> {
-    build_sns_list_report_with_source(request, &LiveSnsSource)
+pub async fn build_sns_list_report(
+    request: &SnsListRequest,
+) -> Result<SnsListReport, SnsHostError> {
+    build_sns_list_report_with_source(request, &LiveSnsSource::default()).await
 }
 
-pub fn build_sns_list_report_with_source(
+pub async fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsCatalogSource,
 ) -> Result<SnsListReport, SnsHostError> {
-    let mut list = fetch_joined_sns_catalog(request, source)?;
+    let mut list = fetch_joined_sns_catalog(request, source).await?;
     let catalog_sns_count = list.sns_instances.len();
     filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
     sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
@@ -38,15 +40,19 @@ pub fn build_sns_list_report_with_source(
     ))
 }
 
-pub(in crate::sns::report) fn fetch_joined_sns_catalog(
+pub(in crate::sns::report) async fn fetch_joined_sns_catalog(
     request: &SnsListRequest,
     source: &dyn SnsCatalogSource,
 ) -> Result<crate::sns::report::JoinedMainnetSnsInventory, SnsHostError> {
     let fetch_request = sns_list_fetch_request(request)?;
-    let inventory = source.fetch_sns_inventory(&fetch_request)?;
+    let inventory = source.fetch_sns_inventory(&fetch_request).await?;
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;
-    let metadata = source.fetch_sns_metadata(&fetch_request, &inventory.sns_instances)?;
-    let lifecycles = source.fetch_sns_lifecycles(&fetch_request, &inventory.sns_instances)?;
+    let metadata = source
+        .fetch_sns_metadata(&fetch_request, &inventory.sns_instances)
+        .await?;
+    let lifecycles = source
+        .fetch_sns_lifecycles(&fetch_request, &inventory.sns_instances)
+        .await?;
     let mut list = join_mainnet_sns_inventory(inventory, metadata)?;
     join_mainnet_sns_lifecycles(&mut list, lifecycles)?;
     assign_sns_ids_in_current_order(&mut list.sns_instances);

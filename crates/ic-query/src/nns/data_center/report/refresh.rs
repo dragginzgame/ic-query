@@ -6,20 +6,22 @@ use super::{
 };
 use crate::nns::{LiveNnsSource, inventory::refresh_nns_inventory_cache};
 
-pub fn refresh_nns_data_center_report(
+pub async fn refresh_nns_data_center_report(
     request: &NnsInventoryRefreshRequest,
 ) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {
-    refresh_nns_data_center_report_with_source(request, &LiveNnsSource)
+    refresh_nns_data_center_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn refresh_nns_data_center_report_with_source(
+pub async fn refresh_nns_data_center_report_with_source(
     request: &NnsInventoryRefreshRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {
-    refresh_nns_data_center_cache_with_source(request, source).map(|(_, report)| report)
+    refresh_nns_data_center_cache_with_source(request, source)
+        .await
+        .map(|(_, report)| report)
 }
 
-pub(super) fn refresh_nns_data_center_cache_with_source(
+pub(super) async fn refresh_nns_data_center_cache_with_source(
     request: &NnsInventoryRefreshRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<(NnsDataCenterListReport, NnsDataCenterRefreshReport), NnsDataCenterHostError> {
@@ -27,15 +29,17 @@ pub(super) fn refresh_nns_data_center_cache_with_source(
         request,
         NNS_DATA_CENTER_CACHE_DIR,
         NNS_DATA_CENTER_CACHE_FILE,
-        |network, source_endpoint, now_unix_secs| {
+        async |network, source_endpoint, now_unix_secs| {
             fetch_nns_data_center_list_report_with_source(
                 network,
                 source_endpoint,
                 now_unix_secs,
                 source,
             )
+            .await
         },
-    )?;
+    )
+    .await?;
     let refresh_report = nns_leaf_refresh_report!(
         NnsDataCenterRefreshReport,
         NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION,

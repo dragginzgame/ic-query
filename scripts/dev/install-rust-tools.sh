@@ -41,8 +41,10 @@ while [[ $# -gt 0 ]]; do
 done
 [[ "$check_only" == false || "$preflight" == false ]] || { usage; exit 2; }
 [[ "$consumer" == /* ]] || consumer="$PWD/$consumer"
+case "$consumer" in *$'\n'*|*$'\r'*) echo 'consumer path contains CR/LF' >&2; exit 1 ;; esac
 consumer="$(cd -P "$consumer" && printf '%s/.' "$PWD")"
 consumer="${consumer%/.}"
+case "$consumer" in *$'\n'*|*$'\r'*) echo 'resolved consumer path contains CR/LF' >&2; exit 1 ;; esac
 selection_consumer="$consumer"
 if [[ "$consumer" == "${SHARED_TOOLING_FORMAT_WORKTREE:-}" ]]; then
     [[ "$check_only" == true && -n "${SHARED_TOOLING_FORMAT_TOOLS_FROM:-}" ]] || {

@@ -70,23 +70,23 @@ pub(super) fn command() -> ClapCommand {
         .subcommand(list_command())
 }
 
-pub(super) fn run(matches: &ArgMatches, _network: &str) -> Result<(), NnsCommandError> {
+pub(super) async fn run(matches: &ArgMatches, _network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("history", matches)) => run_history(matches),
-        Some(("info", matches)) => run_info(matches),
-        Some(("list", matches)) => run_list(matches),
+        Some(("history", matches)) => run_history(matches).await,
+        Some(("info", matches)) => run_info(matches).await,
+        Some(("list", matches)) => run_list(matches).await,
         _ => unreachable!("clap requires a known nns node-provider reward subcommand"),
     }
 }
 
-fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
+async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardInfoOptions::from_matches(matches);
     let request = IcNodeProviderRewardInfoRequest::new(
         options.source_endpoint,
         now_unix_secs()?,
         options.reward_id,
     );
-    let report = build_ic_node_provider_reward_info_report(&request)?;
+    let report = build_ic_node_provider_reward_info_report(&request).await?;
     write_text_or_json(
         options.format,
         &report,
@@ -94,14 +94,14 @@ fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     )
 }
 
-fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
+async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardListOptions::from_matches(matches);
     let request = IcNodeProviderRewardListRequest::new(
         options.source_endpoint,
         now_unix_secs()?,
         IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
     );
-    let report = build_ic_node_provider_reward_list_report(&request)?;
+    let report = build_ic_node_provider_reward_list_report(&request).await?;
     write_text_or_json(
         options.format,
         &report,
@@ -109,7 +109,7 @@ fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     )
 }
 
-fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
+async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardHistoryOptions::from_matches(matches);
     let now = now_unix_secs()?;
     let end = options.end_unix_secs.unwrap_or(now);
@@ -121,7 +121,7 @@ fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
         now,
         IcNodeProviderRewardHistoryQuery::new(start, end, options.step_secs),
     );
-    let report = build_ic_node_provider_reward_history_report(&request)?;
+    let report = build_ic_node_provider_reward_history_report(&request).await?;
     write_text_or_json(
         options.format,
         &report,

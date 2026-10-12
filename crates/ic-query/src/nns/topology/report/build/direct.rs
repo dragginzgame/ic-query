@@ -11,20 +11,20 @@ use crate::nns::{
     },
 };
 
-pub fn build_nns_topology_gaps_report(
+pub async fn build_nns_topology_gaps_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
-    build_nns_topology_gaps_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_gaps_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_gaps_report_with_source(
+pub async fn build_nns_topology_gaps_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let reports = fetch_topology_inventory_reports(&source_request, source)?;
+    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
 
     Ok(topology_gaps_report_from_reports(
         request.network().to_string(),
@@ -36,20 +36,22 @@ pub fn build_nns_topology_gaps_report_with_source(
     ))
 }
 
-pub fn build_nns_topology_capacity_report(
+pub async fn build_nns_topology_capacity_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
-    build_nns_topology_capacity_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_capacity_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_capacity_report_with_source(
+pub async fn build_nns_topology_capacity_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let node_operator_report = source.fetch_node_operator_list_report(&source_request)?;
+    let node_operator_report = source
+        .fetch_node_operator_list_report(&source_request)
+        .await?;
 
     Ok(topology_capacity_report_from_report(
         request.network().to_string(),
@@ -58,20 +60,22 @@ pub fn build_nns_topology_capacity_report_with_source(
     ))
 }
 
-pub fn build_nns_topology_regions_report(
+pub async fn build_nns_topology_regions_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
-    build_nns_topology_regions_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_regions_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_regions_report_with_source(
+pub async fn build_nns_topology_regions_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let data_center_report = source.fetch_data_center_list_report(&source_request)?;
+    let data_center_report = source
+        .fetch_data_center_list_report(&source_request)
+        .await?;
 
     Ok(topology_regions_report_from_report(
         request.network().to_string(),
@@ -80,20 +84,20 @@ pub fn build_nns_topology_regions_report_with_source(
     ))
 }
 
-pub fn build_nns_topology_providers_report(
+pub async fn build_nns_topology_providers_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
-    build_nns_topology_providers_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_providers_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_providers_report_with_source(
+pub async fn build_nns_topology_providers_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let reports = fetch_topology_inventory_reports(&source_request, source)?;
+    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
 
     Ok(topology_providers_report_from_reports(
         request.network().to_string(),

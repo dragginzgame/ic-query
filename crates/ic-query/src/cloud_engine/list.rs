@@ -28,20 +28,21 @@ const REGISTRY_AUTHORITY: &str = "nns_registry";
 const MAX_LOOKUP_ERROR_BYTES: usize = 4_096;
 
 /// Build a bounded CloudEngine inventory using the Registry catalog and live control plane.
-pub fn build_cloud_engine_list_report(
+pub async fn build_cloud_engine_list_report(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
     build_cloud_engine_list_report_with_sources(
         catalog_request,
         control_plane_request,
-        &LiveNnsSource,
-        &LiveCloudEngineSource,
+        &LiveNnsSource::default(),
+        &LiveCloudEngineSource::default(),
     )
+    .await
 }
 
 /// Build a CloudEngine inventory while reporting authorized catalog refreshes.
-pub fn build_cloud_engine_list_report_with_progress(
+pub async fn build_cloud_engine_list_report_with_progress(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,
     progress: &mut (dyn QueryProgress + Send),
@@ -49,14 +50,15 @@ pub fn build_cloud_engine_list_report_with_progress(
     build_cloud_engine_list_report_with_sources_and_progress(
         catalog_request,
         control_plane_request,
-        &LiveNnsSource,
-        &LiveCloudEngineSource,
+        &LiveNnsSource::default(),
+        &LiveCloudEngineSource::default(),
         progress,
     )
+    .await
 }
 
 /// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
-pub fn build_cloud_engine_list_report_with_sources(
+pub async fn build_cloud_engine_list_report_with_sources(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,
     catalog_source: &dyn SubnetCatalogSource,
@@ -69,10 +71,11 @@ pub fn build_cloud_engine_list_report_with_sources(
         binding_source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build a CloudEngine inventory with caller-owned sources and progress sink.
-pub fn build_cloud_engine_list_report_with_sources_and_progress(
+pub async fn build_cloud_engine_list_report_with_sources_and_progress(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CloudEngineSourceRequest,
     catalog_source: &dyn SubnetCatalogSource,
@@ -88,15 +91,17 @@ pub fn build_cloud_engine_list_report_with_sources_and_progress(
         &inventory_request,
         catalog_source,
         progress,
-    )?;
+    )
+    .await?;
     build_cloud_engine_list_report_from_catalog_with_source(
         control_plane_request,
         catalog,
         binding_source,
     )
+    .await
 }
 
-pub(super) fn build_cloud_engine_list_report_from_catalog_with_source(
+pub(super) async fn build_cloud_engine_list_report_from_catalog_with_source(
     control_plane_request: &CloudEngineSourceRequest,
     mut catalog: SubnetCatalogListReport,
     source: &dyn CloudEngineOperatorBindingSource,
@@ -120,7 +125,7 @@ pub(super) fn build_cloud_engine_list_report_from_catalog_with_source(
         .sort_unstable_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
     validate_catalog_rows(&catalog)?;
 
-    let cloud_engines = collect_binding_rows(control_plane_request, &catalog, source)?;
+    let cloud_engines = collect_binding_rows(control_plane_request, &catalog, source).await?;
     Ok(assemble_report(
         control_plane_request,
         catalog,
@@ -128,15 +133,16 @@ pub(super) fn build_cloud_engine_list_report_from_catalog_with_source(
     ))
 }
 
-fn collect_binding_rows(
+async fn collect_binding_rows(
     control_plane_request: &CloudEngineSourceRequest,
     catalog: &SubnetCatalogListReport,
     source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<Vec<CloudEngineListRow>, CloudEngineHostError> {
     let mut cloud_engines = Vec::with_capacity(catalog.subnets.len());
     for subnet in &catalog.subnets {
-        let lookup =
-            source.fetch_operator_binding(control_plane_request, subnet.subnet_principal.as_str());
+        let lookup = source
+            .fetch_operator_binding(control_plane_request, subnet.subnet_principal.as_str())
+            .await;
         let (operator_lookup_status, operator_canister_id, operator_lookup_error) = match lookup {
             Ok(source_data) => {
                 validate_binding_source(

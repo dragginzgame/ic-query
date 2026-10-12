@@ -24,36 +24,36 @@ use std::collections::HashSet;
 /// Official Dashboard capability for complete and exact node-provider records.
 ///
 
-pub trait CloudEngineProviderSource {
+pub trait CloudEngineProviderSource: Sync {
     /// Fetch the complete non-paginated node-provider resource once.
-    fn fetch_cloud_engine_provider_list(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<CloudEngineProviderListSourceData, IcHostError>;
+    fn fetch_cloud_engine_provider_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineProviderListSourceData, IcHostError>>;
 
     /// Fetch one exact node-provider record once.
-    fn fetch_cloud_engine_provider_info(
-        &self,
-        request: &IcSourceRequest,
-        node_provider_id: &str,
-    ) -> Result<CloudEngineProviderInfoSourceData, IcHostError>;
+    fn fetch_cloud_engine_provider_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_provider_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineProviderInfoSourceData, IcHostError>>;
 }
 
 /// Build one live complete CloudEngine provider report from the official Dashboard.
-pub fn build_cloud_engine_provider_list_report(
+pub async fn build_cloud_engine_provider_list_report(
     request: &CloudEngineProviderListRequest,
 ) -> Result<CloudEngineProviderListReport, IcHostError> {
-    build_cloud_engine_provider_list_report_with_source(request, &LiveIcSource)
+    build_cloud_engine_provider_list_report_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one complete CloudEngine provider report through a custom Dashboard source.
-pub fn build_cloud_engine_provider_list_report_with_source(
+pub async fn build_cloud_engine_provider_list_report_with_source(
     request: &CloudEngineProviderListRequest,
     source: &dyn CloudEngineProviderSource,
 ) -> Result<CloudEngineProviderListReport, IcHostError> {
     validate_dashboard_network(&request.network)?;
     let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
-    let mut source_data = source.fetch_cloud_engine_provider_list(&expected)?;
+    let mut source_data = source.fetch_cloud_engine_provider_list(&expected).await?;
     validate_provenance(&expected, &source_data.source)?;
     validate_complete_provider_resource(&mut source_data.providers)?;
 
@@ -72,14 +72,14 @@ pub fn build_cloud_engine_provider_list_report_with_source(
 }
 
 /// Build one live exact CloudEngine provider report from the official Dashboard.
-pub fn build_cloud_engine_provider_info_report(
+pub async fn build_cloud_engine_provider_info_report(
     request: &CloudEngineProviderInfoRequest,
 ) -> Result<CloudEngineProviderInfoReport, IcHostError> {
-    build_cloud_engine_provider_info_report_with_source(request, &LiveIcSource)
+    build_cloud_engine_provider_info_report_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one exact CloudEngine provider report through a custom Dashboard source.
-pub fn build_cloud_engine_provider_info_report_with_source(
+pub async fn build_cloud_engine_provider_info_report_with_source(
     request: &CloudEngineProviderInfoRequest,
     source: &dyn CloudEngineProviderSource,
 ) -> Result<CloudEngineProviderInfoReport, IcHostError> {
@@ -87,7 +87,9 @@ pub fn build_cloud_engine_provider_info_report_with_source(
     let requested_provider =
         canonical_request_principal("node_provider_id", &request.node_provider_id)?;
     let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
-    let source_data = source.fetch_cloud_engine_provider_info(&expected, &requested_provider)?;
+    let source_data = source
+        .fetch_cloud_engine_provider_info(&expected, &requested_provider)
+        .await?;
     validate_provenance(&expected, &source_data.source)?;
     validate_provider(&source_data.provider)?;
     if source_data.provider.principal_id != requested_provider {

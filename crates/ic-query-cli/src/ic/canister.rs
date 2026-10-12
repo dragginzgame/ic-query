@@ -51,24 +51,24 @@ This command makes exactly one official Dashboard page request. Results are
 ordered by canister id, the limit is capped at 100, and returned cursors are
 followed only when supplied explicitly to a later command. No cache is used.";
 
-pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
-        Some(("info", matches)) => run_info(matches),
-        Some(("count", matches)) => run_count(matches),
-        Some(("page", matches)) => run_page(matches),
+        Some(("info", matches)) => run_info(matches).await,
+        Some(("count", matches)) => run_count(matches).await,
+        Some(("page", matches)) => run_page(matches).await,
         _ => unreachable!("clap requires a known ic canister subcommand"),
     }
 }
 
-fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterCollectionOptions::from_matches(matches);
     let request = IcCanisterCountRequest::new(options.source_endpoint, current_unix_secs()?)
         .with_filters(options.filters);
-    let report = build_ic_canister_count_report(&request)?;
+    let report = build_ic_canister_count_report(&request).await?;
     write_text_or_json(options.format, &report, ic_canister_count_report_text)
 }
 
-fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterPageOptions::from_matches(matches);
     let mut request =
         IcCanisterPageRequest::new(options.collection.source_endpoint, current_unix_secs()?)
@@ -76,7 +76,7 @@ fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
             .with_limit(options.limit);
     request.after = options.after;
     request.before = options.before;
-    let report = build_ic_canister_page_report(&request)?;
+    let report = build_ic_canister_page_report(&request).await?;
     write_text_or_json(
         options.collection.format,
         &report,
@@ -84,14 +84,14 @@ fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     )
 }
 
-fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterInfoOptions::from_matches(matches);
     let request = IcCanisterRequest::new(
         options.source_endpoint,
         current_unix_secs()?,
         options.canister_id,
     );
-    let report = build_ic_canister_report(&request)?;
+    let report = build_ic_canister_report(&request).await?;
     write_text_or_json(options.format, &report, ic_canister_report_text)
 }
 
@@ -421,8 +421,8 @@ mod tests {
         assert_eq!(options.limit, ic_query::ic::DEFAULT_IC_CANISTER_PAGE_LIMIT);
     }
 
-    #[test]
-    fn invalid_principal_fails_before_endpoint_or_network_use() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn invalid_principal_fails_before_endpoint_or_network_use() {
         let error = crate::run([
             OsString::from("ic"),
             OsString::from("canister"),
@@ -431,6 +431,7 @@ mod tests {
             OsString::from("--source-endpoint"),
             OsString::from("not a URL"),
         ])
+        .await
         .expect_err("invalid principal must fail");
 
         assert!(matches!(

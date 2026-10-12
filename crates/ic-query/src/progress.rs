@@ -58,14 +58,14 @@ pub enum QueryProgressState {
 /// Process-agnostic sink for structured host-operation progress.
 ///
 
-pub trait QueryProgress {
+pub trait QueryProgress: Send {
     /// Receive one progress event.
     fn report(&mut self, event: QueryProgressEvent);
 }
 
 impl<Reporter> QueryProgress for Reporter
 where
-    Reporter: FnMut(QueryProgressEvent),
+    Reporter: FnMut(QueryProgressEvent) + Send,
 {
     fn report(&mut self, event: QueryProgressEvent) {
         self(event);

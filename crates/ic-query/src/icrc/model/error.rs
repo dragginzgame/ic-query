@@ -5,7 +5,7 @@
 //! Boundary: preserves one public error surface for reusable ICRC query behavior.
 
 #[cfg(feature = "icrc-host")]
-use crate::{HostCacheError, runtime::RuntimeError};
+use crate::HostCacheError;
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
@@ -17,11 +17,6 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum IcrcError {
-    /// The native source runtime could not be constructed.
-    #[cfg(feature = "icrc-host")]
-    #[error("failed to create Tokio runtime for ICRC query: {0}")]
-    Runtime(#[from] RuntimeError),
-
     /// The selected endpoint could not construct a replica agent.
     #[error("failed to build IC agent for endpoint {endpoint}: {reason}")]
     AgentBuild {

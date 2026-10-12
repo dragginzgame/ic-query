@@ -24,31 +24,31 @@ use std::collections::HashSet;
 /// Official Dashboard capability for complete Type4 and exact node observations.
 ///
 
-pub trait CloudEngineNodeSource {
+pub trait CloudEngineNodeSource: Sync {
     /// Fetch the complete explicitly scoped Type4 node resource once.
-    fn fetch_cloud_engine_node_list(
-        &self,
-        request: &IcSourceRequest,
-        node_provider_id: Option<&str>,
-    ) -> Result<CloudEngineNodeListSourceData, IcHostError>;
+    fn fetch_cloud_engine_node_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_provider_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeListSourceData, IcHostError>>;
 
     /// Fetch one exact node observation once.
-    fn fetch_cloud_engine_node_info(
-        &self,
-        request: &IcSourceRequest,
-        node_id: &str,
-    ) -> Result<CloudEngineNodeInfoSourceData, IcHostError>;
+    fn fetch_cloud_engine_node_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        node_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineNodeInfoSourceData, IcHostError>>;
 }
 
 /// Build one live complete CloudEngine Type4 node report from the official Dashboard.
-pub fn build_cloud_engine_node_list_report(
+pub async fn build_cloud_engine_node_list_report(
     request: &CloudEngineNodeListRequest,
 ) -> Result<CloudEngineNodeListReport, IcHostError> {
-    build_cloud_engine_node_list_report_with_source(request, &LiveIcSource)
+    build_cloud_engine_node_list_report_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one complete CloudEngine Type4 node report through a custom Dashboard source.
-pub fn build_cloud_engine_node_list_report_with_source(
+pub async fn build_cloud_engine_node_list_report_with_source(
     request: &CloudEngineNodeListRequest,
     source: &dyn CloudEngineNodeSource,
 ) -> Result<CloudEngineNodeListReport, IcHostError> {
@@ -60,7 +60,8 @@ pub fn build_cloud_engine_node_list_report_with_source(
         .transpose()?;
     let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
     let mut source_data = source
-        .fetch_cloud_engine_node_list(&expected_source, requested_node_provider_id.as_deref())?;
+        .fetch_cloud_engine_node_list(&expected_source, requested_node_provider_id.as_deref())
+        .await?;
     validate_provenance(&expected_source, &source_data.source)?;
     if source_data.requested_node_provider_id != requested_node_provider_id {
         return invalid_source(format!(
@@ -124,21 +125,23 @@ pub fn build_cloud_engine_node_list_report_with_source(
 }
 
 /// Build one live exact CloudEngine Type4 node report from the official Dashboard.
-pub fn build_cloud_engine_node_info_report(
+pub async fn build_cloud_engine_node_info_report(
     request: &CloudEngineNodeInfoRequest,
 ) -> Result<CloudEngineNodeInfoReport, IcHostError> {
-    build_cloud_engine_node_info_report_with_source(request, &LiveIcSource)
+    build_cloud_engine_node_info_report_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one exact CloudEngine Type4 node report through a custom Dashboard source.
-pub fn build_cloud_engine_node_info_report_with_source(
+pub async fn build_cloud_engine_node_info_report_with_source(
     request: &CloudEngineNodeInfoRequest,
     source: &dyn CloudEngineNodeSource,
 ) -> Result<CloudEngineNodeInfoReport, IcHostError> {
     validate_dashboard_network(&request.network)?;
     let requested_node_id = canonical_request_principal("node_id", &request.node_id)?;
     let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
-    let source_data = source.fetch_cloud_engine_node_info(&expected_source, &requested_node_id)?;
+    let source_data = source
+        .fetch_cloud_engine_node_info(&expected_source, &requested_node_id)
+        .await?;
     validate_provenance(&expected_source, &source_data.source)?;
     if source_data.node_id != requested_node_id {
         return invalid_source(format!(

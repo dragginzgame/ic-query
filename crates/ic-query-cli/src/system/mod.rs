@@ -54,25 +54,28 @@ pub enum SystemCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SystemCommandError> {
+pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SystemCommandError> {
     match matches.subcommand() {
         Some(("xdr", matches)) => {
-            run_report(matches, network, build_cmc_xdr_report, cmc_xdr_report_text)
+            run_report(matches, network, build_cmc_xdr_report, cmc_xdr_report_text).await
         }
-        Some(("cycles", matches)) => run_report(
-            matches,
-            network,
-            build_cmc_cycles_report,
-            cmc_cycles_report_text,
-        ),
+        Some(("cycles", matches)) => {
+            run_report(
+                matches,
+                network,
+                build_cmc_cycles_report,
+                cmc_cycles_report_text,
+            )
+            .await
+        }
         _ => unreachable!("clap requires a known system subcommand"),
     }
 }
 
-fn run_report<Report>(
+async fn run_report<Report>(
     matches: &ArgMatches,
     network: &str,
-    build: fn(&CmcSourceRequest) -> Result<Report, CmcHostError>,
+    build: impl AsyncFn(&CmcSourceRequest) -> Result<Report, CmcHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), SystemCommandError>
 where
@@ -85,7 +88,7 @@ where
         "ic-query",
     );
     let format = output_format(matches);
-    let report = build(&request)?;
+    let report = build(&request).await?;
     write_text_or_json(format, &report, render_text)
 }
 
@@ -149,15 +152,15 @@ mod tests {
         }
     }
 
-    #[test]
-    fn help_and_version_do_not_make_live_calls() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn help_and_version_do_not_make_live_calls() {
         for args in [
             &["system", "--help"][..],
             &["system", "xdr", "--help"],
             &["system", "cycles", "--help"],
             &["system", "--version"],
         ] {
-            assert!(crate::run(args.iter().map(OsString::from)).is_ok());
+            assert!(crate::run(args.iter().map(OsString::from)).await.is_ok());
         }
     }
 

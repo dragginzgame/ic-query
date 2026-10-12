@@ -21,32 +21,34 @@ const INDEX_B: &str = "r7inp-6aaaa-aaaaa-aaabq-cai";
 pub(in crate::sns::report::tests) struct FixtureSnsDiscoverySource;
 
 impl SnsDiscoverySource for FixtureSnsDiscoverySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        Ok(fixture_inventory(request, vec![fixture_canisters_a()]))
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { Ok(fixture_inventory(request, vec![fixture_canisters_a()])) })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        Ok(targets
-            .iter()
-            .map(|target| fixture_metadata(target, None))
-            .collect())
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            Ok(targets
+                .iter()
+                .map(|target| fixture_metadata(target, None))
+                .collect())
+        })
     }
 }
 
 impl SnsCatalogSource for FixtureSnsDiscoverySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        Ok(fixture_lifecycles(targets, |_| 3))
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move { Ok(fixture_lifecycles(targets, |_| 3)) })
     }
 }
 
@@ -59,47 +61,53 @@ impl SnsCatalogSource for FixtureSnsDiscoverySource {
 pub(in crate::sns::report::tests) struct UnsortedFixtureSnsDiscoverySource;
 
 impl SnsDiscoverySource for UnsortedFixtureSnsDiscoverySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        Ok(fixture_inventory(
-            request,
-            vec![fixture_canisters_a(), fixture_canisters_b()],
-        ))
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            Ok(fixture_inventory(
+                request,
+                vec![fixture_canisters_a(), fixture_canisters_b()],
+            ))
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        Ok(targets
-            .iter()
-            .map(|target| {
-                let mut metadata = fixture_metadata(target, None);
-                if target.root_canister_id == ROOT_A {
-                    metadata.name = Some("A Name".to_string());
-                }
-                metadata
-            })
-            .collect())
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            Ok(targets
+                .iter()
+                .map(|target| {
+                    let mut metadata = fixture_metadata(target, None);
+                    if target.root_canister_id == ROOT_A {
+                        metadata.name = Some("A Name".to_string());
+                    }
+                    metadata
+                })
+                .collect())
+        })
     }
 }
 
 impl SnsCatalogSource for UnsortedFixtureSnsDiscoverySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        Ok(fixture_lifecycles(targets, |target| {
-            if target.root_canister_id == ROOT_A {
-                3
-            } else {
-                4
-            }
-        }))
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move {
+            Ok(fixture_lifecycles(targets, |target| {
+                if target.root_canister_id == ROOT_A {
+                    3
+                } else {
+                    4
+                }
+            }))
+        })
     }
 }
 
@@ -112,34 +120,36 @@ impl SnsCatalogSource for UnsortedFixtureSnsDiscoverySource {
 pub(in crate::sns::report::tests) struct MetadataErrorFixtureSnsDiscoverySource;
 
 impl SnsDiscoverySource for MetadataErrorFixtureSnsDiscoverySource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        Ok(fixture_inventory(request, vec![fixture_canisters_a()]))
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move { Ok(fixture_inventory(request, vec![fixture_canisters_a()])) })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        Ok(targets
-            .iter()
-            .map(|target| {
-                fixture_metadata(target, Some("get_metadata: Canister has no Wasm module"))
-            })
-            .collect())
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            Ok(targets
+                .iter()
+                .map(|target| {
+                    fixture_metadata(target, Some("get_metadata: Canister has no Wasm module"))
+                })
+                .collect())
+        })
     }
 }
 
 impl SnsCatalogSource for MetadataErrorFixtureSnsDiscoverySource {
-    fn fetch_sns_lifecycles(
-        &self,
-        _request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
-        Ok(fixture_lifecycles(targets, |_| 3))
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
+        Box::pin(async move { Ok(fixture_lifecycles(targets, |_| 3)) })
     }
 }
 

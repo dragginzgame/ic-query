@@ -31,27 +31,32 @@ use crate::{
     },
 };
 
-pub fn build_sns_proposal_report(
+pub async fn build_sns_proposal_report(
     request: &SnsProposalRequest,
 ) -> Result<SnsProposalReport, SnsHostError> {
-    build_sns_proposal_report_with_source(request, &LiveSnsSource)
+    build_sns_proposal_report_with_source(request, &LiveSnsSource::default()).await
 }
 
-pub fn build_sns_proposals_report(
+pub async fn build_sns_proposals_report(
     request: &SnsProposalsRequest,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    build_sns_proposals_report_with_source(request, &LiveSnsSource)
+    build_sns_proposals_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build an SNS proposal list report and emit cache-refresh progress when needed.
-pub fn build_sns_proposals_report_with_progress(
+pub async fn build_sns_proposals_report_with_progress(
     request: &SnsProposalsRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    build_sns_proposals_report_with_source_and_progress(request, &LiveSnsSource, progress)
+    build_sns_proposals_report_with_source_and_progress(
+        request,
+        &LiveSnsSource::default(),
+        progress,
+    )
+    .await
 }
 
-pub fn build_sns_proposal_report_with_source(
+pub async fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
@@ -67,9 +72,10 @@ pub fn build_sns_proposal_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
-    let proposal =
-        source.fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let proposal = source
+        .fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)
+        .await?;
     validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(
         request,
@@ -89,15 +95,15 @@ pub fn build_sns_proposal_report_with_source(
     ))
 }
 
-pub fn build_sns_proposals_report_with_source(
+pub async fn build_sns_proposals_report_with_source(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     let mut progress = IgnoreQueryProgress;
-    build_sns_proposals_report_with_source_and_progress(request, source, &mut progress)
+    build_sns_proposals_report_with_source_and_progress(request, source, &mut progress).await
 }
 
-fn build_sns_proposals_report_with_source_and_progress(
+async fn build_sns_proposals_report_with_source_and_progress(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
@@ -106,9 +112,10 @@ fn build_sns_proposals_report_with_source_and_progress(
     if let Some(cache_root) = request.cache_root.as_ref() {
         return build_sns_proposals_report_from_cache_or_refresh(
             request, cache_root, source, progress,
-        );
+        )
+        .await;
     }
-    build_sns_proposals_report_live(request, source)
+    build_sns_proposals_report_live(request, source).await
 }
 
 fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
@@ -121,7 +128,7 @@ fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), S
     Ok(())
 }
 
-fn build_sns_proposals_report_live(
+async fn build_sns_proposals_report_live(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
@@ -131,20 +138,22 @@ fn build_sns_proposals_report_live(
         request.now_unix_secs,
         &request.input,
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
     let include_status = request
         .status
         .governance_status_code()
         .into_iter()
         .collect::<Vec<_>>();
-    let mut proposals = source.fetch_sns_proposals(
-        &lookup.fetch_request,
-        &lookup.sns,
-        request.limit,
-        request.before_proposal_id,
-        &include_status,
-        request.topic,
-    )?;
+    let mut proposals = source
+        .fetch_sns_proposals(
+            &lookup.fetch_request,
+            &lookup.sns,
+            request.limit,
+            request.before_proposal_id,
+            &include_status,
+            request.topic,
+        )
+        .await?;
     validate_mainnet_sns_proposals(&proposals, request.limit)?;
     proposals
         .proposals

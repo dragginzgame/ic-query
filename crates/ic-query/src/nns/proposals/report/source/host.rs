@@ -38,6 +38,7 @@ impl NnsProposalSource for LiveNnsSource {
                 .into_iter()
                 .collect::<Vec<_>>();
             let response: NnsListProposalInfoResponse = query_nns_governance(
+                self,
                 &request,
                 "list_proposals",
                 "ListProposalInfoRequest",
@@ -74,6 +75,7 @@ impl NnsProposalSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let proposal: Option<NnsProposalInfo> = query_nns_governance(
+                self,
                 &request,
                 "get_proposal_info",
                 "ProposalId",

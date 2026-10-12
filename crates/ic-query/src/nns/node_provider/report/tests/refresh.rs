@@ -1,7 +1,7 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn node_provider_refresh_writes_cache_and_list_reads_it() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_provider_refresh_writes_cache_and_list_reads_it() {
     let cache = test_cache_request(MAINNET_NETWORK, "refresh-cache");
     let refresh_request = NnsInventoryRefreshRequest {
         cache: cache.clone(),
@@ -21,6 +21,7 @@ fn node_provider_refresh_writes_cache_and_list_reads_it() {
             }],
         },
     )
+    .await
     .expect("refresh report");
 
     assert!(std::path::Path::new(&refresh_report.cache_path).is_file());
@@ -34,6 +35,7 @@ fn node_provider_refresh_writes_cache_and_list_reads_it() {
     };
     let report =
         build_nns_node_provider_list_report_with_source(&list_request, &FailingNodeProviderSource)
+            .await
             .expect("cached report");
 
     assert_eq!(report.source_endpoint, "https://icp-api.io");

@@ -29,10 +29,14 @@ use ic_agent::Agent;
 const ICRC1_SUPPORTED_STANDARDS_METHOD: &str = "icrc1_supported_standards";
 
 pub(in crate::icrc::live) async fn fetch_capabilities_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcCapabilitiesData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let (standards_result, index, blocks, block_types, archives, tip_certificate) = futures::join!(
         fetch_icrc_supported_standards::<IcrcError>(&agent, &ledger_canister),
         fetch_index_capability(&agent, &ledger_canister),

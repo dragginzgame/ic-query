@@ -19,19 +19,19 @@ use crate::sns::report::{
 /// Source contract for fetching deployed SNS inventory and explicit metadata targets.
 ///
 
-pub trait SnsDiscoverySource {
+pub trait SnsDiscoverySource: Sync {
     /// Fetch the unenriched deployed-SNS inventory for one source endpoint and network.
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError>;
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>>;
 
     /// Fetch metadata for exactly the supplied deployed-SNS targets.
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError>;
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>>;
 }
 
 ///
@@ -40,13 +40,13 @@ pub trait SnsDiscoverySource {
 /// Source contract for enriching a complete deployed-SNS catalog with Swap lifecycles.
 ///
 
-pub trait SnsCatalogSource: SnsDiscoverySource {
+pub trait SnsCatalogSource: SnsDiscoverySource + Sync {
     /// Fetch lifecycle evidence for exactly the supplied deployed-SNS targets.
-    fn fetch_sns_lifecycles(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError>;
+    fn fetch_sns_lifecycles<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>>;
 }
 
 ///
@@ -55,13 +55,13 @@ pub trait SnsCatalogSource: SnsDiscoverySource {
 /// Source contract for fetching SNS Root canister inventory and health.
 ///
 
-pub trait SnsCanisterSource: SnsDiscoverySource {
+pub trait SnsCanisterSource: SnsDiscoverySource + Sync {
     /// Fetch Root inventory and operational health for one resolved SNS.
-    fn fetch_sns_canisters(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsCanisterInventory, SnsHostError>;
+    fn fetch_sns_canisters<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>>;
 }
 
 ///
@@ -70,14 +70,14 @@ pub trait SnsCanisterSource: SnsDiscoverySource {
 /// Source contract for fetching one exact full SNS neuron detail.
 ///
 
-pub trait SnsNeuronSource: SnsDiscoverySource {
+pub trait SnsNeuronSource: SnsDiscoverySource + Sync {
     /// Fetch exactly one full native SNS Governance neuron.
-    fn fetch_sns_neuron(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-        neuron_id: &str,
-    ) -> Result<MainnetSnsNeuron, SnsHostError>;
+    fn fetch_sns_neuron<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+        neuron_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>>;
 }
 
 ///
@@ -86,28 +86,28 @@ pub trait SnsNeuronSource: SnsDiscoverySource {
 /// Source contract for fetching bounded and paged SNS neuron data.
 ///
 
-pub trait SnsNeuronsSource: SnsDiscoverySource {
+pub trait SnsNeuronsSource: SnsDiscoverySource + Sync {
     /// Fetch a bounded SNS neuron listing for one resolved SNS.
-    fn fetch_sns_neurons(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError>;
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>>;
 
     /// Fetch one ascending neuron page for complete snapshot refresh.
     /// A supplied cursor must equal the final row's id; empty pages omit it.
     /// A repeated boundary row is allowed; full pages require an advancing cursor.
     /// Short terminal pages may omit the cursor.
-    fn fetch_sns_neuron_page(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError>;
+        start_page_at: Option<&'a SnsNeuronId>,
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>>;
 }
 
 ///
@@ -116,36 +116,36 @@ pub trait SnsNeuronsSource: SnsDiscoverySource {
 /// Source contract for bracketed API-exhausted SNS reward checkpoint collection.
 ///
 
-pub trait SnsRewardSource: SnsDiscoverySource {
+pub trait SnsRewardSource: SnsDiscoverySource + Sync {
     /// Fetch the complete native running-version response for one bracket position.
-    fn fetch_sns_reward_running_version(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsRunningVersionResponse, SnsHostError>;
+    fn fetch_sns_reward_running_version<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>>;
 
     /// Fetch the complete native nervous-system parameters for one bracket position.
-    fn fetch_sns_reward_parameters(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError>;
+    fn fetch_sns_reward_parameters<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>>;
 
     /// Fetch the complete latest reward event for one bracket position.
-    fn fetch_sns_reward_event(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsRewardEvent, SnsHostError>;
+    fn fetch_sns_reward_event<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>>;
 
     /// Fetch one strict full-evidence neuron page using an exclusive native cursor.
-    fn fetch_sns_reward_neuron_page(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_reward_neuron_page<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-    ) -> Result<MainnetSnsRewardNeuronPage, SnsHostError>;
+        start_page_at: Option<&'a SnsNeuronId>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>>;
 }
 
 ///
@@ -154,13 +154,13 @@ pub trait SnsRewardSource: SnsDiscoverySource {
 /// Source contract for fetching governance parameters for one deployed SNS.
 ///
 
-pub trait SnsParamsSource: SnsDiscoverySource {
+pub trait SnsParamsSource: SnsDiscoverySource + Sync {
     /// Fetch SNS governance parameters for one resolved SNS.
-    fn fetch_sns_params(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError>;
+    fn fetch_sns_params<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>>;
 }
 
 ///
@@ -169,13 +169,13 @@ pub trait SnsParamsSource: SnsDiscoverySource {
 /// Source contract for bounded lifecycle and sale-state queries against one deployed SNS.
 ///
 
-pub trait SnsSwapSource: SnsDiscoverySource {
+pub trait SnsSwapSource: SnsDiscoverySource + Sync {
     /// Fetch three bounded native swap query components for one resolved SNS.
-    fn fetch_sns_swap(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsSwap, SnsHostError>;
+    fn fetch_sns_swap<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>>;
 }
 
 ///
@@ -184,14 +184,14 @@ pub trait SnsSwapSource: SnsDiscoverySource {
 /// Source contract for one bounded SNS Governance metrics query.
 ///
 
-pub trait SnsMetricsSource: SnsDiscoverySource {
+pub trait SnsMetricsSource: SnsDiscoverySource + Sync {
     /// Fetch native Governance metrics for one resolved SNS and proposal window.
-    fn fetch_sns_metrics(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_metrics<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         time_window_seconds: u64,
-    ) -> Result<MainnetSnsMetrics, SnsHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>>;
 }
 
 ///
@@ -200,13 +200,13 @@ pub trait SnsMetricsSource: SnsDiscoverySource {
 /// Source contract for bounded native upgrade-version queries for one deployed SNS.
 ///
 
-pub trait SnsUpgradeSource: SnsDiscoverySource {
+pub trait SnsUpgradeSource: SnsDiscoverySource + Sync {
     /// Fetch the running Governance version and next blessed SNS-W version.
-    fn fetch_sns_upgrade(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsUpgrade, SnsHostError>;
+    fn fetch_sns_upgrade<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>>;
 }
 
 ///
@@ -215,14 +215,14 @@ pub trait SnsUpgradeSource: SnsDiscoverySource {
 /// Source contract for fetching one SNS proposal by id.
 ///
 
-pub trait SnsProposalSource: SnsDiscoverySource {
+pub trait SnsProposalSource: SnsDiscoverySource + Sync {
     /// Fetch one SNS governance proposal for one resolved SNS.
-    fn fetch_sns_proposal(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> Result<MainnetSnsProposal, SnsHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>>;
 }
 
 ///
@@ -231,26 +231,26 @@ pub trait SnsProposalSource: SnsDiscoverySource {
 /// Source contract for fetching bounded SNS proposal listings.
 ///
 
-pub trait SnsProposalsSource: SnsDiscoverySource {
+pub trait SnsProposalsSource: SnsDiscoverySource + Sync {
     /// Fetch a bounded SNS governance proposal page for one resolved SNS.
-    fn fetch_sns_proposals(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-        include_status: &[i32],
+        include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>>;
 
     /// Fetch one unfiltered SNS governance proposal page for snapshot refresh.
-    fn fetch_sns_proposal_page(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError>;
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>>;
 }
 
 ///
@@ -259,11 +259,11 @@ pub trait SnsProposalsSource: SnsDiscoverySource {
 /// Source contract for fetching token metadata for one deployed SNS.
 ///
 
-pub trait SnsTokenSource: SnsDiscoverySource {
+pub trait SnsTokenSource: SnsDiscoverySource + Sync {
     /// Fetch SNS ledger token metadata for one resolved SNS.
-    fn fetch_sns_token(
-        &self,
-        request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<MainnetSnsToken, SnsHostError>;
+    fn fetch_sns_token<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>>;
 }

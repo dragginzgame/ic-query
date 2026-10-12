@@ -89,18 +89,21 @@ pub enum CloudEngineCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+pub async fn run_matches(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), CloudEngineCommandError> {
     match matches.subcommand() {
-        Some(("info", matches)) => run_info(matches, network),
-        Some(("list", matches)) => run_list(matches, network),
-        Some(("node", matches)) => node::run_matches(matches, network),
-        Some(("prices", matches)) => run_prices(matches, network),
-        Some(("provider", matches)) => provider::run_matches(matches, network),
+        Some(("info", matches)) => run_info(matches, network).await,
+        Some(("list", matches)) => run_list(matches, network).await,
+        Some(("node", matches)) => node::run_matches(matches, network).await,
+        Some(("prices", matches)) => run_prices(matches, network).await,
+        Some(("provider", matches)) => provider::run_matches(matches, network).await,
         _ => unreachable!("clap requires a known cloud-engine subcommand"),
     }
 }
 
-fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let now_unix_secs = current_unix_secs()?;
     let registry_source_endpoint = required_string(matches, REGISTRY_SOURCE_ENDPOINT_ARG);
     let cache = SubnetCatalogCacheRequest::new(cache_root()?, network);
@@ -115,7 +118,8 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
         &catalog_request,
         &control_plane_request,
         &mut StderrQueryProgress::new(),
-    )?;
+    )
+    .await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -123,10 +127,11 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
     )
 }
 
-fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = source_request(matches, network)?;
     let report =
-        build_cloud_engine_operator_report(&request, &required_string(matches, "subnet-id"))?;
+        build_cloud_engine_operator_report(&request, &required_string(matches, "subnet-id"))
+            .await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -134,9 +139,9 @@ fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
     )
 }
 
-fn run_prices(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_prices(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = source_request(matches, network)?;
-    let report = build_cloud_engine_prices_report(&request)?;
+    let report = build_cloud_engine_prices_report(&request).await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -263,8 +268,8 @@ mod tests {
         assert!(list.contains(LIST_COLLECTION_MODE));
     }
 
-    #[test]
-    fn help_and_version_do_not_make_live_calls() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn help_and_version_do_not_make_live_calls() {
         for args in [
             &["cloud-engine", "--help"][..],
             &["cloud-engine", "info", "--help"],
@@ -278,7 +283,7 @@ mod tests {
             &["cloud-engine", "provider", "list", "--help"],
             &["cloud-engine", "--version"],
         ] {
-            assert!(crate::run(args.iter().map(OsString::from)).is_ok());
+            assert!(crate::run(args.iter().map(OsString::from)).await.is_ok());
         }
     }
 

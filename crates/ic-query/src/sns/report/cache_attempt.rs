@@ -48,7 +48,7 @@ pub(in crate::sns::report) type SnsRefreshAttempt =
 /// Request fields shared by SNS neuron and proposal refresh orchestration.
 ///
 
-pub(in crate::sns::report) trait SnsRefreshRequestView {
+pub(in crate::sns::report) trait SnsRefreshRequestView: Sync {
     fn network(&self) -> &str;
     fn source_endpoint(&self) -> &str;
     fn now_unix_secs(&self) -> u64;

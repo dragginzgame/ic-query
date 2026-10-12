@@ -16,26 +16,27 @@ fn missing_path(err: PolicyError) -> Result<PathBuf, PolicyError> {
     }
 }
 
-#[test]
-fn existing_cache_does_not_refresh() {
+#[tokio::test(flavor = "current_thread")]
+async fn existing_cache_does_not_refresh() {
     let refreshed = Cell::new(false);
 
     let loaded = load_or_refresh_cache(
         || Ok::<_, PolicyError>("cached"),
         |_| false,
         |error| missing_path(error).map(CacheRefreshReason::Missing),
-        |_| {
+        async |_| {
             refreshed.set(true);
             Ok(())
         },
-    );
+    )
+    .await;
 
     assert_eq!(loaded, Ok("cached"));
     assert!(!refreshed.get());
 }
 
-#[test]
-fn missing_cache_refreshes_then_loads_again() {
+#[tokio::test(flavor = "current_thread")]
+async fn missing_cache_refreshes_then_loads_again() {
     let loads = Cell::new(0);
     let refreshes = Cell::new(0);
 
@@ -50,7 +51,7 @@ fn missing_cache_refreshes_then_loads_again() {
         },
         |_| false,
         |error| missing_path(error).map(CacheRefreshReason::Missing),
-        |reason| {
+        async |reason| {
             assert_eq!(
                 reason,
                 CacheRefreshReason::Missing(PathBuf::from("/tmp/missing.json"))
@@ -58,15 +59,16 @@ fn missing_cache_refreshes_then_loads_again() {
             refreshes.set(refreshes.get() + 1);
             Ok(())
         },
-    );
+    )
+    .await;
 
     assert_eq!(loaded, Ok("refreshed"));
     assert_eq!(loads.get(), 2);
     assert_eq!(refreshes.get(), 1);
 }
 
-#[test]
-fn non_missing_error_does_not_refresh() {
+#[tokio::test(flavor = "current_thread")]
+async fn non_missing_error_does_not_refresh() {
     for error in [
         PolicyError::Other,
         PolicyError::Invalid(PathBuf::from("invalid.json")),
@@ -76,18 +78,19 @@ fn non_missing_error_does_not_refresh() {
             || Err::<&str, _>(error.clone()),
             |_| false,
             |error| missing_path(error).map(CacheRefreshReason::Missing),
-            |_| {
+            async |_| {
                 refreshed.set(true);
                 Ok(())
             },
-        );
+        )
+        .await;
         assert_eq!(loaded, Err(error));
         assert!(!refreshed.get());
     }
 }
 
-#[test]
-fn refresh_and_reload_failures_are_returned_without_retry() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_and_reload_failures_are_returned_without_retry() {
     for refresh_fails in [true, false] {
         let loads = Cell::new(0);
         let refreshes = Cell::new(0);
@@ -102,7 +105,7 @@ fn refresh_and_reload_failures_are_returned_without_retry() {
             },
             |()| false,
             |error| missing_path(error).map(CacheRefreshReason::Missing),
-            |_| {
+            async |_| {
                 refreshes.set(refreshes.get() + 1);
                 if refresh_fails {
                     Err(PolicyError::Other)
@@ -110,15 +113,16 @@ fn refresh_and_reload_failures_are_returned_without_retry() {
                     Ok(())
                 }
             },
-        );
+        )
+        .await;
         assert_eq!(result, Err(PolicyError::Other));
         assert_eq!(refreshes.get(), 1);
         assert_eq!(loads.get(), if refresh_fails { 1 } else { 2 });
     }
 }
 
-#[test]
-fn stale_cache_refreshes_then_loads_persisted_result() {
+#[tokio::test(flavor = "current_thread")]
+async fn stale_cache_refreshes_then_loads_persisted_result() {
     let loads = Cell::new(0);
     let refreshes = Cell::new(0);
 
@@ -129,20 +133,21 @@ fn stale_cache_refreshes_then_loads_persisted_result() {
         },
         |cached| *cached == "stale",
         |error| missing_path(error).map(CacheRefreshReason::Missing),
-        |reason| {
+        async |reason| {
             assert_eq!(reason, CacheRefreshReason::Stale);
             refreshes.set(refreshes.get() + 1);
             Ok(())
         },
-    );
+    )
+    .await;
 
     assert_eq!(loaded, Ok("fresh"));
     assert_eq!(loads.get(), 2);
     assert_eq!(refreshes.get(), 1);
 }
 
-#[test]
-fn stale_policy_reports_missing_path_to_refresh() {
+#[tokio::test(flavor = "current_thread")]
+async fn stale_policy_reports_missing_path_to_refresh() {
     let loads = Cell::new(0);
 
     let loaded = load_or_refresh_cache(
@@ -156,21 +161,22 @@ fn stale_policy_reports_missing_path_to_refresh() {
         },
         |_| false,
         |error| missing_path(error).map(CacheRefreshReason::Missing),
-        |reason| {
+        async |reason| {
             assert_eq!(
                 reason,
                 CacheRefreshReason::Missing(PathBuf::from("/tmp/missing.json"))
             );
             Ok(())
         },
-    );
+    )
+    .await;
 
     assert_eq!(loaded, Ok("fresh"));
     assert_eq!(loads.get(), 2);
 }
 
-#[test]
-fn owner_error_policy_refreshes_invalid_cache_then_loads_again() {
+#[tokio::test(flavor = "current_thread")]
+async fn owner_error_policy_refreshes_invalid_cache_then_loads_again() {
     let loads = Cell::new(0);
     let refreshes = Cell::new(0);
     let path = PathBuf::from("/tmp/invalid.json");
@@ -189,12 +195,13 @@ fn owner_error_policy_refreshes_invalid_cache_then_loads_again() {
             PolicyError::Invalid(path) => Ok(CacheRefreshReason::Invalid(path)),
             error => Err(error),
         },
-        |reason| {
+        async |reason| {
             assert_eq!(reason, CacheRefreshReason::Invalid(path.clone()));
             refreshes.set(refreshes.get() + 1);
             Ok(())
         },
-    );
+    )
+    .await;
 
     assert_eq!(loaded, Ok("refreshed"));
     assert_eq!(loads.get(), 2);

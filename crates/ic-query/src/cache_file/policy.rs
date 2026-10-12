@@ -56,18 +56,18 @@ pub enum CacheRefreshReason {
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub fn load_or_refresh_cache<T, Error>(
+pub async fn load_or_refresh_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     stale: impl FnOnce(&T) -> bool,
     refresh_reason: impl FnOnce(Error) -> Result<CacheRefreshReason, Error>,
-    refresh: impl FnOnce(CacheRefreshReason) -> Result<(), Error>,
+    refresh: impl AsyncFnOnce(CacheRefreshReason) -> Result<(), Error>,
 ) -> Result<T, Error> {
     let reason = match load() {
         Ok(cached) if !stale(&cached) => return Ok(cached),
         Ok(_) => CacheRefreshReason::Stale,
         Err(error) => refresh_reason(error)?,
     };
-    refresh(reason)?;
+    refresh(reason).await?;
     load()
 }
 

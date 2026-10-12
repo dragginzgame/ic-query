@@ -31,8 +31,8 @@ impl SubnetCatalogSource for WrongEndpointSource {
     }
 }
 
-#[test]
-fn refresh_exports_protect_a_live_sources_separate_history_root_before_collection() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_exports_protect_a_live_sources_separate_history_root_before_collection() {
     let root = temp_dir("ic-query-catalog-separate-history-export");
     let history_root = temp_dir("ic-query-catalog-source-history-export");
     let source =
@@ -54,6 +54,7 @@ fn refresh_exports_protect_a_live_sources_separate_history_root_before_collectio
         for dry_run in [true, false] {
             request.dry_run = dry_run;
             let error = refresh_subnet_catalog_with_source(&request, &source)
+                .await
                 .expect_err("source-owned history export alias");
             assert!(matches!(
                 error,
@@ -73,8 +74,8 @@ fn refresh_exports_protect_a_live_sources_separate_history_root_before_collectio
     fs::remove_dir_all(history_root).expect("cleanup history root");
 }
 
-#[test]
-fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -82,8 +83,8 @@ fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = crate::runtime::block_on_current_thread(LiveNnsSource.fetch_catalog(&request))
-        .expect("test runtime")
+    let error = (LiveNnsSource::default().fetch_catalog(&request))
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -92,8 +93,8 @@ fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -101,8 +102,8 @@ fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = crate::runtime::block_on_current_thread(fetch_subnet_catalog_async(&request))
-        .expect("test runtime")
+    let error = fetch_subnet_catalog_async(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -111,8 +112,8 @@ fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn refresh_writes_catalog_atomically_and_removes_lock() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_writes_catalog_atomically_and_removes_lock() {
     let root = temp_dir("ic-query-subnet-refresh");
     let mut catalog = fixture_catalog();
     catalog.provenance.registry_version = 987_654;
@@ -122,7 +123,9 @@ fn refresh_writes_catalog_atomically_and_removes_lock() {
     let source = FixtureRefreshSource::ok(catalog);
     let request = refresh_request(&root);
 
-    let report = refresh_subnet_catalog_with_source(&request, &source).expect("refresh catalog");
+    let report = refresh_subnet_catalog_with_source(&request, &source)
+        .await
+        .expect("refresh catalog");
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
     let lock_path = PathBuf::from(&report.refresh_lock_path);
@@ -159,9 +162,8 @@ fn async_multi_endpoint_refresh_publishes_matching_agreement_evidence() {
     request.source =
         CatalogSourceSelection::multi_endpoint_agreement(vec![beta.to_string(), alpha.to_string()]);
 
-    let report =
-        futures::executor::block_on(refresh_subnet_catalog_with_source_async(&request, &source))
-            .expect("matching endpoints refresh");
+    let report = futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &source))
+        .expect("matching endpoints refresh");
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("agreement cache");
 
@@ -203,10 +205,9 @@ fn detailed_agreement_mismatch_retains_every_completed_endpoint_record() {
             ]),
         });
 
-    let failure = futures::executor::block_on(load_subnet_catalog_detailed_with_source_async(
-        &request, &source,
-    ))
-    .expect_err("mismatched endpoint evidence");
+    let failure =
+        futures::executor::block_on(load_subnet_catalog_detailed_with_source(&request, &source))
+            .expect_err("mismatched endpoint evidence");
 
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
     assert_eq!(failure.registry_records.len(), 8);
@@ -235,10 +236,9 @@ fn agreement_rejects_version_and_payload_mismatch_without_publishing() {
             beta.to_string(),
         ]);
 
-        let error = futures::executor::block_on(refresh_subnet_catalog_with_source_async(
-            &request, &source,
-        ))
-        .expect_err("mismatched endpoint evidence");
+        let error =
+            futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &source))
+                .expect_err("mismatched endpoint evidence");
         let cached =
             load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("original cache");
 
@@ -273,10 +273,9 @@ fn invalid_agreement_selection_is_rejected_before_source_or_cache_io() {
         let mut request = refresh_request(&root);
         request.source = CatalogSourceSelection::multi_endpoint_agreement(endpoints);
 
-        let error = futures::executor::block_on(refresh_subnet_catalog_with_source_async(
-            &request, &source,
-        ))
-        .expect_err("invalid selection");
+        let error =
+            futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &source))
+                .expect_err("invalid selection");
 
         assert!(matches!(
             error,
@@ -299,9 +298,8 @@ fn agreement_endpoint_failure_keeps_exact_endpoint_context() {
         beta.to_string(),
     ]);
 
-    let error =
-        futures::executor::block_on(refresh_subnet_catalog_with_source_async(&request, &source))
-            .expect_err("endpoint fails");
+    let error = futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &source))
+        .expect_err("endpoint fails");
 
     assert!(matches!(
         error,
@@ -312,15 +310,12 @@ fn agreement_endpoint_failure_keeps_exact_endpoint_context() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn cancelled_async_refresh_drops_its_owned_lock_without_publishing() {
+#[tokio::test(flavor = "current_thread")]
+async fn cancelled_async_refresh_drops_its_owned_lock_without_publishing() {
     let root = temp_dir("ic-query-subnet-refresh-cancelled");
     let request = refresh_request(&root);
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
-    let mut future = Box::pin(refresh_subnet_catalog_with_source_async(
-        &request,
-        &PendingSource,
-    ));
+    let mut future = Box::pin(refresh_subnet_catalog_with_source(&request, &PendingSource));
     let waker = futures::task::noop_waker();
     let mut context = Context::from_waker(&waker);
 
@@ -340,7 +335,7 @@ fn custom_source_must_echo_the_exact_requested_endpoint() {
     let mut request = refresh_request(&root);
     request.source = CatalogSourceSelection::uncertified_query(requested);
 
-    let error = futures::executor::block_on(refresh_subnet_catalog_with_source_async(
+    let error = futures::executor::block_on(refresh_subnet_catalog_with_source(
         &request,
         &WrongEndpointSource,
     ))
@@ -359,8 +354,8 @@ fn custom_source_must_echo_the_exact_requested_endpoint() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
     for dry_run in [true, false] {
         let root = temp_dir("ic-query-subnet-refresh-output-alias");
         let mut original_catalog = fixture_catalog();
@@ -378,7 +373,8 @@ fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
         let result = refresh_subnet_catalog_with_source(
             &request,
             &FixtureRefreshSource::ok(fixture_catalog()),
-        );
+        )
+        .await;
 
         assert!(matches!(
             result,
@@ -393,8 +389,8 @@ fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
     }
 }
 
-#[test]
-fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock() {
     let root = temp_dir("ic-query-subnet-refresh-output-preflight");
     for output_path in [
         subnet_catalog_path(&root, MAINNET_NETWORK),
@@ -406,6 +402,7 @@ fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock()
             .with_dry_run(true)
             .with_output_path(output_path);
         let error = refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+            .await
             .expect_err("invalid output fails before the failing source is called");
         assert!(matches!(
             error,
@@ -419,8 +416,8 @@ fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock()
 }
 
 #[cfg(unix)]
-#[test]
-fn refresh_rechecks_output_aliases_after_source_collection() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_rechecks_output_aliases_after_source_collection() {
     struct AliasingSource {
         output_path: PathBuf,
         catalog_path: PathBuf,
@@ -460,6 +457,7 @@ fn refresh_rechecks_output_aliases_after_source_collection() {
             .with_dry_run(true)
             .with_output_path(output_path);
         let error = refresh_subnet_catalog_with_source(&request, &source)
+            .await
             .expect_err("alias introduced during collection is rejected");
         assert!(matches!(
             error,
@@ -477,8 +475,8 @@ fn refresh_rechecks_output_aliases_after_source_collection() {
     }
 }
 
-#[test]
-fn refresh_dry_run_writes_output_without_replacing_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_dry_run_writes_output_without_replacing_cache() {
     let root = temp_dir("ic-query-subnet-refresh-dry-run");
     let mut catalog = fixture_catalog();
     catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
@@ -490,7 +488,9 @@ fn refresh_dry_run_writes_output_without_replacing_cache() {
     request.dry_run = true;
     request.output_path = Some(output_path.clone());
 
-    let report = refresh_subnet_catalog_with_source(&request, &source).expect("dry-run");
+    let report = refresh_subnet_catalog_with_source(&request, &source)
+        .await
+        .expect("dry-run");
 
     assert!(!report.wrote_catalog);
     assert!(!subnet_catalog_path(&request.cache.cache_root, MAINNET_NETWORK).exists());
@@ -498,8 +498,8 @@ fn refresh_dry_run_writes_output_without_replacing_cache() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
     let root = temp_dir("ic-query-subnet-refresh-dry-run-existing");
     let mut original_catalog = fixture_catalog();
     original_catalog.provenance.fetched_by = "original-cache".to_string();
@@ -515,6 +515,7 @@ fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
         .with_output_path(&output_path);
     let report =
         refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
+            .await
             .expect("distinct dry-run output");
 
     assert!(!report.wrote_catalog);
@@ -524,14 +525,16 @@ fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
     let root = temp_dir("ic-query-subnet-refresh-failure");
     write_catalog(&root, fixture_catalog());
     let source = FixtureRefreshSource::err();
     let request = refresh_request(&root);
 
-    let err = refresh_subnet_catalog_with_source(&request, &source).expect_err("refresh fails");
+    let err = refresh_subnet_catalog_with_source(&request, &source)
+        .await
+        .expect_err("refresh fails");
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
@@ -545,14 +548,15 @@ fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn refresh_existing_fresh_lock_fails_fast() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_existing_fresh_lock_fails_fast() {
     let root = temp_dir("ic-query-subnet-refresh-locked");
     let request = refresh_request(&root);
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
     write_refresh_lock_for_test(&lock_path, &request, request.now_unix_secs * 1_000);
 
     let err = refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
+        .await
         .expect_err("lock held");
 
     let _ = fs::remove_dir_all(root);
@@ -565,8 +569,8 @@ fn refresh_existing_fresh_lock_fails_fast() {
     ));
 }
 
-#[test]
-fn refresh_rejects_stale_lock_without_removing_it() {
+#[tokio::test(flavor = "current_thread")]
+async fn refresh_rejects_stale_lock_without_removing_it() {
     let root = temp_dir("ic-query-subnet-refresh-stale-lock");
     let mut catalog = fixture_catalog();
     catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
@@ -579,6 +583,7 @@ fn refresh_rejects_stale_lock_without_removing_it() {
     write_refresh_lock_for_test(&lock_path, &request, stale_started_at);
 
     let err = refresh_subnet_catalog_with_source(&request, &source)
+        .await
         .expect_err("stale lock requires manual cleanup");
 
     assert!(matches!(
@@ -592,8 +597,8 @@ fn refresh_rejects_stale_lock_without_removing_it() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_retry() {
+#[tokio::test(flavor = "current_thread")]
+async fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_retry() {
     struct TrackedSource {
         started: AtomicUsize,
         dropped: AtomicUsize,
@@ -627,7 +632,7 @@ fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_retry()
         started: AtomicUsize::new(0),
         dropped: AtomicUsize::new(0),
     };
-    let mut future = Box::pin(refresh_subnet_catalog_with_source_async(&request, &source));
+    let mut future = Box::pin(refresh_subnet_catalog_with_source(&request, &source));
     let waker = futures::task::noop_waker();
     assert!(
         future
@@ -641,8 +646,7 @@ fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_retry()
     assert_eq!(fs::read(&path).unwrap(), before);
     assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
     let retry = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "https://b.example");
-    futures::executor::block_on(refresh_subnet_catalog_with_source_async(&request, &retry))
-        .unwrap();
+    futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &retry)).unwrap();
     assert_eq!(retry.call_count(), 3);
     let _ = fs::remove_dir_all(root);
 }

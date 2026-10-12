@@ -4,8 +4,6 @@
 //! Does not own: CLI parsing, command-specific reports, SNS lookup, or text rendering.
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
-#[cfg(feature = "icrc-host")]
-use crate::agent::build_ic_agent;
 use crate::{hex::hex_bytes, icrc::IcrcMetadataValueKind};
 #[cfg(feature = "icrc-host")]
 use candid::types::reference::Func;
@@ -22,9 +20,6 @@ use std::collections::BTreeMap;
 ///
 
 pub trait IcrcLedgerError: Sized {
-    #[cfg(feature = "icrc-host")]
-    fn agent_build(endpoint: &str, reason: String) -> Self;
-
     #[cfg(feature = "icrc-host")]
     fn invalid_principal(field: &'static str, reason: String) -> Self;
 
@@ -308,14 +303,6 @@ pub(in crate::icrc) struct Icrc3DataCertificate {
 struct IcrcSupportedStandard {
     name: String,
     url: String,
-}
-
-#[cfg(feature = "icrc-host")]
-pub fn ic_agent<E>(endpoint: &str) -> Result<Agent, E>
-where
-    E: IcrcLedgerError,
-{
-    build_ic_agent(endpoint, |reason| E::agent_build(endpoint, reason))
 }
 
 #[cfg(feature = "icrc-host")]

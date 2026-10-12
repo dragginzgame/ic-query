@@ -3,8 +3,8 @@ use crate::test_support::temp_dir;
 use serde::Serialize;
 use std::{fs, path::PathBuf};
 
-#[test]
-fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     let root = temp_dir("ic-query-nns-leaf-refresh-dry-run");
     let output_path = root.join("exports").join("fixture.preview.json");
     let request = fixture_refresh_request(&root, true, Some(output_path.clone()));
@@ -13,6 +13,7 @@ fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     };
 
     let result = write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &report)
+        .await
         .expect("dry-run refresh writes output");
 
     let cache_path = root
@@ -40,8 +41,8 @@ fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
+#[tokio::test(flavor = "current_thread")]
+async fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
     let root = temp_dir("ic-query-nns-leaf-refresh-write");
     let request = fixture_refresh_request(&root, false, None);
     let first_report = FixtureReport {
@@ -63,9 +64,11 @@ fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
 
     let first =
         write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &first_report)
+            .await
             .expect("first refresh writes cache");
     let second =
         write_nns_leaf_json_refresh_cache(&request, "fixture", "fixture.json", &second_report)
+            .await
             .expect("second refresh replaces cache");
 
     assert!(!first.replaced_existing_cache);

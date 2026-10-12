@@ -39,25 +39,25 @@ resource, validates every returned row up to 1,000, and then retains providers
 with explicit CloudEngine counts or locations. Dashboard responses are off-chain,
 uncertified, and not point-in-time guaranteed.";
 
-pub(super) fn run_matches(
+pub(super) async fn run_matches(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), CloudEngineCommandError> {
     match matches.subcommand() {
-        Some(("info", matches)) => run_info(matches, network),
-        Some(("list", matches)) => run_list(matches, network),
+        Some(("info", matches)) => run_info(matches, network).await,
+        Some(("list", matches)) => run_list(matches, network).await,
         _ => unreachable!("clap requires a known cloud-engine provider subcommand"),
     }
 }
 
-fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineProviderInfoRequest::new(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,
         required_string(matches, "node-provider-id"),
     );
-    let report = build_cloud_engine_provider_info_report(&request)?;
+    let report = build_cloud_engine_provider_info_report(&request).await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -65,13 +65,13 @@ fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineComman
     )
 }
 
-fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineProviderListRequest::new(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,
     );
-    let report = build_cloud_engine_provider_list_report(&request)?;
+    let report = build_cloud_engine_provider_list_report(&request).await?;
     write_text_or_json(
         output_format(matches),
         &report,

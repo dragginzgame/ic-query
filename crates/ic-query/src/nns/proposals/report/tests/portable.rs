@@ -65,12 +65,13 @@ impl NnsProposalSource for PanicProposalSource {
     }
 }
 
-#[test]
-fn proposal_list_rejects_unbounded_limit_before_source_invocation() {
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_list_rejects_unbounded_limit_before_source_invocation() {
     let mut request = proposal_sort_request(NnsProposalListSort::Api);
     request.limit = NNS_PROPOSAL_MAX_PAGE_SIZE + 1;
 
     let error = build_nns_proposal_list_report_with_source(&request, &PanicProposalSource)
+        .await
         .expect_err("oversized proposal page limit");
 
     assert!(matches!(
@@ -82,8 +83,8 @@ fn proposal_list_rejects_unbounded_limit_before_source_invocation() {
     ));
 }
 
-#[test]
-fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
     let mut request = proposal_sort_request(NnsProposalListSort::Api);
     request.limit = 1;
     let source = static_source(
@@ -91,7 +92,7 @@ fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
         proposal_row(101),
     );
     assert!(matches!(
-        build_nns_proposal_list_report_with_source(&request, &source),
+        build_nns_proposal_list_report_with_source(&request, &source).await,
         Err(NnsProposalError::PageTooLarge {
             actual: 2,
             requested: 1
@@ -101,7 +102,7 @@ fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
     request.limit = 50;
     let source = static_source(vec![proposal_row(0)], proposal_row(101));
     assert!(matches!(
-        build_nns_proposal_list_report_with_source(&request, &source),
+        build_nns_proposal_list_report_with_source(&request, &source).await,
         Err(NnsProposalError::InvalidProposalIdInPage)
     ));
 
@@ -110,13 +111,13 @@ fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
         proposal_row(101),
     );
     assert!(matches!(
-        build_nns_proposal_list_report_with_source(&request, &source),
+        build_nns_proposal_list_report_with_source(&request, &source).await,
         Err(NnsProposalError::DuplicateProposalId { proposal_id: 101 })
     ));
 
     let source = static_source(vec![proposal_row(200)], proposal_row(101));
     assert!(matches!(
-        build_nns_proposal_list_report_with_source(&request, &source),
+        build_nns_proposal_list_report_with_source(&request, &source).await,
         Err(NnsProposalError::ProposalCursorMismatch {
             proposal_id: 200,
             before_proposal_id: 200
@@ -124,12 +125,13 @@ fn proposal_list_rejects_oversized_duplicate_and_out_of_cursor_pages() {
     ));
 }
 
-#[test]
-fn proposal_detail_requires_the_exact_requested_id() {
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_detail_requires_the_exact_requested_id() {
     let request = NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 101);
     let source = static_source(Vec::new(), proposal_row(102));
 
     let error = build_nns_proposal_report_with_source(&request, &source)
+        .await
         .expect_err("mismatched proposal detail");
 
     assert!(matches!(
@@ -141,8 +143,8 @@ fn proposal_detail_requires_the_exact_requested_id() {
     ));
 }
 
-#[test]
-fn proposal_builder_rejects_source_provenance_that_does_not_match_the_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_builder_rejects_source_provenance_that_does_not_match_the_request() {
     let request = proposal_sort_request(NnsProposalListSort::Api);
     let source = StaticProposalSource {
         proposals: vec![proposal_row(101)],
@@ -153,6 +155,7 @@ fn proposal_builder_rejects_source_provenance_that_does_not_match_the_request() 
     };
 
     let error = build_nns_proposal_list_report_with_source(&request, &source)
+        .await
         .expect_err("source provenance mismatch");
 
     assert!(matches!(

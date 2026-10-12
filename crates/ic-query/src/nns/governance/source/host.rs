@@ -26,6 +26,7 @@ impl NnsGovernanceSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let economics = query_nns_governance_no_args(
+                self,
                 &request,
                 "get_network_economics_parameters",
                 "NetworkEconomics",
@@ -43,7 +44,7 @@ impl NnsGovernanceSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let result: GetMetricsResult =
-                query_nns_governance_no_args(&request, "get_metrics", "GetMetricsResult")
+                query_nns_governance_no_args(self, &request, "get_metrics", "GetMetricsResult")
                     .await
                     .map_err(NnsGovernanceError::from)?;
             Ok(NnsGovernanceSourceData::new(
@@ -59,10 +60,14 @@ impl NnsGovernanceSource for LiveNnsSource {
     ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
-            let reward_event =
-                query_nns_governance_no_args(&request, "get_latest_reward_event", "RewardEvent")
-                    .await
-                    .map_err(NnsGovernanceError::from)?;
+            let reward_event = query_nns_governance_no_args(
+                self,
+                &request,
+                "get_latest_reward_event",
+                "RewardEvent",
+            )
+            .await
+            .map_err(NnsGovernanceError::from)?;
             Ok(NnsGovernanceSourceData::new(reward_event, provenance))
         })
     }
@@ -74,6 +79,7 @@ impl NnsGovernanceSource for LiveNnsSource {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
             let response: GetMaturityModulationResponse = query_nns_governance(
+                self,
                 &request,
                 "get_maturity_modulation",
                 "GetMaturityModulationRequest",

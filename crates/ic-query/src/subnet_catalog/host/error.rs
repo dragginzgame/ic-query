@@ -2,7 +2,6 @@ use crate::{
     cache_file::{CacheFileError, HostCacheError},
     ic_registry::RegistryFetchError,
     network::enforce_mainnet_network_with,
-    runtime::RuntimeError,
     subnet_catalog::{CatalogAssurance, CatalogError},
 };
 use std::path::PathBuf;
@@ -36,8 +35,7 @@ pub enum SubnetCatalogErrorCode {
     AgreementMismatch,
     /// Aggregating source call counts exceeded the report representation.
     RegistryQueryCallCountOverflow,
-    /// The synchronous adapter could not run the async refresh core.
-    RuntimeAdapter,
+
     /// A shared cache or lock operation failed.
     CacheOperation,
     /// Live Registry collection failed.
@@ -61,7 +59,7 @@ impl SubnetCatalogErrorCode {
             Self::AgreementEndpoint => "agreement_endpoint",
             Self::AgreementMismatch => "agreement_mismatch",
             Self::RegistryQueryCallCountOverflow => "registry_query_call_count_overflow",
-            Self::RuntimeAdapter => "runtime_adapter",
+
             Self::CacheOperation => "cache_operation",
             Self::RegistryRefresh => "registry_refresh",
             Self::CatalogValidation => "catalog_validation",
@@ -91,8 +89,6 @@ pub enum SubnetCatalogErrorCategory {
     Authority,
     /// Deterministic raw catalog validation failure.
     Validation,
-    /// Failure in the synchronous runtime adapter.
-    Runtime,
 }
 
 impl SubnetCatalogErrorCategory {
@@ -107,7 +103,6 @@ impl SubnetCatalogErrorCategory {
             Self::Network => "network",
             Self::Authority => "authority",
             Self::Validation => "validation",
-            Self::Runtime => "runtime",
         }
     }
 }
@@ -154,8 +149,6 @@ pub enum SubnetCatalogUnknownRetryReason {
     RegistryResponse,
     /// A Registry transport failure does not expose enough typed detail to classify safely.
     RegistryTransport,
-    /// Runtime availability cannot be inferred from the adapter failure alone.
-    RuntimeAdapter,
 }
 
 impl SubnetCatalogUnknownRetryReason {
@@ -166,7 +159,6 @@ impl SubnetCatalogUnknownRetryReason {
             Self::CacheOperation => "cache_operation",
             Self::RegistryResponse => "registry_response",
             Self::RegistryTransport => "registry_transport",
-            Self::RuntimeAdapter => "runtime_adapter",
         }
     }
 }
@@ -294,10 +286,6 @@ pub enum SubnetCatalogHostError {
     #[error("subnet catalog Registry query call count overflowed u64")]
     RegistryQueryCallCountOverflow,
 
-    /// Synchronous adapter failed to run the caller-owned async implementation.
-    #[error(transparent)]
-    RuntimeAdapter(#[from] RuntimeError),
-
     /// Confined cache IO or refresh locking failed.
     #[error(transparent)]
     Cache(#[from] HostCacheError),
@@ -328,7 +316,7 @@ impl SubnetCatalogHostError {
             Self::RegistryQueryCallCountOverflow => {
                 SubnetCatalogErrorCode::RegistryQueryCallCountOverflow
             }
-            Self::RuntimeAdapter(_) => SubnetCatalogErrorCode::RuntimeAdapter,
+
             Self::Cache(_) => SubnetCatalogErrorCode::CacheOperation,
             Self::RegistryRefresh(_) => SubnetCatalogErrorCode::RegistryRefresh,
             Self::Catalog(_) => SubnetCatalogErrorCode::CatalogValidation,
@@ -376,7 +364,7 @@ impl SubnetCatalogHostError {
                 | CatalogError::ResolverPolicyMismatch { .. }
                 | CatalogError::CatalogDigestMismatch { .. },
             ) => SubnetCatalogErrorCategory::Authority,
-            Self::RuntimeAdapter(_) => SubnetCatalogErrorCategory::Runtime,
+
             Self::CachedCatalogTooLarge { .. }
             | Self::RegistryQueryCallCountOverflow
             | Self::Catalog(_) => SubnetCatalogErrorCategory::Validation,
@@ -390,9 +378,7 @@ impl SubnetCatalogHostError {
             Self::AgreementEndpoint { source, .. } => source.retryability(),
             Self::RegistryRefresh(source) => registry_retryability(source),
             Self::AgreementMismatch { .. } => SubnetCatalogRetryability::Retryable,
-            Self::RuntimeAdapter(_) => {
-                SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RuntimeAdapter)
-            }
+
             Self::Cache(_) => {
                 SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::CacheOperation)
             }
@@ -449,9 +435,7 @@ const fn registry_retryability(error: &RegistryFetchError) -> SubnetCatalogRetry
         | RegistryFetchError::InvalidCertifiedRegistry { .. } => {
             SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryResponse)
         }
-        RegistryFetchError::Runtime(_) => {
-            SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RuntimeAdapter)
-        }
+
         RegistryFetchError::AgentBuild { .. }
         | RegistryFetchError::RegistryChunkLimit { .. }
         | RegistryFetchError::RegistryKeyFamilyLimit { .. }

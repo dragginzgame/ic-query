@@ -111,7 +111,8 @@ pub fn nns_certified_registry_archive_refresh_lock_path(archive_root: &Path) -> 
 pub async fn bootstrap_nns_certified_registry_archive_async(
     request: &NnsCertifiedRegistryArchiveBootstrapRequest,
 ) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveBootstrapError> {
-    bootstrap_nns_certified_registry_archive_with_source_async(request, &LiveNnsSource).await
+    bootstrap_nns_certified_registry_archive_with_source_async(request, &LiveNnsSource::default())
+        .await
 }
 
 /// Force-bootstrap and atomically publish one complete archive from an explicit async source.
@@ -147,7 +148,7 @@ pub(in crate::nns::registry::replay) async fn bootstrap_archive_with_authenticat
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         archive_filesystem_error,
-        || collect_and_publish(request, source, authenticator),
+        async || collect_and_publish(request, source, authenticator).await,
     )
     .await
 }

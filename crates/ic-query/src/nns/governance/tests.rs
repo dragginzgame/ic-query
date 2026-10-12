@@ -1,5 +1,5 @@
 use super::*;
-use crate::{runtime::block_on_current_thread, subnet_catalog::MAINNET_NETWORK};
+use crate::subnet_catalog::MAINNET_NETWORK;
 use validation::{
     validate_governance_metrics, validate_governance_response_size, validate_source_provenance,
 };
@@ -78,8 +78,8 @@ fn raw_governance_response_limit_is_enforced_before_decode() {
     ));
 }
 
-#[test]
-fn live_governance_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_governance_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsGovernanceRequest::replica_query(
         "local",
         "this-is-not-a-valid-url",
@@ -88,33 +88,33 @@ fn live_governance_source_rejects_non_mainnet_before_agent_construction() {
     );
 
     assert!(matches!(
-        build_nns_governance_economics_report(&request),
+        build_nns_governance_economics_report(&request).await,
         Err(NnsGovernanceHostError::Governance(
             NnsGovernanceError::UnsupportedNetwork { network }
         )) if network == "local"
     ));
     assert!(matches!(
-        build_nns_governance_metrics_report(&request),
+        build_nns_governance_metrics_report(&request).await,
         Err(NnsGovernanceHostError::Governance(
             NnsGovernanceError::UnsupportedNetwork { network }
         )) if network == "local"
     ));
     assert!(matches!(
-        build_nns_governance_reward_event_report(&request),
+        build_nns_governance_reward_event_report(&request).await,
         Err(NnsGovernanceHostError::Governance(
             NnsGovernanceError::UnsupportedNetwork { network }
         )) if network == "local"
     ));
     assert!(matches!(
-        build_nns_governance_maturity_modulation_report(&request),
+        build_nns_governance_maturity_modulation_report(&request).await,
         Err(NnsGovernanceHostError::Governance(
             NnsGovernanceError::UnsupportedNetwork { network }
         )) if network == "local"
     ));
 }
 
-#[test]
-fn custom_source_builder_preserves_shared_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_builder_preserves_shared_provenance() {
     let request = NnsGovernanceRequest::replica_query(
         MAINNET_NETWORK,
         "https://example.test",
@@ -122,12 +122,9 @@ fn custom_source_builder_preserves_shared_provenance() {
         "fixture",
     );
 
-    let report = block_on_current_thread(build_nns_governance_economics_report_with_source(
-        &request,
-        &FixtureSource,
-    ))
-    .expect("fixture runtime")
-    .expect("fixture economics report");
+    let report = build_nns_governance_economics_report_with_source(&request, &FixtureSource)
+        .await
+        .expect("fixture economics report");
 
     assert_eq!(report.context.network, MAINNET_NETWORK);
     assert_eq!(
@@ -140,8 +137,8 @@ fn custom_source_builder_preserves_shared_provenance() {
     assert_eq!(report.economics.reject_cost_e8s, 1_000_000_000);
 }
 
-#[test]
-fn builder_rejects_non_mainnet_before_custom_source_call() {
+#[tokio::test(flavor = "current_thread")]
+async fn builder_rejects_non_mainnet_before_custom_source_call() {
     let request = NnsGovernanceRequest::replica_query(
         "local",
         "https://example.test",
@@ -149,12 +146,9 @@ fn builder_rejects_non_mainnet_before_custom_source_call() {
         "fixture",
     );
 
-    let error = block_on_current_thread(build_nns_governance_economics_report_with_source(
-        &request,
-        &PanicSource,
-    ))
-    .expect("fixture runtime")
-    .expect_err("non-mainnet request must fail");
+    let error = build_nns_governance_economics_report_with_source(&request, &PanicSource)
+        .await
+        .expect_err("non-mainnet request must fail");
     assert!(matches!(
         error,
         NnsGovernanceError::UnsupportedNetwork { network } if network == "local"

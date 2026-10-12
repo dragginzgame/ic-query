@@ -35,13 +35,18 @@ const PROPOSAL_INFO_COMMAND: &str = "info";
 const PROPOSAL_LIST_COMMAND: &str = "list";
 const PROPOSAL_REFRESH_COMMAND: &str = "refresh";
 
-pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(in crate::nns) async fn run(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("activity", matches)) => run_nns_proposal_activity(matches, network),
         Some((PROPOSAL_CACHE_COMMAND, matches)) => run_nns_proposal_cache(matches, network),
-        Some((PROPOSAL_LIST_COMMAND, matches)) => run_nns_proposal_list(matches, network),
-        Some((PROPOSAL_INFO_COMMAND, matches)) => run_nns_proposal_info(matches, network),
-        Some((PROPOSAL_REFRESH_COMMAND, matches)) => run_nns_proposal_refresh(matches, network),
+        Some((PROPOSAL_LIST_COMMAND, matches)) => run_nns_proposal_list(matches, network).await,
+        Some((PROPOSAL_INFO_COMMAND, matches)) => run_nns_proposal_info(matches, network).await,
+        Some((PROPOSAL_REFRESH_COMMAND, matches)) => {
+            run_nns_proposal_refresh(matches, network).await
+        }
         _ => unreachable!("clap requires a known NNS proposal subcommand"),
     }
 }
@@ -53,12 +58,12 @@ fn run_nns_proposal_activity(matches: &ArgMatches, network: &str) -> Result<(), 
     write_text_or_json(options.format, &report, nns_proposal_activity_report_text)
 }
 
-fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsProposalListOptions::from_matches(matches, network)?;
-    run_nns_proposal_list_with_options(options)
+    run_nns_proposal_list_with_options(options).await
 }
 
-fn run_nns_proposal_list_with_options(
+async fn run_nns_proposal_list_with_options(
     options: NnsProposalListOptions,
 ) -> Result<(), NnsCommandError> {
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
@@ -85,17 +90,20 @@ fn run_nns_proposal_list_with_options(
         request = request.with_query(query);
     }
 
-    let report = build_nns_proposal_list_report_from_cache(&request, &command_cache_root()?)?
-        .map_or_else(|| build_nns_proposal_list_report(&request), Ok)?;
+    let report = match build_nns_proposal_list_report_from_cache(&request, &command_cache_root()?)?
+    {
+        Some(report) => report,
+        None => build_nns_proposal_list_report(&request).await?,
+    };
     write_text_or_json(options.format, &report, nns_proposal_list_report_text)
 }
 
-fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsProposalOptions::from_matches(matches, network);
-    run_nns_proposal_with_options(options)
+    run_nns_proposal_with_options(options).await
 }
 
-fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
+async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
@@ -105,12 +113,17 @@ fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsC
     let request = NnsProposalRequest::new(governance, options.proposal_id)
         .with_show_ballots(options.show_ballots)
         .with_verbose(options.verbose);
-    let report = build_nns_proposal_report_from_cache(&request, &command_cache_root()?)?
-        .map_or_else(|| build_nns_proposal_report(&request), Ok)?;
+    let report = match build_nns_proposal_report_from_cache(&request, &command_cache_root()?)? {
+        Some(report) => report,
+        None => build_nns_proposal_report(&request).await?,
+    };
     write_text_or_json(options.format, &report, nns_proposal_report_text)
 }
 
-fn run_nns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_nns_proposal_refresh(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     let options = NnsProposalRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
@@ -121,7 +134,7 @@ fn run_nns_proposal_refresh(matches: &ArgMatches, network: &str) -> Result<(), N
     )
     .with_max_pages(options.max_pages);
     let mut progress = StderrQueryProgress::new();
-    let report = refresh_nns_proposal_cache_with_progress(&request, &mut progress)?;
+    let report = refresh_nns_proposal_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(options.format, &report, nns_proposal_refresh_report_text)
 }
 

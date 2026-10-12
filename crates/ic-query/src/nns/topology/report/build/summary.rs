@@ -8,21 +8,23 @@ use crate::nns::{
     },
 };
 
-pub fn build_nns_topology_summary_report(
+pub async fn build_nns_topology_summary_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
-    build_nns_topology_summary_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_summary_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_summary_report_with_source(
+pub async fn build_nns_topology_summary_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.network())?;
 
     let source_request = topology_source_request_from(request);
-    let subnet_report = source.fetch_subnet_catalog_list_report(&source_request)?;
-    let reports = fetch_topology_inventory_reports(&source_request, source)?;
+    let subnet_report = source
+        .fetch_subnet_catalog_list_report(&source_request)
+        .await?;
+    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
 
     Ok(topology_summary_report_from_reports(
         request.network().to_string(),

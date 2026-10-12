@@ -9,7 +9,10 @@ use ic_query::subnet_catalog::{
     DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogInfoRequest,
     build_subnet_catalog_info_report_with_progress, subnet_catalog_info_report_text,
 };
-pub(super) fn run_catalog_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(super) async fn run_catalog_info(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     let options = CatalogInfoOptions::from_matches(matches, network);
     let format = options.format;
     let cache = cache_request(&options.network)?;
@@ -24,6 +27,7 @@ pub(super) fn run_catalog_info(matches: &ArgMatches, network: &str) -> Result<()
         request = request.with_forced(forced);
     }
     let report =
-        build_subnet_catalog_info_report_with_progress(&request, &mut StderrQueryProgress::new())?;
+        build_subnet_catalog_info_report_with_progress(&request, &mut StderrQueryProgress::new())
+            .await?;
     write_text_or_json(format, &report, subnet_catalog_info_report_text)
 }

@@ -153,13 +153,17 @@ impl NnsInventoryListInput for NnsInventoryListRequest {
 }
 
 /// Load one Registry inventory cache, refreshing missing or invalid local content.
-pub(in crate::nns) fn load_or_refresh_nns_inventory_report<Report, Error>(
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report, Error>(
     request: &impl NnsInventoryListInput,
     expected_cache_path: PathBuf,
     lock_stale_after_seconds: u64,
     progress: &mut dyn QueryProgress,
     mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, Error>,
-    refresh: impl FnOnce(&NnsInventoryRefreshRequest) -> Result<(), Error>,
+    refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), Error>,
 ) -> Result<Report, Error>
 where
     Error: NnsInventoryHostError,
@@ -169,7 +173,7 @@ where
         || load(request.cache()),
         |_| false,
         |error| error.cache_refresh_reason(expected_cache_path.clone()),
-        |_| {
+        async |_| {
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: Report::ITEM_NAME.replace('_', "-"),
                 path: expected_cache_path.clone(),
@@ -181,18 +185,19 @@ where
                 request.now_unix_secs(),
                 lock_stale_after_seconds,
             );
-            refresh(&refresh_request)
+            refresh(&refresh_request).await
         },
     )
+    .await
 }
 
 /// Build one shared NNS source request after enforcing the family network contract.
-pub(in crate::nns) fn fetch_nns_inventory_source_report<Report, Error>(
+pub(in crate::nns) async fn fetch_nns_inventory_source_report<Report, Error>(
     network: &str,
     source_endpoint: &str,
     now_unix_secs: u64,
     enforce_network: impl FnOnce(&str) -> Result<(), Error>,
-    fetch: impl FnOnce(&NnsSourceRequest) -> Result<Report, Error>,
+    fetch: impl AsyncFnOnce(&NnsSourceRequest) -> Result<Report, Error>,
 ) -> Result<Report, Error> {
     enforce_network(network)?;
     let request = NnsSourceRequest::new(
@@ -201,15 +206,19 @@ pub(in crate::nns) fn fetch_nns_inventory_source_report<Report, Error>(
         format_utc_timestamp_secs(now_unix_secs),
         "ic-query",
     );
-    fetch(&request)
+    fetch(&request).await
 }
 
 /// Fetch and atomically publish one network-validated Registry inventory cache.
-pub(in crate::nns) fn refresh_nns_inventory_cache<Report, Error>(
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub(in crate::nns) async fn refresh_nns_inventory_cache<Report, Error>(
     request: &NnsInventoryRefreshRequest,
     component_dir: &'static str,
     cache_file: &str,
-    fetch: impl FnOnce(&str, &str, u64) -> Result<Report, Error>,
+    fetch: impl AsyncFnOnce(&str, &str, u64) -> Result<Report, Error>,
 ) -> Result<(Report, RefreshCacheWriteResult), Error>
 where
     Report: NnsInventoryReport + Serialize,
@@ -220,7 +229,8 @@ where
         &request.cache.network,
         &request.source_endpoint,
         request.now_unix_secs,
-    )?;
+    )
+    .await?;
     let source_request = NnsSourceRequest::new(
         &request.cache.network,
         &request.source_endpoint,
@@ -231,7 +241,7 @@ where
         .validate_source(&source_request)
         .map_err(Error::invalid_source_data)?;
     let write_result =
-        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report)?;
+        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report).await?;
     Ok((report, write_result))
 }
 

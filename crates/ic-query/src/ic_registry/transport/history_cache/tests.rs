@@ -110,8 +110,8 @@ fn rewrite_document(root: &Path, edit: impl FnOnce(&mut HistoryDocument)) {
     .expect("rewrite fixture");
 }
 
-#[test]
-fn interrupted_batched_publication_restores_a_complete_prefix_with_bounded_rework() {
+#[tokio::test(flavor = "current_thread")]
+async fn interrupted_batched_publication_restores_a_complete_prefix_with_bounded_rework() {
     for (completed_pages, durable_version) in [(3, 1), (9, 8)] {
         let root = temp_dir("ic-query-history-publication-batch");
         let source = counter(&root, ENDPOINT);
@@ -383,8 +383,8 @@ fn history_identity_retention_is_bounded_without_failing_collection() {
     fs::remove_dir_all(root).expect("cleanup");
 }
 
-#[test]
-fn competing_writer_lock_skips_publication_and_preserves_prior_history() {
+#[tokio::test(flavor = "current_thread")]
+async fn competing_writer_lock_skips_publication_and_preserves_prior_history() {
     let root = temp_dir("ic-query-history-competing-writer");
     seed(&root);
     let cache = RegistryHistoryCache::new(root.clone());
@@ -456,8 +456,8 @@ fn stale_writer_lock_remains_visible_and_requires_manual_cleanup() {
     fs::remove_dir_all(root).expect("cleanup");
 }
 
-#[test]
-fn cancellation_keeps_only_complete_pages_for_a_new_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn cancellation_keeps_only_complete_pages_for_a_new_source() {
     let root = temp_dir("ic-query-history-cancelled");
     let first = counter(&root, ENDPOINT);
     let mut future = Box::pin(collect_key_family(PREFIX, 3, &first, |cursor| async move {

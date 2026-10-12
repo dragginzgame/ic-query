@@ -26,19 +26,19 @@ use std::collections::HashSet;
 /// Source contract for bounded official Dashboard network reports.
 ///
 
-pub trait IcNetworkSource {
+pub trait IcNetworkSource: Sync {
     /// Fetch the complete boundary-node data-center resource in one request.
-    fn fetch_boundary_node_data_centers(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError>;
+    fn fetch_boundary_node_data_centers<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcBoundaryNodeDataCentersSourceData, IcHostError>>;
 
     /// Fetch one explicitly bounded daily-statistics window in one request.
-    fn fetch_daily_stats(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcDailyStatsQuery,
-    ) -> Result<IcDailyStatsSourceData, IcHostError>;
+    fn fetch_daily_stats<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcDailyStatsQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcDailyStatsSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn validate_daily_stats_request(

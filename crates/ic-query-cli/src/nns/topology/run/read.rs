@@ -17,11 +17,11 @@ macro_rules! topology_read_runner {
         $build:path,
         $render:path
     ) => {
-        pub(in crate::nns::topology::run) fn $name(
+        pub(in crate::nns::topology::run) async fn $name(
             matches: &ArgMatches,
             network: &str,
         ) -> Result<(), NnsCommandError> {
-            run_topology_read::<$options, $report>(matches, network, $build, $render)
+            run_topology_read::<$options, $report>(matches, network, $build, $render).await
         }
     };
 }
@@ -83,10 +83,12 @@ topology_read_runner!(
     topology::nns_topology_providers_report_text
 );
 
-fn run_topology_read<Options, Report>(
+async fn run_topology_read<Options, Report>(
     matches: &ArgMatches,
     network: &str,
-    build_report: fn(&topology::NnsTopologyReadRequest) -> Result<Report, NnsTopologyHostError>,
+    build_report: impl AsyncFn(
+        &topology::NnsTopologyReadRequest,
+    ) -> Result<Report, NnsTopologyHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where
@@ -97,6 +99,6 @@ where
     let format = options.format();
     let cache_root = command_cache_root()?;
     let request = options.into_request(cache_root, now_unix_secs()?);
-    let report = build_report(&request)?;
+    let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)
 }

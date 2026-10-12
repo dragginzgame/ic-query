@@ -31,12 +31,9 @@ pub use host::{
     SubnetCatalogRetryability, SubnetCatalogSource, SubnetCatalogSourceFailure,
     SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogUnknownRetryReason,
     fetch_subnet_catalog_async, load_cached_subnet_catalog, load_cached_subnet_catalog_detailed,
-    load_subnet_catalog, load_subnet_catalog_async, load_subnet_catalog_detailed,
-    load_subnet_catalog_detailed_async, load_subnet_catalog_detailed_with_source,
-    load_subnet_catalog_detailed_with_source_async, load_subnet_catalog_with_source,
-    load_subnet_catalog_with_source_and_progress, load_subnet_catalog_with_source_async,
-    refresh_subnet_catalog, refresh_subnet_catalog_async, refresh_subnet_catalog_with_source,
-    refresh_subnet_catalog_with_source_async, subnet_catalog_path,
+    load_subnet_catalog, load_subnet_catalog_detailed, load_subnet_catalog_detailed_with_progress,
+    load_subnet_catalog_detailed_with_source, load_subnet_catalog_with_source,
+    refresh_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_path,
     subnet_catalog_refresh_lock_path,
 };
 #[cfg(feature = "subnet-catalog-host")]

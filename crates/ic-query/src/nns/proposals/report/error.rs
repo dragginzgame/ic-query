@@ -6,9 +6,7 @@
 
 use crate::nns::governance::{NnsGovernanceError, NnsGovernanceSourceProvenance};
 #[cfg(feature = "nns-host")]
-use crate::{
-    HostCacheError, nns::governance::NnsGovernanceAttemptReadError, runtime::RuntimeError,
-};
+use crate::{HostCacheError, nns::governance::NnsGovernanceAttemptReadError};
 #[cfg(feature = "nns-host")]
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
@@ -215,10 +213,6 @@ pub enum NnsProposalHostError {
         /// Snapshot validation diagnostic.
         reason: String,
     },
-
-    /// The native runtime bridge could not execute the query.
-    #[error("failed to create Tokio runtime for NNS proposal query: {0}")]
-    Runtime(#[from] RuntimeError),
 }
 
 #[cfg(feature = "nns-host")]

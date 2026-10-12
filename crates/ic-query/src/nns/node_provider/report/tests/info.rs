@@ -1,7 +1,7 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn node_provider_info_resolves_exact_principal() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_provider_info_resolves_exact_principal() {
     let request = NnsInventoryInfoRequest {
         cache: test_cache_request(MAINNET_NETWORK, "info-exact"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -18,6 +18,7 @@ fn node_provider_info_resolves_exact_principal() {
             }],
         },
     )
+    .await
     .expect("node provider info");
 
     assert_eq!(report.input, "ryjl3-tyaaa-aaaaa-aaaba-cai");

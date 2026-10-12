@@ -19,22 +19,27 @@ const MAX_DATA_CENTER_ID_BYTES: usize = 128;
 const MAX_DOMAIN_BYTES: usize = 253;
 
 /// Build one live CloudEngine operator report for a Subnet principal.
-pub fn build_cloud_engine_operator_report(
+pub async fn build_cloud_engine_operator_report(
     request: &CloudEngineSourceRequest,
     subnet_id: &str,
 ) -> Result<CloudEngineOperatorReport, CloudEngineHostError> {
-    build_cloud_engine_operator_report_with_source(request, subnet_id, &LiveCloudEngineSource)
+    build_cloud_engine_operator_report_with_source(
+        request,
+        subnet_id,
+        &LiveCloudEngineSource::default(),
+    )
+    .await
 }
 
 /// Build one CloudEngine operator report from a custom source.
-pub fn build_cloud_engine_operator_report_with_source(
+pub async fn build_cloud_engine_operator_report_with_source(
     request: &CloudEngineSourceRequest,
     subnet_id: &str,
     source: &dyn CloudEngineSource,
 ) -> Result<CloudEngineOperatorReport, CloudEngineHostError> {
     enforce_mainnet_network(&request.network)?;
     let subnet_id = canonical_principal("subnet_id", subnet_id)?;
-    let mut source = source.fetch_operator(request, &subnet_id)?;
+    let mut source = source.fetch_operator(request, &subnet_id).await?;
     validate_source_request(request, &source.source)?;
     validate_principal_match("subnet_id", &subnet_id, &source.subnet_id)?;
     validate_operator_source(&mut source)?;
@@ -53,19 +58,19 @@ pub fn build_cloud_engine_operator_report_with_source(
 }
 
 /// Build one live bounded CloudEngine marketplace report.
-pub fn build_cloud_engine_prices_report(
+pub async fn build_cloud_engine_prices_report(
     request: &CloudEngineSourceRequest,
 ) -> Result<CloudEnginePricesReport, CloudEngineHostError> {
-    build_cloud_engine_prices_report_with_source(request, &LiveCloudEngineSource)
+    build_cloud_engine_prices_report_with_source(request, &LiveCloudEngineSource::default()).await
 }
 
 /// Build one bounded CloudEngine marketplace report from a custom source.
-pub fn build_cloud_engine_prices_report_with_source(
+pub async fn build_cloud_engine_prices_report_with_source(
     request: &CloudEngineSourceRequest,
     source: &dyn CloudEngineSource,
 ) -> Result<CloudEnginePricesReport, CloudEngineHostError> {
     enforce_mainnet_network(&request.network)?;
-    let mut source = source.fetch_prices(request)?;
+    let mut source = source.fetch_prices(request).await?;
     validate_source_request(request, &source.source)?;
     validate_prices_source(&mut source)?;
 

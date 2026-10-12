@@ -4,7 +4,7 @@
 //! Does not own: native ledger calls, report projection, bounds policy, or rendering.
 //! Boundary: fetches one selected ledger resource without pagination or follow-up calls.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountKind, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueQuery, IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow,
@@ -15,86 +15,96 @@ use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcIcrcAnalyticsSource for LiveIcSource {
-    fn fetch_indexed_count(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
+    fn fetch_indexed_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
         kind: IcIcrcIndexedCountKind,
-    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError> {
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: IndexedCount = fetch_live(indexed_count_url(
-            &request.endpoint,
-            &ledger_canister_id,
-            kind,
-        )?)?;
-        Ok(IcIcrcIndexedCountSourceData {
-            source: request.clone(),
-            ledger_canister_id,
-            kind,
-            total: wire.total,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcIndexedCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let wire: IndexedCount = self
+                .fetch_live(indexed_count_url(
+                    &request.endpoint,
+                    &ledger_canister_id,
+                    kind,
+                )?)
+                .await?;
+            Ok(IcIcrcIndexedCountSourceData {
+                source: request.clone(),
+                ledger_canister_id,
+                kind,
+                total: wire.total,
+            })
         })
     }
 
-    fn fetch_token_value_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTokenValueQuery,
-    ) -> Result<IcIcrcTokenValueSourceData, IcHostError> {
-        source::validate_icrc_token_value_query(query)?;
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let wire: TokenValueSeries = fetch_live(token_value_url(
-            &request.endpoint,
-            &ledger_canister_id,
-            query,
-        )?)?;
-        Ok(IcIcrcTokenValueSourceData {
-            source: request.clone(),
-            ledger_canister_id: wire.ledger_canister_id,
-            query: query.clone(),
-            rows: wire
-                .data
-                .into_iter()
-                .map(|row| IcIcrcTokenValueSourceRow {
-                    price: row.price,
-                    volume_24h: row.volume_24h,
-                    price_usd: row.price_usd,
-                    volume_24h_usd: row.volume_24h_usd,
-                    source: row.source,
-                    source_url: row.source_url,
-                    timestamp_unix_secs: row.timestamp,
-                })
-                .collect(),
+    fn fetch_token_value_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTokenValueQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTokenValueSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_icrc_token_value_query(query)?;
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let wire: TokenValueSeries = self
+                .fetch_live(token_value_url(
+                    &request.endpoint,
+                    &ledger_canister_id,
+                    query,
+                )?)
+                .await?;
+            Ok(IcIcrcTokenValueSourceData {
+                source: request.clone(),
+                ledger_canister_id: wire.ledger_canister_id,
+                query: query.clone(),
+                rows: wire
+                    .data
+                    .into_iter()
+                    .map(|row| IcIcrcTokenValueSourceRow {
+                        price: row.price,
+                        volume_24h: row.volume_24h,
+                        price_usd: row.price_usd,
+                        volume_24h_usd: row.volume_24h_usd,
+                        source: row.source,
+                        source_url: row.source_url,
+                        timestamp_unix_secs: row.timestamp,
+                    })
+                    .collect(),
+            })
         })
     }
 
-    fn fetch_total_supply_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTotalSupplyQuery,
-    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError> {
-        source::validate_icrc_total_supply_query(query)?;
-        let ledger_canister_id =
-            source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-        let url = total_supply_url(&request.endpoint, &ledger_canister_id, query)?;
-        let wire: TotalSupplySeries = fetch_live(url)?;
-        Ok(IcIcrcTotalSupplySourceData {
-            source: request.clone(),
-            ledger_canister_id,
-            query: query.clone(),
-            observations: wire
-                .data
-                .into_iter()
-                .map(|(timestamp_unix_secs, total_supply_base_units)| {
-                    IcIcrcTotalSupplyObservation {
-                        timestamp_unix_secs,
-                        total_supply_base_units,
-                    }
-                })
-                .collect(),
+    fn fetch_total_supply_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTotalSupplyQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTotalSupplySourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_icrc_total_supply_query(query)?;
+            let ledger_canister_id =
+                source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
+            let url = total_supply_url(&request.endpoint, &ledger_canister_id, query)?;
+            let wire: TotalSupplySeries = self.fetch_live(url).await?;
+            Ok(IcIcrcTotalSupplySourceData {
+                source: request.clone(),
+                ledger_canister_id,
+                query: query.clone(),
+                observations: wire
+                    .data
+                    .into_iter()
+                    .map(|(timestamp_unix_secs, total_supply_base_units)| {
+                        IcIcrcTotalSupplyObservation {
+                            timestamp_unix_secs,
+                            total_supply_base_units,
+                        }
+                    })
+                    .collect(),
+            })
         })
     }
 }

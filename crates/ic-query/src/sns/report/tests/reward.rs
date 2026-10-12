@@ -1,8 +1,8 @@
 use crate::sns::report::source::validate_mainnet_sns_neuron;
 use crate::sns::report::tests::{fixtures::*, *};
 
-#[test]
-fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
+#[tokio::test(flavor = "current_thread")]
+async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
     let mut row = fixture_reward_row(1);
     row.disburse_maturity_in_progress = fixture_sns_neuron().detail.disburse_maturity_in_progress;
     let (mint, staking) = row.derived_policy_observations();
@@ -12,6 +12,7 @@ fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
         &reward_checkpoint_request("1"),
         &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
     )
+    .await
     .expect("valid variable evidence");
     let mutations: [fn(&mut SnsRewardCheckpointRow); 8] = [
         |row| row.permissions[0].principal = Some("invalid".to_string()),
@@ -75,8 +76,8 @@ fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
     }
 }
 
-#[test]
-fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_principals() {
+#[tokio::test(flavor = "current_thread")]
+async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_principals() {
     let mut row = fixture_reward_row(1);
     row.permissions[0].permission_types = [0, 11, -1]
         .map(SnsNeuronPermissionValue::from_code)
@@ -89,6 +90,7 @@ fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_pri
         &reward_checkpoint_request("1"),
         &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
     )
+    .await
     .expect("checkpoint preserves incomplete and unknown evidence");
     validate_sns_reward_checkpoint_report(&report).expect("restored evidence remains valid");
     assert_eq!(
@@ -110,14 +112,15 @@ fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_pri
         .expect("detail preserves unknown permission codes with canonical labels");
 }
 
-#[test]
-fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order() {
+#[tokio::test(flavor = "current_thread")]
+async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order() {
     let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(
         vec![fixture_reward_row(1), fixture_reward_row(2)],
         None,
     )]);
     let report =
         build_sns_reward_checkpoint_report_with_source(&reward_checkpoint_request("1"), &source)
+            .await
             .expect("stable checkpoint");
     let text = sns_reward_checkpoint_report_text(&report);
 
@@ -154,13 +157,13 @@ fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order() {
     assert!(!text.contains(&report.rows[0].neuron_id));
 }
 
-#[test]
-fn reward_checkpoint_rejects_invalid_request_before_source_access() {
+#[tokio::test(flavor = "current_thread")]
+async fn reward_checkpoint_rejects_invalid_request_before_source_access() {
     let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(Vec::new(), None)]);
     let mut request = reward_checkpoint_request("1");
     request.network = "local".to_string();
     assert!(matches!(
-        build_sns_reward_checkpoint_report_with_source(&request, &source),
+        build_sns_reward_checkpoint_report_with_source(&request, &source).await,
         Err(SnsHostError::UnsupportedNetwork { network }) if network == "local"
     ));
     assert_eq!(source.calls(), Vec::<&str>::new());
@@ -168,14 +171,14 @@ fn reward_checkpoint_rejects_invalid_request_before_source_access() {
     let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(Vec::new(), None)]);
     let request = reward_checkpoint_request("1").with_max_pages(Some(0));
     assert!(matches!(
-        build_sns_reward_checkpoint_report_with_source(&request, &source),
+        build_sns_reward_checkpoint_report_with_source(&request, &source).await,
         Err(SnsHostError::InvalidRewardCheckpointPageCap { max_pages: 0 })
     ));
     assert_eq!(source.calls(), Vec::<&str>::new());
 }
 
-#[test]
-fn live_reward_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_reward_source_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new(
         "local",
         "not a valid endpoint",
@@ -185,17 +188,21 @@ fn live_reward_source_rejects_non_mainnet_before_agent_construction() {
     let sns = fixture_sns_a();
 
     let errors = [
-        LiveSnsSource
+        LiveSnsSource::default()
             .fetch_sns_reward_running_version(&request, &sns)
+            .await
             .expect_err("running-version source must reject non-mainnet"),
-        LiveSnsSource
+        LiveSnsSource::default()
             .fetch_sns_reward_parameters(&request, &sns)
+            .await
             .expect_err("parameter source must reject non-mainnet"),
-        LiveSnsSource
+        LiveSnsSource::default()
             .fetch_sns_reward_event(&request, &sns)
+            .await
             .expect_err("reward-event source must reject non-mainnet"),
-        LiveSnsSource
+        LiveSnsSource::default()
             .fetch_sns_reward_neuron_page(&request, &sns, SNS_REWARD_CHECKPOINT_PAGE_SIZE, None)
+            .await
             .expect_err("neuron-page source must reject non-mainnet"),
     ];
 
@@ -205,8 +212,8 @@ fn live_reward_source_rejects_non_mainnet_before_agent_construction() {
     )));
 }
 
-#[test]
-fn reward_checkpoint_rejects_any_changed_complete_bracket() {
+#[tokio::test(flavor = "current_thread")]
+async fn reward_checkpoint_rejects_any_changed_complete_bracket() {
     for (component, expected) in [
         ("parameters", "nervous-system parameters"),
         ("event", "reward event"),
@@ -220,7 +227,7 @@ fn reward_checkpoint_rejects_any_changed_complete_bracket() {
             build_sns_reward_checkpoint_report_with_source(
                 &reward_checkpoint_request("1"),
                 &source,
-            ),
+            ).await,
             Err(SnsHostError::UnstableRewardCheckpoint { component }) if component == expected
         ));
     }
@@ -280,8 +287,8 @@ fn reward_checkpoint_rejects_overlap_and_noncanonical_cursor_evidence() {
     ));
 }
 
-#[test]
-fn reward_checkpoint_rejects_diagnostic_cap_before_exhaustion() {
+#[tokio::test(flavor = "current_thread")]
+async fn reward_checkpoint_rejects_diagnostic_cap_before_exhaustion() {
     let rows = (1..=100).map(fixture_reward_row).collect::<Vec<_>>();
     let source = FixtureSnsRewardSource::new(vec![
         fixture_reward_page(rows, Some(SnsNeuronId { id: vec![100; 32] })),
@@ -290,7 +297,7 @@ fn reward_checkpoint_rejects_diagnostic_cap_before_exhaustion() {
     let request = reward_checkpoint_request("1").with_max_pages(Some(1));
 
     assert!(matches!(
-        build_sns_reward_checkpoint_report_with_source(&request, &source),
+        build_sns_reward_checkpoint_report_with_source(&request, &source).await,
         Err(SnsHostError::IncompleteRewardCheckpoint {
             pages_fetched: 1,
             rows_fetched: 100,
@@ -299,8 +306,8 @@ fn reward_checkpoint_rejects_diagnostic_cap_before_exhaustion() {
     ));
 }
 
-#[test]
-fn reward_checkpoint_enforces_parameter_derived_collection_ceiling() {
+#[tokio::test(flavor = "current_thread")]
+async fn reward_checkpoint_enforces_parameter_derived_collection_ceiling() {
     for ceiling in [None, Some(0), Some(200_001)] {
         let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(Vec::new(), None)])
             .with_max_number_of_neurons(ceiling);
@@ -308,7 +315,7 @@ fn reward_checkpoint_enforces_parameter_derived_collection_ceiling() {
             build_sns_reward_checkpoint_report_with_source(
                 &reward_checkpoint_request("1"),
                 &source,
-            ),
+            ).await,
             Err(SnsHostError::InvalidRewardCheckpointCeiling { value, maximum: 200_000 })
                 if value == ceiling
         ));
@@ -320,7 +327,7 @@ fn reward_checkpoint_enforces_parameter_derived_collection_ceiling() {
     )])
     .with_max_number_of_neurons(Some(1));
     assert!(matches!(
-        build_sns_reward_checkpoint_report_with_source(&reward_checkpoint_request("1"), &source),
+        build_sns_reward_checkpoint_report_with_source(&reward_checkpoint_request("1"), &source).await,
         Err(SnsHostError::InvalidSourceData { reason, .. })
             if reason.contains("above mandatory ceiling 1")
     ));

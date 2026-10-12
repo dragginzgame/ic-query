@@ -6,8 +6,8 @@
 
 use super::*;
 
-#[test]
-fn replay_applies_committed_batches_in_order_and_tracks_current_state() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_applies_committed_batches_in_order_and_tracks_current_state() {
     let limits = NnsRegistryReplayLimits::new(10, 100);
     let mut state = NnsRegistryReplayState::new();
     let first_request = request(0);
@@ -73,8 +73,8 @@ fn replay_applies_committed_batches_in_order_and_tracks_current_state() {
     );
 }
 
-#[test]
-fn replay_applies_repeated_committed_keys_in_stable_order() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_applies_repeated_committed_keys_in_stable_order() {
     let limits = NnsRegistryReplayLimits::new(10, 100);
     let request = request(0);
     let report = report(
@@ -127,8 +127,8 @@ fn replay_applies_repeated_committed_keys_in_stable_order() {
     assert!(rejected.is_empty());
 }
 
-#[test]
-fn replay_ignores_retained_content_on_a_committed_delete() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_ignores_retained_content_on_a_committed_delete() {
     let limits = NnsRegistryReplayLimits::new(10, 100);
     let first_request = request(0);
     let first = report(
@@ -169,8 +169,8 @@ fn replay_ignores_retained_content_on_a_committed_delete() {
     assert_eq!(state.content_bytes(), 0);
 }
 
-#[test]
-fn replay_rejects_version_mismatch_and_rolls_back_limit_failure() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_rejects_version_mismatch_and_rolls_back_limit_failure() {
     let generous = NnsRegistryReplayLimits::new(10, 100);
     let first_request = request(0);
     let first = report(
@@ -356,8 +356,8 @@ fn replay_session_pins_its_first_target_and_ignores_newer_mutations() {
     ));
 }
 
-#[test]
-fn replay_session_publishes_provenance_atomically() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_session_publishes_provenance_atomically() {
     let fixture = provenance_fixture();
     let mut session = NnsRegistryReplaySession::new(fixture.limits);
 
@@ -451,8 +451,8 @@ fn replay_session_publishes_provenance_atomically() {
     assert!(session.is_complete());
 }
 
-#[test]
-fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
     let baseline = complete_provenance_session(false);
     let evidence_digest = baseline
         .evidence_chain_digest()
@@ -479,8 +479,8 @@ fn replay_session_provenance_digests_are_deterministic_and_domain_stable() {
     );
 }
 
-#[test]
-fn reauthenticated_batches_build_one_complete_authenticated_session() {
+#[tokio::test(flavor = "current_thread")]
+async fn reauthenticated_batches_build_one_complete_authenticated_session() {
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
@@ -509,8 +509,8 @@ fn reauthenticated_batches_build_one_complete_authenticated_session() {
     assert!(session.complete_state_digest().is_some());
 }
 
-#[test]
-fn reauthenticated_replay_builder_rejects_incomplete_and_over_limit_sequences() {
+#[tokio::test(flavor = "current_thread")]
+async fn reauthenticated_replay_builder_rejects_incomplete_and_over_limit_sequences() {
     let fixture = provenance_fixture();
     let empty = NnsAuthenticatedRegistryReplayBuilder::new(fixture.limits);
     let error = empty
@@ -547,8 +547,8 @@ fn reauthenticated_replay_builder_rejects_incomplete_and_over_limit_sequences() 
     assert_eq!(builder.replay_session().batch_count(), 1);
 }
 
-#[test]
-fn replay_session_fails_atomically_on_cumulative_limits() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_session_fails_atomically_on_cumulative_limits() {
     let request = request(0);
     let report = report(
         &request,
@@ -611,8 +611,8 @@ fn replay_session_fails_atomically_on_cumulative_limits() {
     }
 }
 
-#[test]
-fn replay_session_rejects_regressing_target_and_changed_root_key() {
+#[tokio::test(flavor = "current_thread")]
+async fn replay_session_rejects_regressing_target_and_changed_root_key() {
     let limits =
         NnsRegistryReplaySessionLimits::new(3, 3, 3, 192, NnsRegistryReplayLimits::new(10, 100));
     let first_request = request(0);

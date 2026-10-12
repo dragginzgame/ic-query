@@ -26,10 +26,14 @@ const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC2_ALLOWANCE_METHOD: &str = "icrc2_allowance";
 
 pub(in crate::icrc::live) async fn fetch_token_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
 ) -> Result<IcrcTokenData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     Box::pin(fetch_icrc1_token_metadata::<IcrcError>(
         &agent,
         &ledger_canister,
@@ -39,10 +43,14 @@ pub(in crate::icrc::live) async fn fetch_token_async(
 }
 
 pub(in crate::icrc::live) async fn fetch_balance_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcBalanceRequest,
 ) -> Result<IcrcBalanceData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let account = account_from_parts(
         &request.account_owner,
         request.subaccount_hex.as_deref(),
@@ -65,10 +73,14 @@ pub(in crate::icrc::live) async fn fetch_balance_async(
 }
 
 pub(in crate::icrc::live) async fn fetch_allowance_async(
+    source: &crate::icrc::LiveIcrcSource,
     request: &IcrcAllowanceRequest,
 ) -> Result<IcrcAllowanceData, IcrcError> {
-    let (agent, ledger_canister) =
-        live_query_context(&request.source_endpoint, &request.ledger_canister_id)?;
+    let (agent, ledger_canister) = live_query_context(
+        source,
+        &request.source_endpoint,
+        &request.ledger_canister_id,
+    )?;
     let allowance_args = IcrcAllowanceArgs {
         account: account_from_parts(
             &request.account_owner,

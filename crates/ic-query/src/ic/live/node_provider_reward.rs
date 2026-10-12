@@ -4,7 +4,7 @@
 //! Does not own: report validation, CLI parsing, provenance projection, or rendering.
 //! Boundary: performs one page, one exact record, or one bounded history request.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryQuery,
     IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
@@ -19,51 +19,63 @@ use url::Url;
 const MAX_EXACT_JSON_FLOAT_INTEGER: u64 = (1_u64 << 53) - 1;
 
 impl IcNodeProviderRewardSource for LiveIcSource {
-    fn fetch_node_provider_reward_list(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcNodeProviderRewardListQuery,
-    ) -> Result<IcNodeProviderRewardListSourceData, IcHostError> {
-        source::validate_node_provider_reward_list_query(query)?;
-        let url = node_provider_reward_list_url(&request.endpoint, query)?;
-        let wire: DashboardNodeProviderRewardList = fetch_live(url)?;
-        wire.into_source_data(request, query)
-    }
-
-    fn fetch_node_provider_reward_info(
-        &self,
-        request: &IcSourceRequest,
-        reward_id: u64,
-    ) -> Result<IcNodeProviderRewardInfoSourceData, IcHostError> {
-        let url = node_provider_reward_info_url(&request.endpoint, reward_id)?;
-        let wire: DashboardNodeProviderReward = fetch_live(url)?;
-        Ok(IcNodeProviderRewardInfoSourceData {
-            source: request.clone(),
-            reward: wire.into_public()?,
+    fn fetch_node_provider_reward_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardListSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            source::validate_node_provider_reward_list_query(query)?;
+            let url = node_provider_reward_list_url(&request.endpoint, query)?;
+            let wire: DashboardNodeProviderRewardList = self.fetch_live(url).await?;
+            wire.into_source_data(request, query)
         })
     }
 
-    fn fetch_node_provider_reward_history(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcNodeProviderRewardHistoryQuery,
-    ) -> Result<IcNodeProviderRewardHistorySourceData, IcHostError> {
-        source::validate_node_provider_reward_history_query(query)?;
-        let url = node_provider_reward_history_url(&request.endpoint, query)?;
-        let wire: DashboardNodeProviderRewardHistory = fetch_live(url)?;
-        Ok(IcNodeProviderRewardHistorySourceData {
-            source: request.clone(),
-            query: query.clone(),
-            observations: wire
-                .reward_node_providers
-                .into_iter()
-                .map(|[amount, timestamp]| {
-                    Ok(IcNodeProviderRewardHistoryObservation {
-                        timestamp_unix_secs: number_to_u64("reward history timestamp", timestamp)?,
-                        amount_e8s: number_to_u64("reward history amount_e8s", amount)?,
+    fn fetch_node_provider_reward_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        reward_id: u64,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardInfoSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            let url = node_provider_reward_info_url(&request.endpoint, reward_id)?;
+            let wire: DashboardNodeProviderReward = self.fetch_live(url).await?;
+            Ok(IcNodeProviderRewardInfoSourceData {
+                source: request.clone(),
+                reward: wire.into_public()?,
+            })
+        })
+    }
+
+    fn fetch_node_provider_reward_history<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardHistoryQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardHistorySourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            source::validate_node_provider_reward_history_query(query)?;
+            let url = node_provider_reward_history_url(&request.endpoint, query)?;
+            let wire: DashboardNodeProviderRewardHistory = self.fetch_live(url).await?;
+            Ok(IcNodeProviderRewardHistorySourceData {
+                source: request.clone(),
+                query: query.clone(),
+                observations: wire
+                    .reward_node_providers
+                    .into_iter()
+                    .map(|[amount, timestamp]| {
+                        Ok(IcNodeProviderRewardHistoryObservation {
+                            timestamp_unix_secs: number_to_u64(
+                                "reward history timestamp",
+                                timestamp,
+                            )?,
+                            amount_e8s: number_to_u64("reward history amount_e8s", amount)?,
+                        })
                     })
-                })
-                .collect::<Result<_, IcHostError>>()?,
+                    .collect::<Result<_, IcHostError>>()?,
+            })
         })
     }
 }

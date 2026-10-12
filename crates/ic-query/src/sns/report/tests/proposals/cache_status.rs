@@ -1,12 +1,13 @@
 use super::*;
 
-#[test]
-fn sns_proposals_refresh_rejects_invalid_public_page_size() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_refresh_rejects_invalid_public_page_size() {
     let root = temp_dir("ic-query-sns-proposals-invalid-page-size");
     let mut request = sns_proposals_refresh_request(&root, None);
     request.page_size = 0;
 
     let err = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect_err("zero page size is invalid");
 
     assert!(matches!(
@@ -21,40 +22,43 @@ struct PagedSnsProposalsSource;
 delegate_sns_discovery!(PagedSnsProposalsSource);
 
 impl SnsProposalsSource for PagedSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        unreachable!("refresh does not use bounded proposal fetch")
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move { unreachable!("refresh does not use bounded proposal fetch") })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(limit, 1);
-        assert_eq!(before_proposal_id, None);
-        Ok(MainnetSnsProposalPage {
-            proposals: vec![fixture_proposal_row()],
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(limit, 1);
+            assert_eq!(before_proposal_id, None);
+            Ok(MainnetSnsProposalPage {
+                proposals: vec![fixture_proposal_row()],
+            })
         })
     }
 }
 
-#[test]
-fn sns_proposals_failed_refresh_preserves_page_progress() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_failed_refresh_preserves_page_progress() {
     let root = temp_dir("ic-query-sns-proposals-failed-progress");
     let mut request = sns_proposals_refresh_request(&root, Some(1));
     request.page_size = 1;
 
     let err = refresh_sns_proposals_cache_with_source(&request, &PagedSnsProposalsSource)
+        .await
         .expect_err("capped refresh is incomplete");
 
     assert!(matches!(
@@ -92,12 +96,13 @@ fn sns_proposals_failed_refresh_preserves_page_progress() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let root = temp_dir("ic-query-sns-proposals-refresh");
     let request = sns_proposals_refresh_request(&root, None);
 
     let refresh = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
+        .await
         .expect("refresh proposals");
     let cache_path = std::path::PathBuf::from(&refresh.cache_path);
     let attempt_path = std::path::PathBuf::from(&refresh.refresh_attempt_path);
@@ -234,10 +239,10 @@ fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best_effort() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best_effort() {
     let root = temp_dir("ic-query-sns-proposals-cached-malformed-attempt");
-    refresh_fixture_sns_proposals_cache(&root);
+    refresh_fixture_sns_proposals_cache(&root).await;
     let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     fs::write(&attempt_path, "{").unwrap();
 
@@ -264,10 +269,10 @@ fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best_effor
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn sns_proposals_cache_status_reports_snapshot_identity_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cache_status_reports_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-sns-proposals-status-identity-mismatch");
-    let cache_path = refresh_fixture_sns_proposals_cache(&root);
+    let cache_path = refresh_fixture_sns_proposals_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["entity"] = serde_json::json!("wrong-root");
@@ -282,10 +287,10 @@ fn sns_proposals_cache_status_reports_snapshot_identity_mismatch() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cache_status_reports_unsupported_schema() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cache_status_reports_unsupported_schema() {
     let root = temp_dir("ic-query-sns-proposals-status-unsupported-schema");
-    let cache_path = refresh_fixture_sns_proposals_cache(&root);
+    let cache_path = refresh_fixture_sns_proposals_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
     cache["schema_version"] = serde_json::json!(999);
@@ -300,8 +305,8 @@ fn sns_proposals_cache_status_reports_unsupported_schema() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
     for (case, mutate, expected_error) in [
         (
             "action",
@@ -326,7 +331,7 @@ fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
         ),
     ] {
         let root = temp_dir(&format!("ic-query-sns-proposals-status-{case}"));
-        let cache_path = refresh_fixture_sns_proposals_cache(&root);
+        let cache_path = refresh_fixture_sns_proposals_cache(&root).await;
         let mut cache: serde_json::Value =
             serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
                 .expect("parse cache");
@@ -342,8 +347,8 @@ fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
     }
 }
 
-#[test]
-fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
     for (field, value, expected_error) in [
         (
             "unexpected",
@@ -357,7 +362,7 @@ fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
         ),
     ] {
         let root = temp_dir(&format!("ic-query-sns-proposals-status-{field}"));
-        let cache_path = refresh_fixture_sns_proposals_cache(&root);
+        let cache_path = refresh_fixture_sns_proposals_cache(&root).await;
         let mut cache: serde_json::Value =
             serde_json::from_slice(&fs::read(&cache_path).expect("read cache"))
                 .expect("parse cache");
@@ -377,10 +382,10 @@ fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
     }
 }
 
-#[test]
-fn sns_proposals_cache_status_reports_malformed_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cache_status_reports_malformed_json() {
     let root = temp_dir("ic-query-sns-proposals-status-malformed-json");
-    let cache_path = refresh_fixture_sns_proposals_cache(&root);
+    let cache_path = refresh_fixture_sns_proposals_cache(&root).await;
     fs::write(&cache_path, "{").expect("write malformed cache");
 
     assert_invalid_sns_proposals_cache_status(&root, "failed to parse SNS cache");
@@ -391,56 +396,67 @@ fn sns_proposals_cache_status_reports_malformed_json() {
 struct SecondSnsProposalsSource;
 
 impl SnsDiscoverySource for SecondSnsProposalsSource {
-    fn fetch_sns_inventory(
-        &self,
-        request: &SnsSourceRequest,
-    ) -> Result<MainnetSnsInventory, SnsHostError> {
-        UnsortedFixtureSnsDiscoverySource.fetch_sns_inventory(request)
+    fn fetch_sns_inventory<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
+        Box::pin(async move {
+            UnsortedFixtureSnsDiscoverySource
+                .fetch_sns_inventory(request)
+                .await
+        })
     }
 
-    fn fetch_sns_metadata(
-        &self,
-        request: &SnsSourceRequest,
-        targets: &[MainnetSnsCanisters],
-    ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
-        UnsortedFixtureSnsDiscoverySource.fetch_sns_metadata(request, targets)
+    fn fetch_sns_metadata<'a>(
+        &'a self,
+        request: &'a SnsSourceRequest,
+        targets: &'a [MainnetSnsCanisters],
+    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
+        Box::pin(async move {
+            UnsortedFixtureSnsDiscoverySource
+                .fetch_sns_metadata(request, targets)
+                .await
+        })
     }
 }
 
 impl SnsProposalsSource for SecondSnsProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        unreachable!("refresh uses proposal pages")
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move { unreachable!("refresh uses proposal pages") })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
         _limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(sns.id, 2);
-        assert_eq!(sns.root_canister_id, ROOT_B);
-        assert_eq!(before_proposal_id, None);
-        Ok(MainnetSnsProposalPage { proposals: vec![] })
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.id, 2);
+            assert_eq!(sns.root_canister_id, ROOT_B);
+            assert_eq!(before_proposal_id, None);
+            Ok(MainnetSnsProposalPage { proposals: vec![] })
+        })
     }
 }
 
-#[test]
-fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files() {
     for input in ["2", ROOT_B] {
         let root = temp_dir("ic-query-sns-second-position-refresh");
         let mut request = sns_proposals_refresh_request(&root, None);
         request.input = input.to_string();
         let refresh = refresh_sns_proposals_cache_with_source(&request, &SecondSnsProposalsSource)
+            .await
             .expect("refresh second SNS");
 
         assert_eq!(refresh.id, 2);
@@ -462,6 +478,7 @@ fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files() {
         cached_request.cache_root = Some(root.clone());
         let report =
             build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
+                .await
                 .expect("read second SNS from cache");
         assert_eq!(report.id, refresh.id);
         assert_eq!(report.root_canister_id, ROOT_B);
@@ -476,46 +493,48 @@ struct UnorderedPagedProposalsSource {
 delegate_sns_discovery!(UnorderedPagedProposalsSource);
 
 impl SnsProposalsSource for UnorderedPagedProposalsSource {
-    fn fetch_sns_proposals(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposals<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-        _include_status: &[i32],
+        _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> Result<MainnetSnsProposals, SnsHostError> {
-        unreachable!("refresh uses pages")
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+        Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
-    fn fetch_sns_proposal_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_proposal_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> Result<MainnetSnsProposalPage, SnsHostError> {
-        assert_eq!(limit, 2);
-        let ids = match before_proposal_id {
-            None => vec![20, 30],
-            Some(20) => vec![if self.invalid_second_page { 20 } else { 10 }],
-            other => panic!("unexpected continuation {other:?}"),
-        };
-        Ok(MainnetSnsProposalPage {
-            proposals: ids
-                .into_iter()
-                .map(|id| {
-                    let mut row = fixture_proposal_row();
-                    row.proposal_id = id;
-                    row
-                })
-                .collect(),
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(limit, 2);
+            let ids = match before_proposal_id {
+                None => vec![20, 30],
+                Some(20) => vec![if self.invalid_second_page { 20 } else { 10 }],
+                other => panic!("unexpected continuation {other:?}"),
+            };
+            Ok(MainnetSnsProposalPage {
+                proposals: ids
+                    .into_iter()
+                    .map(|id| {
+                        let mut row = fixture_proposal_row();
+                        row.proposal_id = id;
+                        row
+                    })
+                    .collect(),
+            })
         })
     }
 }
 
-#[test]
-fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
     let root = temp_dir("ic-query-sns-proposals-page-boundary");
     let mut request = sns_proposals_refresh_request(&root, None);
     request.page_size = 2;
@@ -525,6 +544,7 @@ fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
             invalid_second_page: false,
         },
     )
+    .await
     .unwrap();
     assert_eq!(report.proposal_count, 3);
     let path = sns_proposals_cache_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -535,6 +555,7 @@ fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
             invalid_second_page: true,
         },
     )
+    .await
     .expect_err("exclusive cursor rejects overlap even on a terminal page");
     assert!(matches!(
         error,

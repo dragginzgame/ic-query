@@ -1,10 +1,11 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     let request = token_request("1");
 
     let report = build_sns_token_report_with_source(&request, &FixtureSnsTokenSource)
+        .await
         .expect("sns token report");
     let text = sns_token_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize SNS token report");

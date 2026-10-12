@@ -12,21 +12,23 @@ use crate::nns::{
     },
 };
 
-pub fn build_nns_topology_versions_report(
+pub async fn build_nns_topology_versions_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
-    build_nns_topology_versions_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_versions_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_versions_report_with_source(
+pub async fn build_nns_topology_versions_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
     enforce_mainnet_network(&request.network)?;
 
     let source_request = topology_source_request_from(request);
-    let subnet_report = source.fetch_subnet_catalog_list_report(&source_request)?;
-    let reports = fetch_topology_inventory_reports(&source_request, source)?;
+    let subnet_report = source
+        .fetch_subnet_catalog_list_report(&source_request)
+        .await?;
+    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
     let registry_versions = topology_registry_versions(
         &subnet_report,
         &reports.node,
@@ -44,32 +46,32 @@ pub fn build_nns_topology_versions_report_with_source(
     })
 }
 
-pub fn build_nns_topology_coverage_report(
+pub async fn build_nns_topology_coverage_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
-    build_nns_topology_coverage_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_coverage_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_coverage_report_with_source(
+pub async fn build_nns_topology_coverage_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
-    let summary = build_nns_topology_summary_report_with_source(request, source)?;
+    let summary = build_nns_topology_summary_report_with_source(request, source).await?;
 
     Ok(topology_coverage_report_from_summary(summary))
 }
 
-pub fn build_nns_topology_check_report(
+pub async fn build_nns_topology_check_report(
     request: &NnsTopologyReadRequest,
 ) -> Result<NnsTopologyCheckReport, NnsTopologyHostError> {
-    build_nns_topology_check_report_with_source(request, &LiveNnsSource)
+    build_nns_topology_check_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_topology_check_report_with_source(
+pub async fn build_nns_topology_check_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCheckReport, NnsTopologyHostError> {
-    let summary = build_nns_topology_summary_report_with_source(request, source)?;
+    let summary = build_nns_topology_summary_report_with_source(request, source).await?;
 
     Ok(topology_check_report_from_summary(summary))
 }

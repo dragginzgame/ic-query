@@ -11,17 +11,21 @@ use crate::sns::report::{
 };
 
 /// Build a live bounded swap report for one deployed SNS.
-pub fn build_sns_swap_report(request: &SnsLookupRequest) -> Result<SnsSwapReport, SnsHostError> {
-    build_sns_swap_report_with_source(request, &LiveSnsSource)
+pub async fn build_sns_swap_report(
+    request: &SnsLookupRequest,
+) -> Result<SnsSwapReport, SnsHostError> {
+    build_sns_swap_report_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Build a bounded swap report through a custom SNS source capability.
-pub fn build_sns_swap_report_with_source(
+pub async fn build_sns_swap_report_with_source(
     request: &SnsLookupRequest,
     source: &dyn SnsSwapSource,
 ) -> Result<SnsSwapReport, SnsHostError> {
-    let lookup = resolve_sns_lookup(request, source)?;
-    let mut swap = source.fetch_sns_swap(&lookup.fetch_request, &lookup.sns)?;
+    let lookup = resolve_sns_lookup(request, source).await?;
+    let mut swap = source
+        .fetch_sns_swap(&lookup.fetch_request, &lookup.sns)
+        .await?;
     canonicalize_mainnet_sns_swap(&mut swap, &lookup.sns.swap_canister_id)?;
     Ok(sns_swap_report_from_parts(
         lookup.fetch_request,

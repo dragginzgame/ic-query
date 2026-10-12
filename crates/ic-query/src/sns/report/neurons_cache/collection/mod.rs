@@ -20,7 +20,7 @@ use crate::{
 };
 
 /// Fetch every neuron page required for a complete SNS neuron snapshot.
-pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
+pub(in crate::sns::report::neurons_cache) async fn fetch_complete_sns_neurons(
     context: SnsRefreshContext<'_>,
     source: &dyn SnsNeuronsSource,
     progress: &mut dyn QueryProgress,
@@ -33,6 +33,7 @@ pub(in crate::sns::report::neurons_cache) fn fetch_complete_sns_neurons(
         },
         progress,
     )
+    .await
 }
 
 ///
@@ -68,34 +69,41 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
         )
     }
 
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let mut page = self.source.fetch_sns_neuron_page(
-            self.context.fetch_request,
-            self.context.sns,
-            self.context.request.page_size(),
-            self.pages.next_cursor(),
-            None,
-        )?;
-        validate_mainnet_sns_neuron_page(
-            &page,
-            self.context.request.page_size(),
-            self.pages.next_cursor(),
-        )?;
-        let page_len = page.neurons.len();
-        // Ordered pages can repeat only the requested boundary; retain its first observation.
-        if let Some(cursor) = self.pages.next_cursor()
-            && page
-                .neurons
-                .first()
-                .is_some_and(|neuron| neuron.neuron_id == hex_bytes(&cursor.id))
-        {
-            page.neurons.remove(0);
-        }
-        Ok(self
-            .pages
-            .ingest_page(page.neurons, page_len, page.last_cursor, |cursor| {
-                hex_bytes(&cursor.id)
-            }))
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            let mut page = self
+                .source
+                .fetch_sns_neuron_page(
+                    self.context.fetch_request,
+                    self.context.sns,
+                    self.context.request.page_size(),
+                    self.pages.next_cursor(),
+                    None,
+                )
+                .await?;
+            validate_mainnet_sns_neuron_page(
+                &page,
+                self.context.request.page_size(),
+                self.pages.next_cursor(),
+            )?;
+            let page_len = page.neurons.len();
+            // Ordered pages can repeat only the requested boundary; retain its first observation.
+            if let Some(cursor) = self.pages.next_cursor()
+                && page
+                    .neurons
+                    .first()
+                    .is_some_and(|neuron| neuron.neuron_id == hex_bytes(&cursor.id))
+            {
+                page.neurons.remove(0);
+            }
+            Ok(self
+                .pages
+                .ingest_page(page.neurons, page_len, page.last_cursor, |cursor| {
+                    hex_bytes(&cursor.id)
+                }))
+        })
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

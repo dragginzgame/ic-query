@@ -19,13 +19,13 @@ use ic_query::sns::{
     sns_reward_diff_report_text,
 };
 
-pub(super) fn run_sns_reward(
+pub(super) async fn run_sns_reward(
     matches: &ArgMatches,
     network: &str,
     network_was_explicit: bool,
 ) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("checkpoint", matches)) => run_sns_reward_checkpoint(matches, network),
+        Some(("checkpoint", matches)) => run_sns_reward_checkpoint(matches, network).await,
         Some(("diff", matches)) => {
             if network_was_explicit {
                 return Err(SnsCommandError::Usage(
@@ -47,7 +47,10 @@ fn run_sns_reward_diff(matches: &ArgMatches) -> Result<(), SnsCommandError> {
     write_text_or_json(options.format, &report, sns_reward_diff_report_text)
 }
 
-fn run_sns_reward_checkpoint(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_reward_checkpoint(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     let options = SnsRewardCheckpointOptions::from_matches(matches, network);
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -58,6 +61,6 @@ fn run_sns_reward_checkpoint(matches: &ArgMatches, network: &str) -> Result<(), 
         parts.input,
     )
     .with_max_pages(options.max_pages);
-    let report = build_sns_reward_checkpoint_report(&request)?;
+    let report = build_sns_reward_checkpoint_report(&request).await?;
     write_text_or_json(format, &report, sns_reward_checkpoint_report_text)
 }

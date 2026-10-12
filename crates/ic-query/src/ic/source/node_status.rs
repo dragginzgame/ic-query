@@ -19,12 +19,12 @@ use crate::ic::{
 /// Source contract for one finite official Dashboard node-status snapshot.
 ///
 
-pub trait IcNodeStatusSource {
+pub trait IcNodeStatusSource: Sync {
     /// Fetch the Dashboard's default public-mainnet node resource in one request.
-    fn fetch_node_status_snapshot(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcNodeStatusSourceData, IcHostError>;
+    fn fetch_node_status_snapshot<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeStatusSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn node_status_snapshot_from_source(

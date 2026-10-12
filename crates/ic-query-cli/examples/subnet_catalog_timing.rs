@@ -9,7 +9,8 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let root = std::env::args()
         .nth(1)
         .ok_or("supply a cache directory; every run performs live agreement")?;
@@ -31,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let source = history_source(Path::new(&root));
     let start = Instant::now();
-    let cold = load_subnet_catalog_detailed_with_source(&request, &source)?;
+    let cold = load_subnet_catalog_detailed_with_source(&request, &source).await?;
     println!(
         "acquisition_ms={} version={} calls={} agreement_digest={}",
         start.elapsed().as_millis(),
@@ -45,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let start = Instant::now();
     let cache_only = request.clone().with_policy(CatalogReadPolicy::CacheOnly);
-    let warm = load_subnet_catalog_detailed_with_source(&cache_only, &source)?;
+    let warm = load_subnet_catalog_detailed_with_source(&cache_only, &source).await?;
     println!(
         "reuse_us={} authority_equal={}",
         start.elapsed().as_micros(),
@@ -54,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(source);
     let source = history_source(Path::new(&root));
     let start = Instant::now();
-    let refreshed = load_subnet_catalog_detailed_with_source(&request, &source)?;
+    let refreshed = load_subnet_catalog_detailed_with_source(&request, &source).await?;
     println!(
         "fresh_source_refresh_ms={} version={} calls={} agreement_digest={}",
         start.elapsed().as_millis(),

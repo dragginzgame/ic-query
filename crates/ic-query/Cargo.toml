@@ -95,6 +95,9 @@ tokio = { workspace = true, features = ["rt", "time"], optional = true }
 unicode-width.workspace = true
 url.workspace = true
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "time", "net"] }
+
 [[test]]
 name = "ic_public_api"
 

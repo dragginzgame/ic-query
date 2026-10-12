@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, canisters, or network resources.
 //! Boundary: fetches one bounded metric response and preserves raw observation values.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricSeries, IcMetricSource,
     IcMetricSourceData, IcSourceRequest, source,
@@ -12,24 +12,27 @@ use crate::ic::{
 use url::Url;
 
 impl IcMetricSource for LiveIcSource {
-    fn fetch_metric(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcMetricQuery,
-    ) -> Result<IcMetricSourceData, IcHostError> {
-        source::validate_metric_query(query)?;
-        let url = metric_url(&request.endpoint, query)?;
-        let url_text = url.to_string();
-        let wire: serde_json::Value = fetch_live(url)?;
-        let series =
-            decode_metric_series(wire, query.metric).map_err(|reason| IcHostError::JsonDecode {
-                url: url_text,
-                reason,
+    fn fetch_metric<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcMetricQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcMetricSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_metric_query(query)?;
+            let url = metric_url(&request.endpoint, query)?;
+            let url_text = url.to_string();
+            let wire: serde_json::Value = self.fetch_live(url).await?;
+            let series = decode_metric_series(wire, query.metric).map_err(|reason| {
+                IcHostError::JsonDecode {
+                    url: url_text,
+                    reason,
+                }
             })?;
-        Ok(IcMetricSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            series,
+            Ok(IcMetricSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                series,
+            })
         })
     }
 }

@@ -6,8 +6,8 @@
 
 use super::*;
 
-#[test]
-fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
+#[tokio::test(flavor = "current_thread")]
+async fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
@@ -101,8 +101,8 @@ fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
     );
 }
 
-#[test]
-fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_targets() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_targets() {
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
@@ -208,8 +208,8 @@ fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_target
         .expect("segmented manifest validates");
 }
 
-#[test]
-fn archive_builder_enforces_encoding_limits_before_replay_publication() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_builder_enforces_encoding_limits_before_replay_publication() {
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let first_bytes = u64::try_from(
@@ -266,8 +266,8 @@ fn archive_builder_enforces_encoding_limits_before_replay_publication() {
     assert_eq!(builder.replay_session().state().through_version(), 1);
 }
 
-#[test]
-fn archive_manifest_validation_rejects_tampered_index_fields() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_manifest_validation_rejects_tampered_index_fields() {
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let second = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.second);
@@ -341,8 +341,8 @@ fn archive_manifest_validation_rejects_tampered_index_fields() {
     ));
 }
 
-#[test]
-fn confined_archive_publication_and_sequential_restore_round_trip() {
+#[tokio::test(flavor = "current_thread")]
+async fn confined_archive_publication_and_sequential_restore_round_trip() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-round-trip");
     let archive_root = root.join("nns/ic/registry-certified-v1");
     let fixture = provenance_fixture();
@@ -417,8 +417,8 @@ fn confined_archive_publication_and_sequential_restore_round_trip() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn confined_archive_publisher_resumes_reauthenticated_state_without_rewriting_history() {
+#[tokio::test(flavor = "current_thread")]
+async fn confined_archive_publisher_resumes_reauthenticated_state_without_rewriting_history() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-resume");
     let archive_root = root.join("nns/ic/registry-certified-v2");
     let fixture = provenance_fixture();
@@ -567,8 +567,8 @@ fn assert_constrained_resume_preserves_manifest(
     );
 }
 
-#[test]
-fn failed_archive_manifest_publication_preserves_prior_complete_archive() {
+#[tokio::test(flavor = "current_thread")]
+async fn failed_archive_manifest_publication_preserves_prior_complete_archive() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-preserve");
     let archive_root = root.join("nns/ic/registry-certified-v1");
     let fixture = provenance_fixture();
@@ -630,8 +630,8 @@ fn failed_archive_manifest_publication_preserves_prior_complete_archive() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn archive_restore_rejects_tampered_objects_before_authentication() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_restore_rejects_tampered_objects_before_authentication() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-tamper");
     let archive_root = root.join("nns/ic/registry-certified-v1");
     let fixture = provenance_fixture();
@@ -677,8 +677,8 @@ fn archive_restore_rejects_tampered_objects_before_authentication() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn archive_restore_bounds_manifest_and_rejects_missing_or_noncanonical_files() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_restore_bounds_manifest_and_rejects_missing_or_noncanonical_files() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-load-errors");
     let archive_root = root.join("nns/ic/registry-certified-v1");
     let fixture = provenance_fixture();
@@ -765,8 +765,8 @@ fn archive_restore_bounds_manifest_and_rejects_missing_or_noncanonical_files() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn archive_publication_rejects_unconfined_paths_and_poisoned_reuse() {
+#[tokio::test(flavor = "current_thread")]
+async fn archive_publication_rejects_unconfined_paths_and_poisoned_reuse() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-confined");
     let outside = crate::test_support::temp_dir("ic-query-registry-archive-outside");
     let fixture = provenance_fixture();
@@ -1423,8 +1423,8 @@ fn certified_archive_refresh_rejects_non_mainnet_and_missing_archives_without_so
     assert!(!root.exists());
 }
 
-#[test]
-fn certified_archive_cleanup_removes_only_bounded_unreferenced_objects_under_lock() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_archive_cleanup_removes_only_bounded_unreferenced_objects_under_lock() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup");
     let archive_root = root.join("nns/ic/registry-certified-v2");
     let initial = bootstrap_fixture_archive(
@@ -1471,8 +1471,8 @@ fn certified_archive_cleanup_removes_only_bounded_unreferenced_objects_under_loc
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn certified_archive_cleanup_applies_every_ceiling_before_deleting_an_orphan() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_archive_cleanup_applies_every_ceiling_before_deleting_an_orphan() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-limits");
     let archive_root = root.join("nns/ic/registry-certified-v2");
     bootstrap_fixture_archive(
@@ -1526,8 +1526,8 @@ fn certified_archive_cleanup_applies_every_ceiling_before_deleting_an_orphan() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_manifest() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_manifest() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-auth");
     let archive_root = root.join("nns/ic/registry-certified-v2");
     bootstrap_fixture_archive(
@@ -1545,6 +1545,7 @@ fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_manife
     );
 
     let error = cleanup_nns_certified_registry_archive(&request)
+        .await
         .expect_err("fixture archive is not built-in authenticated");
     assert!(matches!(
         error,
@@ -1562,6 +1563,7 @@ fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_manife
         NnsCertifiedRegistryArchiveCleanupLimits::new(0, 0, 0),
     );
     let error = cleanup_nns_certified_registry_archive(&missing_request)
+        .await
         .expect_err("cleanup requires an existing manifest");
     assert!(matches!(
         error,

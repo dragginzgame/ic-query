@@ -22,30 +22,30 @@ use std::collections::BTreeSet;
 /// Source contract for bounded official Dashboard ICRC account and holder index queries.
 ///
 
-pub trait IcIcrcIndexSource {
+pub trait IcIcrcIndexSource: Sync {
     /// Fetch one bounded account page without automatic cursor follow-up.
-    fn fetch_account_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcAccountListQuery,
-    ) -> Result<IcIcrcAccountListSourceData, IcHostError>;
+    fn fetch_account_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcAccountListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountListSourceData, IcHostError>>;
 
     /// Fetch one exact account record.
-    fn fetch_account_info(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        account_id: &str,
-    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError>;
+    fn fetch_account_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        account_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountInfoSourceData, IcHostError>>;
 
     /// Fetch one bounded holder page without automatic cursor follow-up.
-    fn fetch_holder_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcHolderListQuery,
-    ) -> Result<IcIcrcHolderListSourceData, IcHostError>;
+    fn fetch_holder_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcHolderListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcHolderListSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn normalized_account_list_query(

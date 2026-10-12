@@ -22,13 +22,14 @@ impl TestServer {
     }
 }
 
-#[test]
-fn bounded_transport_accepts_valid_json_at_the_exact_byte_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_accepts_valid_json_at_the_exact_byte_limit() {
     let body = br#"{"value":"ok"}"#;
     let server = serve_once(content_length_response(body.len(), body));
 
-    let payload: TestPayload =
-        fetch_test_json(&server.url, body.len() as u64).expect("response at exact limit");
+    let payload: TestPayload = fetch_test_json(&server.url, body.len() as u64)
+        .await
+        .expect("response at exact limit");
     server.finish();
 
     assert_eq!(
@@ -39,12 +40,13 @@ fn bounded_transport_accepts_valid_json_at_the_exact_byte_limit() {
     );
 }
 
-#[test]
-fn bounded_transport_rejects_oversized_declared_length_before_reading_body() {
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_rejects_oversized_declared_length_before_reading_body() {
     let server = serve_once(content_length_response(65, &[]));
 
-    let error =
-        fetch_test_json::<TestPayload>(&server.url, 64).expect_err("oversized declared response");
+    let error = fetch_test_json::<TestPayload>(&server.url, 64)
+        .await
+        .expect_err("oversized declared response");
     server.finish();
 
     assert!(matches!(
@@ -57,13 +59,14 @@ fn bounded_transport_rejects_oversized_declared_length_before_reading_body() {
     ));
 }
 
-#[test]
-fn bounded_transport_rejects_oversized_chunked_body_without_length_header() {
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_rejects_oversized_chunked_body_without_length_header() {
     let filler = vec![b'x'; 64];
     let server = serve_once(chunked_response(&[br#"{"value":""#, &filler, br#""}"#]));
 
-    let error =
-        fetch_test_json::<TestPayload>(&server.url, 32).expect_err("oversized chunked response");
+    let error = fetch_test_json::<TestPayload>(&server.url, 32)
+        .await
+        .expect_err("oversized chunked response");
     server.finish();
 
     assert!(matches!(
@@ -76,42 +79,40 @@ fn bounded_transport_rejects_oversized_chunked_body_without_length_header() {
     ));
 }
 
-#[test]
-fn bounded_transport_distinguishes_body_read_and_json_decode_failures() {
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_distinguishes_body_read_and_json_decode_failures() {
     let truncated = serve_once(content_length_response(100, b"{"));
-    let read_error =
-        fetch_test_json::<TestPayload>(&truncated.url, 200).expect_err("truncated response body");
+    let read_error = fetch_test_json::<TestPayload>(&truncated.url, 200)
+        .await
+        .expect_err("truncated response body");
     truncated.finish();
     assert!(matches!(read_error, IcHostError::HttpResponseBody { .. }));
 
     let malformed = serve_once(content_length_response(8, b"not-json"));
-    let decode_error =
-        fetch_test_json::<TestPayload>(&malformed.url, 8).expect_err("malformed response JSON");
+    let decode_error = fetch_test_json::<TestPayload>(&malformed.url, 8)
+        .await
+        .expect_err("malformed response JSON");
     malformed.finish();
     assert!(matches!(decode_error, IcHostError::JsonDecode { .. }));
 }
 
-#[test]
-fn dashboard_transport_rejects_redirects_without_following_the_location() {
+#[tokio::test(flavor = "current_thread")]
+async fn dashboard_transport_rejects_redirects_without_following_the_location() {
     let server = serve_once(redirect_response("https://example.com/other-authority"));
 
-    let error =
-        fetch_test_json::<TestPayload>(&server.url, 100).expect_err("redirect must be rejected");
+    let error = fetch_test_json::<TestPayload>(&server.url, 100)
+        .await
+        .expect_err("redirect must be rejected");
     server.finish();
 
     assert!(matches!(error, IcHostError::HttpStatus { status: 302, .. }));
 }
 
-fn fetch_test_json<T>(url: &Url, max_response_bytes: u64) -> Result<T, IcHostError>
+async fn fetch_test_json<T>(url: &Url, max_response_bytes: u64) -> Result<T, IcHostError>
 where
     T: DeserializeOwned + Send,
 {
-    block_on_current_thread(fetch_json_with_limit(
-        http_client()?,
-        url.clone(),
-        max_response_bytes,
-    ))
-    .expect("test query runtime")
+    fetch_json_with_limit(http_client()?, url.clone(), max_response_bytes).await
 }
 
 fn serve_once(response: Vec<u8>) -> TestServer {

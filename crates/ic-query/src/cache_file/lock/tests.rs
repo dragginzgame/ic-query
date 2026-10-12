@@ -45,7 +45,7 @@ fn async_refresh_releases_after_success_and_preserves_action_failure() {
         let result = futures::executor::block_on(super::run::with_refresh_lock_async(
             fixture.request(120),
             |_| "cache operation failed",
-            || async {
+            async || {
                 assert!(fixture.lock_path.exists());
                 outcome
             },
@@ -63,7 +63,7 @@ fn dropping_a_pending_refresh_releases_its_lock() {
     let mut refresh = Box::pin(super::run::with_refresh_lock_async(
         fixture.request(120),
         |_| "cache operation failed",
-        std::future::pending::<Result<(), &str>>,
+        async || std::future::pending::<Result<(), &str>>().await,
     ));
     let mut context = std::task::Context::from_waker(futures::task::noop_waker_ref());
     assert!(std::future::Future::poll(refresh.as_mut(), &mut context).is_pending());

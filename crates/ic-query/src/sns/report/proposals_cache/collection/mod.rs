@@ -19,7 +19,7 @@ use crate::{
 };
 
 /// Fetch every proposal page required for a complete SNS proposal snapshot.
-pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
+pub(in crate::sns::report::proposals_cache) async fn fetch_complete_sns_proposals(
     context: SnsRefreshContext<'_>,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
@@ -32,6 +32,7 @@ pub(in crate::sns::report::proposals_cache) fn fetch_complete_sns_proposals(
         },
         progress,
     )
+    .await
 }
 
 ///
@@ -67,27 +68,34 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
         )
     }
 
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let page = self.source.fetch_sns_proposal_page(
-            self.context.fetch_request,
-            self.context.sns,
-            self.context.request.page_size(),
-            self.pages.next_cursor().copied(),
-        )?;
-        validate_mainnet_sns_proposal_page(
-            &page,
-            self.context.request.page_size(),
-            self.pages.next_cursor().copied(),
-        )?;
-        let last_cursor = page
-            .proposals
-            .iter()
-            .map(|proposal| proposal.proposal_id)
-            .min();
-        let page_len = page.proposals.len();
-        Ok(self
-            .pages
-            .ingest_page(page.proposals, page_len, last_cursor, ToString::to_string))
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            let page = self
+                .source
+                .fetch_sns_proposal_page(
+                    self.context.fetch_request,
+                    self.context.sns,
+                    self.context.request.page_size(),
+                    self.pages.next_cursor().copied(),
+                )
+                .await?;
+            validate_mainnet_sns_proposal_page(
+                &page,
+                self.context.request.page_size(),
+                self.pages.next_cursor().copied(),
+            )?;
+            let last_cursor = page
+                .proposals
+                .iter()
+                .map(|proposal| proposal.proposal_id)
+                .min();
+            let page_len = page.proposals.len();
+            Ok(self
+                .pages
+                .ingest_page(page.proposals, page_len, last_cursor, ToString::to_string))
+        })
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

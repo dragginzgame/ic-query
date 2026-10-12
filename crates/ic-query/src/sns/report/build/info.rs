@@ -9,14 +9,16 @@ use crate::sns::report::{
     live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsDiscoverySource,
 };
 
-pub fn build_sns_info_report(request: &SnsLookupRequest) -> Result<SnsInfoReport, SnsHostError> {
-    build_sns_info_report_with_source(request, &LiveSnsSource)
+pub async fn build_sns_info_report(
+    request: &SnsLookupRequest,
+) -> Result<SnsInfoReport, SnsHostError> {
+    build_sns_info_report_with_source(request, &LiveSnsSource::default()).await
 }
 
-pub fn build_sns_info_report_with_source(
+pub async fn build_sns_info_report_with_source(
     request: &SnsLookupRequest,
     source: &dyn SnsDiscoverySource,
 ) -> Result<SnsInfoReport, SnsHostError> {
-    let lookup = resolve_sns_lookup(request, source)?;
+    let lookup = resolve_sns_lookup(request, source).await?;
     Ok(sns_info_report_from_parts(lookup.fetch_request, lookup.sns))
 }

@@ -6,11 +6,60 @@
 
 use crate::http_endpoint::parse_http_endpoint;
 use ic_agent::Agent;
+use std::sync::OnceLock;
 #[cfg(feature = "certified-subnet-catalog-host")]
 use std::time::Duration;
 
 /// Maximum response-body size configured for every native IC agent call.
 pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
+
+///
+/// EndpointAgent
+///
+/// One lazily built, endpoint-bound agent reused by a live source collection.
+///
+
+#[derive(Clone, Default)]
+pub struct EndpointAgent {
+    transport: OnceLock<(String, usize, Agent)>,
+}
+
+impl EndpointAgent {
+    pub(crate) fn get<Error>(
+        &self,
+        endpoint: &str,
+        maximum_response_bytes: usize,
+        map_error: impl Fn(String) -> Error,
+    ) -> Result<&Agent, Error> {
+        if self.transport.get().is_none() {
+            let agent =
+                build_ic_agent_with_options(endpoint, &map_error, maximum_response_bytes, None)?;
+            let _ = self
+                .transport
+                .set((endpoint.to_owned(), maximum_response_bytes, agent));
+        }
+        let (selected_endpoint, selected_limit, agent) =
+            self.transport.get().expect("agent initialized");
+        if selected_endpoint != endpoint || *selected_limit != maximum_response_bytes {
+            return Err(map_error(format!(
+                "live source is bound to {selected_endpoint} with response ceiling {selected_limit}, requested {endpoint} with ceiling {maximum_response_bytes}"
+            )));
+        }
+        Ok(agent)
+    }
+}
+
+impl std::fmt::Debug for EndpointAgent {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("EndpointAgent")
+            .field(
+                "endpoint",
+                &self.transport.get().map(|(endpoint, _, _)| endpoint),
+            )
+            .finish()
+    }
+}
 
 /// Validate a clean HTTP(S) endpoint and construct one response-bounded IC agent.
 pub fn build_ic_agent<Error>(
@@ -37,15 +86,6 @@ pub fn build_historical_certificate_agent<Error>(
     )
 }
 
-#[cfg(any(feature = "nns-host", test))]
-pub fn build_ic_agent_with_response_limit<Error>(
-    endpoint: &str,
-    map_error: impl Fn(String) -> Error,
-    max_response_body_bytes: usize,
-) -> Result<Agent, Error> {
-    build_ic_agent_with_options(endpoint, map_error, max_response_body_bytes, None)
-}
-
 fn build_ic_agent_with_options<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
@@ -68,7 +108,7 @@ fn build_ic_agent_with_options<Error>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::runtime::block_on_current_thread;
+
     use candid::Principal;
     use ic_agent::{AgentError, agent_error::TransportError};
     use std::{
@@ -76,6 +116,37 @@ mod tests {
         net::{TcpListener, TcpStream},
         thread,
     };
+
+    #[test]
+    fn endpoint_agent_reuses_admitted_transport_and_preserves_its_policy() {
+        let source = EndpointAgent::default();
+        let endpoint = "https://icp-api.io";
+        let first = source.get(endpoint, 64, |reason| reason).unwrap();
+        let second = source.get(endpoint, 64, |reason| reason).unwrap();
+        assert!(std::ptr::eq(first, second));
+        assert!(
+            source
+                .get("https://other.example", 64, |reason| reason)
+                .is_err()
+        );
+        assert!(source.get(endpoint, 65, |reason| reason).is_err());
+        assert!(std::ptr::eq(
+            first,
+            source.get(endpoint, 64, |reason| reason).unwrap()
+        ));
+    }
+
+    #[test]
+    fn endpoint_agent_failed_admission_leaves_transport_unselected() {
+        let source = EndpointAgent::default();
+        assert!(source.get("invalid endpoint", 64, |reason| reason).is_err());
+        assert!(source.transport.get().is_none());
+        assert!(
+            source
+                .get("https://icp-api.io", 64, |reason| reason)
+                .is_ok()
+        );
+    }
 
     fn read_complete_request(stream: &mut TcpStream) {
         let mut reader = BufReader::new(stream);
@@ -125,8 +196,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn configured_agent_rejects_a_response_beyond_its_body_limit() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn configured_agent_rejects_a_response_beyond_its_body_limit() {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind test replica");
         let address = listener.local_addr().expect("test replica address");
         let server = thread::spawn(move || {
@@ -139,16 +210,14 @@ mod tests {
                 .expect("write oversized test agent response");
         });
         let endpoint = format!("http://{address}");
-        let agent = build_ic_agent_with_response_limit(&endpoint, |reason| reason, 64)
+        let agent = build_ic_agent_with_options(&endpoint, |reason| reason, 64, None)
             .expect("bounded test agent");
 
         // Isolate the body limit from signature verification's concurrent read_state request.
-        let error = block_on_current_thread(
-            agent
-                .query(&Principal::anonymous(), "bounded_response_test")
-                .call_without_verification(),
-        )
-        .expect("test query runtime")
+        let error = (agent
+            .query(&Principal::anonymous(), "bounded_response_test")
+            .call_without_verification())
+        .await
         .expect_err("oversized native response must fail");
         server.join().expect("test replica");
 

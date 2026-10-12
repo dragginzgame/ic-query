@@ -32,30 +32,35 @@ use crate::{
 pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
-pub fn refresh_nns_proposal_cache(
+pub async fn refresh_nns_proposal_cache(
     request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
-    refresh_nns_proposal_cache_with_source(request, &LiveNnsSource)
+    refresh_nns_proposal_cache_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Refresh a complete NNS proposal snapshot and emit structured progress events.
-pub fn refresh_nns_proposal_cache_with_progress(
+pub async fn refresh_nns_proposal_cache_with_progress(
     request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
-    refresh_nns_proposal_cache_with_source_and_progress(request, &LiveNnsSource, progress)
+    refresh_nns_proposal_cache_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
 /// Collect proposals through the supplied source and atomically publish a complete snapshot.
-pub fn refresh_nns_proposal_cache_with_source(
+pub async fn refresh_nns_proposal_cache_with_source(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
     let mut progress = IgnoreQueryProgress;
-    refresh_nns_proposal_cache_with_source_and_progress(request, source, &mut progress)
+    refresh_nns_proposal_cache_with_source_and_progress(request, source, &mut progress).await
 }
 
-pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
+pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     progress: &mut dyn QueryProgress,
@@ -78,7 +83,7 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
                 error,
             ))
         },
-        |refresh_state| {
+        async |refresh_state| {
             run_snapshot_refresh_with_attempts(
                 || {
                     write_starting_governance_refresh_attempt(
@@ -88,13 +93,14 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
                     )
                     .map_err(NnsProposalHostError::from)
                 },
-                || {
+                async || {
                     let complete = fetch_complete_nns_proposal_collection(
                         request,
                         source,
                         &paths.refresh_attempt_path,
                         progress,
-                    )?;
+                    )
+                    .await?;
                     publish_complete_nns_proposal_cache(
                         request,
                         &paths,
@@ -111,6 +117,8 @@ pub(super) fn refresh_nns_proposal_cache_with_source_and_progress(
                     );
                 },
             )
+            .await
         },
     )
+    .await
 }

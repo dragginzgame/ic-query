@@ -1,7 +1,7 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn node_provider_report_uses_live_governance_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_provider_report_uses_live_governance_source() {
     let request = NnsInventoryListRequest {
         cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -24,6 +24,7 @@ fn node_provider_report_uses_live_governance_source() {
             ],
         },
     )
+    .await
     .expect("node provider report");
 
     assert_eq!(report.schema_version, 1);
@@ -45,8 +46,8 @@ fn node_provider_report_uses_live_governance_source() {
     );
 }
 
-#[test]
-fn node_provider_list_rejects_local_network() {
+#[tokio::test(flavor = "current_thread")]
+async fn node_provider_list_rejects_local_network() {
     let request = NnsInventoryListRequest {
         cache: test_cache_request("local", "local-rejected"),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -59,6 +60,7 @@ fn node_provider_list_rejects_local_network() {
             node_providers: Vec::new(),
         },
     )
+    .await
     .expect_err("local rejected");
 
     assert!(err.to_string().contains("supports only the mainnet `ic`"));

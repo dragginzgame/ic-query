@@ -17,7 +17,7 @@ use crate::sns::report::{
 };
 
 /// Resolve a user SNS lookup input to one deployed SNS and fetch context.
-pub(in crate::sns::report) fn resolve_sns_lookup(
+pub(in crate::sns::report) async fn resolve_sns_lookup(
     request: &SnsLookupRequest,
     source: &dyn SnsDiscoverySource,
 ) -> Result<SnsLookup, SnsHostError> {
@@ -28,10 +28,12 @@ pub(in crate::sns::report) fn resolve_sns_lookup(
         request.now_unix_secs,
         "ic-query".to_string(),
     );
-    let inventory = source.fetch_sns_inventory(&fetch_request)?;
+    let inventory = source.fetch_sns_inventory(&fetch_request).await?;
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;
     let (id, target) = resolve_sns(&inventory.sns_instances, &request.input)?;
-    let metadata = source.fetch_sns_metadata(&fetch_request, std::slice::from_ref(&target))?;
+    let metadata = source
+        .fetch_sns_metadata(&fetch_request, std::slice::from_ref(&target))
+        .await?;
     let list = join_mainnet_sns_inventory(selected_inventory(inventory, target), metadata)?;
     let mut sns =
         list.sns_instances

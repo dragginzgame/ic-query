@@ -1,8 +1,9 @@
 use super::{fixtures::*, *};
 
-#[test]
-fn sns_swap_preserves_native_bounded_components_and_renders_them() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     let report = build_sns_swap_report_with_source(&swap_request("1"), &FixtureSnsSwapSource)
+        .await
         .expect("sns swap report");
     let text = sns_swap_report_text(&report);
 
@@ -50,10 +51,11 @@ fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     assert!(text.contains("direct_participant_count"));
 }
 
-#[test]
-fn sns_swap_retains_partial_query_failure_as_a_typed_gap() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_retains_partial_query_failure_as_a_typed_gap() {
     let report =
         build_sns_swap_report_with_source(&swap_request("1"), &PartialFixtureSnsSwapSource)
+            .await
             .expect("partial sns swap report");
 
     assert_eq!(report.component_query_count, 3);
@@ -67,12 +69,13 @@ fn sns_swap_retains_partial_query_failure_as_a_typed_gap() {
     assert!(report.gaps[0].reason.contains("query rejected"));
 }
 
-#[test]
-fn sns_swap_preserves_successful_empty_sale_parameters_without_a_gap() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_preserves_successful_empty_sale_parameters_without_a_gap() {
     let report = build_sns_swap_report_with_source(
         &swap_request("1"),
         &MutatingFixtureSnsSwapSource(clear_sale_parameters),
     )
+    .await
     .expect("successful empty sale parameters");
 
     assert_eq!(report.component_query_count, 3);
@@ -82,12 +85,13 @@ fn sns_swap_preserves_successful_empty_sale_parameters_without_a_gap() {
     assert_eq!(report.gaps, Vec::new());
 }
 
-#[test]
-fn sns_swap_preserves_three_independent_component_failures() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_preserves_three_independent_component_failures() {
     let report = build_sns_swap_report_with_source(
         &swap_request("1"),
         &MutatingFixtureSnsSwapSource(fail_all_components),
     )
+    .await
     .expect("all component failures remain a report");
 
     assert_eq!(report.component_query_count, 3);
@@ -110,10 +114,11 @@ fn sns_swap_preserves_three_independent_component_failures() {
     );
 }
 
-#[test]
-fn sns_swap_rejects_a_custom_source_target_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_rejects_a_custom_source_target_mismatch() {
     let error =
         build_sns_swap_report_with_source(&swap_request("1"), &WrongTargetFixtureSnsSwapSource)
+            .await
             .expect_err("mismatched swap target must fail");
 
     assert!(matches!(
@@ -125,8 +130,8 @@ fn sns_swap_rejects_a_custom_source_target_mismatch() {
     ));
 }
 
-#[test]
-fn live_sns_swap_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_sns_swap_source_rejects_non_mainnet_before_agent_construction() {
     let request = SnsSourceRequest::new(
         "local",
         "not a valid endpoint",
@@ -135,8 +140,9 @@ fn live_sns_swap_source_rejects_non_mainnet_before_agent_construction() {
     );
     let sns = fixture_sns_a();
 
-    let error = LiveSnsSource
+    let error = LiveSnsSource::default()
         .fetch_sns_swap(&request, &sns)
+        .await
         .expect_err("non-mainnet must fail");
 
     assert!(matches!(
@@ -145,8 +151,8 @@ fn live_sns_swap_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn sns_swap_rejects_invalid_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_swap_rejects_invalid_custom_source_evidence() {
     for (mutate, expected_reason) in [
         (
             wrong_lifecycle_method as fn(&mut MainnetSnsSwap),
@@ -161,6 +167,7 @@ fn sns_swap_rejects_invalid_custom_source_evidence() {
             &swap_request("1"),
             &MutatingFixtureSnsSwapSource(mutate),
         )
+        .await
         .expect_err("invalid custom swap evidence must fail");
 
         assert!(matches!(

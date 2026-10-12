@@ -658,8 +658,8 @@ mod tests {
         });
     }
 
-    #[test]
-    fn cancellation_keeps_validated_history_and_reports_endpoint_progress() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn cancellation_keeps_validated_history_and_reports_endpoint_progress() {
         let events = Arc::new(Mutex::new(Vec::new()));
         let observed = Arc::clone(&events);
         let acquisition = super::super::RegistryAcquisition {

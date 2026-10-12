@@ -21,27 +21,27 @@ macro_rules! impl_nns_leaf_reports {
             type RefreshReport = $refresh_report;
             type HostError = $host_error;
 
-            fn build_list_report(
+            async fn build_list_report(
                 &self,
                 request: &ic_query::nns::NnsInventoryListRequest,
                 progress: &mut dyn ic_query::QueryProgress,
             ) -> Result<Self::ListReport, Self::HostError> {
-                $build_list(request, progress)
+                $build_list(request, progress).await
             }
 
-            fn build_info_report(
+            async fn build_info_report(
                 &self,
                 request: &ic_query::nns::NnsInventoryInfoRequest,
                 progress: &mut dyn ic_query::QueryProgress,
             ) -> Result<Self::InfoReport, Self::HostError> {
-                $build_info(request, progress)
+                $build_info(request, progress).await
             }
 
-            fn refresh_report(
+            async fn refresh_report(
                 &self,
                 request: &ic_query::nns::NnsInventoryRefreshRequest,
             ) -> Result<Self::RefreshReport, Self::HostError> {
-                $refresh(request)
+                $refresh(request).await
             }
 
             fn list_report_text(&self, report: &Self::ListReport) -> String {

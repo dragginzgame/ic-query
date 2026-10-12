@@ -23,17 +23,20 @@ use ic_query::sns::{
 };
 use std::path::PathBuf;
 
-pub(super) fn run_sns_neuron(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+pub(super) async fn run_sns_neuron(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_sns_neuron_list(matches, network),
-        Some(("info", matches)) => run_sns_neuron_info(matches, network),
-        Some(("refresh", matches)) => refresh::run_sns_neuron_refresh(matches, network),
+        Some(("list", matches)) => run_sns_neuron_list(matches, network).await,
+        Some(("info", matches)) => run_sns_neuron_info(matches, network).await,
+        Some(("refresh", matches)) => refresh::run_sns_neuron_refresh(matches, network).await,
         Some(("cache", matches)) => cache::run_sns_neuron_cache(matches, network),
         _ => unreachable!("clap requires a known SNS neuron subcommand"),
     }
 }
 
-fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsNeuronOptions::from_matches(matches, network);
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -44,11 +47,11 @@ fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCom
         input: parts.input,
         neuron_id: options.neuron_id,
     };
-    let report = build_sns_neuron_detail_report(&request)?;
+    let report = build_sns_neuron_detail_report(&request).await?;
     write_text_or_json(format, &report, sns_neuron_detail_report_text)
 }
 
-fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsNeuronsOptions::from_matches(matches, network)?;
     let parts = lookup_command_parts(options.lookup)?;
     let format = parts.format;
@@ -64,7 +67,7 @@ fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCom
         cache_root,
         verbose: options.verbose,
     };
-    let report = build_sns_neurons_report(&request)?;
+    let report = build_sns_neurons_report(&request).await?;
     write_text_or_json(format, &report, sns_neurons_report_text)
 }
 

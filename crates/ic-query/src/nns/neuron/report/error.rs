@@ -6,9 +6,7 @@
 
 use crate::nns::governance::{NnsGovernanceError, NnsGovernanceSourceProvenance};
 #[cfg(feature = "nns-host")]
-use crate::{
-    HostCacheError, nns::governance::NnsGovernanceAttemptReadError, runtime::RuntimeError,
-};
+use crate::{HostCacheError, nns::governance::NnsGovernanceAttemptReadError};
 #[cfg(feature = "nns-host")]
 use std::path::PathBuf;
 use thiserror::Error as ThisError;
@@ -189,10 +187,6 @@ pub enum NnsNeuronHostError {
     /// Shared cache IO or lock handling failed.
     #[error(transparent)]
     Cache(#[from] HostCacheError),
-
-    /// The synchronous host runtime could not execute the live query.
-    #[error(transparent)]
-    Runtime(#[from] RuntimeError),
 }
 
 #[cfg(feature = "nns-host")]

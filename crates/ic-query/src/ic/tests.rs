@@ -1,5 +1,5 @@
 use super::*;
-use std::cell::{Cell, RefCell};
+use std::sync::Mutex;
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const CONTROLLER_ID: &str = "r7inp-6aaaa-aaaaa-aaabq-cai";
@@ -18,8 +18,8 @@ const ICRC_ACCOUNT_ID: &str = "222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4
 const ICRC_SUPPLY_START: u64 = 1_785_542_400;
 const ICRC_SUPPLY_END: u64 = 1_785_801_600;
 
-#[test]
-fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
     for kind in [
         IcIcrcIndexedCountKind::Account,
         IcIcrcIndexedCountKind::Holder,
@@ -29,10 +29,11 @@ fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
         let request = icrc_indexed_count_request(kind);
 
         let report = build_icrc_indexed_count_report_with_source(&request, &source)
+            .await
             .expect("ICRC indexed-count report");
         let text = icrc_indexed_count_report_text(&report);
 
-        assert_eq!(source.calls.get(), 1);
+        assert_eq!((*source.calls.lock().unwrap()), 1);
         assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
         assert_eq!(report.kind, kind);
         assert_eq!(report.total, indexed_count_total(kind));
@@ -44,16 +45,17 @@ fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
     }
 }
 
-#[test]
-fn icrc_indexed_count_validates_request_and_custom_source_identity() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_indexed_count_validates_request_and_custom_source_identity() {
     let source = IcrcAnalyticsFixture::default();
     let mut request = icrc_indexed_count_request(IcIcrcIndexedCountKind::Holder);
     request.analytics.ledger_canister_id = "not a principal".to_string();
 
     let error = build_icrc_indexed_count_report_with_source(&request, &source)
+        .await
         .expect_err("invalid indexed-count request must fail");
     assert!(matches!(error, IcHostError::InvalidPrincipal { .. }));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 
     for mutation in [
         IcrcAnalyticsMutation::WrongEndpoint,
@@ -61,21 +63,22 @@ fn icrc_indexed_count_validates_request_and_custom_source_identity() {
         IcrcAnalyticsMutation::WrongKind,
     ] {
         let source = IcrcAnalyticsFixture {
-            mutation: RefCell::new(Some(mutation)),
+            mutation: Mutex::new(Some(mutation)),
             ..IcrcAnalyticsFixture::default()
         };
         let error = build_icrc_indexed_count_report_with_source(
             &icrc_indexed_count_request(IcIcrcIndexedCountKind::Holder),
             &source,
         )
+        .await
         .expect_err("invalid indexed-count source identity must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
-#[test]
-fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
     let source = IcrcIndexFixture::default();
     let account_query = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::BalanceDescending)
         .with_owner(ICRC_ACCOUNT_ID);
@@ -86,6 +89,7 @@ fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
         account_query,
     );
     let account = build_icrc_account_list_report_with_source(&account_request, &source)
+        .await
         .expect("bounded account list");
     let account_text = icrc_account_list_report_text(&account);
 
@@ -104,6 +108,7 @@ fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
         ICRC_ACCOUNT_ID,
     );
     let info = build_icrc_account_info_report_with_source(&info_request, &source)
+        .await
         .expect("exact account info");
     assert_eq!(info.account.account_id, ICRC_ACCOUNT_ID);
     assert!(icrc_account_info_report_text(&info).contains("created_at_unix_secs: 1731833720"));
@@ -115,15 +120,16 @@ fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
         IcIcrcHolderListQuery::new(2, IcIcrcHolderSort::Principal),
     );
     let holder = build_icrc_holder_list_report_with_source(&holder_request, &source)
+        .await
         .expect("bounded holder list");
     assert_eq!(holder.rows[0].principal, ICRC_ACCOUNT_ID);
     assert_eq!(holder.rows[0].percentage, serde_json::json!(0.0));
     assert!(icrc_holder_list_report_text(&holder).contains("\n\nholders:\n"));
-    assert_eq!(source.calls.get(), 3);
+    assert_eq!((*source.calls.lock().unwrap()), 3);
 }
 
-#[test]
-fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_invalid() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_invalid() {
     let source = IcrcIndexFixture::default();
     let account_request = IcIcrcAccountListRequest::new(
         DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
@@ -133,7 +139,11 @@ fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_inva
             .with_after("next")
             .with_before("previous"),
     );
-    assert!(build_icrc_account_list_report_with_source(&account_request, &source).is_err());
+    assert!(
+        build_icrc_account_list_report_with_source(&account_request, &source)
+            .await
+            .is_err()
+    );
 
     let holder_request = IcIcrcHolderListRequest::new(
         DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
@@ -141,7 +151,11 @@ fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_inva
         ICRC_LEDGER_ID,
         IcIcrcHolderListQuery::new(0, IcIcrcHolderSort::Principal),
     );
-    assert!(build_icrc_holder_list_report_with_source(&holder_request, &source).is_err());
+    assert!(
+        build_icrc_holder_list_report_with_source(&holder_request, &source)
+            .await
+            .is_err()
+    );
 
     let info_request = IcIcrcAccountInfoRequest::new(
         DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
@@ -149,20 +163,25 @@ fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_inva
         ICRC_LEDGER_ID,
         "",
     );
-    assert!(build_icrc_account_info_report_with_source(&info_request, &source).is_err());
-    assert_eq!(source.calls.get(), 0);
+    assert!(
+        build_icrc_account_info_report_with_source(&info_request, &source)
+            .await
+            .is_err()
+    );
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 }
 
-#[test]
-fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
     let source = IcrcAnalyticsFixture::default();
     let request = icrc_token_value_request();
 
     let report = build_icrc_token_value_report_with_source(&request, &source)
+        .await
         .expect("bounded ICRC token-value report");
     let text = icrc_token_value_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
     assert_eq!(report.query, request.query);
     assert_eq!(report.returned_row_count, 2);
@@ -177,8 +196,8 @@ fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
     assert!(text.contains("source=ICPSwap-API"));
 }
 
-#[test]
-fn icrc_token_value_request_is_validated_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_token_value_request_is_validated_before_source_calls() {
     let mutations: [fn(&mut IcIcrcTokenValueRequest); 6] = [
         |request| request.analytics.ledger_canister_id = "not a principal".to_string(),
         |request| request.query.end_unix_secs = request.query.start_unix_secs - 1,
@@ -198,18 +217,19 @@ fn icrc_token_value_request_is_validated_before_source_calls() {
         mutate(&mut request);
 
         let error = build_icrc_token_value_report_with_source(&request, &source)
+            .await
             .expect_err("invalid token-value request must fail");
 
         assert!(matches!(
             error,
             IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
         ));
-        assert_eq!(source.calls.get(), 0);
+        assert_eq!((*source.calls.lock().unwrap()), 0);
     }
 }
 
-#[test]
-fn icrc_token_value_custom_source_contract_is_validated() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_token_value_custom_source_contract_is_validated() {
     for mutation in [
         IcrcAnalyticsMutation::WrongEndpoint,
         IcrcAnalyticsMutation::WrongLedger,
@@ -220,7 +240,7 @@ fn icrc_token_value_custom_source_contract_is_validated() {
         IcrcAnalyticsMutation::TokenUnordered,
     ] {
         let source = IcrcAnalyticsFixture {
-            mutation: RefCell::new(Some(mutation)),
+            mutation: Mutex::new(Some(mutation)),
             ..IcrcAnalyticsFixture::default()
         };
 
@@ -229,22 +249,24 @@ fn icrc_token_value_custom_source_contract_is_validated() {
             request.query.limit = MAX_ICRC_TOKEN_VALUE_ROWS;
         }
         let error = build_icrc_token_value_report_with_source(&request, &source)
+            .await
             .expect_err("invalid token-value source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
-#[test]
-fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
     let source = IcrcAnalyticsFixture::default();
     let request = icrc_total_supply_request();
 
     let report = build_icrc_total_supply_report_with_source(&request, &source)
+        .await
         .expect("bounded ICRC total-supply report");
     let text = icrc_total_supply_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
     assert_eq!(report.query, request.query);
     assert_eq!(report.requested_observation_limit, 4);
@@ -260,8 +282,8 @@ fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance() {
     assert!(text.contains("1785542400  23326766272"));
 }
 
-#[test]
-fn icrc_total_supply_request_is_validated_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_total_supply_request_is_validated_before_source_calls() {
     let mutations: [fn(&mut IcIcrcTotalSupplyRequest); 6] = [
         |request| request.analytics.ledger_canister_id = "not a principal".to_string(),
         |request| request.query.start_unix_secs = MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
@@ -280,18 +302,19 @@ fn icrc_total_supply_request_is_validated_before_source_calls() {
         mutate(&mut request);
 
         let error = build_icrc_total_supply_report_with_source(&request, &source)
+            .await
             .expect_err("invalid ICRC analytics request must fail");
 
         assert!(matches!(
             error,
             IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
         ));
-        assert_eq!(source.calls.get(), 0);
+        assert_eq!((*source.calls.lock().unwrap()), 0);
     }
 }
 
-#[test]
-fn icrc_total_supply_custom_source_contract_is_validated() {
+#[tokio::test(flavor = "current_thread")]
+async fn icrc_total_supply_custom_source_contract_is_validated() {
     for mutation in [
         IcrcAnalyticsMutation::WrongEndpoint,
         IcrcAnalyticsMutation::WrongLedger,
@@ -302,20 +325,21 @@ fn icrc_total_supply_custom_source_contract_is_validated() {
         IcrcAnalyticsMutation::TooManyObservations,
     ] {
         let source = IcrcAnalyticsFixture {
-            mutation: RefCell::new(Some(mutation)),
+            mutation: Mutex::new(Some(mutation)),
             ..IcrcAnalyticsFixture::default()
         };
 
         let error =
             build_icrc_total_supply_report_with_source(&icrc_total_supply_request(), &source)
+                .await
                 .expect_err("invalid ICRC analytics source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
-#[test]
-fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
     let source = NetworkFixture::default();
     let request = IcBoundaryNodeDataCentersRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
@@ -323,10 +347,11 @@ fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance(
     );
 
     let report = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
+        .await
         .expect("boundary-node data centers");
     let text = ic_boundary_node_data_centers_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.data_center_count, 2);
     assert_eq!(report.total_node_count, 2);
     assert_eq!(report.rows[0].dc_id, "fr1");
@@ -339,8 +364,8 @@ fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance(
     assert!(text.contains("fr1  name=Frankfurt"));
 }
 
-#[test]
-fn boundary_node_custom_source_contract_is_validated() {
+#[tokio::test(flavor = "current_thread")]
+async fn boundary_node_custom_source_contract_is_validated() {
     for mutation in [
         BoundaryNetworkMutation::WrongEndpoint,
         BoundaryNetworkMutation::DuplicateId,
@@ -352,7 +377,7 @@ fn boundary_node_custom_source_contract_is_validated() {
         BoundaryNetworkMutation::TooManyRows,
     ] {
         let source = NetworkFixture {
-            boundary_mutation: RefCell::new(Some(mutation)),
+            boundary_mutation: Mutex::new(Some(mutation)),
             ..NetworkFixture::default()
         };
         let request = IcBoundaryNodeDataCentersRequest::new(
@@ -361,22 +386,24 @@ fn boundary_node_custom_source_contract_is_validated() {
         );
 
         let error = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
+            .await
             .expect_err("invalid network source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
-#[test]
-fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
+#[tokio::test(flavor = "current_thread")]
+async fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
     let source = NetworkFixture::default();
     let request = daily_stats_request();
 
     let report = build_ic_daily_stats_report_with_source(&request, &source)
+        .await
         .expect("bounded daily-statistics report");
     let text = ic_daily_stats_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
     assert_eq!(report.returned_day_count, 2);
     assert_eq!(report.rows[0].day, "2026-07-30");
@@ -391,8 +418,8 @@ fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
     assert!(text.contains("2026-07-31  timestamp=1785542399"));
 }
 
-#[test]
-fn daily_stats_request_bounds_are_validated_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn daily_stats_request_bounds_are_validated_before_source_calls() {
     for query in [
         IcDailyStatsQuery::new(MIN_IC_DAILY_STATS_TIMESTAMP - 1, DAILY_STATS_END),
         IcDailyStatsQuery::new(DAILY_STATS_END, DAILY_STATS_START),
@@ -407,15 +434,16 @@ fn daily_stats_request_bounds_are_validated_before_source_calls() {
             IcDailyStatsRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, DAILY_STATS_END, query);
 
         let error = build_ic_daily_stats_report_with_source(&request, &source)
+            .await
             .expect_err("invalid daily-statistics bounds must fail");
 
         assert!(matches!(error, IcHostError::InvalidRequest { .. }));
-        assert_eq!(source.calls.get(), 0);
+        assert_eq!((*source.calls.lock().unwrap()), 0);
     }
 }
 
-#[test]
-fn daily_stats_custom_source_contract_is_validated() {
+#[tokio::test(flavor = "current_thread")]
+async fn daily_stats_custom_source_contract_is_validated() {
     for mutation in [
         DailyStatsMutation::WrongQuery,
         DailyStatsMutation::DuplicateDay,
@@ -428,27 +456,29 @@ fn daily_stats_custom_source_contract_is_validated() {
         DailyStatsMutation::TooManyRows,
     ] {
         let source = NetworkFixture {
-            daily_stats_mutation: RefCell::new(Some(mutation)),
+            daily_stats_mutation: Mutex::new(Some(mutation)),
             ..NetworkFixture::default()
         };
 
         let error = build_ic_daily_stats_report_with_source(&daily_stats_request(), &source)
+            .await
             .expect_err("invalid daily-statistics source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
     }
 }
 
-#[test]
-fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
     let source = MetricFixture::default();
     let request = metric_request();
 
     let report = build_ic_metric_report_with_source(&request, &source)
+        .await
         .expect("bounded Dashboard metric report");
     let text = ic_metric_report_text(&report);
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
     assert_eq!(report.returned_series_count, 1);
     assert_eq!(report.returned_observation_count, 2);
@@ -461,10 +491,11 @@ fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
     assert!(text.contains("1699996400  21089992048.10834"));
 }
 
-#[test]
-fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
+#[tokio::test(flavor = "current_thread")]
+async fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
     let mut report =
         build_ic_metric_report_with_source(&metric_request(), &MetricFixture::default())
+            .await
             .expect("bounded Dashboard metric report");
     report.query.metric = IcMetricKind::CycleBurnRate;
     report.series[0].name = "cycle_burn_rate".to_string();
@@ -480,24 +511,25 @@ fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
     );
 }
 
-#[test]
-fn metric_request_bounds_are_validated_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn metric_request_bounds_are_validated_before_source_calls() {
     let source = MetricFixture::default();
     let mut request = metric_request();
     request.query.step_secs = 1;
 
     let error = build_ic_metric_report_with_source(&request, &source)
+        .await
         .expect_err("oversized metric window must fail");
 
     assert!(matches!(
         error,
         IcHostError::InvalidRequest { field: "query", .. }
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 }
 
-#[test]
-fn metric_custom_source_must_echo_query_and_valid_series() {
+#[tokio::test(flavor = "current_thread")]
+async fn metric_custom_source_must_echo_query_and_valid_series() {
     for mutation in [
         MetricMutation::WrongQuery,
         MetricMutation::WrongSeries,
@@ -505,10 +537,11 @@ fn metric_custom_source_must_echo_query_and_valid_series() {
         MetricMutation::EmptyValue,
     ] {
         let source = MetricFixture {
-            mutation: RefCell::new(Some(mutation)),
+            mutation: Mutex::new(Some(mutation)),
             ..MetricFixture::default()
         };
         let error = build_ic_metric_report_with_source(&metric_request(), &source)
+            .await
             .expect_err("invalid metric source data must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
@@ -540,9 +573,10 @@ fn metric_kind_uses_exact_official_path_names() {
     }
 }
 
-#[test]
-fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
     let report = build_ic_canister_report_with_source(&request(), &FixtureSource::default())
+        .await
         .expect("Dashboard canister report");
     let text = ic_canister_report_text(&report);
 
@@ -569,19 +603,20 @@ fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
     assert!(text.contains("certified: no"));
 }
 
-#[test]
-fn canister_report_preserves_null_upgrade_history() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_report_preserves_null_upgrade_history() {
     let source = MutatingSource(|data| data.upgrades = None);
-    let report =
-        build_ic_canister_report_with_source(&request(), &source).expect("nullable history");
+    let report = build_ic_canister_report_with_source(&request(), &source)
+        .await
+        .expect("nullable history");
 
     assert_eq!(report.upgrades, None);
     assert_eq!(report.upgrade_count, None);
     assert!(ic_canister_report_text(&report).contains("upgrade_history_available: no"));
 }
 
-#[test]
-fn request_principal_is_validated_before_calling_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn request_principal_is_validated_before_calling_source() {
     let source = FixtureSource::default();
     let request = IcCanisterRequest::new(
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
@@ -590,6 +625,7 @@ fn request_principal_is_validated_before_calling_source() {
     );
 
     let error = build_ic_canister_report_with_source(&request, &source)
+        .await
         .expect_err("invalid principal must fail");
 
     assert!(matches!(
@@ -599,11 +635,11 @@ fn request_principal_is_validated_before_calling_source() {
             ..
         }
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 }
 
-#[test]
-fn custom_source_identity_and_provenance_are_validated() {
+#[tokio::test(flavor = "current_thread")]
+async fn custom_source_identity_and_provenance_are_validated() {
     for (mutate, expected_reason) in [
         (
             wrong_canister as fn(&mut IcCanisterSourceData),
@@ -615,6 +651,7 @@ fn custom_source_identity_and_provenance_are_validated() {
         (duplicate_upgrade, "duplicate upgrade"),
     ] {
         let error = build_ic_canister_report_with_source(&request(), &MutatingSource(mutate))
+            .await
             .expect_err("invalid custom source data must fail");
 
         assert!(matches!(
@@ -624,8 +661,8 @@ fn custom_source_identity_and_provenance_are_validated() {
     }
 }
 
-#[test]
-fn projection_canonically_orders_controllers_and_upgrade_history() {
+#[tokio::test(flavor = "current_thread")]
+async fn projection_canonically_orders_controllers_and_upgrade_history() {
     let source = MutatingSource(|data| {
         data.controllers = vec![
             "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
@@ -634,8 +671,9 @@ fn projection_canonically_orders_controllers_and_upgrade_history() {
         data.upgrades.as_mut().expect("history").reverse();
     });
 
-    let report =
-        build_ic_canister_report_with_source(&request(), &source).expect("canonical report");
+    let report = build_ic_canister_report_with_source(&request(), &source)
+        .await
+        .expect("canonical report");
 
     assert_eq!(
         report.controllers,
@@ -647,12 +685,13 @@ fn projection_canonically_orders_controllers_and_upgrade_history() {
     );
 }
 
-#[test]
-fn live_source_rejects_invalid_endpoint_before_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_source_rejects_invalid_endpoint_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_canister(&request, CANISTER_ID)
+        .await
         .expect_err("invalid endpoint must fail");
 
     assert!(matches!(
@@ -661,8 +700,8 @@ fn live_source_rejects_invalid_endpoint_before_http_request() {
     ));
 }
 
-#[test]
-fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
     let query = IcMetricQuery::new(
         IcMetricKind::InstructionRate,
@@ -671,8 +710,9 @@ fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
         DEFAULT_IC_METRIC_STEP_SECS,
     );
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_metric(&request, &query)
+        .await
         .expect_err("invalid metric bounds must fail first");
 
     assert!(matches!(
@@ -684,8 +724,8 @@ fn live_metric_source_validates_bounds_before_endpoint_or_http_request() {
     ));
 }
 
-#[test]
-fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
     let query = IcIcrcTotalSupplyQuery::new(
         MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
@@ -693,8 +733,9 @@ fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request()
         DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
     );
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_total_supply_series(&request, ICRC_LEDGER_ID, &query)
+        .await
         .expect_err("invalid ICRC analytics bounds must fail first");
 
     assert!(matches!(
@@ -706,12 +747,13 @@ fn live_icrc_analytics_source_validates_bounds_before_endpoint_or_http_request()
     ));
 }
 
-#[test]
-fn live_icrc_indexed_count_validates_principal_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_icrc_indexed_count_validates_principal_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_indexed_count(&request, "not a principal", IcIcrcIndexedCountKind::Holder)
+        .await
         .expect_err("invalid indexed-count principal must fail first");
 
     assert!(matches!(
@@ -723,13 +765,14 @@ fn live_icrc_indexed_count_validates_principal_before_endpoint_or_http_request()
     ));
 }
 
-#[test]
-fn live_icrc_index_source_validates_bounds_and_exact_id_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_icrc_index_source_validates_bounds_and_exact_id_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
     let invalid_page = IcIcrcAccountListQuery::new(0, IcIcrcAccountSort::Id);
 
-    let page_error = LiveIcSource
+    let page_error = LiveIcSource::default()
         .fetch_account_list(&request, ICRC_LEDGER_ID, &invalid_page)
+        .await
         .expect_err("invalid account page must fail first");
     assert!(matches!(
         page_error,
@@ -739,8 +782,9 @@ fn live_icrc_index_source_validates_bounds_and_exact_id_before_endpoint_or_http_
         }
     ));
 
-    let info_error = LiveIcSource
+    let info_error = LiveIcSource::default()
         .fetch_account_info(&request, ICRC_LEDGER_ID, "")
+        .await
         .expect_err("empty account id must fail first");
     assert!(matches!(
         info_error,
@@ -751,12 +795,13 @@ fn live_icrc_index_source_validates_bounds_and_exact_id_before_endpoint_or_http_
     ));
 }
 
-#[test]
-fn live_network_source_rejects_invalid_endpoint_before_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_network_source_rejects_invalid_endpoint_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_boundary_node_data_centers(&request)
+        .await
         .expect_err("invalid endpoint must fail");
 
     assert!(matches!(
@@ -765,13 +810,14 @@ fn live_network_source_rejects_invalid_endpoint_before_http_request() {
     ));
 }
 
-#[test]
-fn live_network_source_validates_daily_stats_before_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_network_source_validates_daily_stats_before_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
     let valid_query = IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END);
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_daily_stats(&request, &valid_query)
+        .await
         .expect_err("invalid endpoint must fail");
     assert!(matches!(
         error,
@@ -779,18 +825,20 @@ fn live_network_source_validates_daily_stats_before_http_request() {
     ));
 
     let invalid_query = IcDailyStatsQuery::new(DAILY_STATS_END, DAILY_STATS_START);
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_daily_stats(&request, &invalid_query)
+        .await
         .expect_err("invalid bounds must fail before endpoint parsing");
     assert!(matches!(error, IcHostError::InvalidRequest { .. }));
 }
 
-#[test]
-fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
     let request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
-    let error = LiveIcSource
+    let error = LiveIcSource::default()
         .fetch_canister(&request, "not a principal")
+        .await
         .expect_err("invalid principal must fail first");
 
     assert!(matches!(
@@ -802,11 +850,11 @@ fn live_source_rejects_invalid_principal_before_endpoint_or_http_request() {
     ));
 }
 
-#[test]
-fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
     let source_request = IcSourceRequest::new("not a URL", FETCHED_AT, "test");
 
-    let count_error = LiveIcSource
+    let count_error = LiveIcSource::default()
         .fetch_canister_count(
             &source_request,
             &IcCanisterFilters {
@@ -814,9 +862,10 @@ fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
                 ..IcCanisterFilters::default()
             },
         )
+        .await
         .expect_err("invalid count filter must fail first");
-    let page_error = |limit, after, before| {
-        LiveIcSource
+    let page_error = async |limit, after, before| {
+        LiveIcSource::default()
             .fetch_canister_page(
                 &source_request,
                 &IcCanisterFilters::default(),
@@ -824,11 +873,13 @@ fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
                 after,
                 before,
             )
+            .await
             .expect_err("invalid page request must fail before endpoint use")
     };
-    let page_limit_error = page_error(MAX_IC_CANISTER_PAGE_LIMIT + 1, None, None);
-    let conflicting_cursor_error = page_error(1, Some(PAGE_CANISTER_ID), Some(PAGE_CANISTER_ID));
-    let invalid_cursor_error = page_error(1, Some("not a principal"), None);
+    let page_limit_error = page_error(MAX_IC_CANISTER_PAGE_LIMIT + 1, None, None).await;
+    let conflicting_cursor_error =
+        page_error(1, Some(PAGE_CANISTER_ID), Some(PAGE_CANISTER_ID)).await;
+    let invalid_cursor_error = page_error(1, Some("not a principal"), None).await;
 
     assert!(matches!(
         count_error,
@@ -854,8 +905,8 @@ fn live_collection_source_enforces_bounds_before_endpoint_or_http_request() {
     ));
 }
 
-#[test]
-fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
     let source = CollectionFixture::default();
     let filters = IcCanisterFilters {
         has_name: Some(true),
@@ -872,10 +923,11 @@ fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
     .with_filters(filters);
 
     let report = build_ic_canister_count_report_with_source(&request, &source)
+        .await
         .expect("bounded Dashboard count");
 
-    assert_eq!(source.count_calls.get(), 1);
-    assert_eq!(source.page_calls.get(), 0);
+    assert_eq!((*source.count_calls.lock().unwrap()), 1);
+    assert_eq!((*source.page_calls.lock().unwrap()), 0);
     assert_eq!(report.total, 649);
     assert_eq!(report.filters.languages, ["motoko", "rust"]);
     assert!(!report.provenance.certified);
@@ -883,8 +935,8 @@ fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
     assert!(ic_canister_count_report_text(&report).contains("total: 649"));
 }
 
-#[test]
-fn canister_page_returns_one_validated_slice_without_following_cursor() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_page_returns_one_validated_slice_without_following_cursor() {
     let source = CollectionFixture::default();
     let request = IcCanisterPageRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
@@ -893,10 +945,11 @@ fn canister_page_returns_one_validated_slice_without_following_cursor() {
     .with_limit(2);
 
     let report = build_ic_canister_page_report_with_source(&request, &source)
+        .await
         .expect("bounded Dashboard page");
 
-    assert_eq!(source.page_calls.get(), 1);
-    assert_eq!(source.count_calls.get(), 0);
+    assert_eq!((*source.page_calls.lock().unwrap()), 1);
+    assert_eq!((*source.count_calls.lock().unwrap()), 0);
     assert_eq!(report.requested_limit, 2);
     assert_eq!(report.returned_count, 2);
     assert_eq!(report.rows[0].canister_id, PAGE_CANISTER_ID);
@@ -908,8 +961,8 @@ fn canister_page_returns_one_validated_slice_without_following_cursor() {
     assert!(ic_canister_page_report_text(&report).contains("returned_count: 2"));
 }
 
-#[test]
-fn canister_page_validates_bound_and_cursor_contract_before_source_call() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_page_validates_bound_and_cursor_contract_before_source_call() {
     for mutate in [
         zero_page_limit as fn(&mut IcCanisterPageRequest),
         excessive_page_limit,
@@ -924,18 +977,19 @@ fn canister_page_validates_bound_and_cursor_contract_before_source_call() {
         mutate(&mut request);
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
+            .await
             .expect_err("invalid page request must fail");
 
         assert!(matches!(
             error,
             IcHostError::InvalidRequest { .. } | IcHostError::InvalidPrincipal { .. }
         ));
-        assert_eq!(source.page_calls.get(), 0);
+        assert_eq!((*source.page_calls.lock().unwrap()), 0);
     }
 }
 
-#[test]
-fn canister_collection_filters_are_validated_before_source_calls() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_collection_filters_are_validated_before_source_calls() {
     let source = CollectionFixture::default();
     let request = IcCanisterCountRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
@@ -947,6 +1001,7 @@ fn canister_collection_filters_are_validated_before_source_calls() {
     });
 
     let error = build_ic_canister_count_report_with_source(&request, &source)
+        .await
         .expect_err("short Dashboard query must fail");
 
     assert!(matches!(
@@ -956,11 +1011,11 @@ fn canister_collection_filters_are_validated_before_source_calls() {
             ..
         }
     ));
-    assert_eq!(source.count_calls.get(), 0);
+    assert_eq!((*source.count_calls.lock().unwrap()), 0);
 }
 
-#[test]
-fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
     for mutation in [
         PageSourceMutation::ReverseRows,
         PageSourceMutation::DuplicateCanisterId,
@@ -971,7 +1026,7 @@ fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
         PageSourceMutation::WrongLimit,
     ] {
         let source = CollectionFixture {
-            page_mutation: RefCell::new(Some(mutation)),
+            page_mutation: Mutex::new(Some(mutation)),
             ..CollectionFixture::default()
         };
         let request = IcCanisterPageRequest::new(
@@ -981,6 +1036,7 @@ fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
         .with_limit(3);
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
+            .await
             .expect_err("invalid source page must fail");
 
         assert!(matches!(error, IcHostError::InvalidSourceData { .. }));
@@ -1085,104 +1141,113 @@ enum DailyStatsMutation {
 
 #[derive(Default)]
 struct NetworkFixture {
-    calls: Cell<usize>,
-    boundary_mutation: RefCell<Option<BoundaryNetworkMutation>>,
-    daily_stats_mutation: RefCell<Option<DailyStatsMutation>>,
+    calls: Mutex<usize>,
+    boundary_mutation: Mutex<Option<BoundaryNetworkMutation>>,
+    daily_stats_mutation: Mutex<Option<DailyStatsMutation>>,
 }
 
 impl IcNetworkSource for NetworkFixture {
-    fn fetch_boundary_node_data_centers(
-        &self,
-        request: &IcSourceRequest,
-    ) -> Result<IcBoundaryNodeDataCentersSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let mut data = IcBoundaryNodeDataCentersSourceData {
-            source: request.clone(),
-            rows: vec![
-                boundary_node_data_center("zh2", "Zurich", "47.3744", "8.541", "2"),
-                boundary_node_data_center("fr1", "Frankfurt", "50.1109", "8.6821", "0"),
-            ],
-        };
-        match self.boundary_mutation.borrow_mut().take() {
-            Some(BoundaryNetworkMutation::WrongEndpoint) => {
-                data.source.endpoint = "https://example.com/api/v4".to_string();
+    fn fetch_boundary_node_data_centers<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<IcBoundaryNodeDataCentersSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let mut data = IcBoundaryNodeDataCentersSourceData {
+                source: request.clone(),
+                rows: vec![
+                    boundary_node_data_center("zh2", "Zurich", "47.3744", "8.541", "2"),
+                    boundary_node_data_center("fr1", "Frankfurt", "50.1109", "8.6821", "0"),
+                ],
+            };
+            let mutation = self.boundary_mutation.lock().unwrap().take();
+            match mutation {
+                Some(BoundaryNetworkMutation::WrongEndpoint) => {
+                    data.source.endpoint = "https://example.com/api/v4".to_string();
+                }
+                Some(BoundaryNetworkMutation::DuplicateId) => {
+                    data.rows[1].dc_id = "zh2".to_string();
+                }
+                Some(BoundaryNetworkMutation::NonAdjacentDuplicateId) => {
+                    data.rows.push(data.rows[0].clone());
+                }
+                Some(BoundaryNetworkMutation::InvalidLatitude) => {
+                    data.rows[0].latitude = "91".to_string();
+                }
+                Some(BoundaryNetworkMutation::InvalidNodeCount) => {
+                    data.rows[0].total_nodes = "2.0".to_string();
+                }
+                Some(BoundaryNetworkMutation::NoncanonicalNodeCount) => {
+                    data.rows[0].total_nodes = "02".to_string();
+                }
+                Some(BoundaryNetworkMutation::TotalOverflow) => {
+                    data.rows[0].total_nodes = u64::MAX.to_string();
+                    data.rows[1].total_nodes = "1".to_string();
+                }
+                Some(BoundaryNetworkMutation::TooManyRows) => {
+                    data.rows = (0..=MAX_IC_BOUNDARY_NODE_DATA_CENTERS)
+                        .map(|index| {
+                            let mut row = data.rows[0].clone();
+                            row.dc_id = format!("dc-{index}");
+                            row
+                        })
+                        .collect();
+                }
+                None => {}
             }
-            Some(BoundaryNetworkMutation::DuplicateId) => data.rows[1].dc_id = "zh2".to_string(),
-            Some(BoundaryNetworkMutation::NonAdjacentDuplicateId) => {
-                data.rows.push(data.rows[0].clone());
-            }
-            Some(BoundaryNetworkMutation::InvalidLatitude) => {
-                data.rows[0].latitude = "91".to_string();
-            }
-            Some(BoundaryNetworkMutation::InvalidNodeCount) => {
-                data.rows[0].total_nodes = "2.0".to_string();
-            }
-            Some(BoundaryNetworkMutation::NoncanonicalNodeCount) => {
-                data.rows[0].total_nodes = "02".to_string();
-            }
-            Some(BoundaryNetworkMutation::TotalOverflow) => {
-                data.rows[0].total_nodes = u64::MAX.to_string();
-                data.rows[1].total_nodes = "1".to_string();
-            }
-            Some(BoundaryNetworkMutation::TooManyRows) => {
-                data.rows = (0..=MAX_IC_BOUNDARY_NODE_DATA_CENTERS)
-                    .map(|index| {
-                        let mut row = data.rows[0].clone();
-                        row.dc_id = format!("dc-{index}");
-                        row
-                    })
-                    .collect();
-            }
-            None => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 
-    fn fetch_daily_stats(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcDailyStatsQuery,
-    ) -> Result<IcDailyStatsSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let mut data = IcDailyStatsSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            rows: vec![
-                daily_stats_row("2026-07-31", 1_785_542_399, "4378.980149999999"),
-                daily_stats_row("2026-07-30", 1_785_455_999, "4650.12568"),
-            ],
-        };
-        match self.daily_stats_mutation.borrow_mut().take() {
-            Some(DailyStatsMutation::WrongQuery) => data.query.start_unix_secs += 1,
-            Some(DailyStatsMutation::DuplicateDay) => {
-                data.rows[1].day = "2026-07-31".to_string();
+    fn fetch_daily_stats<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcDailyStatsQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcDailyStatsSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let mut data = IcDailyStatsSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                rows: vec![
+                    daily_stats_row("2026-07-31", 1_785_542_399, "4378.980149999999"),
+                    daily_stats_row("2026-07-30", 1_785_455_999, "4650.12568"),
+                ],
+            };
+            let mutation = self.daily_stats_mutation.lock().unwrap().take();
+            match mutation {
+                Some(DailyStatsMutation::WrongQuery) => data.query.start_unix_secs += 1,
+                Some(DailyStatsMutation::DuplicateDay) => {
+                    data.rows[1].day = "2026-07-31".to_string();
+                }
+                Some(DailyStatsMutation::DuplicateRow) => {
+                    data.rows[1] = data.rows[0].clone();
+                }
+                Some(DailyStatsMutation::SameDayDifferentTimestamp) => {
+                    let (first, rest) = data.rows.split_at_mut(1);
+                    rest[0].day.clone_from(&first[0].day);
+                    rest[0].timestamp_unix_secs = first[0].timestamp_unix_secs - 1;
+                }
+                Some(DailyStatsMutation::SameTimestampDifferentDay) => {
+                    data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs;
+                }
+                Some(DailyStatsMutation::MismatchedDay) => {
+                    data.rows[0].day = "2026-07-29".to_string();
+                }
+                Some(DailyStatsMutation::OutsideWindow) => {
+                    data.rows[0].timestamp_unix_secs = query.end_unix_secs + 1;
+                }
+                Some(DailyStatsMutation::InvalidRate) => {
+                    data.rows[0].average_transactions_per_second = "NaN".to_string();
+                }
+                Some(DailyStatsMutation::TooManyRows) => {
+                    data.rows = vec![data.rows[0].clone(); MAX_IC_DAILY_STATS_ROWS + 1];
+                }
+                None => {}
             }
-            Some(DailyStatsMutation::DuplicateRow) => {
-                data.rows[1] = data.rows[0].clone();
-            }
-            Some(DailyStatsMutation::SameDayDifferentTimestamp) => {
-                let (first, rest) = data.rows.split_at_mut(1);
-                rest[0].day.clone_from(&first[0].day);
-                rest[0].timestamp_unix_secs = first[0].timestamp_unix_secs - 1;
-            }
-            Some(DailyStatsMutation::SameTimestampDifferentDay) => {
-                data.rows[1].timestamp_unix_secs = data.rows[0].timestamp_unix_secs;
-            }
-            Some(DailyStatsMutation::MismatchedDay) => {
-                data.rows[0].day = "2026-07-29".to_string();
-            }
-            Some(DailyStatsMutation::OutsideWindow) => {
-                data.rows[0].timestamp_unix_secs = query.end_unix_secs + 1;
-            }
-            Some(DailyStatsMutation::InvalidRate) => {
-                data.rows[0].average_transactions_per_second = "NaN".to_string();
-            }
-            Some(DailyStatsMutation::TooManyRows) => {
-                data.rows = vec![data.rows[0].clone(); MAX_IC_DAILY_STATS_ROWS + 1];
-            }
-            None => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 }
 
@@ -1228,8 +1293,8 @@ enum MetricMutation {
 
 #[derive(Default)]
 struct MetricFixture {
-    calls: Cell<usize>,
-    mutation: RefCell<Option<MetricMutation>>,
+    calls: Mutex<usize>,
+    mutation: Mutex<Option<MetricMutation>>,
 }
 
 #[derive(Clone, Copy)]
@@ -1251,70 +1316,76 @@ enum IcrcAnalyticsMutation {
 
 #[derive(Default)]
 struct IcrcAnalyticsFixture {
-    calls: Cell<usize>,
-    mutation: RefCell<Option<IcrcAnalyticsMutation>>,
+    calls: Mutex<usize>,
+    mutation: Mutex<Option<IcrcAnalyticsMutation>>,
 }
 
 #[derive(Default)]
 struct IcrcIndexFixture {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
 }
 
 impl IcIcrcIndexSource for IcrcIndexFixture {
-    fn fetch_account_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcAccountListQuery,
-    ) -> Result<IcIcrcAccountListSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(IcIcrcAccountListSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            previous_cursor: None,
-            next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
-            rows: vec![icrc_account_source_row()],
+    fn fetch_account_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcAccountListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountListSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(IcIcrcAccountListSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                previous_cursor: None,
+                next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
+                rows: vec![icrc_account_source_row()],
+            })
         })
     }
 
-    fn fetch_account_info(
-        &self,
-        request: &IcSourceRequest,
-        _ledger_canister_id: &str,
-        _account_id: &str,
-    ) -> Result<IcIcrcAccountInfoSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(IcIcrcAccountInfoSourceData {
-            source: request.clone(),
-            account: icrc_account_source_row(),
+    fn fetch_account_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        _ledger_canister_id: &'a str,
+        _account_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcAccountInfoSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(IcIcrcAccountInfoSourceData {
+                source: request.clone(),
+                account: icrc_account_source_row(),
+            })
         })
     }
 
-    fn fetch_holder_list(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcHolderListQuery,
-    ) -> Result<IcIcrcHolderListSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(IcIcrcHolderListSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            previous_cursor: None,
-            next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
-            rows: vec![IcIcrcHolderSourceRow {
-                principal: ICRC_ACCOUNT_ID.to_string(),
-                balance_base_units: "0".to_string(),
-                total_transactions: 3,
-                created_at_unix_nanos: 1_731_833_720_056_622_711,
-                ledger_canister_id: ICRC_LEDGER_ID.to_string(),
-                latest_transaction_index: 1_898_152,
-                percentage: serde_json::json!(0.0),
-                value_usd: serde_json::json!("0.000000000000000000"),
-                dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
-            }],
+    fn fetch_holder_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcHolderListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcHolderListSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(IcIcrcHolderListSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                previous_cursor: None,
+                next_cursor: Some(ICRC_ACCOUNT_ID.to_string()),
+                rows: vec![IcIcrcHolderSourceRow {
+                    principal: ICRC_ACCOUNT_ID.to_string(),
+                    balance_base_units: "0".to_string(),
+                    total_transactions: 3,
+                    created_at_unix_nanos: 1_731_833_720_056_622_711,
+                    ledger_canister_id: ICRC_LEDGER_ID.to_string(),
+                    latest_transaction_index: 1_898_152,
+                    percentage: serde_json::json!(0.0),
+                    value_usd: serde_json::json!("0.000000000000000000"),
+                    dashboard_updated_at: "2026-04-14T18:55:55.827947".to_string(),
+                }],
+            })
         })
     }
 }
@@ -1336,227 +1407,243 @@ fn icrc_account_source_row() -> IcIcrcAccountSourceRow {
 }
 
 impl IcIcrcAnalyticsSource for IcrcAnalyticsFixture {
-    fn fetch_indexed_count(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
+    fn fetch_indexed_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
         kind: IcIcrcIndexedCountKind,
-    ) -> Result<IcIcrcIndexedCountSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let mut data = IcIcrcIndexedCountSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            kind,
-            total: indexed_count_total(kind),
-        };
-        match self.mutation.borrow_mut().take() {
-            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
-                data.source.endpoint = "https://example.com/api/v2".to_string();
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcIndexedCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let mut data = IcIcrcIndexedCountSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                kind,
+                total: indexed_count_total(kind),
+            };
+            let mutation = self.mutation.lock().unwrap().take();
+            match mutation {
+                Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                    data.source.endpoint = "https://example.com/api/v2".to_string();
+                }
+                Some(IcrcAnalyticsMutation::WrongLedger) => {
+                    data.ledger_canister_id = CANISTER_ID.to_string();
+                }
+                Some(IcrcAnalyticsMutation::WrongKind) => {
+                    data.kind = IcIcrcIndexedCountKind::Account;
+                }
+                _ => {}
             }
-            Some(IcrcAnalyticsMutation::WrongLedger) => {
-                data.ledger_canister_id = CANISTER_ID.to_string();
-            }
-            Some(IcrcAnalyticsMutation::WrongKind) => {
-                data.kind = IcIcrcIndexedCountKind::Account;
-            }
-            _ => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 
-    fn fetch_token_value_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTokenValueQuery,
-    ) -> Result<IcIcrcTokenValueSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let row = |timestamp_unix_secs| IcIcrcTokenValueSourceRow {
-            price: Some("63710.86993032754".to_string()),
-            volume_24h: Some("23337.881075287027".to_string()),
-            price_usd: Some("63710.86993032754".to_string()),
-            volume_24h_usd: Some("23337.881075287027".to_string()),
-            source: Some("ICPSwap-API".to_string()),
-            source_url: Some(
-                "https://app.icpswap.com/info-tokens/details/mxzaz-hqaaa-aaaar-qaada-cai"
-                    .to_string(),
-            ),
-            timestamp_unix_secs: Some(timestamp_unix_secs),
-        };
-        let mut data = IcIcrcTokenValueSourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            rows: vec![row(ICRC_SUPPLY_START), row(ICRC_SUPPLY_END)],
-        };
-        data.rows[1].volume_24h = None;
-        match self.mutation.borrow_mut().take() {
-            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
-                data.source.endpoint = "https://example.com/api/v2".to_string();
+    fn fetch_token_value_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTokenValueQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTokenValueSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let row = |timestamp_unix_secs| IcIcrcTokenValueSourceRow {
+                price: Some("63710.86993032754".to_string()),
+                volume_24h: Some("23337.881075287027".to_string()),
+                price_usd: Some("63710.86993032754".to_string()),
+                volume_24h_usd: Some("23337.881075287027".to_string()),
+                source: Some("ICPSwap-API".to_string()),
+                source_url: Some(
+                    "https://app.icpswap.com/info-tokens/details/mxzaz-hqaaa-aaaar-qaada-cai"
+                        .to_string(),
+                ),
+                timestamp_unix_secs: Some(timestamp_unix_secs),
+            };
+            let mut data = IcIcrcTokenValueSourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                rows: vec![row(ICRC_SUPPLY_START), row(ICRC_SUPPLY_END)],
+            };
+            data.rows[1].volume_24h = None;
+            let mutation = self.mutation.lock().unwrap().take();
+            match mutation {
+                Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                    data.source.endpoint = "https://example.com/api/v2".to_string();
+                }
+                Some(IcrcAnalyticsMutation::WrongLedger) => {
+                    data.ledger_canister_id = CANISTER_ID.to_string();
+                }
+                Some(IcrcAnalyticsMutation::TokenWrongQuery) => data.query.limit = 0,
+                Some(IcrcAnalyticsMutation::TokenTooManyRows) => {
+                    data.rows
+                        .resize_with(usize::from(query.limit) + 1, || row(ICRC_SUPPLY_END));
+                }
+                Some(IcrcAnalyticsMutation::TokenMissingTimestamp) => {
+                    data.rows[0].timestamp_unix_secs = None;
+                }
+                Some(IcrcAnalyticsMutation::TokenOutsideWindow) => {
+                    data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_END + 1);
+                }
+                Some(IcrcAnalyticsMutation::TokenUnordered) => {
+                    data.rows[0].timestamp_unix_secs = Some(ICRC_SUPPLY_END);
+                    data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_START);
+                }
+                Some(
+                    IcrcAnalyticsMutation::WrongKind
+                    | IcrcAnalyticsMutation::WrongQuery
+                    | IcrcAnalyticsMutation::DuplicateTimestamp
+                    | IcrcAnalyticsMutation::OutsideWindow
+                    | IcrcAnalyticsMutation::InvalidValue
+                    | IcrcAnalyticsMutation::TooManyObservations,
+                )
+                | None => {}
             }
-            Some(IcrcAnalyticsMutation::WrongLedger) => {
-                data.ledger_canister_id = CANISTER_ID.to_string();
-            }
-            Some(IcrcAnalyticsMutation::TokenWrongQuery) => data.query.limit = 0,
-            Some(IcrcAnalyticsMutation::TokenTooManyRows) => {
-                data.rows
-                    .resize_with(usize::from(query.limit) + 1, || row(ICRC_SUPPLY_END));
-            }
-            Some(IcrcAnalyticsMutation::TokenMissingTimestamp) => {
-                data.rows[0].timestamp_unix_secs = None;
-            }
-            Some(IcrcAnalyticsMutation::TokenOutsideWindow) => {
-                data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_END + 1);
-            }
-            Some(IcrcAnalyticsMutation::TokenUnordered) => {
-                data.rows[0].timestamp_unix_secs = Some(ICRC_SUPPLY_END);
-                data.rows[1].timestamp_unix_secs = Some(ICRC_SUPPLY_START);
-            }
-            Some(
-                IcrcAnalyticsMutation::WrongKind
-                | IcrcAnalyticsMutation::WrongQuery
-                | IcrcAnalyticsMutation::DuplicateTimestamp
-                | IcrcAnalyticsMutation::OutsideWindow
-                | IcrcAnalyticsMutation::InvalidValue
-                | IcrcAnalyticsMutation::TooManyObservations,
-            )
-            | None => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 
-    fn fetch_total_supply_series(
-        &self,
-        request: &IcSourceRequest,
-        ledger_canister_id: &str,
-        query: &IcIcrcTotalSupplyQuery,
-    ) -> Result<IcIcrcTotalSupplySourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let mut data = IcIcrcTotalSupplySourceData {
-            source: request.clone(),
-            ledger_canister_id: ledger_canister_id.to_string(),
-            query: query.clone(),
-            observations: vec![
-                IcIcrcTotalSupplyObservation {
-                    timestamp_unix_secs: ICRC_SUPPLY_START,
-                    total_supply_base_units: "23326766272".to_string(),
-                },
-                IcIcrcTotalSupplyObservation {
-                    timestamp_unix_secs: ICRC_SUPPLY_END,
-                    total_supply_base_units: "24147111595".to_string(),
-                },
-            ],
-        };
-        match self.mutation.borrow_mut().take() {
-            Some(IcrcAnalyticsMutation::WrongEndpoint) => {
-                data.source.endpoint = "https://example.com/api/v2".to_string();
+    fn fetch_total_supply_series<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        ledger_canister_id: &'a str,
+        query: &'a IcIcrcTotalSupplyQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcIcrcTotalSupplySourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let mut data = IcIcrcTotalSupplySourceData {
+                source: request.clone(),
+                ledger_canister_id: ledger_canister_id.to_string(),
+                query: query.clone(),
+                observations: vec![
+                    IcIcrcTotalSupplyObservation {
+                        timestamp_unix_secs: ICRC_SUPPLY_START,
+                        total_supply_base_units: "23326766272".to_string(),
+                    },
+                    IcIcrcTotalSupplyObservation {
+                        timestamp_unix_secs: ICRC_SUPPLY_END,
+                        total_supply_base_units: "24147111595".to_string(),
+                    },
+                ],
+            };
+            let mutation = self.mutation.lock().unwrap().take();
+            match mutation {
+                Some(IcrcAnalyticsMutation::WrongEndpoint) => {
+                    data.source.endpoint = "https://example.com/api/v2".to_string();
+                }
+                Some(IcrcAnalyticsMutation::WrongLedger) => {
+                    data.ledger_canister_id = CANISTER_ID.to_string();
+                }
+                Some(IcrcAnalyticsMutation::WrongQuery) => data.query.start_unix_secs += 1,
+                Some(IcrcAnalyticsMutation::DuplicateTimestamp) => {
+                    data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_START;
+                }
+                Some(IcrcAnalyticsMutation::OutsideWindow) => {
+                    data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_END + 1;
+                }
+                Some(IcrcAnalyticsMutation::InvalidValue) => {
+                    data.observations[0].total_supply_base_units = "023326766272".to_string();
+                }
+                Some(IcrcAnalyticsMutation::TooManyObservations) => {
+                    data.observations = (0..5)
+                        .map(|offset| IcIcrcTotalSupplyObservation {
+                            timestamp_unix_secs: ICRC_SUPPLY_START + offset,
+                            total_supply_base_units: "1".to_string(),
+                        })
+                        .collect();
+                }
+                Some(
+                    IcrcAnalyticsMutation::WrongKind
+                    | IcrcAnalyticsMutation::TokenWrongQuery
+                    | IcrcAnalyticsMutation::TokenTooManyRows
+                    | IcrcAnalyticsMutation::TokenMissingTimestamp
+                    | IcrcAnalyticsMutation::TokenOutsideWindow
+                    | IcrcAnalyticsMutation::TokenUnordered,
+                )
+                | None => {}
             }
-            Some(IcrcAnalyticsMutation::WrongLedger) => {
-                data.ledger_canister_id = CANISTER_ID.to_string();
-            }
-            Some(IcrcAnalyticsMutation::WrongQuery) => data.query.start_unix_secs += 1,
-            Some(IcrcAnalyticsMutation::DuplicateTimestamp) => {
-                data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_START;
-            }
-            Some(IcrcAnalyticsMutation::OutsideWindow) => {
-                data.observations[1].timestamp_unix_secs = ICRC_SUPPLY_END + 1;
-            }
-            Some(IcrcAnalyticsMutation::InvalidValue) => {
-                data.observations[0].total_supply_base_units = "023326766272".to_string();
-            }
-            Some(IcrcAnalyticsMutation::TooManyObservations) => {
-                data.observations = (0..5)
-                    .map(|offset| IcIcrcTotalSupplyObservation {
-                        timestamp_unix_secs: ICRC_SUPPLY_START + offset,
-                        total_supply_base_units: "1".to_string(),
-                    })
-                    .collect();
-            }
-            Some(
-                IcrcAnalyticsMutation::WrongKind
-                | IcrcAnalyticsMutation::TokenWrongQuery
-                | IcrcAnalyticsMutation::TokenTooManyRows
-                | IcrcAnalyticsMutation::TokenMissingTimestamp
-                | IcrcAnalyticsMutation::TokenOutsideWindow
-                | IcrcAnalyticsMutation::TokenUnordered,
-            )
-            | None => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 }
 
 impl IcMetricSource for MetricFixture {
-    fn fetch_metric(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcMetricQuery,
-    ) -> Result<IcMetricSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        let mut data = IcMetricSourceData {
-            source: request.clone(),
-            query: query.clone(),
-            series: vec![IcMetricSeries {
-                name: "instruction_rate".to_string(),
-                observations: vec![
-                    IcMetricObservation {
-                        timestamp_unix_secs: METRIC_START,
-                        value: "21089992048.10834".to_string(),
-                    },
-                    IcMetricObservation {
-                        timestamp_unix_secs: METRIC_END,
-                        value: "21100000000".to_string(),
-                    },
-                ],
-            }],
-        };
-        match self.mutation.borrow_mut().take() {
-            Some(MetricMutation::WrongQuery) => data.query.step_secs += 1,
-            Some(MetricMutation::WrongSeries) => data.series[0].name = "block_rate".to_string(),
-            Some(MetricMutation::TooManyObservations) => {
-                data.series[0].observations = (0..14)
-                    .map(|offset| IcMetricObservation {
-                        timestamp_unix_secs: METRIC_START + offset,
-                        value: "1".to_string(),
-                    })
-                    .collect();
+    fn fetch_metric<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcMetricQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcMetricSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            let mut data = IcMetricSourceData {
+                source: request.clone(),
+                query: query.clone(),
+                series: vec![IcMetricSeries {
+                    name: "instruction_rate".to_string(),
+                    observations: vec![
+                        IcMetricObservation {
+                            timestamp_unix_secs: METRIC_START,
+                            value: "21089992048.10834".to_string(),
+                        },
+                        IcMetricObservation {
+                            timestamp_unix_secs: METRIC_END,
+                            value: "21100000000".to_string(),
+                        },
+                    ],
+                }],
+            };
+            let mutation = self.mutation.lock().unwrap().take();
+            match mutation {
+                Some(MetricMutation::WrongQuery) => data.query.step_secs += 1,
+                Some(MetricMutation::WrongSeries) => data.series[0].name = "block_rate".to_string(),
+                Some(MetricMutation::TooManyObservations) => {
+                    data.series[0].observations = (0..14)
+                        .map(|offset| IcMetricObservation {
+                            timestamp_unix_secs: METRIC_START + offset,
+                            value: "1".to_string(),
+                        })
+                        .collect();
+                }
+                Some(MetricMutation::EmptyValue) => {
+                    data.series[0].observations[0].value.clear();
+                }
+                None => {}
             }
-            Some(MetricMutation::EmptyValue) => {
-                data.series[0].observations[0].value.clear();
-            }
-            None => {}
-        }
-        Ok(data)
+            Ok(data)
+        })
     }
 }
 
 #[derive(Default)]
 struct FixtureSource {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
 }
 
 impl IcCanisterSource for FixtureSource {
-    fn fetch_canister(
-        &self,
-        request: &IcSourceRequest,
-        canister_id: &str,
-    ) -> Result<IcCanisterSourceData, IcHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(source_data(request, canister_id))
+    fn fetch_canister<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        canister_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(source_data(request, canister_id))
+        })
     }
 }
 
 struct MutatingSource(fn(&mut IcCanisterSourceData));
 
 impl IcCanisterSource for MutatingSource {
-    fn fetch_canister(
-        &self,
-        request: &IcSourceRequest,
-        canister_id: &str,
-    ) -> Result<IcCanisterSourceData, IcHostError> {
-        let mut data = source_data(request, canister_id);
-        self.0(&mut data);
-        Ok(data)
+    fn fetch_canister<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        canister_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>> {
+        Box::pin(async move {
+            let mut data = source_data(request, canister_id);
+            self.0(&mut data);
+            Ok(data)
+        })
     }
 }
 
@@ -1573,60 +1660,65 @@ enum PageSourceMutation {
 
 #[derive(Default)]
 struct CollectionFixture {
-    count_calls: Cell<usize>,
-    page_calls: Cell<usize>,
-    page_mutation: RefCell<Option<PageSourceMutation>>,
+    count_calls: Mutex<usize>,
+    page_calls: Mutex<usize>,
+    page_mutation: Mutex<Option<PageSourceMutation>>,
 }
 
 impl IcCanisterCollectionSource for CollectionFixture {
-    fn fetch_canister_count(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
-    ) -> Result<IcCanisterCountSourceData, IcHostError> {
-        self.count_calls.set(self.count_calls.get() + 1);
-        Ok(IcCanisterCountSourceData {
-            source: request.clone(),
-            filters: filters.clone(),
-            total: 649,
+    fn fetch_canister_count<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterCountSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.count_calls.lock().unwrap() += 1;
+            Ok(IcCanisterCountSourceData {
+                source: request.clone(),
+                filters: filters.clone(),
+                total: 649,
+            })
         })
     }
 
-    fn fetch_canister_page(
-        &self,
-        request: &IcSourceRequest,
-        filters: &IcCanisterFilters,
+    fn fetch_canister_page<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        filters: &'a IcCanisterFilters,
         limit: u16,
-        after: Option<&str>,
-        before: Option<&str>,
-    ) -> Result<IcCanisterPageSourceData, IcHostError> {
-        self.page_calls.set(self.page_calls.get() + 1);
-        let mut data = page_source_data(request, filters, limit, after, before);
-        match self.page_mutation.borrow_mut().take() {
-            Some(PageSourceMutation::ReverseRows) => data.rows.reverse(),
-            Some(PageSourceMutation::DuplicateCanisterId) => {
-                let (first, rest) = data.rows.split_at_mut(1);
-                rest[0].canister_id.clone_from(&first[0].canister_id);
+        after: Option<&'a str>,
+        before: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<IcCanisterPageSourceData, IcHostError>> {
+        Box::pin(async move {
+            *self.page_calls.lock().unwrap() += 1;
+            let mut data = page_source_data(request, filters, limit, after, before);
+            let mutation = self.page_mutation.lock().unwrap().take();
+            match mutation {
+                Some(PageSourceMutation::ReverseRows) => data.rows.reverse(),
+                Some(PageSourceMutation::DuplicateCanisterId) => {
+                    let (first, rest) = data.rows.split_at_mut(1);
+                    rest[0].canister_id.clone_from(&first[0].canister_id);
+                }
+                Some(PageSourceMutation::NonAdjacentDuplicateCanisterId) => {
+                    let mut duplicate = data.rows[0].clone();
+                    duplicate.dashboard_id = 2_000_000;
+                    data.rows.push(duplicate);
+                }
+                Some(PageSourceMutation::DuplicateDashboardId) => {
+                    data.rows[1].dashboard_id = data.rows[0].dashboard_id;
+                }
+                Some(PageSourceMutation::DuplicateController) => {
+                    let mut duplicate = data.rows[0].controllers[0].clone();
+                    duplicate.raw_metadata = Some("different metadata".to_string());
+                    data.rows[0].controllers.push(duplicate);
+                }
+                Some(PageSourceMutation::WrongFilters) => data.filters.has_name = Some(true),
+                Some(PageSourceMutation::WrongLimit) => data.requested_limit += 1,
+                None => {}
             }
-            Some(PageSourceMutation::NonAdjacentDuplicateCanisterId) => {
-                let mut duplicate = data.rows[0].clone();
-                duplicate.dashboard_id = 2_000_000;
-                data.rows.push(duplicate);
-            }
-            Some(PageSourceMutation::DuplicateDashboardId) => {
-                data.rows[1].dashboard_id = data.rows[0].dashboard_id;
-            }
-            Some(PageSourceMutation::DuplicateController) => {
-                let mut duplicate = data.rows[0].controllers[0].clone();
-                duplicate.raw_metadata = Some("different metadata".to_string());
-                data.rows[0].controllers.push(duplicate);
-            }
-            Some(PageSourceMutation::WrongFilters) => data.filters.has_name = Some(true),
-            Some(PageSourceMutation::WrongLimit) => data.requested_limit += 1,
-            None => {}
-        }
-        data.next_cursor = data.rows.last().map(|row| row.canister_id.clone());
-        Ok(data)
+            data.next_cursor = data.rows.last().map(|row| row.canister_id.clone());
+            Ok(data)
+        })
     }
 }
 

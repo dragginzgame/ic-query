@@ -40,31 +40,34 @@ pub(super) struct FixtureNodeProviderSource {
 }
 
 impl NnsNodeProviderSource for FixtureNodeProviderSource {
-    fn fetch_node_provider_list_report(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-        let node_providers = self
-            .node_providers
-            .iter()
-            .map(|provider| NnsNodeProviderRow {
-                node_provider_principal: provider.principal.clone(),
-                name: None,
-                node_count: provider.node_count,
-                reward_account_hex: provider.reward_account_hex.clone(),
+    fn fetch_node_provider_list_report<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
+    {
+        Box::pin(async move {
+            let node_providers = self
+                .node_providers
+                .iter()
+                .map(|provider| NnsNodeProviderRow {
+                    node_provider_principal: provider.principal.clone(),
+                    name: None,
+                    node_count: provider.node_count,
+                    reward_account_hex: provider.reward_account_hex.clone(),
+                })
+                .collect::<Vec<_>>();
+            Ok(NnsNodeProviderListReport {
+                schema_version: 1,
+                network: MAINNET_NETWORK.to_string(),
+                governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: "test".to_string(),
+                source_endpoint: request.endpoint.clone(),
+                node_provider_count: node_providers.len(),
+                node_providers,
             })
-            .collect::<Vec<_>>();
-        Ok(NnsNodeProviderListReport {
-            schema_version: 1,
-            network: MAINNET_NETWORK.to_string(),
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: "test".to_string(),
-            source_endpoint: request.endpoint.clone(),
-            node_provider_count: node_providers.len(),
-            node_providers,
         })
     }
 }
@@ -78,12 +81,15 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
 pub(super) struct FailingNodeProviderSource;
 
 impl NnsNodeProviderSource for FailingNodeProviderSource {
-    fn fetch_node_provider_list_report(
-        &self,
-        _request: &NnsSourceRequest,
-    ) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
-        Err(NnsNodeProviderHostError::NodeProviderNotFound {
-            input: "unexpected-live-fetch".to_string(),
+    fn fetch_node_provider_list_report<'a>(
+        &'a self,
+        _request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
+    {
+        Box::pin(async move {
+            Err(NnsNodeProviderHostError::NodeProviderNotFound {
+                input: "unexpected-live-fetch".to_string(),
+            })
         })
     }
 }

@@ -10,27 +10,32 @@ use super::{
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
-pub fn build_nns_data_center_list_report(
+pub async fn build_nns_data_center_list_report(
     request: &NnsInventoryListRequest,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    build_nns_data_center_list_report_with_source(request, &LiveNnsSource)
+    build_nns_data_center_list_report_with_source(request, &LiveNnsSource::default()).await
 }
 
-pub fn build_nns_data_center_info_report(
+pub async fn build_nns_data_center_info_report(
     request: &NnsInventoryInfoRequest,
 ) -> Result<NnsDataCenterInfoReport, NnsDataCenterHostError> {
-    build_nns_data_center_info_report_with_source(request, &LiveNnsSource)
+    build_nns_data_center_info_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build the report while reporting authorized cache refreshes.
-pub fn build_nns_data_center_list_report_with_progress(
+pub async fn build_nns_data_center_list_report_with_progress(
     request: &NnsInventoryListRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    build_nns_data_center_list_report_with_source_and_progress(request, &LiveNnsSource, progress)
+    build_nns_data_center_list_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
-pub fn build_nns_data_center_list_report_with_source(
+pub async fn build_nns_data_center_list_report_with_source(
     request: &NnsInventoryListRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
@@ -39,10 +44,11 @@ pub fn build_nns_data_center_list_report_with_source(
         source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
-pub fn build_nns_data_center_list_report_with_source_and_progress(
+pub async fn build_nns_data_center_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
     source: &dyn NnsDataCenterSource,
     progress: &mut dyn QueryProgress,
@@ -53,21 +59,29 @@ pub fn build_nns_data_center_list_report_with_source_and_progress(
         DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS,
         progress,
         |cache| load_cached_nns_data_center_report(cache).map(|cached| cached.report),
-        |refresh_request| {
-            refresh_nns_data_center_cache_with_source(refresh_request, source).map(|_| ())
+        async |refresh_request| {
+            refresh_nns_data_center_cache_with_source(refresh_request, source)
+                .await
+                .map(|_| ())
         },
     )
+    .await
 }
 
 /// Build the report while reporting authorized cache refreshes.
-pub fn build_nns_data_center_info_report_with_progress(
+pub async fn build_nns_data_center_info_report_with_progress(
     request: &NnsInventoryInfoRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsDataCenterInfoReport, NnsDataCenterHostError> {
-    build_nns_data_center_info_report_with_source_and_progress(request, &LiveNnsSource, progress)
+    build_nns_data_center_info_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
-pub fn build_nns_data_center_info_report_with_source(
+pub async fn build_nns_data_center_info_report_with_source(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsDataCenterSource,
 ) -> Result<NnsDataCenterInfoReport, NnsDataCenterHostError> {
@@ -76,10 +90,11 @@ pub fn build_nns_data_center_info_report_with_source(
         source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
-pub fn build_nns_data_center_info_report_with_source_and_progress(
+pub async fn build_nns_data_center_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsDataCenterSource,
     progress: &mut dyn QueryProgress,
@@ -89,11 +104,9 @@ pub fn build_nns_data_center_info_report_with_source_and_progress(
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
     };
-    let report = build_nns_data_center_list_report_with_source_and_progress(
-        &list_request,
-        source,
-        progress,
-    )?;
+    let report =
+        build_nns_data_center_list_report_with_source_and_progress(&list_request, source, progress)
+            .await?;
     let (data_center, resolved_from) = resolve_data_center(&report, &request.input)?;
     Ok(NnsDataCenterInfoReport {
         schema_version: NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION,

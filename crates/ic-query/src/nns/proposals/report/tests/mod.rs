@@ -35,7 +35,6 @@ use crate::{
             NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
         },
     },
-    runtime::block_on_current_thread,
     subnet_catalog::MAINNET_NETWORK,
 };
 use candid::Reserved;
@@ -45,8 +44,8 @@ mod list;
 mod portable;
 mod sorts;
 
-#[test]
-fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsGovernanceRequest::replica_query(
         "local",
         "not a valid replica endpoint",
@@ -54,14 +53,14 @@ fn live_proposal_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = block_on_current_thread(LiveNnsSource.fetch_proposals(
+    let error = (LiveNnsSource::default().fetch_proposals(
         &request,
         1,
         None,
         NnsProposalStatusFilter::Any,
         NnsProposalRewardStatusFilter::Any,
     ))
-    .expect("proposal source runtime")
+    .await
     .expect_err("unsupported network");
 
     assert!(matches!(
@@ -127,20 +126,18 @@ impl NnsProposalSource for FixtureSource {
     }
 }
 
-fn build_nns_proposal_list_report_with_source(
+async fn build_nns_proposal_list_report_with_source(
     request: &NnsProposalListRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<NnsProposalListReport, NnsProposalError> {
-    block_on_current_thread(build_nns_proposal_list_report_async(request, source))
-        .expect("proposal list test runtime")
+    (build_nns_proposal_list_report_async(request, source)).await
 }
 
-fn build_nns_proposal_report_with_source(
+async fn build_nns_proposal_report_with_source(
     request: &NnsProposalRequest,
     source: &dyn NnsProposalSource,
 ) -> Result<super::model::NnsProposalReport, NnsProposalError> {
-    block_on_current_thread(build_nns_proposal_report_async(request, source))
-        .expect("proposal detail test runtime")
+    (build_nns_proposal_report_async(request, source)).await
 }
 
 fn proposal_governance_request(now_unix_secs: u64) -> NnsGovernanceRequest {

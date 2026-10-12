@@ -7,27 +7,32 @@ use crate::{
     subnet_catalog::{
         SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
         SubnetCatalogLoadRequest, SubnetCatalogSource, SubnetInfo, ValidatedSubnetCatalog,
-        catalog_stale_status, load_subnet_catalog_with_source_and_progress,
+        catalog_stale_status, load_subnet_catalog_detailed_with_progress,
     },
 };
 
 /// Load the catalog under the request's cache policy and project its filtered Subnet rows.
-pub fn build_subnet_catalog_list_report(
+pub async fn build_subnet_catalog_list_report(
     request: &SubnetCatalogListRequest,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    build_subnet_catalog_list_report_with_source(request, &LiveNnsSource)
+    build_subnet_catalog_list_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build the report while reporting authorized live refreshes.
-pub fn build_subnet_catalog_list_report_with_progress(
+pub async fn build_subnet_catalog_list_report_with_progress(
     request: &SubnetCatalogListRequest,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    build_subnet_catalog_list_report_with_source_and_progress(request, &LiveNnsSource, progress)
+    build_subnet_catalog_list_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        progress,
+    )
+    .await
 }
 
 /// Project filtered Subnet rows using the cache policy and caller-owned refresh source.
-pub fn build_subnet_catalog_list_report_with_source(
+pub async fn build_subnet_catalog_list_report_with_source(
     request: &SubnetCatalogListRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
@@ -36,10 +41,11 @@ pub fn build_subnet_catalog_list_report_with_source(
         source,
         &mut IgnoreQueryProgress,
     )
+    .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
-pub fn build_subnet_catalog_list_report_with_source_and_progress(
+pub async fn build_subnet_catalog_list_report_with_source_and_progress(
     request: &SubnetCatalogListRequest,
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),
@@ -47,7 +53,9 @@ pub fn build_subnet_catalog_list_report_with_source_and_progress(
     let load_request =
         SubnetCatalogLoadRequest::cache_only(request.cache.clone(), request.now_unix_secs)
             .with_policy(request.read_policy.clone());
-    let cached = load_subnet_catalog_with_source_and_progress(&load_request, source, progress)?;
+    let cached = load_subnet_catalog_detailed_with_progress(&load_request, source, progress)
+        .await
+        .map_err(crate::subnet_catalog::SubnetCatalogLoadFailure::into_source)?;
     let stale = catalog_stale_status(
         cached.catalog.raw(),
         request.now_unix_secs,

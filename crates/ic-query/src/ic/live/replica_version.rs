@@ -4,7 +4,7 @@
 //! Does not own: report validation, CLI parsing, provenance projection, or rendering.
 //! Boundary: performs one bounded list request or one exact release request.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url, fetch_live};
+use super::{LiveIcSource, append_path_segments, dashboard_base_url};
 use crate::ic::{
     IcHostError, IcReplicaVersionInfoSourceData, IcReplicaVersionListQuery,
     IcReplicaVersionListRow, IcReplicaVersionListSourceData, IcReplicaVersionSource,
@@ -14,26 +14,30 @@ use serde::Deserialize as SerdeDeserialize;
 use url::Url;
 
 impl IcReplicaVersionSource for LiveIcSource {
-    fn fetch_replica_version_list(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcReplicaVersionListQuery,
-    ) -> Result<IcReplicaVersionListSourceData, IcHostError> {
-        source::validate_replica_version_list_query(query)?;
-        let url = replica_version_list_url(&request.endpoint, query)?;
-        let wire: DashboardReplicaVersionList = fetch_live(url)?;
-        wire.into_source_data(request, query)
+    fn fetch_replica_version_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcReplicaVersionListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionListSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_replica_version_list_query(query)?;
+            let url = replica_version_list_url(&request.endpoint, query)?;
+            let wire: DashboardReplicaVersionList = self.fetch_live(url).await?;
+            wire.into_source_data(request, query)
+        })
     }
 
-    fn fetch_replica_version_info(
-        &self,
-        request: &IcSourceRequest,
-        replica_version_id: &str,
-    ) -> Result<IcReplicaVersionInfoSourceData, IcHostError> {
-        source::validate_replica_version_id(replica_version_id)?;
-        let url = replica_version_info_url(&request.endpoint, replica_version_id)?;
-        let wire: DashboardReplicaVersionInfo = fetch_live(url)?;
-        Ok(wire.into_source_data(request))
+    fn fetch_replica_version_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        replica_version_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<IcReplicaVersionInfoSourceData, IcHostError>> {
+        Box::pin(async move {
+            source::validate_replica_version_id(replica_version_id)?;
+            let url = replica_version_info_url(&request.endpoint, replica_version_id)?;
+            let wire: DashboardReplicaVersionInfo = self.fetch_live(url).await?;
+            Ok(wire.into_source_data(request))
+        })
     }
 }
 

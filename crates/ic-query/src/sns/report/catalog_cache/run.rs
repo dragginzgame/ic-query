@@ -105,7 +105,7 @@ pub fn build_sns_list_report_from_cache(
 }
 
 /// Build an SNS list report, visibly refreshing an unusable or one-hour-stale catalog.
-pub fn build_sns_list_report_from_cache_or_refresh(
+pub async fn build_sns_list_report_from_cache_or_refresh(
     request: &SnsListRequest,
     cache_root: &Path,
     progress: &mut dyn QueryProgress,
@@ -113,13 +113,14 @@ pub fn build_sns_list_report_from_cache_or_refresh(
     build_sns_list_report_from_cache_or_refresh_with_source(
         request,
         cache_root,
-        &LiveSnsSource,
+        &LiveSnsSource::default(),
         progress,
     )
+    .await
 }
 
 /// Apply the deployed-SNS cache policy through a caller-supplied discovery source.
-pub fn build_sns_list_report_from_cache_or_refresh_with_source(
+pub async fn build_sns_list_report_from_cache_or_refresh_with_source(
     request: &SnsListRequest,
     cache_root: &Path,
     source: &dyn SnsCatalogSource,
@@ -131,28 +132,29 @@ pub fn build_sns_list_report_from_cache_or_refresh_with_source(
         || load_observed_sns_catalog(&refresh.cache, request.now_unix_secs),
         |cached| catalog_is_stale(cached, request.now_unix_secs),
         |error| catalog_cache_refresh_reason(error, &cache_path),
-        |_| {
+        async |_| {
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: CACHE_COMPONENT.to_string(),
                 path: cache_path.clone(),
                 source_endpoint: request.source_endpoint.clone(),
             });
-            refresh_sns_catalog_with_source(&refresh, source)?;
+            refresh_sns_catalog_with_source(&refresh, source).await?;
             Ok(())
         },
-    )?;
+    )
+    .await?;
     Ok(list_report_from_cache(request, cached))
 }
 
 /// Force a complete live deployed-SNS catalog refresh.
-pub fn refresh_sns_catalog(
+pub async fn refresh_sns_catalog(
     request: &SnsCatalogRefreshRequest,
 ) -> Result<SnsCatalogRefreshReport, SnsHostError> {
-    refresh_sns_catalog_with_source(request, &LiveSnsSource)
+    refresh_sns_catalog_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Force a catalog refresh through a caller-supplied discovery source.
-pub fn refresh_sns_catalog_with_source(
+pub async fn refresh_sns_catalog_with_source(
     request: &SnsCatalogRefreshRequest,
     source: &dyn SnsCatalogSource,
 ) -> Result<SnsCatalogRefreshReport, SnsHostError> {
@@ -168,13 +170,13 @@ pub fn refresh_sns_catalog_with_source(
             lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
-        |state| {
+        async |state| {
             let list_request = SnsListRequest::new(
                 &request.cache.network,
                 &request.source_endpoint,
                 request.now_unix_secs,
             );
-            let list = fetch_joined_sns_catalog(&list_request, source)?;
+            let list = fetch_joined_sns_catalog(&list_request, source).await?;
             let metadata_error_count = list
                 .sns_instances
                 .iter()
@@ -216,6 +218,7 @@ pub fn refresh_sns_catalog_with_source(
             })
         },
     )
+    .await
 }
 
 fn load_cached_sns_catalog(

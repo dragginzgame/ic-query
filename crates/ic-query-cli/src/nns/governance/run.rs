@@ -12,40 +12,55 @@ use ic_query::nns::governance::{
 };
 use serde::Serialize;
 
-pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(in crate::nns) async fn run(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("economics", matches)) => run_report(
-            matches,
-            network,
-            build_nns_governance_economics_report,
-            nns_governance_economics_report_text,
-        ),
-        Some(("metrics", matches)) => run_report(
-            matches,
-            network,
-            build_nns_governance_metrics_report,
-            nns_governance_metrics_report_text,
-        ),
-        Some(("reward-event", matches)) => run_report(
-            matches,
-            network,
-            build_nns_governance_reward_event_report,
-            nns_governance_reward_event_report_text,
-        ),
-        Some(("maturity-modulation", matches)) => run_report(
-            matches,
-            network,
-            build_nns_governance_maturity_modulation_report,
-            nns_governance_maturity_modulation_report_text,
-        ),
+        Some(("economics", matches)) => {
+            run_report(
+                matches,
+                network,
+                build_nns_governance_economics_report,
+                nns_governance_economics_report_text,
+            )
+            .await
+        }
+        Some(("metrics", matches)) => {
+            run_report(
+                matches,
+                network,
+                build_nns_governance_metrics_report,
+                nns_governance_metrics_report_text,
+            )
+            .await
+        }
+        Some(("reward-event", matches)) => {
+            run_report(
+                matches,
+                network,
+                build_nns_governance_reward_event_report,
+                nns_governance_reward_event_report_text,
+            )
+            .await
+        }
+        Some(("maturity-modulation", matches)) => {
+            run_report(
+                matches,
+                network,
+                build_nns_governance_maturity_modulation_report,
+                nns_governance_maturity_modulation_report_text,
+            )
+            .await
+        }
         _ => unreachable!("clap requires a known NNS governance subcommand"),
     }
 }
 
-fn run_report<Report>(
+async fn run_report<Report>(
     matches: &ArgMatches,
     network: &str,
-    build: fn(&NnsGovernanceRequest) -> Result<Report, NnsGovernanceHostError>,
+    build: impl AsyncFn(&NnsGovernanceRequest) -> Result<Report, NnsGovernanceHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where
@@ -58,6 +73,6 @@ where
         now_unix_secs()?,
         "ic-query",
     );
-    let report = build(&request)?;
+    let report = build(&request).await?;
     write_text_or_json(options.format, &report, render_text)
 }

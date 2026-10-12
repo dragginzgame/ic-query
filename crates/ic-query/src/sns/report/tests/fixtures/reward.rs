@@ -1,10 +1,7 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, ROOT_A, fixture_sns_governance_parameters};
 use crate::sns::report::SNS_REWARD_CHECKPOINT_PAGE_SIZE;
 use crate::sns::report::tests::*;
-use std::{
-    cell::{Cell, RefCell},
-    collections::VecDeque,
-};
+use std::{collections::VecDeque, sync::Mutex};
 
 ///
 /// FixtureSnsRewardSource
@@ -13,24 +10,24 @@ use std::{
 ///
 
 pub(in crate::sns::report::tests) struct FixtureSnsRewardSource {
-    calls: RefCell<Vec<&'static str>>,
-    pages: RefCell<VecDeque<MainnetSnsRewardNeuronPage>>,
+    calls: Mutex<Vec<&'static str>>,
+    pages: Mutex<VecDeque<MainnetSnsRewardNeuronPage>>,
     unstable_component: Option<&'static str>,
-    version_calls: Cell<u32>,
-    parameter_calls: Cell<u32>,
-    event_calls: Cell<u32>,
+    version_calls: Mutex<u32>,
+    parameter_calls: Mutex<u32>,
+    event_calls: Mutex<u32>,
     max_number_of_neurons: Option<u64>,
 }
 
 impl FixtureSnsRewardSource {
     pub(in crate::sns::report::tests) fn new(pages: Vec<MainnetSnsRewardNeuronPage>) -> Self {
         Self {
-            calls: RefCell::new(Vec::new()),
-            pages: RefCell::new(pages.into()),
+            calls: Mutex::new(Vec::new()),
+            pages: Mutex::new(pages.into()),
             unstable_component: None,
-            version_calls: Cell::new(0),
-            parameter_calls: Cell::new(0),
-            event_calls: Cell::new(0),
+            version_calls: Mutex::new(0),
+            parameter_calls: Mutex::new(0),
+            event_calls: Mutex::new(0),
             max_number_of_neurons: Some(200_000),
         }
     }
@@ -46,7 +43,7 @@ impl FixtureSnsRewardSource {
     }
 
     pub(in crate::sns::report::tests) fn calls(&self) -> Vec<&'static str> {
-        self.calls.borrow().clone()
+        self.calls.lock().unwrap().clone()
     }
 
     pub(in crate::sns::report::tests) const fn with_max_number_of_neurons(
@@ -61,69 +58,78 @@ impl FixtureSnsRewardSource {
 delegate_sns_discovery!(FixtureSnsRewardSource);
 
 impl SnsRewardSource for FixtureSnsRewardSource {
-    fn fetch_sns_reward_running_version(
-        &self,
-        _request: &SnsSourceRequest,
-        sns: &MainnetSns,
-    ) -> Result<SnsRunningVersionResponse, SnsHostError> {
-        assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
-        self.calls.borrow_mut().push("version");
-        let call = self.version_calls.get();
-        self.version_calls.set(call + 1);
-        let mut response = fixture_reward_running_version();
-        if self.unstable_component == Some("version") && call > 0 {
-            response.pending_version = None;
-        }
-        Ok(response)
+    fn fetch_sns_reward_running_version<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            self.calls.lock().unwrap().push("version");
+            let call = *self.version_calls.lock().unwrap();
+            (*self.version_calls.lock().unwrap() = call + 1);
+            let mut response = fixture_reward_running_version();
+            if self.unstable_component == Some("version") && call > 0 {
+                response.pending_version = None;
+            }
+            Ok(response)
+        })
     }
 
-    fn fetch_sns_reward_parameters(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<SnsGovernanceParameters, SnsHostError> {
-        self.calls.borrow_mut().push("parameters");
-        let call = self.parameter_calls.get();
-        self.parameter_calls.set(call + 1);
-        let mut parameters = fixture_sns_governance_parameters();
-        parameters.max_number_of_neurons = self.max_number_of_neurons;
-        if self.unstable_component == Some("parameters") && call > 0 {
-            parameters.transaction_fee_e8s = Some(20_000);
-        }
-        Ok(parameters)
+    fn fetch_sns_reward_parameters<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
+        Box::pin(async move {
+            self.calls.lock().unwrap().push("parameters");
+            let call = *self.parameter_calls.lock().unwrap();
+            (*self.parameter_calls.lock().unwrap() = call + 1);
+            let mut parameters = fixture_sns_governance_parameters();
+            parameters.max_number_of_neurons = self.max_number_of_neurons;
+            if self.unstable_component == Some("parameters") && call > 0 {
+                parameters.transaction_fee_e8s = Some(20_000);
+            }
+            Ok(parameters)
+        })
     }
 
-    fn fetch_sns_reward_event(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
-    ) -> Result<SnsRewardEvent, SnsHostError> {
-        self.calls.borrow_mut().push("event");
-        let call = self.event_calls.get();
-        self.event_calls.set(call + 1);
-        let mut event = fixture_reward_event();
-        if self.unstable_component == Some("event") && call > 0 {
-            event.distributed_e8s_equivalent += 1;
-        }
-        Ok(event)
+    fn fetch_sns_reward_event<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
+    ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
+        Box::pin(async move {
+            self.calls.lock().unwrap().push("event");
+            let call = *self.event_calls.lock().unwrap();
+            (*self.event_calls.lock().unwrap() = call + 1);
+            let mut event = fixture_reward_event();
+            if self.unstable_component == Some("event") && call > 0 {
+                event.distributed_e8s_equivalent += 1;
+            }
+            Ok(event)
+        })
     }
 
-    fn fetch_sns_reward_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_reward_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         limit: u32,
-        _start_page_at: Option<&SnsNeuronId>,
-    ) -> Result<MainnetSnsRewardNeuronPage, SnsHostError> {
-        assert_eq!(limit, SNS_REWARD_CHECKPOINT_PAGE_SIZE);
-        self.calls.borrow_mut().push("page");
-        self.pages
-            .borrow_mut()
-            .pop_front()
-            .ok_or_else(|| SnsHostError::InvalidSourceData {
-                capability: "fixture SNS reward checkpoint",
-                reason: "unexpected page request".to_string(),
-            })
+        _start_page_at: Option<&'a SnsNeuronId>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(limit, SNS_REWARD_CHECKPOINT_PAGE_SIZE);
+            self.calls.lock().unwrap().push("page");
+            self.pages
+                .lock()
+                .unwrap()
+                .pop_front()
+                .ok_or_else(|| SnsHostError::InvalidSourceData {
+                    capability: "fixture SNS reward checkpoint",
+                    reason: "unexpected page request".to_string(),
+                })
+        })
     }
 }
 

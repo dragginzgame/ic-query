@@ -1173,7 +1173,94 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.54.15 Shared 0.9.0 qualification
+## Pending 0.55.0 async host API qualification
+
+Host capabilities and collectors now return caller-runtime futures. Object-safe
+sources require `Sync` and return boxed `Send` futures; progress sinks require
+`Send`. Pure projections, rendering and explicit cache-only IO stay synchronous.
+The CLI owns its current-thread runtime. Stateful CloudEngine, ICRC, NNS
+Governance and SNS adapters retain an endpoint/response-bound agent across a
+collection; Dashboard sources retain a bounded HTTP client. Runtime wrappers
+and their runtime failure branches are removed, with schema-1 cache/report
+formats and lock/attempt recovery preserved.
+
+Focused Linux evidence is retained in `/tmp/ic-query-055-async/`: 882 affected
+host library tests pass, with 48 unchanged text tests filtered. All 171 CLI unit
+tests, 45 CLI smoke tests, 27 Governance process fixtures and 133 downstream/API
+tests pass. Library/test Clippy and all CLI-target Clippy pass with warnings
+denied. Rust 1.91 native CLI/host checks and pure/canister library Wasm checks
+pass locked/offline. Explicit fetching admitted the selected graph; the task
+added Tokio test macros. Separate incoming AWS/Syn updates were preserved, with
+the initial and current metadata retained independently.
+
+Canonical Shared 0.9.5
+`b1630b89482cc6071fc928a86962d79c9c11fdb7` retains the selected 82 roots/89
+payloads. Real curl loopback retry fixtures pass on modern Bash and captured
+Bash 3.2.57, including transient recovery, exhausted/permanent errors and
+checksum refusal. Snapshot, shell and local-link admission pass. These checks
+do not install tools, run a release or qualify native macOS. The optional
+producer artifact-discovery helper is outside Query's selected closure.
+
+This is prepared source, not delivered CI acceptance. Full local workspace CI,
+release gates and native macOS execution have not run. The native consumer
+pipeline must qualify actual async command/collection/cancellation behavior and
+common-tool setup/reuse on Intel and Apple Silicon after delivery. Existing
+tooling/path/Governance acceptance remains under issues #44, #45 and #46.
+
+## Prior prepared Shared 0.9.2 and Host 0.14.10 qualification
+
+The unshipped 0.54.16 tooling notes were folded into the accepted 0.55.0 slice;
+the original qualification below retains its original source/evidence identity.
+
+Canonical refresh selects Shared 0.9.2
+`c118062a070a2e238f1eb3989b6fd700f369ce1e`, retaining 82 entrypoints and
+89 payloads. Exact-source host/IC lifecycle fixtures pass on modern Bash at
+0.9.1 `e8a9ea6b660f216166eb00d0af6a32462bdbda4a` and genuine Bash 3.2.57
+at finalized 0.9.2, including checkout cleanup failure, shared-lock release,
+original error propagation, retained candidates and retry/reuse. The lifecycle
+owner is unchanged in 0.9.2; its new checksum NUL and installer CR/LF admission
+fixtures pass on both Bash profiles. Complete offline tool admission, snapshot,
+shell, notes and local-link checks pass. The initial old-shell PATH was absent
+and fell back to modern Bash; final Bash 3.2 runs use a captured binary with
+recorded version and checksum. Failed raw-index preservation evidence remains
+retained; staged entries are unchanged from HEAD and final manifest/lock/index
+hashes match the recaptured inputs. Evidence:
+`/tmp/ic-query-shared091-adoption.LeIVWn/`.
+
+The incoming Host 0.14.10 selection changes only three Host versions/checksums
+in Query's lock. Explicit locked fetching, complete locked/offline metadata and
+registry/archive/VCS/source admission pass for release
+`886a8df0424d548e08126ef8dfab889e6d8e8071`. The only library-source change
+isolates a producer unit test; runtime source, dependency declarations and the
+declared Rust 1.88.0 floor remain unchanged. No runtime tests or native MSRV
+build were repeated for this delta. Existing manifest, lock and real index
+hashes are preserved. Evidence: `/tmp/ic-query-05416-host01410.mVBzK9/`.
+[Exact producer CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38264225245)
+is unfinished; [Host #70](https://github.com/dragginzgame/ic-host-tooling/issues/70)
+retains native producer-test acceptance.
+
+The earlier delivered Host 0.14.9 selection was admitted through explicit locked
+fetching and complete offline locked metadata. All three non-yanked registry
+checksums match the cached archives; their VCS records identify released Host
+`bea0f3e764915bff5b8ff0c61ed36dd5596f3f43`. Packaged library sources and
+dependency declarations match 0.14.5, retaining declared Rust 1.88.0. This is
+archive/source/graph qualification, not repeated runtime tests or a new native
+MSRV build. Query's declared Rust floor remains 1.91.0.
+
+Delivered Query 0.54.15 `9974ef56f525f7c6cfc22d14f1673baa4c562f33`
+records Shared 0.9.0. Its [matching CI](https://github.com/dragginzgame/ic-query/actions/runs/38249683614)
+fails Linux checks during the Quill download with HTTP 500, before compilation;
+the complete failed log is retained in `/tmp/ic-query-05416-inspection/`.
+The canonical asset-download owner remains single-attempt in 0.9.2;
+[Shared #138](https://github.com/dragginzgame/shared-tooling/issues/138)
+owns the proposed bounded transport retry. All three canister and MSRV jobs now
+pass; the two native check jobs remain queued. These results do not complete the
+remaining checks/native criteria in
+[#44](https://github.com/dragginzgame/ic-query/issues/44),
+[#45](https://github.com/dragginzgame/ic-query/issues/45) and
+[#46](https://github.com/dragginzgame/ic-query/issues/46).
+
+## Delivered 0.54.15 Shared 0.9.0 qualification
 
 Canonical refresh retains 82 entrypoints and 89 payloads at finalized Shared
 0.9.0 `aec7a149f581a42b9531fc747b46024fc0314fcf`. Query's formatting

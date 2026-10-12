@@ -32,30 +32,30 @@ use crate::{
 pub const DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 /// Refresh the complete public neuron index using the built-in live source.
-pub fn refresh_nns_neuron_cache(
+pub async fn refresh_nns_neuron_cache(
     request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
-    refresh_nns_neuron_cache_with_source(request, &LiveNnsSource)
+    refresh_nns_neuron_cache_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Refresh the complete neuron index while emitting structured progress.
-pub fn refresh_nns_neuron_cache_with_progress(
+pub async fn refresh_nns_neuron_cache_with_progress(
     request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
-    refresh_with_source_and_progress(request, &LiveNnsSource, progress)
+    refresh_with_source_and_progress(request, &LiveNnsSource::default(), progress).await
 }
 
 /// Refresh the complete neuron index through a custom source.
-pub fn refresh_nns_neuron_cache_with_source(
+pub async fn refresh_nns_neuron_cache_with_source(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
 ) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
     let mut progress = IgnoreQueryProgress;
-    refresh_with_source_and_progress(request, source, &mut progress)
+    refresh_with_source_and_progress(request, source, &mut progress).await
 }
 
-fn refresh_with_source_and_progress(
+async fn refresh_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     progress: &mut dyn QueryProgress,
@@ -73,7 +73,7 @@ fn refresh_with_source_and_progress(
             lock_stale_after_seconds: DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS,
         },
         cache_operation,
-        |state| {
+        async |state| {
             run_snapshot_refresh_with_attempts(
                 || {
                     write_starting_governance_refresh_attempt(
@@ -83,13 +83,14 @@ fn refresh_with_source_and_progress(
                     )
                     .map_err(NnsNeuronHostError::from)
                 },
-                || {
+                async || {
                     let complete = fetch_complete_neuron_collection(
                         request,
                         source,
                         &paths.refresh_attempt_path,
                         progress,
-                    )?;
+                    )
+                    .await?;
                     publish_complete_neuron_cache(
                         request,
                         &paths,
@@ -106,6 +107,8 @@ fn refresh_with_source_and_progress(
                     );
                 },
             )
+            .await
         },
     )
+    .await
 }

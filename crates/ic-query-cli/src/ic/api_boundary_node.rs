@@ -35,17 +35,17 @@ canister data is not queried. No cache or per-node follow-up is used.
 Rows identify configured API boundary nodes, not HTTP gateways or operational
 health, reachability, latency, ownership, or physical location.";
 
-pub(super) fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_list(matches),
+        Some(("list", matches)) => run_list(matches).await,
         _ => unreachable!("clap requires a known ic api-boundary-node subcommand"),
     }
 }
 
-fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
+async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ApiBoundaryNodeOptions::from_matches(matches);
     let request = IcApiBoundaryNodeRequest::new(options.source_endpoint, current_unix_secs()?);
-    let report = build_ic_api_boundary_node_report(&request)?;
+    let report = build_ic_api_boundary_node_report(&request).await?;
     write_text_or_json(options.format, &report, ic_api_boundary_node_report_text)
 }
 

@@ -5,7 +5,7 @@
 //! Boundary: preserves transport details without coupling portable callers to a runtime.
 
 #[cfg(feature = "nns-host")]
-use crate::{nns::NnsGovernanceQueryError, runtime::RuntimeError};
+use crate::nns::NnsGovernanceQueryError;
 use thiserror::Error as ThisError;
 
 ///
@@ -181,8 +181,4 @@ pub enum NnsGovernanceHostError {
     /// Portable collection or report validation failed.
     #[error(transparent)]
     Governance(#[from] NnsGovernanceError),
-
-    /// The synchronous host runtime could not execute the live query.
-    #[error(transparent)]
-    Runtime(#[from] RuntimeError),
 }

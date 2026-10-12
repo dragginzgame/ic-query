@@ -89,8 +89,8 @@ mod host {
     };
     use std::path::Path;
 
-    #[test]
-    fn downstream_host_examples_typecheck_public_builders() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn downstream_host_examples_typecheck_public_builders() {
         accepts_subnet_example(render_subnet_info);
         accepts_nns_node_example(render_application_nodes);
         accepts_icrc_example(render_token);
@@ -103,11 +103,12 @@ mod host {
         assert_progress_api_is_public();
 
         let text = render_registry_version_with_source(&FixtureRegistrySource, 1_700_000_000)
+            .await
             .expect("custom registry source");
         assert!(text.contains("registry_version: 42"));
     }
 
-    fn render_subnet_info(
+    async fn render_subnet_info(
         cache_root: &Path,
         canister_or_subnet: &str,
         now_unix_secs: u64,
@@ -122,7 +123,7 @@ mod host {
         )
         .with_forced(ResolveAs::Canister);
 
-        let report = build_subnet_catalog_info_report(&request)?;
+        let report = build_subnet_catalog_info_report(&request).await?;
         Ok(subnet_catalog_info_report_text(&report))
     }
 
@@ -135,28 +136,37 @@ mod host {
         });
         assert_eq!(events.len(), 1);
 
-        let _: fn(
-            &NnsGovernanceRefreshRequest,
-            &mut dyn QueryProgress,
-        ) -> Result<NnsProposalRefreshReport, NnsProposalHostError> =
-            refresh_nns_proposal_cache_with_progress;
-        let _: fn(
-            &SnsNeuronsRefreshRequest,
-            &mut dyn QueryProgress,
-        ) -> Result<SnsNeuronsRefreshReport, SnsHostError> =
-            refresh_sns_neurons_cache_with_progress;
-        let _: fn(
-            &SnsProposalsRefreshRequest,
-            &mut dyn QueryProgress,
-        ) -> Result<SnsProposalsRefreshReport, SnsHostError> =
-            refresh_sns_proposals_cache_with_progress;
-        let _: fn(
-            &SnsProposalsRequest,
-            &mut dyn QueryProgress,
-        ) -> Result<SnsProposalsReport, SnsHostError> = build_sns_proposals_report_with_progress;
+        let _: for<'a> fn(
+            &'a NnsGovernanceRefreshRequest,
+            &'a mut dyn QueryProgress,
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<NnsProposalRefreshReport, NnsProposalHostError>,
+        > = |arg0, arg1| Box::pin(refresh_nns_proposal_cache_with_progress(arg0, arg1));
+        let _: for<'a> fn(
+            &'a SnsNeuronsRefreshRequest,
+            &'a mut dyn QueryProgress,
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<SnsNeuronsRefreshReport, SnsHostError>,
+        > = |arg0, arg1| Box::pin(refresh_sns_neurons_cache_with_progress(arg0, arg1));
+        let _: for<'a> fn(
+            &'a SnsProposalsRefreshRequest,
+            &'a mut dyn QueryProgress,
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<SnsProposalsRefreshReport, SnsHostError>,
+        > = |arg0, arg1| Box::pin(refresh_sns_proposals_cache_with_progress(arg0, arg1));
+        let _: for<'a> fn(
+            &'a SnsProposalsRequest,
+            &'a mut dyn QueryProgress,
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<SnsProposalsReport, SnsHostError>,
+        > = |arg0, arg1| Box::pin(build_sns_proposals_report_with_progress(arg0, arg1));
     }
 
-    fn render_application_nodes(
+    async fn render_application_nodes(
         cache_root: &Path,
         now_unix_secs: u64,
     ) -> Result<String, NnsNodeHostError> {
@@ -165,30 +175,33 @@ mod host {
             NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
                 .with_subnet_kind(SubnetKind::Application);
 
-        let report = build_nns_node_list_report(&request)?;
+        let report = build_nns_node_list_report(&request).await?;
         Ok(nns_node_list_report_text(&report))
     }
 
-    fn render_token(ledger_canister_id: &str, now_unix_secs: u64) -> Result<String, IcrcError> {
+    async fn render_token(
+        ledger_canister_id: &str,
+        now_unix_secs: u64,
+    ) -> Result<String, IcrcError> {
         let request = IcrcLedgerRequest::new(
             DEFAULT_ICRC_SOURCE_ENDPOINT,
             now_unix_secs,
             ledger_canister_id,
         );
-        let report = build_icrc_token_report(&request)?;
+        let report = build_icrc_token_report(&request).await?;
         Ok(icrc_token_report_text(&report))
     }
 
-    fn render_registry_version_with_source(
+    async fn render_registry_version_with_source(
         source: &dyn NnsRegistrySource,
         now_unix_secs: u64,
     ) -> Result<String, NnsRegistryHostError> {
         let request = NnsRegistryVersionRequest::new("ic", "https://mirror.example", now_unix_secs);
-        let report = build_nns_registry_version_report_with_source(&request, source)?;
+        let report = build_nns_registry_version_report_with_source(&request, source).await?;
         Ok(nns_registry_version_report_text(&report))
     }
 
-    fn render_recent_sns_proposals(
+    async fn render_recent_sns_proposals(
         cache_root: &Path,
         sns_input: &str,
         now_unix_secs: u64,
@@ -204,20 +217,23 @@ mod host {
         .with_sort(SnsProposalsSort::Created)
         .with_sort_direction(SnsProposalSortDirection::Desc);
 
-        let report = build_sns_proposals_report(&request)?;
+        let report = build_sns_proposals_report(&request).await?;
         Ok(sns_proposals_report_text(&report))
     }
 
-    fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
+    async fn render_sns_metrics(
+        sns_input: &str,
+        now_unix_secs: u64,
+    ) -> Result<String, SnsHostError> {
         let request =
             SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, now_unix_secs, sns_input)
                 .with_time_window_seconds(90 * 24 * 60 * 60);
 
-        let report = build_sns_metrics_report(&request)?;
+        let report = build_sns_metrics_report(&request).await?;
         Ok(sns_metrics_report_text(&report))
     }
 
-    fn refresh_subnet_topology(
+    async fn refresh_subnet_topology(
         cache_root: &Path,
         now_unix_secs: u64,
     ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
@@ -227,10 +243,10 @@ mod host {
             now_unix_secs,
             DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
         );
-        refresh_nns_subnet_topology(&request)
+        refresh_nns_subnet_topology(&request).await
     }
 
-    fn render_cached_sns_neurons(
+    async fn render_cached_sns_neurons(
         cache_root: &Path,
         sns_input: &str,
         now_unix_secs: u64,
@@ -245,7 +261,7 @@ mod host {
         .with_cache_root(cache_root)
         .with_sort(SnsNeuronsSort::Stake);
 
-        let report = build_sns_neurons_report(&request)?;
+        let report = build_sns_neurons_report(&request).await?;
         Ok(sns_neurons_report_text(&report))
     }
 
@@ -266,52 +282,64 @@ mod host {
     struct FixtureRegistrySource;
 
     impl NnsRegistrySource for FixtureRegistrySource {
-        fn fetch_registry_version(
-            &self,
-            request: &NnsSourceRequest,
-        ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-            Ok(NnsRegistryVersionData {
-                network: "ic".to_string(),
-                registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-                registry_version: 42,
-                fetched_at: request.fetched_at.clone(),
-                fetched_by: request.fetched_by.clone(),
-                source_endpoint: request.endpoint.clone(),
-                certification: super::registry_certification(),
+        fn fetch_registry_version<'a>(
+            &'a self,
+            request: &'a NnsSourceRequest,
+        ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
+        {
+            Box::pin(async move {
+                Ok(NnsRegistryVersionData {
+                    network: "ic".to_string(),
+                    registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+                    registry_version: 42,
+                    fetched_at: request.fetched_at.clone(),
+                    fetched_by: request.fetched_by.clone(),
+                    source_endpoint: request.endpoint.clone(),
+                    certification: super::registry_certification(),
+                })
             })
         }
     }
 
     fn accepts_subnet_example(
-        _example: fn(&Path, &str, u64) -> Result<String, SubnetCatalogHostError>,
+        _example: impl AsyncFn(&Path, &str, u64) -> Result<String, SubnetCatalogHostError>,
     ) {
     }
 
-    fn accepts_nns_node_example(_example: fn(&Path, u64) -> Result<String, NnsNodeHostError>) {}
+    fn accepts_nns_node_example(
+        _example: impl AsyncFn(&Path, u64) -> Result<String, NnsNodeHostError>,
+    ) {
+    }
 
-    fn accepts_icrc_example(_example: fn(&str, u64) -> Result<String, IcrcError>) {}
+    fn accepts_icrc_example(_example: impl AsyncFn(&str, u64) -> Result<String, IcrcError>) {}
 
     fn accepts_custom_source_example(
-        _example: fn(&dyn NnsRegistrySource, u64) -> Result<String, NnsRegistryHostError>,
+        _example: impl AsyncFn(&dyn NnsRegistrySource, u64) -> Result<String, NnsRegistryHostError>,
     ) {
     }
 
     fn accepts_sns_proposals_example(
-        _example: fn(&Path, &str, u64) -> Result<String, SnsHostError>,
+        _example: impl AsyncFn(&Path, &str, u64) -> Result<String, SnsHostError>,
     ) {
     }
 
-    fn accepts_sns_metrics_example(_example: fn(&str, u64) -> Result<String, SnsHostError>) {}
+    fn accepts_sns_metrics_example(
+        _example: impl AsyncFn(&str, u64) -> Result<String, SnsHostError>,
+    ) {
+    }
 
     fn accepts_subnet_topology_example(
-        _example: fn(
+        _example: impl AsyncFn(
             &Path,
             u64,
-        ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
+        )
+            -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
     ) {
     }
 
-    fn accepts_sns_neurons_example(_example: fn(&Path, &str, u64) -> Result<String, SnsHostError>) {
+    fn accepts_sns_neurons_example(
+        _example: impl AsyncFn(&Path, &str, u64) -> Result<String, SnsHostError>,
+    ) {
     }
 
     fn accepts_sns_cache_status_example(_example: fn(&Path, &str) -> Result<String, SnsHostError>) {

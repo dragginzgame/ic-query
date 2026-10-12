@@ -14,8 +14,8 @@ use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use sha2::{Digest, Sha256};
 
-#[test]
-fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsSourceRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -23,8 +23,9 @@ fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
         "test",
     );
 
-    let error = LiveNnsSource
+    let error = LiveNnsSource::default()
         .fetch_registry_version(&request)
+        .await
         .expect_err("unsupported network");
 
     assert!(matches!(
@@ -33,8 +34,8 @@ fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn live_certified_delta_source_rejects_non_mainnet_before_agent_construction() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_certified_delta_source_rejects_non_mainnet_before_agent_construction() {
     let request = NnsCertifiedRegistryDeltaBatchRequest::new(
         "local",
         "not a valid replica endpoint",
@@ -42,11 +43,9 @@ fn live_certified_delta_source_rejects_non_mainnet_before_agent_construction() {
         1_780_531_200,
     );
 
-    let error = crate::runtime::block_on_current_thread(
-        LiveNnsSource.fetch_certified_registry_delta_batch(&request),
-    )
-    .expect("test runtime")
-    .expect_err("unsupported network");
+    let error = (LiveNnsSource::default().fetch_certified_registry_delta_batch(&request))
+        .await
+        .expect_err("unsupported network");
 
     assert!(matches!(
         error,
@@ -54,17 +53,15 @@ fn live_certified_delta_source_rejects_non_mainnet_before_agent_construction() {
     ));
 }
 
-#[test]
-fn certified_delta_public_builder_validates_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn certified_delta_public_builder_validates_custom_source_evidence() {
     let request = certified_delta_request();
 
-    let report = crate::runtime::block_on_current_thread(
-        fetch_nns_certified_registry_delta_batch_with_source_async(
-            &request,
-            &FixtureCertifiedDeltaSource,
-        ),
+    let report = fetch_nns_certified_registry_delta_batch_with_source_async(
+        &request,
+        &FixtureCertifiedDeltaSource,
     )
-    .expect("test runtime")
+    .await
     .expect("certified delta report");
 
     assert_eq!(report.requested_version, 41);
@@ -279,8 +276,8 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
     ));
 }
 
-#[test]
-fn registry_version_report_uses_live_source_shape() {
+#[tokio::test(flavor = "current_thread")]
+async fn registry_version_report_uses_live_source_shape() {
     let request = NnsRegistryVersionRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -288,6 +285,7 @@ fn registry_version_report_uses_live_source_shape() {
     };
 
     let report = build_nns_registry_version_report_with_source(&request, &FixtureNnsRegistrySource)
+        .await
         .expect("registry version report");
 
     assert_eq!(report.schema_version, 1);
@@ -301,8 +299,8 @@ fn registry_version_report_uses_live_source_shape() {
     assert_eq!(report.certification.certificate_time, report.fetched_at);
 }
 
-#[test]
-fn registry_version_report_rejects_custom_source_provenance_mismatch() {
+#[tokio::test(flavor = "current_thread")]
+async fn registry_version_report_rejects_custom_source_provenance_mismatch() {
     let request = NnsRegistryVersionRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
@@ -311,6 +309,7 @@ fn registry_version_report_rejects_custom_source_provenance_mismatch() {
 
     let error =
         build_nns_registry_version_report_with_source(&request, &MismatchedNnsRegistrySource)
+            .await
             .expect_err("source provenance mismatch must fail");
 
     assert!(matches!(
@@ -323,13 +322,14 @@ fn registry_version_report_rejects_custom_source_provenance_mismatch() {
     ));
 }
 
-#[test]
-fn registry_version_report_rejects_unverified_custom_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn registry_version_report_rejects_unverified_custom_source_evidence() {
     let request =
         NnsRegistryVersionRequest::new(MAINNET_NETWORK, "https://icp-api.io", 1_780_531_200);
 
     let error =
         build_nns_registry_version_report_with_source(&request, &UnverifiedNnsRegistrySource)
+            .await
             .expect_err("unverified custom evidence must fail");
 
     assert!(matches!(
@@ -365,18 +365,20 @@ fn registry_version_text_is_key_value_output() {
 struct FixtureNnsRegistrySource;
 
 impl NnsRegistrySource for FixtureNnsRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        Ok(NnsRegistryVersionData {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            certification: certification(1_780_531_200),
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+        Box::pin(async move {
+            Ok(NnsRegistryVersionData {
+                network: MAINNET_NETWORK.to_string(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                certification: certification(1_780_531_200),
+            })
         })
     }
 }
@@ -384,18 +386,20 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
 struct MismatchedNnsRegistrySource;
 
 impl NnsRegistrySource for MismatchedNnsRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        Ok(NnsRegistryVersionData {
-            network: request.network.clone(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: "https://wrong.example".to_string(),
-            certification: certification(1_780_531_200),
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+        Box::pin(async move {
+            Ok(NnsRegistryVersionData {
+                network: request.network.clone(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: "https://wrong.example".to_string(),
+                certification: certification(1_780_531_200),
+            })
         })
     }
 }
@@ -403,20 +407,22 @@ impl NnsRegistrySource for MismatchedNnsRegistrySource {
 struct UnverifiedNnsRegistrySource;
 
 impl NnsRegistrySource for UnverifiedNnsRegistrySource {
-    fn fetch_registry_version(
-        &self,
-        request: &NnsSourceRequest,
-    ) -> Result<NnsRegistryVersionData, NnsRegistryHostError> {
-        let mut evidence = certification(1_780_531_200);
-        evidence.certificate_verified = false;
-        Ok(NnsRegistryVersionData {
-            network: request.network.clone(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: request.fetched_at.clone(),
-            fetched_by: request.fetched_by.clone(),
-            source_endpoint: request.endpoint.clone(),
-            certification: evidence,
+    fn fetch_registry_version<'a>(
+        &'a self,
+        request: &'a NnsSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+        Box::pin(async move {
+            let mut evidence = certification(1_780_531_200);
+            evidence.certificate_verified = false;
+            Ok(NnsRegistryVersionData {
+                network: request.network.clone(),
+                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                registry_version: 42,
+                fetched_at: request.fetched_at.clone(),
+                fetched_by: request.fetched_by.clone(),
+                source_endpoint: request.endpoint.clone(),
+                certification: evidence,
+            })
         })
     }
 }

@@ -20,11 +20,7 @@ use super::{
 };
 #[cfg(feature = "nns-topology-host")]
 use super::{MainnetSubnetTopology, source::fetch_mainnet_subnet_topology_async};
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "nns-topology-host"
-))]
-use crate::runtime::block_on_current_thread;
+
 use crate::subnet_catalog::RawSubnetCatalog;
 
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -47,49 +43,43 @@ pub async fn fetch_mainnet_certified_registry_delta_batch_async(
 }
 
 #[cfg(feature = "nns-topology-host")]
-pub fn fetch_mainnet_subnet_topology(
+pub async fn fetch_mainnet_subnet_topology(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_subnet_topology_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_subnet_topology_async(request).await
 }
 
 #[cfg(feature = "certified-subnet-catalog-host")]
-pub fn fetch_mainnet_registry_version(
+pub async fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetRegistryVersion, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_registry_version_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_registry_version_async(request).await
 }
 
 #[cfg(feature = "nns-host")]
-pub fn fetch_mainnet_node_provider_list(
+pub async fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_node_provider_list_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_node_provider_list_async(request).await
 }
 
 #[cfg(feature = "nns-host")]
-pub fn fetch_mainnet_node_operator_list(
+pub async fn fetch_mainnet_node_operator_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeOperatorList, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_node_operator_list_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_node_operator_list_async(request).await
 }
 
 #[cfg(feature = "nns-host")]
-pub fn fetch_mainnet_node_list(
+pub async fn fetch_mainnet_node_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_node_list_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_node_list_async(request).await
 }
 
 #[cfg(feature = "nns-host")]
-pub fn fetch_mainnet_data_center_list(
+pub async fn fetch_mainnet_data_center_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {
-    block_on_current_thread(fetch_mainnet_data_center_list_async(request))
-        .map_err(RegistryFetchError::Runtime)?
+    fetch_mainnet_data_center_list_async(request).await
 }

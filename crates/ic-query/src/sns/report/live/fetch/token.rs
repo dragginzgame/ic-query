@@ -3,8 +3,6 @@
 //! Responsibility: fetch SNS ledger token metadata.
 //! Does not own: lookup resolution, report assembly, amount formatting, or rendering.
 //! Boundary: queries one resolved SNS ledger for ICRC metadata and index details.
-
-use super::block_on_sns;
 use crate::icrc::ledger::{
     GetIndexPrincipalResult, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
     fetch_icrc1_token_metadata, index_principal_error_text, query_ledger,
@@ -15,22 +13,15 @@ use crate::sns::report::{
     source::{MainnetSns, MainnetSnsToken, SnsSourceRequest},
 };
 
-/// Fetch token metadata for one resolved mainnet SNS ledger.
-pub(in crate::sns::report::live) fn fetch_mainnet_sns_token(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_token(
+    source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
-    block_on_sns(fetch_mainnet_sns_token_async(request, sns))
-}
-
-async fn fetch_mainnet_sns_token_async(
-    request: &SnsSourceRequest,
-    sns: &MainnetSns,
-) -> Result<MainnetSnsToken, SnsHostError> {
-    let agent = sns_agent(request)?;
+    let agent = sns_agent(source, request)?;
     let ledger_canister = principal_from_text(&sns.ledger_canister_id, "ledger_canister_id")?;
     let token = Box::pin(fetch_icrc1_token_metadata::<SnsHostError>(
-        &agent,
+        agent,
         &ledger_canister,
     ))
     .await?;
@@ -38,7 +29,7 @@ async fn fetch_mainnet_sns_token_async(
         GetIndexPrincipalResult,
         SnsHostError,
     >(
-        &agent,
+        agent,
         &ledger_canister,
         "icrc106_get_index_principal",
     )

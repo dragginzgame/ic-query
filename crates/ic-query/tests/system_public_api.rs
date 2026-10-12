@@ -43,8 +43,8 @@ fn public_cmc_reports_are_constructible_serializable_and_renderable() {
 }
 
 #[cfg(feature = "cmc-host")]
-#[test]
-fn public_cmc_host_api_accepts_a_custom_source() {
+#[tokio::test(flavor = "current_thread")]
+async fn public_cmc_host_api_accepts_a_custom_source() {
     let request = CmcSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CMC_SOURCE_ENDPOINT,
@@ -53,8 +53,10 @@ fn public_cmc_host_api_accepts_a_custom_source() {
     );
 
     let xdr = build_cmc_xdr_report_with_source(&request, &FixtureCmcSource)
+        .await
         .expect("custom CMC XDR source");
     let cycles = build_cmc_cycles_report_with_source(&request, &FixtureCmcSource)
+        .await
         .expect("custom CMC cycles source");
 
     assert_eq!(xdr.context.fetched_at, "2023-11-14T22:13:20Z");
@@ -66,13 +68,15 @@ struct FixtureCmcSource;
 
 #[cfg(feature = "cmc-host")]
 impl CmcSource for FixtureCmcSource {
-    fn fetch_certified_icp_xdr_rate(
-        &self,
-        _request: &CmcSourceRequest,
-    ) -> Result<CmcCertifiedRate, CmcHostError> {
-        Ok(CmcCertifiedRate {
-            rate: rate(),
-            certification: certification(),
+    fn fetch_certified_icp_xdr_rate<'a>(
+        &'a self,
+        _request: &'a CmcSourceRequest,
+    ) -> ic_query::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
+        Box::pin(async move {
+            Ok(CmcCertifiedRate {
+                rate: rate(),
+                certification: certification(),
+            })
         })
     }
 }

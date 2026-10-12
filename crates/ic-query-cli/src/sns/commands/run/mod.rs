@@ -43,29 +43,31 @@ pub fn command() -> clap::Command {
     sns_command()
 }
 
-pub fn run_matches(
+pub async fn run_matches(
     matches: &ArgMatches,
     network: &str,
     network_was_explicit: bool,
 ) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_sns_list(matches, network),
-        Some(("refresh", matches)) => run_sns_refresh(matches, network),
-        Some(("info", matches)) => lookup::run_sns_info(matches, network),
-        Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network),
-        Some(("token", matches)) => lookup::run_sns_token(matches, network),
-        Some(("parameters", matches)) => lookup::run_sns_parameters(matches, network),
-        Some(("swap", matches)) => lookup::run_sns_swap(matches, network),
-        Some(("upgrade", matches)) => lookup::run_sns_upgrade(matches, network),
-        Some(("canister", matches)) => canisters::run_sns_canister(matches, network),
-        Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network),
-        Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network),
-        Some(("reward", matches)) => reward::run_sns_reward(matches, network, network_was_explicit),
+        Some(("list", matches)) => run_sns_list(matches, network).await,
+        Some(("refresh", matches)) => run_sns_refresh(matches, network).await,
+        Some(("info", matches)) => lookup::run_sns_info(matches, network).await,
+        Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network).await,
+        Some(("token", matches)) => lookup::run_sns_token(matches, network).await,
+        Some(("parameters", matches)) => lookup::run_sns_parameters(matches, network).await,
+        Some(("swap", matches)) => lookup::run_sns_swap(matches, network).await,
+        Some(("upgrade", matches)) => lookup::run_sns_upgrade(matches, network).await,
+        Some(("canister", matches)) => canisters::run_sns_canister(matches, network).await,
+        Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network).await,
+        Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network).await,
+        Some(("reward", matches)) => {
+            reward::run_sns_reward(matches, network, network_was_explicit).await
+        }
         _ => unreachable!("clap requires a known SNS subcommand"),
     }
 }
 
-fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsListOptions::from_matches(matches, network);
     let format = options.format;
     let request = SnsListRequest {
@@ -81,7 +83,8 @@ fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandErr
         &request,
         &command_cache_root()?,
         &mut progress,
-    )?;
+    )
+    .await?;
     write_text_or_json(format, &report, sns_list_cli_text)
 }
 
@@ -114,7 +117,7 @@ fn color_sns_metadata_statuses(text: &str) -> String {
         .join("\n")
 }
 
-fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsCatalogRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let cache_root = command_cache_root()?;
@@ -132,7 +135,7 @@ fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommand
         path: sns_catalog_cache_path(&cache_root, &request.cache.network),
         source_endpoint: options.source_endpoint,
     });
-    let report = refresh_sns_catalog(&request)?;
+    let report = refresh_sns_catalog(&request).await?;
     write_text_or_json(format, &report, sns_catalog_refresh_report_text)
 }
 

@@ -20,12 +20,15 @@ use ic_query::nns::{
     NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest,
 };
 
-pub(in crate::nns) fn run(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+pub(in crate::nns) async fn run(
+    matches: &ArgMatches,
+    network: &str,
+) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("distribution", matches)) => run_distribution(matches, network),
-        Some(("list", matches)) => run_list(matches, network),
-        Some(("info", matches)) => run_info(matches, network),
-        Some(("refresh", matches)) => run_refresh(matches, network),
+        Some(("list", matches)) => run_list(matches, network).await,
+        Some(("info", matches)) => run_info(matches, network).await,
+        Some(("refresh", matches)) => run_refresh(matches, network).await,
         Some(("cache", matches)) => run_cache(matches, network),
         _ => unreachable!("clap requires a known NNS neuron subcommand"),
     }
@@ -38,7 +41,7 @@ fn run_distribution(matches: &ArgMatches, network: &str) -> Result<(), NnsComman
     write_text_or_json(options.format, &report, nns_neuron_distribution_report_text)
 }
 
-fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsNeuronListOptions::from_matches(matches, network);
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
@@ -51,12 +54,14 @@ fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> 
     if let Some(start_neuron_id) = options.start_neuron_id {
         request = request.with_exclusive_start_neuron_id(start_neuron_id);
     }
-    let report = build_nns_neuron_list_report_from_cache(&request, &command_cache_root()?)?
-        .map_or_else(|| build_nns_neuron_list_report(&request), Ok)?;
+    let report = match build_nns_neuron_list_report_from_cache(&request, &command_cache_root()?)? {
+        Some(report) => report,
+        None => build_nns_neuron_list_report(&request).await?,
+    };
     write_text_or_json(options.format, &report, nns_neuron_list_report_text)
 }
 
-fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsNeuronInfoOptions::from_matches(matches, network);
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
@@ -66,12 +71,14 @@ fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> 
     );
     let request =
         NnsNeuronInfoRequest::new(governance, options.neuron_id).with_verbose(options.verbose);
-    let report = build_nns_neuron_info_report_from_cache(&request, &command_cache_root()?)?
-        .map_or_else(|| build_nns_neuron_info_report(&request), Ok)?;
+    let report = match build_nns_neuron_info_report_from_cache(&request, &command_cache_root()?)? {
+        Some(report) => report,
+        None => build_nns_neuron_info_report(&request).await?,
+    };
     write_text_or_json(options.format, &report, nns_neuron_info_report_text)
 }
 
-fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
+async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsNeuronRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
@@ -82,7 +89,7 @@ fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandErro
     )
     .with_max_pages(options.max_pages);
     let mut progress = StderrQueryProgress::new();
-    let report = refresh_nns_neuron_cache_with_progress(&request, &mut progress)?;
+    let report = refresh_nns_neuron_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(options.format, &report, nns_neuron_refresh_report_text)
 }
 

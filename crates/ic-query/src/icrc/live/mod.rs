@@ -48,13 +48,6 @@ pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 pub const ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE: u32 = 100;
 
 impl IcrcLedgerError for IcrcError {
-    fn agent_build(endpoint: &str, reason: String) -> Self {
-        Self::AgentBuild {
-            endpoint: endpoint.to_string(),
-            reason,
-        }
-    }
-
     fn invalid_principal(field: &'static str, reason: String) -> Self {
         Self::InvalidPrincipal { field, reason }
     }

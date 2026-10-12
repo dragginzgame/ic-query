@@ -14,8 +14,6 @@ mod text;
 mod wire;
 
 #[cfg(feature = "cloud-engine-host")]
-use crate::runtime::RuntimeError;
-#[cfg(feature = "cloud-engine-host")]
 use thiserror::Error as ThisError;
 
 #[cfg(feature = "cloud-engine-host")]
@@ -182,10 +180,6 @@ pub enum CloudEngineHostError {
     #[cfg(feature = "subnet-catalog-host")]
     #[error(transparent)]
     SubnetCatalog(#[from] crate::subnet_catalog::SubnetCatalogHostError),
-
-    /// The synchronous host runtime could not execute the live query.
-    #[error(transparent)]
-    Runtime(#[from] RuntimeError),
 }
 
 #[cfg(feature = "cloud-engine-host")]

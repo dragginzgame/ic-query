@@ -20,13 +20,13 @@ use crate::ic::{
 /// Source contract for one bounded official Dashboard network metric query.
 ///
 
-pub trait IcMetricSource {
+pub trait IcMetricSource: Sync {
     /// Fetch one metric window without pagination or automatic follow-up calls.
-    fn fetch_metric(
-        &self,
-        request: &IcSourceRequest,
-        query: &IcMetricQuery,
-    ) -> Result<IcMetricSourceData, IcHostError>;
+    fn fetch_metric<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcMetricQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcMetricSourceData, IcHostError>>;
 }
 
 pub(in crate::ic) fn validate_metric_request(

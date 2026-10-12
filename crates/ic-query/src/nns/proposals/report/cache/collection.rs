@@ -18,7 +18,6 @@ use crate::{
             source::NnsProposalSource,
         },
     },
-    runtime::block_on_current_thread,
     snapshot_cache::{
         PagedCollectionPage, PagedSnapshotRefresh, SnapshotRefreshProgress,
         run_paged_snapshot_refresh_with_progress,
@@ -27,7 +26,7 @@ use crate::{
 use std::{cmp::Reverse, path::Path};
 
 /// Fetch every proposal page required for a complete NNS proposal snapshot.
-pub(super) fn fetch_complete_nns_proposal_collection(
+pub(super) async fn fetch_complete_nns_proposal_collection(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
@@ -52,6 +51,7 @@ pub(super) fn fetch_complete_nns_proposal_collection(
         },
         progress,
     )
+    .await
 }
 
 ///
@@ -95,20 +95,25 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
         }
     }
 
-    fn fetch_next_page(&mut self) -> Result<PagedCollectionPage, Self::Error> {
-        let step = block_on_current_thread(advance_nns_proposal_collection_with_source(
-            &self.fetch_request,
-            &self.collection_state,
-            self.source,
-        ))??;
-        let page_len = step.page.proposals.len();
-        let next_cursor = step.state.next_before_proposal_id();
-        self.proposals.extend(step.page.proposals);
-        self.collection_state = step.state;
-        Ok(PagedCollectionPage::new(
-            page_len,
-            next_cursor.map(|cursor| cursor.to_string()),
-        ))
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            let step = advance_nns_proposal_collection_with_source(
+                &self.fetch_request,
+                &self.collection_state,
+                self.source,
+            )
+            .await?;
+            let page_len = step.page.proposals.len();
+            let next_cursor = step.state.next_before_proposal_id();
+            self.proposals.extend(step.page.proposals);
+            self.collection_state = step.state;
+            Ok(PagedCollectionPage::new(
+                page_len,
+                next_cursor.map(|cursor| cursor.to_string()),
+            ))
+        })
     }
 
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {

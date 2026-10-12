@@ -72,15 +72,29 @@ mod host {
         Certificate,
         hash_tree::{HashTree, fork, label, leaf},
     };
-    use std::cell::Cell;
+    use std::sync::Mutex;
 
-    #[test]
-    fn custom_source_preserves_certificate_time_and_canonicalizes_rows() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn custom_source_runs_on_a_caller_owned_spawned_task() {
+        let report = tokio::spawn(async {
+            build_ic_api_boundary_node_report_with_source(&request(), &FixtureSource::default())
+                .await
+        })
+        .await
+        .expect("query task")
+        .expect("certified fixture report");
+        assert_eq!(report.node_count, 2);
+        assert!(report.provenance.certified);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn custom_source_preserves_certificate_time_and_canonicalizes_rows() {
         let source = FixtureSource::default();
         let report = build_ic_api_boundary_node_report_with_source(&request(), &source)
+            .await
             .expect("certified API boundary nodes");
 
-        assert_eq!(source.calls.get(), 1);
+        assert_eq!((*source.calls.lock().unwrap()), 1);
         assert_eq!(report.node_count, 2);
         assert_eq!(report.rows[0].node_id, NODE_A);
         assert_eq!(report.rows[1].node_id, NODE_B);
@@ -93,8 +107,8 @@ mod host {
         assert!(report.provenance.point_in_time_guaranteed);
     }
 
-    #[test]
-    fn custom_source_contract_rejects_inconsistent_or_invalid_evidence() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn custom_source_contract_rejects_inconsistent_or_invalid_evidence() {
         for mutation in [
             Mutation::WrongSource,
             Mutation::StaleCertificate,
@@ -105,10 +119,11 @@ mod host {
             Mutation::InvalidNode,
         ] {
             let source = FixtureSource {
-                mutation: Cell::new(Some(mutation)),
+                mutation: Mutex::new(Some(mutation)),
                 ..FixtureSource::default()
             };
             let error = build_ic_api_boundary_node_report_with_source(&request(), &source)
+                .await
                 .expect_err("invalid source evidence must fail");
 
             assert!(matches!(
@@ -160,43 +175,49 @@ mod host {
 
     #[derive(Default)]
     struct FixtureSource {
-        calls: Cell<usize>,
-        mutation: Cell<Option<Mutation>>,
+        calls: Mutex<usize>,
+        mutation: Mutex<Option<Mutation>>,
     }
 
     impl IcApiBoundaryNodeSource for FixtureSource {
-        fn fetch_api_boundary_nodes(
-            &self,
-            request: &IcApiBoundaryNodeSourceRequest,
-        ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
-            self.calls.set(self.calls.get() + 1);
-            let mut data = IcApiBoundaryNodeSourceData {
-                source: request.clone(),
-                certificate_time_unix_nanos: NOW * 1_000_000_000,
-                rows: vec![
-                    row(NODE_B, "api2.example.com", Some("192.0.2.2"), "2001:db8::2"),
-                    row(NODE_A, "api1.example.com", None, "2001:db8::1"),
-                ],
-            };
-            match self.mutation.take() {
-                Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
-                Some(Mutation::StaleCertificate) => {
-                    data.certificate_time_unix_nanos = (NOW - 301) * 1_000_000_000;
+        fn fetch_api_boundary_nodes<'a>(
+            &'a self,
+            request: &'a IcApiBoundaryNodeSourceRequest,
+        ) -> crate::report::SourceFuture<
+            'a,
+            Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError>,
+        > {
+            Box::pin(async move {
+                *self.calls.lock().unwrap() += 1;
+                let mut data = IcApiBoundaryNodeSourceData {
+                    source: request.clone(),
+                    certificate_time_unix_nanos: NOW * 1_000_000_000,
+                    rows: vec![
+                        row(NODE_B, "api2.example.com", Some("192.0.2.2"), "2001:db8::2"),
+                        row(NODE_A, "api1.example.com", None, "2001:db8::1"),
+                    ],
+                };
+                let mutation = self.mutation.lock().unwrap().take();
+                match mutation {
+                    Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
+                    Some(Mutation::StaleCertificate) => {
+                        data.certificate_time_unix_nanos = (NOW - 301) * 1_000_000_000;
+                    }
+                    Some(Mutation::Empty) => data.rows.clear(),
+                    Some(Mutation::DuplicateDomain) => {
+                        data.rows[1].domain = data.rows[0].domain.clone();
+                    }
+                    Some(Mutation::InvalidIpv4) => {
+                        data.rows[0].ipv4_address = Some("999.0.2.2".to_string());
+                    }
+                    Some(Mutation::InvalidIpv6) => {
+                        data.rows[0].ipv6_address = "not-an-ip".to_string();
+                    }
+                    Some(Mutation::InvalidNode) => data.rows[0].node_id = "not-a-node".to_string(),
+                    None => {}
                 }
-                Some(Mutation::Empty) => data.rows.clear(),
-                Some(Mutation::DuplicateDomain) => {
-                    data.rows[1].domain = data.rows[0].domain.clone();
-                }
-                Some(Mutation::InvalidIpv4) => {
-                    data.rows[0].ipv4_address = Some("999.0.2.2".to_string());
-                }
-                Some(Mutation::InvalidIpv6) => {
-                    data.rows[0].ipv6_address = "not-an-ip".to_string();
-                }
-                Some(Mutation::InvalidNode) => data.rows[0].node_id = "not-a-node".to_string(),
-                None => {}
-            }
-            Ok(data)
+                Ok(data)
+            })
         }
     }
 

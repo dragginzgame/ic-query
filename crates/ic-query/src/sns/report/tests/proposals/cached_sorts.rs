@@ -1,7 +1,7 @@
 use super::*;
 
-#[test]
-fn sns_proposals_cached_sort_created_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_created_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created");
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -12,6 +12,7 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
     request.limit = 2;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh sorted proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -26,6 +27,7 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
     );
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse sorted proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -44,8 +46,8 @@ fn sns_proposals_cached_sort_created_orders_before_limit() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created-asc");
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -57,6 +59,7 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     request.limit = 2;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh ascending sorted proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -72,6 +75,7 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     );
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse ascending sorted proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -92,8 +96,8 @@ fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cached_sort_decided_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_decided_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-decided");
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -104,6 +108,7 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
     request.limit = 2;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh decided sorted proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -118,6 +123,7 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
     );
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse decided sorted proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -136,8 +142,8 @@ fn sns_proposals_cached_sort_decided_orders_before_limit() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cached_sort_executed_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_executed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-executed");
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -148,6 +154,7 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
     request.limit = 2;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh executed sorted proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -162,6 +169,7 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
     );
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse executed sorted proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -180,8 +188,8 @@ fn sns_proposals_cached_sort_executed_orders_before_limit() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cached_sort_failed_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_failed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-failed");
     let mut request = proposals_request("1");
     request.cache_root = Some(root.clone());
@@ -192,6 +200,7 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
     request.limit = 2;
 
     let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
+        .await
         .expect("auto refresh failed sorted proposals cache");
 
     assert_eq!(first.data_source.as_str(), "cache");
@@ -206,6 +215,7 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
     );
 
     let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
+        .await
         .expect("reuse failed sorted proposals cache");
 
     assert_eq!(second.data_source.as_str(), "cache");
@@ -224,101 +234,112 @@ fn sns_proposals_cached_sort_failed_orders_before_limit() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_proposals_cached_sort_title_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_title_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Title,
         SnsProposalSortDirection::Asc,
         &[20, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_status_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_status_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Status,
         SnsProposalSortDirection::Asc,
         &[20, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_topic_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_topic_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Topic,
         SnsProposalSortDirection::Asc,
         &[10, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_proposer_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_proposer_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Proposer,
         SnsProposalSortDirection::Asc,
         &[30, 10],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_action_id_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_action_id_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::ActionId,
         SnsProposalSortDirection::Desc,
         &[20, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_total_votes_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::TotalVotes,
         SnsProposalSortDirection::Desc,
         &[10, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_tally_time_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_tally_time_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::TallyTime,
         SnsProposalSortDirection::Desc,
         &[20, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_reward_round_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_reward_round_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::RewardRound,
         SnsProposalSortDirection::Desc,
         &[20, 30],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_reward_end_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_reward_end_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::RewardEnd,
         SnsProposalSortDirection::Desc,
         &[30, 10],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_eligible_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_eligible_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::Eligible,
         SnsProposalSortDirection::Desc,
         &[30, 20],
-    );
+    )
+    .await;
 }
 
-#[test]
-fn sns_proposals_cached_sort_reject_cost_orders_before_limit() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_proposals_cached_sort_reject_cost_orders_before_limit() {
     assert_cached_proposal_sort(
         SnsProposalsSort::RejectCost,
         SnsProposalSortDirection::Desc,
         &[30, 10],
-    );
+    )
+    .await;
 }

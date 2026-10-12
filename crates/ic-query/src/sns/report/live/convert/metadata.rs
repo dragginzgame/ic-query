@@ -26,45 +26,7 @@ pub(in crate::sns::report::live) fn bounded_query_error_summary(
         SnsHostError::MissingGovernanceResult { method } => {
             Some(format!("{method}: missing governance result"))
         }
-        SnsHostError::UnsupportedNetwork { .. }
-        | SnsHostError::Runtime(_)
-        | SnsHostError::AgentBuild { .. }
-        | SnsHostError::AgentUpdateCall { .. }
-        | SnsHostError::InvalidPrincipal { .. }
-        | SnsHostError::InvalidSourceData { .. }
-        | SnsHostError::MissingRunningSnsVersion { .. }
-        | SnsHostError::MissingProposalId
-        | SnsHostError::MissingNeuronId
-        | SnsHostError::InvalidNeuronId
-        | SnsHostError::InvalidNeuronIdText { .. }
-        | SnsHostError::MissingNeuronPermissionPrincipal { .. }
-        | SnsHostError::UnstableRewardCheckpoint { .. }
-        | SnsHostError::InvalidRewardCheckpointCeiling { .. }
-        | SnsHostError::InvalidRewardCheckpointPageCap { .. }
-        | SnsHostError::IncompleteRewardCheckpoint { .. }
-        | SnsHostError::RewardCheckpointArithmetic { .. }
-        | SnsHostError::RewardCheckpointClock { .. }
-        | SnsHostError::ReadRewardCheckpoint { .. }
-        | SnsHostError::ParseRewardCheckpoint { .. }
-        | SnsHostError::UnknownSnsId { .. }
-        | SnsHostError::UnknownSnsRoot { .. }
-        | SnsHostError::InvalidLookup { .. }
-        | SnsHostError::InvalidMetricsTimeWindow { .. }
-        | SnsHostError::AmbiguousCacheId { .. }
-        | SnsHostError::AmbiguousRefreshAttemptId { .. }
-        | SnsHostError::MissingCatalogCache { .. }
-        | SnsHostError::MissingNeuronsCache { .. }
-        | SnsHostError::MissingNeuronsCacheForId { .. }
-        | SnsHostError::MissingProposalsCache { .. }
-        | SnsHostError::InvalidRefreshAttempt { .. }
-        | SnsHostError::InvalidCache { .. }
-        | SnsHostError::CacheIdentityMismatch { .. }
-        | SnsHostError::Cache(_)
-        | SnsHostError::IncompleteRefresh { .. }
-        | SnsHostError::InvalidRefreshPageSize { .. }
-        | SnsHostError::MissingCacheRoot
-        | SnsHostError::UnsupportedProposalView { .. }
-        | SnsHostError::DuplicateCanisterId { .. } => None,
+        _ => None,
     }?;
     let summary = summary.trim();
     (!summary.is_empty()).then(|| summary.to_string())

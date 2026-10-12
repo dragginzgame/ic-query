@@ -13,13 +13,13 @@ use crate::sns::report::{
     source::{SnsNeuronsSource, validate_mainnet_sns_neurons},
 };
 
-pub fn build_sns_neurons_report(
+pub async fn build_sns_neurons_report(
     request: &SnsNeuronsRequest,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    build_sns_neurons_report_with_source(request, &LiveSnsSource)
+    build_sns_neurons_report_with_source(request, &LiveSnsSource::default()).await
 }
 
-pub fn build_sns_neurons_report_with_source(
+pub async fn build_sns_neurons_report_with_source(
     request: &SnsNeuronsRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
@@ -33,13 +33,15 @@ pub fn build_sns_neurons_report_with_source(
         request.now_unix_secs,
         &request.input,
     );
-    let lookup = resolve_sns_lookup(&lookup_request, source)?;
-    let neurons = source.fetch_sns_neurons(
-        &lookup.fetch_request,
-        &lookup.sns,
-        request.limit,
-        request.owner_principal_id.as_deref(),
-    )?;
+    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let neurons = source
+        .fetch_sns_neurons(
+            &lookup.fetch_request,
+            &lookup.sns,
+            request.limit,
+            request.owner_principal_id.as_deref(),
+        )
+        .await?;
     validate_mainnet_sns_neurons(&neurons, request.limit)?;
     Ok(sns_neurons_report_from_parts(SnsNeuronsLiveReportParts {
         fetch_request: lookup.fetch_request,

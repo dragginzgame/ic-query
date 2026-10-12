@@ -6,12 +6,13 @@ use crate::{
 };
 use std::fs;
 
-#[test]
-fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     let root = temp_dir("ic-query-sns-neurons-refresh");
     let request = sns_neurons_refresh_request(&root, None);
 
     let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("refresh neurons");
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -44,6 +45,7 @@ fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     cached_request.limit = 2;
     cached_request.verbose = true;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .await
         .expect("cached neurons report");
 
     assert_eq!(report.data_source.as_str(), "cache");
@@ -92,51 +94,54 @@ struct ExclusiveNeuronPagesSource;
 delegate_sns_discovery!(ExclusiveNeuronPagesSource);
 
 impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
-    fn fetch_sns_neurons(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neurons<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         _limit: u32,
-        _owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeurons, SnsHostError> {
-        unreachable!("refresh uses pages")
+        _owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+        Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
-    fn fetch_sns_neuron_page(
-        &self,
-        _request: &SnsSourceRequest,
-        _sns: &MainnetSns,
+    fn fetch_sns_neuron_page<'a>(
+        &'a self,
+        _request: &'a SnsSourceRequest,
+        _sns: &'a MainnetSns,
         limit: u32,
-        start_page_at: Option<&SnsNeuronId>,
-        owner_principal_id: Option<&str>,
-    ) -> Result<MainnetSnsNeuronPage, SnsHostError> {
-        assert_eq!(limit, 2);
-        assert!(owner_principal_id.is_none());
-        let ids = match start_page_at.map(|cursor| cursor.id.as_slice()) {
-            None => vec![1, 2],
-            Some(cursor) if cursor == [2; 32] => vec![3, 4],
-            Some(cursor) if cursor == [4; 32] => vec![],
-            other => panic!("unexpected cursor {other:?}"),
-        };
-        Ok(MainnetSnsNeuronPage {
-            last_cursor: ids.last().map(|id| SnsNeuronId { id: vec![*id; 32] }),
-            neurons: ids
-                .into_iter()
-                .map(|id| {
-                    let mut row = fixture_sns_neuron().detail.neuron;
-                    row.neuron_id = format!("{id:02x}").repeat(32);
-                    row
-                })
-                .collect(),
+        start_page_at: Option<&'a SnsNeuronId>,
+        owner_principal_id: Option<&'a str>,
+    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
+        Box::pin(async move {
+            assert_eq!(limit, 2);
+            assert!(owner_principal_id.is_none());
+            let ids = match start_page_at.map(|cursor| cursor.id.as_slice()) {
+                None => vec![1, 2],
+                Some(cursor) if cursor == [2; 32] => vec![3, 4],
+                Some(cursor) if cursor == [4; 32] => vec![],
+                other => panic!("unexpected cursor {other:?}"),
+            };
+            Ok(MainnetSnsNeuronPage {
+                last_cursor: ids.last().map(|id| SnsNeuronId { id: vec![*id; 32] }),
+                neurons: ids
+                    .into_iter()
+                    .map(|id| {
+                        let mut row = fixture_sns_neuron().detail.neuron;
+                        row.neuron_id = format!("{id:02x}").repeat(32);
+                        row
+                    })
+                    .collect(),
+            })
         })
     }
 }
 
-#[test]
-fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
     let root = temp_dir("ic-query-sns-neurons-exclusive-pages");
     let request = sns_neurons_refresh_request(&root, None);
     let refresh = refresh_sns_neurons_cache_with_source(&request, &ExclusiveNeuronPagesSource)
+        .await
         .expect("exclusive pages exhaust successfully");
     assert_eq!(refresh.page_count, 3);
     assert_eq!(refresh.neuron_count, 4);
@@ -159,21 +164,24 @@ fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
     fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-refresh-preserves-cache");
     let complete_request = sns_neurons_refresh_request(&root, None);
     refresh_sns_neurons_cache_with_source(&complete_request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect("complete refresh");
 
     let failed_request = sns_neurons_refresh_request(&root, Some(1));
     refresh_sns_neurons_cache_with_source(&failed_request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect_err("incomplete refresh");
 
     let mut cached_request = neurons_request("1");
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
+        .await
         .expect("previous complete cache remains usable");
 
     assert_eq!(report.data_source.as_str(), "cache");
@@ -189,8 +197,8 @@ fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[test]
-fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
+#[tokio::test(flavor = "current_thread")]
+async fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     let root = temp_dir("ic-query-sns-neurons-stale-lock");
     let request = sns_neurons_refresh_request(&root, None);
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -211,6 +219,7 @@ fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
     .expect("write stale lock");
 
     let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
+        .await
         .expect_err("stale lock requires manual cleanup");
 
     assert!(matches!(

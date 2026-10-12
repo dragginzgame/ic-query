@@ -44,13 +44,13 @@ pub enum IcCommandError {
     Json(#[from] serde_json::Error),
 }
 
-pub fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
+pub async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     match matches.subcommand() {
-        Some(("api-boundary-node", matches)) => api_boundary_node::run_matches(matches),
-        Some(("canister", matches)) => canister::run_matches(matches),
-        Some(("metrics", matches)) => metrics::run_matches(matches),
-        Some(("network", matches)) => network::run_matches(matches),
-        Some(("replica-version", matches)) => replica_version::run_matches(matches),
+        Some(("api-boundary-node", matches)) => api_boundary_node::run_matches(matches).await,
+        Some(("canister", matches)) => canister::run_matches(matches).await,
+        Some(("metrics", matches)) => metrics::run_matches(matches).await,
+        Some(("network", matches)) => network::run_matches(matches).await,
+        Some(("replica-version", matches)) => replica_version::run_matches(matches).await,
         _ => unreachable!("clap requires a known ic subcommand"),
     }
 }
@@ -98,8 +98,8 @@ mod tests {
         assert!(usage.contains("replica-version"));
     }
 
-    #[test]
-    fn family_and_nested_help_return_without_network_calls() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn family_and_nested_help_return_without_network_calls() {
         for args in [
             &["ic", "--help"][..],
             &["ic", "api-boundary-node", "--help"],
@@ -116,7 +116,7 @@ mod tests {
             &["ic", "replica-version", "info", "--help"],
             &["ic", "replica-version", "list", "--help"],
         ] {
-            assert!(crate::run(args.iter().map(OsString::from)).is_ok());
+            assert!(crate::run(args.iter().map(OsString::from)).await.is_ok());
         }
     }
 }

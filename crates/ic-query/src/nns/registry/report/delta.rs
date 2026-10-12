@@ -29,7 +29,8 @@ impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 pub async fn fetch_nns_certified_registry_delta_batch_async(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
 ) -> Result<NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError> {
-    fetch_nns_certified_registry_delta_batch_with_source_async(request, &LiveNnsSource).await
+    fetch_nns_certified_registry_delta_batch_with_source_async(request, &LiveNnsSource::default())
+        .await
 }
 
 /// Fetch and validate one certified Registry delta batch from an explicit source.

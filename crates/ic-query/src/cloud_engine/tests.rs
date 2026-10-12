@@ -4,7 +4,7 @@ use crate::subnet_catalog::{
     MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogListReport, SubnetCatalogSubnetRow, SubnetKind,
     SubnetSpecialization,
 };
-use std::cell::Cell;
+use std::sync::Mutex;
 
 const FETCHED_AT: &str = "2026-08-08T12:00:00Z";
 const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe";
@@ -15,7 +15,7 @@ const SUBNET_B: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 const SUBNET_C: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 
 struct FixtureSource {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
     operator: CloudEngineOperatorSourceData,
     prices: CloudEnginePricesSourceData,
 }
@@ -23,7 +23,7 @@ struct FixtureSource {
 impl FixtureSource {
     fn new(request: &CloudEngineSourceRequest) -> Self {
         Self {
-            calls: Cell::new(0),
+            calls: Mutex::new(0),
             operator: operator_source(request),
             prices: prices_source(request),
         }
@@ -31,60 +31,72 @@ impl FixtureSource {
 }
 
 impl CloudEngineSource for FixtureSource {
-    fn fetch_operator(
-        &self,
-        _request: &CloudEngineSourceRequest,
-        _subnet_id: &str,
-    ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(self.operator.clone())
+    fn fetch_operator<'a>(
+        &'a self,
+        _request: &'a CloudEngineSourceRequest,
+        _subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>
+    {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(self.operator.clone())
+        })
     }
 
-    fn fetch_prices(
-        &self,
-        _request: &CloudEngineSourceRequest,
-    ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
-        self.calls.set(self.calls.get() + 1);
-        Ok(self.prices.clone())
+    fn fetch_prices<'a>(
+        &'a self,
+        _request: &'a CloudEngineSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
+    {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            Ok(self.prices.clone())
+        })
     }
 }
 
 struct BindingFixtureSource {
-    calls: Cell<usize>,
+    calls: Mutex<usize>,
     request: CloudEngineSourceRequest,
     query_call_count: usize,
 }
 
 impl CloudEngineOperatorBindingSource for BindingFixtureSource {
-    fn fetch_operator_binding(
-        &self,
-        _request: &CloudEngineSourceRequest,
-        subnet_id: &str,
-    ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
-        self.calls.set(self.calls.get() + 1);
-        if subnet_id == SUBNET_C {
-            return Err(CloudEngineHostError::AgentCall {
-                method: "getEngineOperatorBySubnet",
-                reason: "fixture unavailable".to_string(),
-            });
-        }
-        Ok(CloudEngineOperatorBindingSourceData {
-            source: self.request.clone(),
-            subnet_id: subnet_id.to_string(),
-            operator_canister_id: (subnet_id == SUBNET_ID).then(|| OPERATOR_ID.to_string()),
-            query_call_count: self.query_call_count,
+    fn fetch_operator_binding<'a>(
+        &'a self,
+        _request: &'a CloudEngineSourceRequest,
+        subnet_id: &'a str,
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError>,
+    > {
+        Box::pin(async move {
+            *self.calls.lock().unwrap() += 1;
+            if subnet_id == SUBNET_C {
+                return Err(CloudEngineHostError::AgentCall {
+                    method: "getEngineOperatorBySubnet",
+                    reason: "fixture unavailable".to_string(),
+                });
+            }
+            Ok(CloudEngineOperatorBindingSourceData {
+                source: self.request.clone(),
+                subnet_id: subnet_id.to_string(),
+                operator_canister_id: (subnet_id == SUBNET_ID).then(|| OPERATOR_ID.to_string()),
+                query_call_count: self.query_call_count,
+            })
         })
     }
 }
 
-#[test]
-fn operator_report_preserves_public_settings_and_provenance() {
+#[tokio::test(flavor = "current_thread")]
+async fn operator_report_preserves_public_settings_and_provenance() {
     let request = request(MAINNET_NETWORK);
     let source = FixtureSource::new(&request);
     let report = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &source)
+        .await
         .expect("fixture CloudEngine operator report");
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.context.schema_version, 1);
     assert_eq!(
         report.context.authority,
@@ -118,8 +130,8 @@ fn operator_report_preserves_public_settings_and_provenance() {
     assert_eq!(json["claimed_domains"][0], "a.example");
 }
 
-#[test]
-fn absent_operator_binding_is_a_visible_one_call_result() {
+#[tokio::test(flavor = "current_thread")]
+async fn absent_operator_binding_is_a_visible_one_call_result() {
     let request = request(MAINNET_NETWORK);
     let mut source = FixtureSource::new(&request);
     source.operator = CloudEngineOperatorSourceData {
@@ -133,6 +145,7 @@ fn absent_operator_binding_is_a_visible_one_call_result() {
         query_call_count: 1,
     };
     let report = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &source)
+        .await
         .expect("absent operator binding is reportable");
 
     assert!(!report.operator_binding_present);
@@ -140,14 +153,15 @@ fn absent_operator_binding_is_a_visible_one_call_result() {
     assert_eq!(report.claimed_domain_count, None);
 }
 
-#[test]
-fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
+#[tokio::test(flavor = "current_thread")]
+async fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
     let request = request(MAINNET_NETWORK);
     let source = FixtureSource::new(&request);
     let report = build_cloud_engine_prices_report_with_source(&request, &source)
+        .await
         .expect("fixture CloudEngine prices report");
 
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.context.query_call_count, 2);
     assert!((report.network_fee - 0.25).abs() < f64::EPSILON);
     assert_eq!(report.price_count, 3);
@@ -167,11 +181,11 @@ fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
     );
 }
 
-#[test]
-fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
     let request = request(MAINNET_NETWORK);
     let source = BindingFixtureSource {
-        calls: Cell::new(0),
+        calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 1,
     };
@@ -180,9 +194,10 @@ fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
         list_catalog_report(&[SUBNET_B, SUBNET_C, SUBNET_ID]),
         &source,
     )
+    .await
     .expect("fixture CloudEngine list report");
 
-    assert_eq!(source.calls.get(), 3);
+    assert_eq!((*source.calls.lock().unwrap()), 3);
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.registry_authority, "nns_registry");
     assert_eq!(report.registry_version, 123_456);
@@ -256,11 +271,11 @@ fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
     );
 }
 
-#[test]
-fn list_report_enforces_fanout_and_successful_source_contracts() {
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_enforces_fanout_and_successful_source_contracts() {
     let request = request(MAINNET_NETWORK);
     let source = BindingFixtureSource {
-        calls: Cell::new(0),
+        calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 1,
     };
@@ -270,16 +285,17 @@ fn list_report_enforces_fanout_and_successful_source_contracts() {
         list_catalog_report(&excessive),
         &source,
     )
+    .await
     .expect_err("fanout above the hard bound must fail before lookups");
     assert!(matches!(
         error,
         CloudEngineHostError::InvalidSourceData { reason }
             if reason.contains("maximum is 100")
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 
     let source = BindingFixtureSource {
-        calls: Cell::new(0),
+        calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 2,
     };
@@ -288,45 +304,49 @@ fn list_report_enforces_fanout_and_successful_source_contracts() {
         list_catalog_report(&[SUBNET_ID]),
         &source,
     )
+    .await
     .expect_err("a successful binding source must report exactly one call");
     assert!(matches!(
         error,
         CloudEngineHostError::InvalidSourceData { reason }
             if reason.contains("exactly one query call")
     ));
-    assert_eq!(source.calls.get(), 1);
+    assert_eq!((*source.calls.lock().unwrap()), 1);
 }
 
-#[test]
-fn builders_reject_targets_before_invoking_custom_sources() {
+#[tokio::test(flavor = "current_thread")]
+async fn builders_reject_targets_before_invoking_custom_sources() {
     let local_request = request("local");
     let source = FixtureSource::new(&local_request);
     let error = build_cloud_engine_prices_report_with_source(&local_request, &source)
+        .await
         .expect_err("non-mainnet CloudEngine report must fail");
     assert!(matches!(
         error,
         CloudEngineHostError::UnsupportedNetwork { network } if network == "local"
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 
     let request = request(MAINNET_NETWORK);
     let source = FixtureSource::new(&request);
     let error =
         build_cloud_engine_operator_report_with_source(&request, "not-a-principal", &source)
+            .await
             .expect_err("invalid Subnet must fail before source invocation");
     assert!(matches!(
         error,
         CloudEngineHostError::InvalidPrincipal { .. }
     ));
-    assert_eq!(source.calls.get(), 0);
+    assert_eq!((*source.calls.lock().unwrap()), 0);
 }
 
-#[test]
-fn builders_reject_inconsistent_source_evidence() {
+#[tokio::test(flavor = "current_thread")]
+async fn builders_reject_inconsistent_source_evidence() {
     let request = request(MAINNET_NETWORK);
     let mut source = FixtureSource::new(&request);
     source.operator.query_call_count = 4;
     let error = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &source)
+        .await
         .expect_err("present operator binding call count must be exact");
     assert!(matches!(
         error,
@@ -336,6 +356,7 @@ fn builders_reject_inconsistent_source_evidence() {
     let mut source = FixtureSource::new(&request);
     source.prices.prices[0].key = "wrong".to_string();
     let error = build_cloud_engine_prices_report_with_source(&request, &source)
+        .await
         .expect_err("marketplace identity must match the key");
     assert!(matches!(
         error,
@@ -346,6 +367,7 @@ fn builders_reject_inconsistent_source_evidence() {
     source.prices.prices[0].net_cycles_per_month =
         "1".repeat(MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS + 1);
     let error = build_cloud_engine_prices_report_with_source(&request, &source)
+        .await
         .expect_err("cycle amounts beyond the public digit bound must fail");
     assert!(matches!(
         error,
@@ -354,11 +376,12 @@ fn builders_reject_inconsistent_source_evidence() {
     ));
 }
 
-#[test]
-fn live_source_rejects_network_before_constructing_an_agent() {
+#[tokio::test(flavor = "current_thread")]
+async fn live_source_rejects_network_before_constructing_an_agent() {
     let request = CloudEngineSourceRequest::new("local", "://invalid", FETCHED_AT, "test");
-    let error = LiveCloudEngineSource
+    let error = LiveCloudEngineSource::default()
         .fetch_prices(&request)
+        .await
         .expect_err("network is validated before endpoint parsing");
     assert!(matches!(
         error,
