@@ -27,6 +27,9 @@ crate follows [Semantic Versioning](https://semver.org/).
   tracked in [#44](https://github.com/dragginzgame/ic-query/issues/44).
 - Selects Host artifacts, filesystem and process 0.14.10, with unchanged runtime
   source, dependency contracts and supported builds.
+- Release preparation preserves reviewed README/library examples and treats
+  their freshness as advisory, avoiding rejection of already-updated examples.
+  [Shared #100](https://github.com/dragginzgame/shared-tooling/issues/100).
 
 Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
 

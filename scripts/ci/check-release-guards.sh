@@ -145,9 +145,8 @@ case "$1" in
       esac
     done ;;
   add)
-    [[ "$#" == 8 && "$2" == -- && "$3" == Cargo.toml && "$4" == Cargo.lock && "$5" == README.md \
-      && "$6" == docs/library-usage.md && "$7" == CHANGELOG.md \
-      && "$8" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]] || exit 1
+    [[ "$#" == 6 && "$2" == -- && "$3" == Cargo.toml && "$4" == Cargo.lock && "$5" == CHANGELOG.md \
+      && "$6" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]] || exit 1
     mkdir -p index
     cp Cargo.toml Cargo.lock README.md CHANGELOG.md index/
     cp -R docs index/
@@ -420,7 +419,7 @@ fi
 [[ ! -e .release-state && ! -e events ]] || fail 'refused delivery changed release state'
 for kind in patch minor major; do
   new_fixture "success-$kind" "$kind"
-  FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=README.md run_release "$kind" \
+  FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=CHANGELOG.md run_release "$kind" \
     || { cat output; fail "$kind"; }
   check_complete
   awk '/^cargo metadata / { next } { print }' events > observed
@@ -583,7 +582,7 @@ for conflict in payload history tag destination remote-unavailable remote-diverg
   commit_fix patch
   cp .release-state/0.47.0.plan saved-plan
   case "$conflict" in
-    payload) printf 'conflicting release payload\n' >> commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/files/README.md ;;
+    payload) printf 'conflicting release payload\n' >> commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/files/CHANGELOG.md ;;
     history) printf 'Unexpected subject\n' > commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/subject ;;
     tag) printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n' > 'tags/v0.47.0^{commit}' ;;
     destination) export FIXTURE_DESTINATION=https://example.invalid/other ;;
@@ -658,7 +657,7 @@ for conflict in payload dependency identity retained-inputs unrelated; do
   new_fixture "conflict-$conflict" patch
   FIXTURE_LOST_PREPARE_REPLY=yes expect_failure patch
   case "$conflict" in
-    payload) echo 'unvalidated edit' >> README.md ;;
+    payload) echo 'unvalidated edit' >> CHANGELOG.md ;;
     dependency) sed 's/1.0.0/2.0.0/' Cargo.lock > changed; mv changed Cargo.lock ;;
     identity) echo invalid > .release-state/0.46.6.verify.*/identity ;;
     retained-inputs) echo 'changed evidence' >> .release-state/0.46.6.verify.*/before/Cargo.lock ;;

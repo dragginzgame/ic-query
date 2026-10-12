@@ -49,6 +49,10 @@ RELEASE_VERSION="$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" "
 detail="docs/changelog/${RELEASE_VERSION%.*}.md"
 printf '# Changelog\n\n## [%s]\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > CHANGELOG.md
 printf '# Detailed changelog\n\n## %s\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > "$detail"
+printf 'Reviewed examples:\nic-query = { version = "%s", default-features = false }\nic-query = ">=0.40, <1"\nHistorical example: 0.40.\n' "${RELEASE_VERSION%.*}" > README.md
+printf 'Library usage is maintained through source review.\n' > docs/library-usage.md
+cp README.md "$work_dir/reviewed-readme"
+cp docs/library-usage.md "$work_dir/reviewed-library-usage"
 perl scripts/release/metadata.pl preflight
 for notes in CHANGELOG.md "$detail"; do
   cp "$notes" "$work_dir/pending-notes"
@@ -74,12 +78,14 @@ perl scripts/release/metadata.pl capture "$evidence"
 : > "$evidence/passed"
 printf '%s\n' "$evidence" > ".git/release-state/$RELEASE_VERSION.validation"
 perl scripts/release/metadata.pl prepare "$evidence"
+cmp "$work_dir/reviewed-readme" README.md
+cmp "$work_dir/reviewed-library-usage" docs/library-usage.md
 
 # The working payload is prepared but the real index still holds the source.
 if bash scripts/release/adapter.sh commit-check > "$work_dir/stale-index.log" 2>&1; then
   fail 'stale staged metadata passed the commit boundary'
 fi
-git add -- Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"
+git add -- Cargo.toml Cargo.lock CHANGELOG.md "$detail"
 bash scripts/release/adapter.sh commit-check
 
 # A staged replacement with the working file restored hides from HEAD-to-worktree.

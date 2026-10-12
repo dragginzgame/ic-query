@@ -28,9 +28,7 @@ for ($previous, $version) {
 defined($date) && $date =~ /\A[0-9]{4}-[0-9]{2}-[0-9]{2}\z/
     or die "missing or invalid UTC release date\n";
 my $minor = $version =~ s/\.[0-9]+\z//r;
-my $previous_minor = $previous =~ s/\.[0-9]+\z//r;
-my @files = ('Cargo.toml', 'Cargo.lock', 'README.md', 'docs/library-usage.md',
-    'CHANGELOG.md', "docs/changelog/$minor.md");
+my @files = ('Cargo.toml', 'Cargo.lock', 'CHANGELOG.md', "docs/changelog/$minor.md");
 if ($mode eq 'files') {
     print "$_\0" for @files;
     exit;
@@ -92,9 +90,6 @@ sub expected {
         local $/;
         $text = <$lock>;
         close $lock or die "local lockfile transformation failed\n";
-    } elsif ($path eq 'README.md' || $path eq 'docs/library-usage.md') {
-        ($text =~ s/(^ic-query = \{ version = ")\Q$previous_minor\E(")/$1$minor$2/gm) > 0
-            or die "missing current dependency examples in $path\n";
     } elsif ($path eq 'CHANGELOG.md') {
         check_pending_heading($path, $text, "[$version]");
         my $baseline = "$evidence/before/$path";

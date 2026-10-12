@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`aec7a149f581a42b9531fc747b46024fc0314fcf`](https://github.com/dragginzgame/shared-tooling/tree/aec7a149f581a42b9531fc747b46024fc0314fcf) (0.9.0),
+[`b1630b89482cc6071fc928a86962d79c9c11fdb7`](https://github.com/dragginzgame/shared-tooling/tree/b1630b89482cc6071fc928a86962d79c9c11fdb7) (0.9.5),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/aec7a149f581a42b9531fc747b46024fc0314fcf/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/b1630b89482cc6071fc928a86962d79c9c11fdb7/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -322,12 +322,18 @@ root and detailed headings with the saved UTC release date.
 
 The consumer adapter changes only the workspace package version, its owned
 `ic-query` dependency version, the two owned lockfile package versions, and
-the README/library dependency examples. External dependency records and their
-checksums remain byte-for-byte unchanged. The release file set is exactly:
+the selected changelog headings. External dependency records and their checksums
+remain byte-for-byte unchanged. The release file set is exactly:
 
 - `Cargo.toml` and `Cargo.lock`;
-- `README.md` and `docs/library-usage.md`;
 - `CHANGELOG.md` and the selected minor-line detailed changelog.
+
+README and library-usage examples are reviewed source, preserved unchanged by
+release preparation. Their version spelling or absence of dependency snippets
+does not gate release metadata admission. The shared
+[README freshness task](../tasks/readme-freshness.md) reports advisory findings;
+it does not rewrite or stage documentation. Ordinary source admission still
+rejects unreviewed documentation edits during release execution.
 
 The shared [lockfile transformer](verification-helpers.md#local-cargolock-versions)
 produces the candidate for exactly `ic-query` and `ic-query-cli`; registry/Git
