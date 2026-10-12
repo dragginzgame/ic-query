@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.13]
+## [0.54.13] - 2026-10-12
 
 - Adopts Shared Tooling 0.8.0. Snapshot refresh derives companions from recorded
   entrypoints and automatically retires unchanged owned files outside that set,
