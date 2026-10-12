@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.15]
+## [0.54.15] - 2026-10-12
 
 - Adopts Shared Tooling 0.9.0. Snapshot callers share validated
   records and reject NUL bytes; syntax inspection remains separate from integrity.
