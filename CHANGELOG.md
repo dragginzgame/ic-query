@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.54.12]
+## [0.54.12] - 2026-10-12
 
 - Adopts Shared Tooling 0.6.6. Staged formatting admits prepared tool receipts
   against the staged pins and compiler, preserving unrelated edits. The reviewed
