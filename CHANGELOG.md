@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.12]
+
+- Adopts Shared Tooling 0.6.6. Staged formatting admits prepared tool receipts
+  against the staged pins and compiler, preserving unrelated edits. The reviewed
+  hook can now be activated per clone. [#44](https://github.com/dragginzgame/ic-query/issues/44).
+- CI checks prepared manifests, lockfile, toolchain, pins and snapshot between
+  stages. Release validation retains its initial checkpoint through nested CI;
+  changed inputs stop later stages and retain diagnostics.
+  [Shared #129](https://github.com/dragginzgame/shared-tooling/issues/129).
+- Prepares cargo-sort-derives 0.14.1, preserving literal `$crate` paths during
+  derive sorting. Existing tool payloads remain retained.
+  [Shared #113](https://github.com/dragginzgame/shared-tooling/issues/113).
+- Selects Host artifacts, filesystem and process 0.14.4, with unchanged library
+  source and dependency contracts.
+
+```bash
+make install-hooks
+bash scripts/ci/run-validation-targets.sh --input Cargo.toml --input Cargo.lock fmt-check
+```
+
 ## [0.54.11] - 2026-10-12
 
 - Adopts Shared Tooling 0.6.4 through one Make entrypoint, consolidating common

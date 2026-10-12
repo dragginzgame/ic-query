@@ -53,6 +53,8 @@ CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-c
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
+CI_INPUTS := Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
+	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/ic-tools.tsv .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -92,6 +94,7 @@ help:
 	@echo "  install-dependency-tools  Install pinned Cargo Audit and Cargo Machete"
 	@echo "  dependency-tools-check  Check the selected audit tools offline"
 	@echo "  install-tools  Prepare the complete common and Query toolsets in order"
+	@echo "  install-hooks  Activate the reviewed formatting hook in this clone"
 	@echo "  tools-check  Verify the complete common and Query toolsets offline"
 	@echo "  install-host-tools  Install repository-local jq, Mike Farah yq, ripgrep with PCRE2 and cloc"
 	@echo "  host-tools-check  Verify the host toolset offline"
@@ -145,6 +148,7 @@ release-guards-check:
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
 	bash scripts/ci/test-rust-tools.sh
+	bash scripts/ci/check-formatting-hook.sh
 	cargo test -p ic-query-cli --example governance_smoke --locked --offline
 
 canister-build canister-bundle canister-smoke:
@@ -185,7 +189,8 @@ package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline
 
 ci:
-	+@bash "$(REPO_ROOT)scripts/ci/run-validation-targets.sh" --fail-fast $(CI_TARGETS)
+	+@bash "$(REPO_ROOT)scripts/ci/run-validation-targets.sh" --fail-fast \
+		$(foreach input,$(CI_INPUTS),--input "$(input)") $(CI_TARGETS)
 
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq

@@ -1173,6 +1173,73 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.54.12 Shared 0.6.6 and Host 0.14.4 qualification
+
+The follow-up canonically selects the same 86 files from Shared 0.6.6
+`a15eb9d406d287697df9bc8fa96db8cda6721a71`. Because the reviewed 0.6.5
+batch was still uncommitted, the canonical exporter ran in an isolated consumer;
+the verified existing selection was reconciled only to that export's known shared
+bytes. Existing local adapters, fixtures, notes and the real index are preserved.
+
+Explicit `make install-tools` prepares cargo-sort-derives 0.14.1; complete offline
+tool admission passes. All three previous Cargo-tool payload hashes remain
+unchanged. Actual Query formatting/hook and current physical tool reuse pass on
+modern Bash/Make and genuine Bash 3.2.57/GNU Make 3.81 on Linux. A separate stdin
+probe preserves literal `$crate` in direct/conditional derives, then compiles and
+runs those exported macros from another crate. This is a sorter/downstream probe,
+not staged derive-sorter qualification: Query keeps cargo-sort/rustfmt and has no
+derive-sorter workaround markers to remove. Its Rust 1.99 development toolchain
+satisfies the formatter's 1.88 build floor; the library MSRV remains 1.91.
+
+The three published Host 0.14.4 archives match their selected checksums and identify
+`f93cd8854d500616a73eda713d215a20ff0617c7`. Their library source matches 0.14.3.
+The lock change is restricted to those three package records; other package
+versions and dependency edges remain intact. Explicit locked fetching and complete
+offline metadata pass. Library tests and unchanged CI/release simulations were
+not repeated for this tooling-only update; the earlier 0.6.5 proofs below remain
+distinct. Full local CI/release gates and native consumer qualification remain
+outstanding. `/tmp/ic-query-shared066-adoption-path` records the pinned source,
+isolated export, setup, retained old payload hashes, actual hook logs, macro probe,
+scoped lock diff, archive review and final static checks. No real hook activation,
+source staging, commit, version bump, tag, push or CI dispatch ran.
+
+## Pending 0.54.12 Shared 0.6.5 qualification
+
+Based on released Query `50cb2c951169c3a6cf837457bc0e5a1067179388`, the
+canonical exporter selects 86 files from Shared 0.6.5
+`42f2091768b5f71c98a684d3dab563f408ca2dd9`, adding the reviewed formatting
+hook. Its original-tool receipt context preserves Query's stronger prerequisite.
+The new consumer fixture runs actual manifest/Rust formatting, verifies identical
+physical tool reuse in its explicitly prepared clone, preserves unrelated edits
+and rejects partial staging. It passes on modern Bash/Make and genuine
+Bash 3.2.57/GNU Make 3.81 on Linux, including the current caller manifests/lock.
+The real hook configuration and index are unchanged; activation is explicit.
+
+Ordinary CI checkpoints eight prepared inputs. The outer release logger captures
+the root manifest/lock before inner CI extends that checkpoint. Consumer CI-script
+and simulated release checks pass on both shell/Make profiles, including changed
+lock/member/pin/toolchain refusal and inherited-checkpoint preservation. Shared
+receipt and validation-runner fixtures also pass on both profiles. Complete
+offline tool admission, actual formatting, ShellCheck, notes, local links and
+snapshot integrity are checked without running full local CI or a release gate.
+
+During this pass the incoming lock changed from Host 0.14.2 to 0.14.3. The initial
+preservation checks flagged the change; their failed logs are retained rather
+than relabelled. The incoming selection is preserved. Its three published
+archives identify `543b137458feba0f6dfd3e458b680fb2be3d9e6d`, match the
+selected checksums and have library source identical to 0.14.2. Locked fetching
+and complete offline metadata pass; library tests were not repeated for this
+tooling-only producer release. Other manifests and the real index remain unchanged.
+`/tmp/ic-query-shared065-adoption-path` identifies the immutable source, canonical
+export, initial observations, current lock identity and focused validation logs.
+
+[Exact Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38218219902)
+passes Linux regression and lint/security, with both native jobs queued at
+inspection. [Exact Host CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38219424683)
+is unfinished. Linux/Bash 3.2 results do not qualify native macOS or this pending
+consumer's remote CI. Consumer acceptance remains under
+[#44](https://github.com/dragginzgame/ic-query/issues/44).
+
 ## Pending 0.54.11 Shared 0.6.4 qualification
 
 Based on released Query `4a18ccfe04198482352c6effa8ff17abc16e690b`, the

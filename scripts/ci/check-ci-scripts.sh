@@ -374,6 +374,53 @@ for invalid_goal in -n --ignore-errors MAKEFLAGS=i VALUE=1; do
     || fail 'make ci lost goal admission diagnostics'
 done
 
+drift_case="$work_dir/input-drift"
+git clone --quiet --shared "$repo_root" "$drift_case"
+copy_makefile "$drift_case"
+cp "$repo_root/scripts/ci/"{run-validation-targets,verify-file-checksum}.sh "$drift_case/scripts/ci/"
+mkdir "$drift_case/bin"
+cat > "$drift_case/bin/make" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${2:-}" == -f && "${3:-}" == - ]]; then exec "$CI_FIXTURE_REAL_MAKE" "$@"; fi
+printf '%s\n' "${!#}" >> "$TRACE_FILE"
+if [[ "${!#}" == ci ]]; then
+  printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
+  exec "$CI_FIXTURE_REAL_MAKE" "$@"
+fi
+printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
+EOF
+chmod +x "$drift_case/bin/make"
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml; do
+  cp "$drift_case/$input" "$drift_case/original-input"
+  : > "$drift_case/trace"
+  if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
+    DRIFT_INPUT="$drift_case/$input" VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
+    "$make_bin" --no-print-directory -C "$drift_case" ci > "$drift_case/drift-output" 2>&1; then
+    fail "CI accepted changed $input"
+  fi
+  printf 'shared-tooling-check\n' > "$drift_case/expected"
+  cmp "$drift_case/expected" "$drift_case/trace" || fail 'CI continued after input drift'
+  grep -Fq "validation input changed: $input" "$drift_case/failures/latest.log" \
+    || fail 'CI lost changed-input diagnostics'
+  cp "$drift_case/original-input" "$drift_case/$input"
+done
+: > "$drift_case/trace"
+if (
+  cd "$drift_case"
+  unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
+  PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" DRIFT_INPUT="$drift_case/Cargo.lock" \
+    VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
+    bash scripts/ci/run-validation-targets.sh --input Cargo.lock ci
+) > "$drift_case/nested-output" 2>&1; then
+  fail 'nested CI refreshed its inherited input checkpoint'
+fi
+printf 'ci\n' > "$drift_case/expected"
+cmp "$drift_case/expected" "$drift_case/trace" || fail 'nested CI dispatched after inherited input drift'
+grep -Fq 'validation input changed: Cargo.lock' "$drift_case/failures/latest.log" \
+  || fail 'nested CI lost inherited-input diagnostics'
+echo 'Query CI stops subsequent stages on prepared-input drift and retains nested checkpoints'
+
 pin_check_case="${work_dir}/pin-check"
 mkdir -p "$pin_check_case/scripts/ci"
 copy_makefile "$pin_check_case"

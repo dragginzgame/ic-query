@@ -128,7 +128,8 @@ case "$operation" in
     fi
     CHANGELOG_VERSION="$RELEASE_VERSION" CARGO_NET_OFFLINE=true \
       VALIDATION_FAILURE_LOG_DIR="$attempt/validation-failures" \
-      bash scripts/ci/run-validation-targets.sh --fail-fast ci 2>&1 | tee "$attempt/validation.log"
+      bash scripts/ci/run-validation-targets.sh --fail-fast \
+        --input Cargo.toml --input Cargo.lock ci 2>&1 | tee "$attempt/validation.log"
     : > "$attempt/passed"
     temporary_binding="$(mktemp "$binding.tmp.XXXXXX")"
     printf '%s\n' "$attempt" > "$temporary_binding"

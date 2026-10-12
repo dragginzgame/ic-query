@@ -93,6 +93,36 @@ must stop on failure. Keep [hook qualification](../rules/git-hooks.md) for the
 actual workspaces and frontend inputs. Native consumer tests are still required;
 shared substitute fixtures prove routing, not a product's formatter behavior.
 
+## Qualification without recipe overrides
+
+In disposable fixtures, keep exactly one recipe per target. Appending substitute
+recipes to an exported production Makefile causes repeated override warnings on
+every recursive Make invocation; suppressing stderr hides genuine diagnostics.
+
+Prefer substituting the effectful scripts in the disposable export while keeping
+the real shared includes. The existing `test-tool-commands.sh` fixture does this
+for installers: it records arguments, injects failures and verifies ordering,
+Make admission and inherited jobserver descriptors. Its fixture gate calls the
+actual `install-tools` and `tools-check` recipes, with product targets supplied
+through the existing ordered extension lists. `test-make-consumer.sh` separately
+checks actual release routing with a substitute runner.
+
+When product gate recipes themselves need replacement, construct one small
+fixture-owned Makefile with the actual shared includes and only the required
+product targets. Define each recipe once. Keep real product metadata transforms
+and assertions for release preparation/reconciliation in that fixture; substitute
+external setup/build effects at their script boundary. For example, a release
+fixture can define its single `ci` recipe to check prepared markers and inject a
+gate failure, while its single `release-prepare-version` recipe calls the real
+metadata adapter before injecting an interruption. Do not replace shared ordered
+aggregates or the release runner just to avoid warnings in a recovery test.
+
+This is consumer fixture construction, not a new production override API.
+Qualify the consumer's real Makefile separately, and retain its actual disposable
+Git/bare-remote recovery tests. Shared routing substitutes do not qualify product
+metadata, delivery or native hosts. Check successful fixture logs for unexpected
+recipe warnings rather than filtering them from every invocation.
+
 ## Adoption
 
 1. Refresh the [recorded snapshot](consuming-snapshots.md), explicitly selecting

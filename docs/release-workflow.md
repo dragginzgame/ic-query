@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d`](https://github.com/dragginzgame/shared-tooling/tree/6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d) (0.6.4),
+[`a15eb9d406d287697df9bc8fa96db8cda6721a71`](https://github.com/dragginzgame/shared-tooling/tree/a15eb9d406d287697df9bc8fa96db8cda6721a71) (0.6.6),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/6fc8eb9a94f83fb0b9d0a26377d4232508cdbe2d/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a15eb9d406d287697df9bc8fa96db8cda6721a71/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,7 +36,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 85 shared files. Its governance selection keeps the linked
+The snapshot contains 86 shared files. Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
@@ -73,17 +73,36 @@ combined `override export` syntax.
 
 Formatting checks the reviewed cargo-sort pin before sorting and Rust formatting,
 uses prepared tools offline and disables automatic rustup installation.
+The common toolset selects cargo-sort-derives 0.14.1. After adopting this pin,
+run explicit `make install-tools` before offline admission; older payloads remain
+retained. Its Rust 1.88 build floor does not change Query's library MSRV or its
+current cargo-sort/rustfmt policy.
 `FORMAT_CARGO` selects one executable name or path for admission and execution;
 use `RUSTUP_TOOLCHAIN` for explicit toolchain selection. Setup and checkout hook
-configuration remain separate; Query does not select the shared formatting hook.
-The entrypoint exposes `install-hooks`, but it refuses activation without the
-tracked hook. Query's receipt admission must first be qualified against an
-exported index tree before adopting that hook; ordinary setup does not activate it.
+configuration remain separate. The tracked shared hook formats an isolated
+index export, admits the original prepared receipts against its staged pins and
+compiler, and refreshes only the selected files. Query retains its stronger
+receipt prerequisite. Activate the reviewed hook explicitly with
+`make install-hooks` in each clone; ordinary setup and snapshot refresh do not
+activate it or replace another hook installation. CI's isolated Query hook
+fixture verifies actual formatting, prepared-tool reuse, unrelated evidence
+preservation and partial-staging refusal without changing the real index.
 The shared formatting reporter prints one success line, or a failure summary
 with the original formatter exit status and a complete diagnostic log path.
 Failed logs remain under `RUNNER_TEMP`, otherwise `TMPDIR` or `/tmp`; CI retains
 `formatting.*` alongside the existing validation evidence. Only a successful
 invocation's own temporary log is removed.
+
+Ordinary `make ci` checkpoints the root and member Cargo manifests, lockfile,
+Rust toolchain, IC/Rust tool pins and shared snapshot before and after each
+validation stage. The release adapter captures the root manifest and lock before
+its outer logger invokes CI; the nested logger retains those hashes and adds
+the remaining inputs. Changed or unreadable inputs stop later dispatch and
+retain diagnostic evidence, including any original target failure. Fresh
+preparation and validation are required; the logger does not fetch, retry or
+reselect dependencies. Checkpoints detect changes still present at a stage
+boundary; they do not prevent concurrent edits inside a running stage. Existing
+release source/diff checks remain authoritative before metadata preparation.
 
 After confirmed URL-form release delivery, the runner refreshes an eligible
 matching local upstream tracking ref without fetching or repeating the push.
