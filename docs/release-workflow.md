@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a15eb9d406d287697df9bc8fa96db8cda6721a71`](https://github.com/dragginzgame/shared-tooling/tree/a15eb9d406d287697df9bc8fa96db8cda6721a71) (0.6.6),
+[`045a6f22a9de497bfb3af90cb2571957384806f2`](https://github.com/dragginzgame/shared-tooling/tree/045a6f22a9de497bfb3af90cb2571957384806f2) (0.8.0),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a15eb9d406d287697df9bc8fa96db8cda6721a71/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/045a6f22a9de497bfb3af90cb2571957384806f2/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,7 +36,27 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot contains 86 shared files. Its governance selection keeps the linked
+The snapshot records 79 entrypoints and derives their 86-file companion closure.
+The entrypoints retain all existing operational helpers, selected fixtures and
+offline governance documents. Common Make, consumer-owned callers and optional
+features still require local review; companion declarations do not infer them.
+The sole shared manifest owns these paths, and `docs/supported-hosts.md` remains
+a consumer overlay outside it. Refresh from a clean checkout of the reviewed
+revision, previewing before apply:
+
+```bash
+bash /path/to/shared-tooling/scripts/distribution/refresh-consumer.sh --preview --consumer "$PWD"
+bash /path/to/shared-tooling/scripts/distribution/refresh-consumer.sh --consumer "$PWD"
+```
+
+The exporter reuses recorded roots. Change them through `--entrypoint` or
+`--add-entrypoint`; review local callers and other ownership before narrowing
+the selection. Refresh automatically retires unchanged owned files outside the
+new closure after checking prior source bytes, mode, index and path identity.
+Local edits refuse retirement. Preserve manifest ownership records and caller
+evidence, and review every removal in preview before applying.
+
+Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
 matrix remains local in `docs/supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.

@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.54.13]
+
+- Adopts Shared Tooling 0.8.0. Snapshot refresh derives companions from recorded
+  entrypoints and automatically retires unchanged owned files outside that set,
+  preserving local edits and caller evidence.
+  [Shared #131](https://github.com/dragginzgame/shared-tooling/issues/131).
+- Selects Host artifacts, filesystem and process 0.14.5. This package-metadata
+  release preserves library source, dependency contracts and supported builds.
+
 ## [0.54.12] - 2026-10-12
 
 - Adopts Shared Tooling 0.6.6. Staged formatting admits prepared tool receipts

@@ -104,11 +104,21 @@ snapshot_version=unrecorded
 snapshot_revision=''
 file_count=0
 declared_files=()
+entrypoints=()
 checksum_tool_declared=false
 snapshot_verifier_declared=false
 
-while IFS=$'\t' read -r record first second third extra || [[ -n "$record" ]]; do
+while IFS= read -r manifest_line || [[ -n "$manifest_line" ]]; do
+    IFS=$'\t' read -r record first second third extra <<< "$manifest_line"
     case "$record" in
+    '# entrypoint')
+        [[ -n "$first" && "$manifest_line" == $'# entrypoint\t'"$first" ]] || fail "malformed entrypoint annotation"
+        validate_relative_path "$first"
+        for existing in ${entrypoints[@]+"${entrypoints[@]}"}; do
+            [[ "$existing" != "$first" ]] || fail "duplicate entrypoint: $first"
+        done
+        entrypoints+=("$first")
+        ;;
     '# version')
         [[ "$first" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ && -z "$second" && -z "$third" && -z "$extra" ]] ||
             fail "malformed version annotation"
@@ -173,5 +183,10 @@ done <"$manifest"
 [[ "$file_count" -gt 0 ]] || fail "manifest contains no files"
 [[ "$checksum_tool_declared" == "true" ]] || fail "manifest does not declare the checksum verifier"
 [[ "$snapshot_verifier_declared" == "true" ]] || fail "manifest does not declare the snapshot verifier"
+for entrypoint in ${entrypoints[@]+"${entrypoints[@]}"}; do
+    selected=false
+    for path in "${declared_files[@]}"; do [[ "$path" != "$entrypoint" ]] || selected=true; done
+    [[ "$selected" == true ]] || fail "entrypoint is not a declared payload: $entrypoint"
+done
 
 echo "shared-tooling snapshot verified: $file_count file(s), version $snapshot_version ($snapshot_revision)"

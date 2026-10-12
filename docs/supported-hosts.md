@@ -1173,7 +1173,94 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.54.12 Shared 0.6.6 and Host 0.14.4 qualification
+## Pending 0.54.13 Shared 0.8.0 qualification
+
+The canonical exporter refreshes the same 79 entrypoints and 86 payloads to
+Shared 0.8.0 `045a6f22a9de497bfb3af90cb2571957384806f2`. Preview changes
+two shared guides and apply records the new version/revision; no Query payload
+is removed. Current refresh automatically retires unchanged previously owned
+files outside the selected closure, after source, mode, index and path checks.
+Query's direct caller roots and local policy remain intact.
+
+Disposable consumer checks pass with modern Bash and genuine Bash 3.2.57:
+recorded-root reuse, non-mutating preview, automatic source-proven retirement,
+refusal to remove edited input, retained caller evidence and repeat refresh.
+All retirement is confined to those fixtures. Explicit common-tool setup now
+passes for the current native environment; actual Query formatting/hook/reuse
+checks pass on modern Bash/Make and genuine Bash 3.2.57/GNU Make 3.81.
+Audit/Machete setup also prepares their unchanged versions for the current native
+environment; complete offline `make tools-check` passes. Its initial receipt
+refusal, previous failed attempts and old tool payloads remain retained. Snapshot,
+ShellCheck, notes, links and preservation checks pass. Evidence:
+`/tmp/ic-query-shared080-adoption-path`.
+
+[Exact Shared 0.8.0 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38229670802)
+passes lint/security, with Linux regression running and both macOS jobs queued
+at inspection. No full local CI, release gate or native consumer execution ran.
+The local pending selection has no matching remote consumer CI; native acceptance
+remains under [#44](https://github.com/dragginzgame/ic-query/issues/44).
+
+## Prior 0.54.13 entrypoint implementation review
+
+The canonical exporter selects committed Shared revision
+`8e8cc21265272e0234326c53a8c7bf9e7d8d77df` (recorded version 0.6.6),
+implementing the upcoming entrypoint-selection contract. The reviewed 79 roots
+include Query's directly invoked/copied helpers, selected fixtures and offline
+guides; seven internal companions are derived. The complete 86-file payload
+roster is retained. This repository has one shared ownership manifest; local
+adapters and the host matrix remain consumer-owned.
+
+Canonical preview leaves consumer inputs unchanged; apply preserves the incoming
+lock, manifests, local policy and real index. Snapshot integrity, ShellCheck,
+syntax checks and local documentation links pass. Disposable consumers exercise
+recorded-root reuse, non-mutating preview, source-proven exact retirement,
+missing-selection refusal and generic invalid roots with modern Bash and
+genuine Bash 3.2.57. No actual Query payload is retired.
+
+Query's actual formatting hook and prepared-tool reuse pass on the modern profile.
+The portable fixture formats successfully, then its final offline check refuses
+a prepared receipt after this machine's native package inventory changes.
+Explicit common setup subsequently refuses an occupied new shared installation
+slot; old payloads and that lock remain intact. Retained evidence, including the
+native inventory comparison and failed fixture, is recorded through
+`/tmp/ic-query-shared070-adoption-path`. That review left current-environment
+portable hook qualification outstanding; the 0.8.0 checks above resolve it.
+
+[Exact Shared CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38227589866)
+has passed lint/security, with Linux regression running and both native jobs
+queued at inspection. Full local CI, release gates and native consumer execution
+were not run; this local adoption does not close native acceptance under
+[#44](https://github.com/dragginzgame/ic-query/issues/44) or
+[Shared #131](https://github.com/dragginzgame/shared-tooling/issues/131).
+
+## Pending 0.54.13 Host 0.14.5 qualification
+
+The incoming lock selects the three published Host 0.14.5 packages from
+`bb8f1e71f3d4599618d0f4084d27fa637408f1fb`. Their unyanked registry entries,
+archive checksums and VCS identities match. Library sources are byte-identical
+to 0.14.4; the upstream delta changes only release metadata. Explicit locked
+fetching and complete locked/offline metadata pass, preserving the incoming
+lock, manifests and real index. Library tests and unchanged tooling fixtures
+were not repeated for this metadata-only update. Evidence is retained under
+`/tmp/ic-query-05413-host0145-path`.
+
+No full local CI, release gate or native execution ran for this selection.
+Matching consumer native acceptance remains required; upstream CI does not
+qualify the uncommitted consumer lock.
+
+## Delivered 0.54.12 Shared 0.6.6 and Host 0.14.4 qualification
+
+Delivered Query `b7402d412aff8318c47d4e14e90026f539f23af8` selects the
+snapshot and dependency records reviewed below. Its
+[exact-source CI](https://github.com/dragginzgame/ic-query/actions/runs/38225862489)
+is unfinished at inspection: Linux MSRV and canister integration pass, Linux
+checks are running and native jobs are queued. The preceding
+[0.54.11 run](https://github.com/dragginzgame/ic-query/actions/runs/38216728698)
+passed ARM checks and canister integration, but cancelled both Intel jobs.
+Consumer acceptance remains open under
+[#44](https://github.com/dragginzgame/ic-query/issues/44),
+[#45](https://github.com/dragginzgame/ic-query/issues/45) and
+[#46](https://github.com/dragginzgame/ic-query/issues/46).
 
 The follow-up canonically selects the same 86 files from Shared 0.6.6
 `a15eb9d406d287697df9bc8fa96db8cda6721a71`. Because the reviewed 0.6.5
