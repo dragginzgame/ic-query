@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.1]
+## [0.55.1] - 2026-10-13
 
 - Adopts Shared Tooling 0.9.10. Rust-tool fixtures work from the consumer's
   compiler context and reuse existing Git history without creating commits.
