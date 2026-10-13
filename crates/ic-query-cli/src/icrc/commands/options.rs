@@ -9,11 +9,10 @@ use super::{
     INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_ARG,
     OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SORT_BY_ARG,
     SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG, STEP_ARG, SUBACCOUNT_ARG,
-    format_from_matches, source_endpoint_from_matches,
 };
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},
-    common::OutputFormat,
+    common::{OutputFormat, SourceOutputOptions},
 };
 use clap::ArgMatches;
 use ic_query::{
@@ -206,10 +205,12 @@ pub(in crate::icrc) struct IcrcLedgerOptions {
 
 impl IcrcLedgerOptions {
     pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
+        let ledger_canister_id = required_string(matches, LEDGER_CANISTER_ID_ARG);
+        let source = SourceOutputOptions::from_matches(matches);
         Self {
-            ledger_canister_id: required_string(matches, LEDGER_CANISTER_ID_ARG),
-            format: format_from_matches(matches),
-            source_endpoint: source_endpoint_from_matches(matches),
+            ledger_canister_id,
+            format: source.format,
+            source_endpoint: source.source_endpoint,
         }
     }
 }

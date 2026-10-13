@@ -5,10 +5,7 @@
 //! Boundary: maps SNS root principals and collection names to snapshot-cache paths.
 
 use crate::snapshot_cache::{SnapshotJsonPaths, SnapshotKey, snapshot_network_dir};
-use std::{
-    marker::PhantomData,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 ///
 /// SnsCacheCollection
@@ -21,40 +18,17 @@ pub(in crate::sns::report) trait SnsCacheCollection {
     const COLLECTION: &'static str;
 }
 
-///
-/// SnsSnapshotCachePaths
-///
-/// Filesystem paths for one complete SNS snapshot cache and refresh state.
-///
-
-#[derive(Debug, Eq, PartialEq)]
-pub(in crate::sns::report) struct SnsSnapshotCachePaths<Collection> {
-    pub(in crate::sns::report) cache_path: PathBuf,
-    pub(in crate::sns::report) lock_path: PathBuf,
-    pub(in crate::sns::report) attempt_path: PathBuf,
-    collection: PhantomData<Collection>,
-}
-
-impl<Collection> SnsSnapshotCachePaths<Collection>
+/// Build complete snapshot, lock, and refresh-attempt paths for one SNS root.
+pub(in crate::sns::report) fn sns_snapshot_cache_paths<Collection>(
+    cache_root: &Path,
+    network: &str,
+    root_canister_id: &str,
+) -> SnapshotJsonPaths
 where
     Collection: SnsCacheCollection,
 {
-    /// Build complete snapshot, lock, and refresh-attempt paths for one SNS root.
-    pub(in crate::sns::report) fn for_root(
-        cache_root: &Path,
-        network: &str,
-        root_canister_id: &str,
-    ) -> Self {
-        let snapshot_key =
-            SnapshotKey::full("sns", network, root_canister_id, Collection::COLLECTION);
-        let snapshot_paths = SnapshotJsonPaths::for_key(cache_root, &snapshot_key);
-        Self {
-            cache_path: snapshot_paths.snapshot_path,
-            lock_path: snapshot_paths.refresh_lock_path,
-            attempt_path: snapshot_paths.refresh_attempt_path,
-            collection: PhantomData,
-        }
-    }
+    let snapshot_key = SnapshotKey::full("sns", network, root_canister_id, Collection::COLLECTION);
+    SnapshotJsonPaths::for_key(cache_root, &snapshot_key)
 }
 
 /// Return the network-level SNS snapshot cache directory.

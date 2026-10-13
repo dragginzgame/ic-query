@@ -3,8 +3,8 @@ use super::{
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
 use crate::{
-    cli::common::write_text_or_json_verbose,
-    nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
+    cli::common::{current_unix_secs, write_text_or_json_verbose},
+    nns::{NnsCommandError, command_cache_root, write_text_or_json},
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
@@ -29,19 +29,6 @@ where
     }
 }
 
-struct LeafRuntimeParts {
-    cache: NnsInventoryCacheRequest,
-    now_unix_secs: u64,
-}
-
-fn leaf_runtime_parts(network: &str) -> Result<LeafRuntimeParts, NnsCommandError> {
-    let cache_root = command_cache_root()?;
-    Ok(LeafRuntimeParts {
-        cache: NnsInventoryCacheRequest::new(cache_root, network),
-        now_unix_secs: now_unix_secs()?,
-    })
-}
-
 async fn run_cached_leaf_list<Reports>(
     matches: &ArgMatches,
     network: &str,
@@ -51,9 +38,9 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
-    let parts = leaf_runtime_parts(&options.network)?;
+    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
     let request =
-        NnsInventoryListRequest::new(parts.cache, options.source_endpoint, parts.now_unix_secs);
+        NnsInventoryListRequest::new(cache, options.source_endpoint, current_unix_secs()?);
     let report = reports
         .build_list_report(&request, &mut StderrQueryProgress::new())
         .await
@@ -76,12 +63,12 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
-    let parts = leaf_runtime_parts(&options.network)?;
+    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
     let request = NnsInventoryInfoRequest::new(
-        parts.cache,
+        cache,
         options.source_endpoint,
         options.input,
-        parts.now_unix_secs,
+        current_unix_secs()?,
     );
     let report = reports
         .build_info_report(&request, &mut StderrQueryProgress::new())
@@ -102,11 +89,11 @@ where
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
-    let parts = leaf_runtime_parts(&options.network)?;
+    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
     let mut request = NnsInventoryRefreshRequest::new(
-        parts.cache,
+        cache,
         options.source_endpoint,
-        parts.now_unix_secs,
+        current_unix_secs()?,
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);

@@ -5,11 +5,10 @@
 //! Boundary: maps shared lookup options into report requests.
 
 use crate::{
-    cli::common::write_text_or_json,
+    cli::common::{current_unix_secs, write_text_or_json},
     sns::commands::{
         SnsCommandError,
         options::{SnsLookupOptions, SnsMetricsOptions},
-        run::common::command_unix_secs,
     },
 };
 use clap::ArgMatches;
@@ -54,7 +53,7 @@ pub(super) async fn run_sns_metrics(
     let options = SnsMetricsOptions::from_matches(matches, network);
     let time_window_seconds = options.time_window_seconds;
     let lookup = options.lookup;
-    let now_unix_secs = command_unix_secs()?;
+    let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
     let request = SnsMetricsRequest::new(
         lookup.network,
@@ -116,7 +115,7 @@ where
     Report: Serialize,
 {
     let options = SnsLookupOptions::from_matches(matches, network);
-    let now_unix_secs = command_unix_secs()?;
+    let now_unix_secs = current_unix_secs()?;
     let format = options.format;
     let request = SnsLookupRequest {
         network: options.network,

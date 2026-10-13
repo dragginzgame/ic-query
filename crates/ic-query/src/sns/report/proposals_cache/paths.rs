@@ -4,10 +4,8 @@
 //! Does not own: cache loading, refresh locking, or status rendering.
 //! Boundary: maps SNS root principals to proposal snapshot file paths.
 
-use crate::sns::report::cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths};
+use crate::sns::report::cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths};
 use std::path::{Path, PathBuf};
-
-pub(super) type SnsProposalsCachePaths = SnsSnapshotCachePaths<SnsProposalsCacheCollection>;
 
 ///
 /// SnsProposalsCacheCollection
@@ -28,7 +26,8 @@ pub fn sns_proposals_cache_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).cache_path
+    sns_snapshot_cache_paths::<SnsProposalsCacheCollection>(cache_root, network, root_canister_id)
+        .snapshot_path
 }
 
 #[must_use]
@@ -37,7 +36,8 @@ pub fn sns_proposals_refresh_lock_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).lock_path
+    sns_snapshot_cache_paths::<SnsProposalsCacheCollection>(cache_root, network, root_canister_id)
+        .refresh_lock_path
 }
 
 #[must_use]
@@ -46,5 +46,6 @@ pub fn sns_proposals_refresh_attempt_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsProposalsCachePaths::for_root(cache_root, network, root_canister_id).attempt_path
+    sns_snapshot_cache_paths::<SnsProposalsCacheCollection>(cache_root, network, root_canister_id)
+        .refresh_attempt_path
 }

@@ -1,5 +1,6 @@
 use super::cache_request;
-use crate::nns::{NnsCommandError, leaf::NnsLeafInfoOptions, now_unix_secs, write_text_or_json};
+use crate::cli::common::current_unix_secs;
+use crate::nns::{NnsCommandError, leaf::NnsLeafInfoOptions, write_text_or_json};
 use crate::progress::StderrQueryProgress;
 use clap::ArgMatches;
 use ic_query::nns::{
@@ -16,7 +17,7 @@ pub(super) async fn run_node_info(
         cache,
         options.source_endpoint,
         options.input,
-        now_unix_secs()?,
+        current_unix_secs()?,
     );
     let report =
         build_nns_node_info_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;

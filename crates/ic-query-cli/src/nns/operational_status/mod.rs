@@ -8,11 +8,11 @@ use crate::{
     cli::{
         clap::{flag_arg, required_string, string_option},
         common::{
-            COLLECTION_MODE_CACHE_REFRESH_STALE, OutputFormat, collection_help, json_arg,
-            output_format, source_endpoint_arg, write_text_or_json,
+            COLLECTION_MODE_CACHE_REFRESH_STALE, OutputFormat, collection_help, current_unix_secs,
+            json_arg, output_format, source_endpoint_arg, write_text_or_json,
         },
     },
-    nns::{NnsCommandError, command_cache_root, now_unix_secs},
+    nns::{NnsCommandError, command_cache_root},
     progress::StderrQueryProgress,
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -125,7 +125,7 @@ pub(in crate::nns) async fn run(
         command_cache_root()?,
         network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
     )
     .with_view(view)
     .with_force_refresh(options.force_refresh);

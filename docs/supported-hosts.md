@@ -1173,6 +1173,31 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.55.5 tooling qualification
+
+Prepared Shared Tooling 0.11.0 at
+`a15ff323449f4b6190f647aec0de43cbcfb314ba` retains 81 roots and 91 payloads.
+Nine selected payloads change; full host/Cargo and IC pin records are unchanged.
+The existing Query selection has no removed CI-installer wrapper callers or roots.
+The new optional Cargo release-metadata helper and dirty fixture-lifecycle draft
+are outside this selection; Query's existing release adapter remains in place.
+
+The exact-source GitHub inspection, host-tool and IC-tool fixtures pass on modern
+Bash and genuine Bash 3.2.57. Host/IC suites exercise storage and evidence
+companions as well. Offline tool admission, sourced-helper ShellCheck, dependency
+pins, snapshot integrity and documentation links pass. The format gate exposed
+preexisting dependency ordering in the committed library manifest; reordering its
+four entries preserves all parsed TOML values. The same gate also required
+ordering the existing ledger-evidence module after leb128; declarations and
+feature conditions are unchanged. The corrected source passes formatting.
+Evidence: `/tmp/ic-query-shared011-0555/`.
+
+Exact [Shared 0.11.0 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38415610560)
+is queued at inspection. Local shell fixtures, including Bash 3.2 on Linux, do
+not establish native macOS producer or consumer qualification. Full local CI,
+release execution and native consumer checks were not run. Package versions,
+lock selection, compiler/tool pins and the real Git index remain unchanged.
+
 ## Pending 0.55.4 tooling qualification
 
 Initial preparation selected public Shared 0.10.0
@@ -1209,7 +1234,7 @@ not run. Delivery and final-source all-host acceptance remain open in
 [#48](https://github.com/dragginzgame/ic-query/issues/48).
 
 
-The current prepared selection is Shared 0.10.2
+The previous 0.55.4 preparation selected Shared 0.10.2
 `626fc2bd3125195520fb870b92abfec11b01454d`, retaining 81 roots/91 payloads.
 Only the selected Cargo cache-key helper, Rust-tool fixture and snapshot-drift
 rules change from 0.10.0; the unselected GitHub sibling dashboard is not adopted.

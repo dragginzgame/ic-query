@@ -1,7 +1,8 @@
 //! Runtime dispatch for direct NNS Governance reports.
 
+use crate::cli::common::current_unix_secs;
 use crate::nns::leaf::NnsCommonOptions;
-use crate::nns::{NnsCommandError, now_unix_secs, write_text_or_json};
+use crate::nns::{NnsCommandError, write_text_or_json};
 use clap::ArgMatches;
 use ic_query::nns::governance::{
     NnsGovernanceHostError, NnsGovernanceRequest, build_nns_governance_economics_report,
@@ -70,7 +71,7 @@ where
     let request = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         "ic-query",
     );
     let report = build(&request).await?;

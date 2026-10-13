@@ -131,16 +131,9 @@ verify() {
 }
 tool_root="$consumer/.tools"
 active="$tool_root/host"
-[[ ! -L "$tool_root" ]] || { echo 'repository .tools may not be a symlink' >&2; exit 1; }
-if [[ -e "$active" && ! -L "$active" ]]; then
-    echo 'refusing to replace unmanaged .tools/host' >&2; exit 1
-fi
-if [[ -L "$active" ]]; then
-    # Preserve trailing newlines so admission checks the literal link target.
-    selection="$(perl -e 'my $s=readlink($ARGV[0]); defined($s) or exit 1; print $s,"/."' "$active")"
-    selection="${selection%/.}"
-    [[ "$selection" =~ ^host-set\.[[:alnum:]]+$ ]] || { echo 'unmanaged host-tool selection' >&2; exit 1; }
-    if bundle="$(tool_store_resolve "$tool_root/$selection" "$store_slot")" &&
+selection="$(tool_store_active_reference)"
+if [[ -n "$selection" ]]; then
+    if bundle="$(tool_store_resolve "$selection" "$store_slot")" &&
         tool_store_unlocked && verify "$bundle"; then
         printf '%s\n' "$active/bin"; exit 0
     fi

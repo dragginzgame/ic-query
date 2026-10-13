@@ -12,7 +12,9 @@ use crate::{
         SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsCacheSummary,
         SnsHostError, SnsRefreshAttemptStatus,
         cache_attempt::read_sns_refresh_attempt_status_strict,
-        cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_network_cache_dir},
+        cache_paths::{
+            SnsCacheCollection, sns_snapshot_cache_paths, sns_snapshot_network_cache_dir,
+        },
         cache_storage::{
             SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheStorageFamily, collect_sns_cache_paths,
             read_sns_cache_header,
@@ -181,26 +183,30 @@ where
     Family: SnsCacheStorageFamily,
 {
     let root_canister_id = parse_sns_root_canister_input(input)?;
-    let paths = SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, &root_canister_id);
-    let cache = if managed_file_exists(cache_root, &paths.cache_path)
+    let paths = sns_snapshot_cache_paths::<Family>(cache_root, network, &root_canister_id);
+    let cache = if managed_file_exists(cache_root, &paths.snapshot_path)
         .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?
     {
         Some(load_sns_cache_summary_at::<Family>(
             cache_root,
-            paths.cache_path.clone(),
+            paths.snapshot_path.clone(),
             network,
             None,
         )?)
     } else {
         None
     };
-    let latest_attempt =
-        read_sns_refresh_attempt_status_strict(cache_root, &paths.attempt_path, network, None)?;
+    let latest_attempt = read_sns_refresh_attempt_status_strict(
+        cache_root,
+        &paths.refresh_attempt_path,
+        network,
+        None,
+    )?;
     Ok(SnsCacheStatusLookup {
         cache_root: network_cache_root,
         cache,
-        expected_cache_path: Some(paths.cache_path.display().to_string()),
-        refresh_attempt_path: Some(paths.attempt_path.display().to_string()),
+        expected_cache_path: Some(paths.snapshot_path.display().to_string()),
+        refresh_attempt_path: Some(paths.refresh_attempt_path.display().to_string()),
         latest_attempt,
     })
 }

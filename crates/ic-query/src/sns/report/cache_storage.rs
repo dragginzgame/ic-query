@@ -18,7 +18,7 @@ use crate::{
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError,
         cache_paths::{
-            SnsCacheCollection, SnsSnapshotCachePaths, sns_snapshot_key_for_cache_path,
+            SnsCacheCollection, sns_snapshot_cache_paths, sns_snapshot_key_for_cache_path,
             sns_snapshot_network_cache_dir,
         },
         enforce_mainnet_network,
@@ -236,7 +236,7 @@ where
     Family: SnsCacheStorageFamily,
 {
     let path =
-        SnsSnapshotCachePaths::<Family>::for_root(cache_root, network, root_canister_id).cache_path;
+        sns_snapshot_cache_paths::<Family>(cache_root, network, root_canister_id).snapshot_path;
     let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None)?;
     Ok((path, cache))
 }

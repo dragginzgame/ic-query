@@ -1,6 +1,7 @@
+use crate::cli::common::current_unix_secs;
 use crate::{
     nns::write_text_or_json,
-    nns::{NnsCommandError, command_cache_root, leaf::NnsCommonOptions, now_unix_secs},
+    nns::{NnsCommandError, command_cache_root, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;
 use ic_query::nns::topology::{self, NnsTopologyHostError};
@@ -89,7 +90,7 @@ where
         cache_root,
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
     );
     let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)

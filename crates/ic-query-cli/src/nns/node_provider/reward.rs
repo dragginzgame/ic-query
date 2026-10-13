@@ -8,11 +8,11 @@ use crate::{
     cli::{
         clap::{required_string, required_typed, typed_option, value_arg},
         common::{
-            COLLECTION_MODE_LIVE, OutputFormat, collection_help, json_arg, output_format,
-            source_endpoint_arg, write_text_or_json,
+            COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
+            output_format, source_endpoint_arg, write_text_or_json,
         },
     },
-    nns::{NnsCommandError, now_unix_secs},
+    nns::NnsCommandError,
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::{
@@ -83,7 +83,7 @@ async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardInfoOptions::from_matches(matches);
     let request = IcNodeProviderRewardInfoRequest::new(
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.reward_id,
     );
     let report = build_ic_node_provider_reward_info_report(&request).await?;
@@ -98,7 +98,7 @@ async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardListOptions::from_matches(matches);
     let request = IcNodeProviderRewardListRequest::new(
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
     );
     let report = build_ic_node_provider_reward_list_report(&request).await?;
@@ -111,7 +111,7 @@ async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
 
 async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardHistoryOptions::from_matches(matches);
-    let now = now_unix_secs()?;
+    let now = current_unix_secs()?;
     let end = options.end_unix_secs.unwrap_or(now);
     let start = options
         .start_unix_secs

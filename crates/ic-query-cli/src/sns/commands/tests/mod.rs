@@ -1,9 +1,9 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsCacheStatusOptions, SnsCatalogRefreshOptions, SnsListOptions, SnsLookupOptions,
-        SnsMetricsOptions, SnsNeuronOptions, SnsNeuronsOptions, SnsPagedRefreshOptions,
-        SnsProposalOptions, SnsProposalsOptions, SnsRewardCheckpointOptions, SnsRewardDiffOptions,
+        SnsCacheStatusOptions, SnsListOptions, SnsLookupOptions, SnsMetricsOptions,
+        SnsNeuronOptions, SnsNeuronsOptions, SnsPagedRefreshOptions, SnsProposalOptions,
+        SnsProposalsOptions, SnsRewardCheckpointOptions, SnsRewardDiffOptions,
     },
     spec::{
         SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
@@ -18,7 +18,10 @@ use super::{
         sns_swap_command, sns_token_command, sns_upgrade_command,
     },
 };
-use crate::{cli::clap::parse_matches, cli::common::OutputFormat};
+use crate::{
+    cli::clap::parse_matches,
+    cli::common::{OutputFormat, SourceOutputOptions},
+};
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SnsProposalSortDirection};
 use ic_query::subnet_catalog::MAINNET_NETWORK;

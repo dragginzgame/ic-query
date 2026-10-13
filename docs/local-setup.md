@@ -544,7 +544,7 @@ Perl and ordinary utilities. For Linux Mint/Ubuntu:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y bash git make curl ca-certificates tar gzip xz-utils perl
+sudo apt-get install -y bash git make curl ca-certificates tar gzip xz-utils zip unzip perl
 ```
 
 On macOS, with Xcode Command Line Tools and Homebrew already installed:

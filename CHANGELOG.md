@@ -7,6 +7,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.55.5]
 
+- Adopts Shared Tooling 0.11.0. CI inspection rejects conflicting selectors and
+  invalid run identities; host/IC setup shares managed tool-selection admission.
+  Existing tool pins and Query release adapters are preserved.
+
 - Expose opt-in bounded certificate/witness and ICRC-3 tip authentication with
   typed failures and caller-selected budgets. Share witness commitment checks
   with existing certified reports; callers retain trust-root and payment policy.
@@ -18,6 +22,10 @@ crate follows [Semantic Versioning](https://semver.org/).
   defaults, cache selection and report output.
 - Simplifies SNS command request construction, preserving output, clock and
   cache-root selection and live versus cache-only behavior.
+- Shares SNS catalog-refresh endpoint/output parsing and simplifies NNS
+  inventory request setup, preserving command defaults and error ordering.
+- Removes redundant CLI setup adapters and shares SNS snapshot paths, preserving
+  command behavior and cache layout. [#51](https://github.com/dragginzgame/ic-query/issues/51).
 
 Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
 

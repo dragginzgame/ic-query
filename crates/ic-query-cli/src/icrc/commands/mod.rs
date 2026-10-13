@@ -42,11 +42,11 @@ pub(in crate::icrc) use options::{
 };
 
 use crate::cli::{
-    clap::{required_string, value_arg},
-    common::{OutputFormat, json_arg, output_format, source_endpoint_arg},
+    clap::value_arg,
+    common::{json_arg, source_endpoint_arg},
 };
 use candid::Principal;
-use clap::{ArgMatches, Command as ClapCommand, builder::ValueParser};
+use clap::{Command as ClapCommand, builder::ValueParser};
 use ic_query::icrc::{DEFAULT_ICRC_SOURCE_ENDPOINT, normalize_subaccount_hex};
 
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
@@ -74,7 +74,6 @@ const MAX_PAGES_ARG: &str = "max-pages";
 const SORT_ARG: &str = "sort";
 const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
-const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger queries";
 
 pub fn command() -> ClapCommand {
@@ -120,14 +119,6 @@ fn subaccount_arg(id: &'static str, help: &'static str) -> clap::Arg {
         .value_name("hex")
         .value_parser(subaccount_hex_value_parser())
         .help(help)
-}
-
-fn format_from_matches(matches: &ArgMatches) -> OutputFormat {
-    output_format(matches)
-}
-
-fn source_endpoint_from_matches(matches: &ArgMatches) -> String {
-    required_string(matches, SOURCE_ENDPOINT_ARG)
 }
 
 fn principal_text_value_parser() -> ValueParser {

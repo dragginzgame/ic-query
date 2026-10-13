@@ -1,5 +1,6 @@
 use super::cache_request;
-use crate::nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, now_unix_secs, write_text_or_json};
+use crate::cli::common::current_unix_secs;
+use crate::nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, write_text_or_json};
 use clap::ArgMatches;
 use ic_query::nns::{
     NnsInventoryRefreshRequest,
@@ -14,7 +15,7 @@ pub(super) async fn run_node_refresh(
     let mut request = NnsInventoryRefreshRequest::new(
         cache_request(&options.network)?,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);

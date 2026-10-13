@@ -1,8 +1,8 @@
 use super::cache_request;
 use crate::progress::StderrQueryProgress;
 use crate::{
-    cli::common::write_text_or_json_verbose,
-    nns::{NnsCommandError, node::options::node_list_options_from_matches, now_unix_secs},
+    cli::common::{current_unix_secs, write_text_or_json_verbose},
+    nns::{NnsCommandError, node::options::node_list_options_from_matches},
 };
 use clap::ArgMatches;
 use ic_query::nns::node::{
@@ -15,7 +15,7 @@ pub(super) async fn run_node_list(
 ) -> Result<(), NnsCommandError> {
     let options = node_list_options_from_matches(matches, network);
     let cache = cache_request(&options.network)?;
-    let request = NnsNodeListRequest::new(cache, options.source_endpoint, now_unix_secs()?)
+    let request = NnsNodeListRequest::new(cache, options.source_endpoint, current_unix_secs()?)
         .with_filters(options.filters);
     let report =
         build_nns_node_list_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;

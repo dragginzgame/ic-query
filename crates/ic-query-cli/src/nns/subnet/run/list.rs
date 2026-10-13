@@ -1,8 +1,8 @@
 use super::cache_request;
 use crate::progress::StderrQueryProgress;
 use crate::{
-    cli::common::write_text_or_json_verbose,
-    nns::{NnsCommandError, now_unix_secs, subnet::options::CatalogListOptions},
+    cli::common::{current_unix_secs, write_text_or_json_verbose},
+    nns::{NnsCommandError, subnet::options::CatalogListOptions},
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{
@@ -21,7 +21,7 @@ pub(super) async fn run_catalog_list(
     let request = SubnetCatalogListRequest::new(
         cache,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         DEFAULT_STALE_AFTER_SECONDS,
     )
     .with_filters(options.filters)

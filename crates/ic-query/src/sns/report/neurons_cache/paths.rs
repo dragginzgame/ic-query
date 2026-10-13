@@ -4,10 +4,8 @@
 //! Does not own: cache reads/writes, refresh policy, report construction, or rendering.
 //! Boundary: maps SNS root principals to generic snapshot-cache file locations.
 
-use crate::sns::report::cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths};
+use crate::sns::report::cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths};
 use std::path::{Path, PathBuf};
-
-pub(super) type SnsNeuronsCachePaths = SnsSnapshotCachePaths<SnsNeuronsCacheCollection>;
 
 ///
 /// SnsNeuronsCacheCollection
@@ -24,7 +22,8 @@ impl SnsCacheCollection for SnsNeuronsCacheCollection {
 
 #[must_use]
 pub fn sns_neurons_cache_path(cache_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
-    SnsNeuronsCachePaths::for_root(cache_root, network, root_canister_id).cache_path
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
+        .snapshot_path
 }
 
 #[must_use]
@@ -33,7 +32,8 @@ pub fn sns_neurons_refresh_lock_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsNeuronsCachePaths::for_root(cache_root, network, root_canister_id).lock_path
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
+        .refresh_lock_path
 }
 
 #[must_use]
@@ -42,5 +42,6 @@ pub fn sns_neurons_refresh_attempt_path(
     network: &str,
     root_canister_id: &str,
 ) -> PathBuf {
-    SnsNeuronsCachePaths::for_root(cache_root, network, root_canister_id).attempt_path
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
+        .refresh_attempt_path
 }

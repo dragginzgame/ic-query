@@ -5,11 +5,11 @@
 //! Boundary: maps parsed options into report requests and writes text or JSON output.
 
 use super::options::{NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions};
-use crate::cli::common::NetworkOutputOptions;
+use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
 use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::{
     cli::common::write_text_or_json,
-    nns::{NnsCommandError, command_cache_root, now_unix_secs},
+    nns::{NnsCommandError, command_cache_root},
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
@@ -68,7 +68,7 @@ async fn run_nns_proposal_list_with_options(
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         "ic-query",
     );
     let mut request = NnsProposalListRequest::new(governance, options.limit)
@@ -106,7 +106,7 @@ async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<()
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         "ic-query",
     );
     let request = NnsProposalRequest::new(governance, options.proposal_id)
@@ -128,7 +128,7 @@ async fn run_nns_proposal_refresh(
         command_cache_root()?,
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.page_size,
     )
     .with_max_pages(options.max_pages);

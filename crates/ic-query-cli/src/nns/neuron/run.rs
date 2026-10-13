@@ -1,10 +1,10 @@
 //! Runtime dispatch for public NNS neuron commands.
 
 use super::options::{NnsNeuronInfoOptions, NnsNeuronListOptions};
-use crate::cli::common::NetworkOutputOptions;
+use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
 use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::{
-    nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
+    nns::{NnsCommandError, command_cache_root, write_text_or_json},
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
@@ -46,7 +46,7 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         "ic-query",
     );
     let mut request =
@@ -66,7 +66,7 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         "ic-query",
     );
     let request =
@@ -84,7 +84,7 @@ async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsComma
         command_cache_root()?,
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.page_size,
     )
     .with_max_pages(options.max_pages);

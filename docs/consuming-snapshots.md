@@ -283,11 +283,10 @@ refresh is harmless: removed paths are no longer in its ownership roster.
 No retirement journal or cleanup daemon is added.
 
 The optional `scripts/ci/test-installers.sh` fixture exercises all five CI
-installer wrappers: actionlint, gitleaks, ShellCheck, yq and sccache. Selecting
-that fixture requires all five wrappers, their shared `install-ci-tool.sh` engine
-and the checksum verifier, even if production CI uses only some of them. The
+tools through `install-ci-tool.sh`. Selecting the fixture requires that command
+and the checksum verifier, even if production CI uses only some of the tools. The
 exporter includes that closure; omit the optional fixture and its callers if unwanted.
-Selecting an individual production installer does not require the whole suite.
+Selecting the production installer does not require the fixture.
 
 Reusable Cargo, formatter, evidence, registry, release-PR and tool-command tests
 also declare their required helpers. Review fixture dependencies when selecting
@@ -354,11 +353,9 @@ checks with trailing-slash and aliased temporary roots. Refresh
 `test-cloc-siblings.sh` to receive its physical-path correction; counts, partial
 totals, error handling and retained failures keep their existing contracts.
 
-When refreshing `install-actionlint.sh`, `install-shellcheck.sh`, `install-gitleaks.sh`,
-`install-sccache.sh` or `install-yq.sh`, the exporter derives
-`scripts/ci/install-ci-tool.sh` and `scripts/ci/verify-file-checksum.sh`.
-These entrypoints share that implementation; select only the roots used by callers.
-Pins and command arguments remain consumer-owned and unchanged.
+Select `scripts/ci/install-ci-tool.sh` as the production entrypoint; the exporter
+derives `scripts/ci/verify-file-checksum.sh`. Pins and installation arguments
+remain consumer-owned. See the 0.11 adoption instructions below.
 
 Cargo inheritance adoption selects `check-dependency-pins.sh`, whose declared
 companions include `dependency-pins.jq`, then adds `--cargo-inheritance` to the
@@ -507,7 +504,7 @@ than editing vendored tests or invoking an unauthorized broader suite.
 Pinning adoption also requires the checker and its jq module, prepared Git/jq/yq
 tools (and Cargo for Rust workspaces), a CI/release invocation, and consumer-owned
 qualification for locked builds and external inputs. Consumers may also vendor
-`scripts/ci/install-yq.sh` with `scripts/ci/install-ci-tool.sh` and the checksum
+`scripts/ci/install-ci-tool.sh` (selecting `yq`) and the checksum
 helper; choose and record their own reviewed version and platform digests.
 Resolve existing exceptions under the
 [pinning policy](../rules/dependency-pinning.md) before claiming adoption.
@@ -797,3 +794,20 @@ include it and `docs/verification-helpers.md` when adopting it. Replace only
 database acquisition/isolation, retain consumer audit policy and failure evidence,
 and pass `--no-fetch` when auditing the prepared database so its identity stays
 bound to the recorded commit.
+
+## CI installer command in 0.11.0
+
+Replace `install-actionlint.sh`, `install-gitleaks.sh`, `install-shellcheck.sh`,
+`install-sccache.sh` and `install-yq.sh` calls with `install-ci-tool.sh TOOL`, where
+TOOL is respectively `actionlint`, `gitleaks`, `shellcheck`, `sccache` or `yq`.
+Keep existing `--version`, `--sha256` and `--install-dir` arguments and local pins.
+There are no forwarding aliases in 0.11.
+
+Before refresh, replace each recorded wrapper entrypoint with
+`scripts/ci/install-ci-tool.sh` in the reviewed selection. Pass the complete new
+root set with repeated `--entrypoint` arguments; `--add-entrypoint` alone retains
+the old roots. Use the normal preview and owned-file retirement checks to remove
+snapshot-owned wrappers; preserve modified or consumer-owned files for review.
+Refresh `test-installers.sh` too if selected, then qualify the same installer
+failure cases and each declared native host. No storage layout or tool upgrade
+is part of this command change.

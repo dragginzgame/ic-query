@@ -12,12 +12,10 @@ mod proposals;
 mod reward;
 
 use crate::{
-    cli::common::write_text_or_json,
+    cli::common::{SourceOutputOptions, current_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
     sns::commands::{
-        SnsCommandError,
-        options::{SnsCatalogRefreshOptions, SnsListOptions},
-        run::common::{command_cache_root, command_unix_secs},
+        SnsCommandError, options::SnsListOptions, run::common::command_cache_root,
         spec::sns_command,
     },
 };
@@ -73,7 +71,7 @@ async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsComm
     let request = SnsListRequest {
         network: options.network,
         source_endpoint: options.source_endpoint,
-        now_unix_secs: command_unix_secs()?,
+        now_unix_secs: current_unix_secs()?,
         all_lifecycles: options.all_lifecycles,
         verbose: options.verbose,
         sort: options.sort.into(),
@@ -118,13 +116,13 @@ fn color_sns_metadata_statuses(text: &str) -> String {
 }
 
 async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsCatalogRefreshOptions::from_matches(matches, network);
+    let options = SourceOutputOptions::from_matches(matches);
     let format = options.format;
     let cache_root = command_cache_root()?;
-    let now_unix_secs = command_unix_secs()?;
+    let now_unix_secs = current_unix_secs()?;
     let request = SnsCatalogRefreshRequest::new(
         &cache_root,
-        options.network,
+        network,
         &options.source_endpoint,
         now_unix_secs,
         DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS,

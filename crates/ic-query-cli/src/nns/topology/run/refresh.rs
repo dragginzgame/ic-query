@@ -1,5 +1,6 @@
+use crate::cli::common::current_unix_secs;
 use crate::nns::{
-    NnsCommandError, command_cache_root, now_unix_secs, topology::options::TopologyRefreshOptions,
+    NnsCommandError, command_cache_root, topology::options::TopologyRefreshOptions,
     write_text_or_json,
 };
 use clap::ArgMatches;
@@ -17,7 +18,7 @@ pub(super) async fn run_topology_refresh(
         cache_root,
         options.network,
         options.source_endpoint,
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);

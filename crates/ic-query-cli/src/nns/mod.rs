@@ -18,7 +18,7 @@ mod tests;
 mod topology;
 
 use crate::{
-    cli::common::{CurrentUnixSecsError, OutputFormat, current_unix_secs, write_text_or_json},
+    cli::common::{CurrentUnixSecsError, OutputFormat, write_text_or_json},
     storage::cache_root,
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -117,9 +117,6 @@ pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsC
     }
 }
 
-fn now_unix_secs() -> Result<u64, NnsCommandError> {
-    Ok(current_unix_secs()?)
-}
 fn command_cache_root() -> Result<PathBuf, NnsCommandError> {
     cache_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }

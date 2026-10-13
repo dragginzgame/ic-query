@@ -1,7 +1,8 @@
 use super::cache_request;
+use crate::cli::common::current_unix_secs;
 use crate::{
     cli::common::write_text_or_json,
-    nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, now_unix_secs},
+    nns::{NnsCommandError, leaf::NnsLeafRefreshOptions},
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{
@@ -17,7 +18,7 @@ pub(super) async fn run_catalog_refresh(
     let mut request = SubnetCatalogRefreshRequest::new(
         cache_request(&options.network)?,
         CatalogSourceSelection::uncertified_query(options.source_endpoint),
-        now_unix_secs()?,
+        current_unix_secs()?,
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);

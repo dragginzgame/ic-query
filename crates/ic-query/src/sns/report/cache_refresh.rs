@@ -9,7 +9,7 @@ use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
     snapshot_cache::{
-        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotRefreshProgress,
+        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotJsonPaths, SnapshotRefreshProgress,
         publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh,
     },
@@ -19,13 +19,14 @@ use crate::{
             SnsRefreshContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
-        cache_paths::{SnsCacheCollection, SnsSnapshotCachePaths},
+        cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths},
         cache_storage::SnsCacheMetadata,
         lookup::{lookup_request_from_parts, resolve_sns_lookup, validate_sns_refresh_page_size},
         source::{MainnetSns, SnsDiscoverySource, SnsSourceRequest},
     },
 };
 use serde::Serialize;
+use std::marker::PhantomData;
 
 ///
 /// SnsSnapshotRefreshContext
@@ -41,9 +42,10 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Request, Collect
     /// Resolved SNS identity and canister principals.
     pub(in crate::sns::report) sns: MainnetSns,
     /// Complete-cache, lock, and attempt paths for the family collection.
-    pub(in crate::sns::report) paths: &'a SnsSnapshotCachePaths<Collection>,
+    pub(in crate::sns::report) paths: &'a SnapshotJsonPaths,
     /// Whether publication replaces an existing complete cache.
     pub(in crate::sns::report) replaced_existing_cache: bool,
+    collection: PhantomData<Collection>,
 }
 
 impl<Request, Collection> SnsSnapshotRefreshContext<'_, Request, Collection>
@@ -53,7 +55,7 @@ where
     /// Borrow the shared inputs required by the attempt-sidecar writer.
     pub(in crate::sns::report) fn refresh_context(&self) -> SnsRefreshContext<'_> {
         SnsRefreshContext {
-            path: &self.paths.attempt_path,
+            path: &self.paths.refresh_attempt_path,
             request: self.request,
             fetch_request: &self.fetch_request,
             sns: &self.sns,
@@ -86,7 +88,7 @@ where
         request.input(),
     );
     let lookup = resolve_sns_lookup(&lookup_request, source).await?;
-    let paths = SnsSnapshotCachePaths::<Collection>::for_root(
+    let paths = sns_snapshot_cache_paths::<Collection>(
         request.cache_root(),
         request.network(),
         &lookup.sns.root_canister_id,
@@ -94,8 +96,8 @@ where
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
             cache_root: request.cache_root(),
-            snapshot_path: &paths.cache_path,
-            refresh_lock_path: &paths.lock_path,
+            snapshot_path: &paths.snapshot_path,
+            refresh_lock_path: &paths.refresh_lock_path,
             network: request.network(),
             now_unix_secs: request.now_unix_secs(),
             lock_stale_after_seconds,
@@ -108,6 +110,7 @@ where
                 sns: lookup.sns,
                 paths: &paths,
                 replaced_existing_cache: refresh_state.replaced_existing_snapshot,
+                collection: PhantomData,
             };
             run_snapshot_refresh_with_attempts(
                 || write_starting_sns_refresh_attempt(context.refresh_context()),
@@ -163,7 +166,7 @@ where
         || {
             write_managed_json_pretty_atomically(
                 context.request.cache_root(),
-                &context.paths.cache_path,
+                &context.paths.snapshot_path,
                 &cache,
                 crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
                 |path, source| {

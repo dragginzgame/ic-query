@@ -5,11 +5,10 @@
 //! Boundary: maps parsed checkpoint options into one live report request.
 
 use crate::{
-    cli::common::write_text_or_json,
+    cli::common::{current_unix_secs, write_text_or_json},
     sns::commands::{
         SnsCommandError,
         options::{SnsRewardCheckpointOptions, SnsRewardDiffOptions},
-        run::common::command_unix_secs,
     },
 };
 use clap::ArgMatches;
@@ -53,7 +52,7 @@ async fn run_sns_reward_checkpoint(
 ) -> Result<(), SnsCommandError> {
     let options = SnsRewardCheckpointOptions::from_matches(matches, network);
     let lookup = options.lookup;
-    let now_unix_secs = command_unix_secs()?;
+    let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
     let request = SnsRewardCheckpointRequest::new(
         lookup.network,
