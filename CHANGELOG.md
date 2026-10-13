@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.5]
+
+- Expose opt-in bounded certificate/witness and ICRC-3 tip authentication with
+  typed failures and caller-selected budgets. Share witness commitment checks
+  with existing certified reports; callers retain trust-root and payment policy.
+- Expose opt-in bounded generic ledger-block admission and contiguous chain
+  verification. Admitted immutable values cannot change before hashing; ledger
+  transaction interpretation and spending authority remain consumer-owned.
+
+- Consolidates NNS topology read-option parsing, preserving command syntax,
+  defaults, cache selection and report output.
+- Simplifies SNS command request construction, preserving output, clock and
+  cache-root selection and live versus cache-only behavior.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.4] - 2026-10-13
 
 - Adopts Shared Tooling 0.10.2. Common tool catalogs belong to the reviewed

@@ -52,6 +52,8 @@ mod cache_file;
     feature = "subnet-catalog-host"
 ))]
 mod candid_decode;
+#[cfg(feature = "certificate-host")]
+pub mod certificate;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
@@ -76,6 +78,8 @@ pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
+#[cfg(feature = "ledger-evidence-host")]
+pub mod ledger_evidence;
 #[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
 mod leb128;
 #[cfg(any(

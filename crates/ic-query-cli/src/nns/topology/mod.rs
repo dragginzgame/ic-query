@@ -9,9 +9,5 @@ pub(in crate::nns) use commands::{
     topology_regions_command, topology_summary_command, topology_versions_command,
 };
 #[cfg(test)]
-pub(in crate::nns) use options::{
-    TopologyCapacityOptions, TopologyCheckOptions, TopologyCoverageOptions, TopologyGapsOptions,
-    TopologyProvidersOptions, TopologyReadOptions, TopologyRefreshOptions, TopologyRegionsOptions,
-    TopologySummaryOptions, TopologyVersionsOptions,
-};
+pub(in crate::nns) use options::TopologyRefreshOptions;
 pub(super) use run::run;

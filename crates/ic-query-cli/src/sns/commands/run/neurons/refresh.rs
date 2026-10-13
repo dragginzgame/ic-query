@@ -8,7 +8,10 @@ use crate::sns::commands::options::SnsPagedRefreshOptions;
 use crate::{
     cli::common::write_text_or_json,
     progress::StderrQueryProgress,
-    sns::commands::{SnsCommandError, run::common::cached_lookup_command_parts},
+    sns::commands::{
+        SnsCommandError,
+        run::common::{command_cache_root, command_unix_secs},
+    },
 };
 use clap::ArgMatches;
 use ic_query::sns::{
@@ -20,14 +23,16 @@ pub(super) async fn run_sns_neuron_refresh(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsPagedRefreshOptions::from_matches(matches, network);
-    let parts = cached_lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let cache_root = command_cache_root()?;
+    let format = lookup.format;
     let request = SnsNeuronsRefreshRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
-        cache_root: parts.cache_root,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
+        cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };

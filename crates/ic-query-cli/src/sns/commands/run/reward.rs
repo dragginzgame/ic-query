@@ -9,7 +9,7 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsRewardCheckpointOptions, SnsRewardDiffOptions},
-        run::common::lookup_command_parts,
+        run::common::command_unix_secs,
     },
 };
 use clap::ArgMatches;
@@ -52,13 +52,14 @@ async fn run_sns_reward_checkpoint(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsRewardCheckpointOptions::from_matches(matches, network);
-    let parts = lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let format = lookup.format;
     let request = SnsRewardCheckpointRequest::new(
-        parts.network,
-        parts.source_endpoint,
-        parts.now_unix_secs,
-        parts.input,
+        lookup.network,
+        lookup.source_endpoint,
+        now_unix_secs,
+        lookup.input,
     )
     .with_max_pages(options.max_pages);
     let report = build_sns_reward_checkpoint_report(&request).await?;

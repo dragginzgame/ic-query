@@ -826,6 +826,8 @@ Focused host features let embedders select one reporting family:
 | `sns-host` | Native SNS reports, caches, and reward evidence |
 | `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
 | `host` | Convenience union of every focused host family |
+| `certificate-host` | Bounded typed certificate/witness authentication and certified ledger tips |
+| `ledger-evidence-host` | Certificate support plus immutable bounded generic block-chain verification |
 
 Public report families are exposed from:
 

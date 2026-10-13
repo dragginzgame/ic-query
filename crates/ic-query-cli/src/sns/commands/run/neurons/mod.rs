@@ -12,7 +12,7 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsNeuronOptions, SnsNeuronsOptions},
-        run::common::{command_cache_root, lookup_command_parts},
+        run::common::{command_cache_root, command_unix_secs},
         spec::SnsNeuronsSortArg,
     },
 };
@@ -38,13 +38,14 @@ pub(super) async fn run_sns_neuron(
 
 async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsNeuronOptions::from_matches(matches, network);
-    let parts = lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let format = lookup.format;
     let request = SnsNeuronRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
         neuron_id: options.neuron_id,
     };
     let report = build_sns_neuron_detail_report(&request).await?;
@@ -53,14 +54,15 @@ async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), 
 
 async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsNeuronsOptions::from_matches(matches, network)?;
-    let parts = lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let format = lookup.format;
     let cache_root = cache_root_for_sort(options.sort)?;
     let request = SnsNeuronsRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
         limit: options.limit,
         owner_principal_id: options.owner_principal_id,
         sort: options.sort.into(),

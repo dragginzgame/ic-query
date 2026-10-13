@@ -12,7 +12,7 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsProposalOptions, SnsProposalsOptions},
-        run::common::{cache_command_parts, cached_lookup_command_parts},
+        run::common::{command_cache_root, command_unix_secs},
     },
 };
 use clap::ArgMatches;
@@ -39,15 +39,17 @@ pub(super) async fn run_sns_proposal(
 
 async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsProposalOptions::from_matches(matches, network);
-    let parts = cached_lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let cache_root = command_cache_root()?;
+    let format = lookup.format;
     let request = SnsProposalRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
         proposal_id: options.proposal_id,
-        cache_root: Some(parts.cache_root),
+        cache_root: Some(cache_root),
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };
@@ -57,13 +59,15 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
 
 async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsProposalsOptions::from_matches(matches, network)?;
-    let parts = cached_lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let cache_root = command_cache_root()?;
+    let format = lookup.format;
     let request = SnsProposalsRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
@@ -73,7 +77,7 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
         query: options.query,
         sort: options.sort.into(),
         sort_direction: options.sort_direction,
-        cache_root: Some(parts.cache_root),
+        cache_root: Some(cache_root),
         verbose: options.verbose,
     };
     let mut progress = StderrQueryProgress::new();
@@ -86,14 +90,16 @@ async fn run_sns_proposal_refresh(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsPagedRefreshOptions::from_matches(matches, network);
-    let parts = cached_lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let cache_root = command_cache_root()?;
+    let format = lookup.format;
     let request = SnsProposalsRefreshRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
-        cache_root: parts.cache_root,
+        network: lookup.network,
+        source_endpoint: lookup.source_endpoint,
+        now_unix_secs,
+        input: lookup.input,
+        cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
@@ -112,13 +118,17 @@ fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Sns
 
 fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let parts = cache_command_parts(options.format, options.network)?;
+    let cache_root = command_cache_root()?;
     let request = SnsCacheListRequest {
-        network: parts.network,
-        cache_root: parts.cache_root,
+        network: options.network,
+        cache_root,
     };
     let report = build_sns_proposals_cache_list_report(&request)?;
-    write_text_or_json(parts.format, &report, sns_proposals_cache_list_report_text)
+    write_text_or_json(
+        options.format,
+        &report,
+        sns_proposals_cache_list_report_text,
+    )
 }
 
 fn run_sns_proposal_cache_status(
@@ -126,15 +136,15 @@ fn run_sns_proposal_cache_status(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let parts = cache_command_parts(options.format, options.network)?;
+    let cache_root = command_cache_root()?;
     let request = SnsCacheStatusRequest {
-        network: parts.network,
-        cache_root: parts.cache_root,
+        network: options.network,
+        cache_root,
         input: options.input,
     };
     let report = build_sns_proposals_cache_status_report(&request)?;
     write_text_or_json(
-        parts.format,
+        options.format,
         &report,
         sns_proposals_cache_status_report_text,
     )

@@ -116,25 +116,11 @@ pub fn verify_canister_tree(
     hash_tree: &HashTree<Vec<u8>>,
     certified_data_owner: &str,
 ) -> Result<(), CertifiedDataError> {
-    let certified_data_path = [
-        b"canister".as_slice(),
-        canister.as_slice(),
-        b"certified_data".as_slice(),
-    ];
-    let certified_data =
-        ic_agent::lookup_value(certificate, certified_data_path).map_err(|error| {
-            invalid_certified_data(format!(
-                "certificate does not prove the {certified_data_owner} certified_data value: {error}"
-            ))
-        })?;
-
-    if certified_data != hash_tree.digest() {
-        return Err(invalid_certified_data(format!(
+    crate::certificate::verify_witness(certificate, *canister, hash_tree).map_err(|_| {
+        invalid_certified_data(format!(
             "hash-tree digest does not match the {certified_data_owner} certified_data value"
-        )));
-    }
-
-    Ok(())
+        ))
+    })
 }
 
 /// Validate certificate time against a caller-supplied observation time.

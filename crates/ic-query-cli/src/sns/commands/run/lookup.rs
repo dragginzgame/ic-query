@@ -9,7 +9,7 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsLookupOptions, SnsMetricsOptions},
-        run::common::lookup_command_parts,
+        run::common::command_unix_secs,
     },
 };
 use clap::ArgMatches;
@@ -53,13 +53,14 @@ pub(super) async fn run_sns_metrics(
 ) -> Result<(), SnsCommandError> {
     let options = SnsMetricsOptions::from_matches(matches, network);
     let time_window_seconds = options.time_window_seconds;
-    let parts = lookup_command_parts(options.lookup)?;
-    let format = parts.format;
+    let lookup = options.lookup;
+    let now_unix_secs = command_unix_secs()?;
+    let format = lookup.format;
     let request = SnsMetricsRequest::new(
-        parts.network,
-        parts.source_endpoint,
-        parts.now_unix_secs,
-        parts.input,
+        lookup.network,
+        lookup.source_endpoint,
+        now_unix_secs,
+        lookup.input,
     )
     .with_time_window_seconds(time_window_seconds);
     let report = build_sns_metrics_report(&request).await?;
@@ -115,13 +116,13 @@ where
     Report: Serialize,
 {
     let options = SnsLookupOptions::from_matches(matches, network);
-    let parts = lookup_command_parts(options)?;
-    let format = parts.format;
+    let now_unix_secs = command_unix_secs()?;
+    let format = options.format;
     let request = SnsLookupRequest {
-        network: parts.network,
-        source_endpoint: parts.source_endpoint,
-        now_unix_secs: parts.now_unix_secs,
-        input: parts.input,
+        network: options.network,
+        source_endpoint: options.source_endpoint,
+        now_unix_secs,
+        input: options.input,
     };
     let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)

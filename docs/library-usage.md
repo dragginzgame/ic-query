@@ -1696,3 +1696,25 @@ rendering, a direct frontend query can be simpler and cheaper.
 - Complete snapshot refresh and local inspection.
 - Reusable text/JSON rendering that matches the CLI.
 - A native Rust boundary instead of a child-process boundary.
+
+## Bounded ledger evidence
+
+The `certificate-host` feature exposes `certificate::authenticate`,
+`authenticate_hash_tree` and `authenticate_ledger_tip`. Supply a configured
+Agent whose trust root matches the intended network, and explicit combined
+wire-byte and nesting budgets. A witness commitment alone is insufficient:
+authenticate the certificate before trusting its leaves.
+
+The `ledger-evidence-host` feature adds `ledger_evidence::LedgerBlock`,
+`BlockEvidenceLimits` and `BoundedLedgerBlocks`. Admit a borrowed block set
+before hashing, authenticate the tip independently, then verify the exact
+descending chain through the desired index. The immutable borrow preserves
+the values admitted by the budget check. Returned tips/indexes use `u128`;
+larger indexes refuse rather than truncate.
+
+These APIs send no network requests and grant no payment or spending authority.
+Consumers retain exact account, memo, amount, fee, caller and original-intent
+bindings, as well as their once-only journal admission and reconciliation.
+Typed failures distinguish resource budgets, malformed encoding or tip leaves,
+certificate authentication, witness mismatch, chain mismatch and unsupported
+values. Query report builders retain their report-specific projections.
