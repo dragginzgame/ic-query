@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.2]
+## [0.55.2] - 2026-10-13
 
 - Adopts Shared Tooling 0.9.15. Tool setup preserves lock-acquisition diagnostics
   and Cargo source-download failure statuses; CI inspection refuses ambiguous
