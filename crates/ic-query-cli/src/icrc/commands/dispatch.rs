@@ -5,12 +5,11 @@
 //! Boundary: converts one composed parse tree into public requests and one output.
 
 use super::{
-    IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
-    IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
+    IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
     IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
     IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
     IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
@@ -263,7 +262,7 @@ async fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> 
 }
 
 async fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
-    let options = IcrcBalanceOptions::from_matches(matches);
+    let options = IcrcAccountOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcBalanceRequest {
         source_endpoint: ledger.source_endpoint,
@@ -304,11 +303,12 @@ async fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCo
 
 async fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionPageOptions::from_matches(matches);
+    let format = options.target.ledger.format;
     let target = options.target;
     let request = IcrcAccountTransactionPageRequest {
-        source_endpoint: target.source_endpoint,
+        source_endpoint: target.ledger.source_endpoint,
         now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: target.ledger_canister_id,
+        ledger_canister_id: target.ledger.ledger_canister_id,
         index_canister_id: options.index_canister_id,
         account_owner: target.account_owner,
         subaccount_hex: target.subaccount_hex,
@@ -316,32 +316,26 @@ async fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), I
         limit: options.limit,
     };
     let report = build_icrc_account_transaction_page_report(&request).await?;
-    write_text_or_json(
-        options.format,
-        &report,
-        icrc_account_transaction_page_report_text,
-    )
+    write_text_or_json(format, &report, icrc_account_transaction_page_report_text)
 }
 
 fn run_icrc_account_transaction_list(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionListOptions::from_matches(matches);
+    let format = options.target.ledger.format;
     let request = IcrcAccountTransactionListRequest {
         cache: account_transaction_cache_request(options.target)?,
         limit: options.limit,
         sort: options.sort,
     };
     let report = build_icrc_account_transaction_list_report(&request)?;
-    write_text_or_json(
-        options.format,
-        &report,
-        icrc_account_transaction_list_report_text,
-    )
+    write_text_or_json(format, &report, icrc_account_transaction_list_report_text)
 }
 
 async fn run_icrc_account_transaction_refresh(
     matches: &ArgMatches,
 ) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionRefreshOptions::from_matches(matches);
+    let format = options.target.ledger.format;
     let request = IcrcAccountTransactionRefreshRequest {
         cache: account_transaction_cache_request(options.target)?,
         now_unix_secs: current_unix_secs()?,
@@ -354,7 +348,7 @@ async fn run_icrc_account_transaction_refresh(
     let report =
         refresh_icrc_account_transaction_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(
-        options.format,
+        format,
         &report,
         icrc_account_transaction_refresh_report_text,
     )
@@ -368,23 +362,24 @@ fn run_icrc_account_transaction_cache(matches: &ArgMatches) -> Result<(), IcrcCo
 }
 
 fn run_icrc_account_transaction_cache_status(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
-    let options = IcrcAccountTransactionCacheOptions::from_matches(matches);
-    let request = account_transaction_cache_request(options.target)?;
+    let options = IcrcAccountOptions::from_matches(matches);
+    let format = options.ledger.format;
+    let request = account_transaction_cache_request(options)?;
     let report = build_icrc_account_transaction_cache_status_report(&request)?;
     write_text_or_json(
-        options.format,
+        format,
         &report,
         icrc_account_transaction_cache_status_report_text,
     )
 }
 
 fn account_transaction_cache_request(
-    target: IcrcAccountTargetOptions,
+    target: IcrcAccountOptions,
 ) -> Result<IcrcAccountTransactionCacheRequest, IcrcCommandError> {
     Ok(IcrcAccountTransactionCacheRequest {
         cache_root: cache_root().map_err(|error| IcrcCommandError::Usage(error.to_string()))?,
-        source_endpoint: target.source_endpoint,
-        ledger_canister_id: target.ledger_canister_id,
+        source_endpoint: target.ledger.source_endpoint,
+        ledger_canister_id: target.ledger.ledger_canister_id,
         account_owner: target.account_owner,
         subaccount_hex: target.subaccount_hex,
     })

@@ -124,7 +124,7 @@ fn refresh_parses_defaults_and_export_options() {
             "--output",
             "catalog.preview.json",
         ],
-        CatalogRefreshOptions::from_matches,
+        NnsLeafRefreshOptions::from_matches,
     )
     .expect("parse refresh");
 

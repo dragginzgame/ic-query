@@ -4,7 +4,10 @@
 //! Does not own: report fields, JSON serialization, or terminal styling.
 //! Boundary: uses decimal cycle units and binary IEC byte units with bounded precision.
 
-use crate::text_value::sanitize_text;
+use crate::{
+    decimal::{increment_decimal, is_unsigned_decimal},
+    text_value::sanitize_text,
+};
 
 const CYCLE_UNITS: &[(u128, &str)] = &[
     (1_000_000_000_000_000_000, "E"),
@@ -111,10 +114,7 @@ const fn rounded_parts(value: u128, divisor: u128) -> (u128, u128) {
 
 fn decimal_parts(value: &str) -> Option<(&str, &str)> {
     let (whole, fraction) = value.split_once('.').unwrap_or((value, ""));
-    if whole.is_empty()
-        || !whole.bytes().all(|byte| byte.is_ascii_digit())
-        || !fraction.bytes().all(|byte| byte.is_ascii_digit())
-    {
+    if !is_unsigned_decimal(whole) || !fraction.bytes().all(|byte| byte.is_ascii_digit()) {
         return None;
     }
     let whole = whole.trim_start_matches('0');
@@ -142,19 +142,6 @@ fn rounded_decimal_parts(whole: &str, fraction: &str, exponent: usize) -> (Strin
     } else {
         (rounded_whole.to_string(), hundredths)
     }
-}
-
-fn increment_decimal(value: &str) -> String {
-    let mut digits = value.as_bytes().to_vec();
-    for digit in digits.iter_mut().rev() {
-        if *digit < b'9' {
-            *digit += 1;
-            return String::from_utf8(digits).expect("ASCII decimal digits remain UTF-8");
-        }
-        *digit = b'0';
-    }
-    digits.insert(0, b'1');
-    String::from_utf8(digits).expect("ASCII decimal digits remain UTF-8")
 }
 
 #[cfg(test)]

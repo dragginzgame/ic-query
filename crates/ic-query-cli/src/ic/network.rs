@@ -8,10 +8,10 @@ use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
 use crate::cli::{
-    clap::{required_string, typed_option, value_arg},
+    clap::{typed_option, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+        source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
@@ -57,7 +57,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 }
 
 async fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = NetworkReportOptions::from_matches(matches);
+    let options = SourceOutputOptions::from_matches(matches);
     let request =
         IcBoundaryNodeDataCentersRequest::new(options.source_endpoint, current_unix_secs()?);
     let report = build_ic_boundary_node_data_centers_report(&request).await?;
@@ -76,12 +76,12 @@ async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_DAILY_STATS_WINDOW_SECS));
     let request = IcDailyStatsRequest::new(
-        options.source_endpoint,
+        options.source.source_endpoint,
         now_unix_secs,
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
     let report = build_ic_daily_stats_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_daily_stats_report_text)
+    write_text_or_json(options.source.format, &report, ic_daily_stats_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -141,26 +141,10 @@ fn daily_stats_command() -> ClapCommand {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct NetworkReportOptions {
-    format: OutputFormat,
-    source_endpoint: String,
-}
-
-impl NetworkReportOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 struct DailyStatsOptions {
     start_unix_secs: Option<u64>,
     end_unix_secs: Option<u64>,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl DailyStatsOptions {
@@ -168,8 +152,7 @@ impl DailyStatsOptions {
         Self {
             start_unix_secs: typed_option(matches, "start"),
             end_unix_secs: typed_option(matches, "end"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -177,7 +160,7 @@ impl DailyStatsOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::clap::render_help;
+    use crate::cli::{clap::render_help, common::OutputFormat};
 
     #[test]
     fn usage_discloses_live_dashboard_authority_and_bounds() {
@@ -203,7 +186,7 @@ mod tests {
         let options = parse_test_options(
             boundary_node_data_centers_command(),
             &["--json", "--source-endpoint", "https://example.com/api/v4"],
-            NetworkReportOptions::from_matches,
+            SourceOutputOptions::from_matches,
         )
         .expect("boundary-node options");
 
@@ -230,8 +213,8 @@ mod tests {
 
         assert_eq!(options.start_unix_secs, Some(1_784_937_600));
         assert_eq!(options.end_unix_secs, Some(1_785_542_400));
-        assert_eq!(options.format, OutputFormat::Json);
-        assert_eq!(options.source_endpoint, "https://example.com/api/v3");
+        assert_eq!(options.source.format, OutputFormat::Json);
+        assert_eq!(options.source.source_endpoint, "https://example.com/api/v3");
     }
 
     #[test]
@@ -242,9 +225,9 @@ mod tests {
 
         assert_eq!(options.start_unix_secs, None);
         assert_eq!(options.end_unix_secs, None);
-        assert_eq!(options.format, OutputFormat::Text);
+        assert_eq!(options.source.format, OutputFormat::Text);
         assert_eq!(
-            options.source_endpoint,
+            options.source.source_endpoint,
             DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT
         );
     }

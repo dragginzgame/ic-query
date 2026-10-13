@@ -43,6 +43,7 @@ pub use acquisition::RegistryAcquisition;
 pub use acquisition::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 pub use history_cache::RegistryHistoryCacheDisposition;
 
+use crate::ic_registry::proto::RegistryErrorCode;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 ///
@@ -90,5 +91,18 @@ impl RegistryQueryCounter {
 
     pub(super) fn call_count(&self) -> u64 {
         self.calls.load(Ordering::Relaxed)
+    }
+}
+
+fn registry_error_code(code: i32) -> &'static str {
+    match RegistryErrorCode::try_from(code).ok() {
+        Some(RegistryErrorCode::MalformedMessage) => "malformed_message",
+        Some(RegistryErrorCode::KeyNotPresent) => "key_not_present",
+        Some(RegistryErrorCode::KeyAlreadyPresent) => "key_already_present",
+        Some(RegistryErrorCode::VersionNotLatest) => "version_not_latest",
+        Some(RegistryErrorCode::VersionBeyondLatest) => "version_beyond_latest",
+        Some(RegistryErrorCode::Authorization) => "authorization",
+        Some(RegistryErrorCode::InternalError) => "internal_error",
+        None => "unknown",
     }
 }

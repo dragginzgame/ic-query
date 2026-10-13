@@ -5,7 +5,6 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
-use std::path::PathBuf;
 
 ///
 /// CatalogListOptions
@@ -40,22 +39,6 @@ pub(in crate::nns) struct CatalogInfoOptions {
     pub(in crate::nns) forced: Option<ResolveAs>,
 }
 
-///
-/// CatalogRefreshOptions
-///
-/// Parsed options accepted by `icq nns subnet refresh`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct CatalogRefreshOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
-    pub(in crate::nns) lock_stale_after_seconds: u64,
-    pub(in crate::nns) dry_run: bool,
-    pub(in crate::nns) output_path: Option<PathBuf>,
-}
-
 impl CatalogListOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
@@ -83,19 +66,6 @@ impl CatalogInfoOptions {
             format: output_format(matches),
             source_endpoint: required_string(matches, "source-endpoint"),
             forced: typed_option(matches, "as"),
-        }
-    }
-}
-
-impl CatalogRefreshOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            network: network.to_string(),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
-            lock_stale_after_seconds: required_typed(matches, "lock-stale-after"),
-            dry_run: matches.get_flag("dry-run"),
-            output_path: typed_option(matches, "output"),
         }
     }
 }

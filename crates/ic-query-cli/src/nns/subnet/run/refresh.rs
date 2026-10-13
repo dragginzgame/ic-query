@@ -1,7 +1,7 @@
 use super::cache_request;
 use crate::{
     cli::common::write_text_or_json,
-    nns::{NnsCommandError, now_unix_secs, subnet::options::CatalogRefreshOptions},
+    nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, now_unix_secs},
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{
@@ -12,7 +12,7 @@ pub(super) async fn run_catalog_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    let options = CatalogRefreshOptions::from_matches(matches, network);
+    let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let mut request = SubnetCatalogRefreshRequest::new(
         cache_request(&options.network)?,

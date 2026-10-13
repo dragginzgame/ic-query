@@ -1,10 +1,9 @@
 use super::commands::{
-    IcrcAccountTransactionCacheOptions, IcrcAccountTransactionListOptions,
-    IcrcAccountTransactionPageOptions, IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions,
-    IcrcAnalyticsAccountInfoOptions, IcrcAnalyticsAccountListOptions,
-    IcrcAnalyticsHolderListOptions, IcrcAnalyticsTokenValueOptions,
-    IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions, IcrcBalanceOptions, IcrcLedgerOptions,
-    IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
+    IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
+    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
+    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
     icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
     icrc_account_transaction_command, icrc_account_transaction_list_command,
     icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
@@ -85,7 +84,7 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
             SUBACCOUNT,
             "--json",
         ],
-        IcrcBalanceOptions::from_matches,
+        IcrcAccountOptions::from_matches,
     );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -138,7 +137,7 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
         IcrcAccountTransactionPageOptions::from_matches,
     );
 
-    assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.target.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(
         options.index_canister_id.as_deref(),
         Some(INDEX_CANISTER_ID)
@@ -147,8 +146,8 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
     assert_eq!(options.target.subaccount_hex.as_deref(), Some(SUBACCOUNT));
     assert_eq!(options.start.as_deref(), Some("18446744073709551616"));
     assert_eq!(options.limit, 42);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.target.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(options.target.ledger.format, OutputFormat::Json);
+    assert_eq!(options.target.ledger.source_endpoint, SOURCE_ENDPOINT);
 }
 
 #[test]
@@ -205,12 +204,12 @@ fn account_transaction_cache_options_parse_identity() {
             "--subaccount",
             SUBACCOUNT,
         ],
-        IcrcAccountTransactionCacheOptions::from_matches,
+        IcrcAccountOptions::from_matches,
     );
 
-    assert_eq!(options.target.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.target.account_owner, ACCOUNT_OWNER);
-    assert_eq!(options.target.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
 }
 
 #[test]

@@ -2,12 +2,14 @@ use super::history_cache::{
     HISTORY_PUBLICATION_PAGE_INTERVAL, HistoryCacheObservation, MAX_HISTORY_BYTES,
     MAX_HISTORY_CHECKPOINTS, MAX_HISTORY_PAGE_BYTES, MAX_HISTORY_PAGES, RegistryHistoryPage,
 };
-use super::{RegistryQueryCounter, SubnetCatalogProgressPhase, decode_message};
+use super::{
+    RegistryQueryCounter, SubnetCatalogProgressPhase, decode_message, registry_error_code,
+};
 use crate::ic_registry::{
     RegistryFetchError,
     proto::{
-        HighCapacityRegistryGetChangesSinceResponse, RegistryErrorCode,
-        RegistryGetChangesSinceRequest, high_capacity_registry_value,
+        HighCapacityRegistryGetChangesSinceResponse, RegistryGetChangesSinceRequest,
+        high_capacity_registry_value,
     },
 };
 use ic_agent::Agent;
@@ -511,19 +513,6 @@ fn key_family_at_version(
         });
     }
     Ok(family.into_keys())
-}
-
-fn registry_error_code(code: i32) -> &'static str {
-    match RegistryErrorCode::try_from(code).ok() {
-        Some(RegistryErrorCode::MalformedMessage) => "malformed_message",
-        Some(RegistryErrorCode::KeyNotPresent) => "key_not_present",
-        Some(RegistryErrorCode::KeyAlreadyPresent) => "key_already_present",
-        Some(RegistryErrorCode::VersionNotLatest) => "version_not_latest",
-        Some(RegistryErrorCode::VersionBeyondLatest) => "version_beyond_latest",
-        Some(RegistryErrorCode::Authorization) => "authorization",
-        Some(RegistryErrorCode::InternalError) => "internal_error",
-        None => "unknown",
-    }
 }
 
 #[cfg(test)]

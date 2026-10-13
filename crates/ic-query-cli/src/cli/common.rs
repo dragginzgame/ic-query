@@ -5,7 +5,7 @@
 //! Boundary: writes text/JSON reports and builds common CLI arguments.
 
 use crate::{
-    cli::clap::{flag_arg, value_arg},
+    cli::clap::{flag_arg, required_string, value_arg},
     output::{write_pretty_json, write_text},
 };
 use clap::{ArgMatches, builder::RangedU64ValueParser};
@@ -43,6 +43,27 @@ pub const COLLECTION_MODE_LOCAL_ONLY: &str =
 pub enum OutputFormat {
     Text,
     Json,
+}
+
+///
+/// SourceOutputOptions
+///
+/// Common explicit source endpoint and output format for report commands.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceOutputOptions {
+    pub(crate) format: OutputFormat,
+    pub(crate) source_endpoint: String,
+}
+
+impl SourceOutputOptions {
+    pub(crate) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            format: output_format(matches),
+            source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
+        }
+    }
 }
 
 ///

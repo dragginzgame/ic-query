@@ -7,12 +7,9 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
-use crate::cli::{
-    clap::required_string,
-    common::{
-        COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
-    },
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+    source_endpoint_arg, write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::ic::{
@@ -43,7 +40,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 }
 
 async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = ApiBoundaryNodeOptions::from_matches(matches);
+    let options = SourceOutputOptions::from_matches(matches);
     let request = IcApiBoundaryNodeRequest::new(options.source_endpoint, current_unix_secs()?);
     let report = build_ic_api_boundary_node_report(&request).await?;
     write_text_or_json(options.format, &report, ic_api_boundary_node_report_text)
@@ -68,25 +65,10 @@ fn list_command() -> ClapCommand {
         .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct ApiBoundaryNodeOptions {
-    format: OutputFormat,
-    source_endpoint: String,
-}
-
-impl ApiBoundaryNodeOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::clap::render_help;
+    use crate::cli::{clap::render_help, common::OutputFormat};
 
     #[test]
     fn usage_discloses_certificate_authority_and_semantic_limits() {
@@ -107,7 +89,7 @@ mod tests {
         let options = parse_test_options(
             list_command(),
             &["--json", "--source-endpoint", "https://example.com"],
-            ApiBoundaryNodeOptions::from_matches,
+            SourceOutputOptions::from_matches,
         )
         .expect("API boundary-node options");
 

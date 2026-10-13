@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.3]
+
+- Shares NNS Subnet refresh parsing and ICRC account target parsing, preserving
+  command syntax, defaults, validation, cache policy and output selection.
+- Shares arbitrary-precision decimal carry and validation for token and cycle
+  text formatting, preserving rounding and invalid-input handling.
+
+- Shares IC endpoint/output parsing and Registry error-code labels, preserving
+  endpoint defaults, report output and typed transport errors.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.2] - 2026-10-13
 
 - Adopts Shared Tooling 0.9.15. Tool setup preserves lock-acquisition diagnostics

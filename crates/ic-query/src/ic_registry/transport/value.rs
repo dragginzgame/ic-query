@@ -1,13 +1,12 @@
 use super::{
     RegistryQueryCounter,
     chunk::{RegistryChunkBudget, RegistryChunkLimits, get_large_registry_value},
-    decode_message,
+    decode_message, registry_error_code,
 };
 use crate::ic_registry::{
     RegistryFetchError,
     proto::{
-        RegistryErrorCode, RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value,
-        registry_get_value_response,
+        RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
     },
     wire::{
         RegistryValueContent, RegistryValueEncoding, RegistryVersionedValue,
@@ -153,18 +152,5 @@ pub(in crate::ic_registry) fn registry_value_content_from_response(
         None => Err(RegistryFetchError::MissingValue {
             key: key.to_string(),
         }),
-    }
-}
-
-fn registry_error_code(code: i32) -> &'static str {
-    match RegistryErrorCode::try_from(code).ok() {
-        Some(RegistryErrorCode::MalformedMessage) => "malformed_message",
-        Some(RegistryErrorCode::KeyNotPresent) => "key_not_present",
-        Some(RegistryErrorCode::KeyAlreadyPresent) => "key_already_present",
-        Some(RegistryErrorCode::VersionNotLatest) => "version_not_latest",
-        Some(RegistryErrorCode::VersionBeyondLatest) => "version_beyond_latest",
-        Some(RegistryErrorCode::Authorization) => "authorization",
-        Some(RegistryErrorCode::InternalError) => "internal_error",
-        None => "unknown",
     }
 }

@@ -34,12 +34,11 @@ pub(in crate::icrc) use ledger::{
 
 pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{
-    IcrcAccountTargetOptions, IcrcAccountTransactionCacheOptions,
-    IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
+    IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
     IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
     IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
     IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
-    IcrcBalanceOptions, IcrcLedgerOptions, IcrcTransactionsOptions,
+    IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 
 use crate::cli::{

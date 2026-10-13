@@ -28,8 +28,8 @@ use super::{
     },
     registry::{registry_command, registry_version_command},
     subnet::{
-        CatalogInfoOptions, CatalogListOptions, CatalogRefreshOptions, info_command, list_command,
-        refresh_command, subnet_command,
+        CatalogInfoOptions, CatalogListOptions, info_command, list_command, refresh_command,
+        subnet_command,
     },
     topology::{
         TopologyCapacityOptions, TopologyCheckOptions, TopologyCoverageOptions,

@@ -7,6 +7,8 @@
 //! Boundary: keeps display rounding for token amounts centralized while preserving
 //! raw amount values in typed reports and JSON output.
 
+use crate::decimal::increment_decimal;
+
 /// Renders a base-unit token amount with two decimal places.
 ///
 /// Numeric input may contain surrounding whitespace and `_` separators. Other
@@ -74,31 +76,10 @@ fn rounded_hundredths(digits: &str, discarded_digit_count: usize) -> String {
             .first()
             .is_some_and(|digit| *digit >= b'5')
     {
-        increment_decimal_string(hundredths)
+        increment_decimal(hundredths)
     } else {
         hundredths.to_string()
     }
-}
-
-fn increment_decimal_string(digits: &str) -> String {
-    let mut reversed = String::with_capacity(digits.len() + 1);
-    let mut carry = true;
-    for digit in digits.bytes().rev() {
-        if carry {
-            if digit == b'9' {
-                reversed.push('0');
-            } else {
-                reversed.push(char::from(digit + 1));
-                carry = false;
-            }
-        } else {
-            reversed.push(char::from(digit));
-        }
-    }
-    if carry {
-        reversed.push('1');
-    }
-    reversed.chars().rev().collect()
 }
 
 fn format_hundredths(hundredths: &str) -> String {
