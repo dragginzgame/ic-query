@@ -45,23 +45,7 @@ pub use confined::BoundedManagedFileReadError;
     feature = "sns-host"
 ))]
 pub use confined::ManagedReadBudget;
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    feature = "dashboard-host",
-    feature = "nns-topology-host",
-    feature = "icrc-host",
-    feature = "sns-host"
-))]
 pub use confined::read_bounded_managed_file;
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
 pub use confined::write_managed_file_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
@@ -69,12 +53,6 @@ pub use write::canonical_json_matches;
 pub use write::canonical_json_serialized_len;
 #[cfg(feature = "subnet-catalog-host")]
 pub use write::canonical_json_sha256;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host"
-))]
 pub use write::write_managed_json_pretty_atomically;
 
 #[cfg(feature = "sns-host")]
@@ -108,12 +86,6 @@ pub use json::{JsonCacheReport, LoadJsonCacheRequest};
 pub use lock::RefreshLockRequest;
 #[cfg(feature = "subnet-catalog-host")]
 pub use lock::with_refresh_lock;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host"
-))]
 pub use lock::with_refresh_lock_async;
 #[cfg(feature = "host")]
 pub use lock::{RefreshLockEvidence, inspect_refresh_lock};

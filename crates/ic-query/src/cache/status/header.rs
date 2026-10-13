@@ -38,21 +38,13 @@ struct GenericCacheHeader {
 
 #[derive(Deserialize)]
 struct FullGenericCacheHeader {
-    #[serde(default)]
     schema_version: Option<u32>,
-    #[serde(default)]
     catalog_schema_version: Option<u32>,
-    #[serde(default)]
     network: Option<String>,
-    #[serde(default)]
     fetched_at: Option<String>,
-    #[serde(default)]
     collection_completed_at: Option<String>,
-    #[serde(default)]
     domain: Option<String>,
-    #[serde(default)]
     entity: Option<String>,
-    #[serde(default)]
     collection: Option<String>,
 }
 

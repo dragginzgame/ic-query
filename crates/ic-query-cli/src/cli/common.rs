@@ -8,7 +8,7 @@ use crate::{
     cli::clap::{flag_arg, value_arg},
     output::{write_pretty_json, write_text},
 };
-use clap::builder::RangedU64ValueParser;
+use clap::{ArgMatches, builder::RangedU64ValueParser};
 use serde::Serialize;
 use std::{
     io,
@@ -43,6 +43,27 @@ pub const COLLECTION_MODE_LOCAL_ONLY: &str =
 pub enum OutputFormat {
     Text,
     Json,
+}
+
+///
+/// NetworkOutputOptions
+///
+/// Network and output options for local cache and analytics views.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NetworkOutputOptions {
+    pub(crate) network: String,
+    pub(crate) format: OutputFormat,
+}
+
+impl NetworkOutputOptions {
+    pub(crate) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
 }
 
 ///

@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::common::NetworkOutputOptions;
 
 const NEURON_ID: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
@@ -95,7 +96,7 @@ fn sns_neurons_cache_parses_list_and_status_options() {
     let list = parse_test_options(
         sns_neuron_cache_list_command(),
         &["--json"],
-        SnsNeuronsCacheListOptions::from_matches,
+        NetworkOutputOptions::from_matches,
     )
     .expect("parse cache list");
 

@@ -15,11 +15,10 @@ pub(super) use list::{SnsCatalogRefreshOptions, SnsListOptions};
 pub(super) use lookup::SnsLookupOptions;
 pub(super) use metrics::SnsMetricsOptions;
 pub(super) use neurons::{
-    SnsNeuronOptions, SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
-    SnsNeuronsRefreshOptions,
+    SnsNeuronOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions, SnsNeuronsRefreshOptions,
 };
 pub(super) use proposals::{
-    SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
-    SnsProposalsOptions, SnsProposalsRefreshOptions,
+    SnsProposalOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
+    SnsProposalsRefreshOptions,
 };
 pub(super) use reward::{SnsRewardCheckpointOptions, SnsRewardDiffOptions};

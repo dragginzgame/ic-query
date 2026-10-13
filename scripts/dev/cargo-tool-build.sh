@@ -62,7 +62,16 @@ cargo_build_init() {
         user_config="$user_home/config.toml"
         [[ ! -f "$user_home/config" ]] || user_config="$user_home/config"
         if [[ -f "$user_config" ]]; then
-            offline="$(yq -p toml -o json '.' "$user_config" | jq -er '(.net.offline // false) | tostring')" || return 1
+            offline="$(yq -p toml -o json '.' "$user_config" | jq -ers '
+                # yq represents an empty TOML document as null.
+                if length == 1 and (.[0] == null or (.[0] | type) == "object")
+                then (.[0] // {}) else error("expected one Cargo configuration object") end
+                | if has("net") then .net else {} end
+                | if type != "object" then error("Cargo net configuration must be a table") else . end
+                | if has("offline") then .offline else false end
+                | if type == "boolean" then tostring
+                  else error("Cargo net.offline must be a boolean") end
+            ')" || return 1
         fi
     fi
     case "${offline:-false}" in

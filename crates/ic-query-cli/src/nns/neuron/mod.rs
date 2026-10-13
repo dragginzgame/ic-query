@@ -12,6 +12,6 @@ pub(in crate::nns) use commands::{
 };
 #[cfg(test)]
 pub(in crate::nns) use options::{
-    NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
+    NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
 };
 pub(in crate::nns) use run::run;

@@ -1173,7 +1173,44 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.55.0 async host API qualification
+## Pending 0.55.1 Shared 0.9.10 qualification
+
+Canonical adoption selects committed Shared 0.9.9
+`da4977129b9e2d3a62178fba8925026f9e42daa6`, retaining 82 roots and deriving
+90 payloads. The Rust fixture isolates its compiler context, borrows existing
+history and guards forbidden Git effects; it runs from the consumer root.
+The changed Cargo build-policy helper requires explicit preparation of existing
+common and Query extension tools before offline admission. Tool versions,
+application dependencies and native host requirements remain unchanged.
+Evidence is retained in `/tmp/ic-query-shared099.xIBPNF/`.
+Consumer-root Rust fixtures pass on modern Bash and genuine Bash 3.2.57,
+including guarded Git effects, staged pins/compiler, cache keys and receipts.
+Explicit common/extension setup and offline tools/formatting admission pass.
+Query's CI-script target passes, including 27 Governance fixtures; real hook,
+receipt, prepared-tool reuse and partial-selection preservation pass on both
+shells. Initial sandboxed hook attempts could not acquire a shared-store lock;
+their logs remain separate from the successful runs with setup permissions.
+Snapshot integrity, dependency pins, ShellCheck, links and unchanged protected
+manifest/lock/pin/toolchain/index hashes pass. No full local CI, release execution
+or native macOS run was performed for this prepared batch.
+The 0.9.10 delta adds reporting policy only; selected executable bytes are
+unchanged from 0.9.9. Snapshot and documentation checks pass, with evidence in
+`/tmp/ic-query-shared0910-review/`. Exact [Shared 0.9.9 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38305700979)
+passes Linux and both macOS producer lanes. That producer result does not qualify
+this uncommitted consumer selection. Native consumer acceptance remains pending
+in the [Shared fleet tracker](https://github.com/dragginzgame/shared-tooling/issues/98).
+
+The same pending slice's internal cleanup is qualified on Linux in
+`/tmp/ic-query-cleanup-0551/`. NNS/SNS parsing, SNS reports, Dashboard URL and
+loopback transport, managed cache writers and cache-header/status tests pass.
+Independent Dashboard, SNS, ICRC and Subnet Catalog feature builds pass, as do
+pure native and Wasm canister builds. Library and CLI Clippy pass with warnings
+denied; formatting, source/process boundary, snapshot, type docs and local links
+pass. Cargo Machete reports no unused dependencies. The selected manifests,
+lockfile, tool pins, toolchain and Git index remain unchanged. Full local CI and
+native macOS execution were not run for these prepared changes.
+
+## Released 0.55.0 async host API qualification
 
 Host capabilities and collectors now return caller-runtime futures. Object-safe
 sources require `Sync` and return boxed `Send` futures; progress sinks require
@@ -1201,11 +1238,15 @@ checksum refusal. Snapshot, shell and local-link admission pass. These checks
 do not install tools, run a release or qualify native macOS. The optional
 producer artifact-discovery helper is outside Query's selected closure.
 
-This is prepared source, not delivered CI acceptance. Full local workspace CI,
-release gates and native macOS execution have not run. The native consumer
-pipeline must qualify actual async command/collection/cancellation behavior and
-common-tool setup/reuse on Intel and Apple Silicon after delivery. Existing
-tooling/path/Governance acceptance remains under issues #44, #45 and #46.
+The earlier focused evidence above qualified prepared source. The maintainer
+delivered 0.55.0 at `6aa75c20d213cda9cd592c5722d0a0707eab6cdc`, retaining
+Shared 0.9.5 and selecting Host artifacts/filesystem/process 0.15.1. Its
+[exact CI](https://github.com/dragginzgame/ic-query/actions/runs/38290525080)
+passes all nine complete-check, MSRV and canister jobs across Linux and both
+macOS architectures. Direct macOS logs confirm actual formatting-hook, receipt,
+prepared-tool reuse and selection-preservation fixtures, completing
+[#44](https://github.com/dragginzgame/ic-query/issues/44) for this released source.
+These results do not qualify the prepared 0.55.1 snapshot.
 
 ## Prior prepared Shared 0.9.2 and Host 0.14.10 qualification
 

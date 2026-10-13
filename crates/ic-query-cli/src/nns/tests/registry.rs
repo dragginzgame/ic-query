@@ -6,7 +6,7 @@ fn registry_version_parses_defaults_and_json_format() {
     let defaults = parse_test_options(
         registry_version_command(),
         &[],
-        RegistryVersionOptions::from_matches,
+        NnsCommonOptions::from_matches,
     )
     .expect("parse defaults");
 
@@ -20,7 +20,7 @@ fn registry_version_parses_defaults_and_json_format() {
     let options = parse_test_options(
         registry_version_command(),
         &["--json", "--source-endpoint", "https://icp-api.io"],
-        RegistryVersionOptions::from_matches,
+        NnsCommonOptions::from_matches,
     )
     .expect("parse registry version");
 

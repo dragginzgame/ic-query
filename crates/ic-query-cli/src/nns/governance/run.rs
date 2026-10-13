@@ -1,6 +1,6 @@
 //! Runtime dispatch for direct NNS Governance reports.
 
-use super::options::NnsGovernanceOptions;
+use crate::nns::leaf::NnsCommonOptions;
 use crate::nns::{NnsCommandError, now_unix_secs, write_text_or_json};
 use clap::ArgMatches;
 use ic_query::nns::governance::{
@@ -66,7 +66,7 @@ async fn run_report<Report>(
 where
     Report: Serialize,
 {
-    let options = NnsGovernanceOptions::from_matches(matches, network);
+    let options = NnsCommonOptions::from_matches(matches, network);
     let request = NnsGovernanceRequest::replica_query_from_unix_secs(
         options.network,
         options.source_endpoint,

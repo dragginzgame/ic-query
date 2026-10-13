@@ -139,6 +139,17 @@ fn response_too_large(url: &str, max_bytes: u64, observed_bytes: u64) -> IcHostE
     }
 }
 
+fn ledger_resource_url(
+    endpoint: &str,
+    ledger_canister_id: &str,
+    resource_path: &[&str],
+) -> Result<Url, IcHostError> {
+    let mut url = dashboard_base_url(endpoint)?;
+    append_path_segments(endpoint, &mut url, &["ledgers", ledger_canister_id])?;
+    append_path_segments(endpoint, &mut url, resource_path)?;
+    Ok(url)
+}
+
 fn dashboard_base_url(endpoint: &str) -> Result<Url, IcHostError> {
     parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))
 }

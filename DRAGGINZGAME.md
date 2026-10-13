@@ -134,15 +134,14 @@ Consumer choices described in those guides remain subject to this baseline.
 - Remove superseded paths completely when their obligations permit retirement.
   Name any remaining consumer or deployment blocker and the evidence needed to
   close it. Do not leave replacement and old implementation indefinitely active.
-- When cleaning up code, list every removed function, method and type only in the
-  final response to the maintainer in the Codex app, including private symbols
-  and those inside deleted files.
-  Give exact names, their former file or module, why each was removed and its
-  replacement when applicable. Distinguish deletions from moves or renames.
-  Shared reasons may be grouped, but every removed name must still be listed.
-  Do not copy this inventory into repository files, changelogs, reports, commit
-  messages, PRs or issues. Continue documenting meaningful public API removals
-  and required consumer actions at their normal owners.
+- Follow the [change-reporting rules](rules/change-reporting.md) in every completed
+  maintainer report, including inspection and issue-only work. Include scoped
+  Rust, type-declaration and documentation added/removed/net metrics, with explicit
+  zeroes or unavailable evidence. Keep Git line churn separate from semantic
+  deletion counts. In the final Codex app handoff, use **symbol changes** with
+  separately counted genuine deletions, moves and renames; an edited declaration
+  is not a deletion. Keep the detailed inventory in that handoff only. Ordinary
+  public API removal and consumer-action documentation stays at its normal owner.
 - Complete changelog maintenance under the [common changelog rules](rules/changelogs.md)
   as part of the coherent batch, including automatically selecting and maintaining
   the numbered next release at the top. Do not wait for a separate notes request.

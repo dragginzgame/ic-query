@@ -4,13 +4,6 @@
 //! Does not own: report schemas, cache policy, or owner-specific errors.
 //! Boundary: validates serialization before mutating the filesystem and preserves atomic replace.
 
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use ic_host_artifacts::artifact::BoundedWriter;
 #[cfg(any(feature = "certified-subnet-catalog-host", test))]
@@ -18,19 +11,13 @@ use ic_host_artifacts::artifact::MatchingWriter;
 use serde::Serialize;
 #[cfg(feature = "subnet-catalog-host")]
 use sha2::{Digest, Sha256};
-use std::io;
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 #[cfg(test)]
 use std::io::Write;
-
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
-use std::path::{Path, PathBuf};
 
 /// Return the canonical compact JSON byte length without retaining encoded bytes.
 #[cfg(any(
@@ -70,13 +57,6 @@ where
 }
 
 /// Serialize pretty JSON without retaining a complete encoded copy and publish it atomically.
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host",
-    test
-))]
 pub fn write_managed_json_pretty_atomically<T, Error>(
     cache_root: &Path,
     path: &Path,

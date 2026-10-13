@@ -297,14 +297,21 @@ selected compiler's bin directory followed by system executable directories,
 fixed C locale/UTC timezone, private permissions and two compilation jobs.
 Repository flags, wrappers, custom targets, user Cargo configuration and arbitrary
 environment variables are not inherited. Application builds are unaffected.
-Explicit `CARGO_NET_OFFLINE` or user Cargo `net.offline` is preserved; no check
-downloads or repairs tools. Custom registries, extra native search paths and
+An explicit nonempty `CARGO_NET_OFFLINE` (`true`/`false` or `1`/`0`) takes
+precedence over user Cargo `net.offline`. Without that override, `net.offline`
+must be a TOML boolean; strings and numbers are rejected before installation or
+selection changes. Empty configuration or an absent key defaults to online
+permission. Cargo's `config` takes precedence over `config.toml` when both exist.
+No check downloads or repairs tools. Custom registries, extra native search paths and
 proxy/credential configuration are not supplied to these public crates.io builds.
 
 The key records the exact build-helper digest, Cargo/rustc verbose identities and executable digests, host,
 native compiler/linker digests, Linux package inventory or macOS/Xcode/SDK
 identity, package/version, executable kind/name, profile, published crate digest
 and packaged lock digest. Cargo owns registry downloads and `--locked` builds.
+Changing the build helper requires explicit setup to select builds under the new
+policy digest; previous builds remain retained and offline checks do not repair
+their selections.
 Missing packaged locks and non-registry dependency sources refuse reuse/builds;
 unexpected Cargo configuration in the managed cache is rejected. This contract
 supports managed Debian/RPM Linux hosts and the qualified macOS toolchain; it

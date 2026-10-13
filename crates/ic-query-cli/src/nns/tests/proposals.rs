@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::clap::render_help;
+use crate::cli::common::NetworkOutputOptions;
 
 #[test]
 fn nns_proposal_activity_parses_cache_only_window_and_json() {
@@ -251,13 +252,13 @@ fn nns_proposal_cache_options_parse_json_format() {
     let list = parse_test_options(
         nns_proposal_cache_list_command(),
         &["--json"],
-        NnsProposalCacheOptions::from_matches,
+        NetworkOutputOptions::from_matches,
     )
     .expect("parse cache list");
     let status = parse_test_options(
         nns_proposal_cache_status_command(),
         &["--json"],
-        NnsProposalCacheOptions::from_matches,
+        NetworkOutputOptions::from_matches,
     )
     .expect("parse cache status");
 

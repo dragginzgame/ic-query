@@ -16,7 +16,7 @@ pub(super) use ic_query::nns::proposals::{
 };
 #[cfg(test)]
 pub(super) use options::{
-    NnsProposalActivityOptions, NnsProposalCacheOptions, NnsProposalListOptions,
-    NnsProposalOptions, NnsProposalRefreshOptions,
+    NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions,
+    NnsProposalRefreshOptions,
 };
 pub(super) use run::run;

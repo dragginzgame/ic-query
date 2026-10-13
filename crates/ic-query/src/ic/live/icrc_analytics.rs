@@ -4,7 +4,7 @@
 //! Does not own: native ledger calls, report projection, bounds policy, or rendering.
 //! Boundary: fetches one selected ledger resource without pagination or follow-up calls.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, ledger_resource_url};
 use crate::ic::{
     IcHostError, IcIcrcAnalyticsSource, IcIcrcIndexedCountKind, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueQuery, IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow,
@@ -149,17 +149,6 @@ fn indexed_count_url(
         ledger_canister_id,
         &[kind.resource_path_segment(), "count"],
     )
-}
-
-fn ledger_resource_url(
-    endpoint: &str,
-    ledger_canister_id: &str,
-    resource_path: &[&str],
-) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["ledgers", ledger_canister_id])?;
-    append_path_segments(endpoint, &mut url, resource_path)?;
-    Ok(url)
 }
 
 #[derive(SerdeDeserialize)]

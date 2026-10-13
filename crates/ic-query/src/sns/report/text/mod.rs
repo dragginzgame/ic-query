@@ -29,7 +29,7 @@ pub use cache::{
 };
 pub use canisters::sns_canister_report_text;
 #[cfg(all(test, feature = "sns-host"))]
-pub(super) use common::optional_e8s_decimal_text;
+pub(super) use common::optional_e8s_text;
 pub use info::sns_info_report_text;
 pub use list::sns_list_report_text;
 pub use metrics::sns_metrics_report_text;

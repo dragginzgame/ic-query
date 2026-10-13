@@ -4,12 +4,11 @@
 //! Does not own: snapshot discovery, status report construction, or text rendering.
 //! Boundary: maps cache CLI options into cache-list and cache-status requests.
 
+use crate::cli::common::NetworkOutputOptions;
 use crate::{
     cli::common::write_text_or_json,
     sns::commands::{
-        SnsCommandError,
-        options::{SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions},
-        run::common::cache_command_parts,
+        SnsCommandError, options::SnsNeuronsCacheStatusOptions, run::common::cache_command_parts,
     },
 };
 use clap::ArgMatches;
@@ -30,7 +29,7 @@ pub(super) fn run_sns_neuron_cache(
 }
 
 fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsNeuronsCacheListOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheListRequest {
         network: parts.network,

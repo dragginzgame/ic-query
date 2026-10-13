@@ -9,7 +9,7 @@ use crate::sns::report::SnsCacheSummary;
 use crate::{
     duration::display_duration_seconds,
     report::ReportDataSource,
-    sns::report::SnsNeuronPermissionList,
+    sns::report::{SnsNeuronDissolveState, SnsNeuronPermissionList},
     text_value::{sanitize_text, yes_no},
     token_amount::e8s_decimal_text,
 };
@@ -18,12 +18,7 @@ const COMPACT_NEURON_ID_CHARS: usize = 8;
 
 pub(in crate::sns::report::text) use crate::text_value::optional_text;
 
-pub(in crate::sns::report::text) fn optional_e8s_text(value: Option<u64>) -> String {
-    value.map_or_else(|| "-".to_string(), e8s_decimal_text)
-}
-
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) fn optional_e8s_decimal_text(value: Option<u64>) -> String {
+pub(in crate::sns::report) fn optional_e8s_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), e8s_decimal_text)
 }
 
@@ -117,4 +112,20 @@ fn basis_points_text(value: u64) -> String {
     let whole = value / 100;
     let fractional = value % 100;
     format!("{whole}.{fractional:02}%")
+}
+
+pub(in crate::sns::report::text) fn dissolve_state_text(
+    state: Option<SnsNeuronDissolveState>,
+) -> String {
+    state.map_or_else(
+        || "-".to_string(),
+        |state| match state {
+            SnsNeuronDissolveState::DissolveDelaySeconds(seconds) => {
+                format!("delay:{seconds}")
+            }
+            SnsNeuronDissolveState::WhenDissolvedTimestampSeconds(seconds) => {
+                format!("dissolved_at:{seconds}")
+            }
+        },
+    )
 }

@@ -4,14 +4,15 @@
 //! Does not own: proposal cache storage, live governance calls, or rendering.
 //! Boundary: maps proposal CLI options into report/cache request DTOs.
 
+use crate::cli::common::NetworkOutputOptions;
 use crate::{
     cli::common::write_text_or_json,
     progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
         options::{
-            SnsProposalOptions, SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions,
-            SnsProposalsOptions, SnsProposalsRefreshOptions,
+            SnsProposalOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
+            SnsProposalsRefreshOptions,
         },
         run::common::{cache_command_parts, cached_lookup_command_parts},
     },
@@ -112,7 +113,7 @@ fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Sns
 }
 
 fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsProposalsCacheListOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheListRequest {
         network: parts.network,

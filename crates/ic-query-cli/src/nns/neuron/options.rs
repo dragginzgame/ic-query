@@ -1,10 +1,7 @@
 //! Parsed options for public NNS neuron commands.
 
 use crate::{
-    cli::{
-        clap::{required_typed, typed_option},
-        common::output_format,
-    },
+    cli::clap::{required_typed, typed_option},
     nns::{OutputFormat, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;
@@ -91,27 +88,6 @@ impl NnsNeuronRefreshOptions {
             source_endpoint: common.source_endpoint,
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option(matches, "max-pages"),
-        }
-    }
-}
-
-///
-/// NnsNeuronCacheOptions
-///
-/// Parsed output options for local public NNS neuron cache views.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsNeuronCacheOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-}
-
-impl NnsNeuronCacheOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            network: network.to_string(),
-            format: output_format(matches),
         }
     }
 }

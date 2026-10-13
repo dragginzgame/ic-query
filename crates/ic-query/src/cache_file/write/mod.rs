@@ -7,13 +7,6 @@
 use crate::cache_file::CacheFileError;
 use std::path::Path;
 
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host"
-))]
 mod json;
 #[cfg(feature = "subnet-catalog-host")]
 mod output;
@@ -30,12 +23,6 @@ pub use json::canonical_json_matches;
 pub use json::canonical_json_serialized_len;
 #[cfg(feature = "subnet-catalog-host")]
 pub use json::canonical_json_sha256;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "subnet-catalog-host",
-    feature = "sns-host"
-))]
 pub use json::write_managed_json_pretty_atomically;
 #[cfg(feature = "subnet-catalog-host")]
 pub use output::{validate_output_path, write_text_output};

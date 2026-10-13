@@ -90,8 +90,8 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
 
 #[test]
 fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
-    assert_eq!(text::optional_e8s_decimal_text(None), "-");
-    assert_eq!(text::optional_e8s_decimal_text(Some(50_000_000)), "0.50");
+    assert_eq!(text::optional_e8s_text(None), "-");
+    assert_eq!(text::optional_e8s_text(Some(50_000_000)), "0.50");
 }
 
 #[tokio::test(flavor = "current_thread")]

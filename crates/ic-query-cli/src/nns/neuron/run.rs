@@ -1,8 +1,7 @@
 //! Runtime dispatch for public NNS neuron commands.
 
-use super::options::{
-    NnsNeuronCacheOptions, NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions,
-};
+use super::options::{NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions};
+use crate::cli::common::NetworkOutputOptions;
 use crate::{
     nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
@@ -35,7 +34,7 @@ pub(in crate::nns) async fn run(
 }
 
 fn run_distribution(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    let options = NnsNeuronCacheOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_neuron_distribution_report_from_cache(&request)?;
     write_text_or_json(options.format, &report, nns_neuron_distribution_report_text)
@@ -101,7 +100,7 @@ fn run_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError>
 }
 
 fn run_cache_status(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    let options = NnsNeuronCacheOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_neuron_cache_status_report(&request)?;
     write_text_or_json(options.format, &report, nns_neuron_cache_status_report_text)

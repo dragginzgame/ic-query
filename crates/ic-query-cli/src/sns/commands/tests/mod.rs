@@ -2,10 +2,10 @@ use super::{
     error::SnsCommandError,
     options::{
         SnsCatalogRefreshOptions, SnsListOptions, SnsLookupOptions, SnsMetricsOptions,
-        SnsNeuronOptions, SnsNeuronsCacheListOptions, SnsNeuronsCacheStatusOptions,
-        SnsNeuronsOptions, SnsNeuronsRefreshOptions, SnsProposalOptions,
-        SnsProposalsCacheListOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
-        SnsProposalsRefreshOptions, SnsRewardCheckpointOptions, SnsRewardDiffOptions,
+        SnsNeuronOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions,
+        SnsNeuronsRefreshOptions, SnsProposalOptions, SnsProposalsCacheStatusOptions,
+        SnsProposalsOptions, SnsProposalsRefreshOptions, SnsRewardCheckpointOptions,
+        SnsRewardDiffOptions,
     },
     spec::{
         SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,

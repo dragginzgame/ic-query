@@ -44,18 +44,6 @@ pub(in crate::sns::commands) struct SnsNeuronsOptions {
 }
 
 ///
-/// SnsNeuronsCacheListOptions
-///
-/// Parsed options accepted by `icq sns neuron cache list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsNeuronsCacheListOptions {
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-}
-
-///
 /// SnsNeuronsCacheStatusOptions
 ///
 /// Parsed options accepted by `icq sns neuron cache status`.
@@ -118,15 +106,6 @@ impl SnsNeuronOptions {
         Self {
             lookup: SnsLookupOptions::from_matches(matches, network),
             neuron_id: required_string(matches, "neuron-id"),
-        }
-    }
-}
-
-impl SnsNeuronsCacheListOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            network: network.to_string(),
-            format: output_format(matches),
         }
     }
 }

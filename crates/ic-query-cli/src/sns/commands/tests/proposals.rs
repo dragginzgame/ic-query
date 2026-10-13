@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::common::NetworkOutputOptions;
 
 fn parse_proposals(args: &[&str]) -> Result<SnsProposalsOptions, SnsCommandError> {
     parse_fallible_test_options(
@@ -203,7 +204,7 @@ fn sns_proposals_cache_parses_list_and_status_options() {
     let list = parse_test_options(
         sns_proposal_cache_list_command(),
         &["--json"],
-        SnsProposalsCacheListOptions::from_matches,
+        NetworkOutputOptions::from_matches,
     )
     .expect("parse proposals cache list");
     assert_eq!(list.network, "ic");

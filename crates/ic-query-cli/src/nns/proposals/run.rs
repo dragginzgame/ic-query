@@ -5,9 +5,10 @@
 //! Boundary: maps parsed options into report requests and writes text or JSON output.
 
 use super::options::{
-    NnsProposalActivityOptions, NnsProposalCacheOptions, NnsProposalListOptions,
-    NnsProposalOptions, NnsProposalRefreshOptions,
+    NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions,
+    NnsProposalRefreshOptions,
 };
+use crate::cli::common::NetworkOutputOptions;
 use crate::{
     cli::common::write_text_or_json,
     nns::{NnsCommandError, command_cache_root, now_unix_secs},
@@ -151,7 +152,7 @@ fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Nns
 }
 
 fn run_nns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    let options = NnsProposalCacheOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
@@ -161,7 +162,7 @@ fn run_nns_proposal_cache_status(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    let options = NnsProposalCacheOptions::from_matches(matches, network);
+    let options = NetworkOutputOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(

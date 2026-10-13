@@ -6,10 +6,10 @@
 
 use crate::{
     sns::report::{
-        SnsNeuronDissolveState, SnsNeuronsReport,
+        SnsNeuronsReport,
         text::common::{
-            neuron_id_text, optional_bool_text, optional_e8s_decimal_text, optional_text,
-            push_report_provenance_lines,
+            dissolve_state_text, neuron_id_text, optional_bool_text, optional_e8s_text,
+            optional_text, push_report_provenance_lines,
         },
     },
     table::{ColumnAlign, render_table},
@@ -72,7 +72,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
                         e8s_decimal_text(neuron.cached_neuron_stake_e8s),
                         e8s_decimal_text(neuron.neuron_fees_e8s),
                         e8s_decimal_text(neuron.maturity_e8s_equivalent),
-                        optional_e8s_decimal_text(neuron.staked_maturity_e8s_equivalent),
+                        optional_e8s_text(neuron.staked_maturity_e8s_equivalent),
                         dissolve_state_text(neuron.dissolve_state),
                         optional_bool_text(neuron.auto_stake_maturity),
                         neuron.voting_power_percentage_multiplier.to_string(),
@@ -94,18 +94,4 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
         ));
     }
     lines.join("\n")
-}
-
-fn dissolve_state_text(state: Option<SnsNeuronDissolveState>) -> String {
-    state.map_or_else(
-        || "-".to_string(),
-        |state| match state {
-            SnsNeuronDissolveState::DissolveDelaySeconds(seconds) => {
-                format!("delay:{seconds}")
-            }
-            SnsNeuronDissolveState::WhenDissolvedTimestampSeconds(seconds) => {
-                format!("dissolved_at:{seconds}")
-            }
-        },
-    )
 }

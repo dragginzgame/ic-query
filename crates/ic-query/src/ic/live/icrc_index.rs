@@ -4,7 +4,7 @@
 //! Does not own: native ledger calls, report projection, bounds policy, or rendering.
 //! Boundary: fetches one exact account or one response-bounded cursor page.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, ledger_resource_url};
 use crate::ic::{
     IcHostError, IcIcrcAccountInfoSourceData, IcIcrcAccountListQuery, IcIcrcAccountListSourceData,
     IcIcrcAccountSourceRow, IcIcrcHolderListQuery, IcIcrcHolderListSourceData,
@@ -158,17 +158,6 @@ fn holder_list_url(
         pairs.append_pair("limit", &query.limit.to_string());
         pairs.append_pair("sort_by", query.sort_by.as_api_value());
     }
-    Ok(url)
-}
-
-fn ledger_resource_url(
-    endpoint: &str,
-    ledger_canister_id: &str,
-    resource_path: &[&str],
-) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["ledgers", ledger_canister_id])?;
-    append_path_segments(endpoint, &mut url, resource_path)?;
     Ok(url)
 }
 

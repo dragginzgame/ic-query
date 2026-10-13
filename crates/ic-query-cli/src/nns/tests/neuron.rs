@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::clap::render_help;
+use crate::cli::common::NetworkOutputOptions;
 use ic_query::nns::neuron::{DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE};
 
 #[test]
@@ -57,7 +58,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     let cache = parse_test_options(
         neuron_cache_status_command(),
         &["--json"],
-        NnsNeuronCacheOptions::from_matches,
+        NetworkOutputOptions::from_matches,
     )
     .expect("cache options");
     assert_eq!(cache.network, MAINNET_NETWORK);
@@ -103,7 +104,7 @@ fn nns_neuron_help_advertises_collection_modes_and_commands() {
     assert!(family.contains("distribution"));
     let matches = parse_test_matches(neuron_distribution_command(), &["--json"]).unwrap();
     assert_eq!(
-        NnsNeuronCacheOptions::from_matches(&matches, MAINNET_NETWORK).format,
+        NetworkOutputOptions::from_matches(&matches, MAINNET_NETWORK).format,
         OutputFormat::Json
     );
     assert!(render_help(neuron_distribution_command()).contains("does not make a network request"));

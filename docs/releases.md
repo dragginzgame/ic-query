@@ -475,6 +475,11 @@ explicit github.com HTTPS/SSH push URLs and same-repository PRs; fork heads and
 GitHub Enterprise destinations are outside this contract. Run from an ordinary
 checkout without inherited Git directory, worktree, index or object-store overrides.
 PR attempts share the common Git directory's release lock across linked worktrees.
+Before preparation, the repository lookup must return one JSON object whose
+complete `full_name` exactly matches the captured push destination. Trailing
+newlines and malformed response shapes are rejected before shell extraction.
+Each raw lookup response is retained separately under `release-state/`, including
+failed observations followed by a successful retry.
 
 Before merging, `RELEASE_SOURCE` identifies the original validated source,
 `RELEASE_COMMIT` identifies the prepared commit once it exists, and
@@ -492,7 +497,10 @@ detached HEAD instead of applying the previous-version preparation checks.
 
 PR plans use `release-pr-plan-1` and a required `X.Y.Z.plan.pr.json` sidecar for
 repository, prepared commit, PR number, creation intent and merged commit. The
-common Git directory retains these alongside API requests/responses and
+saved identities and merged API identities must match their complete JSON
+strings; trailing newlines are rejected before shell extraction or state writes.
+Malformed input remains retained for diagnosis rather than silently normalized.
+The common Git directory retains these alongside API requests/responses and
 `release-state/X.Y.Z.merged/`. Do not delete the plan, sidecar, local release branch
 or merged checkout to unblock a retry. A changed/dirty retained checkout stops
 tagging; retain the evidence and reconcile the actual change. An interrupted or

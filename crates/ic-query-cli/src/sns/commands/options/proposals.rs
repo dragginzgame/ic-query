@@ -57,18 +57,6 @@ pub(in crate::sns::commands) struct SnsProposalOptions {
 }
 
 ///
-/// SnsProposalsCacheListOptions
-///
-/// Parsed options accepted by `icq sns proposal cache list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsProposalsCacheListOptions {
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-}
-
-///
 /// SnsProposalsCacheStatusOptions
 ///
 /// Parsed options accepted by `icq sns proposal cache status`.
@@ -151,15 +139,6 @@ impl SnsProposalOptions {
             proposal_id: required_typed(matches, "proposal-id"),
             verbose: matches.get_flag("verbose"),
             show_ballots: matches.get_flag("ballots"),
-        }
-    }
-}
-
-impl SnsProposalsCacheListOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            network: network.to_string(),
-            format: output_format(matches),
         }
     }
 }

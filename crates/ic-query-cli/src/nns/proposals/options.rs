@@ -198,24 +198,3 @@ impl NnsProposalRefreshOptions {
         }
     }
 }
-
-///
-/// NnsProposalCacheOptions
-///
-/// Options accepted by `icq nns proposal cache list/status`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalCacheOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-}
-
-impl NnsProposalCacheOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            network: network.to_string(),
-            format: output_format(matches),
-        }
-    }
-}

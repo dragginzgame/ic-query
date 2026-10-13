@@ -6,8 +6,8 @@
 
 use crate::{
     sns::report::{
-        SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,
-        text::common::{optional_bool_text, optional_e8s_text},
+        SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+        text::common::{dissolve_state_text, optional_bool_text, optional_e8s_text},
     },
     table::{ColumnAlign, render_table},
     text_value::{optional_text, optional_u64_text, sanitize_text},
@@ -196,20 +196,6 @@ fn topic_followee_table(detail: &SnsNeuronDetail) -> Option<String> {
                 &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Left],
             )
         })
-}
-
-fn dissolve_state_text(state: Option<SnsNeuronDissolveState>) -> String {
-    state.map_or_else(
-        || "-".to_string(),
-        |state| match state {
-            SnsNeuronDissolveState::DissolveDelaySeconds(seconds) => {
-                format!("delay:{seconds}")
-            }
-            SnsNeuronDissolveState::WhenDissolvedTimestampSeconds(seconds) => {
-                format!("dissolved_at:{seconds}")
-            }
-        },
-    )
 }
 
 fn account_text(account: Option<&SnsNeuronAccount>) -> String {

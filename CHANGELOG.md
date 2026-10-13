@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.1]
+
+- Adopts Shared Tooling 0.9.10. Rust-tool fixtures work from the consumer's
+  compiler context and reuse existing Git history without creating commits.
+  [Shared #143](https://github.com/dragginzgame/shared-tooling/issues/143),
+  [#144](https://github.com/dragginzgame/shared-tooling/issues/144).
+- Cargo-tool setup rejects non-boolean offline configuration while retaining
+  explicit environment overrides. Refresh the existing pinned Cargo tools
+  explicitly after adopting the new build policy; previous builds remain retained.
+  [Shared #140](https://github.com/dragginzgame/shared-tooling/issues/140).
+
+- Maintainer reports distinguish symbol deletions from moves and renames and
+  include scoped Rust, type and documentation counts, including zeroes.
+  [Shared #141](https://github.com/dragginzgame/shared-tooling/issues/141).
+
+- Consolidates internal CLI option parsing, Dashboard ledger URL construction
+  and SNS text formatting, and removes redundant cache feature/Serde attributes.
+  CLI behavior, report formats and library APIs are unchanged.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.0] - 2026-10-12
 
 - Restricts native test networking to native targets so the Governance Wasm
