@@ -24,7 +24,9 @@ use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CertificateEvidenceLimits {
+    /// Maximum combined wire bytes of the certificate and witness.
     pub bytes: usize,
+    /// Maximum CBOR nesting depth applied to each evidence payload.
     pub depth: u8,
 }
 
@@ -36,16 +38,22 @@ pub struct CertificateEvidenceLimits {
 
 #[derive(Debug, Error)]
 pub enum CertificateVerificationError {
+    /// The certificate or combined evidence pair exceeds its wire-byte budget.
     #[error("certificate evidence exceeds its byte budget")]
     BudgetExceeded,
+    /// The encoded evidence contains trailing bytes after the decoded value.
     #[error("certificate evidence encoding is invalid")]
     Malformed,
+    /// CBOR decoding or bounded nesting admission failed.
     #[error("certificate CBOR decoding failed: {0}")]
     Decode(#[source] ciborium::de::Error<std::io::Error>),
+    /// The Agent rejected certificate authentication under its selected policy.
     #[error("certificate authentication failed")]
     Invalid(#[source] AgentError),
+    /// The witness digest cannot be matched to the canister's certified-data commitment.
     #[error("witness is not committed by the certificate")]
     WitnessMismatch,
+    /// The certified tip leaves are missing, malformed, noncanonical or out of range.
     #[error("certified ledger tip is missing, malformed or out of range")]
     LedgerTipMalformed,
 }
@@ -189,7 +197,9 @@ pub fn verify_witness(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CertifiedLedgerTip {
+    /// Authenticated index of the ledger's last block.
     pub index: u128,
+    /// Authenticated 32-byte hash of that last block.
     pub hash: [u8; 32],
 }
 

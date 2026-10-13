@@ -19,7 +19,9 @@ use thiserror::Error;
 
 #[derive(CandidType, Clone, Debug, Deserialize)]
 pub struct LedgerBlock {
+    /// Ledger-assigned block index, before bounded admission.
     pub id: Nat,
+    /// Uninterpreted generic block value returned by the ledger.
     pub block: Value,
 }
 
@@ -31,9 +33,13 @@ pub struct LedgerBlock {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BlockEvidenceLimits {
+    /// Maximum number of blocks admitted in the complete supplied slice.
     pub blocks: usize,
+    /// Maximum total generic-value nodes across all supplied blocks.
     pub nodes: usize,
+    /// Maximum total scalar payload and map-key bytes across all blocks.
     pub bytes: usize,
+    /// Maximum nested value levels, including the root of each block.
     pub depth: u8,
 }
 
@@ -45,10 +51,13 @@ pub struct BlockEvidenceLimits {
 
 #[derive(Debug, Error, Eq, PartialEq)]
 pub enum BlockEvidenceError {
+    /// Admission exceeds the selected block, node, byte or nesting budget.
     #[error("block evidence exceeds its work budget")]
     BudgetExceeded,
+    /// A block index is out of range or the requested certified chain does not match.
     #[error("block evidence does not match the certified contiguous chain")]
     ChainMismatch,
+    /// A signed integer exceeds the range supported by the canonical ICRC hasher.
     #[error("block value is unsupported by the canonical ICRC hasher")]
     UnsupportedValue,
 }

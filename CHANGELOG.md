@@ -17,6 +17,7 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Expose opt-in bounded generic ledger-block admission and contiguous chain
   verification. Admitted immutable values cannot change before hashing; ledger
   transaction interpretation and spending authority remain consumer-owned.
+  Documents evidence budgets, returned fields and typed failure variants.
 
 - Consolidates NNS topology read-option parsing, preserving command syntax,
   defaults, cache selection and report output.
