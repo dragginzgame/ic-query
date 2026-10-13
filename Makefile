@@ -39,7 +39,7 @@ CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
-override SHARED_TOOLING_ROOT := $(REPO_ROOT)
+override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
 LOCAL_TOOL_INSTALL_TARGETS += install-dependency-tools
 LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
 include $(REPO_ROOT)make/consumer.mk

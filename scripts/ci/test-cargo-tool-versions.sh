@@ -35,7 +35,10 @@ exit "${VERSION_TRANSPORT:-0}"
 CURL
 chmod +x "$fixture/bin/curl"
 export PATH="$fixture/bin:$PATH"
+mkdir -p "$fixture/snapshot/scripts/dev" "$fixture/snapshot/ci"
+cp "$ROOT/scripts/dev/check-cargo-tool-versions.pl" "$fixture/snapshot/scripts/dev/"
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > "$fixture/consumer/ci/tool-versions.env"
+cp "$fixture/consumer/ci/tool-versions.env" "$fixture/snapshot/ci/tool-versions.env"
 printf 'fixture binary; never execute\n' > "$fixture/bundle/bin/cargo-sort"
 ln -s "$fixture/bundle/bin/cargo-sort" "$fixture/consumer/.tools/rust/common/bin/cargo-sort"
 jq -n '{installs:{"cargo-sort 2.1.4 (registry+https://github.com/rust-lang/crates.io-index)":{}}}' > "$fixture/bundle/.crates2.json"
@@ -49,10 +52,17 @@ jq -n '{crate:{id:"cargo-sort"},versions:[
  {crate:"cargo-sort",num:"4.0.0",yanked:true}]}' > "$fixture/cargo-sort.json"
 run() {
     local expected="$1" status=0
-    perl "$ROOT/scripts/dev/check-cargo-tool-versions.pl" --consumer "$fixture/consumer" --cargo-home "$fixture/home" --json > "$fixture/report.json" 2> "$fixture/stderr" || status=$?
+    perl "$fixture/snapshot/scripts/dev/check-cargo-tool-versions.pl" --consumer "$fixture/consumer" \
+        --versions "$fixture/consumer/ci/tool-versions.env" --cargo-home "$fixture/home" --json > "$fixture/report.json" 2> "$fixture/stderr" || status=$?
     [[ "$status" == "$expected" ]] || { cat "$fixture/report.json" "$fixture/stderr"; exit 1; }
 }
 run 0
+# Default selection comes from the executing snapshot, never the consumer file.
+printf 'not a pin catalog\n' > "$fixture/consumer/ci/tool-versions.env"
+perl "$fixture/snapshot/scripts/dev/check-cargo-tool-versions.pl" --consumer "$fixture/consumer" \
+    --cargo-home "$fixture/home" --json > "$fixture/default.json"
+jq -e '.tools[0].pinned=="2.1.4"' "$fixture/default.json" >/dev/null
+cp "$fixture/snapshot/ci/tool-versions.env" "$fixture/consumer/ci/tool-versions.env"
 jq -e '.tools[0] | .status=="current" and .latest=="2.1.4" and .local=="2.1.4" and .global=="2.1.4"' "$fixture/report.json" > /dev/null
 jq -e '.tools[1] | .tool=="twiggy" and .pinned==null and .local==null and .status=="current"' "$fixture/report.json" > /dev/null
 # Compute numeric latest from eligible versions, independently of ordering or max fields.

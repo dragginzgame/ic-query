@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.4]
+
+- Adopts Shared Tooling 0.10.2. Common tool catalogs belong to the reviewed
+  snapshot; host, IC and Rust exceptions must be selected independently.
+  Existing tool versions and compiler policy are preserved.
+  [#48](https://github.com/dragginzgame/ic-query/issues/48),
+  [Shared #153](https://github.com/dragginzgame/shared-tooling/issues/153).
+- Cargo CI cache keys ignore unrelated literal catalog edits while retaining
+  Cargo selections and build identities. [Shared #154](https://github.com/dragginzgame/shared-tooling/issues/154).
+- Selects Host artifacts, filesystem and process 0.17.2; Query's consumed APIs
+  remain unchanged.
+- LOC reports reject CR/LF directory paths before normalization, and release-lock
+  refusals preserve filesystem diagnostics and status.
+  [Shared #151](https://github.com/dragginzgame/shared-tooling/issues/151),
+  [#152](https://github.com/dragginzgame/shared-tooling/issues/152).
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.3] - 2026-10-13
 
 - Shares NNS Subnet refresh parsing and ICRC account target parsing, preserving

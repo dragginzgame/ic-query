@@ -1173,6 +1173,68 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
+## Pending 0.55.4 tooling qualification
+
+Initial preparation selected public Shared 0.10.0
+`ed9c26f015691859f67b50b512a94709dcdc0c6c`, with 81 roots/91 payloads.
+Common host/Cargo versions and all IC version/digest records match the prior
+snapshot. Their redundant explicit roots are removed; required installer
+companions retain both immutable catalogs. No exception, tool upgrade or
+application dependency change is introduced. Query's Make root omits its trailing
+slash so all catalog callers and fixture assertions use the same path.
+
+Evidence is retained in `/tmp/ic-query-shared010-0554/`. Explicit locked source
+preparation and selected-tool setup pass, followed by offline tools/formatting
+admission. Seven pinned producer suites pass on modern Bash and genuine Bash
+3.2.57: command/default selection, formatting, Make consumption, host/IC setup,
+Cargo freshness and snapshot distribution. The host/IC suites include compact
+and full evidence-action cases against synthetic owned installations.
+
+Query's CI-script fixtures pass on both shells, covering selected catalogs,
+formatting, extension tools and retained evidence. Actual consumer hook, receipt,
+prepared-tool reuse and selection-preservation fixtures pass on both shells.
+Consumer release-cache, adapter and runner fixtures pass with simulated Git
+changes; no real commits, tags or pushes were created. The initial consumer
+fixture exposed a double slash in the snapshot catalog path; its refusal is
+retained separately from the passing rerun after the Make root fix. ShellCheck
+with sourced helpers, snapshot integrity and complete pin-record comparison pass.
+
+Exact [Shared 0.10.0 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38382161082)
+passes Linux, Apple Silicon and lint/security; Intel is in progress at inspection.
+The released [Query 0.55.3 CI](https://github.com/dragginzgame/ic-query/actions/runs/38394745228)
+passes Linux MSRV and canister checks; Linux checks are in progress and macOS
+jobs are queued. Neither qualifies this uncommitted consumer adoption. Full
+local CI, real release execution and native macOS consumer qualification were
+not run. Delivery and final-source all-host acceptance remain open in
+[#48](https://github.com/dragginzgame/ic-query/issues/48).
+
+
+The current prepared selection is Shared 0.10.2
+`626fc2bd3125195520fb870b92abfec11b01454d`, retaining 81 roots/91 payloads.
+Only the selected Cargo cache-key helper, Rust-tool fixture and snapshot-drift
+rules change from 0.10.0; the unselected GitHub sibling dashboard is not adopted.
+Literal-catalog cache keys ignore unrelated pin/comment/order edits while
+preserving Cargo/build identities and conservative nonliteral handling. Installed
+tool build identities and Query's CI cache policy remain unchanged.
+
+The incoming Host artifacts/filesystem/process 0.17.2 lock selection is preserved.
+All three registry checksums and packaged VCS identities match published source
+`e3afa6ddf022309e7ba97f6cefb312c48738db4e`; their implementation sources are
+unchanged from 0.17.1. Evidence: `/tmp/ic-query-shared0102-host0172-0554/`.
+After explicit locked source preparation, 58 cache-file and 27 Governance runner
+tests pass locked/offline. Strict host-library Clippy, complete offline tool/
+format admission, pins, type-docs and sourced-helper ShellCheck pass. The expanded
+Rust-tool/cache-key fixtures pass from the prepared consumer context on modern
+Bash and genuine Bash 3.2.57, including guarded Git effects and staged inputs.
+
+Exact [Host 0.17.2 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38395332181)
+passes Linux, Intel and Apple Silicon native gates, MSRV and lint/security.
+Exact [Shared 0.10.2 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38405254734)
+has Linux in progress and both macOS lanes queued at inspection. These producer
+results do not qualify this uncommitted Query selection. Full local CI, native
+macOS consumer checks and release execution were not run. Package manifests,
+the incoming lockfile, pins/toolchain and real index are unchanged by this batch.
+
 ## Pending 0.55.2 qualification
 
 Initial preparation selected Shared 0.9.13

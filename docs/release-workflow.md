@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a9a8ea5ddea0db279d8c139ef5a951474c50f742`](https://github.com/dragginzgame/shared-tooling/tree/a9a8ea5ddea0db279d8c139ef5a951474c50f742) (0.9.15),
+[`626fc2bd3125195520fb870b92abfec11b01454d`](https://github.com/dragginzgame/shared-tooling/tree/626fc2bd3125195520fb870b92abfec11b01454d) (0.10.2),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a9a8ea5ddea0db279d8c139ef5a951474c50f742/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/626fc2bd3125195520fb870b92abfec11b01454d/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,10 +36,16 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot records 83 entrypoints and derives their 91-file companion closure.
+The snapshot records 81 entrypoints and derives their 91-file companion closure.
 The entrypoints retain all existing operational helpers, selected fixtures and
 offline governance documents. Common Make, consumer-owned callers and optional
 features still require local review; companion declarations do not infer them.
+The common tool catalogs are required companions of their installers rather
+than separate roots. Make, standalone setup, formatting and freshness use that
+reviewed snapshot; host, IC and Rust exception selections are independent. Query
+retains no catalog exception. Complete versions and digests match the previous
+selection; compiler policy, application dependencies and Query's Cargo audit/
+machete extensions remain locally owned.
 The sole shared manifest owns these paths, and `docs/supported-hosts.md` remains
 a consumer overlay outside it. Refresh from a clean checkout of the reviewed
 revision, previewing before apply:

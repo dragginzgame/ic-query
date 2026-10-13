@@ -54,7 +54,17 @@ state_root="$(git rev-parse --git-path release-state)"
 if [[ "$delivery" == pr ]]; then state_root="$(git rev-parse --git-common-dir)/release-state"; fi
 [[ ! -L "$state_root" ]] || fail 'release state directory is symlinked'
 mkdir -p "$state_root"
-mkdir "$state_root/lock" 2>/dev/null || fail 'release lock is occupied; inspect its owner before clearing a stale lock'
+if mkdir "$state_root/lock"; then
+    :
+else
+    lock_status=$?
+    if [[ -e "$state_root/lock" || -L "$state_root/lock" ]]; then
+        echo 'release refused: release lock is occupied; inspect its owner before clearing a stale lock' >&2
+    else
+        echo 'release refused: unable to acquire release lock' >&2
+    fi
+    exit "$lock_status"
+fi
 trap 'rmdir "$state_root/lock"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM

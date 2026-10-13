@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# Shared companions: ci/tool-versions.env
 use strict;
 use warnings;
 use Cwd qw(abs_path);
@@ -53,7 +54,7 @@ my $status = eval {
         elsif ($arg eq '--versions') { $versions = $value; }
         else { $cargo_home = $value; }
     }
-    $versions //= "$consumer/ci/tool-versions.env";
+    $versions //= "$root/ci/tool-versions.env";
     for ($consumer, $cargo_home, $versions, $ENV{TMPDIR} // '/tmp') {
         length && !/[\r\n]/ or die "paths must not contain CR/LF or be empty\n";
         my $resolved = abs_path($_);

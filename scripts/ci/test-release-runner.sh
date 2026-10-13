@@ -829,6 +829,33 @@ cp .release-state/0.1.1.plan earlier-plan
 expect_failure patch origin main
 cmp earlier-plan .release-state/0.1.1.plan
 [[ ! -e events && ! -e tag ]] || exit 1
+[[ -d .release-state/lock ]] || exit 1
+grep -F 'release lock is occupied' output >/dev/null
+
+# Inject a non-occupancy error even on hosts where chmod cannot deny writes.
+new_fixture lock-permission
+early_plan patch validate
+cp .release-state/0.1.1.plan earlier-plan
+export RELEASE_FIXTURE_REAL_MKDIR
+RELEASE_FIXTURE_REAL_MKDIR="$(command -v mkdir)"
+cat > "$FIXTURE_ROOT/bin/mkdir" <<'STUB'
+#!/usr/bin/env bash
+if [[ "$*" == .release-state/lock ]]; then
+    echo 'mkdir: fixture permission denied' >&2
+    exit 37
+fi
+exec "$RELEASE_FIXTURE_REAL_MKDIR" "$@"
+STUB
+chmod +x "$FIXTURE_ROOT/bin/mkdir"
+status=0
+bash "$ROOT/scripts/ci/run-release.sh" patch origin main > output 2>&1 || status=$?
+[[ "$status" == 37 ]] || exit 1
+grep -F 'mkdir: fixture permission denied' output >/dev/null
+grep -F 'unable to acquire release lock' output >/dev/null
+if grep -F 'lock is occupied' output >/dev/null; then exit 1; fi
+cmp earlier-plan .release-state/0.1.1.plan
+[[ ! -e events && ! -e tag && ! -e .release-state/lock ]] || exit 1
+rm "$FIXTURE_ROOT/bin/mkdir"
 
 new_fixture corrupt-plan
 early_plan patch validate
