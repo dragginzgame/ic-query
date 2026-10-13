@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.4]
+## [0.55.4] - 2026-10-13
 
 - Adopts Shared Tooling 0.10.2. Common tool catalogs belong to the reviewed
   snapshot; host, IC and Rust exceptions must be selected independently.
