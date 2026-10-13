@@ -5,6 +5,7 @@
 //! Boundary: owns ICRC-3 history traversal and wire-to-report conversion.
 
 use super::{super::tip_certificate::verified_tip_certificate_data, live_query_context};
+use crate::decimal::is_unsigned_decimal;
 use crate::{
     hex::hex_bytes,
     icrc::{
@@ -228,7 +229,7 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     data: &IcrcTransactionsData,
 ) -> Result<(), IcrcError> {
     let parse = |text: &str| -> Result<Nat, IcrcError> {
-        if text.is_empty() || !text.bytes().all(|byte| byte.is_ascii_digit()) {
+        if !is_unsigned_decimal(text) {
             return Err(invalid_transaction_page(
                 "log length, block indexes, and ranges must be decimal naturals",
             ));

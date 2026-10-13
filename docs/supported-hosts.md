@@ -1173,9 +1173,81 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.55.1 Shared 0.9.10 qualification
+## Pending 0.55.2 qualification
 
-Canonical adoption selects committed Shared 0.9.9
+Initial preparation selected Shared 0.9.13
+`35cad65677ff989b5fb24a88d947fda37d2366e8`, retaining 83 roots/91 payloads.
+That initial adoption excluded dirty upstream 0.9.14 changes. Host artifacts, filesystem
+and process 0.16.0 matched the selected registry checksums; their Rust sources were
+unchanged from 0.15.1. The incoming manifest/lock selection, including Deranged
+0.5.9, remains intact. Query does not select the changed `ic-host-tools` defaults.
+
+Evidence is retained in `/tmp/ic-query-adopt-0552/`. Locked source preparation,
+explicit setup of the existing common/extension tools, and offline complete
+Host/IC/Rust tool and formatting admission pass. Consumer-root Rust fixtures,
+canonical lock diagnostic/status/retention checks, and pinned-source CI selection
+fixtures pass on modern Bash and genuine Bash 3.2.57. Actual Query formatting
+hook, receipt admission, prepared-tool reuse and selection preservation pass on
+both shells. With the selected Host graph, 58 cache-file tests and 27 Governance
+runner tests pass locked/offline; library and runner Clippy pass with warnings
+denied. Snapshot, dependency pins, changed-script ShellCheck and documentation
+links pass. Protected manifest/lock/pin/toolchain/index hashes are unchanged.
+
+Exact [Shared 0.9.13 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38368099898)
+passes Linux portable regression and lint/security; both macOS lanes are running
+at inspection. Exact [Host 0.16.0 CI](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38368805239)
+passes Linux native, MSRV and Apple Silicon native checks; Intel macOS is queued.
+These owner observations do not qualify this uncommitted Query selection.
+No full local CI, release execution or native macOS consumer run was performed.
+Native consumer acceptance remains pending in the
+[Shared fleet tracker](https://github.com/dragginzgame/shared-tooling/issues/98).
+
+The additional decimal-mechanics cleanup is qualified in
+`/tmp/ic-query-decimal-0552/`. CloudEngine, Dashboard/ICRC and SNS owner tests
+pass, including arbitrary-size cursors and their leading-zero normalization.
+Two ICRC history loopback fixtures initially lacked socket permission; their
+successful owner rerun and original refusals are retained separately. Each of
+the four affected host features and the pure library builds independently;
+strict library Clippy, formatting and documentation checks pass. No full local
+CI or native macOS run was performed for this additional prepared change.
+
+The CLI option consolidation is qualified in `/tmp/ic-query-options-0552/`:
+all 53 NNS and 36 SNS command tests pass locked/offline. Strict CLI Clippy,
+including test targets, and formatting/documentation checks pass. Manifest,
+lock, toolchain, tool-pin, snapshot and real-index hashes match the incoming
+prepared selection. Full local CI and native macOS execution were not run.
+
+
+The current prepared selection is Shared 0.9.15
+`a9a8ea5ddea0db279d8c139ef5a951474c50f742` (83 roots/91 payloads),
+canonically refreshed from a clean pinned checkout. Host artifacts/filesystem/
+process 0.17.0 are already selected by the incoming manifest and lockfile; all
+three registry checksums and packaged VCS identities match released Host source
+`93a0ecc2afb7d4b8d8a252a21ed10d7e58b35901`. Dirty sibling changes are excluded.
+No dependency, tool-pin, package-version or real-index changes were made.
+
+Additional evidence is retained in `/tmp/ic-query-sns-shared0915-0552/`.
+After explicit locked source preparation, 204 SNS report tests, 58 cache-file
+and 27 Governance runner tests pass locked/offline. The extended status fixture
+proves ambiguity handling plus later read-budget and parse-error precedence;
+its final owner rerun passes after removing a redundant test clone identified
+by Clippy. Strict library/test Clippy passes. Shared CI-log recovery and
+maintenance-path fixtures pass on modern Bash and genuine Bash 3.2.57, using
+stubbed GitHub and Codex calls. Offline tool/formatting admission, snapshot,
+dependency-pin, type-doc and changed-script ShellCheck checks pass. The standalone
+SNS host feature check and 307 local documentation links pass. Manifest, lock,
+toolchain, pin and real-index hashes match the incoming prepared worktree.
+
+Exact Shared 0.9.15 and Host 0.17.0 CI runs remain queued at inspection:
+[Shared](https://github.com/dragginzgame/shared-tooling/actions/runs/38376977855),
+[Host](https://github.com/dragginzgame/ic-host-tooling/actions/runs/38376461607).
+The released Query 0.55.1 run is also queued. These runs do not qualify the
+uncommitted 0.55.2 source. Full local CI, release execution and native macOS
+consumer qualification were not run for this additional batch.
+
+## Released 0.55.1 Shared 0.9.10 qualification
+
+Earlier preparation selected committed Shared 0.9.9
 `da4977129b9e2d3a62178fba8925026f9e42daa6`, retaining 82 roots and deriving
 90 payloads. The Rust fixture isolates its compiler context, borrows existing
 history and guards forbidden Git effects; it runs from the consumer root.
@@ -1196,11 +1268,15 @@ or native macOS run was performed for this prepared batch.
 The 0.9.10 delta adds reporting policy only; selected executable bytes are
 unchanged from 0.9.9. Snapshot and documentation checks pass, with evidence in
 `/tmp/ic-query-shared0910-review/`. Exact [Shared 0.9.9 CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38305700979)
-passes Linux and both macOS producer lanes. That producer result does not qualify
-this uncommitted consumer selection. Native consumer acceptance remains pending
-in the [Shared fleet tracker](https://github.com/dragginzgame/shared-tooling/issues/98).
+passes Linux and both macOS producer lanes. Query 0.55.1 is now delivered at
+`839d43c972f136feeaebec9fb837ee63bf829a6d`, selecting Shared 0.9.10
+`7e55adecf6f0b196c050f104b37f8c69b6bf434e`, 83 roots/91 payloads, and Host 0.15.1.
+Its [exact consumer CI](https://github.com/dragginzgame/ic-query/actions/runs/38368542552)
+passes Linux complete checks, MSRV and canister integration, plus Apple Silicon
+MSRV. Other required macOS lanes remain queued at inspection; acceptance stays
+pending in the [Shared fleet tracker](https://github.com/dragginzgame/shared-tooling/issues/98).
 
-The same pending slice's internal cleanup is qualified on Linux in
+The slice's earlier prepared internal cleanup was qualified on Linux in
 `/tmp/ic-query-cleanup-0551/`. NNS/SNS parsing, SNS reports, Dashboard URL and
 loopback transport, managed cache writers and cache-header/status tests pass.
 Independent Dashboard, SNS, ICRC and Subnet Catalog feature builds pass, as do

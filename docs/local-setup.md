@@ -12,7 +12,10 @@ Prepare the declared Rust/Cargo toolchain and native build prerequisites first,
 even when the repository has no Rust packages. The Makefile uses local tool
 paths automatically. Interactive shells need the
 export above; setup does not edit shell profiles. Installation downloads tools;
-checks are offline and never install missing dependencies. Before downloads,
+tool checks are offline and never install missing executables. Preparing missing
+workspace dependency sources during authorized development/validation follows
+the [locked Cargo fetch policy](../rules/cargo-dependencies.md#cargo-network-policy).
+Before tool downloads,
 `install-tools` uses the existing IC and Rust installers to admit the complete-set
 platform/pins and probe the consumer's selected `rustc` and `cargo`. These
 read-only `--preflight` calls create no tool/build directories and disable

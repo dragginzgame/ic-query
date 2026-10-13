@@ -5,6 +5,32 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.2]
+
+- Adopts Shared Tooling 0.9.15. Tool setup preserves lock-acquisition diagnostics
+  and Cargo source-download failure statuses; CI inspection refuses ambiguous
+  implicit branch selections.
+  [Shared #145](https://github.com/dragginzgame/shared-tooling/issues/145),
+  [#146](https://github.com/dragginzgame/shared-tooling/issues/146),
+  [#148](https://github.com/dragginzgame/shared-tooling/issues/148).
+- CI inspection recovers exact-attempt failed-job logs when failed-step logs are
+  empty. Maintenance refuses CR/LF directory paths before probing or writing state.
+  [Shared #149](https://github.com/dragginzgame/shared-tooling/issues/149),
+  [#150](https://github.com/dragginzgame/shared-tooling/issues/150).
+- Selects Host artifacts, filesystem and process 0.17.0. Query's consumed APIs
+  remain unchanged; refresh existing pinned Cargo tools explicitly after adopting
+  the changed Shared build policy. Prior tools and evidence remain retained.
+
+- Shares arbitrary-precision decimal validation and comparison across report
+  families, preserving raw values, existing errors, bounds and cursor policies.
+
+- Consolidates CLI refresh and cache-status parsing within NNS and SNS,
+  preserving command defaults, validation and collection behavior.
+- Shares SNS cache identity-error mapping and bounds retained refresh-attempt
+  matches without changing ambiguity, parsing or read-budget errors.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.1] - 2026-10-13
 
 - Adopts Shared Tooling 0.9.10. Rust-tool fixtures work from the consumer's

@@ -154,19 +154,20 @@ where
         <Family as SnsCacheCollection>::COLLECTION,
     )
     .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?;
-    let mut matching = Vec::new();
+    let mut matching = None;
+    let mut ambiguous = false;
     for path in attempt_paths {
         if let Some(attempt) =
             read_sns_refresh_attempt_status_strict(cache_root, &path, network, Some(budget))?
             && attempt.id == id
         {
-            matching.push((path, attempt));
+            ambiguous |= matching.replace((path, attempt)).is_some();
         }
     }
-    match matching.len() {
-        0 => Ok(None),
-        1 => Ok(matching.pop()),
-        _ => Err(SnsHostError::AmbiguousRefreshAttemptId { id }),
+    if ambiguous {
+        Err(SnsHostError::AmbiguousRefreshAttemptId { id })
+    } else {
+        Ok(matching)
     }
 }
 
@@ -298,7 +299,7 @@ mod tests {
         let invalid = root.join("sns/ic/aaaaa-aa/proposals/full.json");
         write_managed_text_atomically(&root, &invalid, "{invalid").unwrap();
         let attempt = invalid.with_file_name("full.refresh-attempt.json");
-        let evidence = serde_json::json!({
+        let mut evidence = serde_json::json!({
             "schema_version": 1, "network": "ic", "source_endpoint": "https://icp-api.io",
             "started_at": "2026-10-03T00:00:00Z", "updated_at": "2026-10-03T00:00:00Z",
             "id": 7, "root_canister_id": "aaaaa-aa", "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
@@ -326,6 +327,43 @@ mod tests {
         .unwrap();
         assert!(lookup.cache.is_none());
         assert_eq!(lookup.latest_attempt.unwrap().id, 7);
+
+        let duplicate = root.join("sns/ic/2vxsx-fae/proposals/full.refresh-attempt.json");
+        evidence["root_canister_id"] = "2vxsx-fae".into();
+        write_managed_text_atomically(&root, &duplicate, &evidence.to_string()).unwrap();
+        assert!(matches!(
+            find_attempt_by_id::<SnsProposalsCacheCollection>(
+                "ic",
+                &root,
+                7,
+                &mut ManagedReadBudget::new(16_384)
+            ),
+            Err(SnsHostError::AmbiguousRefreshAttemptId { id: 7 })
+        ));
+        let attempt_bytes =
+            fs::metadata(&attempt).unwrap().len() + fs::metadata(&duplicate).unwrap().len();
+        let error = find_attempt_by_id::<SnsProposalsCacheCollection>(
+            "ic",
+            &root,
+            7,
+            &mut ManagedReadBudget::new(attempt_bytes - 1),
+        )
+        .err()
+        .unwrap();
+        assert!(sns_cache_scan_limit_exceeded(&error));
+
+        let corrupt =
+            root.join("sns/ic/rrkah-fqaaa-aaaaa-aaaaq-cai/proposals/full.refresh-attempt.json");
+        write_managed_text_atomically(&root, &corrupt, "{invalid").unwrap();
+        assert!(matches!(
+            find_attempt_by_id::<SnsProposalsCacheCollection>(
+                "ic",
+                &root,
+                7,
+                &mut ManagedReadBudget::new(16_384)
+            ),
+            Err(SnsHostError::Cache(HostCacheError::ParseCache { .. }))
+        ));
         fs::remove_dir_all(root).unwrap();
     }
 }

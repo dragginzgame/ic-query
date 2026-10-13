@@ -187,7 +187,7 @@ fn sns_proposals_refresh_parses_page_controls() {
             "--max-pages",
             "3",
         ],
-        SnsProposalsRefreshOptions::from_matches,
+        SnsPagedRefreshOptions::from_matches,
     )
     .expect("parse proposals refresh");
 
@@ -213,7 +213,7 @@ fn sns_proposals_cache_parses_list_and_status_options() {
     let status = parse_test_options(
         sns_proposal_cache_status_command(),
         &["1", "--json"],
-        SnsProposalsCacheStatusOptions::from_matches,
+        SnsCacheStatusOptions::from_matches,
     )
     .expect("parse proposals cache status");
     assert_eq!(status.input, "1");

@@ -66,7 +66,7 @@ fn sns_neurons_rejects_invalid_clap_values() {
         parse_test_options(
             sns_neuron_refresh_command(),
             &["1", "--page-size", "0"],
-            SnsNeuronsRefreshOptions::from_matches,
+            SnsPagedRefreshOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -74,7 +74,7 @@ fn sns_neurons_rejects_invalid_clap_values() {
         parse_test_options(
             sns_neuron_cache_status_command(),
             &["not-a-principal"],
-            SnsNeuronsCacheStatusOptions::from_matches,
+            SnsCacheStatusOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
     ));

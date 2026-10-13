@@ -79,7 +79,7 @@ fn sns_neurons_refresh_parses_page_controls() {
             "--max-pages",
             "3",
         ],
-        SnsNeuronsRefreshOptions::from_matches,
+        SnsPagedRefreshOptions::from_matches,
     )
     .expect("parse neurons refresh");
 
@@ -106,7 +106,7 @@ fn sns_neurons_cache_parses_list_and_status_options() {
     let status = parse_test_options(
         sns_neuron_cache_status_command(),
         &["1", "--json"],
-        SnsNeuronsCacheStatusOptions::from_matches,
+        SnsCacheStatusOptions::from_matches,
     )
     .expect("parse cache status");
 

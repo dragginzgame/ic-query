@@ -196,7 +196,7 @@ fn nns_proposal_refresh_parses_cache_options() {
     let defaults = parse_test_options(
         nns_proposal_refresh_command(),
         &[],
-        NnsProposalRefreshOptions::from_matches,
+        NnsPagedRefreshOptions::from_matches,
     )
     .expect("parse refresh defaults");
 
@@ -220,7 +220,7 @@ fn nns_proposal_refresh_parses_cache_options() {
             "--max-pages",
             "2",
         ],
-        NnsProposalRefreshOptions::from_matches,
+        NnsPagedRefreshOptions::from_matches,
     )
     .expect("parse refresh options");
 

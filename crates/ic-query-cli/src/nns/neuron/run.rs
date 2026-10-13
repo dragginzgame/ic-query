@@ -1,7 +1,8 @@
 //! Runtime dispatch for public NNS neuron commands.
 
-use super::options::{NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions};
+use super::options::{NnsNeuronInfoOptions, NnsNeuronListOptions};
 use crate::cli::common::NetworkOutputOptions;
+use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::{
     nns::{NnsCommandError, command_cache_root, now_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
@@ -78,7 +79,7 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
 }
 
 async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    let options = NnsNeuronRefreshOptions::from_matches(matches, network);
+    let options = NnsPagedRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
         options.network,

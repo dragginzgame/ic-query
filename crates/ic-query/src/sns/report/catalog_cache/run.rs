@@ -17,15 +17,15 @@ use crate::{
     },
     freshness::freshness_facts,
     snapshot_cache::{
-        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotIdentityMismatch,
-        SnapshotJsonPaths, SnapshotKey, load_complete_snapshot_for_key,
-        with_locked_snapshot_refresh,
+        LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotJsonPaths, SnapshotKey,
+        load_complete_snapshot_for_key, with_locked_snapshot_refresh,
     },
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsListReport,
         SnsListRequest,
         assemble::{SnsReportProvenance, sns_list_report_from_list},
         build::fetch_joined_sns_catalog,
+        cache_storage::sns_identity_mismatch_error,
         enforce_mainnet_network,
         live::LiveSnsSource,
         source::{
@@ -247,7 +247,7 @@ fn load_cached_sns_catalog(
                 completeness.status
             ),
         },
-        |mismatch| catalog_identity_error(path.clone(), mismatch),
+        |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
     )?;
     validate_catalog_cache(&path, &cache)?;
     Ok(CachedSnsCatalog { path, cache })
@@ -390,13 +390,4 @@ fn catalog_paths(cache_root: &Path, network: &str) -> SnapshotJsonPaths {
 
 fn catalog_key(network: &str) -> SnapshotKey {
     SnapshotKey::full(CACHE_DOMAIN, network, CACHE_ENTITY, CACHE_COLLECTION)
-}
-
-fn catalog_identity_error(path: PathBuf, mismatch: SnapshotIdentityMismatch) -> SnsHostError {
-    SnsHostError::CacheIdentityMismatch {
-        path,
-        field: mismatch.field,
-        expected: mismatch.expected,
-        actual: mismatch.actual,
-    }
 }

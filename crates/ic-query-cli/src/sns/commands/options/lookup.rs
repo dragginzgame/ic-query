@@ -1,11 +1,11 @@
 //! Module: sns::commands::options::lookup
 //!
-//! Responsibility: parse shared SNS lookup command options.
+//! Responsibility: parse shared SNS selector, source, and collection options.
 //! Does not own: command-specific option fields or report requests.
-//! Boundary: captures network, format, endpoint, and SNS selector inputs.
+//! Boundary: captures common lookup, cache selection, and pagination inputs.
 
 use crate::cli::{
-    clap::required_string,
+    clap::{required_string, required_typed, typed_option},
     common::{OutputFormat, output_format},
 };
 use clap::ArgMatches;
@@ -31,6 +31,52 @@ impl SnsLookupOptions {
             network: network.to_string(),
             format: output_format(matches),
             source_endpoint: required_string(matches, "source-endpoint"),
+        }
+    }
+}
+
+///
+/// SnsPagedRefreshOptions
+///
+/// Common SNS selector and page bounds for complete Governance refreshes.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsPagedRefreshOptions {
+    pub(in crate::sns::commands) lookup: SnsLookupOptions,
+    pub(in crate::sns::commands) page_size: u32,
+    pub(in crate::sns::commands) max_pages: Option<u32>,
+}
+
+impl SnsPagedRefreshOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            lookup: SnsLookupOptions::from_matches(matches, network),
+            page_size: required_typed(matches, "page-size"),
+            max_pages: typed_option::<u32>(matches, "max-pages"),
+        }
+    }
+}
+
+///
+/// SnsCacheStatusOptions
+///
+/// Common selector and output options for local SNS Governance cache status.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::sns::commands) struct SnsCacheStatusOptions {
+    pub(in crate::sns::commands) input: String,
+    pub(in crate::sns::commands) network: String,
+    pub(in crate::sns::commands) format: OutputFormat,
+}
+
+impl SnsCacheStatusOptions {
+    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            input: required_string(matches, "input"),
+            network: network.to_string(),
+            format: output_format(matches),
         }
     }
 }

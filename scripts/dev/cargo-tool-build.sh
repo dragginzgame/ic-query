@@ -126,7 +126,7 @@ cargo_source() {
     if [[ ${#archives[@]} == 0 && "$check_only" == false ]]; then
         # Cargo owns registry download/checksum admission; no second registry client.
         (umask 077; cd "$cargo_cache" && "${build_environment[@]}" "HOME=$cargo_cache" "$cargo_bin" info \
-            "$package@$selected_version" --registry crates-io ${offline_args[@]+"${offline_args[@]}"}) >&2 || return 1
+            "$package@$selected_version" --registry crates-io ${offline_args[@]+"${offline_args[@]}"}) >&2 || return $?
         archives=("$cargo_cache"/registry/cache/index.crates.io-*/"$package-$selected_version.crate")
     fi
     [[ ${#archives[@]} == 1 && -f "${archives[0]}" && ! -L "${archives[0]}" ]] || {

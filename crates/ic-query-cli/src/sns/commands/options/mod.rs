@@ -12,13 +12,8 @@ mod proposals;
 mod reward;
 
 pub(super) use list::{SnsCatalogRefreshOptions, SnsListOptions};
-pub(super) use lookup::SnsLookupOptions;
+pub(super) use lookup::{SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions};
 pub(super) use metrics::SnsMetricsOptions;
-pub(super) use neurons::{
-    SnsNeuronOptions, SnsNeuronsCacheStatusOptions, SnsNeuronsOptions, SnsNeuronsRefreshOptions,
-};
-pub(super) use proposals::{
-    SnsProposalOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
-    SnsProposalsRefreshOptions,
-};
+pub(super) use neurons::{SnsNeuronOptions, SnsNeuronsOptions};
+pub(super) use proposals::{SnsProposalOptions, SnsProposalsOptions};
 pub(super) use reward::{SnsRewardCheckpointOptions, SnsRewardDiffOptions};

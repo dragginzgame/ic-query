@@ -4,11 +4,9 @@
 //! Does not own: clap specs, report construction internals, or text rendering details.
 //! Boundary: maps parsed options into report requests and writes text or JSON output.
 
-use super::options::{
-    NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions,
-    NnsProposalRefreshOptions,
-};
+use super::options::{NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions};
 use crate::cli::common::NetworkOutputOptions;
+use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::{
     cli::common::write_text_or_json,
     nns::{NnsCommandError, command_cache_root, now_unix_secs},
@@ -125,7 +123,7 @@ async fn run_nns_proposal_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    let options = NnsProposalRefreshOptions::from_matches(matches, network);
+    let options = NnsPagedRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
         command_cache_root()?,
         options.network,

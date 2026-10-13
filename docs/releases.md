@@ -307,7 +307,10 @@ Document the affected workspace graphs and exact preparation commands in the
 consumer's release guide. An explicit request for that documented release
 includes this network preparation, but never dependency upgrades or lock repairs.
 Cargo's explicit offline environment/configuration settings remain authoritative.
-Ordinary validation and standalone adapter commands remain offline.
+Authorized development and validation also include separate locked source-cache
+preparation under the Cargo network policy below. Deliberately offline gates and
+standalone adapter commands retain their offline contract; a missing cache does
+not enable an implicit online retry inside them.
 Do not hard-code `--offline` onto the authorized preparation step or export an
 offline setting across both preparation and validation. `--locked` preserves
 the selected dependency graph while allowing missing inputs to be downloaded.
@@ -370,8 +373,8 @@ The complete validation gate and standalone qualification commands also run thei
 offline tool checks before dependent builds/tests, even when release preparation
 was bypassed. Enforce sequencing under parallel Make with ordered recipes or real
 dependency edges; unordered sibling prerequisites do not establish order. Ordinary
-checks never install or download. A caller adds its own explicit setup command to
-the shared installer's selection diagnostic, preserving the failed status.
+tool checks never install or download tools. A caller adds its own explicit setup
+command to the shared installer's selection diagnostic, preserving the failed status.
 
 For adoption, prove an installed version N / selected N+1 prepares N+1 before
 builds, reuses it on retry and leaves locks, older installations and server bytes

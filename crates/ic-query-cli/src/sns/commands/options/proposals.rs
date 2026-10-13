@@ -5,10 +5,7 @@
 //! Boundary: validates clap matches into proposal command request inputs.
 
 use crate::{
-    cli::{
-        clap::{required_string, required_typed, string_option, typed_option},
-        common::{OutputFormat, output_format},
-    },
+    cli::clap::{required_typed, string_option, typed_option},
     sns::commands::{
         SnsCommandError,
         options::lookup::SnsLookupOptions,
@@ -54,32 +51,6 @@ pub(in crate::sns::commands) struct SnsProposalOptions {
     pub(in crate::sns::commands) proposal_id: u64,
     pub(in crate::sns::commands) verbose: bool,
     pub(in crate::sns::commands) show_ballots: bool,
-}
-
-///
-/// SnsProposalsCacheStatusOptions
-///
-/// Parsed options accepted by `icq sns proposal cache status`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsProposalsCacheStatusOptions {
-    pub(in crate::sns::commands) input: String,
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-}
-
-///
-/// SnsProposalsRefreshOptions
-///
-/// Parsed options accepted by `icq sns proposal refresh`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsProposalsRefreshOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) page_size: u32,
-    pub(in crate::sns::commands) max_pages: Option<u32>,
 }
 
 impl SnsProposalsOptions {
@@ -139,26 +110,6 @@ impl SnsProposalOptions {
             proposal_id: required_typed(matches, "proposal-id"),
             verbose: matches.get_flag("verbose"),
             show_ballots: matches.get_flag("ballots"),
-        }
-    }
-}
-
-impl SnsProposalsCacheStatusOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            input: required_string(matches, "input"),
-            network: network.to_string(),
-            format: output_format(matches),
-        }
-    }
-}
-
-impl SnsProposalsRefreshOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
-            page_size: required_typed(matches, "page-size"),
-            max_pages: typed_option::<u32>(matches, "max-pages"),
         }
     }
 }

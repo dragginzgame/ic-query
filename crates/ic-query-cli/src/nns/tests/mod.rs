@@ -7,11 +7,11 @@ use super::{
     },
     leaf::{
         NnsCommonOptions, NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions,
-        info_command as leaf_info_command, list_command as leaf_list_command,
-        refresh_command as leaf_refresh_command,
+        NnsPagedRefreshOptions, info_command as leaf_info_command,
+        list_command as leaf_list_command, refresh_command as leaf_refresh_command,
     },
     neuron::{
-        NnsNeuronInfoOptions, NnsNeuronListOptions, NnsNeuronRefreshOptions, neuron_cache_command,
+        NnsNeuronInfoOptions, NnsNeuronListOptions, neuron_cache_command,
         neuron_cache_status_command, neuron_command, neuron_distribution_command,
         neuron_info_command, neuron_list_command, neuron_refresh_command,
     },
@@ -20,11 +20,11 @@ use super::{
     node_provider::{NODE_PROVIDER_SPEC, command as node_provider_command},
     proposals::{
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalActivityOptions, NnsProposalListOptions,
-        NnsProposalListSort, NnsProposalOptions, NnsProposalRefreshOptions,
-        NnsProposalRewardStatusFilter, NnsProposalSortDirection, NnsProposalStatusFilter,
-        NnsProposalTopicFilter, nns_proposal_activity_command, nns_proposal_cache_command,
-        nns_proposal_cache_list_command, nns_proposal_cache_status_command, nns_proposal_command,
-        nns_proposal_info_command, nns_proposal_list_command, nns_proposal_refresh_command,
+        NnsProposalListSort, NnsProposalOptions, NnsProposalRewardStatusFilter,
+        NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+        nns_proposal_activity_command, nns_proposal_cache_command, nns_proposal_cache_list_command,
+        nns_proposal_cache_status_command, nns_proposal_command, nns_proposal_info_command,
+        nns_proposal_list_command, nns_proposal_refresh_command,
     },
     registry::{registry_command, registry_version_command},
     subnet::{

@@ -354,7 +354,10 @@ fn invalid_sns_cache_error(path: &Path, reason: String) -> SnsHostError {
     }
 }
 
-fn sns_identity_mismatch_error(path: PathBuf, mismatch: SnapshotIdentityMismatch) -> SnsHostError {
+pub(in crate::sns::report) fn sns_identity_mismatch_error(
+    path: PathBuf,
+    mismatch: SnapshotIdentityMismatch,
+) -> SnsHostError {
     SnsHostError::CacheIdentityMismatch {
         path,
         field: mismatch.field,

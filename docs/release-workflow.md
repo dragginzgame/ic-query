@@ -8,9 +8,9 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`7e55adecf6f0b196c050f104b37f8c69b6bf434e`](https://github.com/dragginzgame/shared-tooling/tree/7e55adecf6f0b196c050f104b37f8c69b6bf434e) (0.9.10),
+[`a9a8ea5ddea0db279d8c139ef5a951474c50f742`](https://github.com/dragginzgame/shared-tooling/tree/a9a8ea5ddea0db279d8c139ef5a951474c50f742) (0.9.15),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/7e55adecf6f0b196c050f104b37f8c69b6bf434e/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a9a8ea5ddea0db279d8c139ef5a951474c50f742/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
@@ -36,7 +36,7 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot records 82 entrypoints and derives their 90-file companion closure.
+The snapshot records 83 entrypoints and derives their 91-file companion closure.
 The entrypoints retain all existing operational helpers, selected fixtures and
 offline governance documents. Common Make, consumer-owned callers and optional
 features still require local review; companion declarations do not infer them.

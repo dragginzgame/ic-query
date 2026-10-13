@@ -5,10 +5,7 @@
 //! Boundary: validates clap matches into neuron command request inputs.
 
 use crate::{
-    cli::{
-        clap::{required_string, required_typed, typed_option},
-        common::{OutputFormat, output_format},
-    },
+    cli::clap::{required_string, required_typed, typed_option},
     sns::commands::{SnsCommandError, options::lookup::SnsLookupOptions, spec::SnsNeuronsSortArg},
 };
 use candid::Principal;
@@ -41,32 +38,6 @@ pub(in crate::sns::commands) struct SnsNeuronsOptions {
     pub(in crate::sns::commands) owner_principal_id: Option<String>,
     pub(in crate::sns::commands) sort: SnsNeuronsSortArg,
     pub(in crate::sns::commands) verbose: bool,
-}
-
-///
-/// SnsNeuronsCacheStatusOptions
-///
-/// Parsed options accepted by `icq sns neuron cache status`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsNeuronsCacheStatusOptions {
-    pub(in crate::sns::commands) input: String,
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-}
-
-///
-/// SnsNeuronsRefreshOptions
-///
-/// Parsed options accepted by `icq sns neuron refresh`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsNeuronsRefreshOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) page_size: u32,
-    pub(in crate::sns::commands) max_pages: Option<u32>,
 }
 
 impl SnsNeuronsOptions {
@@ -106,26 +77,6 @@ impl SnsNeuronOptions {
         Self {
             lookup: SnsLookupOptions::from_matches(matches, network),
             neuron_id: required_string(matches, "neuron-id"),
-        }
-    }
-}
-
-impl SnsNeuronsCacheStatusOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            input: required_string(matches, "input"),
-            network: network.to_string(),
-            format: output_format(matches),
-        }
-    }
-}
-
-impl SnsNeuronsRefreshOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
-            page_size: required_typed(matches, "page-size"),
-            max_pages: typed_option::<u32>(matches, "max-pages"),
         }
     }
 }

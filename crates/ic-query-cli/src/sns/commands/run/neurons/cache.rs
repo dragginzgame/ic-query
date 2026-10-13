@@ -5,11 +5,10 @@
 //! Boundary: maps cache CLI options into cache-list and cache-status requests.
 
 use crate::cli::common::NetworkOutputOptions;
+use crate::sns::commands::options::SnsCacheStatusOptions;
 use crate::{
     cli::common::write_text_or_json,
-    sns::commands::{
-        SnsCommandError, options::SnsNeuronsCacheStatusOptions, run::common::cache_command_parts,
-    },
+    sns::commands::{SnsCommandError, run::common::cache_command_parts},
 };
 use clap::ArgMatches;
 use ic_query::sns::{
@@ -40,7 +39,7 @@ fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), 
 }
 
 fn run_sns_neuron_cache_status(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsNeuronsCacheStatusOptions::from_matches(matches, network);
+    let options = SnsCacheStatusOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheStatusRequest {
         network: parts.network,

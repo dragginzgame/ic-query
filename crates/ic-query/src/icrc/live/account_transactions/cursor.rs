@@ -4,9 +4,10 @@
 //! Does not own: collection state, index wire decoding, transport, or reports.
 //! Boundary: keeps public cursor normalization and snapshot ordering on canonical decimal text.
 
+use crate::decimal::{compare_canonical_unsigned_decimal, is_unsigned_decimal};
 use crate::icrc::model::{IcrcAccountTransactionError, IcrcAccountTransactionRow};
 use candid::Nat;
-use std::{cmp::Ordering, str::FromStr};
+use std::str::FromStr;
 
 pub(in crate::icrc) fn normalize_transaction_cursor(
     value: &str,
@@ -34,7 +35,7 @@ pub(in crate::icrc) fn validate_canonical_account_transactions(
             ));
         }
         if let Some(previous) = previous
-            && compare_canonical_decimal(&transaction.id, previous).is_ge()
+            && compare_canonical_unsigned_decimal(&transaction.id, previous).is_ge()
         {
             return Err("transactions are not unique newest-first rows".to_string());
         }
@@ -76,7 +77,8 @@ pub(in crate::icrc) fn validate_account_transaction_page(
         });
     }
     if let Some(first) = transactions.first()
-        && requested_start.is_some_and(|start| compare_canonical_decimal(&first.id, start).is_ge())
+        && requested_start
+            .is_some_and(|start| compare_canonical_unsigned_decimal(&first.id, start).is_ge())
     {
         return Err(IcrcAccountTransactionError::InvalidPage {
             reason: "transaction is not below the exclusive requested cursor".to_string(),
@@ -84,7 +86,7 @@ pub(in crate::icrc) fn validate_account_transaction_page(
     }
     if let Some(last) = transactions.last()
         && oldest_transaction_id
-            .is_some_and(|oldest| compare_canonical_decimal(&last.id, oldest).is_lt())
+            .is_some_and(|oldest| compare_canonical_unsigned_decimal(&last.id, oldest).is_lt())
     {
         return Err(IcrcAccountTransactionError::InvalidPage {
             reason: "transaction is below the index's oldest transaction id".to_string(),
@@ -104,17 +106,13 @@ pub(super) fn parse_transaction_cursor(value: &str) -> Result<Nat, IcrcAccountTr
 pub(in crate::icrc) fn validate_transaction_cursor_text(
     value: &str,
 ) -> Result<(), IcrcAccountTransactionError> {
-    if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+    if !is_unsigned_decimal(value) {
         return Err(IcrcAccountTransactionError::InvalidCursor {
             value: value.to_string(),
             reason: "expected unsigned decimal text".to_string(),
         });
     }
     Ok(())
-}
-
-pub(super) fn compare_canonical_decimal(left: &str, right: &str) -> Ordering {
-    left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
 
 #[cfg(test)]

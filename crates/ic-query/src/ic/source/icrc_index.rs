@@ -8,6 +8,7 @@ use super::{
     canonical_request_principal, invalid_request, invalid_source, report_provenance,
     validate_principal_match, validate_provenance,
 };
+use crate::decimal::is_canonical_unsigned_decimal;
 use crate::ic::{
     IcHostError, IcIcrcAccountInfoReport, IcIcrcAccountInfoSourceData, IcIcrcAccountListQuery,
     IcIcrcAccountListReport, IcIcrcAccountListSourceData, IcIcrcAccountRow, IcIcrcHolderListQuery,
@@ -406,10 +407,7 @@ fn canonical_source_principal(field: &str, value: &str) -> Result<String, IcHost
 }
 
 fn validate_unsigned_decimal(field: &str, value: &str) -> Result<(), IcHostError> {
-    if value.is_empty()
-        || !value.bytes().all(|byte| byte.is_ascii_digit())
-        || (value != "0" && value.starts_with('0'))
-    {
+    if !is_canonical_unsigned_decimal(value) {
         return invalid_source(format!(
             "{field} value {value:?} is not canonical unsigned decimal text"
         ));

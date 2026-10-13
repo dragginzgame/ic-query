@@ -4,13 +4,11 @@
 //! Does not own: refresh paging, attempt files, cache publishing, or rendering.
 //! Boundary: maps refresh CLI options into the SNS neuron refresh request.
 
+use crate::sns::commands::options::SnsPagedRefreshOptions;
 use crate::{
     cli::common::write_text_or_json,
     progress::StderrQueryProgress,
-    sns::commands::{
-        SnsCommandError, options::SnsNeuronsRefreshOptions,
-        run::common::cached_lookup_command_parts,
-    },
+    sns::commands::{SnsCommandError, run::common::cached_lookup_command_parts},
 };
 use clap::ArgMatches;
 use ic_query::sns::{
@@ -21,7 +19,7 @@ pub(super) async fn run_sns_neuron_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let options = SnsNeuronsRefreshOptions::from_matches(matches, network);
+    let options = SnsPagedRefreshOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsNeuronsRefreshRequest {

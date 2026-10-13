@@ -5,6 +5,7 @@
 //! Boundary: carries source provenance, joined rows, and typed gaps to builders.
 
 use super::validation::SnsSourceValidator;
+use crate::decimal::is_canonical_unsigned_decimal;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{
@@ -186,7 +187,7 @@ fn validate_canister_health(canister: &SnsCanisterRow) -> Result<(), SnsHostErro
                 canister.canister_id
             ))
         })?;
-        if !is_canonical_decimal(value) {
+        if !is_canonical_unsigned_decimal(value) {
             return Err(VALIDATOR.invalid(format!(
                 "canister {} {field} {value:?} is not canonical unsigned decimal text",
                 canister.canister_id
@@ -235,10 +236,4 @@ fn validate_health_query_gap(inventory: &MainnetSnsCanisterInventory) -> Result<
         ));
     }
     Ok(())
-}
-
-fn is_canonical_decimal(value: &str) -> bool {
-    !value.is_empty()
-        && value.bytes().all(|byte| byte.is_ascii_digit())
-        && (value == "0" || !value.starts_with('0'))
 }

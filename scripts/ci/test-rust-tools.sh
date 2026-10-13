@@ -99,7 +99,11 @@ case "$1" in -vV|--version) echo 'cargo fixture'; exit 0 ;; esac
 [[ -z "${RUSTFLAGS+x}${RUSTC_WRAPPER+x}${CARGO_ENCODED_RUSTFLAGS+x}${UNMODELLED_SECRET+x}" ]] || exit 71
 [[ "$CARGO_HOME" == "$fixture/store/cargo-cache" && "$RUSTC" == "$fixture/compiler/bin/rustc" ]] || exit 72
 if [[ "$1" == info ]]; then
-    [[ ! -f "$fixture/no-info" ]] || exit 91
+    if [[ -f "$fixture/no-info" ]]; then
+        printf 'refused\n' >> "$fixture/info-refusals"
+        echo 'injected Cargo source acquisition failure' >&2
+        exit 91
+    fi
     identity="${2/@/-}"
     mkdir -p "$CARGO_HOME/registry/cache/index.crates.io-fixture"
     cp "$fixture/assets/$identity.crate" "$CARGO_HOME/registry/cache/index.crates.io-fixture/"
@@ -430,6 +434,34 @@ extension_path="$(CARGO_NET_OFFLINE=true bash "$installer" --consumer "$fixture/
    "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$path")" ]] || exit 1
 rm "$fixture/no-info"
 physical="$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$path")"; bundle="${physical%/bin/*}"
+# Missing source must preserve Cargo's status through both installer call shapes,
+# without a build, retry, activation or loss of previously retained evidence.
+cp "$fixture/versions" "$fixture/missing-source-versions"
+printf 'SHARED_TOOLING_CARGO_SORT_VERSION=99.9.9\n' >> "$fixture/missing-source-versions"
+cp -R "$SHARED_TOOLING_STORE" "$fixture/before-source-store"
+cp -R "$consumer/.tools" "$fixture/before-source-tools"
+source_common="$(readlink "$consumer/.tools/rust/common")"
+: > "$fixture/info-refusals"
+touch "$fixture/no-info"
+attempts=0
+for mode in common selected; do
+    status=0
+    if [[ "$mode" == common ]]; then
+        common --versions "$fixture/missing-source-versions" > "$fixture/source-$mode.out" 2> "$fixture/source-$mode.err" || status=$?
+    else
+        bash "$installer" "${selected_args[@]}" --version 9.9.9 > "$fixture/source-$mode.out" 2> "$fixture/source-$mode.err" || status=$?
+    fi
+    attempts=$((attempts + 1))
+    [[ "$status" -eq 91 && ! -s "$fixture/source-$mode.out" &&
+       "$(wc -l < "$fixture/info-refusals")" -eq "$attempts" &&
+       "$(wc -l < "$fixture/builds")" == "$builds_before" &&
+       "$(readlink "$consumer/.tools/rust/common")" == "$source_common" &&
+       "$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$path")" == "$physical" ]] || exit 1
+    grep -Fx 'injected Cargo source acquisition failure' "$fixture/source-$mode.err" >/dev/null
+    diff -r "$fixture/before-source-store" "$SHARED_TOOLING_STORE"
+    diff -r "$fixture/before-source-tools" "$consumer/.tools"
+done
+rm "$fixture/no-info"
 for field in bin/prepare .crates2.json inputs.json selection.json source.crate Cargo.lock; do
     cp "$bundle/$field" "$fixture/saved"
     printf '\nchanged\n' >> "$bundle/$field"

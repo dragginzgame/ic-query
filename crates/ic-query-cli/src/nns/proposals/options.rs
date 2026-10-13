@@ -170,31 +170,3 @@ impl NnsProposalOptions {
         }
     }
 }
-
-///
-/// NnsProposalRefreshOptions
-///
-/// Options accepted by `icq nns proposal refresh`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct NnsProposalRefreshOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
-    pub(in crate::nns) page_size: u32,
-    pub(in crate::nns) max_pages: Option<u32>,
-}
-
-impl NnsProposalRefreshOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        let common = NnsCommonOptions::from_matches(matches, network);
-        Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
-            page_size: required_typed(matches, "page-size"),
-            max_pages: typed_option(matches, "max-pages"),
-        }
-    }
-}

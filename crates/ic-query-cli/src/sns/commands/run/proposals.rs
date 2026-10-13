@@ -5,15 +5,13 @@
 //! Boundary: maps proposal CLI options into report/cache request DTOs.
 
 use crate::cli::common::NetworkOutputOptions;
+use crate::sns::commands::options::{SnsCacheStatusOptions, SnsPagedRefreshOptions};
 use crate::{
     cli::common::write_text_or_json,
     progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
-        options::{
-            SnsProposalOptions, SnsProposalsCacheStatusOptions, SnsProposalsOptions,
-            SnsProposalsRefreshOptions,
-        },
+        options::{SnsProposalOptions, SnsProposalsOptions},
         run::common::{cache_command_parts, cached_lookup_command_parts},
     },
 };
@@ -87,7 +85,7 @@ async fn run_sns_proposal_refresh(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let options = SnsProposalsRefreshOptions::from_matches(matches, network);
+    let options = SnsPagedRefreshOptions::from_matches(matches, network);
     let parts = cached_lookup_command_parts(options.lookup)?;
     let format = parts.format;
     let request = SnsProposalsRefreshRequest {
@@ -127,7 +125,7 @@ fn run_sns_proposal_cache_status(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let options = SnsProposalsCacheStatusOptions::from_matches(matches, network);
+    let options = SnsCacheStatusOptions::from_matches(matches, network);
     let parts = cache_command_parts(options.format, options.network)?;
     let request = SnsCacheStatusRequest {
         network: parts.network,

@@ -8,6 +8,7 @@ use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
     validate_collection_end, validate_principal_match, validate_provenance,
 };
+use crate::decimal::is_canonical_unsigned_decimal;
 use crate::ic::{
     IcHostError, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountSourceData,
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRow, IcIcrcTokenValueSourceData,
@@ -270,10 +271,4 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         returned_observation_count: source.observations.len(),
         observations: source.observations,
     })
-}
-
-fn is_canonical_unsigned_decimal(value: &str) -> bool {
-    !value.is_empty()
-        && value.bytes().all(|byte| byte.is_ascii_digit())
-        && (value == "0" || !value.starts_with('0'))
 }

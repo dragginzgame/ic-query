@@ -12,6 +12,7 @@ use super::{
     MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
     MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, enforce_mainnet_network,
 };
+use crate::decimal::{compare_canonical_unsigned_decimal, is_canonical_unsigned_decimal};
 use candid::Principal;
 use std::cmp::Ordering;
 
@@ -262,7 +263,9 @@ fn validate_price_row(row: &CloudEnginePriceRow) -> Result<(), CloudEngineHostEr
     }
     validate_decimal_cycles("net_cycles_per_month", &row.net_cycles_per_month)?;
     validate_decimal_cycles("gross_cycles_per_month", &row.gross_cycles_per_month)?;
-    if decimal_cmp(&row.gross_cycles_per_month, &row.net_cycles_per_month) == Ordering::Less {
+    if compare_canonical_unsigned_decimal(&row.gross_cycles_per_month, &row.net_cycles_per_month)
+        == Ordering::Less
+    {
         return invalid_source(format!(
             "gross cycles {} are less than net cycles {} for {}",
             row.gross_cycles_per_month, row.net_cycles_per_month, row.key
@@ -290,20 +293,13 @@ fn marketplace_key(row: &CloudEnginePriceRow) -> String {
 }
 
 fn validate_decimal_cycles(field: &'static str, value: &str) -> Result<(), CloudEngineHostError> {
-    if value.is_empty()
-        || value.len() > MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS
-        || !value.bytes().all(|byte| byte.is_ascii_digit())
-        || (value.len() > 1 && value.starts_with('0'))
+    if value.len() > MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS || !is_canonical_unsigned_decimal(value)
     {
         return invalid_source(format!(
             "{field} must be canonical non-negative decimal text of at most {MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS} digits"
         ));
     }
     Ok(())
-}
-
-fn decimal_cmp(left: &str, right: &str) -> Ordering {
-    left.len().cmp(&right.len()).then_with(|| left.cmp(right))
 }
 
 pub(super) fn canonical_principal(

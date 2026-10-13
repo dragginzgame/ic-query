@@ -49,7 +49,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     let refresh = parse_test_options(
         neuron_refresh_command(),
         &["--page-size", "100", "--max-pages", "2"],
-        NnsNeuronRefreshOptions::from_matches,
+        NnsPagedRefreshOptions::from_matches,
     )
     .expect("refresh options");
     assert_eq!(refresh.page_size, 100);
@@ -79,7 +79,7 @@ fn nns_neuron_rejects_invalid_numeric_values() {
         parse_test_options(
             neuron_refresh_command(),
             &["--page-size", "301"],
-            NnsNeuronRefreshOptions::from_matches,
+            NnsPagedRefreshOptions::from_matches,
         )
         .is_err()
     );
