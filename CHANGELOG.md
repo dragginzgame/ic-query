@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.5]
+## [0.55.5] - 2026-10-13
 
 - Adopts Shared Tooling 0.11.0. CI inspection rejects conflicting selectors and
   invalid run identities; host/IC setup shares managed tool-selection admission.
