@@ -312,6 +312,57 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
 }
 
 #[test]
+fn snapshot_refresh_attempt_admits_flat_metadata_and_refuses_ambiguous_json() {
+    let root = temp_dir("ic-query-attempt-json-admission");
+    let path = root.join("full.refresh-attempt.json");
+    let json = r#"{"schema_version":1,"network":"ic","source_endpoint":"https://icp-api.io",
+        "started_at":"2026-06-15T00:00:00Z","updated_at":"2026-06-15T00:00:01Z",
+        "status":"running","page_size":100,"pages_fetched":1,"rows_fetched":25,
+        "last_cursor":null,"last_error":null,"root_canister_id":"root"}"#;
+    let read = || {
+        read_snapshot_refresh_attempt_strict::<
+            SnapshotRefreshAttempt<std::collections::BTreeMap<String, String>>,
+        >(&root, &path, &["root_canister_id"], None)
+    };
+    crate::cache_file::write_managed_text_atomically(&root, &path, json).unwrap();
+    let attempt = read().unwrap().unwrap();
+    assert_eq!(attempt.metadata["root_canister_id"], "root");
+    assert_eq!(attempt.status, CacheRefreshAttemptStatus::Running);
+    assert_eq!(attempt.last_cursor, None);
+    for duplicate in ["network", "root_canister_id", "last_cursor"] {
+        let value = if duplicate == "last_cursor" {
+            "null"
+        } else {
+            "\"ic\""
+        };
+        let invalid = format!("{{\"{duplicate}\":{value},{}", &json[1..]);
+        crate::cache_file::write_managed_text_atomically(&root, &path, &invalid).unwrap();
+        assert!(matches!(
+            read(),
+            Err(SnapshotRefreshAttemptReadError::Parse { .. })
+        ));
+    }
+    let invalid = format!("{{\"unexpected\":0,{}", &json[1..]);
+    crate::cache_file::write_managed_text_atomically(&root, &path, &invalid).unwrap();
+    assert!(matches!(
+        read(),
+        Err(SnapshotRefreshAttemptReadError::Invalid { .. })
+    ));
+    for invalid in ["[]", "{", &format!("{json} trailing")] {
+        crate::cache_file::write_managed_text_atomically(&root, &path, invalid).unwrap();
+        assert!(matches!(
+            read(),
+            Err(SnapshotRefreshAttemptReadError::Parse { .. })
+        ));
+    }
+    assert_eq!(
+        fs::read_to_string(&path).unwrap(),
+        format!("{json} trailing")
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
     let root = temp_dir("ic-query-oversized-refresh-attempt");
     let path = root.join("sns/ic/root/neurons/full.refresh-attempt.json");

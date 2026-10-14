@@ -2,7 +2,7 @@ use super::*;
 use command::{CommandFailure, CommandOptions, StderrMode};
 use ic_host_artifacts::{
     artifact::{ArtifactError, Sha256Digest},
-    wasm::InspectionError,
+    wasm::{CustomSectionEncodingError, InspectionError, InspectionLimits, inspect},
 };
 use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_with};
 use protocol::Probe;
@@ -531,11 +531,37 @@ fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
     let path = directory.0.join("probe.wasm");
     let mut bytes = b"\0asm\x01\0\0\0".to_vec();
     let contents = vec![b'x'; 16_384];
-    let section = build::metadata_section("candid:service", &contents);
-    assert!(section.ends_with(&contents));
-    bytes.extend(section);
+    build::append_metadata_section(&mut bytes, "candid:service", &contents).unwrap();
+    build::append_metadata_section(&mut bytes, "ic-query:build", b"build-evidence").unwrap();
+    let facts = inspect(
+        &bytes,
+        InspectionLimits {
+            module_bytes: protocol::WASM_BYTES,
+            sections: 10,
+            exports: 10,
+            custom_sections: 10,
+        },
+    )
+    .unwrap();
+    assert_eq!(facts.custom_sections.len(), 2);
+    assert_eq!(facts.custom_sections[0].name, "icp:public candid:service");
+    assert_eq!(facts.custom_sections[0].data, contents);
+    assert_eq!(facts.custom_sections[1].name, "icp:public ic-query:build");
+    assert_eq!(facts.custom_sections[1].data, b"build-evidence");
     fs::write(&path, &bytes).unwrap();
     assert_eq!(protocol::read_wasm(&path).unwrap(), bytes);
+}
+
+#[test]
+fn metadata_append_refuses_the_aggregate_module_budget_without_changing_input() {
+    let mut bytes = vec![0; protocol::WASM_BYTES - 1];
+    let before = Sha256Digest::compute(&bytes);
+    let error = build::append_metadata_section(&mut bytes, "candid:service", b"did").unwrap_err();
+    assert!(matches!(
+        error.downcast_ref::<CustomSectionEncodingError>(),
+        Some(CustomSectionEncodingError::LimitExceeded { limit: 1, .. })
+    ));
+    assert_eq!(Sha256Digest::compute(&bytes), before);
 }
 
 #[test]

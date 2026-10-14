@@ -4,8 +4,11 @@
 //! Does not own: command-specific cache schemas, refresh execution, or process output.
 //! Boundary: exposes schema and network validation helpers for cached reports.
 
+mod header;
 mod load;
 mod model;
+
+pub use header::JsonCacheHeader;
 
 #[cfg(feature = "nns-topology-host")]
 pub use load::load_json_cache;

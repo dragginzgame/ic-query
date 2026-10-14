@@ -98,6 +98,9 @@ pub mod registry_get_value_response {
     ///
     /// Content
     ///
+    /// Inline value bytes or explicit chunk references supplied by the Registry.
+    ///
+
     #[derive(Clone, Eq, Oneof, PartialEq)]
     pub enum Content {
         #[prost(bytes = "vec", tag = "3")]

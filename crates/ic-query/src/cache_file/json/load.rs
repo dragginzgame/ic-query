@@ -4,67 +4,16 @@
 //! Does not own: missing-cache refresh policy or owner error definitions.
 //! Boundary: checks existence, schema version, and network through shared report traits.
 
-use super::model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};
+use super::{
+    JsonCacheHeader,
+    model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},
+};
 use crate::cache_file::{
     BoundedManagedFileReadError, CacheFileError, HostCacheError, ManagedReadBudget,
     read_bounded_managed_file,
 };
-use serde::de::{DeserializeOwned, Error as _, IgnoredAny, MapAccess, Visitor};
-use std::{collections::BTreeSet, fmt, io};
-
-struct JsonCacheHeader {
-    schema_version: u32,
-    network: Option<String>,
-    keys: BTreeSet<String>,
-}
-
-impl<'de> serde::Deserialize<'de> for JsonCacheHeader {
-    fn deserialize<Deserializer>(deserializer: Deserializer) -> Result<Self, Deserializer::Error>
-    where
-        Deserializer: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_map(JsonCacheHeaderVisitor)
-    }
-}
-
-struct JsonCacheHeaderVisitor;
-
-impl<'de> Visitor<'de> for JsonCacheHeaderVisitor {
-    type Value = JsonCacheHeader;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a JSON cache object")
-    }
-
-    fn visit_map<Map>(self, mut map: Map) -> Result<Self::Value, Map::Error>
-    where
-        Map: MapAccess<'de>,
-    {
-        let mut keys = BTreeSet::new();
-        let mut schema_version = None;
-        let mut network = None;
-        while let Some(key) = map.next_key::<String>()? {
-            if !keys.insert(key.clone()) {
-                return Err(Map::Error::custom(format!(
-                    "duplicate top-level cache field {key:?}"
-                )));
-            }
-            match key.as_str() {
-                "schema_version" => schema_version = Some(map.next_value()?),
-                "network" => network = map.next_value()?,
-                _ => {
-                    map.next_value::<IgnoredAny>()?;
-                }
-            }
-        }
-        Ok(JsonCacheHeader {
-            schema_version: schema_version
-                .ok_or_else(|| Map::Error::missing_field("schema_version"))?,
-            network,
-            keys,
-        })
-    }
-}
+use serde::de::DeserializeOwned;
+use std::io;
 
 #[cfg(feature = "nns-topology-host")]
 pub fn load_json_cache<T>(
@@ -141,6 +90,13 @@ where
     };
     let header = serde_json::from_slice::<JsonCacheHeader>(&data)
         .map_err(|source| HostCacheError::parse_cache(component, path.clone(), source))?;
+    let schema_version = header.schema_version.ok_or_else(|| {
+        HostCacheError::parse_cache(
+            component,
+            path.clone(),
+            <serde_json::Error as serde::de::Error>::missing_field("schema_version"),
+        )
+    })?;
     if let Some(supported_fields) = supported_fields
         && let Some(field) = header
             .keys
@@ -152,10 +108,10 @@ where
         ));
         return Err(HostCacheError::parse_cache(component, path, source));
     }
-    if header.schema_version != request.expected_schema_version {
+    if schema_version != request.expected_schema_version {
         return Err(HostCacheError::unsupported_cache_schema_version(
             component,
-            header.schema_version,
+            schema_version,
             request.expected_schema_version,
         ));
     }

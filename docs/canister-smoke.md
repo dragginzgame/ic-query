@@ -28,7 +28,8 @@ The harness exercises the four direct NNS Governance reports through
 `CanisterNnsSource` in a deployed Wasm canister. It uses the existing
 `ic-query` package's `governance_probe` example and one development-only
 `governance_smoke` Rust runner in `ic-query-cli`. The runner adopts
-`ic-host-artifacts` for bounded streams, digesting and Wasm inspection,
+`ic-host-artifacts` for bounded streams, digesting, Wasm inspection and metadata
+section encoding,
 `ic-host-fs` for file reads, raw reply evidence and atomic receipt publication,
 `ic-host-process` for command IO, process-group ownership and cleanup, and
 `ic-agent` for direct protocol IO. It adds no production CLI operation or
@@ -36,7 +37,7 @@ canister-runtime dependency. The workspace's Host registry selections are
 recorded in [Cargo.lock](../Cargo.lock). The canister Make entry points prepare
 that locked graph before offline runner builds. Archive support remains disabled
 and `ic-host-tools` is not selected.
-Host 0.10's unified durable writer uses explicit publication options for receipts.
+Host's unified durable writer uses explicit publication options for receipts.
 Receipt, Wasm and raw-reply failures retain the complete typed publication error,
 including whether output is already visible and any staging-cleanup failure.
 Reconcile visible output after a completion failure before retrying. Existing
@@ -47,6 +48,13 @@ This consumer needs its own native smoke qualification; see the
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
 </p>
+
+The probe appends `icp:public candid:service` and `icp:public ic-query:build`
+sections through Host's encoder, preserving exact DID/build payloads and their
+order. Each append checks the remaining 64 MiB whole-artifact allowance before
+changing the module. Encoding refusal leaves the input and publication destinations
+unchanged. Build/input discovery still uses Query's bounded executor until IC
+Build's caller-selected probe policy is published.
 
 ## Prerequisites
 

@@ -181,6 +181,7 @@ native_code_classification! {
     ///
     /// Native NNS Governance neuron state with unrecognized codes retained.
     ///
+
     pub enum NnsNeuronState {
         /// Governance supplied the unspecified state code.
         Unspecified = 0 => "unspecified",
@@ -203,6 +204,7 @@ native_optional_code_classification! {
     ///
     /// Native optional NNS Governance neuron visibility with unknown evidence retained.
     ///
+
     pub enum NnsNeuronVisibility {
         /// Governance omitted the optional visibility code.
         Unknown,
@@ -223,6 +225,7 @@ native_optional_code_classification! {
     ///
     /// Native optional NNS Governance neuron type with unknown evidence retained.
     ///
+
     pub enum NnsNeuronType {
         /// Governance omitted the optional neuron-type code.
         Unknown,
@@ -243,6 +246,7 @@ native_code_classification! {
     ///
     /// Native NNS Governance neuron-ballot vote with unrecognized codes retained.
     ///
+
     pub enum NnsNeuronVote {
         /// Governance supplied the unspecified vote code.
         Unspecified = 0 => "unspecified",

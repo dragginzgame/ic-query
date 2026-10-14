@@ -67,6 +67,8 @@ pub use confined::{
 pub use confined::{collect_managed_files, open_managed_file, read_bounded_stream};
 pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub use json::JsonCacheHeader;
 #[cfg(feature = "nns-topology-host")]
 pub use json::load_json_cache;
 #[cfg(all(

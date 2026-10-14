@@ -7,7 +7,8 @@
 use crate::{
     cache::CacheRefreshAttemptStatus,
     cache_file::{
-        BoundedManagedFileReadError, CacheFileError, ManagedReadBudget, read_bounded_managed_file,
+        BoundedManagedFileReadError, CacheFileError, JsonCacheHeader, ManagedReadBudget,
+        read_bounded_managed_file,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
@@ -105,22 +106,22 @@ where
     else {
         return Ok(None);
     };
-    let value: serde_json::Value =
+    let header: JsonCacheHeader =
         serde_json::from_slice(&data).map_err(|source| SnapshotRefreshAttemptReadError::Parse {
             path: path.to_path_buf(),
             source,
         })?;
-    if let Some(object) = value.as_object()
-        && let Some(field) = object
-            .keys()
-            .find(|field| !attempt_field_is_supported(field, metadata_fields))
+    if let Some(field) = header
+        .keys
+        .iter()
+        .find(|field| !attempt_field_is_supported(field, metadata_fields))
     {
         return Err(SnapshotRefreshAttemptReadError::Invalid {
             path: path.to_path_buf(),
             reason: format!("unknown field {field}"),
         });
     }
-    serde_json::from_value(value).map(Some).map_err(|source| {
+    serde_json::from_slice(&data).map(Some).map_err(|source| {
         SnapshotRefreshAttemptReadError::Parse {
             path: path.to_path_buf(),
             source,

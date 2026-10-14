@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.8]
+
+- Refresh-attempt cache reads reject duplicate top-level fields and share bounded
+  JSON admission without constructing an intermediate payload tree.
+- Governance probe builds use Host's bounded Wasm metadata encoder, preserving
+  metadata bytes and section order while enforcing the complete artifact limit.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.7] - 2026-10-14
 
 - Adopts Shared Tooling 0.12.3, preserving common tool pins.
