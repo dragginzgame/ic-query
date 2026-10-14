@@ -5,6 +5,14 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.8]
+
+- Requires Host 0.17.8 or newer within the compatible 0.17 series, preventing
+  selection of versions with the retained-staging macOS permission bug.
+  [#52](https://github.com/dragginzgame/ic-query/issues/52).
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.7] - 2026-10-14
 
 - Adopts Shared Tooling 0.12.3, preserving common tool pins.
