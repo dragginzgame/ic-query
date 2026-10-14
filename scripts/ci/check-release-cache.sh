@@ -3,21 +3,15 @@ set -euo pipefail
 
 # Exercise only consumer cache dispatch, with no real release or network effects.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS IC_QUERY_RELEASE_PREPARE_CACHE CARGO_NET_OFFLINE
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 make_bin="$(command -v make)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-cache.XXXXXX")"
-# Bash 3.2 may report zero after nounset; success requires completion.
-fixture_complete=false
-finish() {
-  local status=$?
-  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "Release cache fixtures retained: $work_dir" >&2; fi
-  exit "$status"
-}
-trap finish EXIT
-work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$repo_root/scripts/ci/fixture-lifecycle.sh"
+fixture_complete=false
+trap 'fixture_finish "$?" "$work_dir" "Release cache fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,ci,scripts/ci,scripts/dev,scripts/release} "$work_dir/bin"

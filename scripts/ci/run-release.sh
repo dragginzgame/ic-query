@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/check-make-execution.sh scripts/ci/next-release-version.sh
+# Shared companions: scripts/ci/check-make-execution.sh scripts/ci/next-release-version.sh scripts/ci/check-release-tag.sh
 set -euo pipefail
 
 # Canonical ordering and Git effects; consumer targets own metadata and gates.
@@ -270,7 +270,7 @@ assert_release_commit() {
     if [[ "$mode" != resume && "$(git rev-parse HEAD)" != "$release_commit" ]]; then followup=yes; fi
 }
 assert_release_tag() {
-    [[ "$(git cat-file -t "refs/tags/v$candidate")" == tag && "$(git rev-parse "refs/tags/v$candidate^{commit}")" == "$release_commit" ]] || fail 'existing tag differs from the exact release commit'
+    bash "$runner_dir/check-release-tag.sh" "$release_commit" "$candidate" || fail 'existing tag differs from the exact release commit'
 }
 read_remote_refs() {
     refs="$(git ls-remote --refs -- "$destination" "refs/heads/$branch" "refs/tags/v$candidate")"

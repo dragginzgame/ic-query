@@ -194,7 +194,7 @@ refuse common --check
 # The CI cache key shares the installer identity and performs no setup. Exercise
 # changes in a private copy so no production source is modified by qualification.
 mkdir -p "$fixture/cache-source/scripts/dev" "$fixture/cache-source/scripts/ci" "$fixture/cache-source/ci"
-for file in scripts/ci/cargo-tool-cache-key.sh scripts/ci/verify-file-checksum.sh \
+for file in scripts/ci/cargo-tool-cache-key.sh scripts/ci/tool-catalog-records.pl scripts/ci/verify-file-checksum.sh \
     scripts/dev/cargo-tool-build.sh scripts/dev/tool-store.sh scripts/dev/install-rust-tools.sh; do
     cp "$ROOT/$file" "$fixture/cache-source/$file"
 done

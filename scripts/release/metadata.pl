@@ -79,9 +79,16 @@ sub validated_before {
 sub expected {
     my ($path, $text) = @_;
     if ($path eq 'Cargo.toml') {
-        my $count = $text =~ s/(^\[workspace\.package\]\n(?:(?!^\[).)*?^version = ")\Q$previous\E("$)/$1$version$2/ms;
-        $count == 1 or die "ambiguous workspace package version\n";
-        $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;
+        # Render an owned copy of the authenticated bytes, not a reopened input.
+        my ($manifest, $manifest_path) = tempfile('ic-query-render-source.XXXXXX', TMPDIR => 1, UNLINK => 1);
+        binmode $manifest or die "cannot select manifest byte mode: $!\n";
+        print {$manifest} $text or die "cannot retain manifest input: $!\n";
+        close $manifest or die "cannot close manifest input: $!\n";
+        open my $renderer, '-|', $^X, 'scripts/ci/render-cargo-workspace-version.pl',
+            $manifest_path, $previous, $version or die "cannot run shared manifest renderer: $!\n";
+        $text = do { local $/; <$renderer> };
+        close $renderer or die "workspace version rendering failed\n";
+        my $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;
         $count == 1 or die "missing owned workspace dependency version\n";
     } elsif ($path eq 'Cargo.lock') {
         open my $lock, '-|', $^X, 'scripts/ci/rewrite-local-lock-versions.pl',

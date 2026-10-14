@@ -8,15 +8,15 @@ remains the separate `make publish` command.
 
 The runner and its version/changelog helpers are an immutable Shared Tooling
 snapshot at
-[`a15ff323449f4b6190f647aec0de43cbcfb314ba`](https://github.com/dragginzgame/shared-tooling/tree/a15ff323449f4b6190f647aec0de43cbcfb314ba) (0.11.0),
+[`031d214ed044705b989d43e2379f30e6a3d44749`](https://github.com/dragginzgame/shared-tooling/tree/031d214ed044705b989d43e2379f30e6a3d44749) (0.11.4),
 recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/a15ff323449f4b6190f647aec0de43cbcfb314ba/docs/releases.md).
+[common release contract](https://github.com/dragginzgame/shared-tooling/blob/031d214ed044705b989d43e2379f30e6a3d44749/docs/releases.md).
 `make shared-tooling-check` verifies the selected files' digests and executable
 modes without a network request, reporting the recorded upstream version and
 exact source commit. The version annotation comes from the exporter's committed
 source, stays descriptive, and does not replace commit identity or establish
 publication or host qualification. This snapshot selects read-only workspace
-version checking and release mechanics,
+version checking, pure workspace-version rendering and release mechanics,
 lockfile transformation, publication tag and registry checking, dependency-pin
 and documentation-link checking, isolated RustSec preparation, repository-local
 tool setup, formatter prerequisites, LOC reporting, exact-commit CI inspection

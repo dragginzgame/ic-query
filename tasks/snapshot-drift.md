@@ -30,6 +30,21 @@ their documented reason and native qualification. These selections are
 independent; a host exception does not select Rust pins. Compare complete
 version/digest records, not just filenames or displayed versions.
 
+Use the optional [caller catalog checker](../docs/tool-catalog-bindings.md) when
+the consumer has explicit bindings or recorded CLI selections:
+
+```bash
+perl scripts/ci/check-tool-catalogs.pl --consumer /absolute/consumer/root \
+  --bindings ci/tool-catalog-bindings.json --json
+```
+
+Report missing bindings and unsupported/computed selections as unresolved. This
+check compares declared/observed selections; it neither discovers every caller
+nor proves arbitrary source execution. Review coverage of setup/check, formatting,
+cache, collector and verifier roles separately. Keep recorded observations tied
+to their actual CLI invocation and source; do not relabel a declaration as one.
+Snapshot integrity and native qualification retain their independent checks.
+
 Inspect Make includes, standalone `--versions`/`--pins` calls, formatting adapters,
 CI cache-key inputs and failure-evidence action inputs for stale consumer-local
 catalog references. Distinguish unused duplicate defaults from files still needed

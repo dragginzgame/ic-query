@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/run-release.sh scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk
+# Shared companions: scripts/ci/run-release.sh scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk scripts/ci/fixture-lifecycle.sh
 set -euo pipefail
 
 # This fixture owns its Make controls; production admission is tested below.
@@ -11,16 +11,12 @@ ROOT="${BASH_SOURCE[0]}"
 ROOT="$(cd -P "${ROOT%/*}/../.." && printf '%s/.' "$PWD")"
 ROOT="${ROOT%/.}"
 FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/release-runner-test.XXXXXX")"
-# Bash 3.2 can enter EXIT with status zero after nounset; require completion too.
+FIXTURE_ROOT="$(CDPATH="" cd -P -- "$FIXTURE_ROOT" && printf '%s/.' "$PWD")"
+FIXTURE_ROOT="${FIXTURE_ROOT%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$ROOT/scripts/ci/fixture-lifecycle.sh"
 fixture_complete=false
-finish() {
-    local status=$?
-    [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-    if [[ "$status" == 0 ]]; then rm -rf "$FIXTURE_ROOT"
-    else printf "Failed release-runner fixture retained: %s\n" "$FIXTURE_ROOT" >&2; fi
-    exit "$status"
-}
-trap finish EXIT
+trap 'fixture_finish "$?" "$FIXTURE_ROOT" "Failed release-runner fixture retained"' EXIT
 export REAL_GIT REAL_MAKE
 export RELEASE_FIXTURE_HASH_GIT RELEASE_FIXTURE_GIT_REFUSALS
 RELEASE_FIXTURE_HASH_GIT="$(command -v git)"
@@ -138,6 +134,10 @@ case "$1" in
                 if [[ -n "${FIXTURE_TAG_COMMIT:-}" ]]; then echo "$FIXTURE_TAG_COMMIT"; elif [[ -f "tags/$name" ]]; then cat "tags/$name"; else [[ -f tag ]] || exit 1; echo "$release_sha"; fi
                 ;;
             refs/tags/*) [[ -f tag ]] || exit 1; if [[ -f tag-object ]]; then cat tag-object; else echo "$tag_sha"; fi ;;
+            *'^{commit}')
+                name="${*: -1}"; name="${name%\^\{commit\}}"
+                [[ -f "commits/$name.tree" ]] || exit 1
+                printf '%s\n' "$name" ;;
             *) exit 2 ;;
         esac
         ;;

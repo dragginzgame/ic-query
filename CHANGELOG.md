@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.6]
+
+- Adopts Shared Tooling 0.11.4, including common fixture completion/retention
+  handling and exact workspace-version rendering. Existing tool pins are preserved.
+- Failed and incomplete fixture checks preserve diagnostics and original failure
+  status, including cleanup and reporting failures.
+  [#49](https://github.com/dragginzgame/ic-query/issues/49).
+- Release metadata rendering reuses the shared pure helper while retaining exact
+  saved-source, index and interruption checks.
+  [#50](https://github.com/dragginzgame/ic-query/issues/50).
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.5] - 2026-10-13
 
 - Adopts Shared Tooling 0.11.0. CI inspection rejects conflicting selectors and

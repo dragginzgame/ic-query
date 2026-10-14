@@ -4,23 +4,17 @@ set -euo pipefail
 # This fixture owns its Make selections and nested logger's checkout identity.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-metadata.XXXXXX")"
-# Bash 3.2 may report zero after nounset; success requires completion.
-fixture_complete=false
-finish() {
-  local status=$?
-  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "Release metadata fixtures retained: $work_dir" >&2; fi
-  exit "$status"
-}
-trap finish EXIT
-work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$repo_root/scripts/ci/fixture-lifecycle.sh"
+fixture_complete=false
+trap 'fixture_finish "$?" "$work_dir" "Release metadata fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 
@@ -32,7 +26,7 @@ mkdir -p scripts/release scripts/ci make "$work_dir/bin"
 cp "$repo_root/Makefile" Makefile
 cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
 cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,run-formatting.sh,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,finalize-release-changelog.awk,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,run-formatting.sh,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -66,7 +60,7 @@ done
 git add -- Makefile make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/release/adapter.sh scripts/release/metadata.pl \
   scripts/ci/next-release-version.sh scripts/ci/finalize-release-changelog.awk \
   scripts/ci/run-validation-targets.sh scripts/ci/verify-file-checksum.sh scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh \
-  scripts/ci/rewrite-local-lock-versions.pl \
+  scripts/ci/rewrite-local-lock-versions.pl scripts/ci/render-cargo-workspace-version.pl \
   scripts/ci/read-cargo-workspace-version.sh scripts/ci/check-release-source.sh \
   Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"
 RELEASE_SOURCE="$(git write-tree)"
@@ -77,7 +71,26 @@ printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION
 perl scripts/release/metadata.pl capture "$evidence"
 : > "$evidence/passed"
 printf '%s\n' "$evidence" > ".git/release-state/$RELEASE_VERSION.validation"
+cp "$evidence/before/Cargo.toml" "$work_dir/reviewed-manifest"
+printf '\n# changed retained input\n' >> "$evidence/before/Cargo.toml"
+if perl scripts/release/metadata.pl prepare "$evidence" > "$work_dir/changed-input.log" 2>&1; then
+  fail 'changed retained source passed rendering'
+fi
+cmp "$work_dir/reviewed-manifest" Cargo.toml
+cp "$work_dir/reviewed-manifest" "$evidence/before/Cargo.toml"
 perl scripts/release/metadata.pl prepare "$evidence"
+mkdir -p "$work_dir/prepared/docs/changelog"
+for payload in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do
+  cp "$payload" "$work_dir/prepared/$payload"
+done
+for interrupted in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do
+  cp "$evidence/before/$interrupted" "$interrupted"
+  perl scripts/release/metadata.pl admit "$evidence"
+  perl scripts/release/metadata.pl prepare "$evidence"
+  for payload in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do
+    cmp "$work_dir/prepared/$payload" "$payload"
+  done
+done
 cmp "$work_dir/reviewed-readme" README.md
 cmp "$work_dir/reviewed-library-usage" docs/library-usage.md
 

@@ -1,22 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 make_bin="$(command -v make)"
 export CI_FIXTURE_REAL_MAKE="$make_bin"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-scripts.XXXXXX")"
-# Bash 3.2 may report zero after nounset; success requires completion.
-fixture_complete=false
-finish() {
-  local status=$?
-  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "CI script fixtures retained: $work_dir" >&2; fi
-  exit "$status"
-}
-trap finish EXIT
-work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$repo_root/scripts/ci/fixture-lifecycle.sh"
+fixture_complete=false
+trap 'fixture_finish "$?" "$work_dir" "CI script fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 bash "$repo_root/scripts/ci/test-fixture-completion.sh"
 

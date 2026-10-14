@@ -4,23 +4,17 @@ set -euo pipefail
 # Fixture Make invocations own their selections, independently of the caller.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
-# Bash 3.2 may report zero after nounset; success requires completion.
-fixture_complete=false
-finish() {
-  local status=$?
-  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "Publication guard fixtures retained: $work_dir" >&2; fi
-  exit "$status"
-}
-trap finish EXIT
-work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$repo_root/scripts/ci/fixture-lifecycle.sh"
+fixture_complete=false
+trap 'fixture_finish "$?" "$work_dir" "Publish guard fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 
 fail() {

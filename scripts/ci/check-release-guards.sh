@@ -3,20 +3,14 @@ set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
 export RELEASE_DELIVERY=direct
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
-# Bash 3.2 may report zero after nounset; success requires completion.
-fixture_complete=false
-finish() {
-  local status=$?
-  [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
-  if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "Release guard fixtures retained: $work_dir" >&2; fi
-  exit "$status"
-}
-trap finish EXIT
-work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
+work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
+# shellcheck source=scripts/ci/fixture-lifecycle.sh
+source "$repo_root/scripts/ci/fixture-lifecycle.sh"
+fixture_complete=false
+trap 'fixture_finish "$?" "$work_dir" "Release guard fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
@@ -77,6 +71,8 @@ case "$1" in
       *'^{tree}') name="${!#}"; name="$(resolve "${name%\^\{tree\}}")"; cat "commits/$name/tree" ;;
       refs/tags/*'^{commit}') name="${!#}"; cat "tags/${name#refs/tags/}" ;;
       refs/tags/*) name="${!#}"; [[ -f "tags/${name#refs/tags/}^{commit}" ]] || exit 1; echo "$tag_sha" ;;
+      *'^{commit}') name="${!#}"; name="$(resolve "${name%\^\{commit\}}")";
+        [[ -d "commits/$name" ]] || exit 1; printf '%s\n' "$name" ;;
       *) exit 2 ;;
     esac ;;
   status)
@@ -250,7 +246,7 @@ new_fixture() {
   cp "$repo_root/Makefile" Makefile
   mkdir -p make
   cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-tag.sh,check-release-source.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/

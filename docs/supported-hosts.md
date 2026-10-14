@@ -1173,7 +1173,33 @@ remain required; Linux and Bash 3.2 results do not qualify those hosts. Query's
 separate optimized product/startup acceptance would be required before introducing
 an optimization policy.
 
-## Pending 0.55.5 tooling qualification
+## Pending 0.55.6 tooling qualification
+
+Prepared Shared Tooling 0.11.4 at
+`031d214ed044705b989d43e2379f30e6a3d44749` selects 84 roots and 95 payloads,
+including the canonical fixture lifecycle and pure workspace-version renderer.
+Full common tool pin records match the delivered 0.11.0 selection. Exact
+[producer CI](https://github.com/dragginzgame/shared-tooling/actions/runs/38429576527)
+passes Linux and native macOS Intel/Apple Silicon.
+
+Query's actual caller-trap integration and Cargo-tool fixtures pass on modern
+Bash and genuine Bash 3.2.57. Real-index metadata fixtures cover each mixed
+before/prepared file, changed retained inputs, hidden staged changes and failed
+validation-log preservation. The simulated release guards, canonical renderer
+cases, offline tool admission, snapshot integrity and declaration checks pass.
+Evidence: `/tmp/ic-query-issues-0556/`. Source changes are uncommitted; these
+local checks do not establish native consumer qualification or a remote gate.
+
+Delivered Query 0.55.5 `08896ad2b184dd74d541a3632eee513466f1cc0f` passes its
+[Linux complete CI job](https://github.com/dragginzgame/ic-query/actions/runs/38439995507/job/115444079845).
+Both native macOS architectures fail host/MSRV/smoke compilation in Host's
+retained-staging permission conversion. [Query #52](https://github.com/dragginzgame/ic-query/issues/52)
+tracks adoption after the [Host #84](https://github.com/dragginzgame/ic-host-tooling/issues/84)
+repair is published and qualified. Incoming Host 0.17.7 remains selected and
+contains that defect; no native success, downgrade or downstream patch is claimed.
+Full local CI, release execution and native consumer qualification were not run.
+
+## 0.55.5 tooling preparation evidence
 
 Prepared Shared Tooling 0.11.0 at
 `a15ff323449f4b6190f647aec0de43cbcfb314ba` retains 81 roots and 91 payloads.
