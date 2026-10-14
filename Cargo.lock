@@ -1426,7 +1426,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.55.6"
+version = "0.55.7"
 dependencies = [
  "candid",
  "cap-fs-ext",
@@ -1454,7 +1454,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.55.6"
+version = "0.55.7"
 dependencies = [
  "candid",
  "clap",
