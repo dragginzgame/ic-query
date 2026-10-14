@@ -49,11 +49,12 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
         current_unix_secs()?,
         "ic-query",
     );
-    let mut request =
-        NnsNeuronListRequest::new(governance, options.limit).with_verbose(options.verbose);
-    if let Some(start_neuron_id) = options.start_neuron_id {
-        request = request.with_exclusive_start_neuron_id(start_neuron_id);
-    }
+    let request = NnsNeuronListRequest {
+        governance,
+        limit: options.limit,
+        exclusive_start_neuron_id: options.start_neuron_id,
+        verbose: options.verbose,
+    };
     let report = match build_nns_neuron_list_report_from_cache(&request, &command_cache_root()?)? {
         Some(report) => report,
         None => build_nns_neuron_list_report(&request).await?,

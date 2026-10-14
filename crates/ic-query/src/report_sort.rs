@@ -1,10 +1,45 @@
 //! Module: report_sort
 //!
-//! Responsibility: compare common scalar report-view sort keys.
+//! Responsibility: sort report rows and compare common scalar view keys.
 //! Does not own: report-specific sort fields, filters, or public direction models.
 //! Boundary: preserves shared direction and missing-value ordering across report families.
 
 use std::cmp::Ordering;
+
+pub fn sort_by_optional_u64<Row>(
+    rows: &mut [Row],
+    descending: bool,
+    key: impl Fn(&Row) -> Option<u64>,
+    tiebreak: impl Fn(&Row, &Row) -> Ordering,
+) {
+    rows.sort_by(|left, right| {
+        compare_optional_ord(key(left), key(right), descending).then_with(|| tiebreak(left, right))
+    });
+}
+
+pub fn sort_by_text<Row>(
+    rows: &mut [Row],
+    descending: bool,
+    key: impl Fn(&Row) -> &str,
+    tiebreak: impl Fn(&Row, &Row) -> Ordering,
+) {
+    rows.sort_by(|left, right| {
+        compare_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| tiebreak(left, right))
+    });
+}
+
+pub fn sort_by_optional_text<Row>(
+    rows: &mut [Row],
+    descending: bool,
+    key: impl Fn(&Row) -> Option<&str>,
+    tiebreak: impl Fn(&Row, &Row) -> Ordering,
+) {
+    rows.sort_by(|left, right| {
+        compare_optional_ascii_case_insensitive_text(key(left), key(right), descending)
+            .then_with(|| tiebreak(left, right))
+    });
+}
 
 pub fn compare_optional_ascii_case_insensitive_text(
     left: Option<&str>,
@@ -57,6 +92,27 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn optional_numeric_sort_preserves_missing_keys_and_caller_id_tiebreaks() {
+        let original = [
+            (Some(2), Some(7)),
+            (None, Some(9)),
+            (Some(1), None),
+            (Some(2), Some(4)),
+            (Some(2), None),
+        ];
+        for (descending, order) in [(false, [2, 3, 0, 4, 1]), (true, [0, 3, 4, 2, 1])] {
+            let mut rows = original;
+            sort_by_optional_u64(
+                &mut rows,
+                descending,
+                |row| row.0,
+                |left, right| compare_optional_ord(left.1, right.1, descending),
+            );
+            assert_eq!(rows, order.map(|index| original[index]));
+        }
+    }
 
     #[test]
     fn text_ordering_folds_ascii_and_preserves_other_bytes() {

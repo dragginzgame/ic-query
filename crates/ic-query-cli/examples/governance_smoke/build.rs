@@ -5,12 +5,12 @@ use crate::{
     command::{self, CommandOptions, StderrMode},
     invalid, protocol,
 };
+use ic_build::artifacts::{InputEvidence, InputEvidenceSpec, InputEvidenceValue, WasmBuildSpec};
 use ic_host_artifacts::artifact::hash_reader;
 use ic_host_fs::durable::write_bytes;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeSet,
     env, fs, io,
     path::{Path, PathBuf},
     process::Command,
@@ -49,24 +49,8 @@ pub fn target_directory(root: &Path) -> Result<PathBuf> {
     ))
 }
 
-fn rust_sources(directory: &Path, paths: &mut BTreeSet<PathBuf>) -> Result<()> {
-    for entry in fs::read_dir(directory)? {
-        let entry = entry?;
-        if entry.file_type()?.is_dir() {
-            rust_sources(&entry.path(), paths)?;
-        } else if entry
-            .path()
-            .extension()
-            .is_some_and(|extension| extension == "rs")
-        {
-            paths.insert(entry.path());
-        }
-    }
-    Ok(())
-}
-
 pub fn source_digest(root: &Path) -> Result<String> {
-    let mut paths: BTreeSet<_> = [
+    let required = [
         "Cargo.toml",
         "Cargo.lock",
         "rust-toolchain.toml",
@@ -74,21 +58,45 @@ pub fn source_digest(root: &Path) -> Result<String> {
         "crates/ic-query-cli/Cargo.toml",
         "tests/canister/probe.did",
     ]
-    .map(|path| root.join(path))
-    .into_iter()
-    .collect();
-    rust_sources(&root.join("crates/ic-query"), &mut paths)?;
-    rust_sources(
-        &root.join("crates/ic-query-cli/examples/governance_smoke"),
-        &mut paths,
-    )?;
+    .map(|path| root.join(path));
+    let roots = [
+        root.join("crates/ic-query"),
+        root.join("crates/ic-query-cli/examples/governance_smoke"),
+    ];
+    let spec = required
+        .iter()
+        .chain(&roots)
+        .fold(InputEvidenceSpec::new(Vec::new()), |spec, path| {
+            spec.with_input(path)
+        });
+    let inputs = InputEvidence::capture(&spec)?;
+    for path in required.iter().chain(&roots) {
+        if matches!(
+            inputs.entries().get(path),
+            Some(InputEvidenceValue::Missing)
+        ) {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("missing probe input: {}", path.display()),
+            )
+            .into());
+        }
+    }
     let mut hash = Sha256::new();
-    for path in paths {
+    for (path, value) in inputs.entries() {
+        if !matches!(value, InputEvidenceValue::File { .. })
+            || (!required.contains(path)
+                && path.extension().is_none_or(|extension| extension != "rs"))
+        {
+            continue;
+        }
+        // Preserve Query's relative-path/NUL/raw-bytes/NUL fingerprint contract.
         hash.update(path.strip_prefix(root)?.as_os_str().as_encoded_bytes());
         hash.update([0]);
         io::copy(&mut fs::File::open(path)?, &mut hash)?;
         hash.update([0]);
     }
+    inputs.validate_after(&inputs)?;
     Ok(format!("{:x}", hash.finalize()))
 }
 
@@ -116,26 +124,20 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
     let output = env::var_os("ICP_WASM_OUTPUT_PATH")
         .filter(|value| !value.is_empty())
         .ok_or_else(|| invalid("build-wasm requires ICP_WASM_OUTPUT_PATH"))?;
+    let spec = WasmBuildSpec::new(root, target, &["ic-query"], "release")
+        .with_example("governance_probe")
+        .with_target("wasm32-unknown-unknown")
+        .with_cargo_program("cargo")
+        .with_cargo_profile_args([
+            "--release",
+            "--no-default-features",
+            "--features",
+            "canister",
+            "--locked",
+            "--offline",
+        ]);
     command::run(
-        &mut command(
-            root,
-            "cargo",
-            &[
-                "build",
-                "-p",
-                "ic-query",
-                "--example",
-                "governance_probe",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-                "--no-default-features",
-                "--features",
-                "canister",
-                "--locked",
-                "--offline",
-            ],
-        ),
+        &mut spec.cargo_build_command()?,
         &CommandOptions {
             capture: false,
             ..Default::default()

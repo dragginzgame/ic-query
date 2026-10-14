@@ -604,3 +604,35 @@ retain evidence; existing nonzero statuses are preserved.
 Consumer-specific formatter stages and runtime obligations still need their local
 tests. Shared Tooling exercises this helper against its real nested Cargo fixture;
 that does not qualify a consumer's formatter or establish native macOS adoption.
+
+## Coordinated Cargo graph admission
+
+`cargo-release-metadata.sh check-graph PRIMARY_PACKAGE` validates regular root
+Cargo inputs, locked/offline resolution and the complete coordinated workspace/
+local-lock roster without requiring release notes or dates. It performs no
+version writes, fetching or compilation. The existing `check` operation adds
+release-note/date admission; both retain selected-commit and failed-evidence
+semantics. Consumers can project a successful Cargo member document through
+`cargo-workspace-members.jq` after a literal manifest bump; use full locked
+resolution for the final graph check rather than treating `--no-deps` as proof.
+
+`compare-stable-versions.pl VERSION BASELINE` prints -1, 0 or 1 using exact
+canonical decimal component ordering. It rejects malformed stable identities
+before output and uses no floating-point or shell-integer arithmetic. The release
+finalizer rejects non-increasing previous/target pairs itself.
+
+## Downloaded failure-evidence verification
+
+The optional host-side `failure_evidence.py` provides non-extracting archive
+indexing/regular reads and independent compact Shared tool receipt verification.
+Consumers keep source/job/run identity and product assertions. The Python helper
+is selected only by download-verification consumers, not native shell setup.
+Run `python3 scripts/ci/test-failure-evidence.py` on the download-verification
+host; the portable shell suite does not introduce a Python prerequisite.
+
+`qualify-hosted-failure.sh early|late CONSUMER EVIDENCE_PARENT HOST_CATALOG
+FAILURE_LOG_ROOT` requires explicit workflow dispatch and matching checkout
+identity. It creates a new isolated scenario/store, drives the canonical installer
+or logger, checks preserved inputs and deliberately returns the verified original
+failure status. Callers own evidence selection, upload/download and supported
+host gates; the command activates no workflow and changes no active tool selection.

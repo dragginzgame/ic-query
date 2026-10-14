@@ -1,4 +1,5 @@
 # Shared snapshot integrity and adoption
+<!-- Shared companions: docs/tool-catalog-bindings.md -->
 
 Apply the [common run contract](README.md) and the
 [snapshot contract](../docs/consuming-snapshots.md).
@@ -59,9 +60,11 @@ not corruption; prioritize applicable corrections rather than automatic churn.
 Report absent adoption explicitly; Shared Tooling itself needs no self-snapshot.
 Reconcile delivered adoption through the
 [issue maintenance procedure](../rules/agent-maintenance.md): verify the consumer's
-required checks, close completed owning issues and update linked Shared trackers.
-An intact snapshot or a pushed commit alone does not satisfy behavior/native
-acceptance, and an upstream tracker with other outstanding consumers stays open.
+required checks and close completed owning issues. Keep outstanding adoption in
+the consumer's issue; update Shared only for remaining producer work. An intact
+snapshot or a pushed commit alone does not satisfy behavior/native acceptance.
+Retire coordination-only trackers under that procedure without claiming their
+consumers have completed adoption.
 
 Return consumer/bundle root, recorded revision, integrity result, applicable
 upstream fixes, selected catalogs/exceptions, stale callers and adoption

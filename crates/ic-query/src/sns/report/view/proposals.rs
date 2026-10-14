@@ -11,8 +11,8 @@ use crate::sns::report::{
 };
 use crate::{
     report_sort::{
-        compare_ascii_case_insensitive_text, compare_optional_ascii_case_insensitive_text,
-        compare_optional_ord, compare_ord,
+        compare_ascii_case_insensitive_text, compare_ord, sort_by_optional_text,
+        sort_by_optional_u64, sort_by_text,
     },
     text_search::optional_text_contains_case_insensitive,
 };
@@ -102,101 +102,68 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
     sort: SnsProposalsSort,
     direction: SnsProposalSortDirection,
 ) {
+    let descending = matches!(direction, SnsProposalSortDirection::Desc);
+    let by_id = |left: &SnsProposalRow, right: &SnsProposalRow| {
+        compare_ord(left.proposal_id, right.proposal_id, descending)
+    };
     match sort {
         SnsProposalsSort::Api => {}
-        SnsProposalsSort::Id => {
-            let descending = matches!(direction, SnsProposalSortDirection::Desc);
-            proposals.sort_by(|left, right| {
-                compare_ord(left.proposal_id, right.proposal_id, descending)
-            });
-        }
-        SnsProposalsSort::Status => {
-            sort_by_status(proposals, direction);
-        }
-        SnsProposalsSort::Topic => {
-            sort_by_optional_text(proposals, direction, |proposal| proposal.topic.as_deref());
-        }
-        SnsProposalsSort::Proposer => {
-            sort_by_optional_text(proposals, direction, |proposal| {
-                proposal.proposer_neuron_id.as_deref()
-            });
-        }
-        SnsProposalsSort::Title => {
-            sort_by_text(proposals, direction, |proposal| proposal.title.as_str());
-        }
-        SnsProposalsSort::Action => {
-            sort_by_action(proposals, direction);
-        }
-        SnsProposalsSort::ActionId => {
-            sort_by_optional_u64(proposals, direction, |proposal| Some(proposal.action_id));
-        }
-        SnsProposalsSort::Yes => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.latest_tally.as_ref().map(|tally| tally.yes)
-        }),
-        SnsProposalsSort::No => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.latest_tally.as_ref().map(|tally| tally.no)
-        }),
-        SnsProposalsSort::TotalVotes => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.latest_tally.as_ref().map(|tally| tally.total)
-        }),
-        SnsProposalsSort::TallyTime => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal
-                .latest_tally
-                .as_ref()
-                .map(|tally| tally.timestamp_seconds)
-        }),
-        SnsProposalsSort::Ballots => sort_by_optional_u64(proposals, direction, |proposal| {
-            Some(proposal.ballot_count as u64)
-        }),
+        SnsProposalsSort::Id => proposals.sort_by(by_id),
+        SnsProposalsSort::Status => sort_by_status(proposals, direction),
+        SnsProposalsSort::Action => sort_by_action(proposals, direction),
         SnsProposalsSort::Eligible => sort_by_bool(proposals, direction, |proposal| {
             proposal.is_eligible_for_rewards
         }),
-        SnsProposalsSort::RejectCost => sort_by_optional_u64(proposals, direction, |proposal| {
-            Some(proposal.reject_cost_e8s)
-        }),
-        SnsProposalsSort::RewardRound => sort_by_optional_u64(proposals, direction, |proposal| {
-            Some(proposal.reward_event_round)
-        }),
-        SnsProposalsSort::RewardEnd => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.reward_event_end_timestamp_seconds
-        }),
-        SnsProposalsSort::Created => sort_by_optional_u64(proposals, direction, |proposal| {
-            Some(proposal.proposal_creation_timestamp_seconds)
-        }),
-        SnsProposalsSort::Decided => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.decided_timestamp_seconds
-        }),
-        SnsProposalsSort::Executed => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.executed_timestamp_seconds
-        }),
-        SnsProposalsSort::Failed => sort_by_optional_u64(proposals, direction, |proposal| {
-            proposal.failed_timestamp_seconds
-        }),
+        SnsProposalsSort::Title => sort_by_text(
+            proposals,
+            descending,
+            |proposal| proposal.title.as_str(),
+            by_id,
+        ),
+        SnsProposalsSort::Topic | SnsProposalsSort::Proposer => sort_by_optional_text(
+            proposals,
+            descending,
+            |proposal| match sort {
+                SnsProposalsSort::Topic => proposal.topic.as_deref(),
+                SnsProposalsSort::Proposer => proposal.proposer_neuron_id.as_deref(),
+                _ => unreachable!("sort key is selected by the outer match"),
+            },
+            by_id,
+        ),
+        _ => sort_by_optional_u64(
+            proposals,
+            descending,
+            |proposal| match sort {
+                SnsProposalsSort::ActionId => Some(proposal.action_id),
+                SnsProposalsSort::Yes => proposal.latest_tally.as_ref().map(|tally| tally.yes),
+                SnsProposalsSort::No => proposal.latest_tally.as_ref().map(|tally| tally.no),
+                SnsProposalsSort::TotalVotes => {
+                    proposal.latest_tally.as_ref().map(|tally| tally.total)
+                }
+                SnsProposalsSort::TallyTime => proposal
+                    .latest_tally
+                    .as_ref()
+                    .map(|tally| tally.timestamp_seconds),
+                SnsProposalsSort::Ballots => Some(proposal.ballot_count as u64),
+                SnsProposalsSort::RejectCost => Some(proposal.reject_cost_e8s),
+                SnsProposalsSort::RewardRound => Some(proposal.reward_event_round),
+                SnsProposalsSort::RewardEnd => proposal.reward_event_end_timestamp_seconds,
+                SnsProposalsSort::Created => Some(proposal.proposal_creation_timestamp_seconds),
+                SnsProposalsSort::Decided => proposal.decided_timestamp_seconds,
+                SnsProposalsSort::Executed => proposal.executed_timestamp_seconds,
+                SnsProposalsSort::Failed => proposal.failed_timestamp_seconds,
+                SnsProposalsSort::Api
+                | SnsProposalsSort::Id
+                | SnsProposalsSort::Status
+                | SnsProposalsSort::Action
+                | SnsProposalsSort::Eligible
+                | SnsProposalsSort::Title
+                | SnsProposalsSort::Topic
+                | SnsProposalsSort::Proposer => unreachable!("nonnumeric sorts are handled above"),
+            },
+            by_id,
+        ),
     }
-}
-
-fn sort_by_optional_u64(
-    proposals: &mut [SnsProposalRow],
-    direction: SnsProposalSortDirection,
-    key: impl Fn(&SnsProposalRow) -> Option<u64>,
-) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
-    proposals.sort_by(|left, right| {
-        compare_optional_ord(key(left), key(right), descending)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
-    });
-}
-
-fn sort_by_text(
-    proposals: &mut [SnsProposalRow],
-    direction: SnsProposalSortDirection,
-    key: impl Fn(&SnsProposalRow) -> &str,
-) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
-    proposals.sort_by(|left, right| {
-        compare_ascii_case_insensitive_text(key(left), key(right), descending)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
-    });
 }
 
 fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
@@ -208,18 +175,6 @@ fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDi
             descending,
         )
         .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
-    });
-}
-
-fn sort_by_optional_text(
-    proposals: &mut [SnsProposalRow],
-    direction: SnsProposalSortDirection,
-    key: impl for<'a> Fn(&'a SnsProposalRow) -> Option<&'a str>,
-) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
-    proposals.sort_by(|left, right| {
-        compare_optional_ascii_case_insensitive_text(key(left), key(right), descending)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }
 

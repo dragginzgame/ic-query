@@ -8,6 +8,7 @@ use crate::{
     decimal::{increment_decimal, is_unsigned_decimal},
     text_value::sanitize_text,
 };
+use std::fmt::Write;
 
 const CYCLE_UNITS: &[(u128, &str)] = &[
     (1_000_000_000_000_000_000, "E"),
@@ -54,17 +55,11 @@ pub fn decimal_cycle_rate_text(value: &str) -> String {
             rounded_decimal_parts(whole, fraction, CYCLE_UNITS[unit_index].0.ilog10() as usize);
     }
 
-    let number = match hundredths {
-        0 => rounded_whole,
-        value if value.is_multiple_of(10) => format!("{rounded_whole}.{}", value / 10),
-        value => format!("{rounded_whole}.{value:02}"),
-    };
-    let unit = CYCLE_UNITS[unit_index].1;
-    if unit.is_empty() {
-        number
-    } else {
-        format!("{number} {unit}")
-    }
+    quantity_text(
+        rounded_whole,
+        u128::from(hundredths),
+        CYCLE_UNITS[unit_index].1,
+    )
 }
 
 pub fn byte_count_text(value: u128) -> String {
@@ -88,17 +83,21 @@ fn scaled_quantity_text(value: u128, units: &[(u128, &str)], radix: u128) -> Str
         (whole, hundredths) = rounded_parts(value, units[unit_index].0);
     }
 
-    let number = match hundredths {
-        0 => whole.to_string(),
-        value if value.is_multiple_of(10) => format!("{whole}.{}", value / 10),
-        value => format!("{whole}.{value:02}"),
-    };
-    let unit = units[unit_index].1;
-    if unit.is_empty() {
-        number
-    } else {
-        format!("{number} {unit}")
+    quantity_text(whole.to_string(), hundredths, units[unit_index].1)
+}
+
+fn quantity_text(mut number: String, hundredths: u128, unit: &str) -> String {
+    if hundredths != 0 {
+        write!(number, ".{hundredths:02}").expect("writing to a String cannot fail");
+        if hundredths.is_multiple_of(10) {
+            number.pop();
+        }
     }
+    if !unit.is_empty() {
+        number.push(' ');
+        number.push_str(unit);
+    }
+    number
 }
 
 const fn rounded_parts(value: u128, divisor: u128) -> (u128, u128) {

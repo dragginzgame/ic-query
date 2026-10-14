@@ -28,6 +28,7 @@ tokio = { workspace = true, features = ["rt", "time"] }
 [dev-dependencies]
 futures.workspace = true
 ic-agent.workspace = true
+ic-build.workspace = true
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs.workspace = true
 ic-host-process.workspace = true

@@ -1298,6 +1298,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-build"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "415c50c37611014ab87016292bffb7ca366498c52062d226a0c9e886346683f8"
+dependencies = [
+ "ic-host-artifacts",
+ "ic-host-fs",
+ "ic-host-process",
+ "libc",
+ "serde_json",
+ "sha2 0.10.9",
+ "toml",
+]
+
+[[package]]
 name = "ic-cdk"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1379,9 +1394,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.17.8"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70e563af09ed78e7c1c995eaf7e0f40b5120140dda258a1b1a013c13349029c0"
+checksum = "9acf9183cfe37a9400ce6893d77292af8b22bcdb7a5451d7a36c81cac33b3be4"
 dependencies = [
  "sha2 0.10.9",
  "wasmparser",
@@ -1389,9 +1404,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.17.8"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b500e9a51887d938dc5b22f631313bc3417f91dfbf3f92edd0892fc6ed1cf96b"
+checksum = "1c549e4539b625ae82ed2de592acef0b8fc98a35e6edba47cc5ee98614c0936b"
 dependencies = [
  "ic-host-artifacts",
  "rustix",
@@ -1399,9 +1414,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-process"
-version = "0.17.8"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aad5f977fed94dc04bc11ea06bac2e6ffc6b0305d19f235cd8810d8d1e603c72"
+checksum = "9f7d287d27872f8d97a64da3d2d26cc18bdeaafba3c3009a6d538ee8026e0b07"
 dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
@@ -1445,6 +1460,7 @@ dependencies = [
  "clap",
  "futures",
  "ic-agent",
+ "ic-build",
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
@@ -2399,9 +2415,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.45"
+version = "0.23.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
+checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
  "once_cell",
@@ -2611,6 +2627,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "serde_spanned"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e7523beb55eece201a2356bee0bbca0d1ab466c14c07703b2e0ee6d42cb0c2c"
+dependencies = [
+ "serde_core",
 ]
 
 [[package]]
@@ -2968,6 +2993,45 @@ dependencies = [
  "pin-project-lite",
  "tokio",
 ]
+
+[[package]]
+name = "toml"
+version = "1.1.8+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20489e00e4d8741d6be680764cc12e270655e375a20d1011e844a9c3379e678d"
+dependencies = [
+ "indexmap",
+ "serde_core",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_parser",
+ "toml_writer",
+ "winnow",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "1.1.2+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b86d767906c6c42421dcba507eb9d203e779497710a47782a224bb871653053"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
+name = "toml_parser"
+version = "1.1.5+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baa693a8032d7e1cada7d0041e96126df243179ff061456783ac7f12bda4744c"
+dependencies = [
+ "winnow",
+]
+
+[[package]]
+name = "toml_writer"
+version = "1.1.3+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 
 [[package]]
 name = "tower"
@@ -3411,6 +3475,12 @@ name = "windows_x86_64_msvc"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
+
+[[package]]
+name = "winnow"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "winx"

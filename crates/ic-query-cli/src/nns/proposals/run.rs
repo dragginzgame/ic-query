@@ -71,23 +71,19 @@ async fn run_nns_proposal_list_with_options(
         current_unix_secs()?,
         "ic-query",
     );
-    let mut request = NnsProposalListRequest::new(governance, options.limit)
-        .with_status(options.status)
-        .with_reward_status(options.reward_status)
-        .with_topic(options.topic)
-        .with_sort(options.sort)
-        .with_sort_direction(options.sort_direction)
-        .with_verbose(options.verbose);
-
-    if let Some(before_proposal_id) = options.before_proposal_id {
-        request = request.with_before_proposal_id(before_proposal_id);
-    }
-    if let Some(proposer_neuron_id) = options.proposer_neuron_id {
-        request = request.with_proposer_neuron_id(proposer_neuron_id);
-    }
-    if let Some(query) = options.query {
-        request = request.with_query(query);
-    }
+    let request = NnsProposalListRequest {
+        governance,
+        limit: options.limit,
+        before_proposal_id: options.before_proposal_id,
+        status: options.status,
+        reward_status: options.reward_status,
+        topic: options.topic,
+        proposer_neuron_id: options.proposer_neuron_id,
+        query: options.query,
+        sort: options.sort,
+        sort_direction: options.sort_direction,
+        verbose: options.verbose,
+    };
 
     let report = match build_nns_proposal_list_report_from_cache(&request, &command_cache_root()?)?
     {

@@ -332,3 +332,17 @@ one owner in the complete CI gate. `make ci` does not start a local network; use
 
 Upstream contracts: [ICP 1.6.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.6.0)
 and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.6.0/docs/reference/configuration.md).
+
+## Shared probe build mechanics
+
+The development harness uses IC Build's named-example Cargo command factory and
+standalone input inventory. Query retains its sorted relative-path/NUL/raw-byte/NUL
+source fingerprint, probe DID and schema-1 metadata. The shared inventory refuses
+symlink and special-file inputs and checks for source changes while projecting the
+fingerprint; unrelated regular-file bytes do not enter that fingerprint.
+
+Cargo target discovery and output-path admission remain local because IC Build's
+published input resolver runs tool probes without an elapsed-time deadline. The
+harness executes the shared build recipe through its existing 600-second command
+policy, TERM grace and bounded reaping. Adoption creates no artifact cache and
+performs no deployment or managed-runtime operation.

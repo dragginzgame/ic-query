@@ -165,6 +165,17 @@ from the registry index before publishing the CLI, including on retry.
 API presence alone does not prove index readiness. Consumer fixtures cover
 unknown observations at both package boundaries without live registry effects.
 
+Publication dispatch uses the shared [single-attempt runner](cargo-publication.md).
+Each actual upload retains exact source/package selectors, NUL-separated arguments,
+combined Cargo output and Cargo/logger statuses in a fresh `target/publication/`
+directory. One workspace lock covers registry observations, index waiting and
+both uploads; the shared attempt lock uses that same stable evidence parent.
+Completed attempts release their locks and remain available for inspection.
+An incomplete dispatch retains both locks and blocks another invocation before
+registry or Cargo effects. Inspect the owners and receipts, reconcile exact
+registry state, and remove only the confirmed abandoned locks before retrying;
+never delete receipts or infer absence from an interrupted command.
+
 ## Selections and preparation
 
 Query selects direct release delivery and refuses other `RELEASE_DELIVERY`

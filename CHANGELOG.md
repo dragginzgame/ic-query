@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.7]
+
+- Adopts Shared Tooling 0.12.3, preserving common tool pins.
+- Publication retains source-bound upload receipts, exact arguments and command
+  output. Interrupted attempts block another invocation until their evidence and
+  admission locks are reconciled; existing library-first recovery is preserved.
+- The Governance development probe shares source inventory and its named-example
+  build recipe with IC Build 0.2.7, retaining fingerprint bytes and process deadlines.
+- Shares NNS/SNS proposal ordering mechanics, preserving missing-value placement,
+  direction, ID tiebreaks and report output.
+- Simplifies NNS list request construction and shares quantity-text finishing,
+  preserving command defaults, cursor semantics, rounding and unit labels.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.6] - 2026-10-14
 
 - Adopts Shared Tooling 0.11.4, including common fixture completion/retention

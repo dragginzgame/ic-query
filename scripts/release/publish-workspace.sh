@@ -18,6 +18,38 @@ version="$(bash "$(dirname "${BASH_SOURCE[0]}")/../ci/read-cargo-workspace-versi
 version_observer="$(dirname "${BASH_SOURCE[0]}")/../ci/check-crates-io-version.sh"
 readonly version_observer
 
+source_commit="$(git rev-parse --verify HEAD)"
+readonly source_commit
+readonly evidence_parent="target/publication"
+mkdir -p "$evidence_parent"
+readonly workspace_lock="$evidence_parent/.workspace-publication.lock"
+mkdir "$workspace_lock"
+# shellcheck disable=SC2329 # Registered as the EXIT trap below.
+finish() {
+  local status=$?
+  if [[ -e "$evidence_parent/.cargo-publication.lock" ]]; then
+    printf 'Publication interrupted; inspect evidence and both locks in %s\n' "$evidence_parent" >&2 || :
+    [[ "$status" != 0 ]] || status=1
+  else
+    if ! { rm -f -- "$workspace_lock/owner" && rmdir -- "$workspace_lock"; }; then
+      [[ "$status" != 0 ]] || status=1
+    fi
+  fi
+  exit "$status"
+}
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+printf '%s\n' "$$" > "$workspace_lock/owner"
+
+publish_package() {
+  local attempt
+  attempt="$(mktemp -d "$evidence_parent/$1.XXXXXX")"
+  rmdir -- "$attempt"
+  bash "$(dirname "${BASH_SOURCE[0]}")/../ci/run-cargo-publication.sh" \
+    publish "$attempt" "$source_commit" "$registry" --package "$1@$version"
+}
+
 crate_is_published() {
   local status=0
   bash "${version_observer}" "$1" "${version}" || status=$?
@@ -46,11 +78,11 @@ wait_for_library_index() {
 if crate_is_published ic-query; then
   echo "ic-query ${version} is already published; skipping"
 else
-  cargo publish --locked --registry "${registry}" -p ic-query
+  publish_package ic-query
 fi
 if crate_is_published ic-query-cli; then
   echo "ic-query-cli ${version} is already published; skipping"
 else
   wait_for_library_index
-  cargo publish --locked --registry "${registry}" -p ic-query-cli
+  publish_package ic-query-cli
 fi
