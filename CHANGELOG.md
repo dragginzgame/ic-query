@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.8]
+## [0.55.8] - 2026-10-14
 
 - Refresh-attempt cache reads reject duplicate top-level fields and share bounded
   JSON admission without constructing an intermediate payload tree.
