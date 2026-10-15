@@ -6,10 +6,7 @@
 
 use crate::cli::common::NetworkOutputOptions;
 use crate::sns::commands::options::SnsCacheStatusOptions;
-use crate::{
-    cli::common::write_text_or_json,
-    sns::commands::{SnsCommandError, run::common::command_cache_root},
-};
+use crate::{cli::common::write_text_or_json, sns::commands::SnsCommandError, storage::cache_root};
 use clap::ArgMatches;
 use ic_query::sns::{
     SnsCacheListRequest, SnsCacheStatusRequest, build_sns_neurons_cache_list_report,
@@ -29,7 +26,7 @@ pub(super) fn run_sns_neuron_cache(
 
 fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = SnsCacheListRequest {
         network: options.network,
         cache_root,
@@ -40,7 +37,7 @@ fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), 
 
 fn run_sns_neuron_cache_status(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = SnsCacheStatusRequest {
         network: options.network,
         cache_root,

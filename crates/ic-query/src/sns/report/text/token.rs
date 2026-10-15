@@ -4,10 +4,15 @@
 //! Does not own: token source reads, report construction, or JSON output.
 //! Boundary: formats token metadata and base-unit amounts for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::SnsTokenReport,
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, truncate_text},
+    text_value::{optional_text, truncate_text},
     token_amount::base_units_decimal_text,
     token_metadata_text::token_metadata_value_text,
 };
@@ -17,9 +22,9 @@ const SNS_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 #[must_use]
 pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("sns_index_canister_id: {}", report.sns_index_canister_id),
@@ -27,8 +32,8 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
             "ledger_index_canister_id: {}",
             optional_text(report.ledger_index_canister_id.as_ref())
         ),
-        format!("token_name: {}", sanitize_text(&report.token_name)),
-        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
+        format!("token_name: {}", terminal_text(&report.token_name)),
+        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "transfer_fee: {}",
@@ -47,30 +52,31 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
             optional_text(report.minting_account_subaccount_hex.as_ref())
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     if let Some(error) = report.ledger_index_error.as_deref() {
-        lines.push(format!("ledger_index_error: {}", sanitize_text(error)));
+        lines.push(format!("ledger_index_error: {}", terminal_text(error)));
     }
     if !report.supported_standards.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &["STANDARD", "URL"],
             &report
                 .supported_standards
                 .iter()
                 .map(|standard| [standard.name.clone(), standard.url.clone()])
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left],
+            &[Alignment::Left, Alignment::Left],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     if !report.metadata.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &["METADATA", "TYPE", "VALUE"],
             &report
                 .metadata
@@ -86,7 +92,8 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
+            &[Alignment::Left, Alignment::Left, Alignment::Left],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")

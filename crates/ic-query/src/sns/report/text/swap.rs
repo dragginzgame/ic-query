@@ -4,13 +4,18 @@
 //! Does not own: swap calls, report construction, source validation, or JSON output.
 //! Boundary: presents native raw fields, query guarantees, and typed gaps without hiding absence.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::{
         SnsSwapDerivedState, SnsSwapLifecycle, SnsSwapQueryGap, SnsSwapReport,
         SnsSwapSaleParameters, text::common::optional_text,
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text, yes_no},
+    text_value::{optional_u64_text, yes_no},
 };
 
 /// Render one SNS swap report as human-facing text.
@@ -40,9 +45,9 @@ pub fn sns_swap_report_text(report: &SnsSwapReport) -> String {
 
 fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
     vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("swap_canister_id: {}", report.swap_canister_id),
         format!("component_query_count: {}", report.component_query_count),
@@ -65,10 +70,10 @@ fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
             report.derived_state_method.as_str()
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
 }
@@ -177,7 +182,7 @@ fn derived_state_text(state: &SnsSwapDerivedState) -> String {
 }
 
 fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
-    render_table(
+    render(
         &["COMPONENT", "METHOD", "REASON"],
         &gaps
             .iter()
@@ -185,19 +190,21 @@ fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
                 [
                     gap.component.as_str().to_string(),
                     gap.method.as_str().to_string(),
-                    sanitize_text(&gap.reason),
+                    terminal_text(&gap.reason),
                 ]
             })
             .collect::<Vec<_>>(),
-        &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
+        &[Alignment::Left, Alignment::Left, Alignment::Left],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn key_value_table(rows: &[[String; 2]]) -> String {
-    render_table(
+    render(
         &["FIELD", "VALUE"],
         rows,
-        &[ColumnAlign::Left, ColumnAlign::Right],
+        &[Alignment::Left, Alignment::Right],
+        REPORT_TABLE_OPTIONS,
     )
 }
 

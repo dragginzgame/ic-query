@@ -4,19 +4,24 @@
 //! Does not own: live calls, report construction, source validation, or JSON output.
 //! Boundary: labels Governance and SNS-W evidence precisely and preserves query gaps.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::{SnsPendingUpgrade, SnsUpgradeReport, SnsVersion},
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+    text_value::yes_no,
 };
 
 /// Render one SNS upgrade report as human-facing text.
 #[must_use]
 pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("component_query_count: {}", report.component_query_count),
@@ -38,10 +43,10 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
             report.next_version_method.as_str()
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
         String::new(),
         next_version_status(report),
@@ -56,10 +61,11 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
         lines.extend([
             String::new(),
             "next_version_gap:".to_string(),
-            render_table(
+            render(
                 &["METHOD", "REASON"],
-                &[[gap.method.as_str().to_string(), sanitize_text(&gap.reason)]],
-                &[ColumnAlign::Left, ColumnAlign::Left],
+                &[[gap.method.as_str().to_string(), terminal_text(&gap.reason)]],
+                &[Alignment::Left, Alignment::Left],
+                REPORT_TABLE_OPTIONS,
             ),
         ]);
     }
@@ -99,15 +105,16 @@ fn comparison_table(deployed: &SnsVersion, next: Option<&SnsVersion>) -> String 
             ]
         })
         .collect::<Vec<_>>();
-    render_table(
+    render(
         &["ROLE", "DEPLOYED", "NEXT", "CHANGED"],
         &rows,
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
@@ -115,7 +122,7 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
     let Some(pending) = pending else {
         return "-".to_string();
     };
-    let mut lines = vec![render_table(
+    let mut lines = vec![render(
         &["FIELD", "VALUE"],
         &[
             [
@@ -128,7 +135,8 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
             ],
             ["proposal_id".to_string(), pending.proposal_id.to_string()],
         ],
-        &[ColumnAlign::Left, ColumnAlign::Right],
+        &[Alignment::Left, Alignment::Right],
+        REPORT_TABLE_OPTIONS,
     )];
     if let Some(target) = &pending.target_version {
         lines.extend([
@@ -143,13 +151,14 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
 }
 
 fn single_version_table(version: &SnsVersion) -> String {
-    render_table(
+    render(
         &["ROLE", "HASH"],
         &version_hashes(version)
             .into_iter()
             .map(|(role, hash)| [role.to_string(), hash.to_string()])
             .collect::<Vec<_>>(),
-        &[ColumnAlign::Left, ColumnAlign::Left],
+        &[Alignment::Left, Alignment::Left],
+        REPORT_TABLE_OPTIONS,
     )
 }
 

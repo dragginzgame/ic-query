@@ -12,8 +12,8 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsProposalOptions, SnsProposalsOptions},
-        run::common::command_cache_root,
     },
+    storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::sns::{
@@ -41,7 +41,7 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let options = SnsProposalOptions::from_matches(matches, network);
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let format = lookup.format;
     let request = SnsProposalRequest {
         network: lookup.network,
@@ -61,7 +61,7 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     let options = SnsProposalsOptions::from_matches(matches, network)?;
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let format = lookup.format;
     let request = SnsProposalsRequest {
         network: lookup.network,
@@ -92,7 +92,7 @@ async fn run_sns_proposal_refresh(
     let options = SnsPagedRefreshOptions::from_matches(matches, network);
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let format = lookup.format;
     let request = SnsProposalsRefreshRequest {
         network: lookup.network,
@@ -118,7 +118,7 @@ fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Sns
 
 fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = SnsCacheListRequest {
         network: options.network,
         cache_root,
@@ -136,7 +136,7 @@ fn run_sns_proposal_cache_status(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = SnsCacheStatusRequest {
         network: options.network,
         cache_root,

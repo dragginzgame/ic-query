@@ -4,6 +4,12 @@
 //! Does not own: source collection, cache policy, projection, or JSON output.
 //! Boundary: keeps compact operational display separate from raw report fields.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 #[cfg(feature = "dashboard-host")]
 use super::IcNodeStatusRefreshReport;
 use super::{
@@ -11,10 +17,7 @@ use super::{
     IcNodeStatusCounts, IcNodeStatusObservation, IcNodeStatusReport, IcNodeStatusRow,
     IcSubnetStatusReport,
 };
-use crate::{
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
-};
+use crate::text_value::yes_no;
 
 const COMPACT_PRINCIPAL_CHARS: usize = 8;
 
@@ -73,21 +76,22 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
         .collect::<Vec<_>>();
     push_table_section(
         &mut sections,
-        render_table(
+        render(
             &headers,
             &rows,
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
             ],
+            REPORT_TABLE_OPTIONS,
         ),
     );
     let non_up = report
@@ -138,7 +142,7 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         .map(|row| {
             [
                 compact(&row.node_provider_id),
-                sanitize_text(&row.node_provider_name),
+                terminal_text(&row.node_provider_name),
                 row.counts.statuses.total.to_string(),
                 row.counts.statuses.up.to_string(),
                 row.counts.statuses.degraded.to_string(),
@@ -159,24 +163,25 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         .collect::<Vec<_>>();
     push_table_section(
         &mut sections,
-        render_table(
+        render(
             &headers,
             &rows,
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ),
     );
     sections.join("\n")
@@ -192,11 +197,11 @@ fn push_table_section(sections: &mut Vec<String>, table: String) {
 #[must_use]
 pub fn ic_node_status_refresh_report_text(report: &IcNodeStatusRefreshReport) -> String {
     [
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
         counts_line("nodes", &report.counts.statuses),
         assignment_status_line(&report.counts.assignment_statuses),
@@ -204,10 +209,10 @@ pub fn ic_node_status_refresh_report_text(report: &IcNodeStatusRefreshReport) ->
             "replaced_existing_cache: {}",
             yes_no(report.replaced_existing_cache)
         ),
-        format!("cache_path: {}", sanitize_text(&report.cache_path)),
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_lock_path: {}",
-            sanitize_text(&report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
     ]
     .join("\n")
@@ -216,9 +221,9 @@ pub fn ic_node_status_refresh_report_text(report: &IcNodeStatusRefreshReport) ->
 fn observation_lines(observation: &IcNodeStatusObservation) -> Vec<String> {
     let mut lines = vec![format!(
         "observed node status: network={} fetched_at={} source={} certified={} point_in_time={}",
-        sanitize_text(&observation.source.network),
-        sanitize_text(&observation.source.fetched_at),
-        sanitize_text(&observation.source.source_endpoint),
+        terminal_text(&observation.source.network),
+        terminal_text(&observation.source.fetched_at),
+        terminal_text(&observation.source.source_endpoint),
         yes_no(observation.source.certified),
         yes_no(observation.source.point_in_time_guaranteed)
     )];
@@ -233,7 +238,7 @@ fn observation_lines(observation: &IcNodeStatusObservation) -> Vec<String> {
             yes_no(cache.cache_fresh),
             cache.age_seconds,
             cache.stale_after_seconds,
-            sanitize_text(&cache.cache_path)
+            terminal_text(&cache.cache_path)
         ));
     }
     lines
@@ -285,34 +290,35 @@ fn render_node_table(nodes: &[IcNodeStatusRow]) -> String {
         .map(|node| {
             [
                 compact(&node.node_id),
-                sanitize_text(&node.status),
-                sanitize_text(&node.node_type),
+                terminal_text(&node.status),
+                terminal_text(&node.node_type),
                 node.subnet_id
                     .as_deref()
                     .map_or_else(|| "-".to_string(), compact),
                 compact(&node.node_provider_id),
                 node.alert_name
                     .as_deref()
-                    .map_or_else(|| "-".to_string(), sanitize_text),
+                    .map_or_else(|| "-".to_string(), terminal_text),
             ]
         })
         .collect::<Vec<_>>();
-    render_table(
+    render(
         &headers,
         &rows,
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn compact(value: &str) -> String {
-    sanitize_text(value)
+    terminal_text(value)
         .chars()
         .take(COMPACT_PRINCIPAL_CHARS)
         .collect()

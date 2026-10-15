@@ -4,6 +4,7 @@
 //! Does not own: Dashboard collection, cache policy, report projection, or rendering.
 //! Boundary: adds the same status operation beneath node, Subnet, and provider nouns.
 
+use crate::storage::cache_root;
 use crate::{
     cli::{
         clap::{flag_arg, required_string, string_option},
@@ -12,7 +13,7 @@ use crate::{
             json_arg, output_format, source_endpoint_arg, write_text_or_json,
         },
     },
-    nns::{NnsCommandError, command_cache_root},
+    nns::NnsCommandError,
     progress::StderrQueryProgress,
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -122,7 +123,7 @@ pub(in crate::nns) async fn run(
         include_all: options.include_all,
     };
     let request = IcNodeStatusReadRequest::new(
-        command_cache_root()?,
+        cache_root()?,
         network,
         options.source_endpoint,
         current_unix_secs()?,

@@ -56,6 +56,46 @@ changing the module. Encoding refusal leaves the input and publication destinati
 unchanged. Build/input discovery still uses Query's bounded executor until IC
 Build's caller-selected probe policy is published.
 
+## Deterministic Testkit coverage
+
+Native development dependencies select `ic-testkit 0.44`. Its bounded HTTP
+request reader owns the Agent, Dashboard and ICRC socket-fixture framing loops.
+Query retains response contents, injected failures and report assertions.
+These ordinary tests need no running simulator.
+
+The separate simulator check installs the actual `governance_probe` Wasm and
+an in-memory Governance fixture at the fixed NNS principal. Testkit owns server
+admission/lifecycle, instance startup, probe installation and typed Candid
+calls. Query checks all four reports, collector provenance, raw metric buckets,
+Governance application errors, malformed replies and inter-canister rejects.
+The fixture uses the existing private Governance wire contracts rather than
+copying them into a mock application.
+
+Prepare the selected CLI and authenticated server explicitly, then run offline:
+
+```bash
+make install-testkit
+make testkit-check canister-test
+```
+
+The CLI version comes from `Cargo.lock` through the shared Cargo-tool installer.
+Testkit owns authenticated server setup, offline admission and managed launch
+under `.tools/testkit-server/`; these are separate from the common tool bundle.
+
+`canister-test` builds the probe under `target/testkit/`, then runs the selected
+ignored canister test through `ic-testkit-server run`. It never downloads a
+server during validation. An explicitly selected `POCKET_IC_BIN` or
+`IC_TESTKIT_POCKET_IC_URL` conflicts with this managed directory selection and
+is refused by Testkit. Direct test invocations can instead select those inputs
+through Testkit's environment contract and provide the compiled Wasm path as
+`IC_QUERY_GOVERNANCE_PROBE_WASM`.
+
+The regular native suite compiles this check but leaves execution to the
+explicit target; the three-host canister CI job selects it. ICP local-NNS smoke
+and mainnet deployment verification retain their separate deployment scope.
+The published simulator-independent Candid codec remains pending upstream;
+Query keeps its caller-selected decoder budgets until that package is available.
+
 ## Prerequisites
 
 - Linux or macOS; interruption cleanup uses POSIX process groups.
@@ -73,8 +113,8 @@ Build's caller-selected probe policy is published.
   to run the local NNS/SNS network.
 
 The common tool bundle supplies Quill, ICP CLI, didc, ic-wasm and wasm-opt.
-The harness uses ICP's managed runtime, so it does not require PocketIC or
-Testkit. After adopting Shared 0.2.0, explicitly reinstall the common bundle
+The harness uses ICP's managed runtime, so that deployment check does not require PocketIC or
+Testkit; the separate deterministic check above does. After adopting Shared 0.2.0, explicitly reinstall the common bundle
 before offline checks; prior six-tool bundles remain retained evidence.
 
 The managed runtime is pinned to network launcher **16.0.0** in `icp.yaml`.

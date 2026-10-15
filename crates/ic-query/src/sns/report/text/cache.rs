@@ -4,13 +4,18 @@
 //! Does not own: cache discovery, refresh execution, or JSON output shape.
 //! Boundary: keeps neuron and proposal cache text aligned while varying refresh commands.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::common::{optional_text, push_cache_error_lines};
 use crate::{
     sns::report::{
         SnsCacheListReport, SnsCacheStatusReport, SnsRefreshAttemptStatus, short_principal,
     },
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+    text_value::yes_no,
 };
 
 /// Render an SNS neuron cache-list report as human-readable text.
@@ -39,13 +44,13 @@ pub fn sns_proposals_cache_status_report_text(report: &SnsCacheStatusReport) -> 
 
 fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("cache_root: {}", sanitize_text(&report.cache_root)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("cache_count: {}", report.cache_count),
     ];
     if !report.caches.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &[
                 "STATUS",
                 "ID",
@@ -73,15 +78,16 @@ fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
         push_cache_error_lines(&mut lines, &report.caches);
     }
@@ -90,15 +96,15 @@ fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
 
 fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &str) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("input: {}", sanitize_text(&report.input)),
-        format!("cache_root: {}", sanitize_text(&report.cache_root)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("input: {}", terminal_text(&report.input)),
+        format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("found: {}", yes_no(report.found)),
     ];
     if let Some(cache) = report.cache.as_ref() {
         lines.extend([
             format!("sns_id: {}", cache.id),
-            format!("name: {}", sanitize_text(&cache.name)),
+            format!("name: {}", terminal_text(&cache.name)),
             format!("root_canister_id: {}", cache.root_canister_id),
             format!("governance_canister_id: {}", cache.governance_canister_id),
             format!("cache_status: {}", cache.cache_status),
@@ -106,33 +112,33 @@ fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &
             format!("row_count: {}", cache.row_count),
             format!("page_count: {}", cache.page_count),
             format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", sanitize_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", sanitize_text(&cache.source_endpoint)),
-            format!("cache_path: {}", sanitize_text(&cache.cache_path)),
+            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
+            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
+            format!("cache_path: {}", terminal_text(&cache.cache_path)),
             format!(
                 "refresh_attempt_path: {}",
-                sanitize_text(&cache.refresh_attempt_path)
+                terminal_text(&cache.refresh_attempt_path)
             ),
         ]);
         if let Some(error) = cache.cache_error.as_ref() {
-            lines.push(format!("cache_error: {}", sanitize_text(error)));
+            lines.push(format!("cache_error: {}", terminal_text(error)));
         }
     } else {
         if let Some(cache_path) = report.expected_cache_path.as_deref() {
             lines.push(format!(
                 "expected_cache_path: {}",
-                sanitize_text(cache_path)
+                terminal_text(cache_path)
             ));
         }
         if let Some(attempt_path) = report.refresh_attempt_path.as_deref() {
             lines.push(format!(
                 "refresh_attempt_path: {}",
-                sanitize_text(attempt_path)
+                terminal_text(attempt_path)
             ));
         }
         lines.push(format!(
             "refresh_hint: icq sns {refresh_family} refresh {}",
-            sanitize_text(&report.input)
+            terminal_text(&report.input)
         ));
     }
     if let Some(attempt) = report.latest_attempt.as_ref() {
@@ -146,8 +152,8 @@ fn attempt_lines(attempt: &SnsRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
         format!("  status: {}", attempt.status),
-        format!("  started_at: {}", sanitize_text(&attempt.started_at)),
-        format!("  updated_at: {}", sanitize_text(&attempt.updated_at)),
+        format!("  started_at: {}", terminal_text(&attempt.started_at)),
+        format!("  updated_at: {}", terminal_text(&attempt.updated_at)),
         format!("  page_size: {}", attempt.page_size),
         format!("  pages_fetched: {}", attempt.pages_fetched),
         format!("  rows_fetched: {}", attempt.rows_fetched),

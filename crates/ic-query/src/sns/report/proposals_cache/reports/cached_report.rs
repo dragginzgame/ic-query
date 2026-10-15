@@ -101,6 +101,7 @@ fn sns_proposals_report_from_cache(
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
     let cache_complete = cache.completeness.is_api_exhausted();
+    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
     let mut proposals = cache
         .data
         .proposals
@@ -112,7 +113,7 @@ fn sns_proposals_report_from_cache(
         .filter(|proposal| {
             proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
         })
-        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
+        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
         .collect::<Vec<_>>();
     sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));

@@ -12,8 +12,9 @@ use crate::{
         ledger::{
             GetIndexPrincipalResult, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
             Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
-            Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, index_principal_error_text,
-            nat_text, principal_from_text, query_ledger, query_ledger_arg,
+            Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, IcrcLedgerError,
+            index_principal_error_text, nat_text, principal_from_text, query_ledger,
+            query_ledger_arg,
         },
         model::{
             IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
@@ -46,7 +47,7 @@ pub(in crate::icrc::live) async fn fetch_index_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    let result = query_index_principal(&agent, &ledger_canister).await?;
+    let result = query_index_principal::<IcrcError>(&agent, &ledger_canister).await?;
 
     Ok(match result {
         GetIndexPrincipalResult::Ok(principal) => IcrcIndexData {
@@ -73,7 +74,7 @@ pub(in crate::icrc::live) async fn fetch_transactions_async(
         start: Nat::from(request.start),
         length: Nat::from(request.limit),
     }];
-    let result = query_blocks(&agent, &ledger_canister, &block_args).await?;
+    let result = query_blocks::<_, IcrcError>(&agent, &ledger_canister, &block_args).await?;
     validate_block_page(&result, request)?;
     let followed_archives = if request.follow_archives {
         fetch_archive_blocks(&agent, &result.archived_blocks).await
@@ -347,7 +348,7 @@ pub(in crate::icrc::live) async fn fetch_block_types_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    let block_types = query_block_types(&agent, &ledger_canister).await?;
+    let block_types = query_block_types::<IcrcError>(&agent, &ledger_canister).await?;
 
     Ok(IcrcBlockTypesData {
         block_types: block_types
@@ -373,7 +374,7 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
             .map(|from| principal_from_text::<IcrcError>(from, "from_canister_id"))
             .transpose()?,
     };
-    let archives = query_archives(&agent, &ledger_canister, &args).await?;
+    let archives = query_archives::<IcrcError>(&agent, &ledger_canister, &args).await?;
 
     Ok(IcrcArchivesData {
         archives: archives.into_iter().map(archive_row_from_wire).collect(),
@@ -389,18 +390,19 @@ pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    query_tip_certificate(&agent, &ledger_canister).await
+    query_tip_certificate::<IcrcError>(&agent, &ledger_canister).await
 }
 
-pub(super) async fn query_blocks<Args>(
+pub(super) async fn query_blocks<Args, E>(
     agent: &Agent,
     canister: &Principal,
     args: &Args,
-) -> Result<Icrc3GetBlocksResult, IcrcError>
+) -> Result<Icrc3GetBlocksResult, E>
 where
     Args: CandidType + Sync,
+    E: IcrcLedgerError,
 {
-    query_ledger_arg::<Args, Icrc3GetBlocksResult, IcrcError>(
+    query_ledger_arg::<Args, Icrc3GetBlocksResult, E>(
         agent,
         canister,
         ICRC3_GET_BLOCKS_METHOD,
@@ -409,11 +411,11 @@ where
     .await
 }
 
-pub(super) async fn query_block_types(
+pub(super) async fn query_block_types<E: IcrcLedgerError>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<Vec<Icrc3SupportedBlockType>, IcrcError> {
-    query_ledger::<Vec<Icrc3SupportedBlockType>, IcrcError>(
+) -> Result<Vec<Icrc3SupportedBlockType>, E> {
+    query_ledger::<Vec<Icrc3SupportedBlockType>, E>(
         agent,
         ledger_canister,
         ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
@@ -421,12 +423,12 @@ pub(super) async fn query_block_types(
     .await
 }
 
-pub(super) async fn query_archives(
+pub(super) async fn query_archives<E: IcrcLedgerError>(
     agent: &Agent,
     ledger_canister: &Principal,
     args: &Icrc3GetArchivesArgs,
-) -> Result<Vec<Icrc3ArchiveInfo>, IcrcError> {
-    query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, IcrcError>(
+) -> Result<Vec<Icrc3ArchiveInfo>, E> {
+    query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, E>(
         agent,
         ledger_canister,
         ICRC3_GET_ARCHIVES_METHOD,
@@ -435,24 +437,24 @@ pub(super) async fn query_archives(
     .await
 }
 
-pub(super) async fn query_tip_certificate(
+pub(super) async fn query_tip_certificate<E: IcrcLedgerError + From<IcrcError>>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<IcrcTipCertificateData, IcrcError> {
-    let certificate = query_ledger::<Option<Icrc3DataCertificate>, IcrcError>(
+) -> Result<IcrcTipCertificateData, E> {
+    let certificate = query_ledger::<Option<Icrc3DataCertificate>, E>(
         agent,
         ledger_canister,
         ICRC3_GET_TIP_CERTIFICATE_METHOD,
     )
     .await?;
-    verified_tip_certificate_data(agent, ledger_canister, certificate)
+    verified_tip_certificate_data(agent, ledger_canister, certificate).map_err(E::from)
 }
 
-pub(in crate::icrc::live) async fn query_index_principal(
+pub(in crate::icrc::live) async fn query_index_principal<E: IcrcLedgerError>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<GetIndexPrincipalResult, IcrcError> {
-    query_ledger::<GetIndexPrincipalResult, IcrcError>(
+) -> Result<GetIndexPrincipalResult, E> {
+    query_ledger::<GetIndexPrincipalResult, E>(
         agent,
         ledger_canister,
         ICRC106_GET_INDEX_PRINCIPAL_METHOD,
@@ -644,13 +646,9 @@ mod tests {
     use super::*;
     use crate::icrc::ledger::Icrc3ArchiveCallback;
     use candid::Func;
+    use ic_testkit::testing::read_http_request;
     use serde_cbor::Value;
-    use std::{
-        collections::BTreeMap,
-        io::{BufRead, BufReader, Read, Write},
-        net::TcpListener,
-        thread,
-    };
+    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]
     fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
@@ -760,25 +758,19 @@ mod tests {
         .unwrap();
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
-            stream
-                .set_read_timeout(Some(std::time::Duration::from_secs(10)))
-                .unwrap();
-            let mut reader = BufReader::new(&mut stream);
-            let mut length = None;
-            loop {
-                let mut line = String::new();
-                assert!(reader.read_line(&mut line).unwrap() > 0);
-                if line == "\r\n" {
-                    break;
-                }
-                if let Some((name, value)) = line.split_once(':')
-                    && name.eq_ignore_ascii_case("content-length")
-                {
-                    length = Some(value.trim().parse::<usize>().unwrap());
-                }
-            }
-            let mut request = vec![0; length.unwrap()];
-            reader.read_exact(&mut request).unwrap();
+            let request = read_http_request(
+                &mut stream,
+                Duration::from_secs(10),
+                64 * 1024,
+                8 * 1024 * 1024,
+            )
+            .unwrap();
+            let body_start = request
+                .windows(4)
+                .position(|bytes| bytes == b"\r\n\r\n")
+                .unwrap()
+                + 4;
+            let request = request[body_start..].to_vec();
             let request: Value = serde_cbor::from_slice(&request).unwrap();
             write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
             stream.write_all(&body).unwrap();

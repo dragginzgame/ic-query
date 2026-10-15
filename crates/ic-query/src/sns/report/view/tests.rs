@@ -422,11 +422,12 @@ fn proposal_proposer_filter_matches_neuron_id_prefix() {
 fn proposal_query_filter_matches_searchable_text_fields() {
     let proposal = proposal_with_query_text();
 
-    assert!(proposal_matches_query(&proposal, Some("treasury")));
-    assert!(proposal_matches_query(&proposal, Some("UPGRADE")));
-    assert!(proposal_matches_query(&proposal, Some("committee")));
-    assert!(proposal_matches_query(&proposal, Some("forum")));
-    assert!(proposal_matches_query(&proposal, Some("payload")));
+    for query in ["treasury", "UPGRADE", "committee", "forum", "payload"] {
+        assert!(proposal_matches_query(
+            &proposal,
+            Some(&query.to_lowercase())
+        ));
+    }
     assert!(!proposal_matches_query(&proposal, Some("subnet")));
     assert!(proposal_matches_query(&proposal, None));
 }

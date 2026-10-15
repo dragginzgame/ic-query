@@ -145,7 +145,7 @@ async fn nns_proposal_list_report_filters_by_query() {
         ),
     };
     let mut request = proposal_sort_request(NnsProposalListSort::Id);
-    request.query = Some("subnet".to_string());
+    request.query = Some("SuBnEt".to_string());
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)
         .await
@@ -153,11 +153,11 @@ async fn nns_proposal_list_report_filters_by_query() {
     let text = nns_proposal_list_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize NNS proposal list report");
 
-    assert_eq!(report.query_filter.as_deref(), Some("subnet"));
+    assert_eq!(report.query_filter.as_deref(), Some("SuBnEt"));
     assert_eq!(proposal_ids(&report), vec![101]);
-    assert_eq!(json["query_filter"], "subnet");
+    assert_eq!(json["query_filter"], "SuBnEt");
     assert_eq!(json["result_scope"], "bounded-live");
-    assert!(text.contains("query_filter: subnet"));
+    assert!(text.contains("query_filter: SuBnEt"));
     assert!(text.contains("result_scope: bounded-live"));
 }
 
@@ -172,10 +172,12 @@ fn nns_proposal_query_filter_matches_searchable_text_fields() {
         "Committee review",
     ));
 
-    assert!(proposal_matches_query(&proposal, Some("subnet")));
-    assert!(proposal_matches_query(&proposal, Some("MOTION")));
-    assert!(proposal_matches_query(&proposal, Some("committee")));
-    assert!(proposal_matches_query(&proposal, Some("dashboard")));
+    for query in ["subnet", "MOTION", "committee", "dashboard"] {
+        assert!(proposal_matches_query(
+            &proposal,
+            Some(&query.to_lowercase())
+        ));
+    }
     assert!(!proposal_matches_query(&proposal, Some("treasury")));
     assert!(proposal_matches_query(&proposal, None));
 }

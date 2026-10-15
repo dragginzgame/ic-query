@@ -5,7 +5,10 @@
 //! Boundary: keeps the current ICRC index Candid contract separate from deployed ICP wire types.
 
 use super::super::collection::AccountTransactionsPage;
-use super::{TransactionSummary, object, optional_blob_json, optional_json};
+use super::{
+    TransactionSummary,
+    json::{Account, Decimal, Hex, json_record},
+};
 use crate::{
     hex::hex_bytes,
     icrc::{
@@ -14,7 +17,6 @@ use crate::{
     },
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
-use serde_json::Value as JsonValue;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 enum IcrcIndexTransactionsResult {
@@ -174,7 +176,8 @@ fn account_transaction_row(transaction: IcrcIndexTransactionWithId) -> IcrcAccou
         created_at_time_unix_nanos: summary.created_at_time_unix_nanos,
         expires_at_unix_nanos: summary.expires_at_unix_nanos,
         expected_allowance_base_units: summary.expected_allowance_base_units,
-        raw_transaction: transaction_json(&transaction.transaction),
+        raw_transaction: serde_json::to_value(&transaction.transaction)
+            .expect("index transaction JSON serialization is infallible"),
     }
 }
 
@@ -252,233 +255,142 @@ fn account_row(account: &IcrcAccount) -> IcrcAccountRow {
     }
 }
 
-fn transaction_json(transaction: &IcrcIndexTransaction) -> JsonValue {
-    object([
-        ("kind", JsonValue::String(transaction.kind.clone())),
-        (
-            "timestamp_unix_nanos",
-            JsonValue::String(transaction.timestamp.to_string()),
-        ),
-        (
-            "burn",
-            optional_json(transaction.burn.as_ref().map(burn_json)),
-        ),
-        (
-            "mint",
-            optional_json(transaction.mint.as_ref().map(mint_json)),
-        ),
-        (
-            "approve",
-            optional_json(transaction.approve.as_ref().map(approve_json)),
-        ),
-        (
-            "fee_collector",
-            optional_json(transaction.fee_collector.as_ref().map(fee_collector_json)),
-        ),
-        (
-            "authorized_mint",
-            optional_json(
-                transaction
-                    .authorized_mint
-                    .as_ref()
-                    .map(authorized_mint_json),
-            ),
-        ),
-        (
-            "authorized_burn",
-            optional_json(
-                transaction
-                    .authorized_burn
-                    .as_ref()
-                    .map(authorized_burn_json),
-            ),
-        ),
-        (
-            "transfer",
-            optional_json(transaction.transfer.as_ref().map(transfer_json)),
-        ),
-    ])
-}
+json_record!(IcrcIndexTransaction, transaction, {
+    "kind" => transaction.kind,
+    "timestamp_unix_nanos" => Decimal(transaction.timestamp),
+    "burn" => transaction.burn,
+    "mint" => transaction.mint,
+    "approve" => transaction.approve,
+    "fee_collector" => transaction.fee_collector,
+    "authorized_mint" => transaction.authorized_mint,
+    "authorized_burn" => transaction.authorized_burn,
+    "transfer" => transaction.transfer,
+});
 
-fn approve_json(approve: &IcrcIndexApprove) -> JsonValue {
-    object([
-        ("fee_base_units", optional_nat_json(approve.fee.as_ref())),
-        ("from", account_json(&approve.from)),
-        ("memo_hex", optional_blob_json(approve.memo.as_deref())),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(approve.created_at_time),
-        ),
-        ("amount_base_units", nat_json(&approve.amount)),
-        (
-            "expected_allowance_base_units",
-            optional_nat_json(approve.expected_allowance.as_ref()),
-        ),
-        (
-            "expires_at_unix_nanos",
-            optional_u64_json(approve.expires_at),
-        ),
-        ("spender", account_json(&approve.spender)),
-    ])
-}
+json_record!(IcrcIndexApprove, approve, {
+    "fee_base_units" => approve.fee.as_ref().map(|value| Decimal(&value.0)),
+    "from" => Account(&approve.from),
+    "memo_hex" => approve.memo.as_deref().map(Hex),
+    "created_at_time_unix_nanos" => approve.created_at_time.map(Decimal),
+    "amount_base_units" => Decimal(&approve.amount.0),
+    "expected_allowance_base_units" => approve.expected_allowance.as_ref().map(|value| Decimal(&value.0)),
+    "expires_at_unix_nanos" => approve.expires_at.map(Decimal),
+    "spender" => Account(&approve.spender),
+});
 
-fn burn_json(burn: &IcrcIndexBurn) -> JsonValue {
-    object([
-        ("from", account_json(&burn.from)),
-        ("memo_hex", optional_blob_json(burn.memo.as_deref())),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(burn.created_at_time),
-        ),
-        ("amount_base_units", nat_json(&burn.amount)),
-        (
-            "spender",
-            optional_json(burn.spender.as_ref().map(account_json)),
-        ),
-        ("fee_base_units", optional_nat_json(burn.fee.as_ref())),
-    ])
-}
+json_record!(IcrcIndexBurn, burn, {
+    "from" => Account(&burn.from),
+    "memo_hex" => burn.memo.as_deref().map(Hex),
+    "created_at_time_unix_nanos" => burn.created_at_time.map(Decimal),
+    "amount_base_units" => Decimal(&burn.amount.0),
+    "spender" => burn.spender.as_ref().map(Account),
+    "fee_base_units" => burn.fee.as_ref().map(|value| Decimal(&value.0)),
+});
 
-fn mint_json(mint: &IcrcIndexMint) -> JsonValue {
-    object([
-        ("to", account_json(&mint.to)),
-        ("memo_hex", optional_blob_json(mint.memo.as_deref())),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(mint.created_at_time),
-        ),
-        ("amount_base_units", nat_json(&mint.amount)),
-        ("fee_base_units", optional_nat_json(mint.fee.as_ref())),
-    ])
-}
+json_record!(IcrcIndexMint, mint, {
+    "to" => Account(&mint.to),
+    "memo_hex" => mint.memo.as_deref().map(Hex),
+    "created_at_time_unix_nanos" => mint.created_at_time.map(Decimal),
+    "amount_base_units" => Decimal(&mint.amount.0),
+    "fee_base_units" => mint.fee.as_ref().map(|value| Decimal(&value.0)),
+});
 
-fn transfer_json(transfer: &IcrcIndexTransfer) -> JsonValue {
-    object([
-        ("to", account_json(&transfer.to)),
-        ("fee_base_units", optional_nat_json(transfer.fee.as_ref())),
-        ("from", account_json(&transfer.from)),
-        ("memo_hex", optional_blob_json(transfer.memo.as_deref())),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(transfer.created_at_time),
-        ),
-        ("amount_base_units", nat_json(&transfer.amount)),
-        (
-            "spender",
-            optional_json(transfer.spender.as_ref().map(account_json)),
-        ),
-    ])
-}
+json_record!(IcrcIndexTransfer, transfer, {
+    "to" => Account(&transfer.to),
+    "fee_base_units" => transfer.fee.as_ref().map(|value| Decimal(&value.0)),
+    "from" => Account(&transfer.from),
+    "memo_hex" => transfer.memo.as_deref().map(Hex),
+    "created_at_time_unix_nanos" => transfer.created_at_time.map(Decimal),
+    "amount_base_units" => Decimal(&transfer.amount.0),
+    "spender" => transfer.spender.as_ref().map(Account),
+});
 
-fn fee_collector_json(fee_collector: &IcrcIndexFeeCollector) -> JsonValue {
-    object([
-        (
-            "caller",
-            optional_json(
-                fee_collector
-                    .caller
-                    .as_ref()
-                    .map(|caller| JsonValue::String(caller.to_text())),
-            ),
-        ),
-        (
-            "fee_collector",
-            optional_json(fee_collector.fee_collector.as_ref().map(account_json)),
-        ),
-        ("timestamp_unix_nanos", optional_u64_json(fee_collector.ts)),
-        (
-            "method",
-            optional_json(fee_collector.mthd.clone().map(JsonValue::String)),
-        ),
-    ])
-}
+json_record!(IcrcIndexFeeCollector, collector, {
+    "caller" => collector.caller.as_ref().map(Principal::to_text),
+    "fee_collector" => collector.fee_collector.as_ref().map(Account),
+    "timestamp_unix_nanos" => collector.ts.map(Decimal),
+    "method" => collector.mthd,
+});
 
-fn authorized_mint_json(mint: &IcrcIndexAuthorizedMint) -> JsonValue {
-    object([
-        ("to", account_json(&mint.to)),
-        ("amount_base_units", nat_json(&mint.amount)),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(mint.created_at_time),
-        ),
-        (
-            "caller",
-            optional_json(
-                mint.caller
-                    .as_ref()
-                    .map(|caller| JsonValue::String(caller.to_text())),
-            ),
-        ),
-        (
-            "method",
-            optional_json(mint.mthd.clone().map(JsonValue::String)),
-        ),
-        (
-            "reason",
-            optional_json(mint.reason.clone().map(JsonValue::String)),
-        ),
-    ])
-}
+json_record!(IcrcIndexAuthorizedMint, mint, {
+    "to" => Account(&mint.to),
+    "amount_base_units" => Decimal(&mint.amount.0),
+    "created_at_time_unix_nanos" => mint.created_at_time.map(Decimal),
+    "caller" => mint.caller.as_ref().map(Principal::to_text),
+    "method" => mint.mthd,
+    "reason" => mint.reason,
+});
 
-fn authorized_burn_json(burn: &IcrcIndexAuthorizedBurn) -> JsonValue {
-    object([
-        ("from", account_json(&burn.from)),
-        ("amount_base_units", nat_json(&burn.amount)),
-        (
-            "created_at_time_unix_nanos",
-            optional_u64_json(burn.created_at_time),
-        ),
-        (
-            "caller",
-            optional_json(
-                burn.caller
-                    .as_ref()
-                    .map(|caller| JsonValue::String(caller.to_text())),
-            ),
-        ),
-        (
-            "method",
-            optional_json(burn.mthd.clone().map(JsonValue::String)),
-        ),
-        (
-            "reason",
-            optional_json(burn.reason.clone().map(JsonValue::String)),
-        ),
-    ])
-}
-
-fn account_json(account: &IcrcAccount) -> JsonValue {
-    object([
-        ("owner", JsonValue::String(account.owner.to_text())),
-        (
-            "subaccount_hex",
-            optional_json(
-                account
-                    .subaccount
-                    .as_deref()
-                    .map(hex_bytes)
-                    .map(JsonValue::String),
-            ),
-        ),
-    ])
-}
-
-fn nat_json(value: &Nat) -> JsonValue {
-    JsonValue::String(nat_text(value))
-}
-
-fn optional_nat_json(value: Option<&Nat>) -> JsonValue {
-    optional_json(value.map(nat_json))
-}
-
-fn optional_u64_json(value: Option<u64>) -> JsonValue {
-    optional_json(value.map(|value| JsonValue::String(value.to_string())))
-}
+json_record!(IcrcIndexAuthorizedBurn, burn, {
+    "from" => Account(&burn.from),
+    "amount_base_units" => Decimal(&burn.amount.0),
+    "created_at_time_unix_nanos" => burn.created_at_time.map(Decimal),
+    "caller" => burn.caller.as_ref().map(Principal::to_text),
+    "method" => burn.mthd,
+    "reason" => burn.reason,
+});
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use serde_json::{Value as JsonValue, json};
+
+    #[test]
+    fn every_operation_preserves_exact_decimal_blob_and_nullable_json_fields() {
+        let response = every_operation_response();
+        let bytes = candid::encode_one(&response).unwrap();
+        let page = decode(&bytes, &Principal::management_canister())
+            .unwrap()
+            .unwrap();
+        let from = json!({"owner": "2vxsx-fae", "subaccount_hex": "00ff"});
+        let to = json!({"owner": "aaaaa-aa", "subaccount_hex": null});
+        let amount = "3402823669209384634633746074317682114561234";
+        let timestamp = "18446744073709551615";
+        assert_eq!(page.balance, amount);
+        assert_eq!(page.transactions[0].id, amount);
+        assert_eq!(
+            page.transactions[0].amount_base_units.as_deref(),
+            Some(amount)
+        );
+        assert_eq!(
+            page.transactions[0].raw_transaction,
+            json!({
+                "kind": "transfer",
+                "timestamp_unix_nanos": timestamp,
+                "approve": {
+                    "fee_base_units": null, "from": from, "memo_hex": "",
+                    "created_at_time_unix_nanos": timestamp, "amount_base_units": amount,
+                    "expected_allowance_base_units": amount, "expires_at_unix_nanos": null,
+                    "spender": to
+                },
+                "burn": {
+                    "from": from, "memo_hex": null, "created_at_time_unix_nanos": null,
+                    "amount_base_units": amount, "spender": null, "fee_base_units": "0"
+                },
+                "mint": {
+                    "to": to, "memo_hex": "ff", "created_at_time_unix_nanos": null,
+                    "amount_base_units": amount, "fee_base_units": null
+                },
+                "transfer": {
+                    "to": to, "fee_base_units": amount, "from": from, "memo_hex": "00ff",
+                    "created_at_time_unix_nanos": null, "amount_base_units": amount, "spender": to
+                },
+                "fee_collector": {
+                    "caller": "2vxsx-fae", "fee_collector": to,
+                    "timestamp_unix_nanos": timestamp, "method": null
+                },
+                "authorized_mint": {
+                    "to": to, "amount_base_units": amount, "created_at_time_unix_nanos": null,
+                    "caller": null, "method": "mint", "reason": "retained evidence"
+                },
+                "authorized_burn": {
+                    "from": from, "amount_base_units": amount,
+                    "created_at_time_unix_nanos": timestamp, "caller": "aaaaa-aa",
+                    "method": null, "reason": null
+                }
+            })
+        );
+    }
 
     #[test]
     fn current_index_wire_shape_round_trips_and_projects_approve_losslessly() {
@@ -553,5 +465,85 @@ mod tests {
             json!("icrc2_approve")
         );
         assert_eq!(row.raw_transaction["transfer"], JsonValue::Null);
+    }
+
+    fn every_operation_response() -> IcrcIndexTransactionsResult {
+        let amount = Nat::parse(b"3402823669209384634633746074317682114561234").unwrap();
+        let from = IcrcAccount {
+            owner: Principal::anonymous(),
+            subaccount: Some(vec![0, 255]),
+        };
+        let to = IcrcAccount {
+            owner: Principal::management_canister(),
+            subaccount: None,
+        };
+        let transaction = IcrcIndexTransaction {
+            kind: "transfer".to_string(),
+            timestamp: u64::MAX,
+            approve: Some(IcrcIndexApprove {
+                fee: None,
+                from: from.clone(),
+                memo: Some(vec![]),
+                created_at_time: Some(u64::MAX),
+                amount: amount.clone(),
+                expected_allowance: Some(amount.clone()),
+                expires_at: None,
+                spender: to.clone(),
+            }),
+            burn: Some(IcrcIndexBurn {
+                from: from.clone(),
+                memo: None,
+                created_at_time: None,
+                amount: amount.clone(),
+                spender: None,
+                fee: Some(Nat::from(0_u64)),
+            }),
+            mint: Some(IcrcIndexMint {
+                to: to.clone(),
+                memo: Some(vec![255]),
+                created_at_time: None,
+                amount: amount.clone(),
+                fee: None,
+            }),
+            transfer: Some(IcrcIndexTransfer {
+                to: to.clone(),
+                fee: Some(amount.clone()),
+                from: from.clone(),
+                memo: Some(vec![0, 255]),
+                created_at_time: None,
+                amount: amount.clone(),
+                spender: Some(to.clone()),
+            }),
+            fee_collector: Some(IcrcIndexFeeCollector {
+                caller: Some(Principal::anonymous()),
+                fee_collector: Some(to.clone()),
+                ts: Some(u64::MAX),
+                mthd: None,
+            }),
+            authorized_mint: Some(IcrcIndexAuthorizedMint {
+                to,
+                amount: amount.clone(),
+                created_at_time: None,
+                caller: None,
+                mthd: Some("mint".to_string()),
+                reason: Some("retained evidence".to_string()),
+            }),
+            authorized_burn: Some(IcrcIndexAuthorizedBurn {
+                from,
+                amount: amount.clone(),
+                created_at_time: Some(u64::MAX),
+                caller: Some(Principal::management_canister()),
+                mthd: None,
+                reason: None,
+            }),
+        };
+        IcrcIndexTransactionsResult::Ok(IcrcIndexTransactions {
+            balance: amount.clone(),
+            transactions: vec![IcrcIndexTransactionWithId {
+                id: amount,
+                transaction,
+            }],
+            oldest_tx_id: None,
+        })
     }
 }

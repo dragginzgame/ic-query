@@ -12,9 +12,9 @@ use crate::{
     sns::commands::{
         SnsCommandError,
         options::{SnsNeuronOptions, SnsNeuronsOptions},
-        run::common::command_cache_root,
         spec::SnsNeuronsSortArg,
     },
+    storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::sns::{
@@ -75,7 +75,7 @@ async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), 
 
 fn cache_root_for_sort(sort: SnsNeuronsSortArg) -> Result<Option<PathBuf>, SnsCommandError> {
     if SnsNeuronsSort::from(sort).uses_cache() {
-        return Ok(Some(command_cache_root()?));
+        return Ok(Some(cache_root()?));
     }
     Ok(None)
 }

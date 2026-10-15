@@ -4,6 +4,12 @@
 //! Does not own: parameter fetching, report construction, or JSON output.
 //! Boundary: groups governance parameter rows into a human-readable table.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::{
         SnsGovernanceParameters, SnsParamsReport,
@@ -13,30 +19,30 @@ use crate::{
             optional_u32_text,
         },
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text},
+    text_value::optional_u64_text,
 };
 
 #[must_use]
 pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     lines.push(String::new());
-    lines.push(render_table(
+    lines.push(render(
         &["PARAMETER", "VALUE"],
         &sns_params_text_rows(&report.parameters),
-        &[ColumnAlign::Left, ColumnAlign::Right],
+        &[Alignment::Left, Alignment::Right],
+        REPORT_TABLE_OPTIONS,
     ));
     lines.join("\n")
 }

@@ -13,7 +13,7 @@ use crate::{
     report_sort::{
         compare_optional_ord, sort_by_optional_text, sort_by_optional_u64, sort_by_text,
     },
-    text_search::optional_text_contains_case_insensitive,
+    text_search::optional_text_contains_lowercase_query,
 };
 
 #[cfg(feature = "nns-host")]
@@ -66,15 +66,15 @@ pub(in crate::nns::proposals::report) fn proposal_matches_proposer(
 
 pub(in crate::nns::proposals::report) fn proposal_matches_query(
     proposal: &NnsProposalRow,
-    query: Option<&str>,
+    lowercase_query: Option<&str>,
 ) -> bool {
-    let Some(query) = query else {
+    let Some(query) = lowercase_query else {
         return true;
     };
-    optional_text_contains_case_insensitive(proposal.title.as_deref(), query)
-        || optional_text_contains_case_insensitive(proposal.action_text.as_deref(), query)
-        || optional_text_contains_case_insensitive(Some(&proposal.summary), query)
-        || optional_text_contains_case_insensitive(Some(&proposal.url), query)
+    optional_text_contains_lowercase_query(proposal.title.as_deref(), query)
+        || optional_text_contains_lowercase_query(proposal.action_text.as_deref(), query)
+        || optional_text_contains_lowercase_query(Some(&proposal.summary), query)
+        || optional_text_contains_lowercase_query(Some(&proposal.url), query)
 }
 
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(

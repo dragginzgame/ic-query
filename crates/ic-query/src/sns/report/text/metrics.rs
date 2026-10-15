@@ -4,20 +4,25 @@
 //! Does not own: live calls, report construction, source validation, or JSON output.
 //! Boundary: labels cached treasury evidence and raw timestamps without conflation.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     duration::display_duration_seconds,
     sns::report::{SnsMetricsReport, SnsTreasuryMetricRow},
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, optional_u64_text, sanitize_text, yes_no},
+    text_value::{optional_text, optional_u64_text, yes_no},
 };
 
 /// Render one SNS Governance metrics report as human-facing text.
 #[must_use]
 pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("method: {}", report.method.as_str()),
@@ -53,12 +58,12 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
         ),
         format!("treasury_metric_count: {}", report.treasury_metric_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
         String::new(),
         "treasury_metrics:".to_string(),
         treasury_metrics_text(&report.treasury_metrics),
@@ -68,7 +73,7 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
     lines.push(report.voting_power_metrics.as_ref().map_or_else(
         || "-".to_string(),
         |metrics| {
-            render_table(
+            render(
                 &["FIELD", "VALUE"],
                 &[
                     [
@@ -80,7 +85,8 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
                         optional_u64_text(metrics.timestamp_seconds),
                     ],
                 ],
-                &[ColumnAlign::Left, ColumnAlign::Right],
+                &[Alignment::Left, Alignment::Right],
+                REPORT_TABLE_OPTIONS,
             )
         },
     ));
@@ -91,7 +97,7 @@ fn treasury_metrics_text(metrics: &[SnsTreasuryMetricRow]) -> String {
     if metrics.is_empty() {
         return "-".to_string();
     }
-    render_table(
+    render(
         &[
             "KIND",
             "CODE",
@@ -120,15 +126,16 @@ fn treasury_metrics_text(metrics: &[SnsTreasuryMetricRow]) -> String {
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Right,
+            Alignment::Right,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }

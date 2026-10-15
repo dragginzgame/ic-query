@@ -1,4 +1,4 @@
-use super::{NnsNodeListFilters, NnsNodeListReport, NnsNodeRow};
+use super::{NnsNodeListFilters, NnsNodeListReport};
 use crate::subnet_catalog::canonical_principal_text;
 
 pub(super) fn filter_node_list_report(
@@ -8,55 +8,56 @@ pub(super) fn filter_node_list_report(
     if filters.is_empty() {
         return report;
     }
-    report
-        .nodes
-        .retain(|node| node_matches_filters(node, filters));
+    let subnet = filters.subnet.as_deref().map(PrincipalFilter::new);
+    let node_provider = filters.node_provider.as_deref().map(PrincipalFilter::new);
+    let node_operator = filters.node_operator.as_deref().map(PrincipalFilter::new);
+    let data_center = filters
+        .data_center
+        .as_deref()
+        .map(|value| value.trim().to_ascii_lowercase());
+    report.nodes.retain(|node| {
+        subnet
+            .as_ref()
+            .is_none_or(|filter| filter.matches(&node.subnet_principal))
+            && filters
+                .subnet_kind
+                .is_none_or(|kind| node.subnet_kind == kind)
+            && data_center.as_ref().is_none_or(|prefix| {
+                !prefix.is_empty() && node.data_center_id.to_ascii_lowercase().starts_with(prefix)
+            })
+            && node_provider
+                .as_ref()
+                .is_none_or(|filter| filter.matches(&node.node_provider_principal))
+            && node_operator
+                .as_ref()
+                .is_none_or(|filter| filter.matches(&node.node_operator_principal))
+    });
     report.node_count = report.nodes.len();
     report
 }
 
-fn node_matches_filters(node: &NnsNodeRow, filters: &NnsNodeListFilters) -> bool {
-    filters
-        .subnet
-        .as_deref()
-        .is_none_or(|filter| principal_filter_matches(&node.subnet_principal, filter))
-        && filters
-            .subnet_kind
-            .is_none_or(|filter| node.subnet_kind == filter)
-        && filters
-            .data_center
-            .as_deref()
-            .is_none_or(|filter| text_filter_starts_with(&node.data_center_id, filter))
-        && filters
-            .node_provider
-            .as_deref()
-            .is_none_or(|filter| principal_filter_matches(&node.node_provider_principal, filter))
-        && filters
-            .node_operator
-            .as_deref()
-            .is_none_or(|filter| principal_filter_matches(&node.node_operator_principal, filter))
+///
+/// PrincipalFilter
+///
+/// A principal admitted once for exact matching, or a prefix that rejects empty input.
+///
+
+enum PrincipalFilter {
+    Exact(String),
+    Prefix(String),
 }
 
-fn principal_filter_matches(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    canonical_principal_text(filter).map_or_else(
-        |_| value.starts_with(&filter.to_ascii_lowercase()),
-        |principal| value == principal,
-    )
-}
+impl PrincipalFilter {
+    fn new(value: &str) -> Self {
+        let value = value.trim();
+        canonical_principal_text(value)
+            .map_or_else(|_| Self::Prefix(value.to_ascii_lowercase()), Self::Exact)
+    }
 
-fn text_filter_starts_with(value: &str, filter: &str) -> bool {
-    let Some(filter) = non_empty_filter(filter) else {
-        return false;
-    };
-    value
-        .to_ascii_lowercase()
-        .starts_with(&filter.to_ascii_lowercase())
-}
-
-fn non_empty_filter(filter: &str) -> Option<&str> {
-    let filter = filter.trim();
-    (!filter.is_empty()).then_some(filter)
+    fn matches(&self, value: &str) -> bool {
+        match self {
+            Self::Exact(principal) => value == principal,
+            Self::Prefix(prefix) => !prefix.is_empty() && value.starts_with(prefix),
+        }
+    }
 }

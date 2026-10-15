@@ -23,6 +23,12 @@ fn topology_refresh_counts_component_reports() {
     assert_eq!(report.components[0].item_count, 2);
     assert_eq!(report.components[1].source, "nodes");
     assert_eq!(report.components[1].item_count, 3);
+    assert_eq!(report.components[2].source, "node_providers");
+    assert_eq!(report.components[2].item_count, 1);
+    assert_eq!(report.components[3].source, "node_operators");
+    assert_eq!(report.components[3].item_count, 2);
+    assert_eq!(report.components[4].source, "data_centers");
+    assert_eq!(report.components[4].item_count, 1);
 }
 
 #[test]

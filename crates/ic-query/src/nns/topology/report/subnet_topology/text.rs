@@ -1,8 +1,8 @@
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
 use super::{NnsSubnetTopologyReport, NnsSubnetTopologyRow};
-use crate::{
-    nns::render::compact_text,
-    table::{ColumnAlign, render_table},
-};
+use crate::nns::render::compact_text;
 
 const COMPACT_PRINCIPAL_CHARS: usize = 12;
 
@@ -48,11 +48,11 @@ fn render_subnet_provider_table(subnets: &[NnsSubnetTopologyRow]) -> String {
         }
     }
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Right,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

@@ -4,6 +4,12 @@
 //! Does not own: ledger-wide reports, live source reads, JSON output, or command parsing.
 //! Boundary: formats account identities and base-unit amounts for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::push_table_section;
 use crate::{
     icrc::model::{
@@ -11,20 +17,19 @@ use crate::{
         IcrcAccountTransactionPageReport, IcrcAccountTransactionRefreshReport,
         IcrcAccountTransactionRow, IcrcAllowanceReport, IcrcBalanceReport,
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text},
+    text_value::optional_text,
     token_amount::base_units_decimal_text,
 };
 
-const ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS: [ColumnAlign; 8] = [
-    ColumnAlign::Right,
-    ColumnAlign::Left,
-    ColumnAlign::Right,
-    ColumnAlign::Right,
-    ColumnAlign::Right,
-    ColumnAlign::Left,
-    ColumnAlign::Left,
-    ColumnAlign::Left,
+const ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS: [Alignment; 8] = [
+    Alignment::Right,
+    Alignment::Left,
+    Alignment::Right,
+    Alignment::Right,
+    Alignment::Right,
+    Alignment::Left,
+    Alignment::Left,
+    Alignment::Left,
 ];
 #[must_use]
 pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
@@ -35,18 +40,18 @@ pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
             "subaccount_hex: {}",
             optional_text(report.subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
+        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.balance, report.decimals),
-            sanitize_text(&report.token_symbol)
+            terminal_text(&report.token_symbol)
         ),
         format!("balance_base_units: {}", report.balance),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
     .join("\n")
@@ -66,22 +71,22 @@ pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
             "spender_subaccount_hex: {}",
             optional_text(report.spender_subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
+        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "allowance: {} {}",
             base_units_decimal_text(&report.allowance, report.decimals),
-            sanitize_text(&report.token_symbol)
+            terminal_text(&report.token_symbol)
         ),
         format!("allowance_base_units: {}", report.allowance),
         format!(
             "expires_at_unix_nanos: {}",
             optional_text(report.expires_at_unix_nanos.as_ref())
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
     .join("\n")
@@ -113,21 +118,21 @@ pub fn icrc_account_transaction_page_report_text(
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.balance, report.decimals),
-            sanitize_text(&report.token_symbol)
+            terminal_text(&report.token_symbol)
         ),
         format!("balance_base_units: {}", report.balance),
         format!("returned_transactions: {}", report.transactions.len()),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(&mut lines, &report.transactions, |transactions| {
         render_account_transactions_table(
             transactions,
             report.decimals,
-            &sanitize_text(&report.token_symbol),
+            &terminal_text(&report.token_symbol),
         )
     });
     lines.join("\n")
@@ -164,7 +169,7 @@ pub fn icrc_account_transaction_list_report_text(
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.balance, report.decimals),
-            sanitize_text(&report.token_symbol)
+            terminal_text(&report.token_symbol)
         ),
         format!("balance_base_units: {}", report.balance),
         format!("complete: {}", report.complete),
@@ -176,23 +181,23 @@ pub fn icrc_account_transaction_list_report_text(
         format!("page_count: {}", report.page_count),
         format!(
             "collection_started_at: {}",
-            sanitize_text(&report.collection_started_at)
+            terminal_text(&report.collection_started_at)
         ),
         format!(
             "collection_completed_at: {}",
-            sanitize_text(&report.collection_completed_at)
+            terminal_text(&report.collection_completed_at)
         ),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
-        format!("cache_path: {}", sanitize_text(&report.cache_path)),
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
     ];
     push_table_section(&mut lines, &report.transactions, |transactions| {
         render_account_transactions_table(
             transactions,
             report.decimals,
-            &sanitize_text(&report.token_symbol),
+            &terminal_text(&report.token_symbol),
         )
     });
     lines.join("\n")
@@ -236,24 +241,24 @@ pub fn icrc_account_transaction_refresh_report_text(
         ),
         format!(
             "collection_started_at: {}",
-            sanitize_text(&report.collection_started_at)
+            terminal_text(&report.collection_started_at)
         ),
         format!(
             "collection_completed_at: {}",
-            sanitize_text(&report.collection_completed_at)
+            terminal_text(&report.collection_completed_at)
         ),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
-        format!("cache_path: {}", sanitize_text(&report.cache_path)),
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_attempt_path: {}",
-            sanitize_text(&report.refresh_attempt_path)
+            terminal_text(&report.refresh_attempt_path)
         ),
         format!(
             "refresh_lock_path: {}",
-            sanitize_text(&report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
     ]
     .join("\n")
@@ -273,20 +278,20 @@ pub fn icrc_account_transaction_cache_status_report_text(
         ),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
         format!("found: {}", report.found),
         format!(
             "expected_cache_path: {}",
-            sanitize_text(&report.expected_cache_path)
+            terminal_text(&report.expected_cache_path)
         ),
         format!(
             "refresh_attempt_path: {}",
-            sanitize_text(&report.refresh_attempt_path)
+            terminal_text(&report.refresh_attempt_path)
         ),
         format!(
             "refresh_lock_path: {}",
-            sanitize_text(&report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
     ];
     if let Some(cache) = report.cache.as_ref() {
@@ -315,11 +320,11 @@ pub fn icrc_account_transaction_cache_status_report_text(
             ),
             format!(
                 "collection_started_at: {}",
-                sanitize_text(&cache.collection_started_at)
+                terminal_text(&cache.collection_started_at)
             ),
             format!(
                 "collection_completed_at: {}",
-                sanitize_text(&cache.collection_completed_at)
+                terminal_text(&cache.collection_completed_at)
             ),
         ]);
     }
@@ -353,7 +358,7 @@ fn render_account_transactions_table(
     decimals: u8,
     token_symbol: &str,
 ) -> String {
-    render_table(
+    render(
         &[
             "ID",
             "KIND",
@@ -369,7 +374,7 @@ fn render_account_transactions_table(
             .map(|transaction| {
                 [
                     transaction.id.clone(),
-                    sanitize_text(&transaction.kind),
+                    terminal_text(&transaction.kind),
                     optional_text(transaction.timestamp_unix_nanos.as_ref()),
                     optional_amount_text(
                         transaction.amount_base_units.as_ref(),
@@ -388,6 +393,7 @@ fn render_account_transactions_table(
             })
             .collect::<Vec<_>>(),
         &ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS,
+        REPORT_TABLE_OPTIONS,
     )
 }
 
@@ -409,13 +415,13 @@ fn optional_account_text(account: Option<&IcrcAccountRow>) -> String {
 
 fn account_text(account: &IcrcAccountRow) -> String {
     if let Some(account_identifier) = account.account_identifier.as_ref() {
-        return sanitize_text(account_identifier);
+        return terminal_text(account_identifier);
     }
     let Some(owner) = account.owner.as_ref() else {
         return "-".to_string();
     };
     account.subaccount_hex.as_ref().map_or_else(
-        || sanitize_text(owner),
-        |subaccount| format!("{}:{}", sanitize_text(owner), sanitize_text(subaccount)),
+        || terminal_text(owner),
+        |subaccount| format!("{}:{}", terminal_text(owner), terminal_text(subaccount)),
     )
 }

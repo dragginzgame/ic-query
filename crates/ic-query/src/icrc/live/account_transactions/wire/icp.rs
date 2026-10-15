@@ -5,13 +5,16 @@
 //! Boundary: preserves ICP account identifiers and legacy operation fields without conflating wire contracts.
 
 use super::super::collection::AccountTransactionsPage;
-use super::{TransactionSummary, object, optional_blob_json, optional_json};
+use super::{
+    TransactionSummary,
+    json::{Decimal, Hex, json_record},
+};
 use crate::{
     hex::hex_bytes,
     icrc::model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow},
 };
 use candid::{CandidType, Deserialize, Principal};
-use serde_json::Value as JsonValue;
+use serde::{Serialize, Serializer};
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 enum IcpIndexTransactionsResult {
@@ -121,7 +124,7 @@ fn account_transactions_page(
 }
 
 fn account_transaction_row(transaction: IcpIndexTransactionWithId) -> IcrcAccountTransactionRow {
-    let (kind, mut summary, operation) = operation_parts(&transaction.transaction.operation);
+    let (kind, mut summary) = operation_summary(&transaction.transaction.operation);
     summary.memo_hex = transaction.transaction.icrc1_memo.as_deref().map(hex_bytes);
     summary.created_at_time_unix_nanos = transaction
         .transaction
@@ -143,29 +146,12 @@ fn account_transaction_row(transaction: IcpIndexTransactionWithId) -> IcrcAccoun
         created_at_time_unix_nanos: summary.created_at_time_unix_nanos,
         expires_at_unix_nanos: summary.expires_at_unix_nanos,
         expected_allowance_base_units: summary.expected_allowance_base_units,
-        raw_transaction: object([
-            (
-                "memo",
-                JsonValue::String(transaction.transaction.memo.to_string()),
-            ),
-            (
-                "icrc1_memo_hex",
-                optional_blob_json(transaction.transaction.icrc1_memo.as_deref()),
-            ),
-            ("operation", operation),
-            (
-                "created_at_time_unix_nanos",
-                optional_timestamp_json(transaction.transaction.created_at_time),
-            ),
-            (
-                "timestamp_unix_nanos",
-                optional_timestamp_json(transaction.transaction.timestamp),
-            ),
-        ]),
+        raw_transaction: serde_json::to_value(&transaction.transaction)
+            .expect("ICP index transaction JSON serialization is infallible"),
     }
 }
 
-fn operation_parts(operation: &IcpIndexOperation) -> (&'static str, TransactionSummary, JsonValue) {
+fn operation_summary(operation: &IcpIndexOperation) -> (&'static str, TransactionSummary) {
     match operation {
         IcpIndexOperation::Approve {
             fee,
@@ -174,147 +160,131 @@ fn operation_parts(operation: &IcpIndexOperation) -> (&'static str, TransactionS
             expires_at,
             spender,
             expected_allowance,
-        } => approve_parts(
-            *fee,
-            from,
-            *allowance,
-            *expires_at,
-            spender,
-            *expected_allowance,
+        } => (
+            "approve",
+            TransactionSummary {
+                amount_base_units: Some(allowance.e8s.to_string()),
+                fee_base_units: Some(fee.e8s.to_string()),
+                from: Some(account_identifier_row(from)),
+                spender: Some(account_identifier_row(spender)),
+                expires_at_unix_nanos: expires_at
+                    .map(|timestamp| timestamp.timestamp_nanos.to_string()),
+                expected_allowance_base_units: expected_allowance
+                    .map(|tokens| tokens.e8s.to_string()),
+                ..TransactionSummary::default()
+            },
         ),
         IcpIndexOperation::Burn {
             from,
             amount,
             spender,
-        } => burn_parts(from, *amount, spender.as_deref()),
-        IcpIndexOperation::Mint { to, amount } => mint_parts(to, *amount),
+        } => (
+            "burn",
+            TransactionSummary {
+                amount_base_units: Some(amount.e8s.to_string()),
+                from: Some(account_identifier_row(from)),
+                spender: spender.as_deref().map(account_identifier_row),
+                ..TransactionSummary::default()
+            },
+        ),
+        IcpIndexOperation::Mint { to, amount } => (
+            "mint",
+            TransactionSummary {
+                amount_base_units: Some(amount.e8s.to_string()),
+                to: Some(account_identifier_row(to)),
+                ..TransactionSummary::default()
+            },
+        ),
         IcpIndexOperation::Transfer {
             to,
             fee,
             from,
             amount,
             spender,
-        } => transfer_parts(to, *fee, from, *amount, spender.as_deref()),
+        } => (
+            "transfer",
+            TransactionSummary {
+                amount_base_units: Some(amount.e8s.to_string()),
+                fee_base_units: Some(fee.e8s.to_string()),
+                from: Some(account_identifier_row(from)),
+                to: Some(account_identifier_row(to)),
+                spender: spender.as_deref().map(account_identifier_row),
+                ..TransactionSummary::default()
+            },
+        ),
     }
 }
 
-fn approve_parts(
-    fee: IcpIndexTokens,
-    from: &str,
-    allowance: IcpIndexTokens,
-    expires_at: Option<IcpIndexTimestamp>,
-    spender: &str,
-    expected_allowance: Option<IcpIndexTokens>,
-) -> (&'static str, TransactionSummary, JsonValue) {
-    (
-        "approve",
-        TransactionSummary {
-            amount_base_units: Some(allowance.e8s.to_string()),
-            fee_base_units: Some(fee.e8s.to_string()),
-            from: Some(account_identifier_row(from)),
-            spender: Some(account_identifier_row(spender)),
-            expires_at_unix_nanos: expires_at
-                .map(|timestamp| timestamp.timestamp_nanos.to_string()),
-            expected_allowance_base_units: expected_allowance.map(|tokens| tokens.e8s.to_string()),
-            ..TransactionSummary::default()
-        },
-        object([
-            ("kind", JsonValue::String("approve".to_string())),
-            ("fee_base_units", tokens_json(fee)),
-            (
-                "from_account_identifier",
-                JsonValue::String(from.to_string()),
-            ),
-            ("allowance_base_units", tokens_json(allowance)),
-            ("expires_at_unix_nanos", optional_timestamp_json(expires_at)),
-            (
-                "spender_account_identifier",
-                JsonValue::String(spender.to_string()),
-            ),
-            (
-                "expected_allowance_base_units",
-                optional_tokens_json(expected_allowance),
-            ),
-        ]),
-    )
+json_record!(IcpIndexTransaction, transaction, {
+    "memo" => Decimal(transaction.memo),
+    "icrc1_memo_hex" => transaction.icrc1_memo.as_deref().map(Hex),
+    "operation" => transaction.operation,
+    "created_at_time_unix_nanos" => transaction.created_at_time,
+    "timestamp_unix_nanos" => transaction.timestamp,
+});
+
+impl Serialize for IcpIndexTimestamp {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        Decimal(self.timestamp_nanos).serialize(serializer)
+    }
 }
 
-fn burn_parts(
-    from: &str,
-    amount: IcpIndexTokens,
-    spender: Option<&str>,
-) -> (&'static str, TransactionSummary, JsonValue) {
-    (
-        "burn",
-        TransactionSummary {
-            amount_base_units: Some(amount.e8s.to_string()),
-            from: Some(account_identifier_row(from)),
-            spender: spender.map(account_identifier_row),
-            ..TransactionSummary::default()
-        },
-        object([
-            ("kind", JsonValue::String("burn".to_string())),
-            (
-                "from_account_identifier",
-                JsonValue::String(from.to_string()),
-            ),
-            ("amount_base_units", tokens_json(amount)),
-            (
-                "spender_account_identifier",
-                optional_json(spender.map(|spender| JsonValue::String(spender.to_string()))),
-            ),
-        ]),
-    )
+impl Serialize for IcpIndexTokens {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        Decimal(self.e8s).serialize(serializer)
+    }
 }
 
-fn mint_parts(to: &str, amount: IcpIndexTokens) -> (&'static str, TransactionSummary, JsonValue) {
-    (
-        "mint",
-        TransactionSummary {
-            amount_base_units: Some(amount.e8s.to_string()),
-            to: Some(account_identifier_row(to)),
-            ..TransactionSummary::default()
-        },
-        object([
-            ("kind", JsonValue::String("mint".to_string())),
-            ("to_account_identifier", JsonValue::String(to.to_string())),
-            ("amount_base_units", tokens_json(amount)),
-        ]),
-    )
-}
-
-fn transfer_parts(
-    to: &str,
-    fee: IcpIndexTokens,
-    from: &str,
-    amount: IcpIndexTokens,
-    spender: Option<&str>,
-) -> (&'static str, TransactionSummary, JsonValue) {
-    (
-        "transfer",
-        TransactionSummary {
-            amount_base_units: Some(amount.e8s.to_string()),
-            fee_base_units: Some(fee.e8s.to_string()),
-            from: Some(account_identifier_row(from)),
-            to: Some(account_identifier_row(to)),
-            spender: spender.map(account_identifier_row),
-            ..TransactionSummary::default()
-        },
-        object([
-            ("kind", JsonValue::String("transfer".to_string())),
-            ("to_account_identifier", JsonValue::String(to.to_string())),
-            ("fee_base_units", tokens_json(fee)),
-            (
-                "from_account_identifier",
-                JsonValue::String(from.to_string()),
-            ),
-            ("amount_base_units", tokens_json(amount)),
-            (
-                "spender_account_identifier",
-                optional_json(spender.map(|spender| JsonValue::String(spender.to_string()))),
-            ),
-        ]),
-    )
+impl Serialize for IcpIndexOperation {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::Approve {
+                fee,
+                from,
+                allowance,
+                expires_at,
+                spender,
+                expected_allowance,
+            } => json_record!(serializer, {
+                "kind" => "approve",
+                "fee_base_units" => fee,
+                "from_account_identifier" => from,
+                "allowance_base_units" => allowance,
+                "expires_at_unix_nanos" => expires_at,
+                "spender_account_identifier" => spender,
+                "expected_allowance_base_units" => expected_allowance,
+            }),
+            Self::Burn {
+                from,
+                amount,
+                spender,
+            } => json_record!(serializer, {
+                "kind" => "burn",
+                "from_account_identifier" => from,
+                "amount_base_units" => amount,
+                "spender_account_identifier" => spender,
+            }),
+            Self::Mint { to, amount } => json_record!(serializer, {
+                "kind" => "mint",
+                "to_account_identifier" => to,
+                "amount_base_units" => amount,
+            }),
+            Self::Transfer {
+                to,
+                fee,
+                from,
+                amount,
+                spender,
+            } => json_record!(serializer, {
+                "kind" => "transfer",
+                "to_account_identifier" => to,
+                "fee_base_units" => fee,
+                "from_account_identifier" => from,
+                "amount_base_units" => amount,
+                "spender_account_identifier" => spender,
+            }),
+        }
+    }
 }
 
 fn account_identifier_row(account_identifier: &str) -> IcrcAccountRow {
@@ -325,24 +295,45 @@ fn account_identifier_row(account_identifier: &str) -> IcrcAccountRow {
     }
 }
 
-fn tokens_json(tokens: IcpIndexTokens) -> JsonValue {
-    JsonValue::String(tokens.e8s.to_string())
-}
-
-fn optional_tokens_json(tokens: Option<IcpIndexTokens>) -> JsonValue {
-    optional_json(tokens.map(tokens_json))
-}
-
-fn optional_timestamp_json(timestamp: Option<IcpIndexTimestamp>) -> JsonValue {
-    optional_json(
-        timestamp.map(|timestamp| JsonValue::String(timestamp.timestamp_nanos.to_string())),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn every_operation_preserves_decimal_strings_account_identifiers_and_null_fields() {
+        for (operation, expected) in operation_cases() {
+            let response = IcpIndexTransactionsResult::Ok(IcpIndexTransactions {
+                balance: 0,
+                transactions: vec![IcpIndexTransactionWithId {
+                    id: u64::MAX,
+                    transaction: IcpIndexTransaction {
+                        memo: u64::MAX,
+                        icrc1_memo: Some(vec![]),
+                        operation,
+                        created_at_time: Some(IcpIndexTimestamp {
+                            timestamp_nanos: u64::MAX,
+                        }),
+                        timestamp: None,
+                    },
+                }],
+                oldest_tx_id: None,
+            });
+            let bytes = candid::encode_one(&response).unwrap();
+            let page = decode(&bytes, &Principal::management_canister())
+                .unwrap()
+                .unwrap();
+            assert_eq!(page.transactions[0].id, "18446744073709551615");
+            assert_eq!(
+                page.transactions[0].raw_transaction,
+                json!({
+                    "memo": "18446744073709551615", "icrc1_memo_hex": "",
+                    "operation": expected, "created_at_time_unix_nanos": "18446744073709551615",
+                    "timestamp_unix_nanos": null
+                })
+            );
+        }
+    }
 
     #[test]
     fn deployed_icp_index_wire_shape_decodes_and_preserves_account_identifiers() {
@@ -395,5 +386,65 @@ mod tests {
             row.raw_transaction["operation"]["spender_account_identifier"],
             json!("spender-account")
         );
+    }
+
+    fn operation_cases() -> [(IcpIndexOperation, serde_json::Value); 4] {
+        [
+            (
+                IcpIndexOperation::Approve {
+                    fee: IcpIndexTokens { e8s: 0 },
+                    from: "from-account".to_string(),
+                    allowance: IcpIndexTokens { e8s: u64::MAX },
+                    expires_at: None,
+                    spender: "spender-account".to_string(),
+                    expected_allowance: None,
+                },
+                json!({
+                    "kind": "approve", "fee_base_units": "0",
+                    "from_account_identifier": "from-account",
+                    "allowance_base_units": "18446744073709551615",
+                    "expires_at_unix_nanos": null,
+                    "spender_account_identifier": "spender-account",
+                    "expected_allowance_base_units": null
+                }),
+            ),
+            (
+                IcpIndexOperation::Burn {
+                    from: "from-account".to_string(),
+                    amount: IcpIndexTokens { e8s: u64::MAX },
+                    spender: None,
+                },
+                json!({
+                    "kind": "burn", "from_account_identifier": "from-account",
+                    "amount_base_units": "18446744073709551615",
+                    "spender_account_identifier": null
+                }),
+            ),
+            (
+                IcpIndexOperation::Mint {
+                    to: "to-account".to_string(),
+                    amount: IcpIndexTokens { e8s: u64::MAX },
+                },
+                json!({
+                    "kind": "mint", "to_account_identifier": "to-account",
+                    "amount_base_units": "18446744073709551615"
+                }),
+            ),
+            (
+                IcpIndexOperation::Transfer {
+                    to: "to-account".to_string(),
+                    fee: IcpIndexTokens { e8s: u64::MAX },
+                    from: "from-account".to_string(),
+                    amount: IcpIndexTokens { e8s: 0 },
+                    spender: None,
+                },
+                json!({
+                    "kind": "transfer", "to_account_identifier": "to-account",
+                    "fee_base_units": "18446744073709551615",
+                    "from_account_identifier": "from-account", "amount_base_units": "0",
+                    "spender_account_identifier": null
+                }),
+            ),
+        ]
     }
 }

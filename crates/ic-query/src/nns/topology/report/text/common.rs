@@ -4,9 +4,11 @@
 //! Does not own: report construction, source reads, or command parsing.
 //! Boundary: centralizes repeated table formatting for topology renderers.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
 use crate::{
     nns::topology::report::{NnsTopologyRegistryVersionRow, percent::coverage_percent_text},
-    table::{ColumnAlign, render_table},
     text_value::yes_no,
 };
 
@@ -24,12 +26,12 @@ pub(super) fn render_join_coverage_table(rows: &[(&str, usize, usize)]) -> Strin
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }
 
 pub(super) fn render_registry_version_table(rows: &[NnsTopologyRegistryVersionRow]) -> String {
@@ -48,11 +50,11 @@ pub(super) fn render_registry_version_table(rows: &[NnsTopologyRegistryVersionRo
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

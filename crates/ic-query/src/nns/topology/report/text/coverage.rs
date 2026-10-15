@@ -4,11 +4,11 @@
 //! Does not own: coverage report construction, cache loading, or JSON output.
 //! Boundary: formats coverage count and join-coverage tables for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
 use super::common::render_join_coverage_table;
-use crate::{
-    nns::topology::report::NnsTopologyCoverageReport,
-    table::{ColumnAlign, render_table},
-};
+use crate::nns::topology::report::NnsTopologyCoverageReport;
 
 #[must_use]
 pub fn nns_topology_coverage_report_text(report: &NnsTopologyCoverageReport) -> String {
@@ -38,8 +38,8 @@ fn render_coverage_count_table(report: &NnsTopologyCoverageReport) -> String {
             report.data_center_count.to_string(),
         ],
     ];
-    let alignments = [ColumnAlign::Left, ColumnAlign::Right];
-    render_table(&headers, &rows, &alignments)
+    let alignments = [Alignment::Left, Alignment::Right];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }
 
 fn render_coverage_join_coverage_table(report: &NnsTopologyCoverageReport) -> String {

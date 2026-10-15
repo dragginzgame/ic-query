@@ -4,14 +4,19 @@
 //! Does not own: proposal fetching, cache loading, report construction, or JSON output.
 //! Boundary: formats proposal detail lines and ballot tables for proposal text reports.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
     sns::report::{
         SnsProposalBallotRow, SnsProposalRow,
         text::common::{neuron_id_text, optional_text},
     },
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, truncate_text, yes_no},
+    text_value::{truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
@@ -31,13 +36,13 @@ pub(super) fn proposal_detail_lines(
     let mut lines = vec![
         format!("- proposal_id: {}", proposal.proposal_id),
         format!("  action_id: {}", proposal.action_id),
-        format!("  action: {}", sanitize_text(&action)),
+        format!("  action: {}", terminal_text(&action)),
         format!(
             "  decision_state: {}",
-            sanitize_text(proposal.decision_state.as_str())
+            terminal_text(proposal.decision_state.as_str())
         ),
         format!("  topic: {}", optional_text(proposal.topic.as_ref())),
-        format!("  title: {}", sanitize_text(&proposal.title)),
+        format!("  title: {}", terminal_text(&proposal.title)),
         format!("  url: {}", optional_text(proposal.url.as_ref())),
         format!(
             "  proposer_neuron_id: {}",
@@ -47,7 +52,7 @@ pub(super) fn proposal_detail_lines(
             "  reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("  created_at: {}", sanitize_text(&proposal.created_at)),
+        format!("  created_at: {}", terminal_text(&proposal.created_at)),
         format!(
             "  decided_at: {}",
             optional_text(proposal.decided_at.as_ref())
@@ -79,7 +84,7 @@ pub(super) fn proposal_detail_lines(
             format!("  failure_error_type: {}", reason.error_type),
             format!(
                 "  failure_error_message: {}",
-                sanitize_text(&reason.error_message)
+                terminal_text(&reason.error_message)
             ),
         ]);
     }
@@ -105,7 +110,7 @@ pub(super) fn proposal_ballot_table(
     if ballots.is_empty() {
         return None;
     }
-    Some(render_table(
+    Some(render(
         &["NEURON_ID", "VOTE", "VOTING_POWER", "CAST_AT"],
         &ballots
             .iter()
@@ -119,14 +124,15 @@ pub(super) fn proposal_ballot_table(
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     ))
 }
 
 fn proposal_detail_text(value: &str, detail_limit: Option<usize>) -> String {
-    detail_limit.map_or_else(|| sanitize_text(value), |limit| truncate_text(value, limit))
+    detail_limit.map_or_else(|| terminal_text(value), |limit| truncate_text(value, limit))
 }

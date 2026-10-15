@@ -19,7 +19,7 @@ mod topology;
 
 use crate::{
     cli::common::{CurrentUnixSecsError, OutputFormat, write_text_or_json},
-    storage::cache_root,
+    storage::CacheRootError,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
@@ -33,7 +33,7 @@ use ic_query::{
     },
     subnet_catalog::{SubnetCatalogHostError, SubnetCatalogRemediation},
 };
-use std::{io, path::PathBuf};
+use std::io;
 use thiserror::Error as ThisError;
 
 ///
@@ -82,6 +82,12 @@ pub enum NnsCommandError {
     Json(#[from] serde_json::Error),
 }
 
+impl From<CacheRootError> for NnsCommandError {
+    fn from(error: CacheRootError) -> Self {
+        Self::Usage(error.to_string())
+    }
+}
+
 impl From<SubnetCatalogHostError> for NnsCommandError {
     fn from(source: SubnetCatalogHostError) -> Self {
         let mut message = source.to_string();
@@ -115,10 +121,6 @@ pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsC
         Some(("topology", matches)) => topology::run(matches, network).await,
         _ => unreachable!("clap requires a known NNS subcommand"),
     }
-}
-
-fn command_cache_root() -> Result<PathBuf, NnsCommandError> {
-    cache_root().map_err(|err| NnsCommandError::Usage(err.to_string()))
 }
 
 pub fn command() -> ClapCommand {

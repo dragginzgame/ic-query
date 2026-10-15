@@ -2,7 +2,8 @@ mod info;
 mod list;
 mod refresh;
 
-use crate::nns::{NnsCommandError, command_cache_root};
+use crate::nns::NnsCommandError;
+use crate::storage::cache_root;
 use clap::ArgMatches;
 use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
 pub(in crate::nns) async fn run(
@@ -26,8 +27,5 @@ pub(in crate::nns) async fn run(
 }
 
 fn cache_request(network: &str) -> Result<SubnetCatalogCacheRequest, NnsCommandError> {
-    Ok(SubnetCatalogCacheRequest::new(
-        command_cache_root()?,
-        network,
-    ))
+    Ok(SubnetCatalogCacheRequest::new(cache_root()?, network))
 }

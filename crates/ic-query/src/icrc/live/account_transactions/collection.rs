@@ -11,6 +11,7 @@ use crate::{
         IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
         IcrcAccountTransactionRow,
     },
+    snapshot_cache::PagedCollectionState,
 };
 
 ///
@@ -36,9 +37,7 @@ pub(super) struct AccountTransactionCollectionState {
     index_canister_id: String,
     balance: Option<String>,
     oldest_transaction_id: Option<String>,
-    transactions: Vec<IcrcAccountTransactionRow>,
-    page_count: u32,
-    next_cursor: Option<String>,
+    pages: PagedCollectionState<IcrcAccountTransactionRow, String>,
 }
 
 impl AccountTransactionCollectionState {
@@ -47,18 +46,16 @@ impl AccountTransactionCollectionState {
             index_canister_id,
             balance: None,
             oldest_transaction_id: None,
-            transactions: Vec::new(),
-            page_count: 0,
-            next_cursor: None,
+            pages: PagedCollectionState::new(),
         }
     }
 
     pub(super) const fn page_count(&self) -> u32 {
-        self.page_count
+        self.pages.page_count()
     }
 
     pub(super) fn next_cursor(&self) -> Option<&str> {
-        self.next_cursor.as_deref()
+        self.pages.next_cursor().map(String::as_str)
     }
 
     pub(super) fn ingest(
@@ -74,7 +71,7 @@ impl AccountTransactionCollectionState {
         }
         validate_account_transaction_page(
             &page.transactions,
-            self.next_cursor.as_deref(),
+            self.next_cursor(),
             page.oldest_transaction_id.as_deref(),
             page.next_start.as_deref(),
         )
@@ -92,18 +89,17 @@ impl AccountTransactionCollectionState {
             self.balance = Some(page.balance);
             self.oldest_transaction_id = page.oldest_transaction_id;
         }
-        self.transactions.extend(page.transactions);
-        self.page_count = self.page_count.saturating_add(1);
-        self.next_cursor = page.next_start;
-        Ok(self.next_cursor.is_none() || self.next_cursor == self.oldest_transaction_id)
+        self.pages.ingest(page.transactions, page.next_start);
+        Ok(self.next_cursor().is_none()
+            || self.next_cursor() == self.oldest_transaction_id.as_deref())
     }
 
     pub(super) fn incomplete(&self, reason: impl Into<String>) -> IcrcAccountTransactionError {
         IcrcAccountTransactionError::IncompleteCollection {
             index_canister_id: Some(self.index_canister_id.clone()),
-            pages_fetched: self.page_count,
-            rows_fetched: self.transactions.len(),
-            last_cursor: self.next_cursor.clone(),
+            pages_fetched: self.pages.page_count(),
+            rows_fetched: self.pages.row_count(),
+            last_cursor: self.pages.next_cursor().cloned(),
             reason: reason.into(),
         }
     }
@@ -114,9 +110,9 @@ impl AccountTransactionCollectionState {
     ) -> IcrcAccountTransactionError {
         IcrcAccountTransactionError::CollectionPage {
             index_canister_id: Some(self.index_canister_id.clone()),
-            pages_fetched: self.page_count,
-            rows_fetched: self.transactions.len(),
-            last_cursor: self.next_cursor.clone(),
+            pages_fetched: self.pages.page_count(),
+            rows_fetched: self.pages.row_count(),
+            last_cursor: self.pages.next_cursor().cloned(),
             source: Box::new(source),
         }
     }
@@ -129,8 +125,8 @@ impl AccountTransactionCollectionState {
         progress.report(QueryProgressEvent::PagedRefresh {
             text: format!(
                 "refreshing ICRC account transactions: pages={} rows={}",
-                self.page_count,
-                self.transactions.len()
+                self.pages.page_count(),
+                self.pages.row_count()
             ),
             state,
         });
@@ -144,14 +140,15 @@ impl AccountTransactionCollectionState {
         let Some(balance) = self.balance.take() else {
             return Err(self.incomplete("index collection has no accepted page"));
         };
+        let pages = self.pages.into_complete(Clone::clone);
         Ok(IcrcAccountTransactionCollectionData {
             index_canister_id: self.index_canister_id,
             balance,
             token_symbol,
             decimals,
-            transactions: self.transactions,
-            page_count: self.page_count,
-            last_cursor: self.next_cursor,
+            transactions: pages.rows,
+            page_count: pages.page_count,
+            last_cursor: pages.last_cursor,
         })
     }
 }
@@ -277,6 +274,7 @@ mod tests {
         );
 
         for invalid in [
+            page(&["8", "7", "1"], Some("1"), Some("1")),
             page(&["7", "8"], Some("1"), Some("8")),
             page(&["9", "8"], Some("1"), Some("8")),
             page(&["11", "8"], Some("1"), Some("8")),

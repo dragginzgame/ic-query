@@ -1,8 +1,13 @@
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::ranges::append_compact_range_lines;
 use crate::{
     subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal},
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+    text_value::yes_no,
 };
 
 /// Render catalog provenance and a compact filtered Subnet table.
@@ -30,19 +35,19 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
     ];
     let mut lines = Vec::new();
     lines.push(format!(
         "catalog: {} version {} stale {} assurance {} cache {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.registry_version,
         yes_no(report.catalog_stale),
         report.assurance.as_str(),
@@ -53,7 +58,7 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
         return lines.join("\n");
     }
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     append_compact_range_lines(report, &mut lines);
     lines.join("\n")
 }

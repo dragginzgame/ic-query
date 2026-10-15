@@ -5,12 +5,46 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.9]
+## [0.55.10]
 
 - Include MIT license text in published crates and align package declarations
   with the repository license.
 
 Detailed notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
+## [0.55.9] - 2026-10-15
+
+- Keeps Query-specific Testkit setup in the canister guide, preserving the reviewed
+  Shared Tooling setup snapshot and its integrity check.
+
+- Fixes standalone certified Subnet Catalog builds by enabling the shared Registry
+  certificate-evidence validators with their owning feature.
+
+- Uses Host's shared Unicode table renderer and terminal escaping, preserving
+  plain-table layout while making bidi controls and Unicode line separators visible.
+  Raw report and JSON values are unchanged.
+- Simplifies lossless ICRC transaction JSON serialization and SNS enrichment,
+  preserving wire records, complete coverage checks and typed query failures.
+- Shares cache age/recovery policy lookup and removes redundant NNS/SNS cache-root
+  setup, preserving command behavior and cache policy.
+- ICRC account history shares pagination bookkeeping with SNS while retaining
+  its own cursor validation, exhaustion rules and failure evidence.
+- Shares certificate hex-shape checks, simplifies subaccount normalization and
+  avoids repeated proposal-query normalization without changing report evidence.
+- Prepares node filters once and shares topology refresh projections.
+- Capability probes classify missing methods from typed replica rejection codes;
+  diagnostic text alone no longer marks a query as unsupported.
+
+- Adopts Testkit 0.44 for native HTTP fixtures and deterministic execution of the
+  compiled Governance probe. Server preparation is explicit; CI runs the new
+  canister checks alongside deployment smoke.
+
+```bash
+make install-testkit
+make testkit-check canister-test
+```
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
 
 ## [0.55.8] - 2026-10-14
 

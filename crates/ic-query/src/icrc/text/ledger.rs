@@ -4,6 +4,12 @@
 //! Does not own: transaction history, account views, live reads, or JSON output.
 //! Boundary: formats token metadata and capability or certificate evidence for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::{LEFT_2_ALIGNMENTS, push_table_section};
 use crate::{
     human_quantity::byte_count_text,
@@ -11,8 +17,7 @@ use crate::{
         IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcIndexReport, IcrcTipCertificateReport,
         IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, truncate_text},
+    text_value::{optional_text, truncate_text},
     token_amount::base_units_decimal_text,
     token_metadata_text::token_metadata_value_text as metadata_value_text,
 };
@@ -26,8 +31,8 @@ const STANDARD_TABLE_HEADERS: [&str; 2] = ["STANDARD", "URL"];
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("token_name: {}", sanitize_text(&report.token_name)),
-        format!("token_symbol: {}", sanitize_text(&report.token_symbol)),
+        format!("token_name: {}", terminal_text(&report.token_name)),
+        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
         format!("decimals: {}", report.decimals),
         format!(
             "transfer_fee: {}",
@@ -45,10 +50,10 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
             "minting_account_subaccount_hex: {}",
             optional_text(report.minting_account_subaccount_hex.as_ref())
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(
@@ -70,14 +75,14 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
             "index_canister_id: {}",
             optional_text(report.index_canister_id.as_ref())
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     if let Some(error) = report.index_error.as_deref() {
-        lines.push(format!("index_error: {}", sanitize_text(error)));
+        lines.push(format!("index_error: {}", terminal_text(error)));
     }
     lines.join("\n")
 }
@@ -109,10 +114,10 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
             )
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
     .join("\n")
@@ -124,10 +129,10 @@ pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String 
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("standard_count: {}", report.supported_standards.len()),
         format!("capability_count: {}", report.capabilities.len()),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(
@@ -144,18 +149,19 @@ pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String 
 }
 
 fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String {
-    render_table(
+    render(
         &STANDARD_TABLE_HEADERS,
         &standards
             .iter()
             .map(|standard| [standard.name.clone(), standard.url.clone()])
             .collect::<Vec<_>>(),
         &LEFT_2_ALIGNMENTS,
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
-    render_table(
+    render(
         &["METADATA", "TYPE", "VALUE"],
         &rows
             .iter()
@@ -170,12 +176,13 @@ fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> St
                 ]
             })
             .collect::<Vec<_>>(),
-        &[ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left],
+        &[Alignment::Left, Alignment::Left, Alignment::Left],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
-    render_table(
+    render(
         &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
         &rows
             .iter()
@@ -189,11 +196,12 @@ fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 

@@ -4,13 +4,18 @@
 //! Does not own: JSON serialization, source validation, live calls, or process output.
 //! Boundary: separates Dashboard provenance from provider and location tables.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::{
     CloudEngineProviderInfoReport, CloudEngineProviderListReport, CloudEngineProviderLocation,
 };
 use crate::{
     ic::dashboard_provenance_lines,
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, yes_no},
+    text_value::{optional_text, yes_no},
 };
 
 /// Render the complete CloudEngine-bearing provider list.
@@ -34,7 +39,7 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
             .map(|provider| {
                 [
                     provider.principal_id.clone(),
-                    sanitize_text(&provider.display_name),
+                    terminal_text(&provider.display_name),
                     provider.total_cloud_engines.to_string(),
                     provider.total_cloud_engine_nodes.to_string(),
                     provider.total_cloud_engine_unassigned_nodes.to_string(),
@@ -44,7 +49,7 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
             .collect::<Vec<_>>();
         lines.push(String::new());
         lines.push("CloudEngine providers".to_string());
-        lines.push(render_table(
+        lines.push(render(
             &[
                 "Provider",
                 "Name",
@@ -55,13 +60,14 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
             ],
             &rows,
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")
@@ -78,7 +84,7 @@ pub fn cloud_engine_provider_info_report_text(report: &CloudEngineProviderInfoRe
             yes_no(report.cloud_engine_evidence_present)
         ),
         format!("node_provider_id: {}", provider.principal_id),
-        format!("display_name: {}", sanitize_text(&provider.display_name)),
+        format!("display_name: {}", terminal_text(&provider.display_name)),
         format!("website: {}", optional_text(provider.website.as_ref())),
         format!("logo_url: {}", optional_text(provider.logo_url.as_ref())),
         format!("total_cloud_engines: {}", provider.total_cloud_engines),
@@ -121,24 +127,25 @@ fn location_table(locations: &[CloudEngineProviderLocation]) -> String {
         .map(|location| {
             [
                 location.dc_key.clone(),
-                sanitize_text(&location.display_name),
-                sanitize_text(location.owner.trim()),
-                sanitize_text(&location.region),
+                terminal_text(&location.display_name),
+                terminal_text(location.owner.trim()),
+                terminal_text(&location.region),
                 location.latitude.to_string(),
                 location.longitude.to_string(),
             ]
         })
         .collect::<Vec<_>>();
-    render_table(
+    render(
         &["DC", "Location", "Owner", "Region", "Latitude", "Longitude"],
         &rows,
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Right,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }

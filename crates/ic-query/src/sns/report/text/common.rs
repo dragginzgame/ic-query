@@ -4,13 +4,15 @@
 //! Does not own: report DTOs, tables, cache behavior, or source reads.
 //! Boundary: exposes small formatting helpers used by text report leaves.
 
+use ic_host_text::escape::terminal_text;
+
 #[cfg(feature = "sns-host")]
 use crate::sns::report::SnsCacheSummary;
 use crate::{
     duration::display_duration_seconds,
     report::ReportDataSource,
     sns::report::{SnsNeuronDissolveState, SnsNeuronPermissionList},
-    text_value::{sanitize_text, yes_no},
+    text_value::yes_no,
     token_amount::e8s_decimal_text,
 };
 
@@ -85,7 +87,7 @@ pub(in crate::sns::report::text) fn push_report_provenance_lines(
 ) {
     lines.push(format!("data_source: {data_source}"));
     if let Some(cache_path) = cache_path {
-        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
+        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     if let Some(cache_complete) = cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
@@ -101,8 +103,8 @@ pub(in crate::sns::report::text) fn push_cache_error_lines(
         cache.cache_error.as_deref().map(|error| {
             format!(
                 "cache_error: {}: {}",
-                sanitize_text(&cache.cache_path),
-                sanitize_text(error)
+                terminal_text(&cache.cache_path),
+                terminal_text(error)
             )
         })
     }));

@@ -10,7 +10,7 @@
 /// Admitted rows and pagination metadata from a complete API walk.
 ///
 
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CompletePagedCollection<Row> {
     pub rows: Vec<Row>,
@@ -24,6 +24,7 @@ pub struct CompletePagedCollection<Row> {
 /// Per-page progress and SNS exhaustion evidence for the refresh runner.
 ///
 
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub struct PagedCollectionPage {
     #[cfg(feature = "sns-host")]
     page_len: usize,
@@ -37,28 +38,28 @@ pub struct PagedCollectionPage {
 /// Accumulates validated rows while walking a cursor-based collection.
 ///
 
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 pub struct PagedCollectionState<Row, Cursor> {
     rows: Vec<Row>,
     page_count: u32,
     next_cursor: Option<Cursor>,
 }
 
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 impl<Row, Cursor> Default for PagedCollectionState<Row, Cursor> {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
+impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
+    pub const fn new() -> Self {
         Self {
             rows: Vec::new(),
             page_count: 0,
             next_cursor: None,
         }
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
-    pub fn new() -> Self {
-        Self::default()
     }
 
     pub const fn page_count(&self) -> u32 {
@@ -73,11 +74,20 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
         self.next_cursor.as_ref()
     }
 
+    #[cfg(feature = "sns-host")]
     pub const fn has_next_cursor(&self) -> bool {
         self.next_cursor.is_some()
     }
 
+    /// Record rows and a cursor only after family-owned page validation.
+    pub fn ingest(&mut self, rows: Vec<Row>, next_cursor: Option<Cursor>) {
+        self.rows.extend(rows);
+        self.page_count = self.page_count.saturating_add(1);
+        self.next_cursor = next_cursor;
+    }
+
     /// Record admitted rows while retaining the unmodified API page length for exhaustion.
+    #[cfg(feature = "sns-host")]
     pub fn ingest_page(
         &mut self,
         rows: Vec<Row>,
@@ -85,11 +95,9 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
         next_cursor: Option<Cursor>,
         cursor_text: impl FnOnce(&Cursor) -> String,
     ) -> PagedCollectionPage {
-        self.page_count = self.page_count.saturating_add(1);
         let last_cursor_text = next_cursor.as_ref().map(cursor_text);
         let new_rows = rows.len();
-        self.rows.extend(rows);
-        self.next_cursor = next_cursor;
+        self.ingest(rows, next_cursor);
 
         PagedCollectionPage {
             page_len,
@@ -110,6 +118,7 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
     }
 }
 
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
 impl PagedCollectionPage {
     /// Describe one validated NNS page, whose rows are all newly admitted.
     #[must_use]

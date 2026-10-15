@@ -183,7 +183,7 @@ async fn resolve_index_canister(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<Principal, IcrcAccountTransactionError> {
-    let result = query_index_principal(agent, ledger_canister)
+    let result = query_index_principal::<IcrcError>(agent, ledger_canister)
         .await
         .map_err(|source| IcrcAccountTransactionError::IndexDiscovery {
             ledger_canister_id: ledger_canister.to_text(),

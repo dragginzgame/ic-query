@@ -4,9 +4,10 @@
 //! Does not own: neuron collection, checkpoint validation, or JSON serialization.
 //! Boundary: keeps potentially large raw row evidence in JSON while text remains bounded.
 
+use ic_host_text::escape::terminal_text;
+
 use crate::{
     sns::report::{SnsRewardCheckpointReport, text::common::optional_bool_text},
-    text_value::sanitize_text,
     token_amount::e8s_decimal_text,
 };
 
@@ -14,9 +15,9 @@ use crate::{
 #[must_use]
 pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> String {
     [
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("collection_status: {}", report.collection_status.as_str()),
@@ -84,7 +85,7 @@ pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> 
         ),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
     .join("\n")

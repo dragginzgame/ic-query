@@ -3,8 +3,9 @@
 use super::options::{NnsNeuronInfoOptions, NnsNeuronListOptions};
 use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
 use crate::nns::leaf::NnsPagedRefreshOptions;
+use crate::storage::cache_root;
 use crate::{
-    nns::{NnsCommandError, command_cache_root, write_text_or_json},
+    nns::{NnsCommandError, write_text_or_json},
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
@@ -36,7 +37,7 @@ pub(in crate::nns) async fn run(
 
 fn run_distribution(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_neuron_distribution_report_from_cache(&request)?;
     write_text_or_json(options.format, &report, nns_neuron_distribution_report_text)
 }
@@ -55,7 +56,7 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
         exclusive_start_neuron_id: options.start_neuron_id,
         verbose: options.verbose,
     };
-    let report = match build_nns_neuron_list_report_from_cache(&request, &command_cache_root()?)? {
+    let report = match build_nns_neuron_list_report_from_cache(&request, &cache_root()?)? {
         Some(report) => report,
         None => build_nns_neuron_list_report(&request).await?,
     };
@@ -72,7 +73,7 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
     );
     let request =
         NnsNeuronInfoRequest::new(governance, options.neuron_id).with_verbose(options.verbose);
-    let report = match build_nns_neuron_info_report_from_cache(&request, &command_cache_root()?)? {
+    let report = match build_nns_neuron_info_report_from_cache(&request, &cache_root()?)? {
         Some(report) => report,
         None => build_nns_neuron_info_report(&request).await?,
     };
@@ -82,7 +83,7 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
 async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
-        command_cache_root()?,
+        cache_root()?,
         options.network,
         options.source_endpoint,
         current_unix_secs()?,
@@ -103,7 +104,7 @@ fn run_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError>
 
 fn run_cache_status(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_neuron_cache_status_report(&request)?;
     write_text_or_json(options.format, &report, nns_neuron_cache_status_report_text)
 }

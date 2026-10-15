@@ -4,6 +4,12 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: returns formatted strings without selecting or writing to a process output sink.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::NnsProposalActivityReport;
 #[cfg(feature = "nns-host")]
 use super::cache::{
@@ -17,8 +23,7 @@ use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     nns::governance::{governance_context_lines, governance_source_lines},
     subnet_catalog::format_utc_timestamp_secs,
-    table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text, truncate_text, yes_no},
+    text_value::{optional_u64_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
@@ -41,15 +46,15 @@ pub fn nns_proposal_activity_report_text(report: &NnsProposalActivityReport) -> 
 
 fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!(
             "collection_started_at: {}",
-            sanitize_text(&report.collection_started_at)
+            terminal_text(&report.collection_started_at)
         ),
         format!(
             "collection_updated_at: {}",
-            sanitize_text(&report.collection_updated_at)
+            terminal_text(&report.collection_updated_at)
         ),
     ];
     lines.extend(governance_source_lines(&report.source));
@@ -108,10 +113,11 @@ fn topic_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
                 ]
             })
             .collect::<Vec<_>>();
-        render_table(
+        render(
             &["TOPIC_CODE", "TOPIC", "PROPOSALS"],
             &rows,
-            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+            &[Alignment::Right, Alignment::Left, Alignment::Right],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -129,10 +135,11 @@ fn status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
                 ]
             })
             .collect::<Vec<_>>();
-        render_table(
+        render(
             &["STATUS_CODE", "STATUS", "PROPOSALS"],
             &rows,
-            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+            &[Alignment::Right, Alignment::Left, Alignment::Right],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -150,10 +157,11 @@ fn reward_status_activity_table(report: &NnsProposalActivityReport) -> Option<St
                 ]
             })
             .collect::<Vec<_>>();
-        render_table(
+        render(
             &["REWARD_STATUS_CODE", "REWARD_STATUS", "PROPOSALS"],
             &rows,
-            &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+            &[Alignment::Right, Alignment::Left, Alignment::Right],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -171,10 +179,11 @@ fn daily_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
                 ]
             })
             .collect::<Vec<_>>();
-        render_table(
+        render(
             &["DAY_START_UTC", "DAY_START_SECONDS", "PROPOSALS"],
             &rows,
-            &[ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right],
+            &[Alignment::Left, Alignment::Right, Alignment::Right],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -198,7 +207,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         ),
         format!(
             "query_filter: {}",
-            sanitize_text(report.query_filter.as_deref().unwrap_or("-"))
+            terminal_text(report.query_filter.as_deref().unwrap_or("-"))
         ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
@@ -208,14 +217,14 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         format!("data_source: {}", report.data_source),
     ]);
     if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
+        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     if let Some(cache_complete) = report.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
     if !report.proposals.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &["ID", "TOPIC", "STATUS", "PROPOSED_AT", "TITLE"],
             &report
                 .proposals
@@ -231,12 +240,13 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     if report.verbose && !report.proposals.is_empty() {
@@ -261,7 +271,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
         format!("data_source: {}", report.data_source),
     ]);
     if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
+        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     if let Some(cache_complete) = report.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
@@ -290,7 +300,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
     [
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("proposal_count: {}", report.proposal_count),
         format!("page_size: {}", report.page_size),
@@ -307,22 +317,22 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
         ),
         format!(
             "attempt_finalization_error: {}",
-            sanitize_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
+            terminal_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
-        format!("cache_path: {}", sanitize_text(&report.cache_path)),
+        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_attempt_path: {}",
-            sanitize_text(&report.refresh_attempt_path)
+            terminal_text(&report.refresh_attempt_path)
         ),
         format!(
             "refresh_lock_path: {}",
-            sanitize_text(&report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
     ]
     .join("\n")
@@ -333,13 +343,13 @@ pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> St
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("cache_root: {}", sanitize_text(&report.cache_root)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("cache_count: {}", report.cache_count),
     ];
     if !report.caches.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &["STATUS", "GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
             &report
                 .caches
@@ -355,19 +365,20 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
         for cache in &report.caches {
             if let Some(error) = cache.cache_error.as_ref() {
                 lines.push(format!(
                     "cache_error: {}: {}",
-                    sanitize_text(&cache.cache_path),
-                    sanitize_text(error)
+                    terminal_text(&cache.cache_path),
+                    terminal_text(error)
                 ));
             }
         }
@@ -380,16 +391,16 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("cache_root: {}", sanitize_text(&report.cache_root)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("found: {}", yes_no(report.found)),
         format!(
             "expected_cache_path: {}",
-            sanitize_text(&report.expected_cache_path)
+            terminal_text(&report.expected_cache_path)
         ),
         format!(
             "refresh_attempt_path: {}",
-            sanitize_text(&report.refresh_attempt_path)
+            terminal_text(&report.refresh_attempt_path)
         ),
     ];
     if let Some(cache) = report.cache.as_ref() {
@@ -400,12 +411,12 @@ pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusRepo
             format!("row_count: {}", cache.row_count),
             format!("page_count: {}", cache.page_count),
             format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", sanitize_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", sanitize_text(&cache.source_endpoint)),
-            format!("cache_path: {}", sanitize_text(&cache.cache_path)),
+            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
+            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
+            format!("cache_path: {}", terminal_text(&cache.cache_path)),
         ]);
         if let Some(error) = cache.cache_error.as_ref() {
-            lines.push(format!("cache_error: {}", sanitize_text(error)));
+            lines.push(format!("cache_error: {}", terminal_text(error)));
         }
     } else {
         lines.push("refresh_hint: icq nns proposal refresh".to_string());
@@ -426,45 +437,45 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
         ),
         format!(
             "topic: {} ({})",
-            sanitize_text(proposal.topic_text.as_str()),
+            terminal_text(proposal.topic_text.as_str()),
             proposal.topic
         ),
         format!(
             "status: {} ({})",
-            sanitize_text(proposal.status_text.as_str()),
+            terminal_text(proposal.status_text.as_str()),
             proposal.status
         ),
         format!(
             "reward_status: {} ({})",
-            sanitize_text(proposal.reward_status_text.as_str()),
+            terminal_text(proposal.reward_status_text.as_str()),
             proposal.reward_status
         ),
         format!(
             "action: {}",
-            sanitize_text(proposal.action_text.as_deref().unwrap_or("-"))
+            terminal_text(proposal.action_text.as_deref().unwrap_or("-"))
         ),
         format!("title: {}", proposal_title(proposal)),
-        format!("url: {}", sanitize_text(empty_text(&proposal.url))),
+        format!("url: {}", terminal_text(empty_text(&proposal.url))),
         format!(
             "reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("proposed_at: {}", sanitize_text(&proposal.proposed_at)),
+        format!("proposed_at: {}", terminal_text(&proposal.proposed_at)),
         format!(
             "deadline_at: {}",
-            sanitize_text(proposal.deadline_at.as_deref().unwrap_or("-"))
+            terminal_text(proposal.deadline_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "decided_at: {}",
-            sanitize_text(proposal.decided_at.as_deref().unwrap_or("-"))
+            terminal_text(proposal.decided_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "executed_at: {}",
-            sanitize_text(proposal.executed_at.as_deref().unwrap_or("-"))
+            terminal_text(proposal.executed_at.as_deref().unwrap_or("-"))
         ),
         format!(
             "failed_at: {}",
-            sanitize_text(proposal.failed_at.as_deref().unwrap_or("-"))
+            terminal_text(proposal.failed_at.as_deref().unwrap_or("-"))
         ),
         format!("reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -494,7 +505,7 @@ fn proposal_title(proposal: &NnsProposalRow) -> String {
         .filter(|title| !title.trim().is_empty())
         .cloned()
         .unwrap_or_else(|| "-".to_string());
-    sanitize_text(&title)
+    terminal_text(&title)
 }
 
 fn empty_text(value: &str) -> &str {
@@ -506,14 +517,14 @@ fn proposal_detail_text(value: &str, limit: Option<usize>) -> String {
     if value == "-" {
         return value.to_string();
     }
-    limit.map_or_else(|| sanitize_text(value), |limit| truncate_text(value, limit))
+    limit.map_or_else(|| terminal_text(value), |limit| truncate_text(value, limit))
 }
 
 fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
     if ballots.is_empty() {
         return None;
     }
-    Some(render_table(
+    Some(render(
         &["NEURON_ID", "VOTE", "VOTING_POWER"],
         &ballots
             .iter()
@@ -525,7 +536,8 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
                 ]
             })
             .collect::<Vec<_>>(),
-        &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Right],
+        &[Alignment::Right, Alignment::Left, Alignment::Right],
+        REPORT_TABLE_OPTIONS,
     ))
 }
 
@@ -540,18 +552,18 @@ fn attempt_lines(attempt: &NnsGovernanceRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
         format!("  status: {}", attempt.status),
-        format!("  started_at: {}", sanitize_text(&attempt.started_at)),
-        format!("  updated_at: {}", sanitize_text(&attempt.updated_at)),
+        format!("  started_at: {}", terminal_text(&attempt.started_at)),
+        format!("  updated_at: {}", terminal_text(&attempt.updated_at)),
         format!("  page_size: {}", attempt.page_size),
         format!("  pages_fetched: {}", attempt.pages_fetched),
         format!("  rows_fetched: {}", attempt.rows_fetched),
         format!(
             "  last_cursor: {}",
-            sanitize_text(attempt.last_cursor.as_deref().unwrap_or("-"))
+            terminal_text(attempt.last_cursor.as_deref().unwrap_or("-"))
         ),
         format!(
             "  last_error: {}",
-            sanitize_text(attempt.last_error.as_deref().unwrap_or("-"))
+            terminal_text(attempt.last_error.as_deref().unwrap_or("-"))
         ),
     ]
 }

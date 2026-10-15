@@ -259,6 +259,43 @@ fn node_list_filters_by_related_prefixes() {
     );
 }
 
+#[test]
+fn node_list_filter_preparation_preserves_case_whitespace_and_empty_input() {
+    let matching = NnsNodeListFilters {
+        subnet: Some(" PZP6E ".to_string()),
+        subnet_kind: Some(SubnetKind::Application),
+        data_center: Some(" DC ".to_string()),
+        node_provider: Some(" RWLGT ".to_string()),
+        node_operator: Some(" aaaaa-aa ".to_string()),
+    };
+    let filtered = filter_node_list_report(node_report_fixture(), &matching);
+    assert_eq!(filtered.node_count, 1);
+    assert_eq!(filtered.nodes[0].data_center_id, "dc1");
+
+    for filters in [
+        NnsNodeListFilters {
+            subnet: Some("  ".into()),
+            ..Default::default()
+        },
+        NnsNodeListFilters {
+            node_provider: Some("\t".into()),
+            ..Default::default()
+        },
+        NnsNodeListFilters {
+            node_operator: Some(String::new()),
+            ..Default::default()
+        },
+        NnsNodeListFilters {
+            data_center: Some("\n".into()),
+            ..Default::default()
+        },
+    ] {
+        let filtered = filter_node_list_report(node_report_fixture(), &filters);
+        assert_eq!(filtered.node_count, 0);
+        assert_eq!(filtered.nodes, Vec::<NnsNodeRow>::new());
+    }
+}
+
 fn node_report_fixture() -> NnsNodeListReport {
     NnsNodeListReport {
         schema_version: 1,

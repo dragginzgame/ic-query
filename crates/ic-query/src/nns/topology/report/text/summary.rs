@@ -4,20 +4,21 @@
 //! Does not own: summary report construction, source reads, or JSON output.
 //! Boundary: keeps summary count, kind, coverage, and version tables together.
 
-use super::common::{render_join_coverage_table, render_registry_version_table};
-use crate::{
-    nns::topology::report::NnsTopologySummaryReport,
-    subnet_catalog::SubnetKind,
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
 };
+
+use super::common::{render_join_coverage_table, render_registry_version_table};
+use crate::{nns::topology::report::NnsTopologySummaryReport, subnet_catalog::SubnetKind};
 
 #[must_use]
 pub fn nns_topology_summary_report_text(report: &NnsTopologySummaryReport) -> String {
     let mut lines = Vec::new();
     lines.push(format!(
         "topology: {} subnets {} nodes {} node_operators {} node_providers {} data_centers {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.subnet_count,
         report.node_count,
         report.node_operator_count,
@@ -57,8 +58,8 @@ fn render_count_table(report: &NnsTopologySummaryReport) -> String {
             report.data_center_count.to_string(),
         ],
     ];
-    let alignments = [ColumnAlign::Left, ColumnAlign::Right];
-    render_table(&headers, &rows, &alignments)
+    let alignments = [Alignment::Left, Alignment::Right];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }
 
 fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
@@ -85,8 +86,8 @@ fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
             report.unknown_node_count.to_string(),
         ],
     ];
-    let alignments = [ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right];
-    render_table(&headers, &rows, &alignments)
+    let alignments = [Alignment::Left, Alignment::Right, Alignment::Right];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }
 
 fn render_summary_join_coverage_table(report: &NnsTopologySummaryReport) -> String {

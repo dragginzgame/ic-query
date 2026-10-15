@@ -2,9 +2,10 @@ use super::{
     model::NnsLeafReports,
     options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
 };
+use crate::storage::cache_root;
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json_verbose},
-    nns::{NnsCommandError, command_cache_root, write_text_or_json},
+    nns::{NnsCommandError, write_text_or_json},
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
@@ -38,7 +39,7 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
-    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
     let request =
         NnsInventoryListRequest::new(cache, options.source_endpoint, current_unix_secs()?);
     let report = reports
@@ -63,7 +64,7 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
-    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
     let request = NnsInventoryInfoRequest::new(
         cache,
         options.source_endpoint,
@@ -89,7 +90,7 @@ where
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
-    let cache = NnsInventoryCacheRequest::new(command_cache_root()?, options.network);
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
     let mut request = NnsInventoryRefreshRequest::new(
         cache,
         options.source_endpoint,

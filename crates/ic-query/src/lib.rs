@@ -119,7 +119,6 @@ pub mod system;
     feature = "subnet-catalog-host"
 ))]
 pub use cache_file::{CacheFileError, HostCacheError};
-mod table;
 mod text_search;
 mod text_value;
 mod token_amount;

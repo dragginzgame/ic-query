@@ -80,12 +80,13 @@ pub async fn build_nns_proposal_list_report_with_source(
     validate_source_provenance(&request.governance.source, &data.provenance)?;
     validate_proposal_page(&data.value, request.limit, request.before_proposal_id)?;
 
+    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
     let mut proposals = data
         .value
         .into_iter()
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
-        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
+        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
         .collect::<Vec<_>>();
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     Ok(nns_proposal_list_report_from_parts(

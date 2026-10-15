@@ -290,6 +290,7 @@ fn nns_proposal_list_report_from_cache(
 ) -> NnsProposalListReport {
     let cache_complete = cache.completeness.is_api_exhausted();
     let context = nns_proposal_cache_report_context(&cache);
+    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
     let mut proposals = cache
         .data
         .proposals
@@ -299,7 +300,7 @@ fn nns_proposal_list_report_from_cache(
         .filter(|proposal| proposal_matches_reward_status(proposal, request.reward_status))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
         .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
-        .filter(|proposal| proposal_matches_query(proposal, request.query.as_deref()))
+        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
         .collect::<Vec<_>>();
     sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
