@@ -4,36 +4,37 @@
 //! Does not own: command parsing, report filtering, or locale-sensitive search.
 //! Boundary: provides Unicode-aware case-insensitive matching for view predicates.
 
-pub fn optional_text_contains_case_insensitive(value: Option<&str>, query: &str) -> bool {
-    value.is_some_and(|value| text_contains_case_insensitive(value, query))
-}
-
-fn text_contains_case_insensitive(value: &str, query: &str) -> bool {
-    query.is_empty() || value.to_lowercase().contains(&query.to_lowercase())
+/// Match one field against a query lowercased once by its caller.
+pub fn optional_text_contains_lowercase_query(value: Option<&str>, lowercase_query: &str) -> bool {
+    value.is_some_and(|value| {
+        lowercase_query.is_empty() || value.to_lowercase().contains(lowercase_query)
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::optional_text_contains_case_insensitive;
+    use super::optional_text_contains_lowercase_query;
 
     #[test]
     fn optional_text_contains_case_insensitive_matches_unicode_text() {
-        assert!(optional_text_contains_case_insensitive(
+        assert!(optional_text_contains_lowercase_query(
             Some("Subnet Upgrade"),
             "subnet"
         ));
-        assert!(optional_text_contains_case_insensitive(
+        assert!(optional_text_contains_lowercase_query(
             Some("Subnet Upgrade"),
-            "UPGRADE"
+            "upgrade"
         ));
-        assert!(optional_text_contains_case_insensitive(
+        assert!(optional_text_contains_lowercase_query(
             Some("RÉSUMÉ proposal"),
             "résumé"
         ));
-        assert!(!optional_text_contains_case_insensitive(
+        assert!(!optional_text_contains_lowercase_query(
             Some("Node Provider"),
             "subnet"
         ));
-        assert!(!optional_text_contains_case_insensitive(None, "subnet"));
+        assert!(!optional_text_contains_lowercase_query(None, "subnet"));
+        assert!(optional_text_contains_lowercase_query(Some(""), ""));
+        assert!(!optional_text_contains_lowercase_query(None, ""));
     }
 }

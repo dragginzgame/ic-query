@@ -4,11 +4,10 @@
 //! Does not own: report construction, JSON output, live calls, or process output.
 //! Boundary: keeps raw machine values in report models while formatting XDR only for text.
 
+use ic_host_text::escape::terminal_text;
+
 use super::{CmcCertification, CmcCyclesReport, CmcReportContext, CmcXdrReport};
-use crate::{
-    human_quantity::{byte_count_text, cycle_count_text},
-    text_value::sanitize_text,
-};
+use crate::human_quantity::{byte_count_text, cycle_count_text};
 
 /// Render one certified CMC ICP/XDR report.
 #[must_use]
@@ -60,14 +59,14 @@ pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
 
 fn context_lines(context: &CmcReportContext) -> Vec<String> {
     vec![
-        format!("network: {}", sanitize_text(&context.network)),
+        format!("network: {}", terminal_text(&context.network)),
         format!("cmc_canister_id: {}", context.cmc_canister_id),
-        format!("fetched_at: {}", sanitize_text(&context.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&context.source_endpoint)
+            terminal_text(&context.source_endpoint)
         ),
-        format!("fetched_by: {}", sanitize_text(&context.fetched_by)),
+        format!("fetched_by: {}", terminal_text(&context.fetched_by)),
     ]
 }
 

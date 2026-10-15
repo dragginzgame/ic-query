@@ -1,18 +1,17 @@
-use crate::{
-    nns::{
-        node_provider::report::NnsNodeProviderInfoReport,
-        render::{optional_node_count_text, text_or_dash},
-    },
-    text_value::sanitize_text,
+use ic_host_text::escape::terminal_text;
+
+use crate::nns::{
+    node_provider::report::NnsNodeProviderInfoReport,
+    render::{optional_node_count_text, text_or_dash},
 };
 
 #[must_use]
 pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("input: {}", sanitize_text(&report.input)));
+    lines.push(format!("input: {}", terminal_text(&report.input)));
     lines.push(format!(
         "resolved_from: {}",
-        sanitize_text(&report.resolved_from)
+        terminal_text(&report.resolved_from)
     ));
     lines.push(format!(
         "node_provider_principal: {}",
@@ -35,12 +34,12 @@ pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) ->
         report.registry_canister_id
     ));
     lines.push(format!("registry_version: {}", report.registry_version));
-    lines.push(format!("network: {}", sanitize_text(&report.network)));
-    lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!("network: {}", terminal_text(&report.network)));
+    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
+    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     lines.join("\n")
 }

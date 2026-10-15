@@ -1,7 +1,8 @@
 use crate::cli::common::current_unix_secs;
+use crate::storage::cache_root;
 use crate::{
     nns::write_text_or_json,
-    nns::{NnsCommandError, command_cache_root, leaf::NnsCommonOptions},
+    nns::{NnsCommandError, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;
 use ic_query::nns::topology::{self, NnsTopologyHostError};
@@ -85,7 +86,7 @@ where
 {
     let options = NnsCommonOptions::from_matches(matches, network);
     let format = options.format;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = topology::NnsTopologyReadRequest::new(
         cache_root,
         options.network,

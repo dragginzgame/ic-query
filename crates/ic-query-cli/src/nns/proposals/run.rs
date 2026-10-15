@@ -7,11 +7,8 @@
 use super::options::{NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions};
 use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
 use crate::nns::leaf::NnsPagedRefreshOptions;
-use crate::{
-    cli::common::write_text_or_json,
-    nns::{NnsCommandError, command_cache_root},
-    progress::StderrQueryProgress,
-};
+use crate::storage::cache_root;
+use crate::{cli::common::write_text_or_json, nns::NnsCommandError, progress::StderrQueryProgress};
 use clap::ArgMatches;
 use ic_query::nns::proposals::{
     NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_activity_report_from_cache,
@@ -52,7 +49,7 @@ pub(in crate::nns) async fn run(
 
 fn run_nns_proposal_activity(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsProposalActivityOptions::from_matches(matches, network);
-    let cache_request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let cache_request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_proposal_activity_report_from_cache(&cache_request, &options.request)?;
     write_text_or_json(options.format, &report, nns_proposal_activity_report_text)
 }
@@ -85,8 +82,7 @@ async fn run_nns_proposal_list_with_options(
         verbose: options.verbose,
     };
 
-    let report = match build_nns_proposal_list_report_from_cache(&request, &command_cache_root()?)?
-    {
+    let report = match build_nns_proposal_list_report_from_cache(&request, &cache_root()?)? {
         Some(report) => report,
         None => build_nns_proposal_list_report(&request).await?,
     };
@@ -108,7 +104,7 @@ async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<()
     let request = NnsProposalRequest::new(governance, options.proposal_id)
         .with_show_ballots(options.show_ballots)
         .with_verbose(options.verbose);
-    let report = match build_nns_proposal_report_from_cache(&request, &command_cache_root()?)? {
+    let report = match build_nns_proposal_report_from_cache(&request, &cache_root()?)? {
         Some(report) => report,
         None => build_nns_proposal_report(&request).await?,
     };
@@ -121,7 +117,7 @@ async fn run_nns_proposal_refresh(
 ) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
     let request = NnsGovernanceRefreshRequest::new(
-        command_cache_root()?,
+        cache_root()?,
         options.network,
         options.source_endpoint,
         current_unix_secs()?,
@@ -147,7 +143,7 @@ fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Nns
 
 fn run_nns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }
@@ -157,7 +153,7 @@ fn run_nns_proposal_cache_status(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(command_cache_root()?, options.network);
+    let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_proposal_cache_status_report(&request)?;
     write_text_or_json(
         options.format,

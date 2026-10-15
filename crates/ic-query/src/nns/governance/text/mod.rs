@@ -4,12 +4,12 @@
 //! Does not own: live calls, report construction, caching, or process output.
 //! Boundary: preserves one text facade while report families own their native-value formatting.
 
+use ic_host_text::escape::terminal_text;
+
 mod economics;
 mod events;
 mod metrics;
-
 use super::{NnsGovernanceReportContext, NnsGovernanceSourceProvenance};
-use crate::text_value::sanitize_text;
 
 pub use economics::nns_governance_economics_report_text;
 pub use events::{
@@ -19,9 +19,9 @@ pub use metrics::nns_governance_metrics_report_text;
 
 pub fn context_lines(context: &NnsGovernanceReportContext) -> Vec<String> {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&context.network)),
+        format!("network: {}", terminal_text(&context.network)),
         format!("governance_canister_id: {}", context.governance_canister_id),
-        format!("fetched_at: {}", sanitize_text(&context.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&context.fetched_at)),
     ];
     lines.extend(source_lines(&context.source));
     lines
@@ -35,8 +35,8 @@ pub fn source_lines(source: &NnsGovernanceSourceProvenance) -> Vec<String> {
             fetched_by,
         } => {
             lines.push("source_transport: replica_query".to_string());
-            lines.push(format!("source_endpoint: {}", sanitize_text(endpoint)));
-            lines.push(format!("fetched_by: {}", sanitize_text(fetched_by)));
+            lines.push(format!("source_endpoint: {}", terminal_text(endpoint)));
+            lines.push(format!("fetched_by: {}", terminal_text(fetched_by)));
         }
         NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
             collector_canister_id,

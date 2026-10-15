@@ -1,7 +1,6 @@
-use crate::{
-    subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal},
-    text_value::sanitize_text,
-};
+use ic_host_text::escape::terminal_text;
+
+use crate::subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal};
 
 pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
     for subnet in &report.subnets {
@@ -10,13 +9,13 @@ pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut V
         }
         lines.push(format!(
             "ranges for {}:",
-            sanitize_text(&subnet.subnet_principal)
+            terminal_text(&subnet.subnet_principal)
         ));
         for range in &subnet.ranges {
             lines.push(format!(
                 "  {}..{}",
-                sanitize_text(&range.start_canister_id),
-                sanitize_text(&range.end_canister_id)
+                terminal_text(&range.start_canister_id),
+                terminal_text(&range.end_canister_id)
             ));
         }
         if subnet.ranges_shown < subnet.range_count {

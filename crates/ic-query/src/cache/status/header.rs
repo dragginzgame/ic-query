@@ -4,7 +4,11 @@
 //! Does not own: directory traversal, refresh locks, or family-specific validation.
 //! Boundary: stops large unmanaged histories at their leading payload boundary.
 
-use super::super::{CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy, CacheStatusRow};
+use super::super::{
+    CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy,
+    CacheRecoveryPolicy::{Automatic, Explicit, MissingOnly, Unknown},
+    CacheStatusRow,
+};
 use crate::{
     CacheFileError,
     cache_file::{BoundedManagedFileReadError, open_managed_file, read_bounded_stream},
@@ -228,7 +232,7 @@ pub(super) fn cache_status_row(
             "cache timestamp is in the future".to_string(),
         ));
     };
-    let stale_after_seconds = registered_age_policy(relative);
+    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
     let age_status = stale_after_seconds.map_or(CacheAgeStatus::Unmanaged, |threshold| {
         if age_seconds > threshold {
             CacheAgeStatus::Stale
@@ -242,7 +246,7 @@ pub(super) fn cache_status_row(
         relative_path,
         header_status: CacheHeaderStatus::Readable,
         age_status,
-        recovery_policy: recovery_policy(relative),
+        recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at: Some(fetched_at_text),
@@ -259,7 +263,7 @@ fn read_cache_header(
     size_bytes: u64,
     maximum_bytes: u64,
 ) -> Result<GenericCacheHeader, serde_json::Error> {
-    if registered_age_policy(relative).is_some() {
+    if cache_policy(relative).1.is_some() {
         let data =
             read_bounded_stream(reader, size_bytes, relative, maximum_bytes).map_err(|error| {
                 let source = match error {
@@ -359,34 +363,27 @@ fn root_component(parts: &[&str]) -> String {
     parts.first().copied().unwrap_or("unknown").to_string()
 }
 
-fn registered_age_policy(relative: &Path) -> Option<u64> {
+fn cache_policy(relative: &Path) -> (CacheRecoveryPolicy, Option<u64>) {
     match path_parts(relative).as_slice() {
-        ["nns", "ic", "subnet-catalog", "catalog.json"] => Some(DEFAULT_STALE_AFTER_SECONDS),
-        ["nns", "ic", "subnet-topology", "report.json"] => {
-            Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS)
+        ["nns", "ic", "subnet-catalog", "catalog.json"] => {
+            (Automatic, Some(DEFAULT_STALE_AFTER_SECONDS))
         }
+        ["nns", "ic", "subnet-topology", "report.json"] => (
+            Explicit,
+            Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS),
+        ),
         ["ic", "ic", "nodes", "operational-status", "full.json"] => {
-            Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS)
+            (Automatic, Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS))
         }
         ["sns", "ic", "catalog", "discovery", "full.json"] => {
-            Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS)
+            (Automatic, Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS))
         }
-        _ => None,
-    }
-}
-
-fn recovery_policy(relative: &Path) -> CacheRecoveryPolicy {
-    match path_parts(relative).as_slice() {
-        ["nns", "ic", "subnet-catalog", "catalog.json"]
-        | ["nns", "ic", "node", "nodes.json"]
+        ["nns", "ic", "node", "nodes.json"]
         | ["nns", "ic", "node-provider", "providers.json"]
         | ["nns", "ic", "node-operator", "operators.json"]
-        | ["nns", "ic", "data-center", "data-centers.json"]
-        | ["ic", "ic", "nodes", "operational-status", "full.json"]
-        | ["sns", "ic", "catalog", "discovery", "full.json"] => CacheRecoveryPolicy::Automatic,
-        ["sns", "ic", _, "proposals", "full.json"] => CacheRecoveryPolicy::MissingOnly,
-        ["nns", "ic", "subnet-topology", "report.json"]
-        | ["nns", "ic", "subnet-catalog", "history.json"]
+        | ["nns", "ic", "data-center", "data-centers.json"] => (Automatic, None),
+        ["sns", "ic", _, "proposals", "full.json"] => (MissingOnly, None),
+        ["nns", "ic", "subnet-catalog", "history.json"]
         | [
             "nns",
             "ic",
@@ -395,8 +392,8 @@ fn recovery_policy(relative: &Path) -> CacheRecoveryPolicy {
             "full.json",
         ]
         | ["sns", "ic", _, "neurons", "full.json"]
-        | ["icrc", "ic", _, "transactions", "full.json"] => CacheRecoveryPolicy::Explicit,
-        _ => CacheRecoveryPolicy::Unknown,
+        | ["icrc", "ic", _, "transactions", "full.json"] => (Explicit, None),
+        _ => (Unknown, None),
     }
 }
 
@@ -407,18 +404,19 @@ fn invalid_row(
     size_bytes: u64,
     error: Option<String>,
 ) -> CacheStatusRow {
+    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
     CacheStatusRow {
         component: component_from_path(relative),
         cache_path: path.display().to_string(),
         relative_path,
         header_status: CacheHeaderStatus::Invalid,
         age_status: CacheAgeStatus::Unknown,
-        recovery_policy: recovery_policy(relative),
+        recovery_policy,
         schema_version: None,
         network: None,
         fetched_at: None,
         age_seconds: None,
-        stale_after_seconds: registered_age_policy(relative),
+        stale_after_seconds,
         size_bytes,
         inspection_error: error,
     }
@@ -433,14 +431,14 @@ fn unknown_age_row(
     fetched_at: Option<String>,
     error: String,
 ) -> CacheStatusRow {
-    let stale_after_seconds = registered_age_policy(relative);
+    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
     CacheStatusRow {
         component: component(relative, &header),
         cache_path: path.display().to_string(),
         relative_path,
         header_status: CacheHeaderStatus::Readable,
         age_status: CacheAgeStatus::Unknown,
-        recovery_policy: recovery_policy(relative),
+        recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at,
@@ -646,7 +644,7 @@ mod tests {
             ("nns/local/node/nodes.json", CacheRecoveryPolicy::Unknown),
             ("unmanaged/ic/full.json", CacheRecoveryPolicy::Unknown),
         ] {
-            assert_eq!(recovery_policy(Path::new(path)), expected, "{path}");
+            assert_eq!(cache_policy(Path::new(path)).0, expected, "{path}");
         }
     }
 
@@ -672,7 +670,7 @@ mod tests {
             ("nns/local/subnet-catalog/catalog.json", None),
             ("unmanaged/ic/full.json", None),
         ] {
-            assert_eq!(registered_age_policy(Path::new(path)), expected, "{path}");
+            assert_eq!(cache_policy(Path::new(path)).1, expected, "{path}");
         }
     }
 }

@@ -15,7 +15,7 @@ use super::{
 };
 use crate::icrc::{
     ledger::{
-        GetIndexPrincipalResult, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
+        GetIndexPrincipalResult, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, IcrcLedgerError,
         fetch_icrc_supported_standards, index_principal_error_text,
     },
     model::{
@@ -24,7 +24,7 @@ use crate::icrc::{
     },
 };
 use candid::{Nat, Principal};
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError, agent::RejectCode};
 
 const ICRC1_SUPPORTED_STANDARDS_METHOD: &str = "icrc1_supported_standards";
 
@@ -38,7 +38,7 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
         &request.ledger_canister_id,
     )?;
     let (standards_result, index, blocks, block_types, archives, tip_certificate) = futures::join!(
-        fetch_icrc_supported_standards::<IcrcError>(&agent, &ledger_canister),
+        fetch_icrc_supported_standards::<CapabilityQueryError>(&agent, &ledger_canister),
         fetch_index_capability(&agent, &ledger_canister),
         fetch_blocks_capability(&agent, &ledger_canister),
         fetch_block_types_capability(&agent, &ledger_canister),
@@ -78,7 +78,7 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
 }
 
 async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
-    match query_index_principal(agent, ledger_canister).await {
+    match query_index_principal::<CapabilityQueryError>(agent, ledger_canister).await {
         Ok(GetIndexPrincipalResult::Ok(principal)) => available_capability_row(
             "ICRC-106 index discovery",
             ICRC106_GET_INDEX_PRINCIPAL_METHOD,
@@ -102,7 +102,7 @@ async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> 
         start: Nat::from(0_u64),
         length: Nat::from(1_u64),
     }];
-    match query_blocks(agent, ledger_canister, &block_args).await {
+    match query_blocks::<_, CapabilityQueryError>(agent, ledger_canister, &block_args).await {
         Ok(result) => available_capability_row(
             "ICRC-3 block history",
             ICRC3_GET_BLOCKS_METHOD,
@@ -121,7 +121,7 @@ async fn fetch_block_types_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_block_types(agent, ledger_canister).await {
+    match query_block_types::<CapabilityQueryError>(agent, ledger_canister).await {
         Ok(block_types) => available_capability_row(
             "ICRC-3 supported block types",
             ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
@@ -145,7 +145,7 @@ async fn fetch_archives_capability(
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
     let args = Icrc3GetArchivesArgs { from: None };
-    match query_archives(agent, ledger_canister, &args).await {
+    match query_archives::<CapabilityQueryError>(agent, ledger_canister, &args).await {
         Ok(archives) => available_capability_row(
             "ICRC-3 archive discovery",
             ICRC3_GET_ARCHIVES_METHOD,
@@ -161,7 +161,7 @@ async fn fetch_tip_certificate_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_tip_certificate(agent, ledger_canister).await {
+    match query_tip_certificate::<CapabilityQueryError>(agent, ledger_canister).await {
         Ok(IcrcTipCertificateData {
             certificate_bytes: Some(certificate_bytes),
             hash_tree_bytes: Some(hash_tree_bytes),
@@ -200,38 +200,79 @@ fn available_capability_row(
     }
 }
 
-fn error_capability_row(
-    capability: &str,
-    method: &'static str,
+///
+/// CapabilityQueryError
+///
+/// Private query failure retaining a protocol-derived classification and original diagnostic.
+///
+
+struct CapabilityQueryError {
     error: IcrcError,
-) -> IcrcCapabilityRow {
-    let error = error.to_string();
-    let (status, details) = capability_error_projection(&error);
-    IcrcCapabilityRow {
-        capability: capability.to_string(),
-        method: method.to_string(),
-        status,
-        details: Some(details.to_string()),
-        error: Some(error),
+    method_not_exported: bool,
+}
+
+impl From<IcrcError> for CapabilityQueryError {
+    fn from(error: IcrcError) -> Self {
+        Self {
+            error,
+            method_not_exported: false,
+        }
     }
 }
 
-fn capability_error_projection(error: &str) -> (IcrcCapabilityStatus, &'static str) {
-    if method_not_exported(error) {
+impl IcrcLedgerError for CapabilityQueryError {
+    fn invalid_principal(field: &'static str, reason: String) -> Self {
+        IcrcError::InvalidPrincipal { field, reason }.into()
+    }
+
+    fn candid_encode(message: &'static str, reason: String) -> Self {
+        IcrcError::CandidEncode { message, reason }.into()
+    }
+
+    fn agent_call(method: &'static str, error: AgentError) -> Self {
+        let method_not_exported = match &error {
+            AgentError::CertifiedReject { reject, .. }
+            | AgentError::UncertifiedReject { reject, .. } => {
+                // IC0536 is CanisterMethodNotFound; free-form reject text is not a code.
+                reject.reject_code == RejectCode::CanisterError
+                    && reject.error_code.as_deref() == Some("IC0536")
+            }
+            _ => false,
+        };
+        Self {
+            error: IcrcError::AgentCall {
+                method,
+                reason: error.to_string(),
+            },
+            method_not_exported,
+        }
+    }
+
+    fn candid_decode(message: &'static str, reason: String) -> Self {
+        IcrcError::CandidDecode { message, reason }.into()
+    }
+}
+
+fn error_capability_row(
+    capability: &str,
+    method: &'static str,
+    error: CapabilityQueryError,
+) -> IcrcCapabilityRow {
+    let (status, details) = if error.method_not_exported {
         (
             IcrcCapabilityStatus::Unsupported,
             "method not exported by target canister",
         )
     } else {
         (IcrcCapabilityStatus::Error, "query failed")
+    };
+    IcrcCapabilityRow {
+        capability: capability.to_string(),
+        method: method.to_string(),
+        status,
+        details: Some(details.to_string()),
+        error: Some(error.error.to_string()),
     }
-}
-
-fn method_not_exported(error: &str) -> bool {
-    let error = error.to_ascii_lowercase();
-    error.contains("has no query method")
-        || error.contains("method not found")
-        || error.contains("ic0536")
 }
 
 fn named_count_detail<'a, I>(singular: &str, names: I) -> String
@@ -249,19 +290,159 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_cbor::Value;
+    use std::{
+        collections::BTreeMap,
+        io::{BufRead, BufReader, Read, Write},
+        net::TcpListener,
+        thread,
+        time::Duration,
+    };
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn capability_probe_retains_reject_metadata_through_the_ledger_transport() {
+        for (error_code, message, expected) in [
+            (
+                "IC0536",
+                "fixture missing method",
+                IcrcCapabilityStatus::Unsupported,
+            ),
+            (
+                "IC0502",
+                "IC0536 method not found",
+                IcrcCapabilityStatus::Error,
+            ),
+        ] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let endpoint = format!("http://{}", listener.local_addr().unwrap());
+            let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
+                (Value::Text("status".into()), Value::Text("rejected".into())),
+                (Value::Text("reject_code".into()), Value::Integer(5)),
+                (
+                    Value::Text("reject_message".into()),
+                    Value::Text(message.into()),
+                ),
+                (
+                    Value::Text("error_code".into()),
+                    Value::Text(error_code.into()),
+                ),
+            ])))
+            .unwrap();
+            let server = thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(10)))
+                    .unwrap();
+                let mut reader = BufReader::new(&mut stream);
+                let mut length = None;
+                loop {
+                    let mut line = String::new();
+                    assert!(reader.read_line(&mut line).unwrap() > 0);
+                    if line == "\r\n" {
+                        break;
+                    }
+                    if let Some((name, value)) = line.split_once(':')
+                        && name.eq_ignore_ascii_case("content-length")
+                    {
+                        length = Some(value.trim().parse::<usize>().unwrap());
+                    }
+                }
+                let mut request = vec![0; length.unwrap()];
+                reader.read_exact(&mut request).unwrap();
+                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
+                stream.write_all(&body).unwrap();
+                request
+            });
+            let agent = Agent::builder()
+                .with_url(endpoint)
+                .with_verify_query_signatures(false)
+                .build()
+                .unwrap();
+            let row = fetch_index_capability(&agent, &Principal::anonymous()).await;
+            let request: Value = serde_cbor::from_slice(&server.join().unwrap()).unwrap();
+            let Value::Map(envelope) = request else {
+                panic!("request envelope")
+            };
+            let Value::Map(content) = &envelope[&Value::Text("content".into())] else {
+                panic!("request content")
+            };
+            assert_eq!(
+                content[&Value::Text("method_name".into())],
+                Value::Text(ICRC106_GET_INDEX_PRINCIPAL_METHOD.into())
+            );
+            assert_eq!(row.status, expected);
+            let diagnostic = row.error.unwrap();
+            assert!(diagnostic.contains(message));
+            assert!(diagnostic.contains(error_code));
+        }
+    }
 
     #[test]
-    fn capability_error_projection_distinguishes_unsupported_methods() {
-        assert_eq!(
-            capability_error_projection("Canister has no query method"),
-            (
-                IcrcCapabilityStatus::Unsupported,
-                "method not exported by target canister"
-            )
+    fn capability_failures_classify_protocol_codes_and_preserve_diagnostics() {
+        for certified in [false, true] {
+            for (code, error_code, message, expected) in [
+                (
+                    RejectCode::CanisterError,
+                    Some("IC0536"),
+                    "method unavailable",
+                    IcrcCapabilityStatus::Unsupported,
+                ),
+                (
+                    RejectCode::CanisterError,
+                    Some("IC0502"),
+                    "IC0536: method not found",
+                    IcrcCapabilityStatus::Error,
+                ),
+                (
+                    RejectCode::CanisterError,
+                    None,
+                    "Canister has no query method",
+                    IcrcCapabilityStatus::Error,
+                ),
+                (
+                    RejectCode::CanisterReject,
+                    Some("IC0536"),
+                    "method not found",
+                    IcrcCapabilityStatus::Error,
+                ),
+            ] {
+                let reject = ic_agent::agent::RejectResponse {
+                    reject_code: code,
+                    reject_message: message.to_string(),
+                    error_code: error_code.map(str::to_string),
+                };
+                let error = if certified {
+                    AgentError::CertifiedReject {
+                        reject,
+                        operation: None,
+                    }
+                } else {
+                    AgentError::UncertifiedReject {
+                        reject,
+                        operation: None,
+                    }
+                };
+                let original = IcrcError::AgentCall {
+                    method: ICRC3_GET_BLOCKS_METHOD,
+                    reason: error.to_string(),
+                }
+                .to_string();
+                let row = error_capability_row(
+                    "ICRC-3 block history",
+                    ICRC3_GET_BLOCKS_METHOD,
+                    CapabilityQueryError::agent_call(ICRC3_GET_BLOCKS_METHOD, error),
+                );
+                assert_eq!(row.status, expected);
+                assert_eq!(row.error.as_deref(), Some(original.as_str()));
+            }
+        }
+        let error = CapabilityQueryError::candid_decode(
+            ICRC3_GET_BLOCKS_METHOD,
+            "method not found IC0536".into(),
         );
         assert_eq!(
-            capability_error_projection("replica rejected the query"),
-            (IcrcCapabilityStatus::Error, "query failed")
+            error_capability_row("blocks", ICRC3_GET_BLOCKS_METHOD, error).status,
+            IcrcCapabilityStatus::Error
         );
     }
 }

@@ -4,10 +4,9 @@
 //! Does not own: report fields, JSON serialization, or terminal styling.
 //! Boundary: uses decimal cycle units and binary IEC byte units with bounded precision.
 
-use crate::{
-    decimal::{increment_decimal, is_unsigned_decimal},
-    text_value::sanitize_text,
-};
+use ic_host_text::escape::terminal_text;
+
+use crate::decimal::{increment_decimal, is_unsigned_decimal};
 use std::fmt::Write;
 
 const CYCLE_UNITS: &[(u128, &str)] = &[
@@ -36,12 +35,12 @@ pub fn cycle_count_text(value: u128) -> String {
 pub fn decimal_cycle_count_text(value: &str) -> String {
     value
         .parse::<u128>()
-        .map_or_else(|_| sanitize_text(value), cycle_count_text)
+        .map_or_else(|_| terminal_text(value), cycle_count_text)
 }
 
 pub fn decimal_cycle_rate_text(value: &str) -> String {
     let Some((whole, fraction)) = decimal_parts(value) else {
-        return sanitize_text(value);
+        return terminal_text(value);
     };
     let mut unit_index = CYCLE_UNITS
         .iter()
@@ -69,7 +68,7 @@ pub fn byte_count_text(value: u128) -> String {
 pub fn decimal_byte_count_text(value: &str) -> String {
     value
         .parse::<u128>()
-        .map_or_else(|_| sanitize_text(value), byte_count_text)
+        .map_or_else(|_| terminal_text(value), byte_count_text)
 }
 
 fn scaled_quantity_text(value: u128, units: &[(u128, &str)], radix: u128) -> String {

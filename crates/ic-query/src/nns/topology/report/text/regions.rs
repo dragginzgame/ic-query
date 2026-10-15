@@ -4,10 +4,10 @@
 //! Does not own: region aggregation, source reads, or JSON output.
 //! Boundary: formats data-center region rows for human inspection.
 
-use crate::{
-    nns::topology::report::{NnsTopologyRegionRow, NnsTopologyRegionsReport},
-    table::{ColumnAlign, render_table},
-};
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
+use crate::nns::topology::report::{NnsTopologyRegionRow, NnsTopologyRegionsReport};
 
 #[must_use]
 pub fn nns_topology_regions_report_text(report: &NnsTopologyRegionsReport) -> String {
@@ -35,11 +35,11 @@ fn render_regions_table(rows: &[NnsTopologyRegionRow]) -> String {
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

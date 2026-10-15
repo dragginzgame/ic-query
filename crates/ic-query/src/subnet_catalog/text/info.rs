@@ -1,13 +1,13 @@
+use ic_host_text::escape::terminal_text;
+
 use crate::{
-    human_quantity::cycle_count_text,
-    subnet_catalog::SubnetCatalogInfoReport,
-    text_value::{sanitize_text, yes_no},
+    human_quantity::cycle_count_text, subnet_catalog::SubnetCatalogInfoReport, text_value::yes_no,
 };
 
 /// Render resolved subject, catalog provenance, and execution-rate details as text.
 #[must_use]
 pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> String {
-    let safe_line = |label: &str, value: &str| format!("{label}: {}", sanitize_text(value));
+    let safe_line = |label: &str, value: &str| format!("{label}: {}", terminal_text(value));
     let mut lines = Vec::new();
     lines.push(safe_line("input_principal", &report.input_principal));
     lines.push(safe_line("resolved_as", &report.resolved_as));
@@ -55,7 +55,7 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
     ));
     lines.push(format!(
         "charge_applicability_reason: {}",
-        sanitize_text(&report.charge_applicability_reason)
+        terminal_text(&report.charge_applicability_reason)
     ));
     append_catalog_evidence(&mut lines, report);
     if let Some(canister) = &report.matched_canister_principal {
@@ -95,14 +95,14 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
     ));
     lines.push(format!(
         "catalog_digest: {}",
-        sanitize_text(&report.catalog_digest)
+        terminal_text(&report.catalog_digest)
     ));
     lines.push(format!(
         "source_endpoints: {}",
         report
             .source_endpoints
             .iter()
-            .map(|endpoint| sanitize_text(endpoint))
+            .map(|endpoint| terminal_text(endpoint))
             .collect::<Vec<_>>()
             .join(",")
     ));
@@ -128,17 +128,17 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
     ));
     lines.push(format!(
         "catalog_path: {}",
-        sanitize_text(&report.catalog_path)
+        terminal_text(&report.catalog_path)
     ));
-    lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
     lines.push(format!("catalog_stale: {}", yes_no(report.catalog_stale)));
     lines.push(format!(
         "stale_reason: {}",
-        sanitize_text(&report.stale_reason)
+        terminal_text(&report.stale_reason)
     ));
     lines.push(format!(
         "collector_version: {}",
-        sanitize_text(&report.collector_version)
+        terminal_text(&report.collector_version)
     ));
     lines.push(format!(
         "classification_schema_version: {}",
@@ -146,7 +146,7 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
     ));
     lines.push(format!(
         "classification_policy_digest: {}",
-        sanitize_text(&report.classification_policy_digest)
+        terminal_text(&report.classification_policy_digest)
     ));
     lines.push(format!(
         "resolver_schema_version: {}",
@@ -154,6 +154,6 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
     ));
     lines.push(format!(
         "resolver_backend: {}",
-        sanitize_text(&report.resolver_backend)
+        terminal_text(&report.resolver_backend)
     ));
 }

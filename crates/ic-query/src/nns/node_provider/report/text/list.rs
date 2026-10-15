@@ -1,10 +1,12 @@
-use crate::{
-    nns::{
-        node_provider::report::NnsNodeProviderListReport,
-        render::{compact_text, optional_node_count_text, text_or_dash},
-    },
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
+use crate::nns::{
+    node_provider::report::NnsNodeProviderListReport,
+    render::{compact_text, optional_node_count_text, text_or_dash},
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -14,9 +16,9 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
     let mut lines = Vec::new();
     lines.push(format!(
         "node_providers: {} count {} fetched_at {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.node_provider_count,
-        sanitize_text(&report.fetched_at)
+        terminal_text(&report.fetched_at)
     ));
     if report.node_providers.is_empty() {
         lines.push("node providers: none".to_string());
@@ -34,9 +36,9 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
             ]
         })
         .collect::<Vec<_>>();
-    let alignments = [ColumnAlign::Left, ColumnAlign::Right];
+    let alignments = [Alignment::Left, Alignment::Right];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }
 
@@ -45,9 +47,9 @@ pub fn nns_node_provider_list_report_verbose_text(report: &NnsNodeProviderListRe
     let mut lines = Vec::new();
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
+    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     if report.node_providers.is_empty() {
         lines.push("node providers: none".to_string());
         return lines.join("\n");
@@ -74,13 +76,13 @@ pub fn nns_node_provider_list_report_verbose_text(report: &NnsNodeProviderListRe
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }

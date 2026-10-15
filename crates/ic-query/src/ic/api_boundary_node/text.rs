@@ -4,11 +4,13 @@
 //! Does not own: JSON serialization, state-tree collection, or report validation.
 //! Boundary: keeps certificate provenance separate from the following node table.
 
-use super::IcApiBoundaryNodeReport;
-use crate::{
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
 };
+
+use super::IcApiBoundaryNodeReport;
 
 /// Render one complete certified API boundary-node report as human-facing text.
 #[must_use]
@@ -16,29 +18,29 @@ pub fn ic_api_boundary_node_report_text(report: &IcApiBoundaryNodeReport) -> Str
     let provenance = &report.provenance;
     let mut lines = vec![
         format!("schema_version: {}", provenance.schema_version),
-        format!("network: {}", sanitize_text(&provenance.network)),
-        format!("authority: {}", sanitize_text(&provenance.authority)),
+        format!("network: {}", terminal_text(&provenance.network)),
+        format!("authority: {}", terminal_text(&provenance.authority)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&provenance.source_endpoint)
+            terminal_text(&provenance.source_endpoint)
         ),
         format!(
             "effective_canister_id: {}",
-            sanitize_text(&provenance.effective_canister_id)
+            terminal_text(&provenance.effective_canister_id)
         ),
         format!(
             "fetched_at_unix_seconds: {}",
             provenance.fetched_at_unix_seconds
         ),
-        format!("fetched_at: {}", sanitize_text(&provenance.fetched_at)),
-        format!("fetched_by: {}", sanitize_text(&provenance.fetched_by)),
+        format!("fetched_at: {}", terminal_text(&provenance.fetched_at)),
+        format!("fetched_by: {}", terminal_text(&provenance.fetched_by)),
         format!(
             "certificate_time_unix_seconds: {}",
             provenance.certificate_time_unix_seconds
         ),
         format!(
             "certificate_time: {}",
-            sanitize_text(&provenance.certificate_time)
+            terminal_text(&provenance.certificate_time)
         ),
         format!("certified: {}", yes_no(provenance.certified)),
         format!(
@@ -63,15 +65,16 @@ pub fn ic_api_boundary_node_report_text(report: &IcApiBoundaryNodeReport) -> Str
             .collect::<Vec<_>>();
         lines.push(String::new());
         lines.push("api_boundary_nodes:".to_string());
-        lines.push(render_table(
+        lines.push(render(
             &["NODE ID", "DOMAIN", "IPV4", "IPV6"],
             &rows,
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
 

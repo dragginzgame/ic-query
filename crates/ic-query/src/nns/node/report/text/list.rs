@@ -1,10 +1,12 @@
-use crate::{
-    nns::{
-        node::report::NnsNodeListReport,
-        render::{compact_text, text_or_dash},
-    },
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
+use crate::nns::{
+    node::report::NnsNodeListReport,
+    render::{compact_text, text_or_dash},
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -14,9 +16,9 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
     let mut lines = Vec::new();
     lines.push(format!(
         "nodes: {} count {} fetched_at {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.node_count,
-        sanitize_text(&report.fetched_at)
+        terminal_text(&report.fetched_at)
     ));
     if report.nodes.is_empty() {
         lines.push("nodes: none".to_string());
@@ -38,15 +40,15 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }
 
@@ -55,9 +57,9 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
     let mut lines = Vec::new();
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
+    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     if report.nodes.is_empty() {
         lines.push("nodes: none".to_string());
         return lines.join("\n");
@@ -89,16 +91,16 @@ pub fn nns_node_list_report_verbose_text(report: &NnsNodeListReport) -> String {
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }

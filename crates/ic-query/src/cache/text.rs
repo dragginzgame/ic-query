@@ -4,21 +4,24 @@
 //! Does not own: filesystem inspection, JSON output, or cache policy.
 //! Boundary: keeps raw paths and invalid-cache diagnostics visible.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::CacheStatusReport;
 use crate::{
-    duration::display_duration_seconds,
-    human_quantity::byte_count_text,
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+    duration::display_duration_seconds, human_quantity::byte_count_text, text_value::yes_no,
 };
 
 /// Render a human-readable cache-status report.
 #[must_use]
 pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
     let mut lines = vec![
-        format!("cache_root: {}", sanitize_text(&report.cache_root)),
+        format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("cache_root_found: {}", yes_no(report.cache_root_found)),
-        format!("inspected_at: {}", sanitize_text(&report.inspected_at)),
+        format!("inspected_at: {}", terminal_text(&report.inspected_at)),
         format!(
             "family_validation_performed: {}",
             yes_no(report.family_validation_performed)
@@ -55,7 +58,7 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
 fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
     if !report.caches.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &[
                 "HEADER",
                 "AGE STATE",
@@ -85,15 +88,16 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
         for row in report
             .caches
@@ -102,8 +106,8 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
         {
             lines.push(format!(
                 "cache_inspection_error[{}]: {}",
-                sanitize_text(&row.relative_path),
-                sanitize_text(row.inspection_error.as_deref().unwrap_or_default())
+                terminal_text(&row.relative_path),
+                terminal_text(row.inspection_error.as_deref().unwrap_or_default())
             ));
         }
     }
@@ -113,7 +117,7 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
     if !report.refresh_locks.is_empty() {
         lines.push(String::new());
         lines.push("REFRESH LOCKS".to_string());
-        lines.push(render_table(
+        lines.push(render(
             &["STATUS", "COMPONENT", "AGE", "STALE AFTER", "PID", "PATH"],
             &report
                 .refresh_locks
@@ -133,13 +137,14 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
         for row in report
             .refresh_locks
@@ -148,8 +153,8 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
         {
             lines.push(format!(
                 "refresh_lock_error[{}]: {}",
-                sanitize_text(&row.relative_path),
-                sanitize_text(row.error.as_deref().unwrap_or_default())
+                terminal_text(&row.relative_path),
+                terminal_text(row.error.as_deref().unwrap_or_default())
             ));
         }
     }

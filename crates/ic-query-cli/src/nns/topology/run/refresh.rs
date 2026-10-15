@@ -1,8 +1,6 @@
 use crate::cli::common::current_unix_secs;
-use crate::nns::{
-    NnsCommandError, command_cache_root, topology::options::TopologyRefreshOptions,
-    write_text_or_json,
-};
+use crate::nns::{NnsCommandError, topology::options::TopologyRefreshOptions, write_text_or_json};
+use crate::storage::cache_root;
 use clap::ArgMatches;
 use ic_query::nns::topology::{
     NnsTopologyRefreshRequest, nns_topology_refresh_report_text, refresh_nns_topology_report,
@@ -13,7 +11,7 @@ pub(super) async fn run_topology_refresh(
 ) -> Result<(), NnsCommandError> {
     let options = TopologyRefreshOptions::from_matches(matches, network);
     let format = options.format;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let request = NnsTopologyRefreshRequest::new(
         cache_root,
         options.network,

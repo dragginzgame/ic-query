@@ -1,16 +1,15 @@
-use crate::{
-    nns::{
-        node_operator::report::NnsNodeOperatorInfoReport,
-        render::{optional_node_count_text, text_or_dash},
-    },
-    text_value::sanitize_text,
+use ic_host_text::escape::terminal_text;
+
+use crate::nns::{
+    node_operator::report::NnsNodeOperatorInfoReport,
+    render::{optional_node_count_text, text_or_dash},
 };
 
 #[must_use]
 pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) -> String {
     [
-        format!("input: {}", sanitize_text(&report.input)),
-        format!("resolved_from: {}", sanitize_text(&report.resolved_from)),
+        format!("input: {}", terminal_text(&report.input)),
+        format!("resolved_from: {}", terminal_text(&report.resolved_from)),
         format!(
             "node_operator_principal: {}",
             report.node_operator_principal
@@ -30,13 +29,13 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
         ),
         format!("registry_canister_id: {}", report.registry_canister_id),
         format!("registry_version: {}", report.registry_version),
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
     ]
     .join("\n")
 }

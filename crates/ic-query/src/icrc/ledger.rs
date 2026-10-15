@@ -8,7 +8,7 @@ use crate::{hex::hex_bytes, icrc::IcrcMetadataValueKind};
 #[cfg(feature = "icrc-host")]
 use candid::types::reference::Func;
 use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal};
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 use serde_json::Value as JsonValue;
 #[cfg(feature = "icrc-host")]
 use std::collections::BTreeMap;
@@ -25,7 +25,7 @@ pub trait IcrcLedgerError: Sized {
 
     fn candid_encode(message: &'static str, reason: String) -> Self;
 
-    fn agent_call(method: &'static str, reason: String) -> Self;
+    fn agent_call(method: &'static str, error: AgentError) -> Self;
 
     fn candid_decode(message: &'static str, reason: String) -> Self;
 }
@@ -488,7 +488,7 @@ where
         .with_arg(arg)
         .call()
         .await
-        .map_err(|err| E::agent_call(method, err.to_string()))
+        .map_err(|err| E::agent_call(method, err))
 }
 
 #[cfg(all(test, feature = "icrc-host"))]

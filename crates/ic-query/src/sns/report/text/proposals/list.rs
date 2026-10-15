@@ -4,22 +4,27 @@
 //! Does not own: proposal fetching, cache filtering, report construction, or JSON output.
 //! Boundary: formats live or cache-backed proposal rows for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_detail_lines, proposal_title_for_list},
 };
 use crate::{
     sns::report::{SnsProposalsReport, text::common::push_report_provenance_lines},
-    table::{ColumnAlign, render_table},
-    text_value::{optional_u64_text, sanitize_text, yes_no},
+    text_value::{optional_u64_text, yes_no},
 };
 
 #[must_use]
 pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("requested_limit: {}", report.requested_limit),
@@ -32,11 +37,11 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         format!("eligibility_filter: {}", report.eligibility_filter),
         format!(
             "proposer_filter: {}",
-            sanitize_text(report.proposer_filter.as_deref().unwrap_or("-"))
+            terminal_text(report.proposer_filter.as_deref().unwrap_or("-"))
         ),
         format!(
             "query_filter: {}",
-            sanitize_text(report.query_filter.as_deref().unwrap_or("-"))
+            terminal_text(report.query_filter.as_deref().unwrap_or("-"))
         ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
@@ -51,15 +56,15 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
     lines.extend([
         format!("proposal_count: {}", report.proposal_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]);
     if !report.proposals.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &["ID", "ACTION", "DECISION", "CREATED_AT", "TITLE"],
             &report
                 .proposals
@@ -75,12 +80,13 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     if report.verbose && !report.proposals.is_empty() {

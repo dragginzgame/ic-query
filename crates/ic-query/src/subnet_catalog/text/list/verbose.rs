@@ -1,9 +1,11 @@
-use super::ranges::append_range_lines;
-use crate::{
-    subnet_catalog::SubnetCatalogListReport,
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
 };
+
+use super::ranges::append_range_lines;
+use crate::{subnet_catalog::SubnetCatalogListReport, text_value::yes_no};
 
 /// Render catalog provenance and expanded filtered Subnet and routing tables.
 #[must_use]
@@ -41,16 +43,16 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Left,
     ];
     let mut lines = Vec::new();
     append_catalog_evidence(report, &mut lines);
@@ -59,7 +61,7 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         return lines.join("\n");
     }
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     append_range_lines(report, &mut lines);
     lines.join("\n")
 }
@@ -67,7 +69,7 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
 fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
     lines.push(format!(
         "catalog_path: {}",
-        sanitize_text(&report.catalog_path)
+        terminal_text(&report.catalog_path)
     ));
     lines.push(format!("assurance: {}", report.assurance.as_str()));
     lines.push(format!(
@@ -76,14 +78,14 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
     ));
     lines.push(format!(
         "catalog_digest: {}",
-        sanitize_text(&report.catalog_digest)
+        terminal_text(&report.catalog_digest)
     ));
     lines.push(format!(
         "source_endpoints: {}",
         report
             .source_endpoints
             .iter()
-            .map(|endpoint| sanitize_text(endpoint))
+            .map(|endpoint| terminal_text(endpoint))
             .collect::<Vec<_>>()
             .join(",")
     ));
@@ -105,7 +107,7 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
     ));
     lines.push(format!(
         "collector_version: {}",
-        sanitize_text(&report.collector_version)
+        terminal_text(&report.collector_version)
     ));
     lines.push(format!(
         "classification_schema_version: {}",
@@ -113,7 +115,7 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
     ));
     lines.push(format!(
         "classification_policy_digest: {}",
-        sanitize_text(&report.classification_policy_digest)
+        terminal_text(&report.classification_policy_digest)
     ));
     lines.push(format!(
         "resolver_schema_version: {}",
@@ -121,10 +123,10 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
     ));
     lines.push(format!(
         "resolver_backend: {}",
-        sanitize_text(&report.resolver_backend)
+        terminal_text(&report.resolver_backend)
     ));
     lines.push(format!(
         "stale_reason: {}",
-        sanitize_text(&report.stale_reason)
+        terminal_text(&report.stale_reason)
     ));
 }

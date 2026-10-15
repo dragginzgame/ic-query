@@ -14,7 +14,7 @@ use crate::{
         compare_ascii_case_insensitive_text, compare_ord, sort_by_optional_text,
         sort_by_optional_u64, sort_by_text,
     },
-    text_search::optional_text_contains_case_insensitive,
+    text_search::optional_text_contains_lowercase_query,
 };
 
 pub(in crate::sns::report) fn proposal_matches_before(
@@ -81,20 +81,17 @@ pub(in crate::sns::report) fn proposal_matches_proposer(
 
 pub(in crate::sns::report) fn proposal_matches_query(
     proposal: &SnsProposalRow,
-    query: Option<&str>,
+    lowercase_query: Option<&str>,
 ) -> bool {
-    let Some(query) = query else {
+    let Some(query) = lowercase_query else {
         return true;
     };
     let action = proposal.action.label();
-    optional_text_contains_case_insensitive(Some(&proposal.title), query)
-        || optional_text_contains_case_insensitive(Some(&action), query)
-        || optional_text_contains_case_insensitive(Some(&proposal.summary), query)
-        || optional_text_contains_case_insensitive(proposal.url.as_deref(), query)
-        || optional_text_contains_case_insensitive(
-            proposal.payload_text_rendering.as_deref(),
-            query,
-        )
+    optional_text_contains_lowercase_query(Some(&proposal.title), query)
+        || optional_text_contains_lowercase_query(Some(&action), query)
+        || optional_text_contains_lowercase_query(Some(&proposal.summary), query)
+        || optional_text_contains_lowercase_query(proposal.url.as_deref(), query)
+        || optional_text_contains_lowercase_query(proposal.payload_text_rendering.as_deref(), query)
 }
 
 pub(in crate::sns::report) fn sort_sns_proposal_rows(

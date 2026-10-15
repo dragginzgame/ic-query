@@ -1,11 +1,16 @@
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 #[cfg(feature = "host")]
 use crate::{
     duration::{display_duration_seconds, parse_duration_seconds},
     token_amount::e8s_decimal_text,
 };
 use crate::{
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, optional_u64_text, sanitize_text, truncate_text, yes_no},
+    text_value::{optional_text, optional_u64_text, truncate_text, yes_no},
     token_amount::base_units_decimal_text,
 };
 
@@ -81,10 +86,11 @@ fn render_table_handles_long_left_aligned_cells() {
         "https://github.com/dfinity/ICRC-1?with=a-long-token-metadata-url".to_string(),
     ]];
 
-    let table = render_table(
+    let table = render(
         &["STANDARD", "URL"],
         &rows,
-        &[ColumnAlign::Left, ColumnAlign::Left],
+        &[Alignment::Left, Alignment::Left],
+        REPORT_TABLE_OPTIONS,
     );
 
     assert!(table.contains("ICRC-1"));
@@ -95,10 +101,11 @@ fn render_table_handles_long_left_aligned_cells() {
 fn render_table_right_aligns_cells() {
     let rows = [["1".to_string(), "Dragginz".to_string()]];
 
-    let table = render_table(
+    let table = render(
         &["ID", "NAME"],
         &rows,
-        &[ColumnAlign::Right, ColumnAlign::Left],
+        &[Alignment::Right, Alignment::Left],
+        REPORT_TABLE_OPTIONS,
     );
 
     assert!(table.contains("ID   NAME"));
@@ -112,10 +119,11 @@ fn render_table_aligns_wide_unicode_cells_by_terminal_width() {
         ["Paris".to_string(), "2".to_string()],
     ];
 
-    let table = render_table(
+    let table = render(
         &["CITY", "ID"],
         &rows,
-        &[ColumnAlign::Left, ColumnAlign::Right],
+        &[Alignment::Left, Alignment::Right],
+        REPORT_TABLE_OPTIONS,
     );
 
     assert_eq!(table, "CITY    ID\n-----   --\n東京     1\nParis    2");
@@ -125,7 +133,7 @@ fn render_table_aligns_wide_unicode_cells_by_terminal_width() {
 fn render_table_escapes_control_characters_in_values() {
     let rows = [["line one\nline two\u{1b}[31m".to_string()]];
 
-    let table = render_table(&["VALUE"], &rows, &[ColumnAlign::Left]);
+    let table = render(&["VALUE"], &rows, &[Alignment::Left], REPORT_TABLE_OPTIONS);
 
     assert!(table.contains("line one\\nline two\\u{1b}[31m"));
     assert_eq!(table.lines().count(), 3);
@@ -133,11 +141,31 @@ fn render_table_escapes_control_characters_in_values() {
 }
 
 #[test]
+fn render_table_escapes_headers_and_cells_without_double_escaping() {
+    let rows = [["a\n\r\t\u{009b}\u{1b}]0;title\u{0007}\u{2028}\u{202e}\\n".to_string()]];
+    let table = render(
+        &["VALUE\n"],
+        &rows,
+        &[Alignment::Left],
+        REPORT_TABLE_OPTIONS,
+    );
+
+    assert_eq!(table.lines().count(), 3);
+    assert!(table.starts_with("VALUE\\n\n"));
+    assert_eq!(
+        table.lines().last(),
+        Some("a\\n\\r\\t\\u{9b}\\u{1b}]0;title\\u{7}\\u{2028}\\u{202e}\\n")
+    );
+    assert_eq!(terminal_text(&table), table.replace('\n', "\\n"));
+    assert!(truncate_text("\u{202e}abcdef", 9).ends_with("..."));
+}
+
+#[test]
 fn scalar_text_helpers_escape_controls_without_changing_raw_models() {
     let optional = "line one\nline two\u{1b}[31m".to_string();
 
-    assert_eq!(sanitize_text(&optional), "line one\\nline two\\u{1b}[31m");
-    assert_eq!(optional_text(Some(&optional)), sanitize_text(&optional));
+    assert_eq!(terminal_text(&optional), "line one\\nline two\\u{1b}[31m");
+    assert_eq!(optional_text(Some(&optional)), terminal_text(&optional));
     assert_eq!(truncate_text("abcdef", 3), "abc...");
     assert_eq!(optional_u64_text(None), "-");
     assert_eq!(optional_u64_text(Some(42)), "42");
@@ -150,10 +178,10 @@ fn scalar_text_helpers_escape_controls_without_changing_raw_models() {
 #[test]
 fn scalar_text_sanitizing_is_control_free_and_idempotent() {
     let ascii = (0..=127).filter_map(char::from_u32).collect::<String>();
-    let sanitized = sanitize_text(&ascii);
+    let sanitized = terminal_text(&ascii);
 
     assert!(!sanitized.chars().any(char::is_control));
-    assert_eq!(sanitize_text(&sanitized), sanitized);
+    assert_eq!(terminal_text(&sanitized), sanitized);
     for limit in 0..=sanitized.chars().count() {
         assert!(!truncate_text(&ascii, limit).chars().any(char::is_control));
     }

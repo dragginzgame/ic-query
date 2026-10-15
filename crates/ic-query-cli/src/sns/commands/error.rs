@@ -4,7 +4,7 @@
 //! Does not own: report-layer host errors or text rendering.
 //! Boundary: converts command setup failures into user-facing CLI errors.
 
-use crate::cli::common::CurrentUnixSecsError;
+use crate::{cli::common::CurrentUnixSecsError, storage::CacheRootError};
 use ic_query::sns::SnsHostError;
 use std::io;
 use thiserror::Error as ThisError;
@@ -31,4 +31,10 @@ pub enum SnsCommandError {
 
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+}
+
+impl From<CacheRootError> for SnsCommandError {
+    fn from(error: CacheRootError) -> Self {
+        Self::Usage(error.to_string())
+    }
 }

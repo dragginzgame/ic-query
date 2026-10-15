@@ -65,7 +65,7 @@ async fn sns_proposals_cached_proposer_filters_complete_snapshot() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_query_filters_complete_snapshot() {
-    assert_cached_query_filter("alpha", &[20]).await;
+    assert_cached_query_filter("AlPhA", &[20]).await;
 }
 
 #[tokio::test(flavor = "current_thread")]

@@ -1,34 +1,22 @@
 //! Module: text_value
 //!
-//! Responsibility: make untrusted scalar values safe for terminal text output.
-//! Does not own: JSON serialization, report layout, or table alignment.
-//! Boundary: escapes control characters while preserving printable Unicode.
+//! Responsibility: select Query's plain-table, optional-value and truncation policies.
+//! Does not own: mechanical escaping, table alignment, JSON serialization or process output.
+//! Boundary: delegates escaping/layout to Host while keeping report presentation choices local.
 
-use std::fmt::Write;
+use ic_host_text::{escape::terminal_text, table::Options};
 
-pub fn sanitize_text(value: &str) -> String {
-    let mut sanitized = String::with_capacity(value.len());
-    for character in value.chars() {
-        match character {
-            '\n' => sanitized.push_str("\\n"),
-            '\r' => sanitized.push_str("\\r"),
-            '\t' => sanitized.push_str("\\t"),
-            character if character.is_control() => {
-                write!(sanitized, "\\u{{{:x}}}", u32::from(character))
-                    .expect("writing to a String cannot fail");
-            }
-            character => sanitized.push(character),
-        }
-    }
-    sanitized
-}
+pub const REPORT_TABLE_OPTIONS: Options = Options {
+    column_gap: 3,
+    header_separator: true,
+};
 
 pub fn optional_text(value: Option<&String>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| sanitize_text(value))
+    value.map_or_else(|| "-".to_string(), |value| terminal_text(value))
 }
 
 pub fn truncate_text(value: &str, limit: usize) -> String {
-    let value = sanitize_text(value);
+    let value = terminal_text(value);
     if value.chars().count() <= limit {
         return value;
     }

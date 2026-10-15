@@ -11,7 +11,7 @@ use crate::{
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
 use candid::{CandidType, Deserialize, Principal};
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 
 impl IcrcLedgerError for SnsHostError {
     #[cfg(feature = "icrc-host")]
@@ -23,8 +23,11 @@ impl IcrcLedgerError for SnsHostError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, reason: String) -> Self {
-        Self::AgentCall { method, reason }
+    fn agent_call(method: &'static str, error: AgentError) -> Self {
+        Self::AgentCall {
+            method,
+            reason: error.to_string(),
+        }
     }
 
     fn candid_decode(message: &'static str, reason: String) -> Self {

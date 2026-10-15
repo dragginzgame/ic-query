@@ -456,7 +456,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         reward_status: NnsProposalRewardStatusFilter::Settled,
         topic: NnsProposalTopicFilter::Governance,
         proposer_neuron_id: Some(99),
-        query: Some("proposal 1".to_string()),
+        query: Some("PrOpOsAl 1".to_string()),
         sort: NnsProposalListSort::Title,
         sort_direction: NnsProposalSortDirection::Asc,
         verbose: false,
@@ -476,17 +476,17 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
     assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
-    assert_eq!(report.query_filter.as_deref(), Some("proposal 1"));
+    assert_eq!(report.query_filter.as_deref(), Some("PrOpOsAl 1"));
     assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
     assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
     assert_eq!(report.result_scope.as_str(), "complete-cache");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(1));
-    assert_eq!(json["query_filter"], "proposal 1");
+    assert_eq!(json["query_filter"], "PrOpOsAl 1");
     assert_eq!(json["result_scope"], "complete-cache");
     assert!(text.contains("data_source: cache"));
     assert!(text.contains("cache_complete: yes"));
-    assert!(text.contains("query_filter: proposal 1"));
+    assert!(text.contains("query_filter: PrOpOsAl 1"));
     assert!(text.contains("result_scope: complete-cache"));
 }
 

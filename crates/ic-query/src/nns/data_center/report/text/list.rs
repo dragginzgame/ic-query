@@ -1,10 +1,12 @@
-use crate::{
-    nns::{
-        data_center::report::NnsDataCenterListReport,
-        render::{optional_f32_text, text_or_dash},
-    },
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
+use crate::nns::{
+    data_center::report::NnsDataCenterListReport,
+    render::{optional_f32_text, text_or_dash},
 };
 
 #[must_use]
@@ -12,9 +14,9 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
     let mut lines = Vec::new();
     lines.push(format!(
         "data_centers: {} count {} fetched_at {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.data_center_count,
-        sanitize_text(&report.fetched_at)
+        terminal_text(&report.fetched_at)
     ));
     if report.data_centers.is_empty() {
         lines.push("data_centers: none".to_string());
@@ -36,15 +38,15 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }
 
@@ -53,9 +55,9 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
     let mut lines = Vec::new();
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
+    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     if report.data_centers.is_empty() {
         lines.push("data_centers: none".to_string());
         return lines.join("\n");
@@ -91,18 +93,18 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }

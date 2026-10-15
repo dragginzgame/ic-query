@@ -6,18 +6,15 @@
 
 mod generic;
 mod icp;
+mod json;
 
 use super::collection::AccountTransactionsPage;
-use crate::{
-    hex::hex_bytes,
-    icrc::{
-        ledger::{IcrcAccount, query_ledger_arg_bytes},
-        model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError},
-    },
+use crate::icrc::{
+    ledger::{IcrcAccount, query_ledger_arg_bytes},
+    model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError},
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_agent::Agent;
-use serde_json::{Map as JsonMap, Value as JsonValue};
 
 const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
 
@@ -78,21 +75,4 @@ fn decode_account_transactions(
             .into()),
         },
     }
-}
-
-fn optional_blob_json(value: Option<&[u8]>) -> JsonValue {
-    optional_json(value.map(|value| JsonValue::String(hex_bytes(value))))
-}
-
-fn optional_json(value: Option<JsonValue>) -> JsonValue {
-    value.unwrap_or(JsonValue::Null)
-}
-
-fn object<const N: usize>(entries: [(&str, JsonValue); N]) -> JsonValue {
-    JsonValue::Object(
-        entries
-            .into_iter()
-            .map(|(key, value)| (key.to_string(), value))
-            .collect::<JsonMap<_, _>>(),
-    )
 }

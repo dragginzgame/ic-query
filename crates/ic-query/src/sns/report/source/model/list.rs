@@ -178,11 +178,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
     inventory: MainnetSnsInventory,
     metadata: Vec<MainnetSnsMetadata>,
 ) -> Result<JoinedMainnetSnsInventory, SnsHostError> {
-    validate_mainnet_sns_metadata(&inventory.sns_instances, &metadata)?;
-    let mut metadata_by_root = metadata
-        .into_iter()
-        .map(|metadata| (metadata.root_canister_id.clone(), metadata))
-        .collect::<BTreeMap<_, _>>();
+    let mut metadata_by_root = index_mainnet_sns_metadata(&inventory.sns_instances, metadata)?;
     let sns_instances = inventory
         .sns_instances
         .into_iter()
@@ -255,11 +251,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
     inventory: &mut JoinedMainnetSnsInventory,
     lifecycles: Vec<MainnetSnsLifecycle>,
 ) -> Result<(), SnsHostError> {
-    validate_mainnet_sns_lifecycles(&inventory.sns_instances, &lifecycles)?;
-    let mut lifecycle_by_root = lifecycles
-        .into_iter()
-        .map(|lifecycle| (lifecycle.root_canister_id.clone(), lifecycle))
-        .collect::<BTreeMap<_, _>>();
+    let mut lifecycle_by_root = index_mainnet_sns_lifecycles(&inventory.sns_instances, lifecycles)?;
     for sns in &mut inventory.sns_instances {
         let lifecycle = lifecycle_by_root
             .remove(&sns.root_canister_id)
@@ -271,25 +263,25 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
     Ok(())
 }
 
-fn validate_mainnet_sns_metadata(
+fn index_mainnet_sns_metadata(
     targets: &[MainnetSnsCanisters],
-    metadata: &[MainnetSnsMetadata],
-) -> Result<(), SnsHostError> {
-    let expected_roots = targets
+    metadata: Vec<MainnetSnsMetadata>,
+) -> Result<BTreeMap<String, MainnetSnsMetadata>, SnsHostError> {
+    let mut expected_roots = targets
         .iter()
         .map(|sns| sns.root_canister_id.as_str())
         .collect::<BTreeSet<_>>();
-    let mut actual_roots = BTreeSet::new();
+    let mut by_root = BTreeMap::new();
     for row in metadata {
         METADATA_VALIDATOR
             .canonical_principal("metadata root_canister_id", &row.root_canister_id)?;
-        if !actual_roots.insert(row.root_canister_id.as_str()) {
+        if by_root.contains_key(&row.root_canister_id) {
             return Err(METADATA_VALIDATOR.invalid(format!(
                 "duplicate metadata root canister id {}",
                 row.root_canister_id
             )));
         }
-        if !expected_roots.contains(row.root_canister_id.as_str()) {
+        if !expected_roots.remove(row.root_canister_id.as_str()) {
             return Err(METADATA_VALIDATOR.invalid(format!(
                 "metadata returned unrequested root canister id {}",
                 row.root_canister_id
@@ -311,39 +303,36 @@ fn validate_mainnet_sns_metadata(
                 )));
             }
         }
+        by_root.insert(row.root_canister_id.clone(), row);
     }
-    if actual_roots != expected_roots {
-        let missing = expected_roots
-            .difference(&actual_roots)
-            .copied()
-            .collect::<Vec<_>>()
-            .join(", ");
+    if !expected_roots.is_empty() {
+        let missing = expected_roots.into_iter().collect::<Vec<_>>().join(", ");
         return Err(METADATA_VALIDATOR.invalid(format!(
             "metadata is missing requested root canister ids: {missing}"
         )));
     }
-    Ok(())
+    Ok(by_root)
 }
 
-fn validate_mainnet_sns_lifecycles(
+fn index_mainnet_sns_lifecycles(
     targets: &[MainnetSns],
-    lifecycles: &[MainnetSnsLifecycle],
-) -> Result<(), SnsHostError> {
-    let expected_roots = targets
+    lifecycles: Vec<MainnetSnsLifecycle>,
+) -> Result<BTreeMap<String, MainnetSnsLifecycle>, SnsHostError> {
+    let mut expected_roots = targets
         .iter()
         .map(|sns| sns.root_canister_id.as_str())
         .collect::<BTreeSet<_>>();
-    let mut actual_roots = BTreeSet::new();
+    let mut by_root = BTreeMap::new();
     for row in lifecycles {
         LIFECYCLE_VALIDATOR
             .canonical_principal("lifecycle root_canister_id", &row.root_canister_id)?;
-        if !actual_roots.insert(row.root_canister_id.as_str()) {
+        if by_root.contains_key(&row.root_canister_id) {
             return Err(LIFECYCLE_VALIDATOR.invalid(format!(
                 "duplicate lifecycle root canister id {}",
                 row.root_canister_id
             )));
         }
-        if !expected_roots.contains(row.root_canister_id.as_str()) {
+        if !expected_roots.remove(row.root_canister_id.as_str()) {
             return Err(LIFECYCLE_VALIDATOR.invalid(format!(
                 "lifecycle returned unrequested root canister id {}",
                 row.root_canister_id
@@ -355,18 +344,15 @@ fn validate_mainnet_sns_lifecycles(
             row.lifecycle_name.as_deref(),
             row.lifecycle_error.as_deref(),
         )?;
+        by_root.insert(row.root_canister_id.clone(), row);
     }
-    if actual_roots != expected_roots {
-        let missing = expected_roots
-            .difference(&actual_roots)
-            .copied()
-            .collect::<Vec<_>>()
-            .join(", ");
+    if !expected_roots.is_empty() {
+        let missing = expected_roots.into_iter().collect::<Vec<_>>().join(", ");
         return Err(LIFECYCLE_VALIDATOR.invalid(format!(
             "lifecycle is missing requested root canister ids: {missing}"
         )));
     }
-    Ok(())
+    Ok(by_root)
 }
 
 fn validate_lifecycle_fields(

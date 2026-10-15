@@ -4,11 +4,16 @@
 //! Does not own: JSON serialization, source validation, live calls, or process output.
 //! Boundary: separates off-chain Dashboard provenance from node tables.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::{CloudEngineNodeInfoReport, CloudEngineNodeListReport, CloudEngineNodeRow};
 use crate::{
     ic::dashboard_provenance_lines,
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, yes_no},
+    text_value::{optional_text, yes_no},
 };
 
 /// Render one complete explicitly scoped Type4 node list.
@@ -53,16 +58,16 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("node_id: {}", node.node_id),
-        format!("status: {}", sanitize_text(&node.status)),
-        format!("node_type: {}", sanitize_text(&node.node_type)),
+        format!("status: {}", terminal_text(&node.status)),
+        format!("node_type: {}", terminal_text(&node.node_type)),
         format!(
             "node_reward_type: {}",
-            sanitize_text(&node.node_reward_type)
+            terminal_text(&node.node_reward_type)
         ),
         format!("node_provider_id: {}", node.node_provider_id),
         format!(
             "node_provider_name: {}",
-            sanitize_text(&node.node_provider_name)
+            terminal_text(&node.node_provider_name)
         ),
         format!("node_operator_id: {}", node.node_operator_id),
         format!(
@@ -70,13 +75,13 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
             optional_text(node.cloud_engine_subnet_id.as_ref())
         ),
         format!("subnet_id: {}", optional_text(node.subnet_id.as_ref())),
-        format!("data_center_id: {}", sanitize_text(&node.data_center_id)),
+        format!("data_center_id: {}", terminal_text(&node.data_center_id)),
         format!(
             "data_center_name: {}",
-            sanitize_text(&node.data_center_name)
+            terminal_text(&node.data_center_name)
         ),
-        format!("owner: {}", sanitize_text(node.owner.trim())),
-        format!("region: {}", sanitize_text(&node.region)),
+        format!("owner: {}", terminal_text(node.owner.trim())),
+        format!("region: {}", terminal_text(&node.region)),
         format!(
             "guestos_version: {}",
             optional_text(node.guestos_version.as_ref())
@@ -105,20 +110,20 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
         .map(|node| {
             [
                 node.node_id.clone(),
-                sanitize_text(&node.status),
+                terminal_text(&node.status),
                 node.cloud_engine_subnet_id
                     .as_ref()
                     .map_or_else(|| "-".to_string(), Clone::clone),
                 node.node_provider_id.clone(),
                 node.node_operator_id.clone(),
-                sanitize_text(&node.data_center_id),
+                terminal_text(&node.data_center_id),
                 node.guestos_version
                     .as_ref()
                     .map_or_else(|| "-".to_string(), Clone::clone),
             ]
         })
         .collect::<Vec<_>>();
-    render_table(
+    render(
         &[
             "Node",
             "Status",
@@ -130,14 +135,15 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
         ],
         &rows,
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 

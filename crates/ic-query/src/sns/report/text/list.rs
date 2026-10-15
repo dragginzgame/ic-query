@@ -4,14 +4,20 @@
 //! Does not own: report construction, list sorting, lookup ids, or JSON output.
 //! Boundary: formats list DTO rows into compact or verbose human-readable tables.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::sns::report::{SnsListReport, short_principal};
-use crate::table::{ColumnAlign, render_table};
-use crate::text_value::{sanitize_text, yes_no};
+
+use crate::text_value::yes_no;
 
 #[must_use]
 pub fn sns_list_report_text(report: &SnsListReport) -> String {
     let mut lines = Vec::new();
-    lines.push(format!("network: {}", sanitize_text(&report.network)));
+    lines.push(format!("network: {}", terminal_text(&report.network)));
     lines.push(format!(
         "sns_wasm_canister_id: {}",
         report.sns_wasm_canister_id
@@ -20,17 +26,17 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     lines.push(format!("catalog_sns_count: {}", report.catalog_sns_count));
     lines.push(format!("excluded_sns_count: {}", report.excluded_sns_count));
     lines.push(format!("sns_count: {}", report.sns_count));
-    lines.push(format!("fetched_at: {}", sanitize_text(&report.fetched_at)));
+    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
     lines.push(format!("data_source: {}", report.data_source));
     if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {}", sanitize_text(cache_path)));
+        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     if let Some(cache_complete) = report.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
     lines.push(format!("sort: {}", report.sort));
     lines.push(format!("metadata_errors: {}", report.metadata_error_count));
@@ -40,7 +46,7 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     ));
     if !report.sns_instances.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &[
                 "ID",
                 "NAME",
@@ -74,16 +80,17 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")

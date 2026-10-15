@@ -9,7 +9,7 @@ use super::{
     CmcReportContext, CmcSource, CmcSourceRequest, CmcXdrReport, ICP_XDR_PERMYRIAD_DENOMINATOR,
     LiveCmcSource, MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
 };
-use crate::hex::is_lowercase_hex;
+use crate::hex::{HexEvidenceError, validate_nonempty_hex_evidence};
 
 const CYCLES_PER_ICP_FORMULA: &str = "xdr_permyriad_per_icp * cycles_per_xdr / 10000";
 const CYCLES_PER_XDR_SOURCE: &str = "ic_protocol_constant";
@@ -94,26 +94,19 @@ fn validate_certified_rate(certified: &CmcCertifiedRate) -> Result<(), CmcHostEr
 }
 
 fn validate_evidence_hex(field: &str, value: &str, byte_count: usize) -> Result<(), CmcHostError> {
-    if byte_count == 0 {
-        return Err(invalid_source_data(format!(
-            "{field} evidence must not be empty"
-        )));
-    }
-    let expected_len = byte_count
-        .checked_mul(2)
-        .ok_or_else(|| invalid_source_data(format!("{field} byte count is too large")))?;
-    if value.len() != expected_len {
-        return Err(invalid_source_data(format!(
-            "{field} length {} does not match {byte_count} bytes",
-            value.len()
-        )));
-    }
-    if !is_lowercase_hex(value) {
-        return Err(invalid_source_data(format!(
-            "{field} must be canonical lowercase hexadecimal"
-        )));
-    }
-    Ok(())
+    validate_nonempty_hex_evidence(value, byte_count).map_err(|error| {
+        invalid_source_data(match error {
+            HexEvidenceError::Empty => format!("{field} evidence must not be empty"),
+            HexEvidenceError::ByteCountOverflow => format!("{field} byte count is too large"),
+            HexEvidenceError::LengthMismatch => format!(
+                "{field} length {} does not match {byte_count} bytes",
+                value.len()
+            ),
+            HexEvidenceError::NonLowercaseHex => {
+                format!("{field} must be canonical lowercase hexadecimal")
+            }
+        })
+    })
 }
 
 fn invalid_source_data(reason: impl Into<String>) -> CmcHostError {

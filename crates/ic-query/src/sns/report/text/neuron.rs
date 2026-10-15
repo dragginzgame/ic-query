@@ -4,13 +4,18 @@
 //! Does not own: live fetching, source validation, or JSON serialization.
 //! Boundary: formats raw neuron, permission, disbursement, and followee evidence.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::{
         SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
         text::common::{dissolve_state_text, optional_bool_text, optional_e8s_text},
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, optional_u64_text, sanitize_text},
+    text_value::{optional_text, optional_u64_text},
     token_amount::e8s_decimal_text,
 };
 
@@ -29,9 +34,9 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
     let detail = &report.detail;
     let neuron = &detail.neuron;
     vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("neuron_id: {}", report.neuron_id),
@@ -69,7 +74,7 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
             "voting_power_percentage_multiplier: {}",
             neuron.voting_power_percentage_multiplier
         ),
-        format!("created_at: {}", sanitize_text(&neuron.created_at)),
+        format!("created_at: {}", terminal_text(&neuron.created_at)),
         format!(
             "source_nns_neuron_id: {}",
             optional_u64_text(neuron.source_nns_neuron_id)
@@ -89,17 +94,17 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
             detail.topic_followees.as_ref().map_or(0, Vec::len)
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]
 }
 
 fn permission_table(detail: &SnsNeuronDetail) -> Option<String> {
     (!detail.permissions.is_empty()).then(|| {
-        render_table(
+        render(
             &["PRINCIPAL", "PERMISSIONS"],
             &detail
                 .permissions
@@ -116,14 +121,15 @@ fn permission_table(detail: &SnsNeuronDetail) -> Option<String> {
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Left],
+            &[Alignment::Left, Alignment::Left],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
 
 fn maturity_disbursement_table(detail: &SnsNeuronDetail) -> Option<String> {
     (!detail.disburse_maturity_in_progress.is_empty()).then(|| {
-        render_table(
+        render(
             &["SCHEDULED_AT", "AMOUNT", "DESTINATION", "FINALIZE_AT"],
             &detail
                 .disburse_maturity_in_progress
@@ -138,18 +144,19 @@ fn maturity_disbursement_table(detail: &SnsNeuronDetail) -> Option<String> {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Right,
             ],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
 
 fn legacy_followee_table(detail: &SnsNeuronDetail) -> Option<String> {
     (!detail.followees.is_empty()).then(|| {
-        render_table(
+        render(
             &["FUNCTION_ID", "FOLLOWEE_NEURON_IDS"],
             &detail
                 .followees
@@ -161,7 +168,8 @@ fn legacy_followee_table(detail: &SnsNeuronDetail) -> Option<String> {
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Right, ColumnAlign::Left],
+            &[Alignment::Right, Alignment::Left],
+            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -172,7 +180,7 @@ fn topic_followee_table(detail: &SnsNeuronDetail) -> Option<String> {
         .as_ref()
         .filter(|topic_followees| !topic_followees.is_empty())
         .map(|topic_followees| {
-            render_table(
+            render(
                 &["TOPIC_CODE", "TOPIC", "FOLLOWEES"],
                 &topic_followees
                     .iter()
@@ -193,7 +201,8 @@ fn topic_followee_table(detail: &SnsNeuronDetail) -> Option<String> {
                         ]
                     })
                     .collect::<Vec<_>>(),
-                &[ColumnAlign::Right, ColumnAlign::Left, ColumnAlign::Left],
+                &[Alignment::Right, Alignment::Left, Alignment::Left],
+                REPORT_TABLE_OPTIONS,
             )
         })
 }

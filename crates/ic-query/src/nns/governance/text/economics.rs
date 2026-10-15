@@ -8,7 +8,8 @@ use super::{
     super::{NnsGovernanceDecimal, NnsGovernanceEconomicsReport, NnsGovernancePercentage},
     context_lines,
 };
-use crate::text_value::{optional_u64_text, sanitize_text};
+use crate::text_value::optional_u64_text;
+use ic_host_text::escape::terminal_text;
 
 /// Render one NNS Governance economics report.
 #[must_use]
@@ -120,7 +121,7 @@ fn decimal_text(value: Option<&NnsGovernanceDecimal>) -> String {
             value
                 .human_readable
                 .as_deref()
-                .map_or_else(|| "-".to_string(), sanitize_text)
+                .map_or_else(|| "-".to_string(), terminal_text)
         },
     )
 }

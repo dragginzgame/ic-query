@@ -27,6 +27,7 @@ pub fn is_canonical_lowercase_hex(value: &str) -> bool {
 /// Decode even-length lowercase hexadecimal, including an empty byte string.
 ///
 
+#[cfg(any(test, feature = "sns-host", feature = "subnet-catalog-host"))]
 pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
     if !value.len().is_multiple_of(2) || !is_lowercase_hex(value) {
         return None;
@@ -37,9 +38,65 @@ pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
+///
+/// HexEvidenceError
+///
+/// Shape failure for nonempty, byte-counted lowercase hexadecimal evidence.
+///
+
+#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HexEvidenceError {
+    Empty,
+    ByteCountOverflow,
+    LengthMismatch,
+    NonLowercaseHex,
+}
+
+/// Admit encoded evidence without decoding or allocating its bytes.
+#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+pub fn validate_nonempty_hex_evidence(
+    value: &str,
+    byte_count: usize,
+) -> Result<(), HexEvidenceError> {
+    if byte_count == 0 {
+        return Err(HexEvidenceError::Empty);
+    }
+    let expected_length = byte_count
+        .checked_mul(2)
+        .ok_or(HexEvidenceError::ByteCountOverflow)?;
+    if value.len() != expected_length {
+        return Err(HexEvidenceError::LengthMismatch);
+    }
+    if !is_lowercase_hex(value) {
+        return Err(HexEvidenceError::NonLowercaseHex);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+    use HexEvidenceError::{ByteCountOverflow, Empty, LengthMismatch, NonLowercaseHex};
+
+    #[test]
+    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+    fn encoded_evidence_requires_consistent_nonempty_bytes() {
+        for (value, bytes, expected) in [
+            ("", 0, Err(Empty)),
+            ("zz", 0, Err(Empty)),
+            ("", usize::MAX, Err(ByteCountOverflow)),
+            ("", 1, Err(LengthMismatch)),
+            ("0", 1, Err(LengthMismatch)),
+            ("0A", 1, Err(NonLowercaseHex)),
+            ("🦀", 2, Err(NonLowercaseHex)),
+            ("ab", 1, Ok(())),
+            ("00ff", 2, Ok(())),
+        ] {
+            assert_eq!(validate_nonempty_hex_evidence(value, bytes), expected);
+        }
+    }
 
     #[test]
     fn lowercase_hex_predicates_distinguish_alphabet_and_canonical_length() {

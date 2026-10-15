@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     certification::validate_certificate_time,
-    hex::is_lowercase_hex,
+    hex::{HexEvidenceError, is_lowercase_hex, validate_nonempty_hex_evidence},
     nns::{LiveNnsSource, NnsSourceRequest},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
@@ -130,23 +130,20 @@ fn validate_evidence_hex(
     value: &str,
     byte_count: usize,
 ) -> Result<(), NnsRegistryHostError> {
-    if byte_count == 0 {
-        return Err(invalid_source_data(format!("{field} must not be empty")));
-    }
-    let expected_length = byte_count.checked_mul(2).ok_or_else(|| {
-        invalid_source_data(format!("{field} byte count exceeds the supported range"))
-    })?;
-    if value.len() != expected_length {
-        return Err(invalid_source_data(format!(
-            "{field} length does not match its byte count"
-        )));
-    }
-    if !is_lowercase_hex(value) {
-        return Err(invalid_source_data(format!(
-            "{field} must be canonical lowercase hexadecimal"
-        )));
-    }
-    Ok(())
+    validate_nonempty_hex_evidence(value, byte_count).map_err(|error| {
+        invalid_source_data(match error {
+            HexEvidenceError::Empty => format!("{field} must not be empty"),
+            HexEvidenceError::ByteCountOverflow => {
+                format!("{field} byte count exceeds the supported range")
+            }
+            HexEvidenceError::LengthMismatch => {
+                format!("{field} length does not match its byte count")
+            }
+            HexEvidenceError::NonLowercaseHex => {
+                format!("{field} must be canonical lowercase hexadecimal")
+            }
+        })
+    })
 }
 
 fn invalid_source_data(reason: impl Into<String>) -> NnsRegistryHostError {

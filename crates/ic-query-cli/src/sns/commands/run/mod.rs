@@ -5,7 +5,6 @@
 //! Boundary: maps command-line options into report requests.
 
 mod canisters;
-mod common;
 mod lookup;
 mod neurons;
 mod proposals;
@@ -14,10 +13,8 @@ mod reward;
 use crate::{
     cli::common::{SourceOutputOptions, current_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
-    sns::commands::{
-        SnsCommandError, options::SnsListOptions, run::common::command_cache_root,
-        spec::sns_command,
-    },
+    sns::commands::{SnsCommandError, options::SnsListOptions, spec::sns_command},
+    storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::{
@@ -77,12 +74,9 @@ async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsComm
         sort: options.sort.into(),
     };
     let mut progress = StderrQueryProgress::new();
-    let report = build_sns_list_report_from_cache_or_refresh(
-        &request,
-        &command_cache_root()?,
-        &mut progress,
-    )
-    .await?;
+    let report =
+        build_sns_list_report_from_cache_or_refresh(&request, &cache_root()?, &mut progress)
+            .await?;
     write_text_or_json(format, &report, sns_list_cli_text)
 }
 
@@ -118,7 +112,7 @@ fn color_sns_metadata_statuses(text: &str) -> String {
 async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SourceOutputOptions::from_matches(matches);
     let format = options.format;
-    let cache_root = command_cache_root()?;
+    let cache_root = cache_root()?;
     let now_unix_secs = current_unix_secs()?;
     let request = SnsCatalogRefreshRequest::new(
         &cache_root,

@@ -31,6 +31,7 @@ pub use source::{
 };
 
 use crate::icrc::{ledger::IcrcLedgerError, model::IcrcError};
+use ic_agent::AgentError;
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -56,8 +57,11 @@ impl IcrcLedgerError for IcrcError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, reason: String) -> Self {
-        Self::AgentCall { method, reason }
+    fn agent_call(method: &'static str, error: AgentError) -> Self {
+        Self::AgentCall {
+            method,
+            reason: error.to_string(),
+        }
     }
 
     fn candid_decode(message: &'static str, reason: String) -> Self {

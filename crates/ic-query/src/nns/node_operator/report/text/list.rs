@@ -1,10 +1,12 @@
-use crate::{
-    nns::{
-        node_operator::report::NnsNodeOperatorListReport,
-        render::{compact_text, optional_node_count_text, text_or_dash},
-    },
-    table::{ColumnAlign, render_table},
-    text_value::sanitize_text,
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
+use crate::nns::{
+    node_operator::report::NnsNodeOperatorListReport,
+    render::{compact_text, optional_node_count_text, text_or_dash},
 };
 
 const COMPACT_PRINCIPAL_CHARS: usize = 5;
@@ -14,9 +16,9 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
     let mut lines = Vec::new();
     lines.push(format!(
         "node_operators: {} count {} fetched_at {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.node_operator_count,
-        sanitize_text(&report.fetched_at)
+        terminal_text(&report.fetched_at)
     ));
     if report.node_operators.is_empty() {
         lines.push("node operators: none".to_string());
@@ -38,14 +40,14 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }
 
@@ -54,9 +56,9 @@ pub fn nns_node_operator_list_report_verbose_text(report: &NnsNodeOperatorListRe
     let mut lines = Vec::new();
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", sanitize_text(&report.fetched_by)));
+    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     if report.node_operators.is_empty() {
         lines.push("node operators: none".to_string());
         return lines.join("\n");
@@ -87,15 +89,15 @@ pub fn nns_node_operator_list_report_verbose_text(report: &NnsNodeOperatorListRe
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Left,
     ];
     lines.push(String::new());
-    lines.push(render_table(&headers, &rows, &alignments));
+    lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
     lines.join("\n")
 }

@@ -4,6 +4,12 @@
 //! Does not own: account history, token metadata, live reads, or JSON output.
 //! Boundary: formats bounded ledger blocks and archive evidence for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use super::{LEFT_2_ALIGNMENTS, push_table_section};
 use crate::{
     icrc::model::{
@@ -11,25 +17,24 @@ use crate::{
         IcrcBlockTypesReport, IcrcFollowedArchiveBlockRow, IcrcTransactionBlockRow,
         IcrcTransactionsReport,
     },
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, truncate_text},
+    text_value::{optional_text, truncate_text},
 };
 
 const ICRC_DETAIL_TEXT_LIMIT: usize = 160;
 const ICRC3_BLOCK_TABLE_HEADERS: [&str; 5] =
     ["INDEX", "TYPE", "KIND", "TIMESTAMP_NS", "AMOUNT_BASE_UNITS"];
-const ICRC3_BLOCK_TABLE_ALIGNMENTS: [ColumnAlign; 5] = [
-    ColumnAlign::Right,
-    ColumnAlign::Left,
-    ColumnAlign::Left,
-    ColumnAlign::Right,
-    ColumnAlign::Right,
+const ICRC3_BLOCK_TABLE_ALIGNMENTS: [Alignment; 5] = [
+    Alignment::Right,
+    Alignment::Left,
+    Alignment::Left,
+    Alignment::Right,
+    Alignment::Right,
 ];
-const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [ColumnAlign; 4] = [
-    ColumnAlign::Left,
-    ColumnAlign::Left,
-    ColumnAlign::Right,
-    ColumnAlign::Right,
+const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [Alignment; 4] = [
+    Alignment::Left,
+    Alignment::Left,
+    Alignment::Right,
+    Alignment::Right,
 ];
 
 #[must_use]
@@ -50,10 +55,10 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
             "archive_follow_errors: {}",
             report.archive_follow_errors.len()
         ),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(&mut lines, &report.blocks, render_transaction_blocks_table);
@@ -76,18 +81,19 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
 }
 
 fn render_transaction_blocks_table(blocks: &[IcrcTransactionBlockRow]) -> String {
-    render_table(
+    render(
         &ICRC3_BLOCK_TABLE_HEADERS,
         &blocks
             .iter()
             .map(transaction_block_cells)
             .collect::<Vec<_>>(),
         &ICRC3_BLOCK_TABLE_ALIGNMENTS,
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_followed_archive_blocks_table(blocks: &[IcrcFollowedArchiveBlockRow]) -> String {
-    render_table(
+    render(
         &[
             "ARCHIVE_CANISTER",
             "METHOD",
@@ -114,19 +120,20 @@ fn render_followed_archive_blocks_table(blocks: &[IcrcFollowedArchiveBlockRow]) 
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Right,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_archive_callbacks_table(archives: &[IcrcArchivedBlocksRow]) -> String {
-    render_table(
+    render(
         &["ARCHIVE_CANISTER", "METHOD", "START", "LENGTH"],
         &archives
             .iter()
@@ -141,11 +148,12 @@ fn render_archive_callbacks_table(archives: &[IcrcArchivedBlocksRow]) -> String 
             })
             .collect::<Vec<_>>(),
         &ARCHIVE_RANGE_TABLE_ALIGNMENTS,
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> String {
-    render_table(
+    render(
         &["ARCHIVE_CANISTER", "METHOD", "START", "LENGTH", "ERROR"],
         &errors
             .iter()
@@ -167,12 +175,13 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Right,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
@@ -181,20 +190,21 @@ pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("block_type_count: {}", report.block_types.len()),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(&mut lines, &report.block_types, |rows| {
-        render_table(
+        render(
             &["BLOCK_TYPE", "URL"],
             &rows
                 .iter()
                 .map(|block_type| [block_type.block_type.clone(), block_type.url.clone()])
                 .collect::<Vec<_>>(),
             &LEFT_2_ALIGNMENTS,
+            REPORT_TABLE_OPTIONS,
         )
     });
     lines.join("\n")
@@ -209,14 +219,14 @@ pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
             optional_text(report.from_canister_id.as_ref())
         ),
         format!("archive_count: {}", report.archives.len()),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ];
     push_table_section(&mut lines, &report.archives, |rows| {
-        render_table(
+        render(
             &["ARCHIVE_CANISTER", "START", "END"],
             &rows
                 .iter()
@@ -228,7 +238,8 @@ pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[ColumnAlign::Left, ColumnAlign::Right, ColumnAlign::Right],
+            &[Alignment::Left, Alignment::Right, Alignment::Right],
+            REPORT_TABLE_OPTIONS,
         )
     });
     lines.join("\n")

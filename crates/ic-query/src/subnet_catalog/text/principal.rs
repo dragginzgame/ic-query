@@ -7,9 +7,9 @@
 //! Boundary: keeps abbreviated principal display separate from canonical principal
 //! validation and storage.
 
-use crate::text_value::sanitize_text;
+use ic_host_text::escape::terminal_text;
 
 /// Returns the compact prefix used for narrow principal columns.
 pub(super) fn compact_principal(value: &str) -> String {
-    sanitize_text(value).chars().take(5).collect()
+    terminal_text(value).chars().take(5).collect()
 }

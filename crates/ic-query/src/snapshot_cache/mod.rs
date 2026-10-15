@@ -12,7 +12,7 @@ mod key;
 mod lifecycle;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 mod model;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 mod paged;
 mod paths;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
@@ -36,7 +36,7 @@ pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch};
 pub use paged::CompletePagedCollection;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub use paged::PagedCollectionPage;
-#[cfg(feature = "sns-host")]
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 pub use paged::PagedCollectionState;
 pub use paths::SnapshotJsonPaths;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]

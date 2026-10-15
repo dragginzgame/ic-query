@@ -4,11 +4,16 @@
 //! Does not own: Root calls, report construction, JSON serialization, or lookup.
 //! Boundary: presents raw report fields compactly without changing the JSON contract.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     human_quantity::{decimal_byte_count_text, decimal_cycle_count_text},
     sns::report::SnsCanisterReport,
-    table::{ColumnAlign, render_table},
-    text_value::{optional_text, sanitize_text, truncate_text, yes_no},
+    text_value::{optional_text, truncate_text, yes_no},
 };
 
 const MODULE_HASH_TEXT_CHARS: usize = 12;
@@ -17,9 +22,9 @@ const MODULE_HASH_TEXT_CHARS: usize = 12;
 #[must_use]
 pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("canister_count: {}", report.canister_count),
         format!("health_status_count: {}", report.health_status_count),
@@ -52,10 +57,10 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             yes_no(report.health_update_canister_list)
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
         String::new(),
         canisters_table(report),
@@ -65,10 +70,11 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         lines.extend([
             String::new(),
             "health_query_gap:".to_string(),
-            render_table(
+            render(
                 &["METHOD", "REASON"],
-                &[[gap.method.as_str().to_string(), sanitize_text(&gap.reason)]],
-                &[ColumnAlign::Left, ColumnAlign::Left],
+                &[[gap.method.as_str().to_string(), terminal_text(&gap.reason)]],
+                &[Alignment::Left, Alignment::Left],
+                REPORT_TABLE_OPTIONS,
             ),
         ]);
     }
@@ -83,7 +89,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
 }
 
 fn canisters_table(report: &SnsCanisterReport) -> String {
-    render_table(
+    render(
         &[
             "ROLE",
             "CANISTER",
@@ -120,19 +126,20 @@ fn canisters_table(report: &SnsCanisterReport) -> String {
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
-            ColumnAlign::Right,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Right,
+            Alignment::Right,
+            Alignment::Right,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn relation_gaps_table(report: &SnsCanisterReport) -> String {
-    render_table(
+    render(
         &["KIND", "ROLE", "INVENTORY CANISTER", "SUMMARY CANISTER"],
         &report
             .gaps
@@ -147,10 +154,11 @@ fn relation_gaps_table(report: &SnsCanisterReport) -> String {
             })
             .collect::<Vec<_>>(),
         &[
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
-            ColumnAlign::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
+            Alignment::Left,
         ],
+        REPORT_TABLE_OPTIONS,
     )
 }

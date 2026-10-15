@@ -4,18 +4,20 @@
 //! Does not own: refresh execution, cache writing, or JSON output.
 //! Boundary: formats component refresh outcomes for humans.
 
-use crate::{
-    nns::topology::report::NnsTopologyRefreshReport,
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
 };
+
+use crate::{nns::topology::report::NnsTopologyRefreshReport, text_value::yes_no};
 
 #[must_use]
 pub fn nns_topology_refresh_report_text(report: &NnsTopologyRefreshReport) -> String {
     let mut lines = Vec::new();
     lines.push(format!(
         "topology_refresh: {} components {} wrote {} replaced {} dry_run {}",
-        sanitize_text(&report.network),
+        terminal_text(&report.network),
         report.component_count,
         report.wrote_cache_count,
         report.replaced_existing_cache_count,
@@ -23,7 +25,7 @@ pub fn nns_topology_refresh_report_text(report: &NnsTopologyRefreshReport) -> St
     ));
     lines.push(format!(
         "source_endpoint: {}",
-        sanitize_text(&report.source_endpoint)
+        terminal_text(&report.source_endpoint)
     ));
     lines.push(render_refresh_table(report));
     lines.join("\n")
@@ -55,13 +57,13 @@ fn render_refresh_table(report: &NnsTopologyRefreshReport) -> String {
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

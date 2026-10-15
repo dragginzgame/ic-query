@@ -8,7 +8,7 @@ mod account;
 mod history;
 mod ledger;
 
-use crate::table::ColumnAlign;
+use ic_host_text::table::Alignment;
 
 pub use account::{
     icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,
@@ -23,7 +23,7 @@ pub use ledger::{
     icrc_token_report_text,
 };
 
-const LEFT_2_ALIGNMENTS: [ColumnAlign; 2] = [ColumnAlign::Left, ColumnAlign::Left];
+const LEFT_2_ALIGNMENTS: [Alignment; 2] = [Alignment::Left, Alignment::Left];
 
 fn push_table_section<T>(lines: &mut Vec<String>, rows: &[T], render: impl FnOnce(&[T]) -> String) {
     if rows.is_empty() {

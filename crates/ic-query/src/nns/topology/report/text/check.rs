@@ -4,10 +4,10 @@
 //! Does not own: consistency-check derivation, cache loading, or JSON output.
 //! Boundary: formats consistency-check rows and report status for humans.
 
-use crate::{
-    nns::topology::report::{NnsTopologyCheckReport, NnsTopologyCheckRow},
-    table::{ColumnAlign, render_table},
-};
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
+use crate::nns::topology::report::{NnsTopologyCheckReport, NnsTopologyCheckRow};
 
 #[must_use]
 pub fn nns_topology_check_report_text(report: &NnsTopologyCheckReport) -> String {
@@ -26,6 +26,6 @@ fn render_check_table(rows: &[NnsTopologyCheckRow]) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    let alignments = [ColumnAlign::Left, ColumnAlign::Left, ColumnAlign::Left];
-    render_table(&headers, &rows, &alignments)
+    let alignments = [Alignment::Left, Alignment::Left, Alignment::Left];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

@@ -4,6 +4,12 @@
 //! Does not own: neuron fetching, cache sorting, report construction, or JSON output.
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::{
+    escape::terminal_text,
+    table::{Alignment, render},
+};
+
 use crate::{
     sns::report::{
         SnsNeuronsReport,
@@ -12,17 +18,16 @@ use crate::{
             optional_text, push_report_provenance_lines,
         },
     },
-    table::{ColumnAlign, render_table},
-    text_value::{sanitize_text, yes_no},
+    text_value::yes_no,
     token_amount::e8s_decimal_text,
 };
 
 #[must_use]
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", sanitize_text(&report.network)),
+        format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
-        format!("name: {}", sanitize_text(&report.name)),
+        format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
         format!("governance_canister_id: {}", report.governance_canister_id),
         format!("requested_limit: {}", report.requested_limit),
@@ -43,15 +48,15 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
         format!("total_neuron_count: {}", report.total_neuron_count),
         format!("neuron_count: {}", report.neuron_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
-            sanitize_text(&report.source_endpoint)
+            terminal_text(&report.source_endpoint)
         ),
     ]);
     if !report.neurons.is_empty() {
         lines.push(String::new());
-        lines.push(render_table(
+        lines.push(render(
             &[
                 "NEURON_ID",
                 "STAKE",
@@ -81,16 +86,17 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
-                ColumnAlign::Left,
-                ColumnAlign::Right,
-                ColumnAlign::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Right,
+                Alignment::Left,
+                Alignment::Left,
+                Alignment::Right,
+                Alignment::Left,
             ],
+            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")

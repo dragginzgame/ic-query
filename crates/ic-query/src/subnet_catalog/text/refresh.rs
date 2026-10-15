@@ -1,17 +1,16 @@
-use crate::{
-    subnet_catalog::SubnetCatalogRefreshReport,
-    text_value::{sanitize_text, yes_no},
-};
+use ic_host_text::escape::terminal_text;
+
+use crate::{subnet_catalog::SubnetCatalogRefreshReport, text_value::yes_no};
 
 /// Render collection, validation, and catalog publication outcomes as text.
 #[must_use]
 pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -> String {
     [
-        format!("network: {}", sanitize_text(&report.network)),
-        format!("catalog_path: {}", sanitize_text(&report.catalog_path)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("catalog_path: {}", terminal_text(&report.catalog_path)),
         format!(
             "refresh_lock_path: {}",
-            sanitize_text(&report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
         format!("registry_canister_id: {}", report.registry_canister_id),
         format!("registry_version: {}", report.registry_version),
@@ -21,7 +20,7 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
             report
                 .source_endpoints
                 .iter()
-                .map(|endpoint| sanitize_text(endpoint))
+                .map(|endpoint| terminal_text(endpoint))
                 .collect::<Vec<_>>()
                 .join(",")
         ),
@@ -36,11 +35,11 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
         format!("routing_source: {}", report.routing_source.as_str()),
         format!("registry_record_count: {}", report.registry_records.len()),
         format!("catalog_digest: {}", report.catalog_digest),
-        format!("fetched_at: {}", sanitize_text(&report.fetched_at)),
-        format!("fetched_by: {}", sanitize_text(&report.fetched_by)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
         format!(
             "collector_version: {}",
-            sanitize_text(&report.collector_version)
+            terminal_text(&report.collector_version)
         ),
         format!(
             "classification_schema_version: {}",
@@ -56,7 +55,7 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
         ),
         format!(
             "resolver_backend: {}",
-            sanitize_text(&report.resolver_backend)
+            terminal_text(&report.resolver_backend)
         ),
         format!("dry_run: {}", yes_no(report.dry_run)),
         format!("wrote_catalog: {}", yes_no(report.wrote_catalog)),

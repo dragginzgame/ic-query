@@ -1,6 +1,29 @@
 use super::{fixtures::*, *};
 
 #[tokio::test(flavor = "current_thread")]
+async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() {
+    let mut report =
+        build_sns_token_report_with_source(&token_request("1"), &FixtureSnsTokenSource)
+            .await
+            .expect("sns token report");
+    let raw = "界 e\u{301}\u{202e}\u{2028}\u{2029}\u{2069}\u{009b}\u{1b}[31m";
+    report.token_symbol = raw.to_string();
+    report.metadata[0].value = serde_json::json!(raw);
+
+    let text = sns_token_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize raw report");
+    let escaped = "界 e\u{301}\\u{202e}\\u{2028}\\u{2029}\\u{2069}\\u{9b}\\u{1b}[31m";
+    assert!(text.contains(&format!("token_symbol: {escaped}")));
+    assert!(
+        text.lines()
+            .any(|line| line.starts_with("icrc1:name") && line.ends_with(escaped))
+    );
+    assert_eq!(json["token_symbol"], serde_json::json!(raw));
+    assert_eq!(json["metadata"][0]["value"], serde_json::json!(raw));
+    assert_eq!(report.token_symbol, raw);
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     let request = token_request("1");
 

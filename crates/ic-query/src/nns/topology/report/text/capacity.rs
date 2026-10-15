@@ -4,12 +4,14 @@
 //! Does not own: capacity calculation, source reads, or JSON output.
 //! Boundary: combines summary and attention capacity tables for humans.
 
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
+
 use crate::{
     nns::{
         render::compact_text,
         topology::report::{COMPACT_PRINCIPAL_CHARS, NnsTopologyCapacityReport},
     },
-    table::{ColumnAlign, render_table},
     text_value::optional_u64_text,
 };
 
@@ -57,8 +59,8 @@ fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
             report.unknown_node_count_operator_count.to_string(),
         ],
     ];
-    let alignments = [ColumnAlign::Left, ColumnAlign::Right];
-    render_table(&headers, &rows, &alignments)
+    let alignments = [Alignment::Left, Alignment::Right];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }
 
 fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
@@ -73,8 +75,8 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
             report.status.as_str().to_string(),
             "no capacity attention rows".to_string(),
         ]];
-        let alignments = [ColumnAlign::Left, ColumnAlign::Left];
-        return render_table(&headers, &rows, &alignments);
+        let alignments = [Alignment::Left, Alignment::Left];
+        return render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS);
     }
 
     let headers = [
@@ -105,15 +107,15 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
         })
         .collect::<Vec<_>>();
     let alignments = [
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Left,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Right,
-        ColumnAlign::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
     ];
-    render_table(&headers, &rows, &alignments)
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
 }

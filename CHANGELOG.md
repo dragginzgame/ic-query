@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.55.9]
+
+- Uses Host's shared Unicode table renderer and terminal escaping, preserving
+  plain-table layout while making bidi controls and Unicode line separators visible.
+  Raw report and JSON values are unchanged.
+- Simplifies lossless ICRC transaction JSON serialization and SNS enrichment,
+  preserving wire records, complete coverage checks and typed query failures.
+- Shares cache age/recovery policy lookup and removes redundant NNS/SNS cache-root
+  setup, preserving command behavior and cache policy.
+- ICRC account history shares pagination bookkeeping with SNS while retaining
+  its own cursor validation, exhaustion rules and failure evidence.
+- Shares certificate hex-shape checks, simplifies subaccount normalization and
+  avoids repeated proposal-query normalization without changing report evidence.
+- Prepares node filters once and shares topology refresh projections.
+- Capability probes classify missing methods from typed replica rejection codes;
+  diagnostic text alone no longer marks a query as unsupported.
+
+Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
+
 ## [0.55.8] - 2026-10-14
 
 - Refresh-attempt cache reads reject duplicate top-level fields and share bounded
