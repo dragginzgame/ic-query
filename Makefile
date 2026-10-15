@@ -169,15 +169,16 @@ testkit-check:
 
 canister-test: testkit-check
 	cargo build -p ic-query --example governance_probe --target wasm32-unknown-unknown --target-dir "$(REPO_ROOT)target/testkit" --release --no-default-features --features canister --locked --offline
+	cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit --no-run
 	@tool="$$( $(TESTKIT_TOOL) --check )" && \
 		IC_QUERY_GOVERNANCE_PROBE_WASM="$(REPO_ROOT)target/testkit/wasm32-unknown-unknown/release/examples/governance_probe.wasm" \
-		"$$tool" run --directory "$(REPO_ROOT).tools/testkit-server" --ttl 300 -- cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit -- --ignored
+		"$$tool" run --directory "$(REPO_ROOT).tools/testkit-server" --ttl 300 --idle-ttl 300 -- cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit -- --ignored
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh
 
 type-docs-check:
-	perl scripts/ci/check-type-docs.pl
+	perl scripts/ci/check-type-docs.pl crates
 
 doc-links-check:
 	perl "$(REPO_ROOT)scripts/ci/check-documentation-links.pl" --root "$(REPO_ROOT)" \

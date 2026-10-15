@@ -894,7 +894,9 @@ fi
 [[ ! -s "$format_case/trace" ]] || fail 'formatter executed after common admission failure'
 grep -Fq 'fixture common admission failure' "$format_case/shared-admission-failure.log" || exit 1
 
-python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
+perl "${repo_root}/scripts/ci/test-public-docs.pl"
+perl "${repo_root}/scripts/ci/test-type-docs.pl"
+bash "${repo_root}/scripts/ci/test-public-docs.sh"
 
 public_docs_case="${work_dir}/public-docs"
 mkdir -p "${public_docs_case}/bin" "${public_docs_case}/tmp"
@@ -994,11 +996,13 @@ for failed_command in check test tree; do
   fi
 done
 
-for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools \
+for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
+  'ic-host-tools feature "candid-extraction"' 'ic-host-tools feature "candid-service"' \
+  'ic-host-tools feature "ic-interface"' 'ic-host-tools feature "ic-limits"' \
   'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
   'ic-host-artifacts feature "wasm"'; do
   scope=host
-  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs ]] || scope=pure
+  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs && "$dependency" != ic-host-tools ]] || scope=pure
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \
@@ -1015,6 +1019,13 @@ TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}
   bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
     >"${feature_boundary_case}/filesystem-accepted.log" 2>&1 \
     || fail 'the cache host feature boundary rejected its current filesystem dependency'
+
+TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE='ic-host-tools feature "certificate"' \
+  TRACE_FILE="${feature_boundary_case}/trace" \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+    >"${feature_boundary_case}/certificate-accepted.log" 2>&1 \
+    || fail 'the host feature boundary rejected the selected certificate decoder'
 
 retention_case="$work_dir/fixture-retention"
 mkdir -p "$retention_case/bin"

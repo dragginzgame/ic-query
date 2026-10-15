@@ -5,7 +5,13 @@ use crate::{
     command::{self, CommandOptions, StderrMode},
     invalid, protocol,
 };
-use ic_build::artifacts::{InputEvidence, InputEvidenceSpec, InputEvidenceValue, WasmBuildSpec};
+use ic_build::{
+    artifacts::{
+        CargoInputProbePolicy, InputEvidence, InputEvidenceSpec, InputEvidenceValue,
+        ResolvedCargoBuildInputs, WasmBuildSpec, resolve_cargo_build_inputs_with_probe_policy,
+    },
+    cargo::observation::schema::Metadata,
+};
 use ic_host_artifacts::{
     artifact::hash_reader,
     wasm::{CustomSection, encode_custom_section},
@@ -17,6 +23,7 @@ use std::{
     env, fs, io,
     path::{Path, PathBuf},
     process::Command,
+    time::{Duration, Instant},
 };
 
 pub fn command(root: &Path, program: impl AsRef<std::ffi::OsStr>, args: &[&str]) -> Command {
@@ -44,12 +51,8 @@ pub fn target_directory(root: &Path) -> Result<PathBuf> {
             ..Default::default()
         },
     )?;
-    let metadata: serde_json::Value = serde_json::from_str(&metadata)?;
-    Ok(PathBuf::from(
-        metadata["target_directory"]
-            .as_str()
-            .ok_or_else(|| invalid("Cargo metadata omitted target_directory"))?,
-    ))
+    let metadata: Metadata = serde_json::from_str(&metadata)?;
+    Ok(metadata.target_directory.into_std_path_buf())
 }
 
 pub fn source_digest(root: &Path) -> Result<String> {
@@ -116,11 +119,8 @@ pub fn append_metadata_section(bytes: &mut Vec<u8>, name: &str, contents: &[u8])
     Ok(())
 }
 
-pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
-    let output = env::var_os("ICP_WASM_OUTPUT_PATH")
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| invalid("build-wasm requires ICP_WASM_OUTPUT_PATH"))?;
-    let spec = WasmBuildSpec::new(root, target, &["ic-query"], "release")
+pub fn probe_spec(root: &Path, target: &Path) -> WasmBuildSpec {
+    WasmBuildSpec::new(root, target, &["ic-query"], "release")
         .with_example("governance_probe")
         .with_target("wasm32-unknown-unknown")
         .with_cargo_program("cargo")
@@ -131,7 +131,36 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
             "canister",
             "--locked",
             "--offline",
-        ]);
+        ])
+}
+
+pub fn resolve_probe_inputs(
+    spec: &WasmBuildSpec,
+    timeout: Duration,
+) -> Result<ResolvedCargoBuildInputs> {
+    let mut cancelled = || command::interruption().is_some();
+    Ok(resolve_cargo_build_inputs_with_probe_policy(
+        spec,
+        &mut CargoInputProbePolicy {
+            deadline: Some(Instant::now() + timeout),
+            cleanup: command::cleanup_policy(),
+            cancelled: &mut cancelled,
+        },
+    )?)
+}
+
+pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
+    let output = env::var_os("ICP_WASM_OUTPUT_PATH")
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| invalid("build-wasm requires ICP_WASM_OUTPUT_PATH"))?;
+    let spec = probe_spec(root, target);
+    let timeout = CommandOptions::default().timeout;
+    let inputs = resolve_probe_inputs(&spec, timeout)?;
+    let [path] = inputs.artifact_paths()? else {
+        return Err(invalid(
+            "Governance probe requires exactly one Wasm artifact",
+        ));
+    };
     command::run(
         &mut spec.cargo_build_command()?,
         &CommandOptions {
@@ -139,8 +168,15 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
             ..Default::default()
         },
     )?;
-    let path = target.join("wasm32-unknown-unknown/release/examples/governance_probe.wasm");
-    let mut bytes = protocol::read_wasm(&path)?;
+    let after = resolve_probe_inputs(&spec, timeout)?;
+    if after.fingerprint() != inputs.fingerprint()
+        || after.validation_digest() != inputs.validation_digest()
+    {
+        return Err(invalid(
+            "Governance probe inputs changed during compilation",
+        ));
+    }
+    let mut bytes = protocol::read_wasm(path)?;
     let build = json!({"schema_version":1,
         "rustc":command::run(&mut command(root,"rustc", &["--version"]), &CommandOptions::default())?,
         "cargo_lock_sha256":hash_reader(fs::File::open(root.join("Cargo.lock"))?, u64::MAX)?.sha256.to_string(),

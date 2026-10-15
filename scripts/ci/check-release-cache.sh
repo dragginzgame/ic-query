@@ -20,7 +20,7 @@ cp "$repo_root/Makefile" Makefile
 cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
 cp "$repo_root/scripts/ci/"{check-make-execution,run-formatting}.sh scripts/ci/
 cp "$repo_root/scripts/release/adapter.sh" scripts/release/
-cp "$repo_root/scripts/ci/next-release-version.sh" scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,validate-release-inputs.pl} scripts/ci/
 cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
 cat > scripts/ci/run-release.sh <<'STUB'

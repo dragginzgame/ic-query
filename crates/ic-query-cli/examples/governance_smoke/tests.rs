@@ -1,10 +1,12 @@
 use super::*;
 use command::{CommandFailure, CommandOptions, StderrMode};
+use ic_build::artifacts::WasmBuildError;
 use ic_host_artifacts::{
     artifact::{ArtifactError, Sha256Digest},
     wasm::{CustomSectionEncodingError, InspectionError, InspectionLimits, inspect},
 };
 use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_with};
+use ic_host_process::tool::{ExecutionFailure, ToolError};
 use protocol::Probe;
 use std::{
     os::unix::fs::{PermissionsExt, symlink},
@@ -100,6 +102,88 @@ fn source_fingerprint_preserves_sorted_paths_raw_contents_and_complete_inputs() 
             .kind(),
         io::ErrorKind::NotFound
     );
+}
+
+fn probe_workspace() -> Directory {
+    let directory = Directory::new();
+    fs::create_dir(directory.0.join(".cargo")).unwrap();
+    fs::write(
+        directory.0.join(".cargo/config.toml"),
+        "[build]\ntarget-dir = 'configured target'\n",
+    )
+    .unwrap();
+    fs::write(
+        directory.0.join("Cargo.toml"),
+        "[package]\nname = 'ic-query'\nversion = '0.0.0'\nedition = '2024'\n\
+         [features]\ncanister = []\n\
+         [[example]]\nname = 'governance_probe'\npath = 'probe.rs'\ncrate-type = ['cdylib']\n",
+    )
+    .unwrap();
+    fs::write(
+        directory.0.join("Cargo.lock"),
+        "version = 4\n[[package]]\nname = 'ic-query'\nversion = '0.0.0'\n",
+    )
+    .unwrap();
+    fs::write(directory.0.join("probe.rs"), "pub fn probe() {}\n").unwrap();
+    directory
+}
+
+#[test]
+fn probe_inputs_bind_configured_output_source_and_cdylib_example() {
+    let directory = probe_workspace();
+    let target = build::target_directory(&directory.0).unwrap();
+    assert_eq!(target, directory.0.join("configured target"));
+    let spec = build::probe_spec(&directory.0, &target);
+    let resolve = || build::resolve_probe_inputs(&spec, Duration::from_secs(10)).unwrap();
+    let before = resolve();
+    assert_eq!(
+        before.artifact_paths().unwrap(),
+        [target.join("wasm32-unknown-unknown/release/examples/governance_probe.wasm")]
+    );
+    let unchanged = resolve();
+    assert_eq!(before.fingerprint(), unchanged.fingerprint());
+    assert_eq!(before.validation_digest(), unchanged.validation_digest());
+    fs::write(directory.0.join("probe.rs"), "pub fn changed() {}\n").unwrap();
+    let changed = resolve();
+    assert_ne!(before.fingerprint(), changed.fingerprint());
+    assert_ne!(before.validation_digest(), changed.validation_digest());
+
+    let manifest = directory.0.join("Cargo.toml");
+    let original = fs::read_to_string(&manifest).unwrap();
+    for invalid in [
+        original.replace("['cdylib']", "['rlib']"),
+        original.replace("name = 'governance_probe'", "name = 'another_probe'"),
+    ] {
+        fs::write(&manifest, invalid).unwrap();
+        assert!(matches!(
+            resolve().artifact_paths(),
+            Err(WasmBuildError::InvalidSpec { .. })
+        ));
+    }
+}
+
+#[test]
+fn probe_input_deadline_retains_original_process_evidence() {
+    let directory = probe_workspace();
+    let program = directory.0.join("stalled-cargo");
+    fs::write(
+        &program,
+        "#!/bin/sh\nprintf 'original probe output'\nexec sleep 5\n",
+    )
+    .unwrap();
+    fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
+    let spec =
+        build::probe_spec(&directory.0, &directory.0.join("target")).with_cargo_program(program);
+    let error = build::resolve_probe_inputs(&spec, Duration::from_secs(1)).unwrap_err();
+    let WasmBuildError::Io { source, .. } = error.downcast_ref().unwrap() else {
+        panic!("expected retained probe failure: {error}");
+    };
+    let Some(ToolError::Execution(error)) = source.get_ref().unwrap().downcast_ref() else {
+        panic!("expected original Host failure: {error}");
+    };
+    assert!(matches!(error.failure, ExecutionFailure::TimedOut));
+    assert_eq!(error.evidence.stdout, b"original probe output");
+    assert!(error.evidence.status.is_some());
 }
 
 #[test]

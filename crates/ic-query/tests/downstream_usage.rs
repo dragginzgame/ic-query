@@ -1,3 +1,7 @@
+#[cfg(feature = "certificate-host")]
+use ic_host_tools::certificate::ParseError;
+#[cfg(feature = "certificate-host")]
+use ic_query::certificate::{CertificateVerificationError, authenticate};
 use ic_query::nns::registry::{
     NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest,
     nns_registry_version_report_text,
@@ -344,4 +348,19 @@ mod host {
 
     fn accepts_sns_cache_status_example(_example: fn(&Path, &str) -> Result<String, SnsHostError>) {
     }
+}
+
+#[cfg(feature = "certificate-host")]
+#[test]
+fn downstream_certificate_failure_exposes_shared_parse_source() {
+    let agent = ic_agent::Agent::builder()
+        .with_url("https://icp-api.io")
+        .build()
+        .unwrap();
+    let error = authenticate(&agent, candid::Principal::anonymous(), &[0xff], 1, 16).unwrap_err();
+    let CertificateVerificationError::Decode(source) = error else {
+        panic!("expected a CBOR parse failure before authentication");
+    };
+    let source: ParseError = source;
+    assert!(std::error::Error::source(&source).is_some());
 }

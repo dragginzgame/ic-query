@@ -85,9 +85,13 @@ commits, topic-branch pushes and creating/updating the PR.
   upstream base. Never edit, switch branches in, stage, reset, clean or commit
   another contributor's normal sibling checkout. Do not carry its dirty changes
   into the contribution. Build and validate in the isolated checkout.
-- Complete the destination's focused and full delivery checks, respecting its
-  documented validation exceptions. Describe evidence and remaining gaps in the
-  PR; use a draft when it is not ready. Leave review and integration to the owner.
+- Complete the destination's focused checks for the changed behavior and affected
+  callers, respecting its documented execution restrictions. PR preparation does
+  not authorize local full-suite runs; reserve those for release or an explicit
+  request under the baseline. Describe evidence and remaining release checks in
+  the PR. An unrun full suite alone does not require a draft; use a draft for
+  incomplete implementation or missing focused evidence. Required hosted checks
+  still apply. Leave review and integration to the owner.
 - Standing permission does not include merging, enabling auto-merge, approving
   your own PR, direct integration-branch pushes, force-pushing, version bumps,
   tags, releases, publication, deployment or artifact cleanup. Those require

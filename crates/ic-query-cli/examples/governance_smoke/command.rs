@@ -159,6 +159,13 @@ impl Error for CommandFailure {
     }
 }
 
+pub const fn cleanup_policy() -> CleanupPolicy {
+    CleanupPolicy::TermThenKill {
+        grace: Duration::from_secs(5),
+        reap_timeout: Duration::from_secs(5),
+    }
+}
+
 pub fn run(command: &mut Command, options: &CommandOptions<'_>) -> Result<String> {
     supervise(command, options, || {
         !options.cleanup && interruption().is_some()
@@ -186,13 +193,7 @@ pub fn supervise(
             StderrMode::Capture => Stdio::piped(),
             StderrMode::Discard => Stdio::null(),
         });
-    let mut child = OwnedChild::spawn_with_cleanup(
-        command,
-        CleanupPolicy::TermThenKill {
-            grace: Duration::from_secs(5),
-            reap_timeout: Duration::from_secs(5),
-        },
-    )?;
+    let mut child = OwnedChild::spawn_with_cleanup(command, cleanup_policy())?;
     let started = Instant::now();
     let result = communicate_child(
         &mut child,

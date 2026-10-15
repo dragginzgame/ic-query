@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.56.0]
+
+- **Breaking:** Certificate decoding uses Host's strict owned decoder. The public
+  `CertificateVerificationError::Decode` payload is now Host's `ParseError`;
+  update code that depends on the concrete payload type. Budgets, authentication
+  order and original evidence remain explicit.
+  [#61 — Adopt Host certificate decoding](https://github.com/dragginzgame/ic-query/issues/61).
+- Adopts Shared Tooling 0.15.0 documentation checkers, replacing private engines
+  while retaining Query's reviewed debt baseline and source selection.
+  [#55 — Adopt shared rustdoc debt checker](https://github.com/dragginzgame/ic-query/issues/55),
+  [#57 — Adopt shared type-layout checker](https://github.com/dragginzgame/ic-query/issues/57).
+
+- Uses IC Build's bounded probe resolver to admit Governance Wasm outputs and
+  reject changed build inputs before publication, preserving metadata and receipts.
+  [#53 — Finish bounded IC Build adoption](https://github.com/dragginzgame/ic-query/issues/53).
+
+- Compiles Testkit canister tests before starting PocketIC and selects explicit
+  hard/idle lifetimes, preventing cold CI builds from expiring an unused server.
+
+Detailed release notes: [docs/changelog/0.56.md](docs/changelog/0.56.md)
+
 ## [0.55.9] - 2026-10-15
 
 - Keeps Query-specific Testkit setup in the canister guide, preserving the reviewed

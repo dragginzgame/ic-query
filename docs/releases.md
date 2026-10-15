@@ -1,4 +1,5 @@
 # Common release commands
+<!-- Shared companions: docs/cargo-publication.md -->
 
 Every `dragginzgame` repository, including Shared Tooling and repositories without
 a publishable package, must provide these Make targets:
@@ -795,3 +796,18 @@ IC Metrics adopts the corrected helper from committed Shared Tooling 0.11.1
 through normal snapshot distribution, retaining its local policy in a thin adapter.
 Other Cargo consumers must retain their own file set, recovery and metadata policy
 when qualifying this adapter; it is not a fleet-wide automatic replacement.
+
+### Pure release input admission
+
+`scripts/ci/validate-release-inputs.pl version X.Y.Z` accepts canonical stable
+versions with decimal u64 components and prints those three components separated
+by tabs. It compares large values as strings, preserving integers above 2^53.
+`date YYYY-MM-DD` validates the Gregorian date (years 0001 through 9999) and
+prints its exact spelling. Both refuse extra whitespace, CR/LF and malformed
+values, perform no file IO and select no release effects. Consumer adapters can
+use this same grammar at each saved-input/receipt boundary.
+
+The shell increment helper retains its narrower signed arithmetic headroom;
+admission of a u64 version is not permission to increment it through Bash.
+The runner admits generated and retained dates before dispatching release
+callbacks. Consumers still own metadata, selected identity, receipts and replay.

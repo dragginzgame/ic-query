@@ -21,7 +21,7 @@ wat.workspace = true
 [features]
 default = []
 ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types"]
-certificate-host = ["dep:ic-agent", "dep:ciborium", "dep:ic-certification", "dep:serde_bytes"]
+certificate-host = ["dep:ic-agent", "dep:ic-host-tools", "dep:ic-certification"]
 canister = ["dep:ic-cdk"]
 host = [
     "cloud-engine-host",
@@ -86,20 +86,19 @@ ic-cdk = { workspace = true, optional = true }
 candid.workspace = true
 cap-fs-ext = { workspace = true, optional = true }
 cap-std = { workspace = true, optional = true }
-ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 ic-agent = { workspace = true, optional = true }
 ic-certification = { workspace = true, optional = true }
 ic-host-artifacts = { workspace = true, optional = true }
 ic-host-fs = { workspace = true, optional = true }
 ic-host-text.workspace = true
+ic-host-tools = { workspace = true, optional = true, features = ["certificate"] }
 icrc-ledger-types = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, features = [
     "rustls",
 ], optional = true }
 serde.workspace = true
-serde_bytes = { workspace = true, optional = true }
 serde_cbor = { workspace = true, optional = true }
 serde_json.workspace = true
 sha2 = { workspace = true, optional = true }
@@ -108,6 +107,7 @@ tokio = { workspace = true, features = ["rt", "time"], optional = true }
 url.workspace = true
 
 [dev-dependencies]
+ciborium.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "time"] }
 
 [[test]]

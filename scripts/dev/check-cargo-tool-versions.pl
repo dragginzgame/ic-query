@@ -1,11 +1,13 @@
 #!/usr/bin/env perl
-# Shared companions: ci/tool-versions.env
+# Shared companions: ci/tool-versions.env scripts/ci/StableVersion.pm
 use strict;
 use warnings;
 use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use File::Temp qw(tempdir);
 use FindBin qw($RealBin);
+use lib "$RealBin/../ci";
+use StableVersion qw(stable version_cmp);
 use JSON::PP;
 use POSIX qw(strftime);
 
@@ -22,11 +24,6 @@ sub read_file {
     open my $fh, '<', $path or die "read $path: $!\n";
     local $/;
     return <$fh>;
-}
-sub stable { defined $_[0] && !ref($_[0]) && $_[0] =~ /\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z/ }
-sub version_cmp {
-    my @a = split /\./, $_[0]; my @b = split /\./, $_[1];
-    return $a[0] <=> $b[0] || $a[1] <=> $b[1] || $a[2] <=> $b[2];
 }
 sub receipt {
     my ($path) = @_;

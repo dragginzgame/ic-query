@@ -141,8 +141,9 @@ Consumer choices described in those guides remain subject to this baseline.
   Rust, type-declaration and documentation added/removed/net metrics, with explicit
   zeroes or unavailable evidence. Keep Git line churn separate from semantic
   deletion counts. In the final Codex app handoff, use **symbol changes** with
-  separately counted genuine deletions, moves and renames; an edited declaration
-  is not a deletion. Keep the detailed inventory in that handoff only. Ordinary
+  genuinely created and deleted functions, methods and types only. Omit moved,
+  renamed and edited declaration inventories and counts; retained identities are
+  not creations or deletions. Keep the compact inventory in that handoff only. Ordinary
   public API removal and consumer-action documentation stays at its normal owner.
 - Complete changelog maintenance under the [common changelog rules](rules/changelogs.md)
   as part of the coherent batch, including automatically selecting and maintaining
@@ -186,20 +187,33 @@ Consumer choices described in those guides remain subject to this baseline.
   structural and module reviews. Keep product invariants and validation commands
   in consumer overlays. Audit adoption adds no automatic broad gate or schedule;
   findings do not supply repair authority. Preserve historical reports locally.
-- Run the smallest relevant checks automatically during authorized development.
-  Before delivering a completed code change as ready, run the repository's
-  documented full validation suite, except where its local overlay explicitly
-  permits focused delivery checks for isolated, read-only reporting scripts.
-  That exception must name the scope and required checks; it does not waive
-  shared infrastructure checks, required CI or release gates. This is standing
-  validation authority within the authorized repository; no separate request is
-  needed. Local command lists
-  must distinguish focused development checks, the full delivery suite and release
-  commands. Reuse passing evidence for unchanged inputs; rerun affected checks
-  after further changes. Documentation-only changes need link, consistency and
-  diff checks, unless the repository documents additional relevant validation.
-  Inspection-only tasks do not authorize a full suite. Release execution,
+- Run the smallest meaningful checks automatically during authorized development
+  and before handoff: changed packages, modules, scripts and directly affected
+  consumers or contracts. Include relevant failure/recovery cases. Broaden the
+  selected checks when the change crosses boundaries, not merely because a batch
+  is complete, touches shared code or spans several files. Preserve explicit
+  maintainer-approved local restrictions on even focused execution.
+- Reserve agent-run local full repository/workspace suites and broad validation
+  gates for an explicitly authorized release or an explicit request for those
+  checks. Implementation, continuation, PR preparation and readiness wording do
+  not authorize a full suite. Focused passing evidence is sufficient for ordinary
+  handoff; an unrun full suite alone is not a blocker. Report the tested scope and
+  remaining release checks without claiming full-suite or native-host coverage.
+  Configured CI and required branch checks remain independent and unchanged;
+  this local execution policy does not weaken the release runner's full gate.
+- Local command lists must distinguish focused development/handoff checks from
+  full release validation and release execution. Reuse passing evidence for
+  unchanged inputs; rerun affected checks after changes or failures. Documentation-
+  only work needs link, consistency and diff checks, not code test suites.
+  Inspection-only work does not activate broad validation. Release execution,
   publication and deployment retain their separate explicit authorization.
+- Shared Tooling owns this validation cadence. Consumer overlays name local
+  commands and product-specific qualification requirements; link to this section
+  rather than duplicating its trigger rules. During adoption, remove conflicting
+  full-suite-before-handoff wording from active local instructions and guides.
+  Keep reviewed snapshots intact. If the pinned baseline still requires that
+  cadence, record a scoped maintainer-approved exception until a reviewed
+  snapshot containing this policy is adopted, then retire the redundant exception.
 - Check for active builds before compilation or source mutation. Do not change
   source under active validation or compete for its build lock. Use the owning
   repository's build directory; preserve unrelated artifacts.

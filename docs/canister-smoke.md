@@ -53,8 +53,8 @@ The probe appends `icp:public candid:service` and `icp:public ic-query:build`
 sections through Host's encoder, preserving exact DID/build payloads and their
 order. Each append checks the remaining 64 MiB whole-artifact allowance before
 changing the module. Encoding refusal leaves the input and publication destinations
-unchanged. Build/input discovery still uses Query's bounded executor until IC
-Build's caller-selected probe policy is published.
+unchanged. IC Build admits the named example and output path through caller-bounded
+input resolution; Query retains its build executor and metadata publication.
 
 ## Deterministic Testkit coverage
 
@@ -82,9 +82,11 @@ The CLI version comes from `Cargo.lock` through the shared Cargo-tool installer.
 Testkit owns authenticated server setup, offline admission and managed launch
 under `.tools/testkit-server/`; these are separate from the common tool bundle.
 
-`canister-test` builds the probe under `target/testkit/`, then runs the selected
-ignored canister test through `ic-testkit-server run`. It never downloads a
-server during validation. An explicitly selected `POCKET_IC_BIN` or
+`canister-test` builds the probe under `target/testkit/` and compiles the native
+test executable before starting PocketIC. It then runs the selected ignored test
+through `ic-testkit-server run`, with separate 300-second hard and idle lifetimes.
+Cold compilation therefore does not consume the managed server lifetime. It never
+downloads a server during validation. An explicitly selected `POCKET_IC_BIN` or
 `IC_TESTKIT_POCKET_IC_URL` conflicts with this managed directory selection and
 is refused by Testkit. Direct test invocations can instead select those inputs
 through Testkit's environment contract and provide the compiled Wasm path as
@@ -389,8 +391,12 @@ source fingerprint, probe DID and schema-1 metadata. The shared inventory refuse
 symlink and special-file inputs and checks for source changes while projecting the
 fingerprint; unrelated regular-file bytes do not enter that fingerprint.
 
-Cargo target discovery and output-path admission remain local because IC Build's
-published input resolver runs tool probes without an elapsed-time deadline. The
-harness executes the shared build recipe through its existing 600-second command
-policy, TERM grace and bounded reaping. Adoption creates no artifact cache and
-performs no deployment or managed-runtime operation.
+Cargo target discovery uses Cargo's canonical metadata schema through IC Build
+while retaining Query's bounded command executor. IC Build's caller-controlled
+resolver admits the exact named `cdylib` example and configured output path before
+compilation, then revalidates semantic and raw input identities before Query reads
+or publishes the artifact. Each resolution has a 600-second probe deadline, the
+harness's cancellation predicate, five-second TERM grace and five-second bounded
+reaping; original Host process evidence remains in typed Build errors. The build
+command retains its existing 600-second policy. Query's fingerprint/DID/receipt
+bytes remain locally owned. No artifact cache, deployment or runtime is created.
