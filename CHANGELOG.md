@@ -34,6 +34,9 @@ crate follows [Semantic Versioning](https://semver.org/).
   preserving archive callback validation and raw report JSON. Simplify live
   SNS/ICRC source futures without changing their caller-runtime contract.
 
+- Fix manifest dependency-table ordering that blocked release formatting checks.
+  Formatting-hook failures now include their retained formatter diagnostics.
+
 Detailed release notes: [docs/changelog/0.58.md](docs/changelog/0.58.md)
 
 ## [0.57.0] - 2026-10-15

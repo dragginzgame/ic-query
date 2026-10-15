@@ -13,12 +13,6 @@ repository.workspace = true
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-ic-host-fs = { workspace = true, features = ["test-support"] }
-ic-testkit.workspace = true
-tokio = { workspace = true, features = ["net"] }
-wat.workspace = true
-
 [features]
 default = []
 ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types"]
@@ -107,6 +101,12 @@ sha2 = { workspace = true, optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time"], optional = true }
 url.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+ic-host-fs = { workspace = true, features = ["test-support"] }
+ic-testkit.workspace = true
+tokio = { workspace = true, features = ["net"] }
+wat.workspace = true
 
 [dev-dependencies]
 ciborium.workspace = true
