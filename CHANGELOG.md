@@ -5,6 +5,37 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.58.0]
+
+- Delegate release cache and formatter preparation to Shared Tooling's pinned
+  preflight helper. Keep source admission, explicit offline validation and
+  interrupted-release recovery in Query; reject tool-catalog changes during setup.
+
+- Reuse Host's private fixture-directory allocator across cache tests, including
+  physical temporary paths and explicit missing-child cases.
+
+- **Breaking:** Local SNS reward-checkpoint reads now accept regular files up to
+  64 MiB. Larger files refuse before parsing; invalid JSON retains its source path.
+  Invalid UTF-8 is reported as a JSON parse failure.
+
+- **Breaking:** Align the public certificate parse-error payload with Host 0.20.
+  Consumers naming Host types must align their dependency.
+- **Breaking:** CMC and ICRC certificate evidence uses the shared strict decoder,
+  with an 8 MiB combined byte budget and a 64-level nesting limit. Original
+  certificate evidence and application-specific leaf validation are preserved.
+- Share Candid query mechanics across ICRC and SNS while retaining source policy,
+  typed failures and diagnostic labels. Reuse Host's SHA-256 parser and formatter
+  for catalog and Registry archive digests; stored JSON remains unchanged.
+
+- Adapt text renderers to Host 0.20's borrowed escaping results, allocating owned
+  text only where Query's existing report helpers or table rows require it.
+
+- Use canonical ICRC-3 wire types from the existing ledger-types dependency,
+  preserving archive callback validation and raw report JSON. Simplify live
+  SNS/ICRC source futures without changing their caller-runtime contract.
+
+Detailed release notes: [docs/changelog/0.58.md](docs/changelog/0.58.md)
+
 ## [0.57.0] - 2026-10-15
 
 - **Breaking:** Adopts Host 0.19. The concrete parse error exposed by

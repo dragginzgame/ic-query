@@ -1,16 +1,6 @@
-use std::{
-    path::PathBuf,
-    sync::atomic::{AtomicU64, Ordering},
-    time::{SystemTime, UNIX_EPOCH},
-};
-
-static TEMP_DIR_COUNTER: AtomicU64 = AtomicU64::new(0);
+use std::path::PathBuf;
 
 pub fn temp_dir(prefix: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system time after epoch")
-        .as_nanos();
-    let count = TEMP_DIR_COUNTER.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!("{prefix}-{}-{unique}-{count}", std::process::id()))
+    ic_host_fs::testing::create_fixture_directory(&std::env::temp_dir(), prefix)
+        .expect("create private fixture directory")
 }

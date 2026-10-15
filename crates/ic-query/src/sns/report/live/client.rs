@@ -41,7 +41,7 @@ impl SnsDiscoverySource for LiveSnsSource {
         &'a self,
         request: &'a SnsSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_inventory(self, request).await })
+        Box::pin(fetch_mainnet_sns_inventory(self, request))
     }
 
     fn fetch_sns_metadata<'a>(
@@ -49,7 +49,7 @@ impl SnsDiscoverySource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_metadata(self, request, targets).await })
+        Box::pin(fetch_mainnet_sns_metadata(self, request, targets))
     }
 }
 
@@ -59,7 +59,7 @@ impl SnsCatalogSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_lifecycles(self, request, targets).await })
+        Box::pin(fetch_mainnet_sns_lifecycles(self, request, targets))
     }
 }
 
@@ -69,7 +69,7 @@ impl SnsCanisterSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_canisters(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_canisters(self, request, sns))
     }
 }
 
@@ -80,7 +80,7 @@ impl SnsNeuronSource for LiveSnsSource {
         sns: &'a MainnetSns,
         neuron_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_neuron(self, request, sns, neuron_id).await })
+        Box::pin(fetch_mainnet_sns_neuron(self, request, sns, neuron_id))
     }
 }
 
@@ -90,7 +90,7 @@ impl SnsTokenSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_token(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_token(self, request, sns))
     }
 }
 
@@ -100,7 +100,7 @@ impl SnsParamsSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_params(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_params(self, request, sns))
     }
 }
 
@@ -110,7 +110,7 @@ impl SnsSwapSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_swap(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_swap(self, request, sns))
     }
 }
 
@@ -121,9 +121,12 @@ impl SnsMetricsSource for LiveSnsSource {
         sns: &'a MainnetSns,
         time_window_seconds: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
-        Box::pin(
-            async move { fetch_mainnet_sns_metrics(self, request, sns, time_window_seconds).await },
-        )
+        Box::pin(fetch_mainnet_sns_metrics(
+            self,
+            request,
+            sns,
+            time_window_seconds,
+        ))
     }
 }
 
@@ -133,7 +136,7 @@ impl SnsUpgradeSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_upgrade(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_upgrade(self, request, sns))
     }
 }
 
@@ -144,7 +147,7 @@ impl SnsProposalSource for LiveSnsSource {
         sns: &'a MainnetSns,
         proposal_id: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_proposal(self, request, sns, proposal_id).await })
+        Box::pin(fetch_mainnet_sns_proposal(self, request, sns, proposal_id))
     }
 }
 
@@ -158,18 +161,15 @@ impl SnsProposalsSource for LiveSnsSource {
         include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
-        Box::pin(async move {
-            fetch_mainnet_sns_proposals(
-                self,
-                request,
-                sns,
-                limit,
-                before_proposal_id,
-                include_status,
-                topic,
-            )
-            .await
-        })
+        Box::pin(fetch_mainnet_sns_proposals(
+            self,
+            request,
+            sns,
+            limit,
+            before_proposal_id,
+            include_status,
+            topic,
+        ))
     }
 
     fn fetch_sns_proposal_page<'a>(
@@ -179,9 +179,13 @@ impl SnsProposalsSource for LiveSnsSource {
         limit: u32,
         before_proposal_id: Option<u64>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
-        Box::pin(async move {
-            fetch_mainnet_sns_proposal_page(self, request, sns, limit, before_proposal_id).await
-        })
+        Box::pin(fetch_mainnet_sns_proposal_page(
+            self,
+            request,
+            sns,
+            limit,
+            before_proposal_id,
+        ))
     }
 }
 
@@ -193,9 +197,13 @@ impl SnsNeuronsSource for LiveSnsSource {
         limit: u32,
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
-        Box::pin(async move {
-            fetch_mainnet_sns_neurons(self, request, sns, limit, owner_principal_id).await
-        })
+        Box::pin(fetch_mainnet_sns_neurons(
+            self,
+            request,
+            sns,
+            limit,
+            owner_principal_id,
+        ))
     }
 
     fn fetch_sns_neuron_page<'a>(
@@ -206,17 +214,14 @@ impl SnsNeuronsSource for LiveSnsSource {
         start_page_at: Option<&'a SnsNeuronId>,
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
-        Box::pin(async move {
-            fetch_mainnet_sns_neuron_page(
-                self,
-                request,
-                sns,
-                limit,
-                start_page_at,
-                owner_principal_id,
-            )
-            .await
-        })
+        Box::pin(fetch_mainnet_sns_neuron_page(
+            self,
+            request,
+            sns,
+            limit,
+            start_page_at,
+            owner_principal_id,
+        ))
     }
 }
 
@@ -226,7 +231,7 @@ impl SnsRewardSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_running_version(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_running_version(self, request, sns))
     }
 
     fn fetch_sns_reward_parameters<'a>(
@@ -234,7 +239,7 @@ impl SnsRewardSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_params(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_params(self, request, sns))
     }
 
     fn fetch_sns_reward_event<'a>(
@@ -242,7 +247,7 @@ impl SnsRewardSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
-        Box::pin(async move { fetch_mainnet_sns_reward_event(self, request, sns).await })
+        Box::pin(fetch_mainnet_sns_reward_event(self, request, sns))
     }
 
     fn fetch_sns_reward_neuron_page<'a>(
@@ -252,8 +257,12 @@ impl SnsRewardSource for LiveSnsSource {
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>> {
-        Box::pin(async move {
-            fetch_mainnet_sns_reward_neuron_page(self, request, sns, limit, start_page_at).await
-        })
+        Box::pin(fetch_mainnet_sns_reward_neuron_page(
+            self,
+            request,
+            sns,
+            limit,
+            start_page_at,
+        ))
     }
 }

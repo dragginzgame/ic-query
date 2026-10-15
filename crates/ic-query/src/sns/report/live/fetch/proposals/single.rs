@@ -4,12 +4,13 @@
 //! Does not own: proposal conversion policy outside direct lookup results.
 //! Boundary: maps get_proposal Candid responses into source-layer proposal data.
 
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError,
     live::{
         convert::sns_proposal_row,
         fetch::governance_canister,
-        query::{query_canister, sns_agent},
+        query::sns_agent,
         types::{GetProposalRequest, GetProposalResponse, GetProposalResult, SnsProposalId},
     },
     source::{MainnetSns, MainnetSnsProposal, SnsSourceRequest},
@@ -25,7 +26,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetProposal.as_str();
-    let response: GetProposalResponse = query_canister(
+    let response: GetProposalResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         method,

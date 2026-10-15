@@ -35,12 +35,12 @@ pub fn cycle_count_text(value: u128) -> String {
 pub fn decimal_cycle_count_text(value: &str) -> String {
     value
         .parse::<u128>()
-        .map_or_else(|_| terminal_text(value), cycle_count_text)
+        .map_or_else(|_| terminal_text(value).into_owned(), cycle_count_text)
 }
 
 pub fn decimal_cycle_rate_text(value: &str) -> String {
     let Some((whole, fraction)) = decimal_parts(value) else {
-        return terminal_text(value);
+        return terminal_text(value).into_owned();
     };
     let mut unit_index = CYCLE_UNITS
         .iter()
@@ -68,7 +68,7 @@ pub fn byte_count_text(value: u128) -> String {
 pub fn decimal_byte_count_text(value: &str) -> String {
     value
         .parse::<u128>()
-        .map_or_else(|_| terminal_text(value), byte_count_text)
+        .map_or_else(|_| terminal_text(value).into_owned(), byte_count_text)
 }
 
 fn scaled_quantity_text(value: u128, units: &[(u128, &str)], radix: u128) -> String {

@@ -1,9 +1,10 @@
 use super::*;
+use crate::test_support::temp_dir;
 use crate::{
     CacheFileError, cache::CacheRecoveryPolicy, cache_file::write_managed_text_atomically,
     subnet_catalog::parse_utc_timestamp_secs,
 };
-use std::{fs, path::Path, time::SystemTime};
+use std::{fs, path::Path};
 
 #[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
@@ -303,12 +304,4 @@ fn write_refresh_lock(
         lock_path,
         &serde_json::to_string(&contents).expect("serialize refresh lock"),
     );
-}
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("clock")
-        .as_nanos();
-    std::env::temp_dir().join(format!("{label}-{nonce}"))
 }

@@ -21,13 +21,14 @@ use crate::subnet_catalog::{
 #[cfg(feature = "subnet-catalog-host")]
 use crate::{
     cache_file::canonical_json_sha256,
-    hex::{hex_bytes, is_lowercase_hex},
     http_endpoint::parse_http_endpoint,
     subnet_catalog::{
         CLASSIFICATION_SCHEMA_VERSION, MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS,
         MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS, RESOLVER_SCHEMA_VERSION,
     },
 };
+#[cfg(feature = "subnet-catalog-host")]
+use ic_host_artifacts::artifact::Sha256Digest;
 use std::{cmp::Ordering, collections::BTreeSet};
 
 impl RawSubnetCatalog {
@@ -85,7 +86,7 @@ impl RawSubnetCatalog {
         self.provenance.classification_policy_digest = classification_policy_digest();
         self.provenance.resolver_schema_version = RESOLVER_SCHEMA_VERSION;
         self.provenance.resolver_backend = RESOLVER_BACKEND.to_string();
-        self.catalog_digest = hex_bytes(&canonical_catalog_digest(self)?);
+        self.catalog_digest = Sha256Digest::from_bytes(canonical_catalog_digest(self)?).to_string();
         self.validate()
     }
 
@@ -99,7 +100,8 @@ impl RawSubnetCatalog {
         self.provenance.assurance = CatalogAssurance::MultiEndpointAgreement;
         self.provenance.source_endpoints = source_endpoints;
         self.provenance.registry_query_call_count = registry_query_call_count;
-        self.provenance.agreement_digest = Some(hex_bytes(&catalog_agreement_digest(self)?));
+        self.provenance.agreement_digest =
+            Some(Sha256Digest::from_bytes(catalog_agreement_digest(self)?).to_string());
         self.canonicalize_and_seal()
     }
 
@@ -760,7 +762,7 @@ fn validate_certified_assurance(raw: &RawSubnetCatalog) -> Result<(), CatalogErr
         ("evidence_chain_digest", &evidence.evidence_chain_digest),
         ("complete_state_digest", &evidence.complete_state_digest),
     ] {
-        if digest.len() != 64 || !is_lowercase_hex(digest) {
+        if digest.parse::<Sha256Digest>().is_err() {
             return Err(CatalogError::InvalidProvenance {
                 field: "provenance.certified_registry",
                 reason: format!("{field} must be exactly 32 lowercase hexadecimal bytes"),
@@ -847,15 +849,15 @@ fn validate_classification_policy(raw: &RawSubnetCatalog) -> Result<(), CatalogE
 
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_catalog_digest(raw: &RawSubnetCatalog) -> Result<[u8; 32], CatalogError> {
-    if raw.catalog_digest.len() != 64 || !is_lowercase_hex(&raw.catalog_digest) {
-        return Err(CatalogError::InvalidCatalogDigest {
+    let actual = raw.catalog_digest.parse::<Sha256Digest>().map_err(|_| {
+        CatalogError::InvalidCatalogDigest {
             value: raw.catalog_digest.clone(),
-        });
-    }
+        }
+    })?;
     let expected = canonical_catalog_digest(raw)?;
-    if raw.catalog_digest != hex_bytes(&expected) {
+    if actual.as_bytes() != &expected {
         return Err(CatalogError::CatalogDigestMismatch {
-            expected: hex_bytes(&expected),
+            expected: Sha256Digest::from_bytes(expected).to_string(),
             actual: raw.catalog_digest.clone(),
         });
     }
@@ -941,15 +943,16 @@ fn validate_agreement_digest(raw: &RawSubnetCatalog) -> Result<(), CatalogError>
         .agreement_digest
         .as_deref()
         .unwrap_or_default();
-    if actual.len() != 64 || !is_lowercase_hex(actual) {
-        return Err(CatalogError::InvalidAgreementDigest {
-            value: actual.to_string(),
-        });
-    }
-    let expected = hex_bytes(&catalog_agreement_digest(raw)?);
-    if actual != expected {
+    let actual_digest =
+        actual
+            .parse::<Sha256Digest>()
+            .map_err(|_| CatalogError::InvalidAgreementDigest {
+                value: actual.to_string(),
+            })?;
+    let expected = Sha256Digest::from_bytes(catalog_agreement_digest(raw)?);
+    if actual_digest != expected {
         return Err(CatalogError::AgreementDigestMismatch {
-            expected,
+            expected: expected.to_string(),
             actual: actual.to_string(),
         });
     }

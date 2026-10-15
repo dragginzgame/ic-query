@@ -46,7 +46,6 @@ fn managed_round_trip_uses_owner_only_modes() {
 #[test]
 fn managed_directory_creation_tolerates_an_observation_race_without_weakening_confinement() {
     let parent_path = temp_dir("ic-query-confined-directory-race-parent");
-    fs::create_dir(&parent_path).expect("create race parent");
     let parent = cap_std::fs::Dir::open_ambient_dir(&parent_path, cap_std::ambient_authority())
         .expect("open race parent");
     let root = parent_path.join("cache");
@@ -70,7 +69,6 @@ fn managed_directory_creation_tolerates_an_observation_race_without_weakening_co
     assert!(matches!(file_error, CacheFileError::Confinement { .. }));
 
     let outside = temp_dir("ic-query-confined-directory-race-outside");
-    fs::create_dir(&outside).expect("create symlink target");
     let symlink_path = parent_path.join("symlink");
     symlink(&outside, &symlink_path).expect("create race symlink");
     let symlink_error = create_directory_component(
@@ -290,7 +288,7 @@ fn managed_path_rejects_symlinked_parent_and_file() {
         BoundedManagedFileReadError::Operation(CacheFileError::Confinement { .. })
     ));
 
-    let linked_root = temp_dir("ic-query-confined-root-link");
+    let linked_root = temp_dir("ic-query-confined-root-link").join("missing");
     symlink(&outside, &linked_root).expect("link cache root");
     let root_error =
         read_bounded_managed_file(&linked_root, &linked_root.join("target.json"), 1024, None)
@@ -390,7 +388,7 @@ fn managed_path_rejects_unsafe_directory_and_file_modes() {
 
 #[test]
 fn missing_root_and_file_are_observed_without_creation() {
-    let root = temp_dir("ic-query-confined-missing");
+    let root = temp_dir("ic-query-confined-missing").join("missing");
     let path = root.join("cache.json");
 
     assert_eq!(

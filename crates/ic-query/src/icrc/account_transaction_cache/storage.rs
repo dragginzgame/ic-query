@@ -14,7 +14,7 @@ use crate::{
         live::account_transactions::validate_canonical_account_transactions,
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCacheRequest,
-            IcrcAccountTransactionError, IcrcAccountTransactionSnapshot, IcrcError,
+            IcrcAccountTransactionError, IcrcAccountTransactionSnapshot,
             normalize_optional_subaccount_hex,
         },
     },
@@ -195,8 +195,8 @@ pub(super) fn normalize_cache_request(
         });
     }
     let ledger_canister_id =
-        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?;
-    let account_owner = principal_from_text::<IcrcError>(&request.account_owner, "account_owner")?;
+        principal_from_text(&request.ledger_canister_id, "ledger_canister_id")?;
+    let account_owner = principal_from_text(&request.account_owner, "account_owner")?;
     Ok(IcrcAccountTransactionCacheRequest {
         cache_root: request.cache_root.clone(),
         source_endpoint: request.source_endpoint.clone(),

@@ -49,10 +49,11 @@ and certificate/hash-tree byte counts and lowercase hex.
 The built-in `LiveCmcSource` accepts a response only after all of these checks
 succeed:
 
-1. decode the CBOR system certificate;
+1. admit the certificate/witness pair within an 8 MiB combined byte budget and
+   decode the exact CBOR certificate with a 64-level nesting limit;
 2. authenticate its signature, delegation, time, and CMC canister authority
    through `ic-agent` and the mainnet root of trust;
-3. decode the CBOR witness hash tree;
+3. decode the exact CBOR witness hash tree under the same nesting limit;
 4. prove that the witness digest equals the CMC `certified_data` value in the
    certificate;
 5. require the native `ICP_XDR_CONVERSION_RATE` leaf; and

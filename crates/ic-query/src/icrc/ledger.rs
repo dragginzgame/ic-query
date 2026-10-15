@@ -1,34 +1,17 @@
 //! Module: icrc::ledger
 //!
-//! Responsibility: shared live ICRC ledger wire types, query helpers, and metadata conversion.
+//! Responsibility: shared live ICRC ledger wire types and metadata conversion.
 //! Does not own: CLI parsing, command-specific reports, SNS lookup, or text rendering.
 //! Boundary: keeps reusable ICRC ledger mechanics independent from report DTOs.
 
-use crate::{hex::hex_bytes, icrc::IcrcMetadataValueKind};
-#[cfg(feature = "icrc-host")]
-use candid::types::reference::Func;
-use candid::{CandidType, Deserialize, Encode, Int, Nat, Principal};
-use ic_agent::{Agent, AgentError};
+use crate::{
+    candid_call::{CandidCallError, query_no_args},
+    hex::hex_bytes,
+    icrc::IcrcMetadataValueKind,
+};
+use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use ic_agent::Agent;
 use serde_json::Value as JsonValue;
-#[cfg(feature = "icrc-host")]
-use std::collections::BTreeMap;
-
-///
-/// IcrcLedgerError
-///
-/// Error adapter implemented by command families that issue ICRC ledger calls.
-///
-
-pub trait IcrcLedgerError: Sized {
-    #[cfg(feature = "icrc-host")]
-    fn invalid_principal(field: &'static str, reason: String) -> Self;
-
-    fn candid_encode(message: &'static str, reason: String) -> Self;
-
-    fn agent_call(method: &'static str, error: AgentError) -> Self;
-
-    fn candid_decode(message: &'static str, reason: String) -> Self;
-}
 
 ///
 /// IcrcLedgerTokenMetadata
@@ -153,152 +136,6 @@ pub enum GetIndexPrincipalError {
     },
 }
 
-///
-/// Icrc3Value
-///
-/// Candid ICRC-3 generic block value.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) enum Icrc3Value {
-    Blob(Vec<u8>),
-    Text(String),
-    Nat(Nat),
-    Int(Int),
-    Array(Vec<Self>),
-    Map(BTreeMap<String, Self>),
-}
-
-///
-/// Icrc3GetBlocksRequest
-///
-/// Candid ICRC-3 block range request.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3GetBlocksRequest {
-    pub(in crate::icrc) start: Nat,
-    pub(in crate::icrc) length: Nat,
-}
-
-///
-/// Icrc3BlockWithId
-///
-/// Candid ICRC-3 block paired with its block log id.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3BlockWithId {
-    pub(in crate::icrc) id: Nat,
-    pub(in crate::icrc) block: Icrc3Value,
-}
-
-///
-/// Icrc3ArchiveCallback
-///
-/// Candid ICRC-3 archive callback function reference.
-///
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3ArchiveCallback(pub(in crate::icrc) Func);
-
-#[cfg(feature = "icrc-host")]
-impl CandidType for Icrc3ArchiveCallback {
-    fn _ty() -> candid::types::Type {
-        candid::func!((Vec<Icrc3GetBlocksRequest>) -> (Icrc3GetBlocksResult) query)
-    }
-
-    fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-    where
-        S: candid::types::Serializer,
-    {
-        self.0.idl_serialize(serializer)
-    }
-}
-
-///
-/// Icrc3ArchivedBlocks
-///
-/// Candid ICRC-3 archive callback and ranges returned for non-local blocks.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3ArchivedBlocks {
-    pub(in crate::icrc) args: Vec<Icrc3GetBlocksRequest>,
-    pub(in crate::icrc) callback: Icrc3ArchiveCallback,
-}
-
-///
-/// Icrc3GetBlocksResult
-///
-/// Candid ICRC-3 block range response.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3GetBlocksResult {
-    pub(in crate::icrc) log_length: Nat,
-    pub(in crate::icrc) blocks: Vec<Icrc3BlockWithId>,
-    pub(in crate::icrc) archived_blocks: Vec<Icrc3ArchivedBlocks>,
-}
-
-///
-/// Icrc3GetArchivesArgs
-///
-/// Candid ICRC-3 archive discovery request.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3GetArchivesArgs {
-    pub(in crate::icrc) from: Option<Principal>,
-}
-
-///
-/// Icrc3ArchiveInfo
-///
-/// Candid ICRC-3 archive range information.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3ArchiveInfo {
-    pub(in crate::icrc) canister_id: Principal,
-    pub(in crate::icrc) start: Nat,
-    pub(in crate::icrc) end: Nat,
-}
-
-///
-/// Icrc3SupportedBlockType
-///
-/// Candid ICRC-3 supported block type row.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3SupportedBlockType {
-    pub(in crate::icrc) block_type: String,
-    pub(in crate::icrc) url: String,
-}
-
-///
-/// Icrc3DataCertificate
-///
-/// Candid ICRC-3 data certificate for the certified ledger tip.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub(in crate::icrc) struct Icrc3DataCertificate {
-    pub(in crate::icrc) certificate: Vec<u8>,
-    pub(in crate::icrc) hash_tree: Vec<u8>,
-}
-
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcSupportedStandard {
     name: String,
@@ -306,11 +143,14 @@ struct IcrcSupportedStandard {
 }
 
 #[cfg(feature = "icrc-host")]
-pub fn principal_from_text<E>(value: &str, field: &'static str) -> Result<Principal, E>
-where
-    E: IcrcLedgerError,
-{
-    Principal::from_text(value).map_err(|err| E::invalid_principal(field, err.to_string()))
+pub fn principal_from_text(
+    value: &str,
+    field: &'static str,
+) -> Result<Principal, crate::icrc::IcrcError> {
+    Principal::from_text(value).map_err(|err| crate::icrc::IcrcError::InvalidPrincipal {
+        field,
+        reason: err.to_string(),
+    })
 }
 
 pub async fn fetch_icrc1_token_metadata<E>(
@@ -318,7 +158,7 @@ pub async fn fetch_icrc1_token_metadata<E>(
     ledger_canister: &Principal,
 ) -> Result<IcrcLedgerTokenMetadata, E>
 where
-    E: IcrcLedgerError,
+    E: CandidCallError,
 {
     let (
         token_name,
@@ -330,14 +170,14 @@ where
         supported_standards,
         metadata,
     ) = futures::try_join!(
-        query_ledger::<String, E>(agent, ledger_canister, "icrc1_name"),
-        query_ledger::<String, E>(agent, ledger_canister, "icrc1_symbol"),
-        query_ledger::<u8, E>(agent, ledger_canister, "icrc1_decimals"),
-        query_ledger::<Nat, E>(agent, ledger_canister, "icrc1_fee"),
-        query_ledger::<Nat, E>(agent, ledger_canister, "icrc1_total_supply"),
-        query_ledger::<Option<IcrcAccount>, E>(agent, ledger_canister, "icrc1_minting_account"),
+        query_no_args::<String, E>(agent, ledger_canister, "icrc1_name"),
+        query_no_args::<String, E>(agent, ledger_canister, "icrc1_symbol"),
+        query_no_args::<u8, E>(agent, ledger_canister, "icrc1_decimals"),
+        query_no_args::<Nat, E>(agent, ledger_canister, "icrc1_fee"),
+        query_no_args::<Nat, E>(agent, ledger_canister, "icrc1_total_supply"),
+        query_no_args::<Option<IcrcAccount>, E>(agent, ledger_canister, "icrc1_minting_account"),
         fetch_icrc_supported_standards::<E>(agent, ledger_canister),
-        query_ledger::<Vec<(String, IcrcMetadataValue)>, E>(
+        query_no_args::<Vec<(String, IcrcMetadataValue)>, E>(
             agent,
             ledger_canister,
             "icrc1_metadata"
@@ -370,10 +210,10 @@ pub async fn fetch_icrc_supported_standards<E>(
     ledger_canister: &Principal,
 ) -> Result<Vec<IcrcLedgerStandardRow>, E>
 where
-    E: IcrcLedgerError,
+    E: CandidCallError,
 {
     let supported_standards: Vec<IcrcSupportedStandard> =
-        query_ledger(agent, ledger_canister, "icrc1_supported_standards").await?;
+        query_no_args(agent, ledger_canister, "icrc1_supported_standards").await?;
     Ok(supported_standards
         .into_iter()
         .map(|standard| IcrcLedgerStandardRow {
@@ -381,52 +221,6 @@ where
             url: standard.url,
         })
         .collect())
-}
-
-pub async fn query_ledger<T, E>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-) -> Result<T, E>
-where
-    E: IcrcLedgerError,
-    T: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = Encode!().map_err(|err| E::candid_encode(method, err.to_string()))?;
-    query_encoded(agent, ledger_canister, method, arg).await
-}
-
-#[cfg(feature = "icrc-host")]
-pub async fn query_ledger_arg<Arg, Response, E>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-    arg: &Arg,
-) -> Result<Response, E>
-where
-    Arg: CandidType + Sync,
-    E: IcrcLedgerError,
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let bytes = query_ledger_arg_bytes(agent, ledger_canister, method, arg).await?;
-    crate::candid_decode::decode_reply(&bytes)
-        .map_err(|err| E::candid_decode(method, err.to_string()))
-}
-
-/// Queries one Candid method while leaving response decoding to the caller.
-#[cfg(feature = "icrc-host")]
-pub async fn query_ledger_arg_bytes<Arg, E>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-    arg: &Arg,
-) -> Result<Vec<u8>, E>
-where
-    Arg: CandidType + Sync,
-    E: IcrcLedgerError,
-{
-    let arg = candid::encode_one(arg).map_err(|err| E::candid_encode(method, err.to_string()))?;
-    query_encoded_bytes(agent, ledger_canister, method, arg).await
 }
 
 /// Return plain decimal text for raw Candid naturals without display separators.
@@ -457,38 +251,6 @@ pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
             description,
         } => format!("generic error {error_code}: {description}"),
     }
-}
-
-async fn query_encoded<T, E>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-    arg: Vec<u8>,
-) -> Result<T, E>
-where
-    E: IcrcLedgerError,
-    T: for<'de> Deserialize<'de> + CandidType,
-{
-    let bytes = query_encoded_bytes(agent, ledger_canister, method, arg).await?;
-    crate::candid_decode::decode_reply(&bytes)
-        .map_err(|err| E::candid_decode(method, err.to_string()))
-}
-
-async fn query_encoded_bytes<E>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-    method: &'static str,
-    arg: Vec<u8>,
-) -> Result<Vec<u8>, E>
-where
-    E: IcrcLedgerError,
-{
-    agent
-        .query(ledger_canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| E::agent_call(method, err))
 }
 
 #[cfg(all(test, feature = "icrc-host"))]

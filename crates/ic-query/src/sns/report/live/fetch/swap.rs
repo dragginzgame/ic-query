@@ -3,12 +3,13 @@
 //! Responsibility: fetch bounded SNS swap lifecycle and sale state.
 //! Does not own: SNS lookup, source validation, report assembly, cache IO, or rendering.
 //! Boundary: attempts exactly three small public queries and retains component failures as gaps.
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     MainnetSns, MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
     SnsSwapComponent, SnsSwapQueryGap,
     live::{
         convert::{sns_swap_derived_state, sns_swap_lifecycle, sns_swap_sale_parameters},
-        query::{principal_from_text, query_canister, sns_agent},
+        query::{principal_from_text, sns_agent},
         types::{
             GetDerivedStateResponse, GetLifecycleResponse, GetSaleParametersResponse,
             SnsSwapQueryRequest,
@@ -27,7 +28,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     let request = SnsSwapQueryRequest {};
     let mut gaps = Vec::new();
 
-    let lifecycle = match query_canister::<_, GetLifecycleResponse>(
+    let lifecycle = match query_canister::<_, GetLifecycleResponse, SnsHostError>(
         agent,
         &swap_canister,
         SnsCanisterMethod::GetLifecycle.as_str(),
@@ -43,7 +44,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
             None
         }
     };
-    let sale_parameters = match query_canister::<_, GetSaleParametersResponse>(
+    let sale_parameters = match query_canister::<_, GetSaleParametersResponse, SnsHostError>(
         agent,
         &swap_canister,
         SnsCanisterMethod::GetSaleParameters.as_str(),
@@ -59,7 +60,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
             None
         }
     };
-    let derived_state = match query_canister::<_, GetDerivedStateResponse>(
+    let derived_state = match query_canister::<_, GetDerivedStateResponse, SnsHostError>(
         agent,
         &swap_canister,
         SnsCanisterMethod::GetDerivedState.as_str(),

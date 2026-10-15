@@ -1,6 +1,8 @@
 use super::*;
 use crate::ic::IcDashboardReportProvenance;
 #[cfg(feature = "dashboard-host")]
+use crate::test_support::temp_dir;
+#[cfg(feature = "dashboard-host")]
 use crate::{
     HostCacheError,
     ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest},
@@ -8,7 +10,7 @@ use crate::{
     subnet_catalog::parse_utc_timestamp_secs,
 };
 #[cfg(feature = "dashboard-host")]
-use std::{fs, path::PathBuf, sync::Mutex, time::SystemTime};
+use std::{fs, sync::Mutex};
 
 #[test]
 fn raw_operational_status_classification_is_conservative() {
@@ -959,13 +961,4 @@ fn refresh_request(root: &std::path::Path, now_unix_secs: u64) -> IcNodeStatusRe
 #[cfg(feature = "dashboard-host")]
 fn fixture_now() -> u64 {
     parse_utc_timestamp_secs("2026-08-04T12:00:00Z").expect("fixture timestamp")
-}
-
-#[cfg(feature = "dashboard-host")]
-fn temp_dir(label: &str) -> PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("clock")
-        .as_nanos();
-    std::env::temp_dir().join(format!("{label}-{nonce}"))
 }

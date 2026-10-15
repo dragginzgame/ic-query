@@ -12,10 +12,19 @@
 use candid::Principal;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
+    all(test, any(feature = "cmc-host", feature = "icrc-host"))
+))]
+use ic_agent::Certificate;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
     feature = "icrc-host"
 ))]
-use ic_agent::{Agent, Certificate, hash_tree::HashTree};
+use ic_agent::{Agent, hash_tree::HashTree};
+
+/// Nesting budget for CMC and ICRC certificate evidence.
+#[cfg(any(feature = "cmc-host", feature = "icrc-host"))]
+const MAX_CERTIFIED_DATA_DEPTH: u8 = 64;
 
 /// Maximum accepted difference between caller observation and certificate time.
 #[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
@@ -55,26 +64,33 @@ pub fn authenticate_canister_hash_tree(
     encoded_hash_tree: &[u8],
     certified_data_owner: &str,
 ) -> Result<HashTree<Vec<u8>>, CertifiedDataError> {
-    let certificate: Certificate = serde_cbor::from_slice(encoded_certificate)
-        .map_err(|error| invalid_certified_data(format!("certificate CBOR is invalid: {error}")))?;
-    let hash_tree: HashTree<Vec<u8>> = serde_cbor::from_slice(encoded_hash_tree)
-        .map_err(|error| invalid_certified_data(format!("hash-tree CBOR is invalid: {error}")))?;
-    authenticate_canister_tree(
+    crate::certificate::authenticate_hash_tree(
         agent,
-        canister,
-        &certificate,
-        &hash_tree,
-        certified_data_owner,
-    )?;
-    Ok(hash_tree)
+        *canister,
+        encoded_certificate,
+        encoded_hash_tree,
+        crate::certificate::CertificateEvidenceLimits {
+            bytes: crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+            depth: MAX_CERTIFIED_DATA_DEPTH,
+        },
+    )
+    .map_err(|error| match error {
+        crate::certificate::CertificateVerificationError::Invalid(error) => {
+            CertifiedDataError::Authentication {
+                reason: error.to_string(),
+            }
+        }
+        crate::certificate::CertificateVerificationError::WitnessMismatch => {
+            invalid_certified_data(format!(
+                "hash-tree digest does not match the {certified_data_owner} certified_data value"
+            ))
+        }
+        error => invalid_certified_data(format!("certificate evidence is invalid: {error}")),
+    })
 }
 
 /// Authenticate a decoded certificate and its authority-specific hash tree.
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "cmc-host",
-    feature = "icrc-host"
-))]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub fn authenticate_canister_tree(
     agent: &Agent,
     canister: &Principal,
@@ -98,8 +114,14 @@ pub fn verify_canister_hash_tree(
     encoded_hash_tree: &[u8],
     certified_data_owner: &str,
 ) -> Result<HashTree<Vec<u8>>, CertifiedDataError> {
-    let hash_tree: HashTree<Vec<u8>> = serde_cbor::from_slice(encoded_hash_tree)
-        .map_err(|error| invalid_certified_data(format!("hash-tree CBOR is invalid: {error}")))?;
+    let hash_tree = ic_host_tools::certificate::decode_hash_tree(
+        encoded_hash_tree,
+        ic_host_tools::certificate::DecodeLimits {
+            bytes: crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+            depth: MAX_CERTIFIED_DATA_DEPTH,
+        },
+    )
+    .map_err(|error| invalid_certified_data(format!("hash-tree CBOR is invalid: {error}")))?;
     verify_canister_tree(certificate, canister, &hash_tree, certified_data_owner)?;
     Ok(hash_tree)
 }
@@ -107,8 +129,7 @@ pub fn verify_canister_hash_tree(
 /// Validate that a decoded certificate commits to a decoded hash tree.
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
-    feature = "cmc-host",
-    feature = "icrc-host"
+    all(test, any(feature = "cmc-host", feature = "icrc-host"))
 ))]
 pub fn verify_canister_tree(
     certificate: &Certificate,
@@ -143,5 +164,61 @@ pub fn validate_certificate_time(
 fn invalid_certified_data(reason: impl Into<String>) -> CertifiedDataError {
     CertifiedDataError::Invalid {
         reason: reason.into(),
+    }
+}
+
+#[cfg(all(test, any(feature = "cmc-host", feature = "icrc-host")))]
+mod tests {
+    use super::*;
+    use ic_agent::hash_tree::{label, leaf};
+
+    #[test]
+    fn oversized_evidence_refuses_before_authentication() {
+        let agent = Agent::builder()
+            .with_url("https://icp-api.io")
+            .build()
+            .unwrap();
+        let certificate = vec![0; crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES];
+        let error = authenticate_canister_hash_tree(
+            &agent,
+            &Principal::anonymous(),
+            &certificate,
+            &[0],
+            "fixture",
+        )
+        .unwrap_err();
+        assert!(matches!(error, CertifiedDataError::Invalid { reason }
+            if reason.contains("byte budget")));
+    }
+
+    #[test]
+    fn witness_decoding_requires_exact_bytes_and_bounded_nesting() {
+        let canister = Principal::anonymous();
+        let mut tree = leaf(vec![1]);
+        let original_digest = tree.digest();
+        let mut trailing = Vec::new();
+        ciborium::ser::into_writer(&tree, &mut trailing).unwrap();
+        trailing.push(0);
+        for _ in 0..MAX_CERTIFIED_DATA_DEPTH {
+            tree = label(b"nested".to_vec(), tree);
+        }
+        let mut nested = Vec::new();
+        ciborium::ser::into_writer(&tree, &mut nested).unwrap();
+        for (encoded, digest) in [(trailing, original_digest), (nested, tree.digest())] {
+            let certificate = Certificate {
+                tree: label(
+                    b"canister".to_vec(),
+                    label(
+                        canister.as_slice().to_vec(),
+                        label(b"certified_data".to_vec(), leaf(digest.to_vec())),
+                    ),
+                ),
+                signature: Vec::new(),
+                delegation: None,
+            };
+            let error = verify_canister_hash_tree(&certificate, &canister, &encoded, "fixture")
+                .unwrap_err();
+            assert!(matches!(error, CertifiedDataError::Invalid { .. }));
+        }
     }
 }

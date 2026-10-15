@@ -5,16 +5,13 @@
 //! Boundary: owns ICRC-3 history traversal and wire-to-report conversion.
 
 use super::{super::tip_certificate::verified_tip_certificate_data, live_query_context};
+use crate::candid_call::{CandidCallError, query_canister, query_no_args};
 use crate::decimal::is_unsigned_decimal;
 use crate::{
     hex::hex_bytes,
     icrc::{
         ledger::{
-            GetIndexPrincipalResult, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
-            Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest,
-            Icrc3GetBlocksResult, Icrc3SupportedBlockType, Icrc3Value, IcrcLedgerError,
-            index_principal_error_text, nat_text, principal_from_text, query_ledger,
-            query_ledger_arg,
+            GetIndexPrincipalResult, index_principal_error_text, nat_text, principal_from_text,
         },
         model::{
             IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
@@ -26,6 +23,12 @@ use crate::{
 };
 use candid::{CandidType, Nat, Principal};
 use ic_agent::Agent;
+use icrc_ledger_types::icrc::generic_value::ICRC3Value;
+use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, ICRC3ArchiveInfo};
+use icrc_ledger_types::icrc3::blocks::{
+    ArchivedBlocks, BlockWithId, GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate,
+    SupportedBlockType,
+};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeSet;
 
@@ -70,7 +73,7 @@ pub(in crate::icrc::live) async fn fetch_transactions_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    let block_args = vec![Icrc3GetBlocksRequest {
+    let block_args = vec![GetBlocksRequest {
         start: Nat::from(request.start),
         length: Nat::from(request.limit),
     }];
@@ -91,15 +94,12 @@ struct ArchiveFollowResult {
     errors: Vec<IcrcArchiveFollowErrorRow>,
 }
 
-async fn fetch_archive_blocks(
-    agent: &Agent,
-    archives: &[Icrc3ArchivedBlocks],
-) -> ArchiveFollowResult {
+async fn fetch_archive_blocks(agent: &Agent, archives: &[ArchivedBlocks]) -> ArchiveFollowResult {
     let mut result = ArchiveFollowResult::default();
     let mut remaining_bytes = MAX_ARCHIVE_REPLY_BYTES;
     for archive in archives {
-        let canister_id = archive.callback.0.principal.to_text();
-        let method = archive.callback.0.method.clone();
+        let canister_id = archive.callback.canister_id.to_text();
+        let method = archive.callback.method.clone();
         match query_archive_blocks(agent, archive, &mut remaining_bytes).await {
             Ok(blocks) => {
                 result.blocks.extend(blocks.blocks.into_iter().map(|block| {
@@ -116,9 +116,9 @@ async fn fetch_archive_blocks(
 
 async fn query_archive_blocks(
     agent: &Agent,
-    archive: &Icrc3ArchivedBlocks,
+    archive: &ArchivedBlocks,
     remaining_bytes: &mut usize,
-) -> Result<Icrc3GetBlocksResult, IcrcError> {
+) -> Result<GetBlocksResult, IcrcError> {
     const CONTEXT: &str = "ICRC3 archive callback";
     if *remaining_bytes == 0 {
         return Err(invalid_transaction_page(
@@ -130,7 +130,7 @@ async fn query_archive_blocks(
         reason: error.to_string(),
     })?;
     let bytes = agent
-        .query(&archive.callback.0.principal, &archive.callback.0.method)
+        .query(&archive.callback.canister_id, &archive.callback.method)
         .with_arg(arg)
         .call()
         .await
@@ -139,7 +139,7 @@ async fn query_archive_blocks(
             reason: error.to_string(),
         })?;
     charge_archive_reply(remaining_bytes, bytes.len())?;
-    let result: Icrc3GetBlocksResult =
+    let result: GetBlocksResult =
         crate::candid_decode::decode_reply(&bytes).map_err(|error| IcrcError::CandidDecode {
             message: CONTEXT,
             reason: error.to_string(),
@@ -166,7 +166,7 @@ fn charge_archive_reply(remaining: &mut usize, length: usize) -> Result<(), Icrc
 }
 
 fn validate_block_page(
-    result: &Icrc3GetBlocksResult,
+    result: &GetBlocksResult,
     request: &IcrcTransactionsRequest,
 ) -> Result<(), IcrcError> {
     let mut ranges = Vec::new();
@@ -312,8 +312,8 @@ pub(in crate::icrc::live) fn validate_transactions_data(
 }
 
 fn validate_archive_reply(
-    result: &Icrc3GetBlocksResult,
-    args: &[Icrc3GetBlocksRequest],
+    result: &GetBlocksResult,
+    args: &[GetBlocksRequest],
 ) -> Result<(), IcrcError> {
     let ranges: Vec<_> = args
         .iter()
@@ -367,11 +367,11 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    let args = Icrc3GetArchivesArgs {
+    let args = GetArchivesArgs {
         from: request
             .from_canister_id
             .as_deref()
-            .map(|from| principal_from_text::<IcrcError>(from, "from_canister_id"))
+            .map(|from| principal_from_text(from, "from_canister_id"))
             .transpose()?,
     };
     let archives = query_archives::<IcrcError>(&agent, &ledger_canister, &args).await?;
@@ -397,25 +397,27 @@ pub(super) async fn query_blocks<Args, E>(
     agent: &Agent,
     canister: &Principal,
     args: &Args,
-) -> Result<Icrc3GetBlocksResult, E>
+) -> Result<GetBlocksResult, E>
 where
     Args: CandidType + Sync,
-    E: IcrcLedgerError,
+    E: CandidCallError,
 {
-    query_ledger_arg::<Args, Icrc3GetBlocksResult, E>(
+    query_canister::<Args, GetBlocksResult, E>(
         agent,
         canister,
+        ICRC3_GET_BLOCKS_METHOD,
+        ICRC3_GET_BLOCKS_METHOD,
         ICRC3_GET_BLOCKS_METHOD,
         args,
     )
     .await
 }
 
-pub(super) async fn query_block_types<E: IcrcLedgerError>(
+pub(super) async fn query_block_types<E: CandidCallError>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<Vec<Icrc3SupportedBlockType>, E> {
-    query_ledger::<Vec<Icrc3SupportedBlockType>, E>(
+) -> Result<Vec<SupportedBlockType>, E> {
+    query_no_args::<Vec<SupportedBlockType>, E>(
         agent,
         ledger_canister,
         ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
@@ -423,25 +425,27 @@ pub(super) async fn query_block_types<E: IcrcLedgerError>(
     .await
 }
 
-pub(super) async fn query_archives<E: IcrcLedgerError>(
+pub(super) async fn query_archives<E: CandidCallError>(
     agent: &Agent,
     ledger_canister: &Principal,
-    args: &Icrc3GetArchivesArgs,
-) -> Result<Vec<Icrc3ArchiveInfo>, E> {
-    query_ledger_arg::<Icrc3GetArchivesArgs, Vec<Icrc3ArchiveInfo>, E>(
+    args: &GetArchivesArgs,
+) -> Result<Vec<ICRC3ArchiveInfo>, E> {
+    query_canister::<GetArchivesArgs, Vec<ICRC3ArchiveInfo>, E>(
         agent,
         ledger_canister,
+        ICRC3_GET_ARCHIVES_METHOD,
+        ICRC3_GET_ARCHIVES_METHOD,
         ICRC3_GET_ARCHIVES_METHOD,
         args,
     )
     .await
 }
 
-pub(super) async fn query_tip_certificate<E: IcrcLedgerError + From<IcrcError>>(
+pub(super) async fn query_tip_certificate<E: CandidCallError + From<IcrcError>>(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<IcrcTipCertificateData, E> {
-    let certificate = query_ledger::<Option<Icrc3DataCertificate>, E>(
+    let certificate = query_no_args::<Option<ICRC3DataCertificate>, E>(
         agent,
         ledger_canister,
         ICRC3_GET_TIP_CERTIFICATE_METHOD,
@@ -450,11 +454,11 @@ pub(super) async fn query_tip_certificate<E: IcrcLedgerError + From<IcrcError>>(
     verified_tip_certificate_data(agent, ledger_canister, certificate).map_err(E::from)
 }
 
-pub(in crate::icrc::live) async fn query_index_principal<E: IcrcLedgerError>(
+pub(in crate::icrc::live) async fn query_index_principal<E: CandidCallError>(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<GetIndexPrincipalResult, E> {
-    query_ledger::<GetIndexPrincipalResult, E>(
+    query_no_args::<GetIndexPrincipalResult, E>(
         agent,
         ledger_canister,
         ICRC106_GET_INDEX_PRINCIPAL_METHOD,
@@ -463,7 +467,7 @@ pub(in crate::icrc::live) async fn query_index_principal<E: IcrcLedgerError>(
 }
 
 fn transactions_data_from_blocks(
-    result: Icrc3GetBlocksResult,
+    result: GetBlocksResult,
     followed_archives: ArchiveFollowResult,
 ) -> IcrcTransactionsData {
     IcrcTransactionsData {
@@ -483,7 +487,7 @@ fn transactions_data_from_blocks(
     }
 }
 
-fn transaction_block_row_from_wire(block: Icrc3BlockWithId) -> IcrcTransactionBlockRow {
+fn transaction_block_row_from_wire(block: BlockWithId) -> IcrcTransactionBlockRow {
     let summary = block_summary_from_wire(block);
     IcrcTransactionBlockRow {
         index: summary.index,
@@ -495,11 +499,11 @@ fn transaction_block_row_from_wire(block: Icrc3BlockWithId) -> IcrcTransactionBl
     }
 }
 
-fn archived_blocks_row_from_wire(archive: Icrc3ArchivedBlocks) -> IcrcArchivedBlocksRow {
-    let Icrc3ArchivedBlocks { args, callback } = archive;
+fn archived_blocks_row_from_wire(archive: ArchivedBlocks) -> IcrcArchivedBlocksRow {
+    let ArchivedBlocks { args, callback } = archive;
     IcrcArchivedBlocksRow {
-        callback_canister_id: callback.0.principal.to_text(),
-        callback_method: callback.0.method,
+        callback_canister_id: callback.canister_id.to_text(),
+        callback_method: callback.method,
         ranges: archived_range_rows(&args),
     }
 }
@@ -507,7 +511,7 @@ fn archived_blocks_row_from_wire(archive: Icrc3ArchivedBlocks) -> IcrcArchivedBl
 fn followed_archive_block_row_from_wire(
     archive_canister_id: &str,
     callback_method: &str,
-    block: Icrc3BlockWithId,
+    block: BlockWithId,
 ) -> IcrcFollowedArchiveBlockRow {
     let summary = block_summary_from_wire(block);
     IcrcFollowedArchiveBlockRow {
@@ -531,7 +535,7 @@ struct Icrc3BlockSummary {
     raw_block: JsonValue,
 }
 
-fn block_summary_from_wire(block: Icrc3BlockWithId) -> Icrc3BlockSummary {
+fn block_summary_from_wire(block: BlockWithId) -> Icrc3BlockSummary {
     let block_type = icrc3_text_at_path(&block.block, &["btype"]);
     Icrc3BlockSummary {
         index: nat_text(&block.id),
@@ -545,19 +549,16 @@ fn block_summary_from_wire(block: Icrc3BlockWithId) -> Icrc3BlockSummary {
     }
 }
 
-fn archive_follow_error_row(
-    archive: &Icrc3ArchivedBlocks,
-    error: String,
-) -> IcrcArchiveFollowErrorRow {
+fn archive_follow_error_row(archive: &ArchivedBlocks, error: String) -> IcrcArchiveFollowErrorRow {
     IcrcArchiveFollowErrorRow {
-        callback_canister_id: archive.callback.0.principal.to_text(),
-        callback_method: archive.callback.0.method.clone(),
+        callback_canister_id: archive.callback.canister_id.to_text(),
+        callback_method: archive.callback.method.clone(),
         ranges: archived_range_rows(&archive.args),
         error,
     }
 }
 
-fn archived_range_rows(ranges: &[Icrc3GetBlocksRequest]) -> Vec<IcrcArchivedRangeRow> {
+fn archived_range_rows(ranges: &[GetBlocksRequest]) -> Vec<IcrcArchivedRangeRow> {
     ranges
         .iter()
         .map(|range| IcrcArchivedRangeRow {
@@ -567,14 +568,14 @@ fn archived_range_rows(ranges: &[Icrc3GetBlocksRequest]) -> Vec<IcrcArchivedRang
         .collect()
 }
 
-fn block_type_row_from_wire(block_type: Icrc3SupportedBlockType) -> IcrcBlockTypeRow {
+fn block_type_row_from_wire(block_type: SupportedBlockType) -> IcrcBlockTypeRow {
     IcrcBlockTypeRow {
         block_type: block_type.block_type,
         url: block_type.url,
     }
 }
 
-fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
+fn archive_row_from_wire(archive: ICRC3ArchiveInfo) -> IcrcArchiveRow {
     IcrcArchiveRow {
         canister_id: archive.canister_id.to_text(),
         start: nat_text(&archive.start),
@@ -582,51 +583,51 @@ fn archive_row_from_wire(archive: Icrc3ArchiveInfo) -> IcrcArchiveRow {
     }
 }
 
-fn icrc3_text_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
+fn icrc3_text_at_path(value: &ICRC3Value, path: &[&str]) -> Option<String> {
     let value = icrc3_value_at_path(value, path)?;
     match value {
-        Icrc3Value::Text(text) => Some(text.clone()),
+        ICRC3Value::Text(text) => Some(text.clone()),
         _ => None,
     }
 }
 
-fn icrc3_nat_at_path(value: &Icrc3Value, path: &[&str]) -> Option<String> {
+fn icrc3_nat_at_path(value: &ICRC3Value, path: &[&str]) -> Option<String> {
     let value = icrc3_value_at_path(value, path)?;
     match value {
-        Icrc3Value::Nat(nat) => Some(nat_text(nat)),
+        ICRC3Value::Nat(nat) => Some(nat_text(nat)),
         _ => None,
     }
 }
 
-fn icrc3_value_at_path<'a>(value: &'a Icrc3Value, path: &[&str]) -> Option<&'a Icrc3Value> {
+fn icrc3_value_at_path<'a>(value: &'a ICRC3Value, path: &[&str]) -> Option<&'a ICRC3Value> {
     path.iter().try_fold(value, |value, key| match value {
-        Icrc3Value::Map(map) => map.get(*key),
+        ICRC3Value::Map(map) => map.get(*key),
         _ => None,
     })
 }
 
-fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
+fn icrc3_value_json(value: &ICRC3Value) -> JsonValue {
     let mut variant = JsonMap::new();
     match value {
-        Icrc3Value::Blob(bytes) => {
+        ICRC3Value::Blob(bytes) => {
             variant.insert("Blob".to_string(), JsonValue::String(hex_bytes(bytes)));
         }
-        Icrc3Value::Text(text) => {
+        ICRC3Value::Text(text) => {
             variant.insert("Text".to_string(), JsonValue::String(text.clone()));
         }
-        Icrc3Value::Nat(nat) => {
+        ICRC3Value::Nat(nat) => {
             variant.insert("Nat".to_string(), JsonValue::String(nat_text(nat)));
         }
-        Icrc3Value::Int(int) => {
+        ICRC3Value::Int(int) => {
             variant.insert("Int".to_string(), JsonValue::String(int.0.to_str_radix(10)));
         }
-        Icrc3Value::Array(values) => {
+        ICRC3Value::Array(values) => {
             variant.insert(
                 "Array".to_string(),
                 JsonValue::Array(values.iter().map(icrc3_value_json).collect()),
             );
         }
-        Icrc3Value::Map(entries) => {
+        ICRC3Value::Map(entries) => {
             variant.insert(
                 "Map".to_string(),
                 JsonValue::Object(
@@ -644,41 +645,42 @@ fn icrc3_value_json(value: &Icrc3Value) -> JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::icrc::ledger::Icrc3ArchiveCallback;
-    use candid::Func;
     use ic_testkit::testing::read_http_request;
+    use icrc_ledger_types::icrc3::archive::QueryArchiveFn;
     use serde_cbor::Value;
     use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]
     fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
         let large: Nat = "18446744073709551616".parse().unwrap();
-        let block = Icrc3BlockWithId {
+        let block = BlockWithId {
             id: Nat::from(1_000u32),
-            block: Icrc3Value::Map(BTreeMap::from([
-                ("ts".into(), Icrc3Value::Nat(large.clone())),
+            block: ICRC3Value::Map(BTreeMap::from([
+                ("ts".into(), ICRC3Value::Nat(large.clone())),
                 (
                     "tx".into(),
-                    Icrc3Value::Map(BTreeMap::from([(
+                    ICRC3Value::Map(BTreeMap::from([(
                         "amt".into(),
-                        Icrc3Value::Nat(large.clone()),
+                        ICRC3Value::Nat(large.clone()),
                     )])),
                 ),
-                ("signed".into(), Icrc3Value::Int(candid::Int::from(-1_000))),
+                ("signed".into(), ICRC3Value::Int(candid::Int::from(-1_000))),
+                ("blob".into(), ICRC3Value::Blob(vec![0, 0xab, 0xff].into())),
+                (
+                    "array".into(),
+                    ICRC3Value::Array(vec![ICRC3Value::Text("fixture".into())]),
+                ),
             ])),
         };
-        let result = Icrc3GetBlocksResult {
+        let result = GetBlocksResult {
             log_length: large,
             blocks: vec![block.clone()],
-            archived_blocks: vec![Icrc3ArchivedBlocks {
-                args: vec![Icrc3GetBlocksRequest {
+            archived_blocks: vec![ArchivedBlocks {
+                args: vec![GetBlocksRequest {
                     start: Nat::from(1_001u32),
                     length: Nat::from(1_000u32),
                 }],
-                callback: Icrc3ArchiveCallback(Func {
-                    principal: Principal::anonymous(),
-                    method: "read_page".into(),
-                }),
+                callback: QueryArchiveFn::new(Principal::anonymous(), "read_page"),
             }],
         };
         let request = IcrcTransactionsRequest {
@@ -704,6 +706,11 @@ mod tests {
             },
         );
         validate_transactions_data(&request, &data).expect("wire data satisfies report contract");
+        assert_eq!(data.blocks[0].raw_block["Map"]["blob"]["Blob"], "00abff");
+        assert_eq!(
+            data.blocks[0].raw_block["Map"]["array"]["Array"][0]["Text"],
+            "fixture"
+        );
         assert_eq!(data.log_length.as_deref(), Some("18446744073709551616"));
         assert_eq!(data.blocks[0].index, "1000");
         assert_eq!(data.followed_archive_blocks[0].index, "1001");
@@ -722,7 +729,7 @@ mod tests {
             "18446744073709551616"
         );
         assert_eq!(data.blocks[0].raw_block["Map"]["signed"]["Int"], "-1000");
-        let archive = archive_row_from_wire(Icrc3ArchiveInfo {
+        let archive = archive_row_from_wire(ICRC3ArchiveInfo {
             canister_id: Principal::anonymous(),
             start: Nat::from(1_000u32),
             end: Nat::from(2_000u32),
@@ -734,13 +741,13 @@ mod tests {
     async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let endpoint = format!("http://{}", listener.local_addr().unwrap());
-        let reply = Icrc3GetBlocksResult {
+        let reply = GetBlocksResult {
             log_length: Nat::from(100u64),
             blocks: block_ids
                 .iter()
-                .map(|id| Icrc3BlockWithId {
+                .map(|id| BlockWithId {
                     id: Nat::from(*id),
-                    block: Icrc3Value::Text("fixture".into()),
+                    block: ICRC3Value::Text("fixture".into()),
                 })
                 .collect(),
             archived_blocks: vec![],
@@ -781,12 +788,9 @@ mod tests {
             .with_verify_query_signatures(false)
             .build()
             .unwrap();
-        let archive = Icrc3ArchivedBlocks {
-            callback: Icrc3ArchiveCallback(Func {
-                principal: Principal::anonymous(),
-                method: "read_archive_page".into(),
-            }),
-            args: vec![Icrc3GetBlocksRequest {
+        let archive = ArchivedBlocks {
+            callback: QueryArchiveFn::new(Principal::anonymous(), "read_archive_page"),
+            args: vec![GetBlocksRequest {
                 start: Nat::from(12u64),
                 length: Nat::from(2u64),
             }],
@@ -809,7 +813,7 @@ mod tests {
         let Value::Bytes(args) = &content[&Value::Text("arg".into())] else {
             panic!("Candid arguments")
         };
-        let args: Vec<Icrc3GetBlocksRequest> = candid::decode_one(args).unwrap();
+        let args: Vec<GetBlocksRequest> = candid::decode_one(args).unwrap();
         assert_eq!(args[0].start, Nat::from(12u64));
         assert_eq!(args[0].length, Nat::from(2u64));
         followed
@@ -856,15 +860,12 @@ mod tests {
             .with_url("http://127.0.0.1:1")
             .build()
             .unwrap();
-        let archive = Icrc3ArchivedBlocks {
-            args: vec![Icrc3GetBlocksRequest {
+        let archive = ArchivedBlocks {
+            args: vec![GetBlocksRequest {
                 start: Nat::from(12u32),
                 length: Nat::from(1u32),
             }],
-            callback: Icrc3ArchiveCallback(Func {
-                principal: Principal::anonymous(),
-                method: "read_page".into(),
-            }),
+            callback: QueryArchiveFn::new(Principal::anonymous(), "read_page"),
         };
         let mut remaining = 0;
         let error = query_archive_blocks(&agent, &archive, &mut remaining)
@@ -883,18 +884,15 @@ mod tests {
             limit: 2,
             follow_archives: true,
         };
-        let range = |start, length| Icrc3GetBlocksRequest {
+        let range = |start, length| GetBlocksRequest {
             start: Nat::from(start),
             length: Nat::from(length),
         };
-        let archive = |args| Icrc3ArchivedBlocks {
+        let archive = |args| ArchivedBlocks {
             args,
-            callback: Icrc3ArchiveCallback(Func {
-                principal: Principal::anonymous(),
-                method: "read_page".into(),
-            }),
+            callback: QueryArchiveFn::new(Principal::anonymous(), "read_page"),
         };
-        let mut result = Icrc3GetBlocksResult {
+        let mut result = GetBlocksResult {
             log_length: Nat::from(100u32),
             blocks: vec![],
             archived_blocks: vec![archive(vec![range(12u64, 2u64)])],
@@ -923,9 +921,9 @@ mod tests {
             ));
         }
         result.archived_blocks = vec![archive(vec![range(12, 2)])];
-        result.blocks.push(Icrc3BlockWithId {
+        result.blocks.push(BlockWithId {
             id: Nat::from(12u32),
-            block: Icrc3Value::Text("overlap".into()),
+            block: ICRC3Value::Text("overlap".into()),
         });
         assert!(validate_block_page(&result, &request).is_err());
         result.blocks.clear();
@@ -934,9 +932,9 @@ mod tests {
             .collect();
         assert!(validate_block_page(&result, &request).is_err());
         result.archived_blocks.clear();
-        result.blocks = vec![Icrc3BlockWithId {
+        result.blocks = vec![BlockWithId {
             id: Nat::from(14u32),
-            block: Icrc3Value::Text("outside".into()),
+            block: ICRC3Value::Text("outside".into()),
         }];
         assert!(validate_block_page(&result, &request).is_err());
         result.blocks[0].id = Nat::from(13u32);

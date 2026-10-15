@@ -4,12 +4,13 @@
 //! Does not own: proposal conversion, cache refresh orchestration, or rendering.
 //! Boundary: builds list_proposals requests and maps responses into source models.
 
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError, SnsProposalTopicFilter,
     live::{
         convert::sns_proposal_row,
         fetch::governance_canister,
-        query::{query_canister, sns_agent},
+        query::sns_agent,
         types::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,
         },
@@ -29,7 +30,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
 ) -> Result<MainnetSnsProposals, SnsHostError> {
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
-    let response: ListProposalsResponse = query_canister(
+    let response: ListProposalsResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         SnsCanisterMethod::ListProposals.as_str(),

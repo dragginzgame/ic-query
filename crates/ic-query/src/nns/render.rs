@@ -11,9 +11,10 @@ pub fn compact_text(value: &str, chars: usize) -> String {
 
 #[must_use]
 pub fn text_or_dash(value: Option<&str>) -> String {
-    value
-        .filter(|text| !text.is_empty())
-        .map_or_else(|| "-".to_string(), terminal_text)
+    value.filter(|text| !text.is_empty()).map_or_else(
+        || "-".to_string(),
+        |value| terminal_text(value).into_owned(),
+    )
 }
 
 #[must_use]

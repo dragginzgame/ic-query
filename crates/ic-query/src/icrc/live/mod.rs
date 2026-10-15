@@ -30,7 +30,7 @@ pub use source::{
     LiveIcrcSource,
 };
 
-use crate::icrc::{ledger::IcrcLedgerError, model::IcrcError};
+use crate::{candid_call::CandidCallError, icrc::model::IcrcError};
 use ic_agent::AgentError;
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -48,11 +48,7 @@ pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 /// Largest account-history page accepted by the built-in index adapter.
 pub const ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE: u32 = 100;
 
-impl IcrcLedgerError for IcrcError {
-    fn invalid_principal(field: &'static str, reason: String) -> Self {
-        Self::InvalidPrincipal { field, reason }
-    }
-
+impl CandidCallError for IcrcError {
     fn candid_encode(message: &'static str, reason: String) -> Self {
         Self::CandidEncode { message, reason }
     }

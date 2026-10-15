@@ -42,6 +42,8 @@ pub mod cache;
     feature = "subnet-catalog-host"
 ))]
 mod cache_file;
+#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
+mod candid_call;
 #[cfg(any(
     test,
     all(feature = "canister", target_arch = "wasm32"),

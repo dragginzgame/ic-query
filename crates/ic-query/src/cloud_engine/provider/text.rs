@@ -39,7 +39,7 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
             .map(|provider| {
                 [
                     provider.principal_id.clone(),
-                    terminal_text(&provider.display_name),
+                    terminal_text(&provider.display_name).into_owned(),
                     provider.total_cloud_engines.to_string(),
                     provider.total_cloud_engine_nodes.to_string(),
                     provider.total_cloud_engine_unassigned_nodes.to_string(),
@@ -84,7 +84,10 @@ pub fn cloud_engine_provider_info_report_text(report: &CloudEngineProviderInfoRe
             yes_no(report.cloud_engine_evidence_present)
         ),
         format!("node_provider_id: {}", provider.principal_id),
-        format!("display_name: {}", terminal_text(&provider.display_name)),
+        format!(
+            "display_name: {}",
+            terminal_text(&provider.display_name).into_owned()
+        ),
         format!("website: {}", optional_text(provider.website.as_ref())),
         format!("logo_url: {}", optional_text(provider.logo_url.as_ref())),
         format!("total_cloud_engines: {}", provider.total_cloud_engines),
@@ -127,9 +130,9 @@ fn location_table(locations: &[CloudEngineProviderLocation]) -> String {
         .map(|location| {
             [
                 location.dc_key.clone(),
-                terminal_text(&location.display_name),
-                terminal_text(location.owner.trim()),
-                terminal_text(&location.region),
+                terminal_text(&location.display_name).into_owned(),
+                terminal_text(location.owner.trim()).into_owned(),
+                terminal_text(&location.region).into_owned(),
                 location.latitude.to_string(),
                 location.longitude.to_string(),
             ]

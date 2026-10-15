@@ -96,6 +96,8 @@ revision	fec7c9b97f6a35a23daf54abe9a6472a5d1829b0
 # entrypoint	scripts/ci/test-type-docs.pl
 # entrypoint	scripts/ci/collect-tool-evidence.sh
 # entrypoint	scripts/ci/test-collect-tool-evidence.sh
+# entrypoint	scripts/ci/cargo-release-preflight.sh
+# entrypoint	scripts/ci/test-cargo-release-preflight.sh
 file	b7af05c3ee820b1032136db1a6414a99cfb70dddec841d97ae6f07bedabf3bc2	-	DRAGGINZGAME.md
 file	372e8a256767514d119ecd3e584cd20f15732b3eb169b212716069be7c3f9c80	-	rules/changelogs.md
 file	afd13ae708e684244edb5262f42e106900c076b3cac4def8bd741bfade3c602a	-	rules/cargo-dependencies.md
@@ -189,6 +191,8 @@ file	b62ef318bf1139c27e82536e12f8d8ef93bfc1c9cc6340113d35e6dfb812787f	x	scripts/
 file	22459209ced6e15a6e3a4ec521c09fe2afccffc01c4f918e4131bb66e9ba8b4f	x	scripts/ci/test-type-docs.pl
 file	ad65666b8b34e4967cecff3cfc97038dbc5dfbce146ac57316add2b380310ae1	x	scripts/ci/collect-tool-evidence.sh
 file	be23910d48a7110d10fcac2232e050df0f5c847f8a250328107fc195693bed55	x	scripts/ci/test-collect-tool-evidence.sh
+file	aa540f75e1a45b62310ae379ae5f17589267040ebbf8867aa70789e744dec970	-	scripts/ci/cargo-release-preflight.sh
+file	b67f190f8ddff0220d37c1cebe25ccd771c9c8d69b946e0d236e889dff9175f4	-	scripts/ci/test-cargo-release-preflight.sh
 file	a4682503812f210b951aede536cdd65642bfe266b02ab532853a1aeff64f9742	x	scripts/ci/verify-shared-tooling-snapshot.sh
 file	ef2ba87f4a34406c355cef9d101ec97dce72990f04b16ded721761bb59ec4df3	-	docs/rust-toolchains.md
 file	3d56ca1b0c5952b9534ece61b6754ca39e6ec1980d929f09de3dbd967a0c4977	-	scripts/ci/dependency-pins.jq

@@ -116,7 +116,7 @@ fn list_table(report: &CloudEngineListReport) -> String {
         .iter()
         .map(|row| {
             [
-                terminal_text(&row.subnet_label),
+                terminal_text(&row.subnet_label).into_owned(),
                 row.subnet_id.clone(),
                 row.node_count
                     .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
@@ -239,9 +239,10 @@ pub fn cloud_engine_prices_report_text(report: &CloudEnginePricesReport) -> Stri
                 [
                     row.key.clone(),
                     row.node_type.to_string(),
-                    row.data_center_id
-                        .as_deref()
-                        .map_or_else(|| "-".to_string(), terminal_text),
+                    row.data_center_id.as_deref().map_or_else(
+                        || "-".to_string(),
+                        |value| terminal_text(value).into_owned(),
+                    ),
                     row.provider_id.clone().unwrap_or_else(|| "-".to_string()),
                     decimal_cycle_count_text(&row.net_cycles_per_month),
                     decimal_cycle_count_text(&row.gross_cycles_per_month),

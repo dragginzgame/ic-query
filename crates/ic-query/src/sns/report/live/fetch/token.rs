@@ -3,9 +3,10 @@
 //! Responsibility: fetch SNS ledger token metadata.
 //! Does not own: lookup resolution, report assembly, amount formatting, or rendering.
 //! Boundary: queries one resolved SNS ledger for ICRC metadata and index details.
+use crate::candid_call::query_no_args;
 use crate::icrc::ledger::{
     GetIndexPrincipalResult, IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
-    fetch_icrc1_token_metadata, index_principal_error_text, query_ledger,
+    fetch_icrc1_token_metadata, index_principal_error_text,
 };
 use crate::sns::report::live::query::{principal_from_text, sns_agent};
 use crate::sns::report::{
@@ -25,7 +26,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_token(
         &ledger_canister,
     ))
     .await?;
-    let (ledger_index_canister_id, ledger_index_error) = match query_ledger::<
+    let (ledger_index_canister_id, ledger_index_error) = match query_no_args::<
         GetIndexPrincipalResult,
         SnsHostError,
     >(

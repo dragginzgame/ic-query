@@ -152,7 +152,7 @@ pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardLis
                         row.reward_id.to_string(),
                         row.node_provider_id.clone(),
                         row.amount_e8s.to_string(),
-                        terminal_text(&row.reward_mode),
+                        terminal_text(&row.reward_mode).into_owned(),
                         row.reward_timestamp_unix_secs.to_string(),
                         optional_u64_text(row.proposal_id),
                     ]
@@ -654,7 +654,7 @@ fn metric_observation_text(metric: IcMetricKind, value: &str) -> String {
     if metric == IcMetricKind::CycleBurnRate {
         decimal_cycle_rate_text(value)
     } else {
-        terminal_text(value)
+        terminal_text(value).into_owned()
     }
 }
 
@@ -844,7 +844,7 @@ fn text_or_dash(value: &str) -> String {
     if value.is_empty() {
         "-".to_string()
     } else {
-        terminal_text(value)
+        terminal_text(value).into_owned()
     }
 }
 

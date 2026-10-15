@@ -7,18 +7,13 @@
 use super::SnsHostError;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-    icrc::ledger::IcrcLedgerError,
+    candid_call::CandidCallError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::{Agent, AgentError};
 
-impl IcrcLedgerError for SnsHostError {
-    #[cfg(feature = "icrc-host")]
-    fn invalid_principal(field: &'static str, reason: String) -> Self {
-        Self::InvalidPrincipal { field, reason }
-    }
-
+impl CandidCallError for SnsHostError {
     fn candid_encode(message: &'static str, reason: String) -> Self {
         Self::CandidEncode { message, reason }
     }
@@ -33,38 +28,6 @@ impl IcrcLedgerError for SnsHostError {
     fn candid_decode(message: &'static str, reason: String) -> Self {
         Self::CandidDecode { message, reason }
     }
-}
-
-/// Query one Candid canister method with an explicit request payload.
-pub(super) async fn query_canister<Arg, Response>(
-    agent: &Agent,
-    canister: &Principal,
-    method: &'static str,
-    request_message: &'static str,
-    response_message: &'static str,
-    arg: &Arg,
-) -> Result<Response, SnsHostError>
-where
-    Arg: CandidType + Sync,
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = candid::encode_one(arg).map_err(|err| SnsHostError::CandidEncode {
-        message: request_message,
-        reason: err.to_string(),
-    })?;
-    let bytes = agent
-        .query(canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| SnsHostError::AgentCall {
-            method,
-            reason: err.to_string(),
-        })?;
-    crate::candid_decode::decode_reply(&bytes).map_err(|err| SnsHostError::CandidDecode {
-        message: response_message,
-        reason: err.to_string(),
-    })
 }
 
 /// Call one Candid canister ingress method and wait for its response.

@@ -1,9 +1,4 @@
 use super::{
-    ledger::{
-        Icrc3ArchiveCallback, Icrc3ArchiveInfo, Icrc3ArchivedBlocks, Icrc3BlockWithId,
-        Icrc3DataCertificate, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, Icrc3GetBlocksResult,
-        Icrc3SupportedBlockType, Icrc3Value,
-    },
     live::{
         IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource,
         IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource,
@@ -33,7 +28,13 @@ use super::{
         icrc_token_report_text, icrc_transactions_report_text,
     },
 };
-use candid::{Nat, Principal, types::reference::Func};
+use candid::{Nat, Principal};
+use icrc_ledger_types::icrc::generic_value::ICRC3Value;
+use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, ICRC3ArchiveInfo, QueryArchiveFn};
+use icrc_ledger_types::icrc3::blocks::{
+    ArchivedBlocks, BlockWithId, GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate,
+    SupportedBlockType,
+};
 use serde_json::{Value as JsonValue, json};
 use std::collections::BTreeMap;
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -500,67 +501,66 @@ impl IcrcAllowanceSource for PanickingIcrcSource {
 #[test]
 fn icrc3_blocks_result_round_trips_through_candid() {
     let mut tx = BTreeMap::new();
-    tx.insert("op".to_string(), Icrc3Value::Text("mint".to_string()));
-    tx.insert("amt".to_string(), Icrc3Value::Nat(Nat::from(42_u64)));
+    tx.insert("op".to_string(), ICRC3Value::Text("mint".to_string()));
+    tx.insert("amt".to_string(), ICRC3Value::Nat(Nat::from(42_u64)));
 
     let mut block = BTreeMap::new();
-    block.insert("btype".to_string(), Icrc3Value::Text("1mint".to_string()));
+    block.insert("btype".to_string(), ICRC3Value::Text("1mint".to_string()));
     block.insert(
         "ts".to_string(),
-        Icrc3Value::Nat(Nat::from(1_700_000_001_000_000_000_u64)),
+        ICRC3Value::Nat(Nat::from(1_700_000_001_000_000_000_u64)),
     );
-    block.insert("tx".to_string(), Icrc3Value::Map(tx));
+    block.insert("tx".to_string(), ICRC3Value::Map(tx));
 
-    let result = Icrc3GetBlocksResult {
+    let result = GetBlocksResult {
         log_length: Nat::from(1_000_u64),
-        blocks: vec![Icrc3BlockWithId {
+        blocks: vec![BlockWithId {
             id: Nat::from(100_u64),
-            block: Icrc3Value::Map(block),
+            block: ICRC3Value::Map(block),
         }],
-        archived_blocks: vec![Icrc3ArchivedBlocks {
-            args: vec![Icrc3GetBlocksRequest {
+        archived_blocks: vec![ArchivedBlocks {
+            args: vec![GetBlocksRequest {
                 start: Nat::from(0_u64),
                 length: Nat::from(100_u64),
             }],
-            callback: Icrc3ArchiveCallback(Func {
-                principal: Principal::from_text("qaa6y-5yaaa-aaaaa-aaafa-cai")
+            callback: QueryArchiveFn::new(
+                Principal::from_text("qaa6y-5yaaa-aaaaa-aaafa-cai")
                     .expect("archive callback principal"),
-                method: "icrc3_get_blocks".to_string(),
-            }),
+                "icrc3_get_blocks".to_string(),
+            ),
         }],
     };
 
     let bytes = candid::encode_one(&result).expect("encode ICRC-3 blocks result");
-    let decoded: Icrc3GetBlocksResult =
-        candid::decode_one(&bytes).expect("decode ICRC-3 blocks result");
+    let decoded: GetBlocksResult = candid::decode_one(&bytes).expect("decode ICRC-3 blocks result");
 
     assert_eq!(decoded, result);
 }
 
 #[test]
 fn icrc3_multiple_archive_callbacks_preserve_principals_methods_and_ranges() {
-    let result = Icrc3GetBlocksResult {
+    let result = GetBlocksResult {
         log_length: Nat::from(10_000_u64),
         blocks: Vec::new(),
         archived_blocks: (0..100_u64)
-            .map(|index| Icrc3ArchivedBlocks {
-                args: vec![Icrc3GetBlocksRequest {
+            .map(|index| ArchivedBlocks {
+                args: vec![GetBlocksRequest {
                     start: Nat::from(index * 100),
                     length: Nat::from(100_u64),
                 }],
-                callback: Icrc3ArchiveCallback(Func {
-                    principal: Principal::from_slice(&[
+                callback: QueryArchiveFn::new(
+                    Principal::from_slice(&[
                         u8::try_from(index).expect("fixture index fits one byte"),
                         1,
                     ]),
-                    method: "icrc3_get_blocks".to_string(),
-                }),
+                    "icrc3_get_blocks".to_string(),
+                ),
             })
             .collect(),
     };
 
     let bytes = candid::encode_one(&result).expect("encode multiple typed callbacks");
-    let decoded: Icrc3GetBlocksResult = crate::candid_decode::decode_reply(&bytes)
+    let decoded: GetBlocksResult = crate::candid_decode::decode_reply(&bytes)
         .expect("decode every typed callback and its recursive result schema");
 
     assert_eq!(decoded, result);
@@ -568,17 +568,17 @@ fn icrc3_multiple_archive_callbacks_preserve_principals_methods_and_ranges() {
 
 #[test]
 fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
-    let archives_args = Icrc3GetArchivesArgs {
+    let archives_args = GetArchivesArgs {
         from: Some(
             Principal::from_text(ARCHIVE_CANISTER_ID).expect("archive pagination principal"),
         ),
     };
-    let archives = vec![Icrc3ArchiveInfo {
+    let archives = vec![ICRC3ArchiveInfo {
         canister_id: Principal::from_text(ARCHIVE_CANISTER_ID).expect("archive canister principal"),
         start: Nat::from(0_u64),
         end: Nat::from(999_u64),
     }];
-    let block_types = vec![Icrc3SupportedBlockType {
+    let block_types = vec![SupportedBlockType {
         block_type: "1xfer".to_string(),
         url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
     }];
@@ -587,37 +587,41 @@ fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
     let archives_bytes = candid::encode_one(&archives).expect("encode archives result");
     let block_types_bytes = candid::encode_one(&block_types).expect("encode block types result");
 
-    let decoded_archives_args: Icrc3GetArchivesArgs =
+    let decoded_archives_args: GetArchivesArgs =
         candid::decode_one(&archives_args_bytes).expect("decode archives args");
-    let decoded_archives: Vec<Icrc3ArchiveInfo> =
+    let decoded_archives: Vec<ICRC3ArchiveInfo> =
         candid::decode_one(&archives_bytes).expect("decode archives result");
-    let decoded_block_types: Vec<Icrc3SupportedBlockType> =
+    let decoded_block_types: Vec<SupportedBlockType> =
         candid::decode_one(&block_types_bytes).expect("decode block types result");
 
     assert_eq!(decoded_archives_args, archives_args);
     assert_eq!(decoded_archives, archives);
-    assert_eq!(decoded_block_types, block_types);
+    assert_eq!(decoded_block_types.len(), block_types.len());
+    assert_eq!(decoded_block_types[0].block_type, block_types[0].block_type);
+    assert_eq!(decoded_block_types[0].url, block_types[0].url);
 }
 
 #[test]
 fn icrc3_tip_certificate_shape_round_trips_through_candid() {
-    let certificate = Some(Icrc3DataCertificate {
-        certificate: vec![1, 2, 3],
-        hash_tree: vec![0xaa, 0xbb],
-    });
+    let certificate = ICRC3DataCertificate {
+        certificate: vec![1, 2, 3].into(),
+        hash_tree: vec![0xaa, 0xbb].into(),
+    };
 
-    let bytes = candid::encode_one(&certificate).expect("encode ICRC-3 data certificate");
-    let decoded: Option<Icrc3DataCertificate> =
+    let bytes = candid::encode_one(Some(&certificate)).expect("encode ICRC-3 data certificate");
+    let decoded: Option<ICRC3DataCertificate> =
         candid::decode_one(&bytes).expect("decode ICRC-3 data certificate");
 
-    assert_eq!(decoded, certificate);
+    let decoded = decoded.expect("present certificate");
+    assert_eq!(decoded.certificate, certificate.certificate);
+    assert_eq!(decoded.hash_tree, certificate.hash_tree);
 
-    let bytes = candid::encode_one(None::<Icrc3DataCertificate>)
+    let bytes = candid::encode_one(None::<ICRC3DataCertificate>)
         .expect("encode absent ICRC-3 data certificate");
-    let decoded: Option<Icrc3DataCertificate> =
+    let decoded: Option<ICRC3DataCertificate> =
         candid::decode_one(&bytes).expect("decode absent ICRC-3 data certificate");
 
-    assert_eq!(decoded, None);
+    assert!(decoded.is_none());
 }
 
 #[tokio::test(flavor = "current_thread")]

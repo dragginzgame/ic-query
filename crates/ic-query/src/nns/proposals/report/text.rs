@@ -505,7 +505,7 @@ fn proposal_title(proposal: &NnsProposalRow) -> String {
         .filter(|title| !title.trim().is_empty())
         .cloned()
         .unwrap_or_else(|| "-".to_string());
-    terminal_text(&title)
+    terminal_text(&title).into_owned()
 }
 
 fn empty_text(value: &str) -> &str {
@@ -517,7 +517,10 @@ fn proposal_detail_text(value: &str, limit: Option<usize>) -> String {
     if value == "-" {
         return value.to_string();
     }
-    limit.map_or_else(|| terminal_text(value), |limit| truncate_text(value, limit))
+    limit.map_or_else(
+        || terminal_text(value).into_owned(),
+        |limit| truncate_text(value, limit),
+    )
 }
 
 fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {

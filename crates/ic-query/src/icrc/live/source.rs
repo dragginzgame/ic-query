@@ -208,7 +208,7 @@ impl IcrcTokenSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcTokenData, IcrcError>> {
-        Box::pin(async move { fetch_token_async(self, request).await })
+        Box::pin(fetch_token_async(self, request))
     }
 }
 
@@ -217,7 +217,7 @@ impl IcrcBalanceSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcBalanceRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcBalanceData, IcrcError>> {
-        Box::pin(async move { fetch_balance_async(self, request).await })
+        Box::pin(fetch_balance_async(self, request))
     }
 }
 
@@ -226,7 +226,7 @@ impl IcrcAllowanceSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcAllowanceRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcAllowanceData, IcrcError>> {
-        Box::pin(async move { fetch_allowance_async(self, request).await })
+        Box::pin(fetch_allowance_async(self, request))
     }
 }
 
@@ -235,7 +235,7 @@ impl IcrcIndexSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcIndexData, IcrcError>> {
-        Box::pin(async move { fetch_index_async(self, request).await })
+        Box::pin(fetch_index_async(self, request))
     }
 }
 
@@ -244,7 +244,7 @@ impl IcrcTransactionsSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcTransactionsRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcTransactionsData, IcrcError>> {
-        Box::pin(async move { fetch_transactions_async(self, request).await })
+        Box::pin(fetch_transactions_async(self, request))
     }
 }
 
@@ -253,7 +253,7 @@ impl IcrcBlockTypesSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>> {
-        Box::pin(async move { fetch_block_types_async(self, request).await })
+        Box::pin(fetch_block_types_async(self, request))
     }
 }
 
@@ -262,7 +262,7 @@ impl IcrcArchivesSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcArchivesRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
-        Box::pin(async move { fetch_archives_async(self, request).await })
+        Box::pin(fetch_archives_async(self, request))
     }
 }
 
@@ -271,7 +271,7 @@ impl IcrcTipCertificateSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
-        Box::pin(async move { fetch_tip_certificate_async(self, request).await })
+        Box::pin(fetch_tip_certificate_async(self, request))
     }
 }
 
@@ -280,7 +280,7 @@ impl IcrcCapabilitiesSource for LiveIcrcSource {
         &'a self,
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcCapabilitiesData, IcrcError>> {
-        Box::pin(async move { fetch_capabilities_async(self, request).await })
+        Box::pin(fetch_capabilities_async(self, request))
     }
 }
 
@@ -292,7 +292,7 @@ impl IcrcAccountTransactionPageSource for LiveIcrcSource {
         'a,
         Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>,
     > {
-        Box::pin(async move { fetch_account_transaction_page_async(self, request).await })
+        Box::pin(fetch_account_transaction_page_async(self, request))
     }
 }
 
@@ -305,8 +305,8 @@ impl IcrcAccountTransactionCollectionSource for LiveIcrcSource {
         'a,
         Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>,
     > {
-        Box::pin(
-            async move { fetch_complete_account_transactions_async(self, request, progress).await },
-        )
+        Box::pin(fetch_complete_account_transactions_async(
+            self, request, progress,
+        ))
     }
 }

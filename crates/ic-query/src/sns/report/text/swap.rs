@@ -190,7 +190,7 @@ fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
                 [
                     gap.component.as_str().to_string(),
                     gap.method.as_str().to_string(),
-                    terminal_text(&gap.reason),
+                    terminal_text(&gap.reason).into_owned(),
                 ]
             })
             .collect::<Vec<_>>(),

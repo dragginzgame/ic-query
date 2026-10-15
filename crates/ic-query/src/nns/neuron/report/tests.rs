@@ -160,7 +160,7 @@ fn assert_replica_request(request: &NnsGovernanceRequest, expected_endpoint: &st
 
 #[tokio::test(flavor = "current_thread")]
 async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals() {
-    let root = temp_dir("ic-query-nns-cached-distribution");
+    let root = temp_dir("ic-query-nns-cached-distribution").join("missing");
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     assert!(matches!(
         build_nns_neuron_distribution_report_from_cache(&request),

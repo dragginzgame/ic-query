@@ -380,3 +380,44 @@ fn reward_row_policy_fails_closed_but_preserves_known_violations() {
         SnsPolicyObservationStatus::Violated
     );
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn checkpoint_files_preserve_reports_and_refuse_unbounded_or_invalid_inputs() {
+    let root = crate::test_support::temp_dir("ic-query-reward-checkpoint-files");
+    let path = root.join("checkpoint.json");
+    let report = build_sns_reward_checkpoint_report_with_source(
+        &reward_checkpoint_request("1"),
+        &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![fixture_reward_row(1)], None)]),
+    )
+    .await
+    .expect("valid checkpoint");
+    let bytes = serde_json::to_vec(&report).unwrap();
+    std::fs::write(&path, &bytes).unwrap();
+    assert_eq!(load_sns_reward_checkpoint(&path).unwrap(), report);
+    let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+    file.set_len(64 * 1024 * 1024 + 1).unwrap();
+    let error = load_sns_reward_checkpoint(&path).unwrap_err();
+    assert!(
+        matches!(error, SnsHostError::ReadRewardCheckpoint { path: failed, source }
+        if failed == path && matches!(source.get_ref().and_then(|cause|
+            cause.downcast_ref::<ic_host_artifacts::artifact::ArtifactError>()),
+            Some(ic_host_artifacts::artifact::ArtifactError::LimitExceeded { limit })
+                if *limit == 64 * 1024 * 1024))
+    );
+    assert_eq!(
+        std::fs::metadata(&path).unwrap().len(),
+        64 * 1024 * 1024 + 1
+    );
+    for invalid in [b"{".as_slice(), &[0xff][..]] {
+        std::fs::write(&path, invalid).unwrap();
+        assert!(matches!(load_sns_reward_checkpoint(&path),
+            Err(SnsHostError::ParseRewardCheckpoint { path: failed, .. }) if failed == path));
+    }
+    assert!(matches!(load_sns_reward_checkpoint(&root),
+        Err(SnsHostError::ReadRewardCheckpoint { path: failed, .. }) if failed == root));
+    let missing = root.join("missing.json");
+    assert!(matches!(load_sns_reward_checkpoint(&missing),
+        Err(SnsHostError::ReadRewardCheckpoint { path: failed, source })
+            if failed == missing && source.kind() == std::io::ErrorKind::NotFound));
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -96,19 +96,16 @@ case "$operation" in
     fi
     bash scripts/ci/check-release-source.sh
     metadata preflight
-    fetch_args=(--locked)
-    [[ "$prepare_cache" == 1 ]] || fetch_args+=(--offline)
-    if cargo fetch "${fetch_args[@]}"; then
+    preparation=(bash scripts/ci/cargo-release-preflight.sh "$repo_root" "$prepare_cache"
+      --pin ci/tool-versions.env --pin ci/ic-tools.tsv
+      --check install-rust-tools --prepare install-rust-tools)
+    [[ "$prepare_cache" == 1 ]] || preparation=(env CARGO_NET_OFFLINE=true "${preparation[@]}")
+    if "${preparation[@]}"; then
       :
     else
       status="$?"
-      echo 'release dependency preparation failed; prepare the selected cache with cargo fetch --locked, then retry' >&2
+      echo 'release preparation failed; prepare the selected cache with cargo fetch --locked, then retry with the selected tools installed' >&2
       exit "$status"
-    fi
-    if [[ "$prepare_cache" == 1 ]]; then
-      make --no-print-directory install-rust-tools
-    else
-      CARGO_NET_OFFLINE=true make --no-print-directory install-rust-tools
     fi
     observed_source="$(git rev-parse HEAD)" || exit $?
     [[ "$observed_source" == "$RELEASE_SOURCE" ]] || fail 'source identity changed during tool preparation'
