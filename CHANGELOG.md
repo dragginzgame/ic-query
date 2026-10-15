@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.55.9]
+## [0.55.9] - 2026-10-15
 
 - Keeps Query-specific Testkit setup in the canister guide, preserving the reviewed
   Shared Tooling setup snapshot and its integrity check.
