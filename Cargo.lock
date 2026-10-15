@@ -1419,15 +1419,17 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.3.3"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e27a0e5fc995b05319faafa062bd2a6adc12edaadf5e8fb5bc76c3e482686394"
+checksum = "17bc5e5c137a0055ce069d2d244017aafcddcfe47fd92bf2141bf7e7154c1010"
 dependencies = [
  "cargo_metadata",
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
  "libc",
+ "rustix",
+ "serde",
  "serde_json",
  "sha2 0.10.9",
  "toml",
@@ -1515,9 +1517,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.18.4"
+version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d9ca6143657b00488bb386faf1a5f5e3afdbc85cf202d317a5473fdcf7fc315"
+checksum = "1fe6385167bcc88af011b178f95ff6bfc6e515b051201b2a5059c2ba72624efd"
 dependencies = [
  "flate2",
  "leb128",
@@ -1528,9 +1530,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.18.4"
+version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02ecbf11c7f207bc41b654fd6fe46f749eff2ab965be2fe046629a8655cc21d9"
+checksum = "80a7a55d47f09e1d95b3a65555f3f57c7590e4fdcdc8a4fda43dd3e2040b7e08"
 dependencies = [
  "ic-host-artifacts",
  "rustix",
@@ -1538,9 +1540,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-process"
-version = "0.18.4"
+version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3b23fb2df923b7bdaea9f8d69c8fd292f2e25ec46a803a83d5125b2a657e660"
+checksum = "097d262adab817c6fd1ab6f9139bd71008fb9a7160a99f0ba1058a2c2172aae1"
 dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
@@ -1550,9 +1552,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-text"
-version = "0.18.4"
+version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e36b5675da611ff61923438517ad5840b5086c31ad9ad4a6c45739add46591ca"
+checksum = "b767dd9788f58f3d138088f52e8a2bd677e8974e31bfceb258685230843d02ca"
 dependencies = [
  "unicode-width",
 ]
