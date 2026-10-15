@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.57.0]
+
+- **Breaking:** Adopts Host 0.19. The concrete parse error exposed by
+  `CertificateVerificationError::Decode` now comes from Host 0.19; consumers
+  naming that type must align their Host dependency.
+- Uses the published standalone Testkit Candid decoder, preserving Query's
+  work quotas, transport limits and original reply evidence.
+  [#58 — Adopt bounded Candid reply decoding](https://github.com/dragginzgame/ic-query/issues/58).
+- Adopts the latest Shared Tooling 0.15.0 snapshot and its evidence collector.
+  Failed tool selections retain safe local diagnostics without admitting
+  untrusted archive payloads. Common tool pins are unchanged.
+- Aligns the Governance development harness with IC Build 0.6 and Host 0.19,
+  preserving its TERM grace and bounded reaping. Temporary fixture roots use
+  physical paths for Host's stricter parent admission.
+- Removes the final Python tooling invocation and corrects setup requirements.
+
+Detailed release notes: [docs/changelog/0.57.md](docs/changelog/0.57.md)
+
 ## [0.56.0] - 2026-10-15
 
 - **Breaking:** Certificate decoding uses Host's strict owned decoder. The public

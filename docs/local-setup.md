@@ -1,4 +1,5 @@
 # Local developer setup
+<!-- Shared companions: scripts/ci/report-tool-versions.sh -->
 
 From the checkout root, prepare the common executables explicitly:
 
@@ -587,3 +588,15 @@ ShellCheck, actionlint and Gitleaks use the existing explicit CI installers and
 pins; GitHub maintenance needs an installed, authenticated `gh`. Consumer-owned
 Node/Rust toolchains, SDKs and product dependencies remain part of that repo's
 declared setup. See the [complete script dependency table](supported-hosts.md#tool-specific-dependencies).
+
+## Observed common tool versions
+
+After explicit preparation, run `bash scripts/ci/report-tool-versions.sh "$PWD"`
+from an adopted snapshot. The reporter checks the complete selected host, Rust
+and IC sets through their installers' read-only `--check` interfaces, then records
+catalog-selected command paths, SHA-256 identities and live version output.
+Optional trailing `VERSIONS IC_PINS` arguments select explicit catalogs. It never
+installs tools; use the same `SHARED_TOOLING_STORE` setting as setup and checks.
+Redirect stdout and stderr together when retaining evidence. Failure keeps prior
+observations and the failing command's status. Compiler and product-specific CLI
+selection/evidence remain consumer-owned.

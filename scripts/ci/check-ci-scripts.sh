@@ -543,6 +543,7 @@ workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/work
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
 bash "$repo_root/scripts/ci/test-ci-workflow.sh"
+bash "$repo_root/scripts/ci/test-collect-tool-evidence.sh"
 
 schema_version_case="${work_dir}/schema-version"
 mkdir -p "${schema_version_case}"
@@ -910,13 +911,9 @@ case "${1:-}" in
     case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
     case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
     printf 'doc\n' > "$TRACE_FILE"
-    python3 - "${REPO_ROOT}/scripts/ci/public-docs-baseline.json" <<'PYDOC'
-import json
-import sys
-# The real diagnostic parser is covered separately; this fixture checks shell
-# invocation and failure propagation without invoking rustdoc.
-print(json.dumps({"reason": "build-finished", "success": True}))
-PYDOC
+    # The real parser is covered separately; this fixture checks invocation and
+    # failure propagation without invoking rustdoc.
+    printf '%s\n' '{"reason":"build-finished","success":true}'
     ;;
   *) exit 2 ;;
 esac
@@ -926,7 +923,7 @@ chmod +x "${public_docs_case}/bin/cargo"
 if (
   cd "${repo_root}"
   TMPDIR="${public_docs_case}/tmp" PATH="${public_docs_case}/bin:${PATH}" \
-    CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
+    CARGO_TERM_COLOR=always \
     DOC_ARTIFACT="${public_docs_case}/retained-doc" \
     TRACE_FILE="${public_docs_case}/trace" CARGO_NET_OFFLINE=false \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"

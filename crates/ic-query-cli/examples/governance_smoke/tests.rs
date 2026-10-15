@@ -23,7 +23,7 @@ impl Directory {
             time::OffsetDateTime::now_utc().unix_timestamp_nanos()
         ));
         fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
-        Self(root)
+        Self(root.canonicalize().unwrap())
     }
 }
 

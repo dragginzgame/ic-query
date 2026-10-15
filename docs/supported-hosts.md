@@ -22,7 +22,7 @@ qualified by this matrix.
   the declared MSRV `1.91.0` for its separate check. Installation must preserve
   the repository's selected `Cargo.lock`.
 - Bash 3.2 or newer, GNU Make 3.81 or newer, Git, Perl with its core modules,
-  Python 3 for the maintained documentation tools, and standard Unix
+  and standard Unix
   utilities. macOS needs Xcode Command Line Tools for its compiler, Git and Make.
   Release/checksum helpers support both GNU `sha256sum` and macOS `shasum`.
 - `make install-dependency-tools` explicitly installs the exact Cargo Audit and Cargo Machete
@@ -64,7 +64,8 @@ qualified by this matrix.
   packages, complete-set activation, locks and retained failed/previous sets.
   Shared 0.2.0 requires explicit setup to replace an active six-tool bundle;
   offline validation refuses it without conversion. Query uses ICP-managed
-  networks and has no PocketIC runtime or Testkit setup requirement.
+  networks for deployment smoke; the separate deterministic canister tests require
+  `make install-testkit testkit-check` as described in the canister guide.
   curl, tar with xz/gzip support and a SHA-256 backend are required. dfx is
   excluded. Linux ARM64 has a host-tool mapping but no complete IC set and remains
   outside the qualified consumer matrix.
@@ -2371,7 +2372,7 @@ reviewed owner update; 133 has not been installed or tested here.
 | Common Cargo-tool set | Prepared Cargo toolchain and native compilation prerequisites; `install-rust-tools` / offline `rust-tools-check`, included in the complete aggregates, using the three pins in `ci/tool-versions.env` |
 | Local documentation links | Perl core modules; current guide and contract roster selected by Make |
 | RustSec preparation and auditing | Bash, Git, explicit HTTPS advisory source, Cargo Audit; failed databases and preparation logs retained |
-| Focused CI script fixtures | Bash, Make, Git, Python 3, Perl and ordinary utilities; Cargo/network effects use stubs |
+| Focused CI script fixtures | Bash, Make, Git, Perl and ordinary utilities; Cargo/network effects use stubs |
 | Governance runner and receipt tests | Selected Rust toolchain and locked/offline dependency cache, POSIX process groups |
 | Complete gate | Declared Rust toolchain, local jq/yq/ripgrep/cloc set, Cargo Audit/Machete and ordinary utilities |
 | Governance integration | Verified local IC set, Wasm Rust target and explicit local-runtime network access |
@@ -2466,7 +2467,7 @@ dispatch and failure handling, not native compilation of these executables.
 
 ## Testkit canister qualification
 
-The native development graph adopts `ic-testkit 0.44.0`, its PocketIC 16.1 client
+The native development graph adopts `ic-testkit 0.45.0`, its PocketIC 16.1 client
 and the server selected by Testkit's provisioning owner. Native source review
 and compilation do not qualify a server on another host. The configured
 Linux, macOS ARM64 and macOS x86-64 canister lanes explicitly prepare/check
@@ -2475,7 +2476,11 @@ Local evidence and outstanding native CI results are reported at handoff.
 
 Testkit and WAT are native development dependencies only. Normal minimal,
 canister and host library consumers retain their dependency boundaries and
-Rust 1.91 floor. PocketIC's exact `thiserror =2.0.18` requirement selects that
+Rust 1.91 floor. The separate `ic-testkit-candid 0.45` package supplies bounded
+reply decoding on native and Wasm targets, depending only on Candid and Serde;
+it does not bring the simulator or its native test dependencies into consumers.
+Query retains transport limits, proportional work quotas and error projection.
+PocketIC's exact `thiserror =2.0.18` requirement selects that
 compatible patch in the workspace lockfile; the previously selected 2.0.21
 cannot coexist under Cargo's compatible-version unification. Query's direct
 `thiserror =2` requirement and public error types remain unchanged.

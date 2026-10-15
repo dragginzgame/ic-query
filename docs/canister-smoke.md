@@ -58,7 +58,7 @@ input resolution; Query retains its build executor and metadata publication.
 
 ## Deterministic Testkit coverage
 
-Native development dependencies select `ic-testkit 0.44`. Its bounded HTTP
+Native development dependencies select `ic-testkit 0.45`. Its bounded HTTP
 request reader owns the Agent, Dashboard and ICRC socket-fixture framing loops.
 Query retains response contents, injected failures and report assertions.
 These ordinary tests need no running simulator.

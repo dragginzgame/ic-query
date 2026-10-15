@@ -785,8 +785,13 @@ and lock identities before mutation; independently versioned packages need their
 consumer-owned adapter. Existing adapters are not replaced by adoption alone.
 
 The caller supplies `RELEASE_PREVIOUS`, `RELEASE_VERSION`, `RELEASE_DATE`, prepared
-Cargo-edit/Cargo-sort, jq and Mike Farah yq. Preparation uses the locked offline
-graph, restores all three original files on failure and retains failure custody.
+Cargo, Perl, jq and Mike Farah yq. Preparation uses the locked offline graph
+and a literal root-version renderer. It independently parses the candidate before
+installation, preserves manifest layout, file modes and external lock selections,
+restores all three original files on failure and retains failure custody. It does
+not run Cargo-edit or Cargo-sort; consumer ordering gates remain separate.
+Catchable INT/TERM interruptions restore the same originals and preserve their
+exit status. Unsupported literal layouts refuse before installation.
 The `check` operation uses `RELEASE_COMMIT` when selected, exporting that exact
 committed source instead of reading newer working metadata. No version selection,
 fetch, tool installation, Git staging/ref mutation or publication is implicit.

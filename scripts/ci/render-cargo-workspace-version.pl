@@ -1,11 +1,16 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use JSON::PP qw(decode_json);
+use Cwd qw(abs_path);
+use File::Basename qw(dirname);
+use Encode qw(encode_utf8);
 
 # Pure literal rendering, not TOML admission or a release transaction. Callers
 # admit the source and independently validate the candidate before installing it.
-@ARGV == 3 or die "usage: render-cargo-workspace-version.pl SOURCE PREVIOUS CANDIDATE\n";
-my ($path, $previous, $candidate) = @ARGV;
+(@ARGV == 3 || @ARGV == 4)
+    or die "usage: render-cargo-workspace-version.pl SOURCE PREVIOUS CANDIDATE [WORKSPACE_INPUT_JSON]\n";
+my ($path, $previous, $candidate, $workspace_input) = @ARGV;
 my $semver = qr/(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)/;
 for ($previous, $candidate) {
     /\A$semver\z/ or die "expected canonical stable version\n";
@@ -35,7 +40,100 @@ $tables == 1 && $fields == 1
     or die "expected exactly one literal workspace.package table and version\n";
 $version eq $previous
     or die "workspace version changed: expected $previous, found $version\n";
-substr($text, $start, length($version), $candidate);
+my @edits = ([$start, length($version), $candidate]);
+if (defined $workspace_input) {
+    open my $source, '<', $workspace_input or die "$workspace_input: $!\n";
+    my $input = decode_json(do { local $/; <$source> });
+    close $source or die "$workspace_input: $!\n";
+    my %members = map { $_->{name} => $_->{manifest_path} } @{$input->{members}};
+    my %local;
+    my $catalog = $input->{manifest}{workspace}{dependencies} // {};
+    for my $name (keys %$catalog) {
+        my $dependency = $catalog->{$name};
+        next unless ref($dependency) eq 'HASH' && defined $dependency->{path}
+            && defined $dependency->{version};
+        my $package = $dependency->{package} // $name;
+        next unless exists $members{$package};
+        # Cargo JSON decodes Unicode; filesystem observations retain byte paths.
+        my $manifest = abs_path(dirname($path) . '/' . encode_utf8($dependency->{path}) . '/Cargo.toml');
+        next unless defined($manifest) && $manifest eq encode_utf8($members{$package});
+        $name =~ /\A[A-Za-z0-9][A-Za-z0-9_-]*\z/ or die "unsupported local dependency key: $name\n";
+        my $requirement = $dependency->{version};
+        # Composite ranges remain caller policy; Cargo's prepared graph admits
+        # or refuses them. Never invent another range to make resolution pass.
+        next unless $requirement =~ /\A([~^=]?[ \t]*)([0-9]+(?:\.[0-9]+){0,2})\z/;
+        my ($operator, $components) = ($1, scalar(split /\./, $2));
+        my @next = split /\./, $candidate;
+        $local{$name} = [$requirement, $operator . join('.', @next[0 .. $components - 1])];
+    }
+    # Tokenize only to locate admitted literals, preserving all other bytes.
+    # Strings/comments are opaque, so apparent tables or version keys inside
+    # descriptions, paths and comments cannot become dependency edits.
+    my @tokens;
+    pos($text) = 0;
+    while (pos($text) < length($text)) {
+        if ($text =~ /\G(?:[ \t\r]+|\#[^\r\n]*)/gc) { next; }
+        my $position = pos($text);
+        if ($text =~ /\G("""(?:\\[\s\S]|(?!""")[\s\S])*"""|'''(?:(?!''')[\s\S])*'''|"(?:\\[^\r\n]|[^"\\\r\n])*"|'[^'\r\n]*')/gc) {
+            push @tokens, [$1, $position, 'string'];
+        } elsif ($text =~ /\G([A-Za-z0-9_-]+|[\s\S])/gc) {
+            push @tokens, [$1, $position, 'token'];
+        } else { die "cannot locate manifest literal\n"; }
+    }
+    my ($table, $line_start) = ('', 1);
+    my %seen;
+    my $key = sub {
+        my ($token) = @_;
+        my $value = $token->[0];
+        $value =~ s/\A["']|["']\z//g if $token->[2] eq 'string';
+        return $value;
+    };
+    my $record = sub {
+        my ($name, $token) = @_;
+        my ($old, $new) = @{$local{$name}};
+        $token->[2] eq 'string' && $token->[0] =~ /\A(["'])([^"'\r\n]*)\1\z/
+            && $2 eq $old or die "local dependency literal disagrees with admitted TOML: $name\n";
+        ++$seen{$name} == 1 or die "duplicate local dependency version: $name\n";
+        push @edits, [$token->[1] + 1, length($old), $new];
+    };
+    for (my $index = 0; $index < @tokens; $index++) {
+        my $value = $tokens[$index][0];
+        if ($value eq "\n") { $line_start = 1; next; }
+        next unless $line_start;
+        $line_start = 0;
+        if ($value eq '[') {
+            my @parts;
+            while (++$index < @tokens && $tokens[$index][0] ne ']') {
+                push @parts, $key->($tokens[$index]) unless $tokens[$index][0] eq '.';
+            }
+            $table = join '.', @parts;
+            next;
+        }
+        my $name = $key->($tokens[$index]);
+        next unless $index + 2 < @tokens && $tokens[$index + 1][0] eq '=';
+        if ($table =~ /\Aworkspace\.dependencies\.([^.]*)\z/ && exists $local{$1} && $name eq 'version') {
+            $record->($1, $tokens[$index + 2]);
+        } elsif ($table eq 'workspace.dependencies' && exists $local{$name}) {
+            $tokens[$index + 2][0] eq '{' or die "local dependency must be a literal table: $name\n";
+            my $depth = 1;
+            for (my $field = $index + 3; $field < @tokens && $depth; $field++) {
+                my $entry = $tokens[$field][0];
+                if ($entry eq '{' || $entry eq '[') { $depth++; }
+                elsif ($entry eq '}' || $entry eq ']') { $depth--; }
+                elsif ($depth == 1 && $key->($tokens[$field]) eq 'version'
+                    && $field + 2 < @tokens && $tokens[$field + 1][0] eq '=') {
+                    $record->($name, $tokens[$field + 2]);
+                }
+            }
+        }
+    }
+    for my $name (keys %local) {
+        ($seen{$name} // 0) == 1 or die "cannot locate local dependency version: $name\n";
+    }
+}
+for my $edit (sort { $b->[0] <=> $a->[0] } @edits) {
+    substr($text, $edit->[0], $edit->[1], $edit->[2]);
+}
 binmode STDOUT or die "stdout: $!\n";
 print $text or die "manifest output: $!\n";
 close STDOUT or die "manifest output: $!\n";
