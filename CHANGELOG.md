@@ -7,6 +7,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.55.9]
 
+- Fixes standalone certified Subnet Catalog builds by enabling the shared Registry
+  certificate-evidence validators with their owning feature.
+
 - Uses Host's shared Unicode table renderer and terminal escaping, preserving
   plain-table layout while making bidi controls and Unicode line separators visible.
   Raw report and JSON values are unchanged.
@@ -21,6 +24,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Prepares node filters once and shares topology refresh projections.
 - Capability probes classify missing methods from typed replica rejection codes;
   diagnostic text alone no longer marks a query as unsupported.
+
+- Adopts Testkit 0.44 for native HTTP fixtures and deterministic execution of the
+  compiled Governance probe. Server preparation is explicit; CI runs the new
+  canister checks alongside deployment smoke.
+
+```bash
+make install-testkit
+make testkit-check canister-test
+```
 
 Detailed release notes: [docs/changelog/0.55.md](docs/changelog/0.55.md)
 

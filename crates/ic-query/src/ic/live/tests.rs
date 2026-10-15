@@ -1,9 +1,11 @@
 use super::*;
+use ic_testkit::testing::read_http_request;
 use serde::Deserialize;
 use std::{
-    io::{Read, Write},
+    io::Write,
     net::TcpListener,
     thread::{self, JoinHandle},
+    time::Duration,
 };
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
@@ -120,9 +122,8 @@ fn serve_once(response: Vec<u8>) -> TestServer {
     let address = listener.local_addr().expect("test HTTP server address");
     let handle = thread::spawn(move || {
         let (mut stream, _) = listener.accept().expect("accept test HTTP request");
-        let mut request = [0_u8; 1_024];
-        let bytes_read = stream.read(&mut request).expect("read test HTTP request");
-        assert!(bytes_read > 0, "test HTTP request must not be empty");
+        read_http_request(&mut stream, Duration::from_secs(10), 64 * 1024, 0)
+            .expect("read bounded test HTTP request");
         stream
             .write_all(&response)
             .expect("write test HTTP response");

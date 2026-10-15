@@ -411,7 +411,7 @@ fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProv
     }
 }
 
-const fn sample_economics() -> NnsGovernanceEconomics {
+pub(super) const fn sample_economics() -> NnsGovernanceEconomics {
     NnsGovernanceEconomics {
         neuron_minimum_stake_e8s: 100_000_000,
         max_proposals_to_keep_per_topic: 100,

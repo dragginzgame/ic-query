@@ -73,3 +73,6 @@ const NNS_GOVERNANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
+
+#[cfg(all(test, feature = "nns-host", not(target_arch = "wasm32")))]
+mod testkit;

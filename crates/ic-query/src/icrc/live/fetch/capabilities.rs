@@ -290,14 +290,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ic_testkit::testing::read_http_request;
     use serde_cbor::Value;
-    use std::{
-        collections::BTreeMap,
-        io::{BufRead, BufReader, Read, Write},
-        net::TcpListener,
-        thread,
-        time::Duration,
-    };
+    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
     #[tokio::test(flavor = "current_thread")]
     async fn capability_probe_retains_reject_metadata_through_the_ledger_transport() {
@@ -330,25 +325,19 @@ mod tests {
             .unwrap();
             let server = thread::spawn(move || {
                 let (mut stream, _) = listener.accept().unwrap();
-                stream
-                    .set_read_timeout(Some(Duration::from_secs(10)))
-                    .unwrap();
-                let mut reader = BufReader::new(&mut stream);
-                let mut length = None;
-                loop {
-                    let mut line = String::new();
-                    assert!(reader.read_line(&mut line).unwrap() > 0);
-                    if line == "\r\n" {
-                        break;
-                    }
-                    if let Some((name, value)) = line.split_once(':')
-                        && name.eq_ignore_ascii_case("content-length")
-                    {
-                        length = Some(value.trim().parse::<usize>().unwrap());
-                    }
-                }
-                let mut request = vec![0; length.unwrap()];
-                reader.read_exact(&mut request).unwrap();
+                let request = read_http_request(
+                    &mut stream,
+                    Duration::from_secs(10),
+                    64 * 1024,
+                    8 * 1024 * 1024,
+                )
+                .unwrap();
+                let body_start = request
+                    .windows(4)
+                    .position(|bytes| bytes == b"\r\n\r\n")
+                    .unwrap()
+                    + 4;
+                let request = request[body_start..].to_vec();
                 write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
                 stream.write_all(&body).unwrap();
                 request

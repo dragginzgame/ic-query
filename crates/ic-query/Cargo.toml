@@ -13,6 +13,11 @@ repository.workspace = true
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+ic-testkit.workspace = true
+tokio = { workspace = true, features = ["net"] }
+wat.workspace = true
+
 [features]
 default = []
 ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types"]
@@ -104,9 +109,6 @@ url.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "time"] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-tokio = { workspace = true, features = ["net"] }
 
 [[test]]
 name = "ic_public_api"

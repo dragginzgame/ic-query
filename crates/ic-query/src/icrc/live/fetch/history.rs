@@ -646,13 +646,9 @@ mod tests {
     use super::*;
     use crate::icrc::ledger::Icrc3ArchiveCallback;
     use candid::Func;
+    use ic_testkit::testing::read_http_request;
     use serde_cbor::Value;
-    use std::{
-        collections::BTreeMap,
-        io::{BufRead, BufReader, Read, Write},
-        net::TcpListener,
-        thread,
-    };
+    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]
     fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
@@ -762,25 +758,19 @@ mod tests {
         .unwrap();
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
-            stream
-                .set_read_timeout(Some(std::time::Duration::from_secs(10)))
-                .unwrap();
-            let mut reader = BufReader::new(&mut stream);
-            let mut length = None;
-            loop {
-                let mut line = String::new();
-                assert!(reader.read_line(&mut line).unwrap() > 0);
-                if line == "\r\n" {
-                    break;
-                }
-                if let Some((name, value)) = line.split_once(':')
-                    && name.eq_ignore_ascii_case("content-length")
-                {
-                    length = Some(value.trim().parse::<usize>().unwrap());
-                }
-            }
-            let mut request = vec![0; length.unwrap()];
-            reader.read_exact(&mut request).unwrap();
+            let request = read_http_request(
+                &mut stream,
+                Duration::from_secs(10),
+                64 * 1024,
+                8 * 1024 * 1024,
+            )
+            .unwrap();
+            let body_start = request
+                .windows(4)
+                .position(|bytes| bytes == b"\r\n\r\n")
+                .unwrap()
+                + 4;
+            let request = request[body_start..].to_vec();
             let request: Value = serde_cbor::from_slice(&request).unwrap();
             write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
             stream.write_all(&body).unwrap();

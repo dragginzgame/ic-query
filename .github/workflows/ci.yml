@@ -26,7 +26,7 @@ jobs:
       matrix:
         host: [ubuntu-24.04, macos-15, macos-15-intel]
     runs-on: ${{ matrix.host }}
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       # actions/checkout v6
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
@@ -38,9 +38,9 @@ jobs:
           components: clippy
       - name: Prepare the selected dependency cache
         run: cargo fetch --locked
-      - name: Prepare the selected IC tools
+      - name: Prepare the selected host, IC and Testkit tools
         shell: /bin/bash --noprofile --norc -eo pipefail {0}
-        run: PATH="/bin:$PATH" make install-ic-tools ic-tools-check
+        run: PATH="/bin:$PATH" make install-host-tools host-tools-check install-ic-tools ic-tools-check install-testkit testkit-check
       - name: Select repository-local tools
         shell: bash
         run: printf '%s\n' "$GITHUB_WORKSPACE/.tools/ic/bin" >> "$GITHUB_PATH"
@@ -48,6 +48,10 @@ jobs:
         env:
           CARGO_NET_OFFLINE: 'true'
         run: cargo clippy -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked -- -D warnings
+      - name: Run deterministic Testkit Governance canister tests
+        env:
+          CARGO_NET_OFFLINE: 'true'
+        run: make canister-test
       - name: Run local NNS integration smoke
         env:
           CARGO_NET_OFFLINE: 'true'
@@ -70,6 +74,7 @@ jobs:
             target/canister-smoke/receipt-*/receipt.json
             target/canister-smoke/receipt-*/*.candid
             target/canister-smoke/governance_probe.wasm
+            target/testkit/wasm32-unknown-unknown/release/examples/governance_probe.wasm
             target/canister-smoke/governance-probe.tar.gz
             ${{ runner.temp }}/ic-query-tool-evidence.*/
           include-hidden-files: true

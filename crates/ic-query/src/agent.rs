@@ -145,11 +145,8 @@ mod tests {
 
     use candid::Principal;
     use ic_agent::{AgentError, agent_error::TransportError};
-    use std::{
-        io::{BufRead, BufReader, Read, Write},
-        net::{TcpListener, TcpStream},
-        thread,
-    };
+    use ic_testkit::testing::read_http_request;
+    use std::{io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]
     fn endpoint_agent_reuses_admitted_transport_and_preserves_its_policy() {
@@ -182,37 +179,6 @@ mod tests {
         );
     }
 
-    fn read_complete_request(stream: &mut TcpStream) {
-        let mut reader = BufReader::new(stream);
-        let mut content_length = None;
-        loop {
-            let mut line = String::new();
-            let bytes_read = reader
-                .read_line(&mut line)
-                .expect("read test agent request");
-            assert!(bytes_read > 0, "test agent request must not be empty");
-            if line == "\r\n" {
-                break;
-            }
-            if let Some((name, value)) = line.split_once(':')
-                && name.eq_ignore_ascii_case("content-length")
-            {
-                content_length = Some(
-                    value
-                        .trim()
-                        .parse::<usize>()
-                        .expect("test agent request body length must be numeric"),
-                );
-            }
-        }
-
-        let mut body =
-            vec![0_u8; content_length.expect("test agent request must declare its body length")];
-        reader
-            .read_exact(&mut body)
-            .expect("read complete test agent request body");
-    }
-
     #[test]
     fn constructs_agent_for_valid_endpoint_without_network_io() {
         build_ic_agent("https://icp-api.io", |reason| reason)
@@ -236,7 +202,13 @@ mod tests {
         let address = listener.local_addr().expect("test replica address");
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("accept test agent request");
-            read_complete_request(&mut stream);
+            read_http_request(
+                &mut stream,
+                Duration::from_secs(10),
+                64 * 1024,
+                8 * 1024 * 1024,
+            )
+            .expect("read bounded test agent request");
             stream
                 .write_all(
                     b"HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: 65\r\nConnection: close\r\n\r\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",

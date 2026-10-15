@@ -44,7 +44,7 @@ pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
 /// Shape failure for nonempty, byte-counted lowercase hexadecimal evidence.
 ///
 
-#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+#[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HexEvidenceError {
     Empty,
@@ -54,7 +54,7 @@ pub enum HexEvidenceError {
 }
 
 /// Admit encoded evidence without decoding or allocating its bytes.
-#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+#[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
 pub fn validate_nonempty_hex_evidence(
     value: &str,
     byte_count: usize,
@@ -77,11 +77,11 @@ pub fn validate_nonempty_hex_evidence(
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+    #[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
     use HexEvidenceError::{ByteCountOverflow, Empty, LengthMismatch, NonLowercaseHex};
 
     #[test]
-    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
+    #[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
     fn encoded_evidence_requires_consistent_nonempty_bytes() {
         for (value, bytes, expected) in [
             ("", 0, Err(Empty)),

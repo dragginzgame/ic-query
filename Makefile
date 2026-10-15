@@ -1,5 +1,5 @@
 .PHONY: \
-	canister-build canister-bundle canister-smoke \
+	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
@@ -31,6 +31,7 @@ endif
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
+TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release
 AUDIT_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-audit --version "$(CARGO_AUDIT_VERSION)" --bin cargo-audit --profile release
 MACHETE_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-machete --version "$(CARGO_MACHETE_VERSION)" --bin cargo-machete --profile release
 CARGO_HTTP_MULTIPLEXING ?= false
@@ -64,6 +65,9 @@ export CARGO_PUBLISH_INDEX_DELAY_SECONDS
 help:
 	@echo "Available commands:"
 	@echo ""
+	@echo "  canister-test    Run deterministic Governance Wasm tests with prepared Testkit"
+	@echo "  install-testkit  Prepare the selected Testkit CLI and its PocketIC server"
+	@echo "  testkit-check    Admit the selected Testkit CLI and server offline"
 	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.6.0"
 	@echo "  canister-bundle  Bundle the probe for explicit mainnet-smoke deployment"
 	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
@@ -156,6 +160,18 @@ ci-scripts-check:
 canister-build canister-bundle canister-smoke:
 	cargo fetch --locked
 	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- $(if $(filter canister-smoke,$@),local,$(@:canister-%=%))
+
+install-testkit:
+	@tool="$$( $(TESTKIT_TOOL) )" && "$$tool" setup --directory "$(REPO_ROOT).tools/testkit-server"
+
+testkit-check:
+	@tool="$$( $(TESTKIT_TOOL) --check )" && "$$tool" check --directory "$(REPO_ROOT).tools/testkit-server"
+
+canister-test: testkit-check
+	cargo build -p ic-query --example governance_probe --target wasm32-unknown-unknown --target-dir "$(REPO_ROOT)target/testkit" --release --no-default-features --features canister --locked --offline
+	@tool="$$( $(TESTKIT_TOOL) --check )" && \
+		IC_QUERY_GOVERNANCE_PROBE_WASM="$(REPO_ROOT)target/testkit/wasm32-unknown-unknown/release/examples/governance_probe.wasm" \
+		"$$tool" run --directory "$(REPO_ROOT).tools/testkit-server" --ttl 300 -- cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit -- --ignored
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh

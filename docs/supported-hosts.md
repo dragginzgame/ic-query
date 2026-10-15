@@ -2463,3 +2463,19 @@ through the shared installer; dependency execution uses its returned checked
 paths. Caller pins remain in `Makefile`. Callers use the complete aggregate.
 Installer substitution tests establish
 dispatch and failure handling, not native compilation of these executables.
+
+## Testkit canister qualification
+
+The native development graph adopts `ic-testkit 0.44.0`, its PocketIC 16.1 client
+and the server selected by Testkit's provisioning owner. Native source review
+and compilation do not qualify a server on another host. The configured
+Linux, macOS ARM64 and macOS x86-64 canister lanes explicitly prepare/check
+Testkit, then execute `make canister-test` before local-NNS deployment smoke.
+Local evidence and outstanding native CI results are reported at handoff.
+
+Testkit and WAT are native development dependencies only. Normal minimal,
+canister and host library consumers retain their dependency boundaries and
+Rust 1.91 floor. PocketIC's exact `thiserror =2.0.18` requirement selects that
+compatible patch in the workspace lockfile; the previously selected 2.0.21
+cannot coexist under Cargo's compatible-version unification. Query's direct
+`thiserror =2` requirement and public error types remain unchanged.
