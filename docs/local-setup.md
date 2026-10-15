@@ -587,20 +587,3 @@ ShellCheck, actionlint and Gitleaks use the existing explicit CI installers and
 pins; GitHub maintenance needs an installed, authenticated `gh`. Consumer-owned
 Node/Rust toolchains, SDKs and product dependencies remain part of that repo's
 declared setup. See the [complete script dependency table](supported-hosts.md#tool-specific-dependencies).
-
-## Query Testkit integration
-
-Query's native tests use the published `ic-testkit 0.44` HTTP fixture reader.
-The ordinary suite does not launch a PocketIC server. To execute compiled
-Governance canister coverage, prepare Testkit explicitly:
-
-```bash
-make install-testkit
-make testkit-check canister-test
-```
-
-The CLI version comes from `Cargo.lock` through the shared Cargo-tool installer.
-Testkit owns the exact PocketIC server release, authenticated setup, offline
-check and managed launch under `.tools/testkit-server/`. Setup/check is separate
-from the common tool bundle and does not activate during ordinary unit tests.
-See [the canister test contract](canister-smoke.md#deterministic-testkit-coverage).

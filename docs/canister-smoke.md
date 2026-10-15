@@ -78,6 +78,10 @@ make install-testkit
 make testkit-check canister-test
 ```
 
+The CLI version comes from `Cargo.lock` through the shared Cargo-tool installer.
+Testkit owns authenticated server setup, offline admission and managed launch
+under `.tools/testkit-server/`; these are separate from the common tool bundle.
+
 `canister-test` builds the probe under `target/testkit/`, then runs the selected
 ignored canister test through `ic-testkit-server run`. It never downloads a
 server during validation. An explicitly selected `POCKET_IC_BIN` or

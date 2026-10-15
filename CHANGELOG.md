@@ -7,6 +7,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.55.9]
 
+- Keeps Query-specific Testkit setup in the canister guide, preserving the reviewed
+  Shared Tooling setup snapshot and its integrity check.
+
 - Fixes standalone certified Subnet Catalog builds by enabling the shared Registry
   certificate-evidence validators with their owning feature.
 
