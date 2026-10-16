@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.59.0]
+## [0.59.0] - 2026-10-16
 
 - **Breaking:** Governance probe source fingerprints now cover the complete
   captured inventory through IC Build. Regenerate probe artifacts and matching
