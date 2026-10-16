@@ -7,7 +7,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     refresh_sns_proposals_cache_with_source(&refresh_request, &FixtureSnsProposalsSource)
         .await
         .expect("refresh proposals cache");
-    let mut request = proposal_request("1");
+    let mut request = proposal_request(ROOT_A);
     request.cache_root = Some(root.clone());
 
     let report = build_sns_proposal_report_with_source(&request, &NoLiveSnsProposalsSource)
@@ -35,7 +35,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     )
     .unwrap();
     let detail_json = serde_json::to_value(&report).unwrap();
-    let mut list_request = proposals_request("1");
+    let mut list_request = proposals_request(ROOT_A);
     list_request.cache_root = Some(root.clone());
     let list = build_sns_proposals_report_with_source(&list_request, &NoLiveSnsProposalsSource)
         .await
@@ -106,7 +106,7 @@ async fn cached_proposal_reports_reject_non_mainnet_before_cache_lookup() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
@@ -131,7 +131,7 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
-        input: "1".to_string(),
+        input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
     assert!(status.found);

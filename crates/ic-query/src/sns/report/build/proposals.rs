@@ -72,7 +72,7 @@ pub async fn build_sns_proposal_report_with_source(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         SnsReportProvenance::live(),
-        proposal.proposal,
+        proposal,
     ))
 }
 
@@ -130,11 +130,11 @@ async fn build_sns_proposals_report_live(
         )
         .await?;
     validate_mainnet_sns_proposals(&proposals, request.limit)?;
-    apply_sns_proposal_view(&mut proposals.proposals, request);
+    apply_sns_proposal_view(&mut proposals, request);
     Ok(sns_proposals_report_from_parts(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         SnsReportProvenance::live(),
-        proposals.proposals,
+        proposals,
     ))
 }

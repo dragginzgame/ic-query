@@ -125,7 +125,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
-        input: "1".to_string(),
+        input: ROOT_A.to_string(),
     })
     .expect("cache status");
     let status_text = sns_neurons_cache_status_report_text(&status);
@@ -139,7 +139,14 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION
     );
     assert!(status.found);
-    assert!(status.expected_cache_path.is_none());
+    assert_eq!(
+        status.expected_cache_path.as_deref(),
+        Some(
+            sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)
+                .to_string_lossy()
+                .as_ref()
+        )
+    );
     assert_eq!(
         status.cache.as_ref().expect("cache").cache_status.as_str(),
         "ok"
@@ -327,22 +334,6 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
     assert!(status_text.contains("found: no"));
     assert!(status_text.contains("refresh_hint: icq sns neuron refresh"));
     assert!(status_text.contains("latest_attempt:\n  status: failed"));
-
-    let numeric_status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.clone(),
-        input: "1".to_string(),
-    })
-    .expect("numeric cache status");
-    assert!(!numeric_status.found);
-    assert_eq!(
-        numeric_status
-            .latest_attempt
-            .as_ref()
-            .map(|attempt| attempt.status.as_str()),
-        Some("failed")
-    );
-    assert!(numeric_status.expected_cache_path.is_some());
 
     let _ = fs::remove_dir_all(root);
 }

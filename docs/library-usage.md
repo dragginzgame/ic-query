@@ -182,6 +182,13 @@ are removed as a Rust API hard cut. Persisted state still uses schema `1`
 and the labels `ready`, `collecting`, `complete`, and `page_limit_reached`.
 Proposal and neuron cursor and exhaustion rules remain separate.
 
+With `nns-host`, neuron and proposal cache-status builders return
+`nns::governance::NnsGovernanceCacheStatusReport`, rendered by
+`nns_governance_cache_status_report_text`. Its `collection` identifies the family;
+`cache` carries a shared `NnsGovernanceCacheSummary`, while `latest_attempt`
+remains independent of the last complete snapshot. Proposal cache-list reports
+also keep attempt evidence at report level. Inspection never refreshes a cache.
+
 With `nns-host`, the same pure analytics reports can be built directly from
 complete local snapshots:
 
@@ -322,6 +329,19 @@ does not enable Dashboard, Registry, NNS, or SNS host adapters and has no
 direct ic-query dependency on Reqwest or Prost. Reqwest remains transitive
 through `ic-agent`.
 
+Native balance, allowance, transaction, archive and account-page requests compose
+`ledger: IcrcLedgerRequest`, containing the ledger principal, explicit endpoint
+and caller collection clock. Pass this scope first to their constructors and
+access shared fields through `request.ledger`. Account-cache requests keep their
+clock-free identity; report JSON keeps its raw flat provenance fields.
+
+For targeted cache reads and `SnsCacheStatusRequest`, supply the SNS root
+principal in `input`. Cache-backed proposal lists and neuron sorts resolve one
+root path without inventory discovery. Numeric selectors remain supported for
+live requests with no cache selected and for explicit refresh. Proposal-detail
+CLI calls with numeric selectors use live lookup; root selectors may use a
+complete local snapshot before live fallback.
+
 For native SNS discovery, targeted reports, complete proposal/neuron caches,
 reward checkpoints, and local checkpoint diffs, use:
 
@@ -333,12 +353,23 @@ ic-query = { version = "0.55", default-features = false, features = ["sns-host"]
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
 builders, confined caches, refresh-attempt evidence, progress events, and
 reward evidence. It enables `ic-agent`, Futures, Tokio, URL, and the
-capability-filesystem dependencies required by those APIs. It shares only the
-ICRC token-metadata query mechanics required by SNS ledger reports; native
+capability-filesystem dependencies required by those APIs. It also enables
+`icrc-ledger-types` for canonical account and metadata wire records. It shares
+the ICRC token-metadata query mechanics required by SNS ledger reports; native
 ICRC transaction, archive, certificate, and account-history adapters remain
 disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
-SHA-256, although `ic-agent` retains Reqwest, CBOR, and cryptographic packages
-transitively.
+SHA-256, although the selected dependencies retain Reqwest, CBOR, and cryptographic
+packages transitively.
+
+SNS custom sources return the existing domain models directly:
+`SnsNeuronSource::fetch_sns_neuron` returns `SnsNeuronDetail`,
+`SnsProposalSource::fetch_sns_proposal` returns `SnsProposalRow`, and bounded
+neuron/proposal listings plus proposal pages return vectors of their row type.
+There are no single-payload source result wrappers. `MainnetSnsNeuronPage` retains
+its rows and native cursor for complete refreshes. Builders still validate source
+identity, row limits, derived evidence and pagination before report assembly or
+cache publication; these Rust source-signature changes do not alter report JSON
+or persisted snapshots.
 
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:

@@ -4,6 +4,9 @@
 //! Does not own: proposal or neuron paging, cache paths, or report rendering.
 //! Boundary: centralizes shared DTOs plus attempt construction and validation.
 
+mod cache;
+pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
+
 mod refresh;
 pub(in crate::nns) use refresh::run_governance_snapshot_refresh;
 

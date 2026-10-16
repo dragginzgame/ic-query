@@ -152,38 +152,6 @@ fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
     });
 }
 
-/// Find a valid SNS cache summary by id without loading unrelated snapshots.
-pub(in crate::sns::report) fn find_sns_cache_summary_by_id(
-    paths: impl IntoIterator<Item = PathBuf>,
-    id: usize,
-    budget: &mut ManagedReadBudget,
-    mut read_id: impl FnMut(&Path, &mut ManagedReadBudget) -> Result<usize, SnsHostError>,
-    mut load_summary: impl FnMut(
-        PathBuf,
-        &mut ManagedReadBudget,
-    ) -> Result<SnsCacheSummary, SnsHostError>,
-) -> Result<Option<SnsCacheSummary>, SnsHostError> {
-    let mut matching = None;
-    for path in paths {
-        let candidate_id = match read_id(&path, budget) {
-            Ok(id) => id,
-            Err(error) if sns_cache_scan_limit_exceeded(&error) => return Err(error),
-            Err(_) => continue,
-        };
-        if candidate_id != id {
-            continue;
-        }
-        let summary = load_summary(path, budget)?;
-        if summary.id != id || summary.cache_error.is_some() {
-            continue;
-        }
-        if matching.replace(summary).is_some() {
-            return Err(SnsHostError::AmbiguousCacheId { id });
-        }
-    }
-    Ok(matching)
-}
-
 /// Recover an SNS root identity from a complete snapshot cache path.
 fn root_from_cache_path(cache_path: &Path) -> String {
     cache_path
@@ -198,18 +166,16 @@ fn root_from_cache_path(cache_path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_sns_cache_summary_by_id, load_sns_cache_summaries};
+    use super::load_sns_cache_summaries;
     use crate::{
         cache::CacheValidationStatus,
         cache_file::{ManagedReadBudget, write_managed_text_atomically},
-        sns::report::{SnsCacheSummary, SnsHostError},
         sns::report::{
             cache_storage::sns_cache_scan_limit_exceeded,
             proposals_cache::SnsProposalsCacheCollection,
         },
         test_support::temp_dir,
     };
-    use std::{cell::Cell, path::PathBuf};
 
     #[test]
     fn listing_budget_errors_are_not_invalid_rows_or_absent_attempts() {
@@ -240,79 +206,5 @@ mod tests {
         assert_eq!(summaries[0].cache_status, CacheValidationStatus::Invalid);
         assert!(summaries[0].latest_attempt.is_none());
         std::fs::remove_dir_all(root).unwrap();
-    }
-
-    fn summary(id: usize, path: PathBuf) -> SnsCacheSummary {
-        let path = path.display().to_string();
-        SnsCacheSummary {
-            id,
-            name: "SNS".to_string(),
-            root_canister_id: path.clone(),
-            governance_canister_id: "governance".to_string(),
-            cache_status: CacheValidationStatus::Valid,
-            cache_error: None,
-            complete: true,
-            row_count: 1,
-            page_count: 1,
-            page_size: 100,
-            fetched_at: "2026-08-02T00:00:00Z".to_string(),
-            source_endpoint: "https://ic0.app".to_string(),
-            cache_path: path,
-            refresh_attempt_path: "attempt.json".to_string(),
-            latest_attempt: None,
-        }
-    }
-
-    #[test]
-    fn id_lookup_loads_only_the_matching_snapshot() {
-        let paths = (1..=100)
-            .map(|id| PathBuf::from(id.to_string()))
-            .collect::<Vec<_>>();
-        let header_reads = Cell::new(0);
-        let snapshot_loads = Cell::new(0);
-
-        let summary = find_sns_cache_summary_by_id(
-            paths,
-            73,
-            &mut crate::cache_file::ManagedReadBudget::new(1024),
-            |path, _| {
-                header_reads.set(header_reads.get() + 1);
-                path.to_string_lossy()
-                    .parse::<usize>()
-                    .map_err(|_| SnsHostError::InvalidLookup {
-                        input: path.display().to_string(),
-                    })
-            },
-            |path, _| {
-                snapshot_loads.set(snapshot_loads.get() + 1);
-                let id = path
-                    .to_string_lossy()
-                    .parse()
-                    .expect("numeric fixture path");
-                Ok(summary(id, path))
-            },
-        )
-        .expect("lookup succeeds")
-        .expect("matching summary");
-
-        assert_eq!(summary.id, 73);
-        assert_eq!(header_reads.get(), 100);
-        assert_eq!(snapshot_loads.get(), 1);
-    }
-
-    #[test]
-    fn id_lookup_rejects_multiple_valid_matching_snapshots() {
-        let result = find_sns_cache_summary_by_id(
-            [PathBuf::from("a"), PathBuf::from("b")],
-            7,
-            &mut crate::cache_file::ManagedReadBudget::new(1024),
-            |_, _| Ok(7),
-            |path, _| Ok(summary(7, path)),
-        );
-
-        assert!(matches!(
-            result,
-            Err(SnsHostError::AmbiguousCacheId { id: 7 })
-        ));
     }
 }

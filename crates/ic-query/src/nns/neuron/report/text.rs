@@ -10,12 +10,8 @@ use ic_host_text::{
     table::{Alignment, render},
 };
 
-#[cfg(feature = "nns-host")]
-use super::cache::NnsNeuronCacheStatusReport;
 use super::distribution::NnsNeuronDistributionReport;
 use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
-#[cfg(feature = "nns-host")]
-use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     duration::display_duration_seconds,
     nns::governance::{governance_context_lines, governance_source_lines},
@@ -289,46 +285,6 @@ pub fn nns_neuron_info_report_text(report: &NnsNeuronInfoReport) -> String {
     lines.join("\n")
 }
 
-/// Render local NNS neuron cache and refresh-attempt status.
-#[cfg(feature = "nns-host")]
-#[must_use]
-pub fn nns_neuron_cache_status_report_text(report: &NnsNeuronCacheStatusReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("found: {}", yes_no(report.found)),
-        format!(
-            "expected_cache_path: {}",
-            terminal_text(&report.expected_cache_path)
-        ),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-    ];
-    if let Some(cache) = report.cache.as_ref() {
-        lines.extend([
-            format!("cache_status: {}", cache.cache_status),
-            format!(
-                "cache_error: {}",
-                terminal_text(cache.cache_error.as_deref().unwrap_or("-"))
-            ),
-            format!("complete: {}", yes_no(cache.complete)),
-            format!(
-                "point_in_time_guaranteed: {}",
-                yes_no(cache.point_in_time_guaranteed)
-            ),
-            format!("row_count: {}", cache.row_count),
-            format!("page_count: {}", cache.page_count),
-            format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
-        ]);
-    }
-    lines.extend(attempt_lines(report.latest_attempt.as_ref()));
-    lines.join("\n")
-}
-
 fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
     render(
         &[
@@ -458,28 +414,5 @@ fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
             )
         ),
         format!("recent_ballot_count: {}", neuron.recent_ballots.len()),
-    ]
-}
-
-#[cfg(feature = "nns-host")]
-fn attempt_lines(attempt: Option<&NnsGovernanceRefreshAttemptStatus>) -> Vec<String> {
-    let Some(attempt) = attempt else {
-        return vec!["latest_attempt: -".to_string()];
-    };
-    vec![
-        format!("attempt_status: {}", attempt.status),
-        format!("attempt_started_at: {}", terminal_text(&attempt.started_at)),
-        format!("attempt_updated_at: {}", terminal_text(&attempt.updated_at)),
-        format!("attempt_page_size: {}", attempt.page_size),
-        format!("attempt_pages_fetched: {}", attempt.pages_fetched),
-        format!("attempt_rows_fetched: {}", attempt.rows_fetched),
-        format!(
-            "attempt_last_cursor: {}",
-            terminal_text(attempt.last_cursor.as_deref().unwrap_or("-"))
-        ),
-        format!(
-            "attempt_last_error: {}",
-            terminal_text(attempt.last_error.as_deref().unwrap_or("-"))
-        ),
     ]
 }

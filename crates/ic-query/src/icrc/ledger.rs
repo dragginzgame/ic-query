@@ -9,8 +9,10 @@ use crate::{
     hex::hex_bytes,
     icrc::IcrcMetadataValueKind,
 };
-use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_agent::Agent;
+use icrc_ledger_types::icrc::generic_metadata_value::MetadataValue;
+use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
 use serde_json::Value as JsonValue;
 
 ///
@@ -55,58 +57,6 @@ pub struct IcrcLedgerMetadataRow {
     pub key: String,
     pub value_type: IcrcMetadataValueKind,
     pub value: JsonValue,
-}
-
-///
-/// IcrcAccount
-///
-/// Candid ICRC account argument used by ledger balance calls.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub struct IcrcAccount {
-    pub owner: Principal,
-    pub subaccount: Option<Vec<u8>>,
-}
-
-///
-/// IcrcMetadataValue
-///
-/// Candid ICRC metadata value returned by ledgers.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub enum IcrcMetadataValue {
-    Nat(Nat),
-    Int(Int),
-    Text(String),
-    Blob(Vec<u8>),
-}
-
-///
-/// IcrcAllowanceArgs
-///
-/// Candid ICRC-2 allowance request argument.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub struct IcrcAllowanceArgs {
-    pub account: IcrcAccount,
-    pub spender: IcrcAccount,
-}
-
-///
-/// IcrcAllowance
-///
-/// Candid ICRC-2 allowance response.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[cfg(feature = "icrc-host")]
-pub struct IcrcAllowance {
-    pub allowance: Nat,
-    pub expires_at: Option<u64>,
 }
 
 ///
@@ -175,13 +125,9 @@ where
         query_no_args::<u8, E>(agent, ledger_canister, "icrc1_decimals"),
         query_no_args::<Nat, E>(agent, ledger_canister, "icrc1_fee"),
         query_no_args::<Nat, E>(agent, ledger_canister, "icrc1_total_supply"),
-        query_no_args::<Option<IcrcAccount>, E>(agent, ledger_canister, "icrc1_minting_account"),
+        query_no_args::<Option<LedgerAccount>, E>(agent, ledger_canister, "icrc1_minting_account"),
         fetch_icrc_supported_standards::<E>(agent, ledger_canister),
-        query_no_args::<Vec<(String, IcrcMetadataValue)>, E>(
-            agent,
-            ledger_canister,
-            "icrc1_metadata"
-        ),
+        query_no_args::<Vec<(String, MetadataValue)>, E>(agent, ledger_canister, "icrc1_metadata"),
     )?;
 
     Ok(IcrcLedgerTokenMetadata {
@@ -195,7 +141,7 @@ where
             .map(|account| account.owner.to_text()),
         minting_account_subaccount_hex: minting_account
             .as_ref()
-            .and_then(|account| account.subaccount.as_deref())
+            .and_then(|account| account.subaccount.as_ref().map(<[u8; 32]>::as_slice))
             .map(hex_bytes),
         supported_standards,
         metadata: metadata
@@ -228,12 +174,12 @@ pub fn nat_text(value: &Nat) -> String {
     value.0.to_str_radix(10)
 }
 
-pub fn metadata_row(key: String, value: IcrcMetadataValue) -> IcrcLedgerMetadataRow {
+pub fn metadata_row(key: String, value: MetadataValue) -> IcrcLedgerMetadataRow {
     let (value_type, value) = match value {
-        IcrcMetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, nat_text(&value)),
-        IcrcMetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.0.to_str_radix(10)),
-        IcrcMetadataValue::Text(value) => (IcrcMetadataValueKind::Text, value),
-        IcrcMetadataValue::Blob(value) => (IcrcMetadataValueKind::Blob, hex_bytes(&value)),
+        MetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, nat_text(&value)),
+        MetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.0.to_str_radix(10)),
+        MetadataValue::Text(value) => (IcrcMetadataValueKind::Text, value),
+        MetadataValue::Blob(value) => (IcrcMetadataValueKind::Blob, hex_bytes(&value)),
     };
     IcrcLedgerMetadataRow {
         key,
@@ -256,37 +202,38 @@ pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
 #[cfg(all(test, feature = "icrc-host"))]
 mod tests {
     use super::*;
+    use candid::Int;
 
     #[test]
     fn metadata_conversion_preserves_native_kind_and_value() {
         for (raw, kind, value) in [
             (
-                IcrcMetadataValue::Nat(Nat::from(7_u8)),
+                MetadataValue::Nat(Nat::from(7_u8)),
                 IcrcMetadataValueKind::Nat,
                 "7",
             ),
             (
-                IcrcMetadataValue::Int(Int::from(-2_i8)),
+                MetadataValue::Int(Int::from(-2_i8)),
                 IcrcMetadataValueKind::Int,
                 "-2",
             ),
             (
-                IcrcMetadataValue::Nat("18446744073709551616".parse().unwrap()),
+                MetadataValue::Nat("18446744073709551616".parse().unwrap()),
                 IcrcMetadataValueKind::Nat,
                 "18446744073709551616",
             ),
             (
-                IcrcMetadataValue::Int("-18446744073709551616".parse().unwrap()),
+                MetadataValue::Int("-18446744073709551616".parse().unwrap()),
                 IcrcMetadataValueKind::Int,
                 "-18446744073709551616",
             ),
             (
-                IcrcMetadataValue::Text("token".to_string()),
+                MetadataValue::Text("token".to_string()),
                 IcrcMetadataValueKind::Text,
                 "token",
             ),
             (
-                IcrcMetadataValue::Blob(vec![0x01, 0xab]),
+                MetadataValue::Blob(vec![0x01, 0xab].into()),
                 IcrcMetadataValueKind::Blob,
                 "01ab",
             ),

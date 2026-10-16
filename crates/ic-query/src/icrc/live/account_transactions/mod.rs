@@ -4,6 +4,7 @@
 //! Does not own: wire-specific response conversion, collection validation, caching, or rendering.
 //! Boundary: validates ledger/index identity once and delegates each protocol concern explicitly.
 
+use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
 mod collection;
 mod cursor;
 mod wire;
@@ -21,9 +22,7 @@ use crate::candid_call::query_no_args;
 use crate::{
     QueryProgress, QueryProgressState,
     icrc::{
-        ledger::{
-            GetIndexPrincipalResult, IcrcAccount, index_principal_error_text, principal_from_text,
-        },
+        ledger::{GetIndexPrincipalResult, index_principal_error_text, principal_from_text},
         model::{
             IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
             IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
@@ -42,8 +41,8 @@ pub(super) async fn fetch_account_transaction_page_async(
 ) -> Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError> {
     let context = resolve_account_transaction_context(
         source,
-        &request.source_endpoint,
-        &request.ledger_canister_id,
+        &request.ledger.source_endpoint,
+        &request.ledger.ledger_canister_id,
         request.index_canister_id.as_deref(),
         &request.account_owner,
         request.subaccount_hex.as_deref(),
@@ -121,7 +120,7 @@ pub(super) async fn fetch_complete_account_transactions_async(
 struct AccountTransactionQueryContext {
     agent: Agent,
     index_canister: Principal,
-    account: IcrcAccount,
+    account: LedgerAccount,
     token_symbol: String,
     decimals: u8,
 }

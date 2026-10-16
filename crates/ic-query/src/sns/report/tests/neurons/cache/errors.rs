@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
 use crate::test_support::temp_dir;
 use std::fs;
@@ -22,7 +23,7 @@ async fn sns_neurons_refresh_rejects_invalid_public_page_size() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_neurons_cached_sort_requires_existing_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-missing-cache");
-    let mut request = neurons_request("1");
+    let mut request = neurons_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.sort = SnsNeuronsSort::Stake;
 
@@ -30,10 +31,7 @@ async fn sns_neurons_cached_sort_requires_existing_complete_cache() {
         .await
         .expect_err("missing cache is not auto-refreshed");
 
-    assert!(matches!(
-        err,
-        SnsHostError::MissingNeuronsCacheForId { id: 1, .. }
-    ));
+    assert!(matches!(err, SnsHostError::MissingNeuronsCache { .. }));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -94,7 +92,7 @@ async fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
     )
     .expect("write cache");
 
-    let mut cached_request = neurons_request("1");
+    let mut cached_request = neurons_request(ROOT_A);
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
@@ -131,7 +129,7 @@ async fn sns_neurons_cached_sort_rejects_snapshot_identity_mismatch() {
     )
     .expect("write cache");
 
-    let mut cached_request = neurons_request("1");
+    let mut cached_request = neurons_request(ROOT_A);
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
@@ -174,7 +172,7 @@ impl SnsNeuronsSource for InvalidNeuronPageSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 

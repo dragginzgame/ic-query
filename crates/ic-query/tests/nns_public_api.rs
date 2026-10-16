@@ -92,8 +92,7 @@ use ic_query::nns::proposals::{
     build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_report, build_nns_proposal_report_from_cache,
     nns_proposal_cache_list_report_text, nns_proposal_cache_path, nns_proposal_cache_root,
-    nns_proposal_cache_status_report_text, nns_proposal_refresh_attempt_path,
-    nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
+    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_source,
 };
 use ic_query::nns::proposals::{
@@ -3329,7 +3328,10 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     assert!(nns_proposal_refresh_attempt_path(&root, "ic").ends_with("full.refresh-attempt.json"));
     assert_eq!(DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, 1_800);
     assert!(nns_proposal_cache_list_report_text(&cache_list).contains("cache_count: 1"));
-    assert!(nns_proposal_cache_status_report_text(&cache_status).contains("found: yes"));
+    assert!(
+        ic_query::nns::governance::nns_governance_cache_status_report_text(&cache_status)
+            .contains("found: yes")
+    );
     assert!(nns_governance_refresh_report_text(&refresh_report).contains("row_count: 1"));
     assert!(async_request_report_api_accepts_public_types(
         build_nns_proposal_list_report,

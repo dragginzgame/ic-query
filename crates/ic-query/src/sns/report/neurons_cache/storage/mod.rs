@@ -27,10 +27,6 @@ impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {
         SnsHostError::MissingNeuronsCache { path }
     }
 
-    fn missing_cache_for_id(id: usize, root: PathBuf) -> SnsHostError {
-        SnsHostError::MissingNeuronsCacheForId { id, root }
-    }
-
     fn row_count(data: &Self::Data) -> usize {
         data.neurons.len()
     }

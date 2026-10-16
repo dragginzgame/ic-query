@@ -39,10 +39,10 @@ pub use paged::PagedCollectionPage;
 #[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 pub use paged::PagedCollectionState;
 pub use paths::SnapshotJsonPaths;
+#[cfg(feature = "sns-host")]
+pub use paths::collect_full_collection_snapshot_paths;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub use paths::snapshot_network_dir;
-#[cfg(feature = "sns-host")]
-pub use paths::{collect_full_collection_attempt_paths, collect_full_collection_snapshot_paths};
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress};
 

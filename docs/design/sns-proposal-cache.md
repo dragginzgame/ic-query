@@ -2,26 +2,31 @@
 
 ## Status
 
-- Status: implemented for the 0.2.5 slice
+- Status: implemented; root-addressed cache lookup selected for 0.60
 - Decision style: command behavior and cache boundary
-- Primary command: `icq sns proposal list <id|root-principal>`
+- Primary command: `icq sns proposal list <root-principal>`
 
 ## Summary
 
 SNS proposal listing now treats the complete local proposal snapshot as an
 implementation detail for normal list views. If a valid current complete
-snapshot exists, `icq sns proposal list <id|root-principal>` reads it and
+snapshot exists, `icq sns proposal list <root-principal>` reads it and
 applies view options locally.
 If the snapshot is missing, the command visibly refreshes the complete
 collection, publishes it only after governance pagination is exhausted, and
 then renders the requested view.
+
+Cache-backed requests address the root principal directly. Numeric list ids
+remain supported by live lookup and explicit refresh, but no local operation
+scans snapshots or attempt sidecars to reconstruct that id. Stored snapshots
+and attempt evidence remain schema 1 and need no reset.
 
 Manual commands remain available:
 
 ```bash
 icq sns proposal refresh 1
 icq sns proposal cache list
-icq sns proposal cache status 1
+icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
 ```
 
 ## Behavior

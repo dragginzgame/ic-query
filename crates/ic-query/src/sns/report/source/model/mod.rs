@@ -32,12 +32,11 @@ pub use metrics::MainnetSnsMetrics;
 pub(in crate::sns::report) use metrics::{
     SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
 };
-pub use neurons::{MainnetSnsNeuron, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId};
+pub use neurons::{MainnetSnsNeuronPage, SnsNeuronId};
 pub(in crate::sns::report) use neurons::{
     sns_neuron_id_from_text, validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
     validate_mainnet_sns_neurons, validate_sns_neuron_rows,
 };
-pub use proposals::{MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals};
 pub(in crate::sns::report) use proposals::{
     validate_mainnet_sns_proposal, validate_mainnet_sns_proposal_page,
     validate_mainnet_sns_proposals, validate_sns_proposal_rows,

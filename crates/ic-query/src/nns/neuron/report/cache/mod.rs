@@ -10,7 +10,6 @@ mod paths;
 mod refresh;
 mod reports;
 
-pub use model::{NnsNeuronCacheStatusReport, NnsNeuronCacheSummary};
 pub use paths::{
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
 };
@@ -24,5 +23,4 @@ pub use reports::{
 };
 
 const NNS_NEURON_CACHE_SCHEMA_VERSION: u32 = 1;
-const NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
 const NNS_NEURON_CACHE_COMPONENT: &str = "NNS neuron";

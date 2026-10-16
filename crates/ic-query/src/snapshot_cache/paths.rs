@@ -56,32 +56,7 @@ pub fn collect_full_collection_snapshot_paths(
     network_dir: &Path,
     collection: &str,
 ) -> Result<Vec<PathBuf>, CacheFileError> {
-    collect_full_collection_paths(cache_root, network_dir, collection, "full.json")
-}
-
-/// Collect sorted refresh-attempt paths for every entity in a collection.
-#[cfg(feature = "sns-host")]
-pub fn collect_full_collection_attempt_paths(
-    cache_root: &Path,
-    network_dir: &Path,
-    collection: &str,
-) -> Result<Vec<PathBuf>, CacheFileError> {
-    collect_full_collection_paths(
-        cache_root,
-        network_dir,
-        collection,
-        "full.refresh-attempt.json",
-    )
-}
-
-#[cfg(feature = "sns-host")]
-fn collect_full_collection_paths(
-    cache_root: &Path,
-    network_dir: &Path,
-    collection: &str,
-    file_name: &str,
-) -> Result<Vec<PathBuf>, CacheFileError> {
-    collect_managed_collection_files(cache_root, network_dir, collection, file_name, 1_024)
+    collect_managed_collection_files(cache_root, network_dir, collection, "full.json", 1_024)
 }
 
 fn snapshot_collection_dir(cache_root: &Path, key: &SnapshotKey) -> PathBuf {

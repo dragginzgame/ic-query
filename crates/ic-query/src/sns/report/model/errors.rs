@@ -187,7 +187,7 @@ pub enum SnsHostError {
     #[error("could not find deployed SNS with root principal {root_canister_id}")]
     UnknownSnsRoot { root_canister_id: String },
 
-    #[error("SNS lookup input must be a list id or root principal: {input}")]
+    #[error("invalid SNS root principal: {input}")]
     InvalidLookup { input: String },
 
     /// SNS metrics request used an unsupported proposal-count window.
@@ -198,12 +198,6 @@ pub enum SnsHostError {
         /// Largest accepted time window in seconds.
         max_seconds: u64,
     },
-
-    #[error("multiple SNS refresh attempts claim list id {id}; use a root principal instead")]
-    AmbiguousRefreshAttemptId { id: usize },
-
-    #[error("multiple SNS caches claim list id {id}; use a root principal instead")]
-    AmbiguousCacheId { id: usize },
 
     /// The deployed-SNS catalog cache has not been collected yet.
     #[error("SNS catalog cache is missing at {}", path.display())]
@@ -217,12 +211,6 @@ pub enum SnsHostError {
         path.display()
     )]
     MissingNeuronsCache { path: PathBuf },
-
-    #[error(
-        "SNS neurons cache is missing for SNS list id {id} under {}\n\nRun `icq sns neuron refresh {id}` to fetch a complete snapshot before using cache-backed sorting.",
-        root.display()
-    )]
-    MissingNeuronsCacheForId { id: usize, root: PathBuf },
 
     #[error(
         "SNS proposals cache is missing at {}\n\nRun `icq sns proposal refresh <id|root-principal>` to fetch a complete snapshot.",

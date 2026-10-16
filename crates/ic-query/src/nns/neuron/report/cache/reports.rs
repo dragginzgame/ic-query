@@ -6,10 +6,7 @@
 
 use super::{
     NNS_NEURON_CACHE_COMPONENT, NNS_NEURON_CACHE_SCHEMA_VERSION,
-    NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    model::{
-        NNS_NEURON_CACHE_FIELDS, NnsNeuronCache, NnsNeuronCacheStatusReport, NnsNeuronCacheSummary,
-    },
+    model::{NNS_NEURON_CACHE_FIELDS, NnsNeuronCache},
     paths::{
         NNS_NEURON_CACHE_COLLECTION, NNS_NEURON_CACHE_DOMAIN, NNS_NEURON_CACHE_ENTITY,
         nns_neuron_cache_path, nns_neuron_cache_paths,
@@ -22,8 +19,9 @@ use crate::{
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
-            NnsGovernanceReportContext, NnsGovernanceSourceProvenance,
-            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+            NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceReportContext,
+            NnsGovernanceSourceProvenance, read_governance_refresh_attempt_status,
+            validate_governance_cache_metadata,
         },
         neuron::report::{
             NnsNeuronHostError,
@@ -120,7 +118,7 @@ pub fn build_nns_neuron_info_report_from_cache(
 /// Inspect the expected complete neuron snapshot without making a live call.
 pub fn build_nns_neuron_cache_status_report(
     request: &NnsGovernanceCacheRequest,
-) -> Result<NnsNeuronCacheStatusReport, NnsNeuronHostError> {
+) -> Result<NnsGovernanceCacheStatusReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
     let found = managed_file_exists(&request.cache_root, &paths.snapshot_path)
@@ -128,8 +126,10 @@ pub fn build_nns_neuron_cache_status_report(
     let cache = if found {
         Some(
             match load_cache_at(&request.cache_root, &paths.snapshot_path, &request.network) {
-                Ok(cache) => valid_cache_summary(&paths.snapshot_path, &cache),
-                Err(error) => invalid_cache_summary(&paths.snapshot_path, error.to_string()),
+                Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache),
+                Err(error) => {
+                    NnsGovernanceCacheSummary::invalid(&paths.snapshot_path, error.to_string())
+                }
             },
         )
     } else {
@@ -141,21 +141,13 @@ pub fn build_nns_neuron_cache_status_report(
         &request.network,
         NNS_NEURON_CACHE_COMPONENT,
     )?;
-    Ok(NnsNeuronCacheStatusReport {
-        schema_version: NNS_NEURON_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-        network: request.network.clone(),
-        cache_root: paths
-            .snapshot_path
-            .parent()
-            .unwrap_or(&request.cache_root)
-            .display()
-            .to_string(),
-        found,
+    Ok(NnsGovernanceCacheStatusReport::from_cache(
+        request,
+        "neurons",
+        &paths,
         cache,
-        expected_cache_path: paths.snapshot_path.display().to_string(),
-        refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
         latest_attempt,
-    })
+    ))
 }
 
 fn load_cache_at(
@@ -238,36 +230,6 @@ fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProve
             },
         },
         cache_path: Some(path.display().to_string()),
-    }
-}
-
-fn valid_cache_summary(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronCacheSummary {
-    NnsNeuronCacheSummary {
-        cache_status: crate::cache::CacheValidationStatus::Valid,
-        cache_error: None,
-        complete: cache.completeness.is_api_exhausted(),
-        point_in_time_guaranteed: cache.completeness.point_in_time_guaranteed,
-        row_count: cache.data.neurons.len(),
-        page_count: cache.completeness.page_count,
-        page_size: cache.completeness.page_size,
-        fetched_at: cache.fetched_at.clone(),
-        source_endpoint: cache.source_endpoint.clone(),
-        cache_path: path.display().to_string(),
-    }
-}
-
-fn invalid_cache_summary(path: &Path, error: String) -> NnsNeuronCacheSummary {
-    NnsNeuronCacheSummary {
-        cache_status: crate::cache::CacheValidationStatus::Invalid,
-        cache_error: Some(error),
-        complete: false,
-        point_in_time_guaranteed: false,
-        row_count: 0,
-        page_count: 0,
-        page_size: 0,
-        fetched_at: String::new(),
-        source_endpoint: String::new(),
-        cache_path: path.display().to_string(),
     }
 }
 

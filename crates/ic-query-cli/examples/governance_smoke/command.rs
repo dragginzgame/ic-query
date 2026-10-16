@@ -193,7 +193,7 @@ pub fn supervise(
             StderrMode::Capture => Stdio::piped(),
             StderrMode::Discard => Stdio::null(),
         });
-    let mut child = OwnedChild::spawn_with_cleanup(command, cleanup_policy())?;
+    let mut child = OwnedChild::spawn(command, cleanup_policy())?;
     let started = Instant::now();
     let result = communicate_child(
         &mut child,

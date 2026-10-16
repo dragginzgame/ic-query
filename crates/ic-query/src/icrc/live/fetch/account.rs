@@ -8,9 +8,8 @@ use super::live_query_context;
 use crate::candid_call::{query_canister, query_no_args};
 use crate::icrc::{
     ledger::{
-        IcrcAccount, IcrcAllowance, IcrcAllowanceArgs, IcrcLedgerMetadataRow,
-        IcrcLedgerStandardRow, IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, nat_text,
-        principal_from_text,
+        IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
+        fetch_icrc1_token_metadata, nat_text, principal_from_text,
     },
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcError,
@@ -20,6 +19,9 @@ use crate::icrc::{
 };
 use candid::{Nat, Principal};
 use ic_agent::Agent;
+use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use icrc_ledger_types::icrc2::allowance::Allowance;
+use icrc_ledger_types::icrc2::allowance::AllowanceArgs;
 
 const ICRC1_SYMBOL_METHOD: &str = "icrc1_symbol";
 const ICRC1_DECIMALS_METHOD: &str = "icrc1_decimals";
@@ -49,8 +51,8 @@ pub(in crate::icrc::live) async fn fetch_balance_async(
 ) -> Result<IcrcBalanceData, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
-        &request.source_endpoint,
-        &request.ledger_canister_id,
+        &request.ledger.source_endpoint,
+        &request.ledger.ledger_canister_id,
     )?;
     let account = account_from_parts(
         &request.account_owner,
@@ -58,7 +60,7 @@ pub(in crate::icrc::live) async fn fetch_balance_async(
         "account_owner",
     )?;
     let (token_symbol, decimals) = query_token_display_fields(&agent, &ledger_canister).await?;
-    let balance: Nat = query_canister::<IcrcAccount, Nat, IcrcError>(
+    let balance: Nat = query_canister::<LedgerAccount, Nat, IcrcError>(
         &agent,
         &ledger_canister,
         ICRC1_BALANCE_OF_METHOD,
@@ -81,10 +83,10 @@ pub(in crate::icrc::live) async fn fetch_allowance_async(
 ) -> Result<IcrcAllowanceData, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
-        &request.source_endpoint,
-        &request.ledger_canister_id,
+        &request.ledger.source_endpoint,
+        &request.ledger.ledger_canister_id,
     )?;
-    let allowance_args = IcrcAllowanceArgs {
+    let allowance_args = AllowanceArgs {
         account: account_from_parts(
             &request.account_owner,
             request.account_subaccount_hex.as_deref(),
@@ -97,7 +99,7 @@ pub(in crate::icrc::live) async fn fetch_allowance_async(
         )?,
     };
     let (token_symbol, decimals) = query_token_display_fields(&agent, &ledger_canister).await?;
-    let allowance = query_canister::<IcrcAllowanceArgs, IcrcAllowance, IcrcError>(
+    let allowance = query_canister::<AllowanceArgs, Allowance, IcrcError>(
         &agent,
         &ledger_canister,
         ICRC2_ALLOWANCE_METHOD,
@@ -132,8 +134,8 @@ pub(in crate::icrc::live) fn account_from_parts(
     owner: &str,
     subaccount_hex: Option<&str>,
     owner_field: &'static str,
-) -> Result<IcrcAccount, IcrcError> {
-    Ok(IcrcAccount {
+) -> Result<LedgerAccount, IcrcError> {
+    Ok(LedgerAccount {
         owner: principal_from_text(owner, owner_field)?,
         subaccount: subaccount_hex.map(subaccount_bytes_from_hex).transpose()?,
     })

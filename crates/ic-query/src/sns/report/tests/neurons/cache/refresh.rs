@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronRow;
 use crate::test_support::temp_dir;
 use crate::{
     HostCacheError,
@@ -44,7 +45,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert!(cache.get("metadata").is_none());
     assert!(cache.get("data").is_none());
 
-    let mut cached_request = neurons_request("1");
+    let mut cached_request = neurons_request(ROOT_A);
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     cached_request.limit = 2;
@@ -106,7 +107,7 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
@@ -132,7 +133,7 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
                 neurons: ids
                     .into_iter()
                     .map(|id| {
-                        let mut row = fixture_sns_neuron().detail.neuron;
+                        let mut row = fixture_sns_neuron().neuron;
                         row.neuron_id = format!("{id:02x}").repeat(32);
                         row
                     })
@@ -183,7 +184,7 @@ async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
         .await
         .expect_err("incomplete refresh");
 
-    let mut cached_request = neurons_request("1");
+    let mut cached_request = neurons_request(ROOT_A);
     cached_request.cache_root = Some(root.clone());
     cached_request.sort = SnsNeuronsSort::Stake;
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)

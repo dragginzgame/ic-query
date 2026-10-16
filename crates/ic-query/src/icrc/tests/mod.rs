@@ -105,7 +105,7 @@ impl IcrcBalanceSource for FixtureIcrcSource {
         request: &'a IcrcBalanceRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcBalanceData, IcrcError>> {
         Box::pin(async move {
-            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.account_owner, ACCOUNT_OWNER);
             assert_eq!(
                 request.subaccount_hex.as_deref(),
@@ -127,7 +127,7 @@ impl IcrcAllowanceSource for FixtureIcrcSource {
         request: &'a IcrcAllowanceRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcAllowanceData, IcrcError>> {
         Box::pin(async move {
-            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.account_owner, ACCOUNT_OWNER);
             assert_eq!(
                 request.account_subaccount_hex.as_deref(),
@@ -172,8 +172,8 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
         request: &'a IcrcTransactionsRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcTransactionsData, IcrcError>> {
         Box::pin(async move {
-            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+            assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.ledger.source_endpoint, SOURCE_ENDPOINT);
             assert_eq!(request.start, 100);
             assert_eq!(request.limit, 3);
             assert!(request.follow_archives);
@@ -293,8 +293,8 @@ impl IcrcArchivesSource for FixtureIcrcSource {
         request: &'a IcrcArchivesRequest,
     ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
         Box::pin(async move {
-            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
-            assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
+            assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.ledger.source_endpoint, SOURCE_ENDPOINT);
             assert_eq!(
                 request.from_canister_id.as_deref(),
                 Some(ARCHIVE_CANISTER_ID)
@@ -383,7 +383,7 @@ impl IcrcAccountTransactionPageSource for FixtureAccountTransactionsSource {
         Result<IcrcAccountTransactionPageData, IcrcAccountTransactionError>,
     > {
         Box::pin(async move {
-            assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
+            assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(
                 request.index_canister_id.as_deref(),
                 Some(INDEX_CANISTER_ID)
@@ -665,9 +665,11 @@ async fn token_report_builds_text_and_json_friendly_fields() {
 #[tokio::test(flavor = "current_thread")]
 async fn balance_report_builds_text_and_json_friendly_fields() {
     let request = IcrcBalanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         account_owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: Some(UPPER_SUBACCOUNT_HEX.to_string()),
     };
@@ -692,9 +694,11 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
 #[tokio::test(flavor = "current_thread")]
 async fn allowance_report_builds_text_and_json_friendly_fields() {
     let request = IcrcAllowanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         account_owner: ACCOUNT_OWNER.to_string(),
         account_subaccount_hex: Some(UPPER_SUBACCOUNT_HEX.to_string()),
         spender_owner: ACCOUNT_OWNER.to_string(),
@@ -761,9 +765,11 @@ async fn index_report_builds_text_and_json_friendly_fields() {
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         2,
     )
@@ -808,9 +814,11 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_rejects_zero_limit_before_source_call() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         0,
     );
@@ -834,9 +842,11 @@ async fn account_transaction_page_report_rejects_zero_limit_before_source_call()
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_rejects_explicit_index_mismatch() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         2,
     )
@@ -864,9 +874,11 @@ async fn account_transaction_page_report_rejects_explicit_index_mismatch() {
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         2,
     );
@@ -890,9 +902,11 @@ async fn account_transaction_page_report_rejects_noncanonical_source_cursor() {
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         1,
     );
@@ -918,9 +932,11 @@ async fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
     unordered.transactions.push(older);
     unordered.next_start = Some("41".to_string());
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         2,
     );
@@ -940,9 +956,11 @@ async fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
     let request = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         2,
     )
@@ -997,9 +1015,11 @@ impl IcrcTransactionsSource for TransactionsDataSource {
 #[tokio::test(flavor = "current_thread")]
 async fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_rows() {
     let request = IcrcTransactionsRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         start: 100,
         limit: 3,
         follow_archives: true,
@@ -1067,9 +1087,11 @@ async fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_ro
 #[tokio::test(flavor = "current_thread")]
 async fn transactions_report_builds_text_and_json_friendly_fields() {
     let request = IcrcTransactionsRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         start: 100,
         limit: 3,
         follow_archives: true,
@@ -1161,9 +1183,11 @@ async fn block_types_report_builds_text_and_json_friendly_fields() {
 #[tokio::test(flavor = "current_thread")]
 async fn archives_report_builds_text_and_json_friendly_fields() {
     let request = IcrcArchivesRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         from_canister_id: Some(ARCHIVE_CANISTER_ID.to_string()),
     };
 
@@ -1351,9 +1375,11 @@ async fn invalid_subaccount_is_rejected_before_source_fetch() {
         "+a".repeat(32),
     ] {
         let request = IcrcBalanceRequest {
-            source_endpoint: SOURCE_ENDPOINT.to_string(),
-            now_unix_secs: FETCHED_AT_UNIX_SECS,
-            ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+            ledger: crate::icrc::IcrcLedgerRequest::new(
+                SOURCE_ENDPOINT.to_string(),
+                FETCHED_AT_UNIX_SECS,
+                LEDGER_CANISTER_ID.to_string(),
+            ),
             account_owner: ACCOUNT_OWNER.to_string(),
             subaccount_hex: Some(value),
         };
@@ -1367,9 +1393,11 @@ async fn invalid_subaccount_is_rejected_before_source_fetch() {
 #[tokio::test(flavor = "current_thread")]
 async fn invalid_allowance_subaccount_is_rejected_before_source_fetch() {
     let request = IcrcAllowanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: crate::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         account_owner: ACCOUNT_OWNER.to_string(),
         account_subaccount_hex: Some("abc".to_string()),
         spender_owner: ACCOUNT_OWNER.to_string(),

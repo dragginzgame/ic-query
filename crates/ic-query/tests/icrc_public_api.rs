@@ -208,9 +208,11 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(ledger.ledger_canister_id, LEDGER_CANISTER_ID);
 
     let balance = IcrcBalanceRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
     )
     .with_subaccount_hex(SUBACCOUNT_HEX);
@@ -218,9 +220,11 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(balance.subaccount_hex.as_deref(), Some(SUBACCOUNT_HEX));
 
     let allowance = IcrcAllowanceRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         ARCHIVE_CANISTER_ID,
     )
@@ -238,9 +242,11 @@ fn public_icrc_request_constructors_set_expected_fields() {
     );
 
     let account_transactions = IcrcAccountTransactionPageRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         ACCOUNT_OWNER,
         25,
     )
@@ -277,9 +283,11 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(list.sort, IcrcAccountTransactionSort::Oldest);
 
     let transactions = IcrcTransactionsRequest::new(
-        SOURCE_ENDPOINT,
-        FETCHED_AT_UNIX_SECS,
-        LEDGER_CANISTER_ID,
+        ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        ),
         100,
         25,
     )
@@ -288,9 +296,12 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(transactions.limit, 25);
     assert!(transactions.follow_archives);
 
-    let archives =
-        IcrcArchivesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID)
-            .with_from_canister_id(ARCHIVE_CANISTER_ID);
+    let archives = IcrcArchivesRequest::new(ic_query::icrc::IcrcLedgerRequest::new(
+        SOURCE_ENDPOINT,
+        FETCHED_AT_UNIX_SECS,
+        LEDGER_CANISTER_ID,
+    ))
+    .with_from_canister_id(ARCHIVE_CANISTER_ID);
     assert_eq!(
         archives.from_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)
@@ -397,9 +408,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
 
     build_icrc_balance_report_with_source(
         &IcrcBalanceRequest::new(
-            SOURCE_ENDPOINT,
-            FETCHED_AT_UNIX_SECS,
-            LEDGER_CANISTER_ID,
+            ic_query::icrc::IcrcLedgerRequest::new(
+                SOURCE_ENDPOINT,
+                FETCHED_AT_UNIX_SECS,
+                LEDGER_CANISTER_ID,
+            ),
             ACCOUNT_OWNER,
         ),
         &source,
@@ -408,9 +421,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
     .expect("balance report");
     build_icrc_allowance_report_with_source(
         &IcrcAllowanceRequest::new(
-            SOURCE_ENDPOINT,
-            FETCHED_AT_UNIX_SECS,
-            LEDGER_CANISTER_ID,
+            ic_query::icrc::IcrcLedgerRequest::new(
+                SOURCE_ENDPOINT,
+                FETCHED_AT_UNIX_SECS,
+                LEDGER_CANISTER_ID,
+            ),
             ACCOUNT_OWNER,
             ACCOUNT_OWNER,
         ),
@@ -420,9 +435,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
     .expect("allowance report");
     build_icrc_account_transaction_page_report_with_source(
         &IcrcAccountTransactionPageRequest::new(
-            SOURCE_ENDPOINT,
-            FETCHED_AT_UNIX_SECS,
-            LEDGER_CANISTER_ID,
+            ic_query::icrc::IcrcLedgerRequest::new(
+                SOURCE_ENDPOINT,
+                FETCHED_AT_UNIX_SECS,
+                LEDGER_CANISTER_ID,
+            ),
             ACCOUNT_OWNER,
             1,
         ),
@@ -456,9 +473,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
     .expect("index report");
     build_icrc_transactions_report_with_source(
         &IcrcTransactionsRequest::new(
-            SOURCE_ENDPOINT,
-            FETCHED_AT_UNIX_SECS,
-            LEDGER_CANISTER_ID,
+            ic_query::icrc::IcrcLedgerRequest::new(
+                SOURCE_ENDPOINT,
+                FETCHED_AT_UNIX_SECS,
+                LEDGER_CANISTER_ID,
+            ),
             0,
             1,
         ),
@@ -473,7 +492,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
     .await
     .expect("block types report");
     build_icrc_archives_report_with_source(
-        &IcrcArchivesRequest::new(SOURCE_ENDPOINT, FETCHED_AT_UNIX_SECS, LEDGER_CANISTER_ID),
+        &IcrcArchivesRequest::new(ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT,
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID,
+        )),
         &source,
     )
     .await
@@ -735,20 +758,22 @@ fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
 #[test]
 fn public_icrc_balance_api_is_constructible_and_renderable_without_host() {
     let request = IcrcBalanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         account_owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: None,
     };
 
     let report = IcrcBalanceReport {
         schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
         fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
         token_symbol: "ICP".to_string(),
         decimals: 8,
@@ -765,9 +790,11 @@ fn public_icrc_balance_api_is_constructible_and_renderable_without_host() {
 #[test]
 fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
     let request = IcrcAllowanceRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         account_owner: ACCOUNT_OWNER.to_string(),
         account_subaccount_hex: None,
         spender_owner: ACCOUNT_OWNER.to_string(),
@@ -776,13 +803,13 @@ fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
 
     let report = IcrcAllowanceReport {
         schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         account_owner: request.account_owner,
         account_subaccount_hex: request.account_subaccount_hex,
         spender_owner: request.spender_owner,
         spender_subaccount_hex: request.spender_subaccount_hex,
         fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
         token_symbol: "ICP".to_string(),
         decimals: 8,
@@ -876,9 +903,11 @@ fn public_icrc_index_api_is_constructible_and_renderable_without_host() {
 #[test]
 fn public_icrc_transactions_api_is_constructible_and_renderable_without_host() {
     let request = IcrcTransactionsRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         start: 100,
         limit: 2,
         follow_archives: true,
@@ -886,9 +915,9 @@ fn public_icrc_transactions_api_is_constructible_and_renderable_without_host() {
 
     let report = IcrcTransactionsReport {
         schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
@@ -965,18 +994,20 @@ fn public_icrc_block_types_api_is_constructible_and_renderable_without_host() {
 #[test]
 fn public_icrc_archives_api_is_constructible_and_renderable_without_host() {
     let request = IcrcArchivesRequest {
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: FETCHED_AT_UNIX_SECS,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        ledger: ic_query::icrc::IcrcLedgerRequest::new(
+            SOURCE_ENDPOINT.to_string(),
+            FETCHED_AT_UNIX_SECS,
+            LEDGER_CANISTER_ID.to_string(),
+        ),
         from_canister_id: Some(ARCHIVE_CANISTER_ID.to_string()),
     };
 
     let report = IcrcArchivesReport {
         schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         from_canister_id: request.from_canister_id,
         fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
         archives: vec![IcrcArchiveRow {
             canister_id: ARCHIVE_CANISTER_ID.to_string(),

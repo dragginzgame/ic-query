@@ -50,12 +50,11 @@ pub fn dashboard_provenance_lines(provenance: &IcDashboardReportProvenance) -> V
 pub fn ic_boundary_node_data_centers_report_text(
     report: &IcBoundaryNodeDataCentersReport,
 ) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("data_center_count: {}", report.data_center_count),
         format!("total_node_count: {}", report.total_node_count),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -79,13 +78,12 @@ pub fn ic_boundary_node_data_centers_report_text(
 /// Render one bounded official Dashboard daily-statistics report as human-facing text.
 #[must_use]
 pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("start_unix_secs: {}", report.query.start_unix_secs),
         format!("end_unix_secs: {}", report.query.end_unix_secs),
         format!("returned_day_count: {}", report.returned_day_count),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -111,7 +109,7 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
 /// Render one bounded official Dashboard node-provider reward page as human-facing text.
 #[must_use]
 pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardListReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("limit: {}", report.query.limit),
         format!("offset: {}", report.query.offset),
@@ -131,7 +129,6 @@ pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardLis
         ),
         format!("pages_may_overlap: {}", yes_no(report.pages_may_overlap)),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -177,7 +174,7 @@ pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardLis
 pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInfoReport) -> String {
     let reward = &report.reward;
     let details = serde_json::to_string(&reward.details).unwrap_or_else(|_| "{}".to_string());
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("reward_id: {}", reward.reward_id),
         format!("node_provider_id: {}", reward.node_provider_id),
@@ -214,7 +211,6 @@ pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInf
         ),
         format!("details: {}", terminal_text(&details)),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
     lines.join("\n")
 }
 
@@ -223,7 +219,7 @@ pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInf
 pub fn ic_node_provider_reward_history_report_text(
     report: &IcNodeProviderRewardHistoryReport,
 ) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("start_unix_secs: {}", report.query.start_unix_secs),
         format!("end_unix_secs: {}", report.query.end_unix_secs),
@@ -237,7 +233,6 @@ pub fn ic_node_provider_reward_history_report_text(
             report.returned_observation_count
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.observations.is_empty() {
         lines.push(String::new());
@@ -263,7 +258,7 @@ pub fn ic_node_provider_reward_history_report_text(
 /// Render one bounded official Dashboard replica-version page as human-facing text.
 #[must_use]
 pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("limit: {}", report.query.limit),
         format!("offset: {}", report.query.offset),
@@ -279,7 +274,6 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
         format!("returned_count: {}", report.returned_count),
         format!("next_offset: {}", optional_u64_text(report.next_offset)),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -323,7 +317,7 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
 /// Render one exact official Dashboard replica-version report as human-facing text.
 #[must_use]
 pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "replica_version_id: {}",
@@ -342,7 +336,6 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
             truncate_text(&report.summary, IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT)
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.subnets.is_empty() {
         lines.push(String::new());
@@ -360,7 +353,7 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
 /// Render one bounded official Dashboard metric report as human-facing text.
 #[must_use]
 pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("metric: {}", report.query.metric),
         format!("start_unix_secs: {}", report.query.start_unix_secs),
@@ -372,7 +365,6 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
             report.returned_observation_count
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     for series in &report.series {
         lines.push(String::new());
@@ -391,7 +383,7 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
 /// Render one official ICRC indexed-count report as human-facing text.
 #[must_use]
 pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
@@ -400,14 +392,13 @@ pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> Stri
         format!("kind: {}", report.kind),
         format!("total: {}", report.total),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
     lines.join("\n")
 }
 
 /// Render one bounded official ICRC account-index page as human-facing text.
 #[must_use]
 pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
@@ -426,7 +417,6 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
             optional_text(report.next_cursor.as_ref())
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -473,7 +463,7 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
 #[must_use]
 pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String {
     let account = &report.account;
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("account_id: {}", terminal_text(&account.account_id)),
         format!("owner: {}", terminal_text(&account.owner)),
@@ -509,14 +499,13 @@ pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String
             account.fee_collector_block_ranges.len()
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
     lines.join("\n")
 }
 
 /// Render one bounded official ICRC holder-index page as human-facing text.
 #[must_use]
 pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
@@ -534,7 +523,6 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
             optional_text(report.next_cursor.as_ref())
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -580,7 +568,7 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
 /// Render one bounded official ICRC token-value series as human-facing text.
 #[must_use]
 pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
@@ -592,7 +580,6 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
         format!("returned_row_count: {}", report.returned_row_count),
         format!("limit_reached: {}", yes_no(report.limit_reached)),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -616,7 +603,7 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
 /// Render one bounded official ICRC total-supply series as human-facing text.
 #[must_use]
 pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!(
             "ledger_canister_id: {}",
@@ -634,7 +621,6 @@ pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String
             report.returned_observation_count
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.observations.is_empty() {
         lines.push(String::new());
@@ -661,7 +647,7 @@ fn metric_observation_text(metric: IcMetricKind, value: &str) -> String {
 /// Render one official Dashboard canister report as human-facing text.
 #[must_use]
 pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("canister_id: {}", report.canister_id),
         format!("dashboard_id: {}", report.dashboard_id),
@@ -692,7 +678,6 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
                 .map_or_else(|| "-".to_string(), |count| count.to_string())
         ),
     ]);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.controllers.is_empty() {
         lines.push(String::new());
@@ -726,17 +711,16 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
 /// Render one official Dashboard canister-count report as human-facing text.
 #[must_use]
 pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.push(format!("total: {}", report.total));
     append_filters(&mut lines, &report.filters);
-    append_report_footer(&mut lines, &report.provenance);
     lines.join("\n")
 }
 
 /// Render one bounded official Dashboard canister page as human-facing text.
 #[must_use]
 pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
-    let mut lines = report_header(&report.provenance);
+    let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("returned_count: {}", report.returned_count),
         format!("requested_limit: {}", report.requested_limit),
@@ -758,7 +742,6 @@ pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
         ),
     ]);
     append_filters(&mut lines, &report.filters);
-    append_report_footer(&mut lines, &report.provenance);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -779,28 +762,6 @@ pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
         }));
     }
     lines.join("\n")
-}
-
-fn report_header(provenance: &IcDashboardReportProvenance) -> Vec<String> {
-    vec![
-        format!("network: {}", terminal_text(&provenance.network)),
-        format!("authority: {}", terminal_text(&provenance.authority)),
-    ]
-}
-
-fn append_report_footer(lines: &mut Vec<String>, provenance: &IcDashboardReportProvenance) {
-    lines.extend([
-        format!("certified: {}", yes_no(provenance.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(provenance.point_in_time_guaranteed)
-        ),
-        format!("fetched_at: {}", terminal_text(&provenance.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&provenance.source_endpoint)
-        ),
-    ]);
 }
 
 fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {

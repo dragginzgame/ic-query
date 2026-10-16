@@ -86,15 +86,11 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
                 self.context.request.page_size,
                 self.pages.next_cursor().copied(),
             )?;
-            let last_cursor = page
-                .proposals
-                .iter()
-                .map(|proposal| proposal.proposal_id)
-                .min();
-            let page_len = page.proposals.len();
+            let last_cursor = page.iter().map(|proposal| proposal.proposal_id).min();
+            let page_len = page.len();
             Ok(self
                 .pages
-                .ingest_page(page.proposals, page_len, last_cursor, ToString::to_string))
+                .ingest_page(page, page_len, last_cursor, ToString::to_string))
         })
     }
 

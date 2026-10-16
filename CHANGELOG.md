@@ -5,6 +5,44 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.60.0]
+
+- **Breaking:** NNS neuron/proposal cache status and summary reports share
+  `NnsGovernanceCacheStatusReport`, `NnsGovernanceCacheSummary` and
+  `nns_governance_cache_status_report_text` under `nns::governance`.
+  Status identifies its collection; proposal cache-list attempt evidence moves
+  to the report level. Update Rust imports and JSON field access. Stored
+  snapshots and attempt sidecars retain their schema-1 contracts.
+- **Breaking:** Native ICRC balance, allowance, transaction, archive and account
+  page requests compose `ledger: IcrcLedgerRequest`. Constructors accept that
+  scope before operation settings. Report JSON and clock-free cache identity
+  remain unchanged.
+- Reuse the validated CMC XDR report when deriving cycles and share rate text
+  formatting, preserving one source call, certificate evidence and exact arithmetic.
+
+- **Breaking:** Address targeted SNS cache reads, cache status, cached neuron
+  sorts and CLI proposal lists by root principal. Numeric selectors remain for
+  live lookup and explicit refresh; numeric proposal-detail CLI calls use live
+  lookup. Existing complete snapshots and sidecars stay schema 1 with no reset.
+- Use canonical ICRC ledger account, metadata and allowance wire types. Account
+  evidence now requires 32-byte subaccounts; preserve raw decimal/hex report JSON.
+- Standardize Dashboard text on the complete provenance preamble already used by
+  CloudEngine; JSON is unchanged.
+
+- Share CLI progress frames with published Host Text 0.23.1, preserving terminal
+  admission, stderr ownership and non-TTY silence while escaping unsafe controls
+  and clearing Unicode display columns correctly. [#70](https://github.com/dragginzgame/ic-query/issues/70).
+- Align the Governance smoke harness with published IC Build 0.11 and Host 0.23,
+  resolving the cleanup-policy type mismatch without changing TERM/reap policy.
+
+- **Breaking:** SNS custom sources return `SnsNeuronDetail`, `SnsProposalRow`
+  and vectors of existing neuron/proposal rows directly. Remove the five
+  single-payload `MainnetSns*` result wrappers and update source implementations;
+  the neuron page retains its cursor. Source validation, report JSON and stored
+  snapshots remain unchanged.
+
+Detailed release notes: [docs/changelog/0.60.md](docs/changelog/0.60.md)
+
 ## [0.59.0] - 2026-10-16
 
 - **Breaking:** Governance probe source fingerprints now cover the complete

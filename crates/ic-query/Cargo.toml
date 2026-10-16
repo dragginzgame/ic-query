@@ -60,6 +60,7 @@ sns-host = [
     "dep:ic-agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
+    "dep:icrc-ledger-types",
     "dep:tokio",
 ]
 subnet-catalog-host = [

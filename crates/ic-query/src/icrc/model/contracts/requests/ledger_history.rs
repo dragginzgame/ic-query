@@ -4,6 +4,8 @@
 //! Does not own: account-index history, live transport, archive following, or reports.
 //! Boundary: captures bounded ledger history and archive discovery intent.
 
+use super::IcrcLedgerRequest;
+
 ///
 /// IcrcTransactionsRequest
 ///
@@ -12,9 +14,8 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcTransactionsRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
+    /// Shared ledger identity, explicit endpoint and caller collection clock.
+    pub ledger: IcrcLedgerRequest,
     pub start: u64,
     pub limit: u32,
     pub follow_archives: bool,
@@ -22,17 +23,9 @@ pub struct IcrcTransactionsRequest {
 
 impl IcrcTransactionsRequest {
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-        start: u64,
-        limit: u32,
-    ) -> Self {
+    pub const fn new(ledger: IcrcLedgerRequest, start: u64, limit: u32) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            ledger,
             start,
             limit,
             follow_archives: false,
@@ -54,23 +47,16 @@ impl IcrcTransactionsRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcArchivesRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
+    /// Shared ledger identity, explicit endpoint and caller collection clock.
+    pub ledger: IcrcLedgerRequest,
     pub from_canister_id: Option<String>,
 }
 
 impl IcrcArchivesRequest {
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-    ) -> Self {
+    pub const fn new(ledger: IcrcLedgerRequest) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            ledger,
             from_canister_id: None,
         }
     }

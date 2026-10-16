@@ -19,9 +19,11 @@ pub(in crate::icrc) fn normalize_optional_subaccount_hex(
 }
 
 #[cfg(any(test, feature = "icrc-host"))]
-pub(in crate::icrc) fn subaccount_bytes_from_hex(value: &str) -> Result<Vec<u8>, IcrcError> {
+pub(in crate::icrc) fn subaccount_bytes_from_hex(value: &str) -> Result<[u8; 32], IcrcError> {
     Ok(crate::hex::decode_hex(validated_subaccount_hex(value)?)
-        .expect("validated ASCII hexadecimal byte pairs"))
+        .expect("validated ASCII hexadecimal byte pairs")
+        .try_into()
+        .expect("validated 32-byte subaccount"))
 }
 
 fn validated_subaccount_hex(value: &str) -> Result<&str, IcrcError> {
@@ -78,7 +80,9 @@ mod tests {
             "ab01".repeat(16),
         );
         assert_eq!(
-            subaccount_bytes_from_hex(&format!(" \t{mixed_case}\n")).expect("wire bytes"),
+            subaccount_bytes_from_hex(&format!(" \t{mixed_case}\n"))
+                .expect("wire bytes")
+                .as_slice(),
             [0xab, 0x01].repeat(16),
         );
         for bytes in [0, 31, 33] {

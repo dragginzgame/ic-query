@@ -4,6 +4,8 @@
 //! Does not own: account-history pagination, ledger history, live transport, or reports.
 //! Boundary: keeps structured account and spender selection explicit.
 
+use super::IcrcLedgerRequest;
+
 ///
 /// IcrcBalanceRequest
 ///
@@ -12,25 +14,17 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcBalanceRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
+    /// Shared ledger identity, explicit endpoint and caller collection clock.
+    pub ledger: IcrcLedgerRequest,
     pub account_owner: String,
     pub subaccount_hex: Option<String>,
 }
 
 impl IcrcBalanceRequest {
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-        account_owner: impl Into<String>,
-    ) -> Self {
+    pub fn new(ledger: IcrcLedgerRequest, account_owner: impl Into<String>) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            ledger,
             account_owner: account_owner.into(),
             subaccount_hex: None,
         }
@@ -51,9 +45,8 @@ impl IcrcBalanceRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcAllowanceRequest {
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
-    pub ledger_canister_id: String,
+    /// Shared ledger identity, explicit endpoint and caller collection clock.
+    pub ledger: IcrcLedgerRequest,
     pub account_owner: String,
     pub account_subaccount_hex: Option<String>,
     pub spender_owner: String,
@@ -63,16 +56,12 @@ pub struct IcrcAllowanceRequest {
 impl IcrcAllowanceRequest {
     #[must_use]
     pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
+        ledger: IcrcLedgerRequest,
         account_owner: impl Into<String>,
         spender_owner: impl Into<String>,
     ) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            ledger,
             account_owner: account_owner.into(),
             account_subaccount_hex: None,
             spender_owner: spender_owner.into(),

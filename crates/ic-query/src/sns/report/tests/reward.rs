@@ -4,7 +4,7 @@ use crate::sns::report::tests::{fixtures::*, *};
 #[tokio::test(flavor = "current_thread")]
 async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
     let mut row = fixture_reward_row(1);
-    row.disburse_maturity_in_progress = fixture_sns_neuron().detail.disburse_maturity_in_progress;
+    row.disburse_maturity_in_progress = fixture_sns_neuron().disburse_maturity_in_progress;
     let (mint, staking) = row.derived_policy_observations();
     row.maturity_mint_conversion_observed_disabled = mint;
     row.manual_maturity_staking_observed_disabled = staking;
@@ -61,13 +61,13 @@ async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries
         ));
         let row = &restored.rows[0];
         let mut neuron = fixture_sns_neuron();
-        neuron.detail.permissions = row.permissions.clone();
-        neuron.detail.disburse_maturity_in_progress = row.disburse_maturity_in_progress.clone();
-        let (mint, staking) = neuron.detail.derived_policy_observations();
-        neuron.detail.maturity_mint_conversion_observed_disabled = mint;
-        neuron.detail.manual_maturity_staking_observed_disabled = staking;
+        neuron.permissions = row.permissions.clone();
+        neuron.disburse_maturity_in_progress = row.disburse_maturity_in_progress.clone();
+        let (mint, staking) = neuron.derived_policy_observations();
+        neuron.maturity_mint_conversion_observed_disabled = mint;
+        neuron.manual_maturity_staking_observed_disabled = staking;
         assert!(matches!(
-            validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id),
+            validate_mainnet_sns_neuron(&neuron, &neuron.neuron.neuron_id),
             Err(SnsHostError::InvalidSourceData {
                 capability: "SNS neuron detail",
                 ..
@@ -98,17 +98,17 @@ async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requir
         SnsPolicyObservationStatus::Unassessable,
     );
     let mut neuron = fixture_sns_neuron();
-    neuron.detail.permissions = report.rows[0].permissions.clone();
+    neuron.permissions = report.rows[0].permissions.clone();
     assert!(matches!(
-        validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id),
+        validate_mainnet_sns_neuron(&neuron, &neuron.neuron.neuron_id),
         Err(SnsHostError::InvalidSourceData { reason, .. })
             if reason.contains("principal is missing")
     ));
-    neuron.detail.permissions[0].principal = Some(ROOT_A.to_string());
-    let (mint, staking) = neuron.detail.derived_policy_observations();
-    neuron.detail.maturity_mint_conversion_observed_disabled = mint;
-    neuron.detail.manual_maturity_staking_observed_disabled = staking;
-    validate_mainnet_sns_neuron(&neuron, &neuron.detail.neuron.neuron_id)
+    neuron.permissions[0].principal = Some(ROOT_A.to_string());
+    let (mint, staking) = neuron.derived_policy_observations();
+    neuron.maturity_mint_conversion_observed_disabled = mint;
+    neuron.manual_maturity_staking_observed_disabled = staking;
+    validate_mainnet_sns_neuron(&neuron, &neuron.neuron.neuron_id)
         .expect("detail preserves unknown permission codes with canonical labels");
 }
 

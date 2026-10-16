@@ -5,7 +5,7 @@
 //! Boundary: queries bounded and paged neuron data for live reports and refreshes.
 use crate::candid_call::query_canister;
 use crate::sns::report::{
-    SnsCanisterMethod, SnsHostError,
+    SnsCanisterMethod, SnsHostError, SnsNeuronDetail, SnsNeuronRow,
     live::{
         convert::{mainnet_sns_neuron, sns_neuron_row},
         fetch::governance_canister,
@@ -16,9 +16,8 @@ use crate::sns::report::{
         },
     },
     source::{
-        MainnetSns, MainnetSnsNeuron, MainnetSnsNeuronPage, MainnetSnsNeurons, SnsNeuronId,
-        SnsSourceRequest, sns_neuron_id_from_text, validate_mainnet_sns_neuron,
-        validate_mainnet_sns_neuron_page,
+        MainnetSns, MainnetSnsNeuronPage, SnsNeuronId, SnsSourceRequest, sns_neuron_id_from_text,
+        validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
     },
 };
 
@@ -28,12 +27,10 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neurons(
     sns: &MainnetSns,
     limit: u32,
     owner_principal_id: Option<&str>,
-) -> Result<MainnetSnsNeurons, SnsHostError> {
+) -> Result<Vec<SnsNeuronRow>, SnsHostError> {
     let page = fetch_mainnet_sns_neuron_page(source, request, sns, limit, None, owner_principal_id)
         .await?;
-    Ok(MainnetSnsNeurons {
-        neurons: page.neurons,
-    })
+    Ok(page.neurons)
 }
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron(
@@ -41,7 +38,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron(
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     neuron_id: &str,
-) -> Result<MainnetSnsNeuron, SnsHostError> {
+) -> Result<SnsNeuronDetail, SnsHostError> {
     let parsed_neuron_id = sns_neuron_id_from_text(neuron_id)?;
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;

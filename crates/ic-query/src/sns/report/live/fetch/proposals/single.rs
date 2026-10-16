@@ -5,6 +5,7 @@
 //! Boundary: maps get_proposal Candid responses into source-layer proposal data.
 
 use crate::candid_call::query_canister;
+use crate::sns::report::SnsProposalRow;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError,
     live::{
@@ -13,7 +14,7 @@ use crate::sns::report::{
         query::sns_agent,
         types::{GetProposalRequest, GetProposalResponse, GetProposalResult, SnsProposalId},
     },
-    source::{MainnetSns, MainnetSnsProposal, SnsSourceRequest},
+    source::{MainnetSns, SnsSourceRequest},
 };
 
 /// Fetch one SNS governance proposal by id from a resolved governance canister.
@@ -22,7 +23,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
-) -> Result<MainnetSnsProposal, SnsHostError> {
+) -> Result<SnsProposalRow, SnsHostError> {
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetProposal.as_str();
@@ -38,9 +39,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_async(
     )
     .await?;
     match response.result {
-        Some(GetProposalResult::Proposal(proposal)) => Ok(MainnetSnsProposal {
-            proposal: sns_proposal_row(*proposal)?,
-        }),
+        Some(GetProposalResult::Proposal(proposal)) => sns_proposal_row(*proposal),
         Some(GetProposalResult::Error(err)) => Err(SnsHostError::GovernanceError {
             method,
             error_type: err.error_type,

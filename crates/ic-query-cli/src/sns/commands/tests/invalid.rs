@@ -85,7 +85,7 @@ fn sns_proposals_reject_invalid_clap_values() {
     assert!(matches!(
         parse_fallible_test_options(
             sns_proposal_list_command(),
-            &["1", "--limit", "101"],
+            &["be2us-64aaa-aaaaa-qaabq-cai", "--limit", "101"],
             SnsProposalsOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
@@ -93,7 +93,7 @@ fn sns_proposals_reject_invalid_clap_values() {
     assert!(matches!(
         parse_fallible_test_options(
             sns_proposal_list_command(),
-            &["1", "--status", "not-a-status"],
+            &["be2us-64aaa-aaaaa-qaabq-cai", "--status", "not-a-status"],
             SnsProposalsOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
@@ -101,7 +101,7 @@ fn sns_proposals_reject_invalid_clap_values() {
     assert!(matches!(
         parse_fallible_test_options(
             sns_proposal_list_command(),
-            &["1", "--topic", "not-a-topic"],
+            &["be2us-64aaa-aaaaa-qaabq-cai", "--topic", "not-a-topic"],
             SnsProposalsOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))
@@ -109,7 +109,7 @@ fn sns_proposals_reject_invalid_clap_values() {
     assert!(matches!(
         parse_fallible_test_options(
             sns_proposal_list_command(),
-            &["1", "--asc"],
+            &["be2us-64aaa-aaaaa-qaabq-cai", "--asc"],
             SnsProposalsOptions::from_matches,
         ),
         Err(SnsCommandError::Usage(_))

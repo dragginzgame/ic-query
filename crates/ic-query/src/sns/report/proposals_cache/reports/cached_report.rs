@@ -10,7 +10,7 @@ use crate::{
     sns::report::{
         SnsHostError, SnsProposalsReport, SnsProposalsRequest, SnsSnapshotRefreshRequest,
         assemble::{SnsReportContext, SnsReportProvenance, sns_proposals_report_from_parts},
-        cache_storage::load_sns_cache_for_input,
+        cache_storage::load_sns_cache_for_root,
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
             paths::SnsProposalsCacheCollection,
@@ -45,7 +45,7 @@ async fn load_or_refresh_sns_proposals_cache(
 ) -> Result<(PathBuf, SnsProposalsCache), SnsHostError> {
     load_or_refresh_cache(
         || {
-            load_sns_cache_for_input::<SnsProposalsCacheCollection>(
+            load_sns_cache_for_root::<SnsProposalsCacheCollection>(
                 cache_root,
                 &request.lookup.network,
                 &request.lookup.input,

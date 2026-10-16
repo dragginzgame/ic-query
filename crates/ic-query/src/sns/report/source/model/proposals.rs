@@ -1,8 +1,8 @@
 //! Module: sns::report::source::model::proposals
 //!
-//! Responsibility: source-layer SNS proposal models.
+//! Responsibility: validate source-layer SNS proposal rows.
 //! Does not own: governance transport, proposal conversion, or rendering.
-//! Boundary: carries converted proposal rows from sources to builders.
+//! Boundary: checks row identities, derived fields, limits and proposal-page cursors.
 
 use super::validation::SnsSourceValidator;
 use crate::sns::report::{SnsHostError, SnsProposalAction, SnsProposalRow, SnsProposalVote};
@@ -12,56 +12,23 @@ const PROPOSAL_CAPABILITY: &str = "SNS proposal";
 const PROPOSALS_CAPABILITY: &str = "SNS proposals";
 const PROPOSAL_PAGE_CAPABILITY: &str = "SNS proposal page";
 
-///
-/// MainnetSnsProposals
-///
-/// Source-layer bounded SNS proposal listing.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsProposals {
-    pub proposals: Vec<SnsProposalRow>,
-}
-
-///
-/// MainnetSnsProposalPage
-///
-/// Source-layer SNS proposal page used by complete snapshot refresh.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsProposalPage {
-    pub proposals: Vec<SnsProposalRow>,
-}
-
-///
-/// MainnetSnsProposal
-///
-/// Source-layer SNS proposal detail result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsProposal {
-    pub proposal: SnsProposalRow,
-}
-
 /// Validate one bounded proposal result returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_proposals(
-    proposals: &MainnetSnsProposals,
+    proposals: &[SnsProposalRow],
     requested_limit: u32,
 ) -> Result<(), SnsHostError> {
-    validate_sns_proposal_source_rows(&proposals.proposals, requested_limit, PROPOSALS_CAPABILITY)
+    validate_sns_proposal_source_rows(proposals, requested_limit, PROPOSALS_CAPABILITY)
 }
 
 /// Validate one proposal page returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_proposal_page(
-    page: &MainnetSnsProposalPage,
+    page: &[SnsProposalRow],
     requested_limit: u32,
     before_proposal_id: Option<u64>,
 ) -> Result<(), SnsHostError> {
-    validate_sns_proposal_source_rows(&page.proposals, requested_limit, PROPOSAL_PAGE_CAPABILITY)?;
+    validate_sns_proposal_source_rows(page, requested_limit, PROPOSAL_PAGE_CAPABILITY)?;
     if let Some(before) = before_proposal_id
-        && page.proposals.iter().any(|row| row.proposal_id >= before)
+        && page.iter().any(|row| row.proposal_id >= before)
     {
         return Err(SnsSourceValidator::new(PROPOSAL_PAGE_CAPABILITY)
             .invalid("proposal page violates its exclusive before cursor".to_string()));
@@ -71,15 +38,15 @@ pub(in crate::sns::report) fn validate_mainnet_sns_proposal_page(
 
 /// Validate one exact proposal returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_proposal(
-    proposal: &MainnetSnsProposal,
+    proposal: &SnsProposalRow,
     requested_proposal_id: u64,
 ) -> Result<(), SnsHostError> {
     let validator = SnsSourceValidator::new(PROPOSAL_CAPABILITY);
-    validate_sns_proposal_row(&proposal.proposal).map_err(|reason| validator.invalid(reason))?;
-    if proposal.proposal.proposal_id != requested_proposal_id {
+    validate_sns_proposal_row(proposal).map_err(|reason| validator.invalid(reason))?;
+    if proposal.proposal_id != requested_proposal_id {
         return Err(validator.invalid(format!(
             "returned proposal id {}, expected {requested_proposal_id}",
-            proposal.proposal.proposal_id
+            proposal.proposal_id
         )));
     }
     Ok(())

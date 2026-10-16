@@ -4,6 +4,7 @@
 //! Does not own: refresh orchestration, cache policy, or report construction.
 //! Boundary: owns terminal detection and stderr output for query progress.
 
+use ic_host_text::progress::ProgressLine as ProgressFrames;
 use ic_query::{QueryProgress, QueryProgressEvent, QueryProgressState};
 use std::io::{self, IsTerminal, Write};
 
@@ -61,7 +62,7 @@ impl QueryProgress for StderrQueryProgress {
 #[derive(Debug)]
 struct ProgressLine {
     enabled: bool,
-    last_width: usize,
+    frames: ProgressFrames,
     stderr: io::Stderr,
 }
 
@@ -69,46 +70,37 @@ impl ProgressLine {
     fn stderr() -> Self {
         Self {
             enabled: io::stderr().is_terminal(),
-            last_width: 0,
+            frames: ProgressFrames::new(),
             stderr: io::stderr(),
         }
     }
 
     fn update(&mut self, text: &str) {
-        if !self.enabled {
-            return;
+        if self.enabled {
+            let frame = self.frames.update(text);
+            self.write_frame(&frame);
         }
-        self.write_line(text, false);
     }
 
     fn finish(&mut self, text: &str) {
-        if !self.enabled {
-            return;
+        if self.enabled {
+            let frame = self.frames.finish(text);
+            self.write_frame(&frame);
         }
-        self.write_line(text, true);
-        self.last_width = 0;
     }
 
     fn clear(&mut self) {
-        if !self.enabled || self.last_width == 0 {
-            return;
+        if self.enabled {
+            let frame = self.frames.clear();
+            if !frame.is_empty() {
+                self.write_frame(&frame);
+            }
         }
-        let padding = " ".repeat(self.last_width);
-        let _ = write!(self.stderr, "\r{padding}\r");
-        let _ = self.stderr.flush();
-        self.last_width = 0;
     }
 
-    fn write_line(&mut self, text: &str, newline: bool) {
-        let width = text.chars().count();
-        let padding = " ".repeat(self.last_width.saturating_sub(width));
-        if newline {
-            let _ = writeln!(self.stderr, "\r{text}{padding}");
-        } else {
-            let _ = write!(self.stderr, "\r{text}{padding}");
-        }
+    fn write_frame(&mut self, frame: &str) {
+        let _ = self.stderr.write_all(frame.as_bytes());
         let _ = self.stderr.flush();
-        self.last_width = width;
     }
 }
 

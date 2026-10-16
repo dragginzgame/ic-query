@@ -4,6 +4,8 @@
 //! Does not own: ledger-wide history, live transport, cache mechanics, or reports.
 //! Boundary: separates stable collection identity from pagination and local view options.
 
+use super::IcrcLedgerRequest;
+
 use std::path::PathBuf;
 
 ///
@@ -14,12 +16,8 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcrcAccountTransactionPageRequest {
-    /// IC API endpoint used for ledger and index queries.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
-    /// Ledger canister whose account history is requested.
-    pub ledger_canister_id: String,
+    /// Shared ledger identity, explicit endpoint and caller collection clock.
+    pub ledger: IcrcLedgerRequest,
     /// Optional explicit index canister; otherwise ICRC-106 discovery is used.
     pub index_canister_id: Option<String>,
     /// Account owner principal.
@@ -35,17 +33,9 @@ pub struct IcrcAccountTransactionPageRequest {
 impl IcrcAccountTransactionPageRequest {
     /// Constructs an account-history request that discovers the index through the ledger.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        ledger_canister_id: impl Into<String>,
-        account_owner: impl Into<String>,
-        limit: u32,
-    ) -> Self {
+    pub fn new(ledger: IcrcLedgerRequest, account_owner: impl Into<String>, limit: u32) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            ledger_canister_id: ledger_canister_id.into(),
+            ledger,
             index_canister_id: None,
             account_owner: account_owner.into(),
             subaccount_hex: None,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::sns::report::SnsProposalRow;
 
 struct InvalidSnsProposalSource;
 
@@ -10,11 +11,11 @@ impl SnsProposalSource for InvalidSnsProposalSource {
         _request: &'a SnsSourceRequest,
         _sns: &'a MainnetSns,
         _proposal_id: u64,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
             proposal.action = SnsProposalAction::UpgradeSnsControlledCanister;
-            Ok(MainnetSnsProposal { proposal })
+            Ok(proposal)
         })
     }
 }
@@ -32,13 +33,11 @@ impl SnsProposalsSource for InvalidSnsProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
             proposal.ballots[0].vote_text = SnsProposalVote::No;
-            Ok(MainnetSnsProposals {
-                proposals: vec![proposal],
-            })
+            Ok(vec![proposal])
         })
     }
 
@@ -48,13 +47,11 @@ impl SnsProposalsSource for InvalidSnsProposalsSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
             proposal.ballot_count = 2;
-            Ok(MainnetSnsProposalPage {
-                proposals: vec![proposal],
-            })
+            Ok(vec![proposal])
         })
     }
 }

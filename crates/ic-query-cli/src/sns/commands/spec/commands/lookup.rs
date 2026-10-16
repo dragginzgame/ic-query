@@ -20,19 +20,19 @@ const DEFAULT_SNS_METRICS_WINDOW: &str = "30d";
 const SNS_INFO_HELP_AFTER: &str = "\
 Examples:
   icq sns info 1
-  icq sns info 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns info be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns info 1 --json";
 
 const SNS_TOKEN_HELP_AFTER: &str = "\
 Examples:
   icq sns token 1
-  icq sns token 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns token be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns token 1 --json";
 
 const SNS_PARAMETERS_HELP_AFTER: &str = "\
 Examples:
   icq sns parameters 1
-  icq sns parameters 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns parameters be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns parameters 1 --json";
 
 const SNS_SWAP_HELP_AFTER: &str = "\
@@ -41,7 +41,7 @@ enumerate participants, or create a cache.
 
 Examples:
   icq sns swap 1
-  icq sns swap 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns swap be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns swap 1 --json";
 
 const SNS_UPGRADE_HELP_AFTER: &str = "\
@@ -51,7 +51,7 @@ upgrade journal, download Wasms, fan out, or create a cache.
 
 Examples:
   icq sns upgrade 1
-  icq sns upgrade 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns upgrade be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns upgrade 1 --json";
 
 const SNS_METRICS_HELP_AFTER: &str = "\
@@ -62,7 +62,7 @@ with their own timestamps. Does not scan transactions, fan out, or create a cach
 
 Examples:
   icq sns metrics 1
-  icq sns metrics 23ten-uaaaa-aaaaq-aabia-cai --window 90d
+  icq sns metrics be2us-64aaa-aaaaa-qaabq-cai --window 90d
   icq --network ic sns metrics 1 --json";
 
 pub(in crate::sns::commands) fn sns_info_command() -> ClapCommand {

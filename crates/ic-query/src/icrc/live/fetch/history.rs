@@ -70,8 +70,8 @@ pub(in crate::icrc::live) async fn fetch_transactions_async(
 ) -> Result<IcrcTransactionsData, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
-        &request.source_endpoint,
-        &request.ledger_canister_id,
+        &request.ledger.source_endpoint,
+        &request.ledger.ledger_canister_id,
     )?;
     let block_args = vec![GetBlocksRequest {
         start: Nat::from(request.start),
@@ -364,8 +364,8 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
 ) -> Result<IcrcArchivesData, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
-        &request.source_endpoint,
-        &request.ledger_canister_id,
+        &request.ledger.source_endpoint,
+        &request.ledger.ledger_canister_id,
     )?;
     let args = GetArchivesArgs {
         from: request
@@ -684,9 +684,11 @@ mod tests {
             }],
         };
         let request = IcrcTransactionsRequest {
-            source_endpoint: "fixture".into(),
-            now_unix_secs: 0,
-            ledger_canister_id: Principal::anonymous().to_text(),
+            ledger: crate::icrc::IcrcLedgerRequest::new(
+                "fixture",
+                0,
+                Principal::anonymous().to_text(),
+            ),
             start: 1_000,
             limit: 1_001,
             follow_archives: true,
@@ -877,9 +879,11 @@ mod tests {
     #[test]
     fn block_page_validates_request_and_log_bounds_and_disjoint_coverage() {
         let request = IcrcTransactionsRequest {
-            source_endpoint: "fixture".into(),
-            now_unix_secs: 0,
-            ledger_canister_id: Principal::anonymous().to_text(),
+            ledger: crate::icrc::IcrcLedgerRequest::new(
+                "fixture",
+                0,
+                Principal::anonymous().to_text(),
+            ),
             start: 12,
             limit: 2,
             follow_archives: true,

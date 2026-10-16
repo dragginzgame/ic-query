@@ -24,12 +24,14 @@ pub use build::{
     build_nns_governance_reward_event_report_with_source,
 };
 #[cfg(feature = "nns-host")]
-pub use collection::NnsGovernanceRefreshReport;
-#[cfg(feature = "nns-host")]
 pub(super) use collection::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata,
     read_governance_refresh_attempt_status, run_governance_snapshot_refresh,
     validate_governance_cache_metadata, write_running_governance_refresh_attempt,
+};
+#[cfg(feature = "nns-host")]
+pub use collection::{
+    NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceRefreshReport,
 };
 pub use error::NnsGovernanceError;
 pub use model::{
@@ -53,11 +55,11 @@ pub(crate) use source::canister::{call_with_arg, canister_provenance};
 #[cfg(feature = "nns-host")]
 pub(crate) use source::host::host_request;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
-#[cfg(feature = "nns-host")]
-pub use text::nns_governance_refresh_report_text;
 pub(crate) use text::{
     context_lines as governance_context_lines, source_lines as governance_source_lines,
 };
+#[cfg(feature = "nns-host")]
+pub use text::{nns_governance_cache_status_report_text, nns_governance_refresh_report_text};
 pub use text::{
     nns_governance_economics_report_text, nns_governance_maturity_modulation_report_text,
     nns_governance_metrics_report_text, nns_governance_reward_event_report_text,

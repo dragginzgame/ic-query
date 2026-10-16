@@ -37,13 +37,13 @@ pub async fn build_sns_neurons_report_with_source(
         )
         .await?;
     validate_mainnet_sns_neurons(&neurons, request.limit)?;
-    let total_neuron_count = neurons.neurons.len();
+    let total_neuron_count = neurons.len();
     Ok(sns_neurons_report_from_rows(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         SnsReportProvenance::live(),
         request.owner_principal_id.clone(),
         total_neuron_count,
-        neurons.neurons,
+        neurons,
     ))
 }

@@ -127,11 +127,11 @@ pub async fn build_icrc_balance_report_with_source(
     let balance = source.fetch_balance(&request).await?;
     Ok(IcrcBalanceReport {
         schema_version: ICRC_BALANCE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint,
+        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
         token_symbol: balance.token_symbol,
         decimals: balance.decimals,
@@ -155,13 +155,13 @@ pub async fn build_icrc_allowance_report_with_source(
     let allowance = source.fetch_allowance(&request).await?;
     Ok(IcrcAllowanceReport {
         schema_version: ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         account_owner: request.account_owner,
         account_subaccount_hex: request.account_subaccount_hex,
         spender_owner: request.spender_owner,
         spender_subaccount_hex: request.spender_subaccount_hex,
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint,
+        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
         token_symbol: allowance.token_symbol,
         decimals: allowance.decimals,
@@ -182,7 +182,7 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
         });
     }
     let ledger_canister_id =
-        principal_from_text(&request.ledger_canister_id, "ledger_canister_id")?.to_text();
+        principal_from_text(&request.ledger.ledger_canister_id, "ledger_canister_id")?.to_text();
     let account_owner = principal_from_text(&request.account_owner, "account_owner")?.to_text();
     let index_canister_id = request
         .index_canister_id
@@ -191,7 +191,10 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
         .transpose()?
         .map(|principal| principal.to_text());
     let request = IcrcAccountTransactionPageRequest {
-        ledger_canister_id,
+        ledger: IcrcLedgerRequest {
+            ledger_canister_id,
+            ..request.ledger.clone()
+        },
         index_canister_id,
         account_owner,
         subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
@@ -200,7 +203,7 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
             .as_deref()
             .map(normalize_transaction_cursor)
             .transpose()?,
-        ..request.clone()
+        limit: request.limit,
     };
     let transactions = source.fetch_account_transaction_page(&request).await?;
     let actual_index =
@@ -230,7 +233,7 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
     )?;
     Ok(IcrcAccountTransactionPageReport {
         schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         index_canister_id: actual_index,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
@@ -241,8 +244,8 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
         balance: transactions.balance,
         token_symbol: transactions.token_symbol,
         decimals: transactions.decimals,
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint,
+        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
         transactions: transactions.transactions,
     })
@@ -272,9 +275,9 @@ pub async fn build_icrc_transactions_report_with_source(
     super::fetch::validate_transactions_data(request, &transactions)?;
     Ok(IcrcTransactionsReport {
         schema_version: ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
+        ledger_canister_id: request.ledger.ledger_canister_id.clone(),
+        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
+        source_endpoint: request.ledger.source_endpoint.clone(),
         fetched_by: ICRC_FETCHED_BY.to_string(),
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
@@ -320,10 +323,10 @@ pub async fn build_icrc_archives_report_with_source(
     let archives = source.fetch_archives(&request).await?;
     Ok(IcrcArchivesReport {
         schema_version: ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id,
+        ledger_canister_id: request.ledger.ledger_canister_id,
         from_canister_id: request.from_canister_id,
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint,
+        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
+        source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
         archives: archives.archives,
     })
