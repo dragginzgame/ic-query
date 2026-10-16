@@ -1,4 +1,5 @@
 # Common release commands
+<!-- Shared companions: docs/cargo-publication.md -->
 
 Every `dragginzgame` repository, including Shared Tooling and repositories without
 a publishable package, must provide these Make targets:
@@ -784,8 +785,13 @@ and lock identities before mutation; independently versioned packages need their
 consumer-owned adapter. Existing adapters are not replaced by adoption alone.
 
 The caller supplies `RELEASE_PREVIOUS`, `RELEASE_VERSION`, `RELEASE_DATE`, prepared
-Cargo-edit/Cargo-sort, jq and Mike Farah yq. Preparation uses the locked offline
-graph, restores all three original files on failure and retains failure custody.
+Cargo, Perl, jq and Mike Farah yq. Preparation uses the locked offline graph
+and a literal root-version renderer. It independently parses the candidate before
+installation, preserves manifest layout, file modes and external lock selections,
+restores all three original files on failure and retains failure custody. It does
+not run Cargo-edit or Cargo-sort; consumer ordering gates remain separate.
+Catchable INT/TERM interruptions restore the same originals and preserve their
+exit status. Unsupported literal layouts refuse before installation.
 The `check` operation uses `RELEASE_COMMIT` when selected, exporting that exact
 committed source instead of reading newer working metadata. No version selection,
 fetch, tool installation, Git staging/ref mutation or publication is implicit.
@@ -795,3 +801,18 @@ IC Metrics adopts the corrected helper from committed Shared Tooling 0.11.1
 through normal snapshot distribution, retaining its local policy in a thin adapter.
 Other Cargo consumers must retain their own file set, recovery and metadata policy
 when qualifying this adapter; it is not a fleet-wide automatic replacement.
+
+### Pure release input admission
+
+`scripts/ci/validate-release-inputs.pl version X.Y.Z` accepts canonical stable
+versions with decimal u64 components and prints those three components separated
+by tabs. It compares large values as strings, preserving integers above 2^53.
+`date YYYY-MM-DD` validates the Gregorian date (years 0001 through 9999) and
+prints its exact spelling. Both refuse extra whitespace, CR/LF and malformed
+values, perform no file IO and select no release effects. Consumer adapters can
+use this same grammar at each saved-input/receipt boundary.
+
+The shell increment helper retains its narrower signed arithmetic headroom;
+admission of a u64 version is not permission to increment it through Bash.
+The runner admits generated and retained dates before dispatching release
+callbacks. Consumers still own metadata, selected identity, receipts and replay.

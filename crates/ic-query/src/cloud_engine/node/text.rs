@@ -58,7 +58,7 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
         format!("node_id: {}", node.node_id),
-        format!("status: {}", terminal_text(&node.status)),
+        format!("status: {}", terminal_text(&node.status).into_owned()),
         format!("node_type: {}", terminal_text(&node.node_type)),
         format!(
             "node_reward_type: {}",
@@ -75,7 +75,10 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
             optional_text(node.cloud_engine_subnet_id.as_ref())
         ),
         format!("subnet_id: {}", optional_text(node.subnet_id.as_ref())),
-        format!("data_center_id: {}", terminal_text(&node.data_center_id)),
+        format!(
+            "data_center_id: {}",
+            terminal_text(&node.data_center_id).into_owned()
+        ),
         format!(
             "data_center_name: {}",
             terminal_text(&node.data_center_name)
@@ -110,13 +113,13 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
         .map(|node| {
             [
                 node.node_id.clone(),
-                terminal_text(&node.status),
+                terminal_text(&node.status).into_owned(),
                 node.cloud_engine_subnet_id
                     .as_ref()
                     .map_or_else(|| "-".to_string(), Clone::clone),
                 node.node_provider_id.clone(),
                 node.node_operator_id.clone(),
-                terminal_text(&node.data_center_id),
+                terminal_text(&node.data_center_id).into_owned(),
                 node.guestos_version
                     .as_ref()
                     .map_or_else(|| "-".to_string(), Clone::clone),

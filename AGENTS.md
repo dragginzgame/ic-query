@@ -15,9 +15,6 @@ Preserve these standing maintainer exceptions and their local scope:
 
 - Release execution, version bumps and release refs remain maintainer-only,
   as described below; contribution PR authority is separate.
-- Focused development checks run automatically; broad gates require an explicit
-  request or configured CI under Testing. This retains Query’s selected validation
-  cadence rather than silently activating the common full-delivery gate.
 - The Changelog section retains Query’s requested/active-release note cadence,
   selected-or-next-patch default and CLI examples, for one explicit release ledger.
 - Public-metadata schemas remain `1`, with breaking shapes replaced through
@@ -173,10 +170,8 @@ Policy adoption does not activate hooks, schedules, installers or release comman
 
 ## Testing
 
-- Prefer targeted tests first; broaden when risk warrants it.
-- Run focused checks automatically. Broad workspace validation, full CI, and
-  release gates require an explicit request or their configured CI pipeline;
-  ordinary continuation and readiness requests do not authorize those gates.
+- Follow the [shared validation cadence](DRAGGINZGAME.md#validation-and-evidence).
+  The local targets and native matrix define Query's product qualification scope.
 - Check for active builds before compilation or source edits. Do not change
   source under validation or compete for its build lock. Preserve build and
   evidence artifacts; do not run cleanup helpers that erase consumer outputs.

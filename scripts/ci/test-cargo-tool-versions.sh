@@ -35,7 +35,8 @@ exit "${VERSION_TRANSPORT:-0}"
 CURL
 chmod +x "$fixture/bin/curl"
 export PATH="$fixture/bin:$PATH"
-mkdir -p "$fixture/snapshot/scripts/dev" "$fixture/snapshot/ci"
+mkdir -p "$fixture/snapshot/scripts/ci" "$fixture/snapshot/scripts/dev" "$fixture/snapshot/ci"
+cp "$ROOT/scripts/ci/StableVersion.pm" "$fixture/snapshot/scripts/ci/"
 cp "$ROOT/scripts/dev/check-cargo-tool-versions.pl" "$fixture/snapshot/scripts/dev/"
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > "$fixture/consumer/ci/tool-versions.env"
 cp "$fixture/consumer/ci/tool-versions.env" "$fixture/snapshot/ci/tool-versions.env"
@@ -108,5 +109,14 @@ printf '{"installs":{"twiggy 0.8.0 (git+https://example.invalid/repo)":{}}}\n' >
 run 2
 printf 'invalid JSON\n' > "$fixture/home/.crates2.json"
 run 2
+# Registry ordering uses the same exact comparator as release admission, even
+# beyond native integer precision. Neither release order nor input order wins.
+cp "$fixture/bundle/.crates2.json" "$fixture/home/.crates2.json"
+jq '.versions += [
+ {crate:"cargo-sort",num:"18446744073709551617.0.0",yanked:false},
+ {crate:"cargo-sort",num:"18446744073709551616.0.0",yanked:false}]' \
+    "$fixture/valid.json" > "$fixture/cargo-sort.json"
+run 1
+jq -e '.tools[0].latest=="18446744073709551617.0.0"' "$fixture/report.json" >/dev/null
 echo 'Cargo version freshness, separate selections and incomplete observation tests passed (substitute registry)'
 fixture_complete=true

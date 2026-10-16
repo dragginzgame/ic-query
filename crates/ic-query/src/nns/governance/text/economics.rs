@@ -118,10 +118,10 @@ fn decimal_text(value: Option<&NnsGovernanceDecimal>) -> String {
     value.map_or_else(
         || "-".to_string(),
         |value| {
-            value
-                .human_readable
-                .as_deref()
-                .map_or_else(|| "-".to_string(), terminal_text)
+            value.human_readable.as_deref().map_or_else(
+                || "-".to_string(),
+                |value| terminal_text(value).into_owned(),
+            )
         },
     )
 }

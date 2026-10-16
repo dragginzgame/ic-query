@@ -10,19 +10,7 @@ temp_root="$2"
 root="$(cd -P "${BASH_SOURCE[0]%/*}/../.." && printf '%s/.' "$PWD")"
 root="${root%/.}"
 evidence_dir="$(mktemp -d "$temp_root/ic-query-tool-evidence.XXXXXX")"
-inputs=()
-status=0
-if bash "$root/scripts/ci/select-tool-evidence.sh" full "$repository" "$evidence_dir" \
-  > "$evidence_dir/selections.nul" 2> "$evidence_dir/selection.log"; then
-  cat "$evidence_dir/selection.log" >&2
-else
-  status=$?
-  cat "$evidence_dir/selection.log" >&2
-fi
-while IFS= read -r -d '' selected_root && IFS= read -r -d '' selected_path; do
-  inputs+=("$selected_root" "$selected_path")
-done < "$evidence_dir/selections.nul"
-if [[ ${#inputs[@]} != 0 ]]; then
-  bash "$root/scripts/ci/archive-evidence.sh" "$evidence_dir/tools.tar.gz" "${inputs[@]}"
-fi
-exit "$status"
+mkdir "$evidence_dir/diagnostics"
+bash "$root/scripts/ci/collect-tool-evidence.sh" "$evidence_dir/tools.tar.gz" \
+  "$repository" "$evidence_dir/diagnostics" full \
+  "$root/ci/tool-versions.env" "$root/ci/ic-tools.tsv"

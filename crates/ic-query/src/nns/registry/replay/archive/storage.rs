@@ -15,7 +15,6 @@ use crate::{
         read_bounded_managed_file as read_shared_bounded_managed_file,
         write_managed_file_atomically,
     },
-    hex::hex_bytes,
     nns::registry::{
         NnsAuthenticatedRegistryDeltaBatch, NnsAuthenticatedRegistryReplaySession,
         NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
@@ -24,8 +23,7 @@ use crate::{
     },
     subnet_catalog::parse_utc_timestamp_secs,
 };
-use ic_host_artifacts::artifact::{BoundedWriter, HashingWriter};
-use sha2::{Digest, Sha256};
+use ic_host_artifacts::artifact::{BoundedWriter, HashingWriter, Sha256Digest};
 use std::{
     io,
     path::{Path, PathBuf},
@@ -578,7 +576,7 @@ fn write_report_object(
         serde_json::to_writer(&mut writer, report).map_err(io::Error::from)?;
         let (_, identity) = writer.into_parts();
         if identity.bytes != descriptor.report_bytes
-            || hex_bytes(identity.sha256.as_bytes()) != descriptor.report_sha256
+            || identity.sha256.to_string() != descriptor.report_sha256
         {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
@@ -668,7 +666,7 @@ fn validate_object_bytes(
             },
         );
     }
-    let actual_digest = hex_bytes(&Sha256::digest(bytes));
+    let actual_digest = Sha256Digest::compute(bytes).to_string();
     if actual_digest != descriptor.report_sha256 {
         return Err(
             NnsCertifiedRegistryArchiveStorageError::BatchDigestMismatch {

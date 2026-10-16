@@ -33,7 +33,7 @@ impl SubnetCatalogSource for WrongEndpointSource {
 
 #[tokio::test(flavor = "current_thread")]
 async fn refresh_exports_protect_a_live_sources_separate_history_root_before_collection() {
-    let root = temp_dir("ic-query-catalog-separate-history-export");
+    let root = temp_dir("ic-query-catalog-separate-history-export").join("missing");
     let history_root = temp_dir("ic-query-catalog-source-history-export");
     let source =
         LiveSubnetCatalogSource::with_progress(|_| panic!("export rejected before collection"))
@@ -391,7 +391,7 @@ async fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_lock() {
-    let root = temp_dir("ic-query-subnet-refresh-output-preflight");
+    let root = temp_dir("ic-query-subnet-refresh-output-preflight").join("missing");
     for output_path in [
         subnet_catalog_path(&root, MAINNET_NETWORK),
         subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK),

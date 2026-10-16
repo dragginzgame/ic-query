@@ -632,7 +632,8 @@ explicit caller-managed persistence. The command does not read or write the
 ordinary neuron cache and does not create a checkpoint file implicitly.
 
 `sns reward diff` is local-only. It accepts two explicitly selected current-
-schema checkpoint files and `--json`; it has no source endpoint and rejects an
+schema checkpoint files of at most 64 MiB each and `--json`; it has no source
+endpoint and rejects an
 explicit global `--network`. Both files are untrusted input. The library
 recomputes raw maturity totals, row ids and order, permission findings,
 parameter/event/version brackets, timestamps, counts, and stable target

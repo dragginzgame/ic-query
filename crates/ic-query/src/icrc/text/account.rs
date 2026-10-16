@@ -374,7 +374,7 @@ fn render_account_transactions_table(
             .map(|transaction| {
                 [
                     transaction.id.clone(),
-                    terminal_text(&transaction.kind),
+                    terminal_text(&transaction.kind).into_owned(),
                     optional_text(transaction.timestamp_unix_nanos.as_ref()),
                     optional_amount_text(
                         transaction.amount_base_units.as_ref(),
@@ -415,13 +415,13 @@ fn optional_account_text(account: Option<&IcrcAccountRow>) -> String {
 
 fn account_text(account: &IcrcAccountRow) -> String {
     if let Some(account_identifier) = account.account_identifier.as_ref() {
-        return terminal_text(account_identifier);
+        return terminal_text(account_identifier).into_owned();
     }
     let Some(owner) = account.owner.as_ref() else {
         return "-".to_string();
     };
     account.subaccount_hex.as_ref().map_or_else(
-        || terminal_text(owner),
+        || terminal_text(owner).into_owned(),
         |subaccount| format!("{}:{}", terminal_text(owner), terminal_text(subaccount)),
     )
 }

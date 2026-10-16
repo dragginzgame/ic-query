@@ -1,4 +1,5 @@
 use super::*;
+use ic_certification::{empty, fork, labeled, leaf as tree_leaf};
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -7,29 +8,41 @@ fn encoded_tree(tree: &HashTree) -> Vec<u8> {
 }
 
 #[test]
-fn bounded_owned_tree_accepts_pruned_nodes() {
-    let tree = fork(tree_leaf(vec![1]), pruned([2; 32]));
-    let bytes = encoded_tree(&tree);
-    let decoded = decode::<OwnedTree>(&bytes, 16).unwrap().0;
-    assert_eq!(decoded.digest(), tree.digest());
-}
-
-#[test]
-fn decoder_refuses_trailing_bytes_and_excessive_nesting() {
-    let mut bytes = encoded_tree(&tree_leaf(vec![1]));
-    bytes.push(0);
+fn shared_decoder_failures_keep_query_categories_and_original_cause() {
     assert!(matches!(
-        decode::<OwnedTree>(&bytes, 16),
-        Err(CertificateVerificationError::Malformed)
+        decode_error(DecodeError::ByteLimit {
+            actual: 2,
+            limit: 1
+        }),
+        CertificateVerificationError::BudgetExceeded
     ));
-    let tree = labeled(
-        b"one".to_vec(),
-        labeled(b"two".to_vec(), tree_leaf(vec![1])),
-    );
-    assert!(matches!(
-        decode::<OwnedTree>(&encoded_tree(&tree), 1),
-        Err(CertificateVerificationError::Decode(_))
-    ));
+    let mut trailing = encoded_tree(&tree_leaf(vec![1]));
+    trailing.push(0);
+    for (bytes, depth) in [
+        (trailing, 16),
+        (
+            encoded_tree(&labeled(b"nested".to_vec(), tree_leaf(vec![1]))),
+            1,
+        ),
+    ] {
+        let error = decode_hash_tree(
+            &bytes,
+            DecodeLimits {
+                bytes: bytes.len(),
+                depth,
+            },
+        )
+        .map_err(decode_error)
+        .unwrap_err();
+        if depth == 16 {
+            assert!(matches!(error, CertificateVerificationError::Malformed));
+        } else {
+            let CertificateVerificationError::Decode(source) = error else {
+                panic!("expected typed CBOR parse failure");
+            };
+            assert!(std::error::Error::source(&source).is_some());
+        }
+    }
 }
 
 #[test]

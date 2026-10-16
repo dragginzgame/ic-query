@@ -27,7 +27,7 @@ use crate::{
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
             IcrcAccountTransactionError, IcrcAccountTransactionRefreshReport,
-            IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionSnapshot, IcrcError,
+            IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionSnapshot,
         },
     },
     progress::IgnoreQueryProgress,
@@ -303,8 +303,7 @@ fn validate_collection_data(
             "source returned a complete collection beyond the requested max pages",
         ));
     }
-    let actual_index =
-        principal_from_text::<IcrcError>(&complete.index_canister_id, "index_canister_id")?;
+    let actual_index = principal_from_text(&complete.index_canister_id, "index_canister_id")?;
     if let Some(expected_index) = request.index_canister_id.as_deref()
         && expected_index != actual_index.to_text()
     {
@@ -356,7 +355,7 @@ fn normalize_refresh_request(
     let index_canister_id = request
         .index_canister_id
         .as_deref()
-        .map(|value| principal_from_text::<IcrcError>(value, "index_canister_id"))
+        .map(|value| principal_from_text(value, "index_canister_id"))
         .transpose()?
         .map(|principal| principal.to_text());
     Ok(IcrcAccountTransactionRefreshRequest {

@@ -7,15 +7,19 @@
 use crate::sns::report::{
     SnsHostError, SnsRewardCheckpointReport, SnsRewardDiffReport, build_sns_reward_diff_report,
 };
-use std::{fs, path::Path};
+use ic_host_fs::read::read_file;
+use std::{io, path::Path};
 
-/// Load one strict SNS reward-checkpoint JSON document from a caller-selected path.
+const CHECKPOINT_BYTES: usize = 64 * 1024 * 1024;
+
+/// Load one strict SNS reward-checkpoint JSON document, at most 64 MiB, from a selected path.
 pub fn load_sns_reward_checkpoint(path: &Path) -> Result<SnsRewardCheckpointReport, SnsHostError> {
-    let data = fs::read_to_string(path).map_err(|source| SnsHostError::ReadRewardCheckpoint {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    serde_json::from_str(&data).map_err(|source| SnsHostError::ParseRewardCheckpoint {
+    let data =
+        read_file(path, CHECKPOINT_BYTES).map_err(|source| SnsHostError::ReadRewardCheckpoint {
+            path: path.to_path_buf(),
+            source: io::Error::from(source),
+        })?;
+    serde_json::from_slice(&data).map_err(|source| SnsHostError::ParseRewardCheckpoint {
         path: path.to_path_buf(),
         source,
     })

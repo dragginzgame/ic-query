@@ -1,10 +1,7 @@
 //! Direct IC protocol calls and bounded admission of original reply evidence.
 
 use crate::{Result, command, invalid};
-use candid::{
-    Principal,
-    de::{DecoderConfig, IDLDeserialize},
-};
+use candid::Principal;
 use futures::future::{Either, select};
 use ic_agent::Agent;
 use ic_host_artifacts::{
@@ -12,6 +9,7 @@ use ic_host_artifacts::{
     wasm::{self, InspectionLimits},
 };
 use ic_host_fs::{durable::create_private_bytes_with_parents, read::read_file};
+use ic_testkit_candid::{DecodeError, DecodeLimits, decode_exactly_one};
 use std::{future::Future, io, path::Path, time::Duration};
 use url::Url;
 
@@ -34,30 +32,27 @@ pub fn read_wasm(path: &Path) -> Result<Vec<u8>> {
 }
 
 pub fn decode_reply(bytes: &[u8]) -> Result<String> {
-    if bytes.len() > REPLY_BYTES {
-        return Err(invalid("probe reply exceeds 2 MiB"));
-    }
     let quota = bytes
         .len()
         .saturating_mul(32)
         .saturating_add(1_000_000)
         .min(256_000_000);
-    let mut config = DecoderConfig::new();
-    config
-        .set_decoding_quota(quota)
-        .set_skipping_quota(100_000)
-        .set_max_type_len(4_096)
-        .set_max_header_len(64 * 1_024);
-    let invalid_reply =
-        || invalid("probe must return exactly one Candid text value within decoding limits");
-    let mut decoder =
-        IDLDeserialize::new_with_config(bytes, &config).map_err(|_| invalid_reply())?;
-    let text = decoder.get_value::<String>().map_err(|_| invalid_reply())?;
-    if !decoder.is_done() {
-        return Err(invalid_reply());
-    }
-    decoder.done().map_err(|_| invalid_reply())?;
-    Ok(text)
+    decode_exactly_one(
+        bytes,
+        DecodeLimits {
+            reply_bytes: REPLY_BYTES,
+            decoding_quota: quota,
+            skipping_quota: 100_000,
+            type_entries: 4_096,
+            header_bytes: 64 * 1_024,
+        },
+    )
+    .map_err(|error| match error {
+        DecodeError::ReplyTooLarge { .. } => invalid("probe reply exceeds 2 MiB"),
+        DecodeError::Candid(_) => {
+            invalid("probe must return exactly one Candid text value within decoding limits")
+        }
+    })
 }
 
 pub fn publish_reply(path: &Path, bytes: &[u8]) -> Result<String> {

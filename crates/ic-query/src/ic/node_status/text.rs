@@ -142,7 +142,7 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         .map(|row| {
             [
                 compact(&row.node_provider_id),
-                terminal_text(&row.node_provider_name),
+                terminal_text(&row.node_provider_name).into_owned(),
                 row.counts.statuses.total.to_string(),
                 row.counts.statuses.up.to_string(),
                 row.counts.statuses.degraded.to_string(),
@@ -290,15 +290,16 @@ fn render_node_table(nodes: &[IcNodeStatusRow]) -> String {
         .map(|node| {
             [
                 compact(&node.node_id),
-                terminal_text(&node.status),
-                terminal_text(&node.node_type),
+                terminal_text(&node.status).into_owned(),
+                terminal_text(&node.node_type).into_owned(),
                 node.subnet_id
                     .as_deref()
                     .map_or_else(|| "-".to_string(), compact),
                 compact(&node.node_provider_id),
-                node.alert_name
-                    .as_deref()
-                    .map_or_else(|| "-".to_string(), terminal_text),
+                node.alert_name.as_deref().map_or_else(
+                    || "-".to_string(),
+                    |value| terminal_text(value).into_owned(),
+                ),
             ]
         })
         .collect::<Vec<_>>();

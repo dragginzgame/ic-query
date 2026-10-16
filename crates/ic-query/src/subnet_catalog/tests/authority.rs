@@ -175,6 +175,20 @@ fn authority_validation_recomputes_catalog_digest_and_mainnet_identity() {
         Err(CatalogError::CatalogDigestMismatch { .. })
     ));
 
+    for value in [
+        "AB".repeat(32),
+        "g0".repeat(32),
+        "ab".repeat(31),
+        "é".repeat(32),
+    ] {
+        let mut raw = fixture_catalog();
+        raw.catalog_digest = value;
+        assert!(matches!(
+            ValidatedSubnetCatalog::try_from_raw(raw, &validation_context()),
+            Err(CatalogError::InvalidCatalogDigest { .. })
+        ));
+    }
+
     let mut identity = fixture_catalog();
     identity.provenance.registry_canister_id = "aaaaa-aa".to_string();
     assert!(matches!(

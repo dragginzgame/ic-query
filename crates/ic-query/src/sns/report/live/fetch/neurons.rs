@@ -3,12 +3,13 @@
 //! Responsibility: fetch SNS governance neurons.
 //! Does not own: lookup resolution, cache storage, sorting, or rendering.
 //! Boundary: queries bounded and paged neuron data for live reports and refreshes.
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError,
     live::{
         convert::{mainnet_sns_neuron, sns_neuron_row},
         fetch::governance_canister,
-        query::{principal_from_text, query_canister, sns_agent},
+        query::{principal_from_text, sns_agent},
         types::{
             GetNeuronRequest, GetNeuronResponse, GetNeuronResult, ListNeuronsRequest,
             ListNeuronsResponse,
@@ -45,7 +46,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron(
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetNeuron.as_str();
-    let response: GetNeuronResponse = query_canister(
+    let response: GetNeuronResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         method,
@@ -86,7 +87,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron_page(
     let owner_principal = owner_principal_id
         .map(|principal| principal_from_text(principal, "owner_principal_id"))
         .transpose()?;
-    let response: ListNeuronsResponse = query_canister(
+    let response: ListNeuronsResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         SnsCanisterMethod::ListNeurons.as_str(),

@@ -72,7 +72,10 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             "health_query_gap:".to_string(),
             render(
                 &["METHOD", "REASON"],
-                &[[gap.method.as_str().to_string(), terminal_text(&gap.reason)]],
+                &[[
+                    gap.method.as_str().to_string(),
+                    terminal_text(&gap.reason).into_owned(),
+                ]],
                 &[Alignment::Left, Alignment::Left],
                 REPORT_TABLE_OPTIONS,
             ),

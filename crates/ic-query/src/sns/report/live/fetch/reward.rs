@@ -5,12 +5,13 @@
 //! Boundary: performs one bounded Governance query per source method invocation.
 
 use super::governance_canister;
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     MainnetSns, MainnetSnsRewardNeuronPage, SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsCanisterMethod,
     SnsHostError, SnsNeuronId, SnsRewardEvent, SnsSourceRequest,
     live::{
         convert::sns_reward_checkpoint_row,
-        query::{query_canister, sns_agent},
+        query::sns_agent,
         types::{ListNeuronsRequest, ListRewardNeuronsResponse},
     },
     source::validate_mainnet_sns_reward_neuron_page,
@@ -24,7 +25,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_event(
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetLatestRewardEvent.as_str();
-    query_canister(
+    query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         method,
@@ -52,7 +53,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_neuron_page(
     }
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
-    let response: ListRewardNeuronsResponse = query_canister(
+    let response: ListRewardNeuronsResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         SnsCanisterMethod::ListNeurons.as_str(),

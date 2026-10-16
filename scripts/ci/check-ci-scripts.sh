@@ -543,6 +543,8 @@ workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/work
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
 bash "$repo_root/scripts/ci/test-ci-workflow.sh"
+bash "$repo_root/scripts/ci/test-collect-tool-evidence.sh"
+bash "$repo_root/scripts/ci/test-cargo-release-preflight.sh"
 
 schema_version_case="${work_dir}/schema-version"
 mkdir -p "${schema_version_case}"
@@ -894,7 +896,9 @@ fi
 [[ ! -s "$format_case/trace" ]] || fail 'formatter executed after common admission failure'
 grep -Fq 'fixture common admission failure' "$format_case/shared-admission-failure.log" || exit 1
 
-python3 -m unittest discover -s "${repo_root}/scripts/ci" -p test_public_docs.py
+perl "${repo_root}/scripts/ci/test-public-docs.pl"
+perl "${repo_root}/scripts/ci/test-type-docs.pl"
+bash "${repo_root}/scripts/ci/test-public-docs.sh"
 
 public_docs_case="${work_dir}/public-docs"
 mkdir -p "${public_docs_case}/bin" "${public_docs_case}/tmp"
@@ -908,13 +912,9 @@ case "${1:-}" in
     case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
     case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
     printf 'doc\n' > "$TRACE_FILE"
-    python3 - "${REPO_ROOT}/scripts/ci/public-docs-baseline.json" <<'PYDOC'
-import json
-import sys
-# The real diagnostic parser is covered separately; this fixture checks shell
-# invocation and failure propagation without invoking rustdoc.
-print(json.dumps({"reason": "build-finished", "success": True}))
-PYDOC
+    # The real parser is covered separately; this fixture checks invocation and
+    # failure propagation without invoking rustdoc.
+    printf '%s\n' '{"reason":"build-finished","success":true}'
     ;;
   *) exit 2 ;;
 esac
@@ -924,7 +924,7 @@ chmod +x "${public_docs_case}/bin/cargo"
 if (
   cd "${repo_root}"
   TMPDIR="${public_docs_case}/tmp" PATH="${public_docs_case}/bin:${PATH}" \
-    CARGO_TERM_COLOR=always REPO_ROOT="${repo_root}" \
+    CARGO_TERM_COLOR=always \
     DOC_ARTIFACT="${public_docs_case}/retained-doc" \
     TRACE_FILE="${public_docs_case}/trace" CARGO_NET_OFFLINE=false \
     bash "${repo_root}/scripts/ci/check-public-docs.sh"
@@ -994,11 +994,13 @@ for failed_command in check test tree; do
   fi
 done
 
-for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools \
+for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
+  'ic-host-tools feature "candid-extraction"' 'ic-host-tools feature "candid-service"' \
+  'ic-host-tools feature "ic-interface"' 'ic-host-tools feature "ic-limits"' \
   'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
   'ic-host-artifacts feature "wasm"'; do
   scope=host
-  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs ]] || scope=pure
+  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs && "$dependency" != ic-host-tools ]] || scope=pure
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \
@@ -1015,6 +1017,13 @@ TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}
   bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
     >"${feature_boundary_case}/filesystem-accepted.log" 2>&1 \
     || fail 'the cache host feature boundary rejected its current filesystem dependency'
+
+TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE='ic-host-tools feature "certificate"' \
+  TRACE_FILE="${feature_boundary_case}/trace" \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+    >"${feature_boundary_case}/certificate-accepted.log" 2>&1 \
+    || fail 'the host feature boundary rejected the selected certificate decoder'
 
 retention_case="$work_dir/fixture-retention"
 mkdir -p "$retention_case/bin"

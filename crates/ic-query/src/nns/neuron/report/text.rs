@@ -396,10 +396,10 @@ fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
                     e8s_decimal_text(neuron.stake_e8s),
                     display_duration_seconds(neuron.dissolve_delay_seconds),
                     optional_u64_text(neuron.deciding_voting_power),
-                    neuron
-                        .known_neuron_data
-                        .as_ref()
-                        .map_or_else(|| "-".to_string(), |known| terminal_text(&known.name)),
+                    neuron.known_neuron_data.as_ref().map_or_else(
+                        || "-".to_string(),
+                        |known| terminal_text(&known.name).into_owned(),
+                    ),
                 ]
             })
             .collect::<Vec<_>>(),
@@ -477,13 +477,19 @@ fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
         ),
         format!(
             "known_name: {}",
-            known.map_or_else(|| "-".to_string(), |known| terminal_text(&known.name))
+            known.map_or_else(
+                || "-".to_string(),
+                |known| terminal_text(&known.name).into_owned()
+            )
         ),
         format!(
             "known_description: {}",
             known
                 .and_then(|known| known.description.as_deref())
-                .map_or_else(|| "-".to_string(), terminal_text)
+                .map_or_else(
+                    || "-".to_string(),
+                    |value| terminal_text(value).into_owned()
+                )
         ),
         format!(
             "known_links: {}",

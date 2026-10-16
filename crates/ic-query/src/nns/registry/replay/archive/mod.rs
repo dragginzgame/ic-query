@@ -15,7 +15,7 @@ use super::{
     validated_batch_prefix_counts,
 };
 use crate::{
-    hex::{hex_bytes, is_lowercase_hex},
+    hex::hex_bytes,
     http_endpoint::parse_http_endpoint,
     nns::registry::{
         NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsAuthenticatedRegistryDeltaBatch,
@@ -23,7 +23,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter};
+use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter, Sha256Digest};
 use serde::{Deserialize, Serialize};
 use std::io;
 use thiserror::Error as ThisError;
@@ -271,7 +271,7 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
                 response_bytes,
                 applied_mutation_count,
                 report_bytes: report_encoding.bytes,
-                report_sha256: hex_bytes(report_encoding.sha256.as_bytes()),
+                report_sha256: report_encoding.sha256.to_string(),
             });
         self.total_report_bytes = candidate_total_report_bytes;
         Ok(progress)
@@ -777,7 +777,7 @@ fn required_session_text(
 }
 
 fn validate_digest(field: &str, value: &str) -> Result<(), NnsCertifiedRegistryArchiveError> {
-    if value.len() != 64 || !is_lowercase_hex(value) {
+    if value.parse::<Sha256Digest>().is_err() {
         return Err(invalid_manifest(format!(
             "{field} must be exactly 32 bytes of lowercase hexadecimal"
         )));

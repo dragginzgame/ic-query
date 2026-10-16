@@ -39,6 +39,6 @@ pub(super) fn live_query_context(
                 },
             )?
             .clone(),
-        principal_from_text::<IcrcError>(ledger_canister_id, "ledger_canister_id")?,
+        principal_from_text(ledger_canister_id, "ledger_canister_id")?,
     ))
 }

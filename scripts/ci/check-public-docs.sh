@@ -18,6 +18,6 @@ if ! CARGO_TERM_COLOR=never RUSTDOCFLAGS='-W missing-docs' \
   cat "${work_dir}/stderr" "${work_dir}/diagnostics.jsonl" >&2
   exit 1
 fi
-python3 "${repo_root}/scripts/ci/check-public-docs.py" \
+perl "${repo_root}/scripts/ci/check-public-docs.pl" \
   "${work_dir}/diagnostics.jsonl" "${repo_root}/scripts/ci/public-docs-baseline.json"
 fixture_complete=true

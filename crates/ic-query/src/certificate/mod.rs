@@ -6,14 +6,11 @@
 mod tests;
 
 use candid::Principal;
-use ciborium::Value;
 use ic_agent::{Agent, AgentError};
-use ic_certification::{
-    Certificate, Delegation, HashTree, LookupResult, empty, fork, labeled, leaf as tree_leaf,
-    pruned,
+use ic_certification::{Certificate, HashTree, LookupResult};
+use ic_host_tools::certificate::{
+    DecodeError, DecodeLimits, ParseError, decode_certificate, decode_hash_tree,
 };
-use serde::{Deserialize, de::DeserializeOwned};
-use serde_bytes::ByteBuf;
 use thiserror::Error;
 
 ///
@@ -46,7 +43,7 @@ pub enum CertificateVerificationError {
     Malformed,
     /// CBOR decoding or bounded nesting admission failed.
     #[error("certificate CBOR decoding failed: {0}")]
-    Decode(#[source] ciborium::de::Error<std::io::Error>),
+    Decode(#[source] ParseError),
     /// The Agent rejected certificate authentication under its selected policy.
     #[error("certificate authentication failed")]
     Invalid(#[source] AgentError),
@@ -69,79 +66,26 @@ pub fn authenticate(
     maximum_bytes: usize,
     depth: u8,
 ) -> Result<Certificate, CertificateVerificationError> {
-    if bytes.len() > maximum_bytes {
-        return Err(CertificateVerificationError::BudgetExceeded);
-    }
-    let wire: CertificateWire = decode(bytes, depth)?;
-    let certificate = Certificate {
-        tree: wire.tree.0,
-        signature: wire.signature.into_vec(),
-        delegation: wire.delegation,
-    };
+    let certificate = decode_certificate(
+        bytes,
+        DecodeLimits {
+            bytes: maximum_bytes,
+            depth,
+        },
+    )
+    .map_err(decode_error)?;
     agent
         .verify(&certificate, canister)
         .map_err(CertificateVerificationError::Invalid)?;
     Ok(certificate)
 }
 
-// ic-certification's pruned-node deserializer requires borrowed bytes, which a
-// streaming CBOR reader cannot provide. Decode the bounded owned tree and map its
-// exact IC tags without weakening the Agent's signature/delegation verification.
-struct OwnedTree(HashTree);
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CertificateWire {
-    tree: OwnedTree,
-    signature: ByteBuf,
-    #[serde(default)]
-    delegation: Option<Delegation>,
-}
-
-impl<'de> Deserialize<'de> for OwnedTree {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        owned_tree(Value::deserialize(deserializer)?)
-            .map(Self)
-            .ok_or_else(|| serde::de::Error::custom("invalid IC hash tree"))
+fn decode_error(error: DecodeError) -> CertificateVerificationError {
+    match error {
+        DecodeError::ByteLimit { .. } => CertificateVerificationError::BudgetExceeded,
+        DecodeError::TrailingData => CertificateVerificationError::Malformed,
+        DecodeError::Cbor(source) => CertificateVerificationError::Decode(source),
     }
-}
-
-fn owned_tree(value: Value) -> Option<HashTree> {
-    let Value::Array(values) = value else {
-        return None;
-    };
-    let mut values = values.into_iter();
-    let Value::Integer(tag) = values.next()? else {
-        return None;
-    };
-    let bytes = |value| {
-        if let Value::Bytes(bytes) = value {
-            Some(bytes)
-        } else {
-            None
-        }
-    };
-    let tree = match u8::try_from(tag).ok()? {
-        0 => empty(),
-        1 => fork(owned_tree(values.next()?)?, owned_tree(values.next()?)?),
-        2 => labeled(bytes(values.next()?)?, owned_tree(values.next()?)?),
-        3 => tree_leaf(bytes(values.next()?)?),
-        4 => pruned(<[u8; 32]>::try_from(bytes(values.next()?)?).ok()?),
-        _ => return None,
-    };
-    values.next().is_none().then_some(tree)
-}
-
-fn decode<T: DeserializeOwned>(
-    mut bytes: &[u8],
-    depth: u8,
-) -> Result<T, CertificateVerificationError> {
-    let value = ciborium::de::from_reader_with_recursion_limit(&mut bytes, usize::from(depth))
-        .map_err(CertificateVerificationError::Decode)?;
-    if !bytes.is_empty() {
-        return Err(CertificateVerificationError::Malformed);
-    }
-    Ok(value)
 }
 
 /// Authenticate a bounded certificate/witness pair and return its committed tree.
@@ -163,7 +107,14 @@ pub fn authenticate_hash_tree(
         return Err(CertificateVerificationError::BudgetExceeded);
     }
     let certificate = authenticate(agent, canister, certificate, limits.bytes, limits.depth)?;
-    let witness = decode::<OwnedTree>(witness, limits.depth)?.0;
+    let witness = decode_hash_tree(
+        witness,
+        DecodeLimits {
+            bytes: limits.bytes,
+            depth: limits.depth,
+        },
+    )
+    .map_err(decode_error)?;
     verify_witness(&certificate, canister, &witness)?;
     Ok(witness)
 }

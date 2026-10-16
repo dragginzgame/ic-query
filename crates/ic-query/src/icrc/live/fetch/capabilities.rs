@@ -13,11 +13,9 @@ use super::{
     },
     live_query_context,
 };
+use crate::candid_call::CandidCallError;
 use crate::icrc::{
-    ledger::{
-        GetIndexPrincipalResult, Icrc3GetArchivesArgs, Icrc3GetBlocksRequest, IcrcLedgerError,
-        fetch_icrc_supported_standards, index_principal_error_text,
-    },
+    ledger::{GetIndexPrincipalResult, fetch_icrc_supported_standards, index_principal_error_text},
     model::{
         IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
         IcrcLedgerRequest, IcrcTipCertificateData,
@@ -25,6 +23,8 @@ use crate::icrc::{
 };
 use candid::{Nat, Principal};
 use ic_agent::{Agent, AgentError, agent::RejectCode};
+use icrc_ledger_types::icrc3::archive::GetArchivesArgs;
+use icrc_ledger_types::icrc3::blocks::GetBlocksRequest;
 
 const ICRC1_SUPPORTED_STANDARDS_METHOD: &str = "icrc1_supported_standards";
 
@@ -98,7 +98,7 @@ async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> I
 }
 
 async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
-    let block_args = vec![Icrc3GetBlocksRequest {
+    let block_args = vec![GetBlocksRequest {
         start: Nat::from(0_u64),
         length: Nat::from(1_u64),
     }];
@@ -144,7 +144,7 @@ async fn fetch_archives_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    let args = Icrc3GetArchivesArgs { from: None };
+    let args = GetArchivesArgs { from: None };
     match query_archives::<CapabilityQueryError>(agent, ledger_canister, &args).await {
         Ok(archives) => available_capability_row(
             "ICRC-3 archive discovery",
@@ -220,11 +220,7 @@ impl From<IcrcError> for CapabilityQueryError {
     }
 }
 
-impl IcrcLedgerError for CapabilityQueryError {
-    fn invalid_principal(field: &'static str, reason: String) -> Self {
-        IcrcError::InvalidPrincipal { field, reason }.into()
-    }
-
+impl CandidCallError for CapabilityQueryError {
     fn candid_encode(message: &'static str, reason: String) -> Self {
         IcrcError::CandidEncode { message, reason }.into()
     }

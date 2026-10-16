@@ -9,8 +9,9 @@ mod icp;
 mod json;
 
 use super::collection::AccountTransactionsPage;
+use crate::candid_call::query_bytes;
 use crate::icrc::{
-    ledger::{IcrcAccount, query_ledger_arg_bytes},
+    ledger::IcrcAccount,
     model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError},
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
@@ -50,9 +51,10 @@ pub(super) async fn query_account_transaction_page(
         start,
         max_results: Nat::from(limit),
     };
-    let bytes = query_ledger_arg_bytes::<IcrcIndexAccountTransactionsArgs, IcrcError>(
+    let bytes = query_bytes::<IcrcIndexAccountTransactionsArgs, IcrcError>(
         agent,
         index_canister,
+        INDEX_ACCOUNT_TRANSACTIONS_METHOD,
         INDEX_ACCOUNT_TRANSACTIONS_METHOD,
         &args,
     )

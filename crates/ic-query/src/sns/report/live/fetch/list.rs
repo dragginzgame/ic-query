@@ -3,12 +3,13 @@
 //! Responsibility: fetch deployed SNS inventory and explicitly targeted catalog enrichment.
 //! Does not own: report assembly, command parsing, cache IO, or rendering.
 //! Boundary: keeps SNS-W inventory separate from bounded Governance metadata and Swap lifecycle queries.
+use crate::candid_call::query_canister;
 use crate::sns::report::live::{
     convert::{
         bounded_query_error_summary, mainnet_sns_canisters_from_deployed_sns,
         mainnet_sns_metadata_from_response,
     },
-    query::{principal_from_text, query_canister, sns_agent},
+    query::{principal_from_text, sns_agent},
     types::{
         GetLifecycleResponse, GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
         ListDeployedSnsesResponse, SnsSwapQueryRequest,
@@ -34,7 +35,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
     let agent = sns_agent(source, request)?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
-    let response: ListDeployedSnsesResponse = query_canister(
+    let response: ListDeployedSnsesResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &sns_wasm_canister,
         SnsCanisterMethod::ListDeployedSnses.as_str(),
@@ -143,7 +144,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
     sns: MainnetSnsCanisters,
 ) -> Result<MainnetSnsLifecycle, SnsHostError> {
     let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
-    let result = query_canister::<_, GetLifecycleResponse>(
+    let result = query_canister::<_, GetLifecycleResponse, SnsHostError>(
         agent,
         &swap_canister,
         SnsCanisterMethod::GetLifecycle.as_str(),
@@ -179,7 +180,7 @@ async fn fetch_governance_metadata(
     agent: &Agent,
     governance_canister: &Principal,
 ) -> Result<GetMetadataResponse, SnsHostError> {
-    query_canister(
+    query_canister::<_, _, SnsHostError>(
         agent,
         governance_canister,
         SnsCanisterMethod::GetMetadata.as_str(),

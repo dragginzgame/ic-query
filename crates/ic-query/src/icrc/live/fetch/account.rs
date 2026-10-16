@@ -5,11 +5,12 @@
 //! Boundary: owns token, balance, allowance, and structured-account live adaptation.
 
 use super::live_query_context;
+use crate::candid_call::{query_canister, query_no_args};
 use crate::icrc::{
     ledger::{
         IcrcAccount, IcrcAllowance, IcrcAllowanceArgs, IcrcLedgerMetadataRow,
         IcrcLedgerStandardRow, IcrcLedgerTokenMetadata, fetch_icrc1_token_metadata, nat_text,
-        principal_from_text, query_ledger, query_ledger_arg,
+        principal_from_text,
     },
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcError,
@@ -57,9 +58,11 @@ pub(in crate::icrc::live) async fn fetch_balance_async(
         "account_owner",
     )?;
     let (token_symbol, decimals) = query_token_display_fields(&agent, &ledger_canister).await?;
-    let balance: Nat = query_ledger_arg::<IcrcAccount, Nat, IcrcError>(
+    let balance: Nat = query_canister::<IcrcAccount, Nat, IcrcError>(
         &agent,
         &ledger_canister,
+        ICRC1_BALANCE_OF_METHOD,
+        ICRC1_BALANCE_OF_METHOD,
         ICRC1_BALANCE_OF_METHOD,
         &account,
     )
@@ -94,9 +97,11 @@ pub(in crate::icrc::live) async fn fetch_allowance_async(
         )?,
     };
     let (token_symbol, decimals) = query_token_display_fields(&agent, &ledger_canister).await?;
-    let allowance = query_ledger_arg::<IcrcAllowanceArgs, IcrcAllowance, IcrcError>(
+    let allowance = query_canister::<IcrcAllowanceArgs, IcrcAllowance, IcrcError>(
         &agent,
         &ledger_canister,
+        ICRC2_ALLOWANCE_METHOD,
+        ICRC2_ALLOWANCE_METHOD,
         ICRC2_ALLOWANCE_METHOD,
         &allowance_args,
     )
@@ -117,8 +122,8 @@ pub(in crate::icrc::live) async fn query_token_display_fields(
     ledger_canister: &Principal,
 ) -> Result<(String, u8), IcrcError> {
     let (token_symbol, decimals) = futures::try_join!(
-        query_ledger::<String, IcrcError>(agent, ledger_canister, ICRC1_SYMBOL_METHOD),
-        query_ledger::<u8, IcrcError>(agent, ledger_canister, ICRC1_DECIMALS_METHOD),
+        query_no_args::<String, IcrcError>(agent, ledger_canister, ICRC1_SYMBOL_METHOD),
+        query_no_args::<u8, IcrcError>(agent, ledger_canister, ICRC1_DECIMALS_METHOD),
     )?;
     Ok((token_symbol, decimals))
 }
@@ -129,7 +134,7 @@ pub(in crate::icrc::live) fn account_from_parts(
     owner_field: &'static str,
 ) -> Result<IcrcAccount, IcrcError> {
     Ok(IcrcAccount {
-        owner: principal_from_text::<IcrcError>(owner, owner_field)?,
+        owner: principal_from_text(owner, owner_field)?,
         subaccount: subaccount_hex.map(subaccount_bytes_from_hex).transpose()?,
     })
 }

@@ -3,12 +3,13 @@
 //! Responsibility: fetch one SNS running version and its next blessed version.
 //! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
 //! Boundary: performs exactly two bounded native queries and retains only next-version failure.
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsCanisterMethod, SnsHostError,
     SnsRunningVersionResponse, SnsSourceRequest, SnsUpgradeQueryGap,
     live::{
         convert::{sns_pending_upgrade, sns_running_version_response, sns_version},
-        query::{principal_from_text, query_canister, sns_agent},
+        query::{principal_from_text, sns_agent},
         types::{
             GetNextSnsVersionRequest, GetNextSnsVersionResponse, GetRunningSnsVersionRequest,
             GetRunningSnsVersionResponse,
@@ -44,28 +45,29 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
         governance_canister_id: Some(governance_canister),
         current_version: Some(deployed_wire),
     };
-    let (next_version, next_version_gap) = match query_canister::<_, GetNextSnsVersionResponse>(
-        agent,
-        &sns_wasm_canister,
-        SnsCanisterMethod::GetNextSnsVersion.as_str(),
-        "GetNextSnsVersionRequest",
-        "GetNextSnsVersionResponse",
-        &next_request,
-    )
-    .await
-    {
-        Ok(response) => (response.next_version.map(sns_version), None),
-        Err(error) => {
-            let reason = error.to_string();
-            (
-                None,
-                Some(SnsUpgradeQueryGap {
-                    method: SnsCanisterMethod::GetNextSnsVersion,
-                    reason: reason.trim().to_string(),
-                }),
-            )
-        }
-    };
+    let (next_version, next_version_gap) =
+        match query_canister::<_, GetNextSnsVersionResponse, SnsHostError>(
+            agent,
+            &sns_wasm_canister,
+            SnsCanisterMethod::GetNextSnsVersion.as_str(),
+            "GetNextSnsVersionRequest",
+            "GetNextSnsVersionResponse",
+            &next_request,
+        )
+        .await
+        {
+            Ok(response) => (response.next_version.map(sns_version), None),
+            Err(error) => {
+                let reason = error.to_string();
+                (
+                    None,
+                    Some(SnsUpgradeQueryGap {
+                        method: SnsCanisterMethod::GetNextSnsVersion,
+                        reason: reason.trim().to_string(),
+                    }),
+                )
+            }
+        };
 
     Ok(MainnetSnsUpgrade {
         governance_canister_id: sns.governance_canister_id.clone(),
@@ -96,7 +98,7 @@ async fn query_running_sns_version(
     agent: &Agent,
     governance_canister: &Principal,
 ) -> Result<GetRunningSnsVersionResponse, SnsHostError> {
-    query_canister(
+    query_canister::<_, _, SnsHostError>(
         agent,
         governance_canister,
         SnsCanisterMethod::GetRunningSnsVersion.as_str(),

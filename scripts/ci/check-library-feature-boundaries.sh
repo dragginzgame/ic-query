@@ -47,10 +47,14 @@ forbidden_canister_dependencies=(
 forbidden_host_dependencies=(
   clap
   ic-host-process
-  ic-host-tools
   'ic-host-artifacts feature "archive"'
   'ic-host-artifacts feature "gzip"'
   'ic-host-artifacts feature "wasm"'
+  candid_parser
+  'ic-host-tools feature "candid-extraction"'
+  'ic-host-tools feature "candid-service"'
+  'ic-host-tools feature "ic-interface"'
+  'ic-host-tools feature "ic-limits"'
 )
 
 forbidden_direct_registry_host_dependencies=(
@@ -107,7 +111,6 @@ forbidden_cmc_host_dependencies=(
   ic-host-artifacts
   ic-host-fs
   ic-host-process
-  ic-host-tools
   prost
 )
 
@@ -227,6 +230,10 @@ run_quiet "ic-query nns canister public API" \
   cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
 run_quiet "ic-query --features host" \
   cargo check -p ic-query --no-default-features --features host --locked --offline
+run_quiet "ic-query --features certificate-host" \
+  cargo check -p ic-query --no-default-features --features certificate-host --locked --offline
+run_quiet "ic-query --features ledger-evidence-host" \
+  cargo check -p ic-query --no-default-features --features ledger-evidence-host --locked --offline
 run_quiet "ic-query --features dashboard-host" \
   cargo check -p ic-query --no-default-features --features dashboard-host --locked --offline
 run_quiet "ic-query --features ic-state-host" \
@@ -260,6 +267,7 @@ common_public_api_tests=(
 )
 check_public_api none "${common_public_api_tests[@]}"
 check_public_api host "${common_public_api_tests[@]}"
+check_public_api certificate-host downstream_usage
 check_public_api icrc-host icrc_public_api
 check_public_api dashboard-host ic_public_api cloud_engine_public_api
 check_public_api ic-state-host ic_public_api
@@ -370,6 +378,14 @@ check_tree_absent "ic-query --features icrc-host direct dependencies" \
   --features icrc-host \
   -e normal \
   --depth 1
+
+check_tree_absent "ic-query --features certificate-host" \
+  "${forbidden_cmc_host_dependencies[@]}" \
+  "${forbidden_host_dependencies[@]}" \
+  -- \
+  -p ic-query \
+  --no-default-features \
+  --features certificate-host
 
 check_tree_absent "ic-query --features cmc-host" \
   "${forbidden_cmc_host_dependencies[@]}" \

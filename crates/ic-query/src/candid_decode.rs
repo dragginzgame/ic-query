@@ -1,6 +1,7 @@
 //! Bounded Candid reply decoding shared by native and canister adapters.
 
-use candid::{CandidType, de::DecoderConfig};
+use candid::CandidType;
+use ic_testkit_candid::{DecodeError, DecodeLimits, decode_one};
 use serde::Deserialize;
 
 // Charge proportional wire work with headroom for wide records and callbacks;
@@ -17,13 +18,21 @@ pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(bytes: &'a [u8]) -> can
         .saturating_mul(32)
         .saturating_add(BASE_DECODING_QUOTA)
         .min(MAX_DECODING_QUOTA);
-    let mut config = DecoderConfig::new();
-    config
-        .set_decoding_quota(quota)
-        .set_skipping_quota(SKIPPING_QUOTA)
-        .set_max_type_len(MAX_TYPE_ENTRIES)
-        .set_max_header_len(MAX_HEADER_BYTES);
-    candid::decode_one_with_config(bytes, &config)
+    decode_one(
+        bytes,
+        DecodeLimits {
+            // Transport owners admit wire size before calling this shared policy.
+            reply_bytes: bytes.len(),
+            decoding_quota: quota,
+            skipping_quota: SKIPPING_QUOTA,
+            type_entries: MAX_TYPE_ENTRIES,
+            header_bytes: MAX_HEADER_BYTES,
+        },
+    )
+    .map_err(|error| match error {
+        DecodeError::Candid(source) => source,
+        error @ DecodeError::ReplyTooLarge { .. } => candid::Error::msg(error.to_string()),
+    })
 }
 
 #[cfg(test)]
@@ -54,6 +63,8 @@ mod tests {
 
     #[test]
     fn rejects_amplified_skipping_in_a_small_reply() {
+        let ordinary = candid::encode_args((42u64, "unused")).unwrap();
+        assert_eq!(decode_reply::<u64>(&ordinary).unwrap(), 42);
         let bytes = candid::encode_args((42u64, vec![(); 100_000])).unwrap();
         assert!(bytes.len() < 32);
         assert!(decode_reply::<u64>(&bytes).is_err());

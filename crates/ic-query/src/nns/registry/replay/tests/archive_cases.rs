@@ -291,12 +291,19 @@ async fn archive_manifest_validation_rejects_tampered_index_fields() {
         Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
     ));
 
-    let mut changed_digest = manifest.clone();
-    changed_digest.batches[0].report_sha256 = "AB".repeat(32);
-    assert!(matches!(
-        validate_nns_certified_registry_archive_manifest(&changed_digest, limits),
-        Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
-    ));
+    for value in [
+        "AB".repeat(32),
+        "g0".repeat(32),
+        "ab".repeat(31),
+        "é".repeat(32),
+    ] {
+        let mut changed_digest = manifest.clone();
+        changed_digest.batches[0].report_sha256 = value;
+        assert!(matches!(
+            validate_nns_certified_registry_archive_manifest(&changed_digest, limits),
+            Err(NnsCertifiedRegistryArchiveError::InvalidManifest { .. })
+        ));
+    }
 
     let mut changed_total = manifest.clone();
     changed_total.total_report_bytes += 1;
@@ -768,7 +775,8 @@ async fn archive_restore_bounds_manifest_and_rejects_missing_or_noncanonical_fil
 #[tokio::test(flavor = "current_thread")]
 async fn archive_publication_rejects_unconfined_paths_and_poisoned_reuse() {
     let root = crate::test_support::temp_dir("ic-query-registry-archive-confined");
-    let outside = crate::test_support::temp_dir("ic-query-registry-archive-outside");
+    let outside =
+        crate::test_support::temp_dir("ic-query-registry-archive-outside").join("missing");
     let fixture = provenance_fixture();
     let first = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&fixture.first);
     let mut publisher = NnsCertifiedRegistryArchivePublisher::new(
@@ -1380,7 +1388,8 @@ fn certified_archive_refresh_authentication_failure_preserves_the_prior_manifest
 
 #[test]
 fn certified_archive_refresh_rejects_non_mainnet_and_missing_archives_without_source_work() {
-    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-preflight");
+    let root = crate::test_support::temp_dir("ic-query-registry-archive-refresh-preflight")
+        .join("missing");
     let archive_root = root.join("missing/nns-registry");
     let source = ArchiveRefreshSource::new(
         ArchiveRefreshMode::Unchanged,
@@ -1555,7 +1564,8 @@ async fn certified_archive_cleanup_authenticates_before_deletion_and_requires_a_
     ));
     assert!(orphan_path.is_file());
 
-    let missing_root = crate::test_support::temp_dir("ic-query-registry-archive-cleanup-missing");
+    let missing_root =
+        crate::test_support::temp_dir("ic-query-registry-archive-cleanup-missing").join("missing");
     let missing_archive = missing_root.join("missing/archive");
     let missing_request = archive_cleanup_request(
         &missing_root,

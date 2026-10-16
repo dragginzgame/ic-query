@@ -148,7 +148,7 @@ fn fixture_provenance(request: &NnsGovernanceRequest) -> NnsGovernanceSourceProv
 
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_refresh_rejects_invalid_public_page_size() {
-    let root = temp_dir("ic-query-nns-proposal-invalid-page-size");
+    let root = temp_dir("ic-query-nns-proposal-invalid-page-size").join("missing");
     for page_size in [0, 101] {
         let request = NnsGovernanceRefreshRequest::new(
             &root,
@@ -492,7 +492,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
 
 #[test]
 fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
-    let root = temp_dir("ic-query-nns-proposal-cache-read-fallback");
+    let root = temp_dir("ic-query-nns-proposal-cache-read-fallback").join("missing");
     let list_request = NnsProposalListRequest {
         governance: proposal_governance_request(1_700_100_000),
         limit: 25,
@@ -554,7 +554,7 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn cached_proposal_activity_preserves_collection_evidence_and_window_boundaries() {
-    let root = temp_dir("ic-query-nns-cached-activity");
+    let root = temp_dir("ic-query-nns-cached-activity").join("missing");
     let cache_request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     assert!(matches!(
         build_nns_proposal_activity_report_from_cache(

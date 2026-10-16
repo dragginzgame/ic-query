@@ -133,12 +133,12 @@ if (
 ) > "$fixture/rejected-store.log" 2>&1; then exit 1; fi
 remaining=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#remaining[@]}" == 3 ]] || exit 1
-diagnostics=("$fixture/temp/"ic-query-tool-evidence.*/selection.log)
+diagnostics=("$fixture/temp/"ic-query-tool-evidence.*/diagnostics/selection.log)
 for diagnostic in "${diagnostics[@]}"; do
   grep -Fq 'tool store root may not be a symlink' "$diagnostic" || continue
   mkdir "$fixture/partial"
   grep -Fq 'Shared tool evidence incomplete:' "$diagnostic" || exit 1
-  tar -xzf "${diagnostic%/*}/tools.tar.gz" -C "$fixture/partial"
+  tar -xzf "${diagnostic%/diagnostics/*}/tools.tar.gz" -C "$fixture/partial"
 done
 cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/partial/.tools/rust/slot/build.log" || exit 1
 cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/partial/.tools/rust/slot/installed/selection.json" || exit 1

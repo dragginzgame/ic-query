@@ -63,7 +63,10 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
             "next_version_gap:".to_string(),
             render(
                 &["METHOD", "REASON"],
-                &[[gap.method.as_str().to_string(), terminal_text(&gap.reason)]],
+                &[[
+                    gap.method.as_str().to_string(),
+                    terminal_text(&gap.reason).into_owned(),
+                ]],
                 &[Alignment::Left, Alignment::Left],
                 REPORT_TABLE_OPTIONS,
             ),

@@ -5,12 +5,11 @@
 //! Boundary: queries one resolved SNS governance canister for parameters.
 
 use super::governance_canister;
+use crate::candid_call::query_canister;
 use crate::sns::report::{
     SnsCanisterMethod, SnsGovernanceParameters, SnsHostError,
     live::{
-        convert::sns_governance_parameters,
-        query::{query_canister, sns_agent},
-        types::SnsGovernanceParametersWire,
+        convert::sns_governance_parameters, query::sns_agent, types::SnsGovernanceParametersWire,
     },
     source::{MainnetSns, SnsSourceRequest},
 };
@@ -23,7 +22,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_params(
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let method = SnsCanisterMethod::GetNervousSystemParameters.as_str();
-    let parameters: SnsGovernanceParametersWire = query_canister(
+    let parameters: SnsGovernanceParametersWire = query_canister::<_, _, SnsHostError>(
         agent,
         &governance_canister,
         method,

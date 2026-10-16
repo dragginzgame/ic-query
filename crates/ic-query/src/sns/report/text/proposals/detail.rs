@@ -134,5 +134,8 @@ pub(super) fn proposal_ballot_table(
 }
 
 fn proposal_detail_text(value: &str, detail_limit: Option<usize>) -> String {
-    detail_limit.map_or_else(|| terminal_text(value), |limit| truncate_text(value, limit))
+    detail_limit.map_or_else(
+        || terminal_text(value).into_owned(),
+        |limit| truncate_text(value, limit),
+    )
 }

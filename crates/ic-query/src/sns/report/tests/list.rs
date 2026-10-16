@@ -1,6 +1,7 @@
 use super::{fixtures::*, *};
 use crate::QueryProgressEvent;
-use std::{fs, path::PathBuf, sync::Mutex, time::SystemTime};
+use crate::test_support::temp_dir;
+use std::{fs, sync::Mutex};
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_report_uses_names_and_compact_ids_by_default() {
@@ -52,7 +53,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
-    let root = temp_catalog_root("ic-query-sns-catalog-policy");
+    let root = temp_dir("ic-query-sns-catalog-policy");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -101,7 +102,7 @@ async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
-    let root = temp_catalog_root("ic-query-invalid-sns-catalog");
+    let root = temp_dir("ic-query-invalid-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -199,7 +200,7 @@ async fn sns_list_refreshes_invalid_catalog_content() {
             cache["completeness"]["row_count"] = serde_json::json!(2);
         }),
     ] {
-        let root = temp_catalog_root(&format!("ic-query-incompatible-sns-catalog-{case}"));
+        let root = temp_dir(&format!("ic-query-incompatible-sns-catalog-{case}"));
         let source = CountingDiscoverySource::default();
         let mut progress = crate::progress::IgnoreQueryProgress;
         let request = list_request(false);
@@ -249,7 +250,7 @@ async fn sns_list_refreshes_invalid_catalog_content() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() {
-    let root = temp_catalog_root("ic-query-sns-catalog-views");
+    let root = temp_dir("ic-query-sns-catalog-views");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -301,7 +302,7 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
-    let root = temp_catalog_root("ic-query-sns-catalog-capacity");
+    let root = temp_dir("ic-query-sns-catalog-capacity");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -343,7 +344,7 @@ async fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_refreshes_future_dated_catalog() {
-    let root = temp_catalog_root("ic-query-future-sns-catalog");
+    let root = temp_dir("ic-query-future-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
@@ -389,7 +390,7 @@ async fn sns_list_refreshes_future_dated_catalog() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn failed_invalid_catalog_refresh_preserves_original_file() {
-    let root = temp_catalog_root("ic-query-failed-invalid-sns-catalog-refresh");
+    let root = temp_dir("ic-query-failed-invalid-sns-catalog-refresh");
     let mut progress = crate::progress::IgnoreQueryProgress;
     let request = list_request(false);
     build_sns_list_report_from_cache_or_refresh_with_source(
@@ -541,7 +542,7 @@ async fn sns_list_report_rejects_inexact_lifecycle_results() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
-    let root = temp_catalog_root("ic-query-sns-unknown-lifecycle");
+    let root = temp_dir("ic-query-sns-unknown-lifecycle");
     let source = MutatingLifecycleSource(|rows| {
         rows[0].lifecycle = Some(99);
         rows[0].lifecycle_name = Some("unknown".to_string());
@@ -937,14 +938,6 @@ impl SnsCatalogSource for CountingDiscoverySource {
                 .await
         })
     }
-}
-
-fn temp_catalog_root(label: &str) -> PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("clock")
-        .as_nanos();
-    std::env::temp_dir().join(format!("{label}-{nonce}"))
 }
 
 impl SnsDiscoverySource for MutatingInventorySource {

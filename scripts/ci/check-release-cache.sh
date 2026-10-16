@@ -20,9 +20,10 @@ cp "$repo_root/Makefile" Makefile
 cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
 cp "$repo_root/scripts/ci/"{check-make-execution,run-formatting}.sh scripts/ci/
 cp "$repo_root/scripts/release/adapter.sh" scripts/release/
-cp "$repo_root/scripts/ci/next-release-version.sh" scripts/ci/
+cp "$repo_root/scripts/ci/"{next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,verify-file-checksum.sh} scripts/ci/
 cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
+printf 'selected IC pins\n' > ci/ic-tools.tsv
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -148,6 +149,7 @@ else
     [[ "${CARGO_NET_OFFLINE:-}" != true && "${FIXTURE_FORMAT_SETUP_FAILURE:-}" != yes ]] || exit 49
     printf 'admitted formatter\n' > selected-formatter
     [[ "${FIXTURE_FORMAT_CHANGED_INPUT:-}" != yes ]] || : > dirty-source
+    [[ "${FIXTURE_FORMAT_CHANGED_PINS:-}" != yes ]] || printf "# changed pins\n" >> ci/tool-versions.env
   fi
 fi
 STUB
@@ -210,6 +212,18 @@ cmp "$TRACE_FILE" "$work_dir/expected"
 cmp Cargo.lock "$work_dir/original-lock"
 cmp previous-formatter "$work_dir/previous-formatter"
 rm dirty-source selected-formatter
+cp ci/tool-versions.env "$work_dir/original-pins"
+status=0
+: > "$TRACE_FILE"
+IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_FORMAT_CHANGED_PINS=yes \
+  bash scripts/release/adapter.sh preflight > "$work_dir/tool-changed-pins.log" 2>&1 || status=$?
+[[ "$status" != 0 && -f selected-formatter ]] || fail 'changed pins were admitted after setup'
+printf '%s\n' 'fetch --locked' 'formatter setup' > "$work_dir/expected"
+cmp "$TRACE_FILE" "$work_dir/expected"
+cmp Cargo.lock "$work_dir/original-lock"
+cmp previous-formatter "$work_dir/previous-formatter"
+cp "$work_dir/original-pins" ci/tool-versions.env
+rm selected-formatter
 rm prepared-cache
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight

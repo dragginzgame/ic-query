@@ -246,11 +246,12 @@ new_fixture() {
   cp "$repo_root/Makefile" Makefile
   mkdir -p make
   cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-tag.sh,check-release-source.sh} scripts/ci/
+  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-tag.sh,check-release-source.sh} scripts/ci/
   cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
   cp "$repo_root/ci/tool-versions.env" ci/
+  cp "$repo_root/ci/ic-tools.tsv" ci/
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"

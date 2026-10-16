@@ -17,12 +17,12 @@ pub(in crate::icrc) use self::cursor::{
 use super::fetch::{
     account_from_parts, live_query_context, query_index_principal, query_token_display_fields,
 };
+use crate::candid_call::query_no_args;
 use crate::{
     QueryProgress, QueryProgressState,
     icrc::{
         ledger::{
             GetIndexPrincipalResult, IcrcAccount, index_principal_error_text, principal_from_text,
-            query_ledger,
         },
         model::{
             IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
@@ -136,13 +136,11 @@ async fn resolve_account_transaction_context(
 ) -> Result<AccountTransactionQueryContext, IcrcAccountTransactionError> {
     let (agent, ledger_canister) = live_query_context(source, source_endpoint, ledger_canister_id)?;
     let index_canister = match index_canister_id {
-        Some(index_canister_id) => {
-            principal_from_text::<IcrcError>(index_canister_id, "index_canister_id")?
-        }
+        Some(index_canister_id) => principal_from_text(index_canister_id, "index_canister_id")?,
         None => resolve_index_canister(&agent, &ledger_canister).await?,
     };
     let (actual_ledger, token_display) = futures::try_join!(
-        query_ledger::<Principal, IcrcError>(&agent, &index_canister, INDEX_LEDGER_ID_METHOD),
+        query_no_args::<Principal, IcrcError>(&agent, &index_canister, INDEX_LEDGER_ID_METHOD),
         query_token_display_fields(&agent, &ledger_canister),
     )?;
     if actual_ledger != ledger_canister {

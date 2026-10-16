@@ -7,16 +7,14 @@
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
-    icrc::{
-        ledger::Icrc3DataCertificate,
-        model::{IcrcError, IcrcTipCertificateData},
-    },
+    icrc::model::{IcrcError, IcrcTipCertificateData},
 };
 use candid::Principal;
 use ic_agent::{
     Agent,
     hash_tree::{HashTree, LookupResult},
 };
+use icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate;
 
 const ICRC3_GET_TIP_CERTIFICATE_METHOD: &str = "icrc3_get_tip_certificate";
 const LAST_BLOCK_HASH_LABEL: &[u8] = b"last_block_hash";
@@ -26,7 +24,7 @@ const SHA_256_BYTES: usize = 32;
 pub(super) fn verified_tip_certificate_data(
     agent: &Agent,
     ledger_canister: &Principal,
-    wire: Option<Icrc3DataCertificate>,
+    wire: Option<ICRC3DataCertificate>,
 ) -> Result<IcrcTipCertificateData, IcrcError> {
     let Some(wire) = wire else {
         return Ok(IcrcTipCertificateData {
@@ -237,9 +235,13 @@ mod tests {
             Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
         let hash_tree = tip_hash_tree(vec![0x01], vec![0x5a; SHA_256_BYTES]);
         let certificate = certificate_for_tip(&ledger_canister, hash_tree.digest().to_vec());
-        let wire = Icrc3DataCertificate {
-            certificate: serde_cbor::to_vec(&certificate).expect("encode certificate"),
-            hash_tree: serde_cbor::to_vec(&hash_tree).expect("encode hash tree"),
+        let wire = ICRC3DataCertificate {
+            certificate: serde_cbor::to_vec(&certificate)
+                .expect("encode certificate")
+                .into(),
+            hash_tree: serde_cbor::to_vec(&hash_tree)
+                .expect("encode hash tree")
+                .into(),
         };
         let agent = Agent::builder()
             .with_url("https://icp-api.io")
@@ -260,23 +262,23 @@ mod tests {
     fn rejects_malformed_certificate_cbor_before_authentication() {
         let ledger_canister =
             Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
-        let wire = Icrc3DataCertificate {
-            certificate: vec![0xff],
-            hash_tree: Vec::new(),
-        };
+        let certificate = certificate_for_tip(&ledger_canister, vec![0; SHA_256_BYTES]);
+        let mut trailing = serde_cbor::to_vec(&certificate).expect("encode certificate");
+        trailing.push(0);
         let agent = Agent::builder()
             .with_url("https://icp-api.io")
             .build()
             .expect("build agent");
 
-        let error = verified_tip_certificate_data(&agent, &ledger_canister, Some(wire))
-            .expect_err("malformed certificate CBOR must fail");
-
-        assert!(matches!(
-            error,
-            IcrcError::CandidDecode { reason, .. }
-                if reason.contains("certificate CBOR is invalid")
-        ));
+        for certificate in [vec![0xff], trailing] {
+            let wire = ICRC3DataCertificate {
+                certificate: certificate.into(),
+                hash_tree: Vec::new().into(),
+            };
+            let error = verified_tip_certificate_data(&agent, &ledger_canister, Some(wire))
+                .expect_err("invalid exact certificate encoding must fail");
+            assert!(matches!(error, IcrcError::CandidDecode { .. }));
+        }
     }
 
     fn tip_hash_tree(last_block_index: Vec<u8>, last_block_hash: Vec<u8>) -> HashTree<Vec<u8>> {

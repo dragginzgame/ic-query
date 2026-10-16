@@ -182,14 +182,12 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
         });
     }
     let ledger_canister_id =
-        principal_from_text::<IcrcError>(&request.ledger_canister_id, "ledger_canister_id")?
-            .to_text();
-    let account_owner =
-        principal_from_text::<IcrcError>(&request.account_owner, "account_owner")?.to_text();
+        principal_from_text(&request.ledger_canister_id, "ledger_canister_id")?.to_text();
+    let account_owner = principal_from_text(&request.account_owner, "account_owner")?.to_text();
     let index_canister_id = request
         .index_canister_id
         .as_deref()
-        .map(|value| principal_from_text::<IcrcError>(value, "index_canister_id"))
+        .map(|value| principal_from_text(value, "index_canister_id"))
         .transpose()?
         .map(|principal| principal.to_text());
     let request = IcrcAccountTransactionPageRequest {
@@ -206,8 +204,7 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
     };
     let transactions = source.fetch_account_transaction_page(&request).await?;
     let actual_index =
-        principal_from_text::<IcrcError>(&transactions.index_canister_id, "index_canister_id")?
-            .to_text();
+        principal_from_text(&transactions.index_canister_id, "index_canister_id")?.to_text();
     if let Some(expected_index) = request.index_canister_id.as_deref()
         && expected_index != actual_index
     {
@@ -314,7 +311,7 @@ pub async fn build_icrc_archives_report_with_source(
             .from_canister_id
             .as_deref()
             .map(|canister_id| {
-                principal_from_text::<IcrcError>(canister_id, "from_canister_id")
+                principal_from_text(canister_id, "from_canister_id")
                     .map(|principal| principal.to_text())
             })
             .transpose()?,

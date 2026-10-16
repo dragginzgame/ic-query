@@ -8,13 +8,20 @@ finish() {
   local status=$?
   [[ "$fixture_complete" == true || "$status" != 0 ]] || status=1
   if [[ "$status" == 0 ]]; then rm -rf -- "$work_dir"
-  else echo "Formatting hook fixtures retained: $work_dir" >&2; fi
+  else
+    echo "Formatting hook fixtures retained: $work_dir" >&2
+    for log in "$work_dir/"*.log "$work_dir/formatting."*; do
+      [[ -f "$log" ]] || continue
+      printf '\nFormatting fixture log: %s\n' "$log" >&2 || :
+      cat "$log" >&2 || :
+    done
+  fi
   exit "$status"
 }
 trap finish EXIT
 work_dir="$(cd -P "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
-export TMPDIR="${work_dir%/*}" CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0
+export TMPDIR="${work_dir%/*}" RUNNER_TEMP="$work_dir" CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE
 mkdir "$work_dir/templates"
 export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TEMPLATE_DIR="$work_dir/templates"

@@ -12,11 +12,14 @@ pub const REPORT_TABLE_OPTIONS: Options = Options {
 };
 
 pub fn optional_text(value: Option<&String>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| terminal_text(value))
+    value.map_or_else(
+        || "-".to_string(),
+        |value| terminal_text(value).into_owned(),
+    )
 }
 
 pub fn truncate_text(value: &str, limit: usize) -> String {
-    let value = terminal_text(value);
+    let value = terminal_text(value).into_owned();
     if value.chars().count() <= limit {
         return value;
     }

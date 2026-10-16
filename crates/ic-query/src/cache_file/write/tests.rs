@@ -16,7 +16,7 @@ fn assert_alias(output: &Path, managed: &Path) {
 
 #[tokio::test(flavor = "current_thread")]
 async fn output_rejects_missing_managed_paths_and_parent_traversal_aliases() {
-    let root = temp_dir("ic-query-output-missing-alias");
+    let root = temp_dir("ic-query-output-missing-alias").join("missing");
     let managed = root.join("cache/catalog.json");
     assert_alias(&managed, &managed);
     assert_alias(&root.join("cache/../cache/./catalog.json"), &managed);
