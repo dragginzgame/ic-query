@@ -71,6 +71,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Share NNS neuron/proposal snapshot locking, attempt sequencing and publication,
   preserving collection-specific paging, stored evidence and finalization failures.
 
+- Fix Governance smoke-runner compilation against IC Build 0.10 and Host FS
+  0.22, preserving release-mode Wasm selection and publication permissions.
+  [#68](https://github.com/dragginzgame/ic-query/issues/68).
+
 Detailed release notes: [docs/changelog/0.59.md](docs/changelog/0.59.md)
 
 ## [0.58.0] - 2026-10-16
