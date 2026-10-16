@@ -36,6 +36,8 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 - Fix manifest dependency-table ordering that blocked release formatting checks.
   Formatting-hook failures now include their retained formatter diagnostics.
+- Align the Governance harness's Host process dependency with IC Build 0.7,
+  fixing its compilation while preserving TERM grace and bounded reaping.
 
 Detailed release notes: [docs/changelog/0.58.md](docs/changelog/0.58.md)
 

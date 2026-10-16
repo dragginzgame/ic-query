@@ -24,7 +24,8 @@ ic-cdk = "0.20.2"
 ic-certification = "3.0"
 ic-host-artifacts = { version = "0.21", default-features = false }
 ic-host-fs = { version = "0.21", default-features = false }
-ic-host-process = { version = "0.21", default-features = false }
+# IC Build 0.7 exposes Host 0.20 CleanupPolicy to the Governance harness.
+ic-host-process = { version = "0.20", default-features = false }
 ic-host-text = "0.21"
 ic-host-tools = { version = "0.21", default-features = false }
 ic-query = { path = "crates/ic-query", version = "0.57.0", default-features = false }
