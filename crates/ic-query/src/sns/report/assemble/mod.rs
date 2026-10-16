@@ -21,12 +21,10 @@ pub(super) use canisters::sns_canister_report_from_parts;
 pub(super) use list::{sns_info_report_from_parts, sns_list_report_from_list};
 pub(super) use metrics::sns_metrics_report_from_parts;
 pub(super) use neuron::{SnsNeuronDetailReportParts, sns_neuron_detail_report_from_parts};
-pub(super) use neurons::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts};
+pub(super) use neurons::sns_neurons_report_from_rows;
 pub(super) use params::sns_params_report_from_parts;
-pub(super) use proposals::{
-    SnsProposalReportContext, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
-};
-pub(super) use provenance::SnsReportProvenance;
+pub(super) use proposals::{sns_proposal_report_from_parts, sns_proposals_report_from_parts};
+pub(super) use provenance::{SnsReportContext, SnsReportProvenance};
 pub(super) use reward::{SnsRewardCheckpointReportParts, sns_reward_checkpoint_report_from_parts};
 pub(super) use swap::sns_swap_report_from_parts;
 pub(super) use token::sns_token_report_from_parts;

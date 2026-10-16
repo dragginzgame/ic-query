@@ -4,7 +4,7 @@
 //! Does not own: source validation, HTTP transport, rendering, or command parsing.
 //! Boundary: reuses the canonical raw Dashboard node row without changing its authority.
 
-use crate::ic::{IcDashboardReportProvenance, IcNodeStatusCounts};
+use crate::ic::{IcDashboardReportProvenance, IcDashboardRequest, IcNodeStatusCounts};
 use serde::Serialize;
 
 #[cfg(feature = "dashboard-host")]
@@ -28,10 +28,8 @@ pub type CloudEngineNodeRow = crate::ic::IcNodeStatusRow;
 pub struct CloudEngineNodeListRequest {
     /// Requested network identity; the built-in source accepts only `ic`.
     pub network: String,
-    /// Official Dashboard v3 base endpoint.
-    pub source_endpoint: String,
-    /// Caller collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Optional exact node-provider principal applied by the remote resource.
     pub node_provider_id: Option<String>,
 }
@@ -39,15 +37,10 @@ pub struct CloudEngineNodeListRequest {
 impl CloudEngineNodeListRequest {
     /// Construct one complete live Type4 node-list request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-    ) -> Self {
+    pub fn new(network: impl Into<String>, dashboard: IcDashboardRequest) -> Self {
         Self {
             network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             node_provider_id: None,
         }
     }
@@ -70,10 +63,8 @@ impl CloudEngineNodeListRequest {
 pub struct CloudEngineNodeInfoRequest {
     /// Requested network identity; the built-in source accepts only `ic`.
     pub network: String,
-    /// Official Dashboard v3 base endpoint.
-    pub source_endpoint: String,
-    /// Caller collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Exact node principal.
     pub node_id: String,
 }
@@ -83,14 +74,12 @@ impl CloudEngineNodeInfoRequest {
     #[must_use]
     pub fn new(
         network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+        dashboard: IcDashboardRequest,
         node_id: impl Into<String>,
     ) -> Self {
         Self {
             network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             node_id: node_id.into(),
         }
     }

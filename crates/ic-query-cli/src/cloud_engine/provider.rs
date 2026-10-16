@@ -53,8 +53,10 @@ pub(super) async fn run_matches(
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineProviderInfoRequest::new(
         network,
-        required_string(matches, SOURCE_ENDPOINT_ARG),
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(
+            required_string(matches, SOURCE_ENDPOINT_ARG),
+            current_unix_secs()?,
+        ),
         required_string(matches, "node-provider-id"),
     );
     let report = build_cloud_engine_provider_info_report(&request).await?;
@@ -68,8 +70,10 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngine
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
     let request = CloudEngineProviderListRequest::new(
         network,
-        required_string(matches, SOURCE_ENDPOINT_ARG),
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(
+            required_string(matches, SOURCE_ENDPOINT_ARG),
+            current_unix_secs()?,
+        ),
     );
     let report = build_cloud_engine_provider_list_report(&request).await?;
     write_text_or_json(

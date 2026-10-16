@@ -227,12 +227,12 @@ pub fn read_bounded_stream(
             },
             _ => accounting(),
         },
-        source @ (ArtifactError::NotRegularFile | ArtifactError::DigestMismatch { .. }) => {
-            BoundedManagedFileReadError::Read {
-                path: target_path.to_path_buf(),
-                source: io::Error::new(io::ErrorKind::InvalidData, source),
-            }
-        }
+        source @ (ArtifactError::NotRegularFile
+        | ArtifactError::DigestMismatch { .. }
+        | ArtifactError::LengthMismatch { .. }) => BoundedManagedFileReadError::Read {
+            path: target_path.to_path_buf(),
+            source: io::Error::new(io::ErrorKind::InvalidData, source),
+        },
     })
 }
 

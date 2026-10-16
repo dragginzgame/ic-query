@@ -15,12 +15,9 @@ mod replica_version;
 #[cfg(test)]
 mod tests;
 
-use crate::{
-    ic::{
-        IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
-        IcDashboardReportProvenance, IcHostError, IcSourceRequest,
-    },
-    subnet_catalog::format_utc_timestamp_secs,
+use crate::ic::{
+    IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
+    IcDashboardReportProvenance, IcHostError, IcSourceRequest,
 };
 use candid::Principal;
 
@@ -66,14 +63,6 @@ pub(super) use replica_version::{
     replica_version_info_report_from_source, replica_version_list_report_from_source,
     validate_replica_version_id, validate_replica_version_list_query,
 };
-
-pub fn dashboard_source_request(endpoint: &str, now_unix_secs: u64) -> IcSourceRequest {
-    IcSourceRequest::new(
-        endpoint,
-        format_utc_timestamp_secs(now_unix_secs),
-        "ic-query",
-    )
-}
 
 pub fn validate_dashboard_network(network: &str) -> Result<(), IcHostError> {
     if network == IC_DASHBOARD_NETWORK {
@@ -160,15 +149,15 @@ pub fn canonical_request_principal(
 }
 
 pub fn validate_canonical_principal(field: &'static str, value: &str) -> Result<(), IcHostError> {
-    let principal = Principal::from_text(value)
-        .map_err(|error| invalid_source_value(format!("{field} {value:?}: {error}")))?;
-    let canonical = principal.to_text();
-    if canonical != value {
-        return invalid_source(format!(
-            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
-        ));
-    }
-    Ok(())
+    crate::principal_text::validate_canonical(
+        value,
+        |reason| invalid_source_value(format!("{field} {value:?}: {reason}")),
+        |canonical| {
+            invalid_source_value(format!(
+                "{field} {value:?} is not canonical principal text; expected {canonical:?}"
+            ))
+        },
+    )
 }
 
 fn validate_principal_match(

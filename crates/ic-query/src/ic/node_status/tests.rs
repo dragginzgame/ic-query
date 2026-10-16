@@ -449,6 +449,22 @@ async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
 
     let stale_request =
         refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS + 1);
+    let retained = load_or_refresh_missing_ic_node_status_snapshot_with_source(
+        &stale_request,
+        &source,
+        &mut progress,
+    )
+    .await
+    .expect("missing-only policy retains an expired complete cache");
+    assert_eq!((*source.calls.lock().unwrap()), 1);
+    assert_eq!(
+        retained
+            .observation
+            .cache
+            .expect("cache evidence")
+            .age_seconds,
+        DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS + 1,
+    );
     let stale = load_or_refresh_stale_ic_node_status_snapshot_with_source(
         &stale_request,
         &source,
@@ -673,7 +689,7 @@ async fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
             ),
         ],
     };
-    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+    let request = crate::ic::IcDashboardRequest::new("https://example.test/api/v3", fixture_now());
 
     let snapshot = crate::ic::build_ic_node_status_snapshot_with_source(&request, &source)
         .await
@@ -687,7 +703,7 @@ async fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
 #[cfg(feature = "dashboard-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names() {
-    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+    let request = crate::ic::IcDashboardRequest::new("https://example.test/api/v3", fixture_now());
     let duplicate = fixture_node(
         "aaaaa-aa",
         "UP",
@@ -742,7 +758,7 @@ async fn custom_source_rejects_duplicate_nodes_and_inconsistent_provider_names()
 #[cfg(feature = "dashboard-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn custom_source_rejects_invalid_principals_assignment_and_scope_evidence() {
-    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+    let request = crate::ic::IcDashboardRequest::new("https://example.test/api/v3", fixture_now());
     let mut invalid_principal = fixture_node(
         "aaaaa-aa",
         "UP",
@@ -789,7 +805,7 @@ async fn custom_source_rejects_rows_above_the_fixed_ceiling() {
         "2vxsx-fae",
     );
     let row_count = usize::try_from(MAX_IC_NODE_STATUS_ROWS).expect("row ceiling") + 1;
-    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+    let request = crate::ic::IcDashboardRequest::new("https://example.test/api/v3", fixture_now());
 
     let error = crate::ic::build_ic_node_status_snapshot_with_source(
         &request,
@@ -806,7 +822,7 @@ async fn custom_source_rejects_rows_above_the_fixed_ceiling() {
 #[cfg(feature = "dashboard-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn custom_source_rejects_an_empty_mainnet_snapshot() {
-    let request = IcNodeStatusSnapshotRequest::new("https://example.test/api/v3", fixture_now());
+    let request = crate::ic::IcDashboardRequest::new("https://example.test/api/v3", fixture_now());
 
     let error = crate::ic::build_ic_node_status_snapshot_with_source(
         &request,

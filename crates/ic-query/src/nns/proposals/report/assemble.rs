@@ -8,11 +8,7 @@ use crate::{
     nns::governance::NnsGovernanceReportContext,
     nns::proposals::report::{
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        model::{
-            NnsProposalListReport, NnsProposalListSort, NnsProposalReport,
-            NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection,
-            NnsProposalStatusFilter, NnsProposalTopicFilter,
-        },
+        model::{NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRow},
     },
     report::{ReportDataSource, ReportResultScope},
 };
@@ -59,28 +55,6 @@ impl NnsProposalReportProvenance {
 }
 
 ///
-/// NnsProposalListReportParts
-///
-/// Inputs needed to assemble one NNS proposal list report.
-///
-
-pub(in crate::nns::proposals::report) struct NnsProposalListReportParts {
-    pub(in crate::nns::proposals::report) context: NnsGovernanceReportContext,
-    pub(in crate::nns::proposals::report) requested_limit: u32,
-    pub(in crate::nns::proposals::report) before_proposal_id: Option<u64>,
-    pub(in crate::nns::proposals::report) status: NnsProposalStatusFilter,
-    pub(in crate::nns::proposals::report) reward_status: NnsProposalRewardStatusFilter,
-    pub(in crate::nns::proposals::report) topic: NnsProposalTopicFilter,
-    pub(in crate::nns::proposals::report) proposer_neuron_id: Option<u64>,
-    pub(in crate::nns::proposals::report) query: Option<String>,
-    pub(in crate::nns::proposals::report) sort: NnsProposalListSort,
-    pub(in crate::nns::proposals::report) sort_direction: NnsProposalSortDirection,
-    pub(in crate::nns::proposals::report) verbose: bool,
-    pub(in crate::nns::proposals::report) provenance: NnsProposalReportProvenance,
-    pub(in crate::nns::proposals::report) proposals: Vec<NnsProposalRow>,
-}
-
-///
 /// NnsProposalReportParts
 ///
 /// Inputs needed to assemble one NNS proposal detail report.
@@ -95,32 +69,37 @@ pub(in crate::nns::proposals::report) struct NnsProposalReportParts {
     pub(in crate::nns::proposals::report) proposal: NnsProposalRow,
 }
 
-/// Assemble an NNS proposal list report from resolved proposal parts.
-pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_parts(
-    parts: NnsProposalListReportParts,
+/// Assemble an NNS proposal list from request settings, resolved rows and provenance.
+pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
+    request: &NnsProposalListRequest,
+    context: NnsGovernanceReportContext,
+    provenance: NnsProposalReportProvenance,
+    proposals: Vec<NnsProposalRow>,
 ) -> NnsProposalListReport {
-    let proposal_count = parts.proposals.len();
     NnsProposalListReport {
         context: NnsGovernanceReportContext {
             schema_version: NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
-            ..parts.context
+            ..context
         },
-        data_source: parts.provenance.data_source,
-        cache_path: parts.provenance.cache_path,
-        cache_complete: parts.provenance.cache_complete,
-        requested_limit: parts.requested_limit,
-        before_proposal_id: parts.before_proposal_id,
-        status_filter: parts.status.as_str().to_string(),
-        reward_status_filter: parts.reward_status.as_str().to_string(),
-        topic_filter: parts.topic.as_str().to_string(),
-        proposer_filter: parts.proposer_neuron_id,
-        query_filter: parts.query,
-        sort: parts.sort.as_str().to_string(),
-        sort_direction: parts.sort.direction_label(parts.sort_direction).to_string(),
-        result_scope: parts.provenance.result_scope,
-        verbose: parts.verbose,
-        proposal_count,
-        proposals: parts.proposals,
+        data_source: provenance.data_source,
+        cache_path: provenance.cache_path,
+        cache_complete: provenance.cache_complete,
+        requested_limit: request.limit,
+        before_proposal_id: request.before_proposal_id,
+        status_filter: request.status.as_str().to_string(),
+        reward_status_filter: request.reward_status.as_str().to_string(),
+        topic_filter: request.topic.as_str().to_string(),
+        proposer_filter: request.proposer_neuron_id,
+        query_filter: request.query.clone(),
+        sort: request.sort.as_str().to_string(),
+        sort_direction: request
+            .sort
+            .direction_label(request.sort_direction)
+            .to_string(),
+        result_scope: provenance.result_scope,
+        verbose: request.verbose,
+        proposal_count: proposals.len(),
+        proposals,
     }
 }
 

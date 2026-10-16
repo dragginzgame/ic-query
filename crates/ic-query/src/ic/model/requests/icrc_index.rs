@@ -4,6 +4,8 @@
 //! Does not own: native ledger queries, transport, source validation, or reports.
 //! Boundary: exposes one exact account lookup or one explicitly bounded cursor page.
 
+use super::IcDashboardRequest;
+
 use super::IcIcrcAnalyticsRequest;
 use serde::Serialize;
 use std::fmt;
@@ -248,17 +250,12 @@ impl IcIcrcAccountListRequest {
     /// Construct one bounded live account-list request.
     #[must_use]
     pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+        dashboard: IcDashboardRequest,
         ledger_canister_id: impl Into<String>,
         query: IcIcrcAccountListQuery,
     ) -> Self {
         Self {
-            analytics: IcIcrcAnalyticsRequest::new(
-                source_endpoint,
-                now_unix_secs,
-                ledger_canister_id,
-            ),
+            analytics: IcIcrcAnalyticsRequest::new(dashboard, ledger_canister_id),
             query,
         }
     }
@@ -282,17 +279,12 @@ impl IcIcrcAccountInfoRequest {
     /// Construct one exact live account-detail request.
     #[must_use]
     pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+        dashboard: IcDashboardRequest,
         ledger_canister_id: impl Into<String>,
         account_id: impl Into<String>,
     ) -> Self {
         Self {
-            analytics: IcIcrcAnalyticsRequest::new(
-                source_endpoint,
-                now_unix_secs,
-                ledger_canister_id,
-            ),
+            analytics: IcIcrcAnalyticsRequest::new(dashboard, ledger_canister_id),
             account_id: account_id.into(),
         }
     }
@@ -316,17 +308,12 @@ impl IcIcrcHolderListRequest {
     /// Construct one bounded live holder-list request.
     #[must_use]
     pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+        dashboard: IcDashboardRequest,
         ledger_canister_id: impl Into<String>,
         query: IcIcrcHolderListQuery,
     ) -> Self {
         Self {
-            analytics: IcIcrcAnalyticsRequest::new(
-                source_endpoint,
-                now_unix_secs,
-                ledger_canister_id,
-            ),
+            analytics: IcIcrcAnalyticsRequest::new(dashboard, ledger_canister_id),
             query,
         }
     }

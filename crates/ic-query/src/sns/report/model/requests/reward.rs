@@ -4,6 +4,7 @@
 //! Does not own: live source calls, strict pagination, or report rendering.
 //! Boundary: carries one target, collection start, endpoint, and optional diagnostic page cap.
 
+use super::lookup::SnsLookupRequest;
 ///
 /// SnsRewardCheckpointRequest
 ///
@@ -12,14 +13,8 @@
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsRewardCheckpointRequest {
-    /// Requested IC network identity.
-    pub network: String,
-    /// Explicit IC API endpoint used for live calls.
-    pub source_endpoint: String,
-    /// Collection start timestamp supplied immediately before dispatch.
-    pub now_unix_secs: u64,
-    /// SNS list id or Root canister principal.
-    pub input: String,
+    /// SNS target, explicit endpoint, network and caller clock.
+    pub lookup: SnsLookupRequest,
     /// Optional diagnostic page cap that may be stricter than the protocol ceiling.
     pub max_pages: Option<u32>,
 }
@@ -27,17 +22,9 @@ pub struct SnsRewardCheckpointRequest {
 impl SnsRewardCheckpointRequest {
     /// Construct one live SNS reward checkpoint request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        input: impl Into<String>,
-    ) -> Self {
+    pub const fn new(lookup: SnsLookupRequest) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            input: input.into(),
+            lookup,
             max_pages: None,
         }
     }

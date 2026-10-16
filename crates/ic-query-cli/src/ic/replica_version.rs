@@ -58,8 +58,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionInfoOptions::from_matches(matches);
     let request = IcReplicaVersionInfoRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         options.replica_version_id,
     );
     let report = build_ic_replica_version_info_report(&request).await?;
@@ -69,8 +68,7 @@ async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
 async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionListOptions::from_matches(matches);
     let request = IcReplicaVersionListRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         IcReplicaVersionListQuery::new(options.limit, options.offset, options.max_proposal_index),
     );
     let report = build_ic_replica_version_list_report(&request).await?;

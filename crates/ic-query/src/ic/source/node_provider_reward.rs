@@ -308,8 +308,10 @@ mod tests {
         let source = FixtureSource::default();
         let list = build_ic_node_provider_reward_list_report_with_source(
             &IcNodeProviderRewardListRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_800_000_000,
+                crate::ic::IcDashboardRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_800_000_000,
+                ),
                 IcNodeProviderRewardListQuery::new(2, 0, Some(6_470)),
             ),
             &source,
@@ -318,8 +320,10 @@ mod tests {
         .expect("reward list");
         let info = build_ic_node_provider_reward_info_report_with_source(
             &IcNodeProviderRewardInfoRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_800_000_000,
+                crate::ic::IcDashboardRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_800_000_000,
+                ),
                 7_562,
             ),
             &source,
@@ -328,8 +332,10 @@ mod tests {
         .expect("reward info");
         let history = build_ic_node_provider_reward_history_report_with_source(
             &IcNodeProviderRewardHistoryRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_800_000_000,
+                crate::ic::IcDashboardRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_800_000_000,
+                ),
                 IcNodeProviderRewardHistoryQuery::new(1_783_900_000, 1_784_300_000, 86_400),
             ),
             &source,
@@ -358,8 +364,10 @@ mod tests {
         for limit in [0, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT + 1] {
             let error = build_ic_node_provider_reward_list_report_with_source(
                 &IcNodeProviderRewardListRequest::new(
-                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                    1_800_000_000,
+                    crate::ic::IcDashboardRequest::new(
+                        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                        1_800_000_000,
+                    ),
                     IcNodeProviderRewardListQuery::new(limit, 0, None),
                 ),
                 &source,
@@ -371,8 +379,10 @@ mod tests {
 
         let error = build_ic_node_provider_reward_history_report_with_source(
             &IcNodeProviderRewardHistoryRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_700_000_000,
+                crate::ic::IcDashboardRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_700_000_000,
+                ),
                 IcNodeProviderRewardHistoryQuery::new(1_700_000_000, 1_700_000_001, 60),
             ),
             &source,

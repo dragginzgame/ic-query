@@ -4,10 +4,13 @@
 //! Does not own: report assembly, cache IO, live source conversion, or text rendering.
 //! Boundary: exercises in-memory row transformations through the view module.
 
+use super::proposals::{
+    proposal_matches_eligibility, proposal_matches_proposer, proposal_matches_query,
+    sort_sns_proposal_rows,
+};
 use super::{
-    proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
-    proposal_matches_query, proposal_matches_status, proposal_matches_topic,
-    sort_mainnet_sns_instances, sort_sns_neurons, sort_sns_proposal_rows,
+    proposal_matches_before, proposal_matches_status, proposal_matches_topic,
+    sort_mainnet_sns_instances, sort_sns_neurons,
 };
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow,

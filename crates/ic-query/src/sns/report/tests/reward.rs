@@ -161,7 +161,7 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
 async fn reward_checkpoint_rejects_invalid_request_before_source_access() {
     let source = FixtureSnsRewardSource::new(vec![fixture_reward_page(Vec::new(), None)]);
     let mut request = reward_checkpoint_request("1");
-    request.network = "local".to_string();
+    request.lookup.network = "local".to_string();
     assert!(matches!(
         build_sns_reward_checkpoint_report_with_source(&request, &source).await,
         Err(SnsHostError::UnsupportedNetwork { network }) if network == "local"

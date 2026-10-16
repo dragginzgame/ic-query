@@ -30,7 +30,7 @@ pub use activity::{
 #[cfg(feature = "nns-host")]
 pub use cache::{
     DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, NnsProposalCacheListReport,
-    NnsProposalCacheStatusReport, NnsProposalCacheSummary, NnsProposalRefreshReport,
+    NnsProposalCacheStatusReport, NnsProposalCacheSummary,
     build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_report_from_cache, nns_proposal_cache_path, nns_proposal_cache_root,
@@ -50,7 +50,7 @@ pub use model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
     NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter, NnsProposalVote,
+    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter,
 };
 pub use source::{
     NnsProposalSource, NnsProposalSourceFuture, build_nns_proposal_list_report_with_source,
@@ -62,10 +62,7 @@ pub use text::{
     nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
 };
 #[cfg(feature = "nns-host")]
-pub use text::{
-    nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text,
-    nns_proposal_refresh_report_text,
-};
+pub use text::{nns_proposal_cache_list_report_text, nns_proposal_cache_status_report_text};
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

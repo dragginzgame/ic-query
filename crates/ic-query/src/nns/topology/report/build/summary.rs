@@ -3,8 +3,7 @@ use crate::nns::{
     LiveNnsSource,
     topology::report::{
         NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource, NnsTopologySummaryReport,
-        enforce_mainnet_network, request::TopologyRequestParts,
-        source::topology_source_request_from, summary::topology_summary_report_from_reports,
+        enforce_mainnet_network, summary::topology_summary_report_from_reports,
     },
 };
 
@@ -18,17 +17,14 @@ pub async fn build_nns_topology_summary_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologySummaryReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.network())?;
+    enforce_mainnet_network(request.network.as_str())?;
 
-    let source_request = topology_source_request_from(request);
-    let subnet_report = source
-        .fetch_subnet_catalog_list_report(&source_request)
-        .await?;
-    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
+    let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
 
     Ok(topology_summary_report_from_reports(
-        request.network().to_string(),
-        request.source_endpoint().to_string(),
+        request.network.clone(),
+        request.source_endpoint.clone(),
         subnet_report,
         reports.node,
         reports.node_provider,

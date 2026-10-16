@@ -13,6 +13,8 @@ mod metrics;
 mod neurons;
 mod proposals;
 #[cfg(feature = "sns-host")]
+mod refresh;
+#[cfg(feature = "sns-host")]
 mod reward;
 
 #[cfg(feature = "sns-host")]
@@ -24,12 +26,12 @@ pub use metrics::{
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use metrics::{
-    sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
+    validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
 #[cfg(feature = "sns-host")]
-pub use neurons::{SnsNeuronRequest, SnsNeuronsRefreshRequest, SnsNeuronsRequest};
-#[cfg(feature = "sns-host")]
-pub use proposals::SnsProposalsRefreshRequest;
+pub use neurons::{SnsNeuronRequest, SnsNeuronsRequest};
 pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
+#[cfg(feature = "sns-host")]
+pub use refresh::SnsSnapshotRefreshRequest;
 #[cfg(feature = "sns-host")]
 pub use reward::SnsRewardCheckpointRequest;

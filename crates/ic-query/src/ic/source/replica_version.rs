@@ -309,8 +309,10 @@ mod tests {
         for query in invalid_queries {
             let source = FixtureSource::default();
             let request = IcReplicaVersionListRequest::new(
-                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-                1_800_000_000,
+                crate::ic::IcDashboardRequest::new(
+                    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                    1_800_000_000,
+                ),
                 query,
             );
             let error = build_ic_replica_version_list_report_with_source(&request, &source)
@@ -322,8 +324,7 @@ mod tests {
 
         let source = FixtureSource::default();
         let request = IcReplicaVersionInfoRequest::new(
-            DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-            1_800_000_000,
+            crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
             "not-a-version",
         );
         let error = build_ic_replica_version_info_report_with_source(&request, &source)
@@ -369,16 +370,14 @@ mod tests {
 
     fn list_request() -> IcReplicaVersionListRequest {
         IcReplicaVersionListRequest::new(
-            DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-            1_800_000_000,
+            crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
             IcReplicaVersionListQuery::new(2, 0, None),
         )
     }
 
     fn info_request() -> IcReplicaVersionInfoRequest {
         IcReplicaVersionInfoRequest::new(
-            DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-            1_800_000_000,
+            crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
             VERSION_A,
         )
     }

@@ -254,9 +254,45 @@ pub fn validate_nns_neuron_distribution_report(
 ) -> Result<(), NnsNeuronDistributionValidationError> {
     validate_distribution_header(report)?;
     validate_distribution_summary(report)?;
-    validate_state_distribution(report)?;
-    validate_visibility_distribution(report)?;
-    validate_neuron_type_distribution(report)
+    validate_distribution(
+        report,
+        "state",
+        "raw-code",
+        report.state_distribution.iter().map(|row| {
+            (
+                row.state,
+                row.state_text == NnsNeuronState::from_code(row.state),
+                row.neuron_count,
+                row.effective_stake_e8s,
+            )
+        }),
+    )?;
+    validate_distribution(
+        report,
+        "visibility",
+        "optional-raw-code",
+        report.visibility_distribution.iter().map(|row| {
+            (
+                row.visibility,
+                row.visibility_text == NnsNeuronVisibility::from_code(row.visibility),
+                row.neuron_count,
+                row.effective_stake_e8s,
+            )
+        }),
+    )?;
+    validate_distribution(
+        report,
+        "neuron-type",
+        "optional-raw-code",
+        report.neuron_type_distribution.iter().map(|row| {
+            (
+                row.neuron_type,
+                row.neuron_type_text == NnsNeuronType::from_code(row.neuron_type),
+                row.neuron_count,
+                row.effective_stake_e8s,
+            )
+        }),
+    )
 }
 
 fn validate_distribution_header(
@@ -400,79 +436,33 @@ fn validate_optional_summary(
     Ok(())
 }
 
-fn validate_state_distribution(
+fn validate_distribution<Key: Copy + Ord + std::fmt::Debug>(
     report: &NnsNeuronDistributionReport,
+    dimension: &'static str,
+    order: &'static str,
+    rows: impl Iterator<Item = (Key, bool, u64, u64)>,
 ) -> Result<(), NnsNeuronDistributionValidationError> {
     let mut previous = None;
     let mut neuron_count = 0_u64;
     let mut stake = 0_u64;
-    for row in &report.state_distribution {
-        if previous.is_some_and(|state| state >= row.state) {
-            return Err(invalid_validation(
-                "state distribution is not strictly raw-code ordered",
-            ));
-        }
-        if row.state_text != NnsNeuronState::from_code(row.state) {
+    for (key, classification_matches, count, effective_stake) in rows {
+        if previous.is_some_and(|previous| previous >= key) {
             return Err(invalid_validation(format!(
-                "state classification for raw code {} is inconsistent",
-                row.state
+                "{dimension} distribution is not strictly {order} ordered"
             )));
         }
-        neuron_count = add_distribution_count(neuron_count, row.neuron_count, "state")?;
-        stake = add_validation_total(stake, row.effective_stake_e8s, "state stake")?;
-        previous = Some(row.state);
-    }
-    validate_distribution_totals(report, neuron_count, stake, "state")
-}
-
-fn validate_visibility_distribution(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    let mut previous: Option<Option<i32>> = None;
-    let mut neuron_count = 0_u64;
-    let mut stake = 0_u64;
-    for row in &report.visibility_distribution {
-        if previous.is_some_and(|visibility| visibility >= row.visibility) {
-            return Err(invalid_validation(
-                "visibility distribution is not strictly optional-raw-code ordered",
-            ));
-        }
-        if row.visibility_text != NnsNeuronVisibility::from_code(row.visibility) {
+        if !classification_matches {
             return Err(invalid_validation(format!(
-                "visibility classification for raw code {:?} is inconsistent",
-                row.visibility
+                "{dimension} classification for raw code {key:?} is inconsistent"
             )));
         }
-        neuron_count = add_distribution_count(neuron_count, row.neuron_count, "visibility")?;
-        stake = add_validation_total(stake, row.effective_stake_e8s, "visibility stake")?;
-        previous = Some(row.visibility);
+        neuron_count = add_distribution_count(neuron_count, count, dimension)?;
+        stake = stake
+            .checked_add(effective_stake)
+            .ok_or_else(|| invalid_validation(format!("{dimension} stake total overflow")))?;
+        previous = Some(key);
     }
-    validate_distribution_totals(report, neuron_count, stake, "visibility")
-}
-
-fn validate_neuron_type_distribution(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    let mut previous: Option<Option<i32>> = None;
-    let mut neuron_count = 0_u64;
-    let mut stake = 0_u64;
-    for row in &report.neuron_type_distribution {
-        if previous.is_some_and(|neuron_type| neuron_type >= row.neuron_type) {
-            return Err(invalid_validation(
-                "neuron-type distribution is not strictly optional-raw-code ordered",
-            ));
-        }
-        if row.neuron_type_text != NnsNeuronType::from_code(row.neuron_type) {
-            return Err(invalid_validation(format!(
-                "neuron-type classification for raw code {:?} is inconsistent",
-                row.neuron_type
-            )));
-        }
-        neuron_count = add_distribution_count(neuron_count, row.neuron_count, "neuron-type")?;
-        stake = add_validation_total(stake, row.effective_stake_e8s, "neuron-type stake")?;
-        previous = Some(row.neuron_type);
-    }
-    validate_distribution_totals(report, neuron_count, stake, "neuron-type")
+    validate_distribution_totals(report, neuron_count, stake, dimension)
 }
 
 fn add_distribution_count(

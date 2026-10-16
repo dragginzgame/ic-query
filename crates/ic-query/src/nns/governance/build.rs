@@ -17,18 +17,12 @@ use super::{
 use crate::nns::LiveNnsSource;
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 
-#[cfg(feature = "nns-host")]
-use super::NnsGovernanceHostError;
-
 /// Build one live NNS Governance economics report through the native replica adapter.
 #[cfg(feature = "nns-host")]
 pub async fn build_nns_governance_economics_report(
     request: &NnsGovernanceRequest,
-) -> Result<NnsGovernanceEconomicsReport, NnsGovernanceHostError> {
-    Ok(
-        build_nns_governance_economics_report_with_source(request, &LiveNnsSource::default())
-            .await?,
-    )
+) -> Result<NnsGovernanceEconomicsReport, NnsGovernanceError> {
+    build_nns_governance_economics_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build one NNS Governance economics report from a caller-owned async source.
@@ -49,8 +43,8 @@ pub async fn build_nns_governance_economics_report_with_source(
 #[cfg(feature = "nns-host")]
 pub async fn build_nns_governance_metrics_report(
     request: &NnsGovernanceRequest,
-) -> Result<NnsGovernanceMetricsReport, NnsGovernanceHostError> {
-    Ok(build_nns_governance_metrics_report_with_source(request, &LiveNnsSource::default()).await?)
+) -> Result<NnsGovernanceMetricsReport, NnsGovernanceError> {
+    build_nns_governance_metrics_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build one NNS Governance metrics report from a caller-owned async source.
@@ -72,11 +66,8 @@ pub async fn build_nns_governance_metrics_report_with_source(
 #[cfg(feature = "nns-host")]
 pub async fn build_nns_governance_reward_event_report(
     request: &NnsGovernanceRequest,
-) -> Result<NnsGovernanceRewardEventReport, NnsGovernanceHostError> {
-    Ok(
-        build_nns_governance_reward_event_report_with_source(request, &LiveNnsSource::default())
-            .await?,
-    )
+) -> Result<NnsGovernanceRewardEventReport, NnsGovernanceError> {
+    build_nns_governance_reward_event_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 /// Build one latest reward-event report from a caller-owned async source.
@@ -97,12 +88,9 @@ pub async fn build_nns_governance_reward_event_report_with_source(
 #[cfg(feature = "nns-host")]
 pub async fn build_nns_governance_maturity_modulation_report(
     request: &NnsGovernanceRequest,
-) -> Result<NnsGovernanceMaturityModulationReport, NnsGovernanceHostError> {
-    Ok(build_nns_governance_maturity_modulation_report_with_source(
-        request,
-        &LiveNnsSource::default(),
-    )
-    .await?)
+) -> Result<NnsGovernanceMaturityModulationReport, NnsGovernanceError> {
+    build_nns_governance_maturity_modulation_report_with_source(request, &LiveNnsSource::default())
+        .await
 }
 
 /// Build one maturity-modulation report from a caller-owned async source.

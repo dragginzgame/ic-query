@@ -1,182 +1,34 @@
-use std::path::{Path, PathBuf};
+use crate::nns::NnsInventoryRefreshReport;
 
 use super::{
-    NnsTopologyHostError,
+    NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologyRefreshRequest,
     request::{
-        TopologyRefreshParts, TopologyRequestParts, inventory_list_request,
-        inventory_refresh_request, node_list_request, subnet_catalog_list_request,
-        subnet_catalog_refresh_request,
+        inventory_list_request, inventory_refresh_request, node_list_request,
+        subnet_catalog_list_request, subnet_catalog_refresh_request,
     },
 };
 use crate::{
     nns::{
         LiveNnsSource,
         data_center::{
-            NnsDataCenterListReport, NnsDataCenterRefreshReport, build_nns_data_center_list_report,
+            NnsDataCenterListReport, build_nns_data_center_list_report,
             refresh_nns_data_center_report,
         },
-        node::{
-            NnsNodeListReport, NnsNodeRefreshReport, build_nns_node_list_report,
-            refresh_nns_node_report,
-        },
+        node::{NnsNodeListReport, build_nns_node_list_report, refresh_nns_node_report},
         node_operator::{
-            NnsNodeOperatorListReport, NnsNodeOperatorRefreshReport,
-            build_nns_node_operator_list_report, refresh_nns_node_operator_report,
+            NnsNodeOperatorListReport, build_nns_node_operator_list_report,
+            refresh_nns_node_operator_report,
         },
         node_provider::{
-            NnsNodeProviderListReport, NnsNodeProviderRefreshReport,
-            build_nns_node_provider_list_report, refresh_nns_node_provider_report,
+            NnsNodeProviderListReport, build_nns_node_provider_list_report,
+            refresh_nns_node_provider_report,
         },
     },
     subnet_catalog::{
         SubnetCatalogListReport, SubnetCatalogRefreshReport, build_subnet_catalog_list_report,
-        format_utc_timestamp_secs, refresh_subnet_catalog,
+        refresh_subnet_catalog,
     },
 };
-
-///
-/// NnsTopologySourceRequest
-///
-/// Source request settings for fetching one complete NNS topology input snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologySourceRequest {
-    /// Caller-selected root for confined managed cache files.
-    pub cache_root: PathBuf,
-    /// Requested network identity; current live adapters support mainnet `ic`.
-    pub network: String,
-    /// Explicit replica API endpoint used for source calls.
-    pub endpoint: String,
-    /// Caller clock in Unix seconds used for freshness and provenance.
-    pub now_unix_secs: u64,
-    /// Canonical UTC collection timestamp retained in reports.
-    pub fetched_at: String,
-    /// Collector identifier retained as source provenance.
-    pub fetched_by: String,
-}
-
-impl NnsTopologySourceRequest {
-    /// Construct source settings using the caller clock and collector `ic-query`.
-    #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        now_unix_secs: u64,
-    ) -> Self {
-        Self {
-            cache_root: cache_root.into(),
-            network: network.into(),
-            endpoint: endpoint.into(),
-            now_unix_secs,
-            fetched_at: format_utc_timestamp_secs(now_unix_secs),
-            fetched_by: "ic-query".to_string(),
-        }
-    }
-}
-
-impl TopologyRequestParts for NnsTopologySourceRequest {
-    fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
-    }
-}
-
-///
-/// NnsTopologyRefreshSourceRequest
-///
-/// Source request settings for refreshing one complete NNS topology snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsTopologyRefreshSourceRequest {
-    /// Caller-selected root for confined managed cache files.
-    pub cache_root: PathBuf,
-    /// Requested network identity; current live adapters support mainnet `ic`.
-    pub network: String,
-    /// Explicit replica API endpoint used for source calls.
-    pub endpoint: String,
-    /// Caller clock in Unix seconds used for freshness and provenance.
-    pub now_unix_secs: u64,
-    /// Age at which an existing refresh lock requires manual inspection.
-    pub lock_stale_after_seconds: u64,
-    /// Collect and validate without publishing a managed snapshot.
-    pub dry_run: bool,
-    /// Canonical UTC collection timestamp retained in reports.
-    pub fetched_at: String,
-    /// Collector identifier retained as source provenance.
-    pub fetched_by: String,
-}
-
-impl NnsTopologyRefreshSourceRequest {
-    /// Construct source settings using the caller clock and collector `ic-query`.
-    #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
-    ) -> Self {
-        Self {
-            cache_root: cache_root.into(),
-            network: network.into(),
-            endpoint: endpoint.into(),
-            now_unix_secs,
-            lock_stale_after_seconds,
-            dry_run: false,
-            fetched_at: format_utc_timestamp_secs(now_unix_secs),
-            fetched_by: "ic-query".to_string(),
-        }
-    }
-
-    /// Select whether refresh publishes a managed snapshot.
-    #[must_use]
-    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
-        self.dry_run = dry_run;
-        self
-    }
-}
-
-impl TopologyRequestParts for NnsTopologyRefreshSourceRequest {
-    fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
-    }
-}
-
-impl TopologyRefreshParts for NnsTopologyRefreshSourceRequest {
-    fn lock_stale_after_seconds(&self) -> u64 {
-        self.lock_stale_after_seconds
-    }
-
-    fn dry_run(&self) -> bool {
-        self.dry_run
-    }
-}
 
 ///
 /// NnsTopologySource
@@ -188,31 +40,31 @@ pub trait NnsTopologySource: Sync {
     /// Load a complete Subnet Catalog input under its selected cache policy.
     fn fetch_subnet_catalog_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>;
 
     /// Load the complete Registry node inventory.
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>>;
 
     /// Load the complete Registry node-provider inventory.
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>;
 
     /// Load the complete Registry node-operator inventory.
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>;
 
     /// Load the complete Registry data-center inventory.
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>;
 }
 
@@ -226,38 +78,38 @@ pub trait NnsTopologyRefreshSource: Sync {
     /// Collect and validate a replacement Subnet Catalog.
     fn refresh_subnet_catalog_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
+        request: &'a NnsTopologyRefreshRequest,
     ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogRefreshReport, NnsTopologyHostError>>;
 
     /// Collect and validate a replacement node inventory.
     fn refresh_node_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeRefreshReport, NnsTopologyHostError>>;
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>;
 
     /// Collect and validate a replacement node-provider inventory.
     fn refresh_node_provider_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderRefreshReport, NnsTopologyHostError>>;
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>;
 
     /// Collect and validate a replacement node-operator inventory.
     fn refresh_node_operator_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError>>;
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>;
 
     /// Collect and validate a replacement data-center inventory.
     fn refresh_data_center_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterRefreshReport, NnsTopologyHostError>>;
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>;
 }
 
 impl NnsTopologySource for LiveNnsSource {
     fn fetch_subnet_catalog_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -267,14 +119,14 @@ impl NnsTopologySource for LiveNnsSource {
 
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>> {
         Box::pin(async move { Ok(build_nns_node_list_report(&node_list_request(request)).await?) })
     }
 
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -284,7 +136,7 @@ impl NnsTopologySource for LiveNnsSource {
 
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -294,7 +146,7 @@ impl NnsTopologySource for LiveNnsSource {
 
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -306,7 +158,7 @@ impl NnsTopologySource for LiveNnsSource {
 impl NnsTopologyRefreshSource for LiveNnsSource {
     fn refresh_subnet_catalog_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
+        request: &'a NnsTopologyRefreshRequest,
     ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogRefreshReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -316,8 +168,9 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
 
     fn refresh_node_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeRefreshReport, NnsTopologyHostError>> {
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
+    {
         Box::pin(
             async move { Ok(refresh_nns_node_report(&inventory_refresh_request(request)).await?) },
         )
@@ -325,8 +178,8 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
 
     fn refresh_node_provider_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderRefreshReport, NnsTopologyHostError>>
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
             Ok(refresh_nns_node_provider_report(&inventory_refresh_request(request)).await?)
@@ -335,8 +188,8 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
 
     fn refresh_node_operator_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorRefreshReport, NnsTopologyHostError>>
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
             Ok(refresh_nns_node_operator_report(&inventory_refresh_request(request)).await?)
@@ -345,35 +198,11 @@ impl NnsTopologyRefreshSource for LiveNnsSource {
 
     fn refresh_data_center_report<'a>(
         &'a self,
-        request: &'a NnsTopologyRefreshSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterRefreshReport, NnsTopologyHostError>>
+        request: &'a NnsTopologyRefreshRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
             Ok(refresh_nns_data_center_report(&inventory_refresh_request(request)).await?)
         })
     }
-}
-
-pub(super) fn topology_source_request_from(
-    request: &impl TopologyRequestParts,
-) -> NnsTopologySourceRequest {
-    NnsTopologySourceRequest::new(
-        request.cache_root(),
-        request.network(),
-        request.source_endpoint(),
-        request.now_unix_secs(),
-    )
-}
-
-pub(super) fn topology_refresh_source_request_from(
-    request: &impl TopologyRefreshParts,
-) -> NnsTopologyRefreshSourceRequest {
-    NnsTopologyRefreshSourceRequest::new(
-        request.cache_root(),
-        request.network(),
-        request.source_endpoint(),
-        request.now_unix_secs(),
-        request.lock_stale_after_seconds(),
-    )
-    .with_dry_run(request.dry_run())
 }

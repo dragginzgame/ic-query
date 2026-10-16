@@ -1,19 +1,19 @@
+use crate::nns::NnsInventoryRefreshReport;
 use crate::{
-    nns::node_provider::{
-        NnsNodeProviderListReport, NnsNodeProviderRefreshReport, NnsNodeProviderRow,
-    },
+    nns::node_provider::{NnsNodeProviderListReport, NnsNodeProviderRow},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 
 pub(in crate::nns::topology::report::tests) fn node_provider_refresh_report_fixture()
--> NnsNodeProviderRefreshReport {
-    NnsNodeProviderRefreshReport {
+-> NnsInventoryRefreshReport {
+    NnsInventoryRefreshReport {
         schema_version: 1,
+        collection: "node_providers".to_string(),
         network: MAINNET_NETWORK.to_string(),
         cache_path: "/cache/nns/ic/node-provider/providers.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node-provider/refresh.lock".to_string(),
         output_path: None,
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
+        governance_canister_id: Some("rrkah-fqaaa-aaaaa-aaaaq-cai".to_string()),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 44,
         fetched_at: "2026-06-04T00:02:00Z".to_string(),
@@ -22,13 +22,13 @@ pub(in crate::nns::topology::report::tests) fn node_provider_refresh_report_fixt
         dry_run: false,
         wrote_cache: true,
         replaced_existing_cache: false,
-        node_provider_count: 1,
+        row_count: 1,
     }
 }
 
 pub(in crate::nns::topology::report::tests) fn dry_run_node_provider_refresh_report_fixture()
--> NnsNodeProviderRefreshReport {
-    NnsNodeProviderRefreshReport {
+-> NnsInventoryRefreshReport {
+    NnsInventoryRefreshReport {
         dry_run: true,
         wrote_cache: false,
         ..node_provider_refresh_report_fixture()

@@ -1,31 +1,23 @@
-//! Module: nns::neuron::report::cache::refresh
-//!
-//! Responsibility: run complete public NNS neuron snapshot refreshes.
-//! Does not own: command parsing, text rendering, or live transport internals.
-//! Boundary: acquires the refresh lock, fetches pages, and publishes snapshots.
+//! Collect complete Governance snapshots through family-specific paging.
 
 use super::{
-    NNS_NEURON_CACHE_COMPONENT, cache_operation, collection::fetch_complete_neuron_collection,
-    model::NnsNeuronRefreshReport, paths::nns_neuron_cache_paths,
-    publish::publish_complete_neuron_cache,
+    NNS_NEURON_CACHE_COMPONENT,
+    collection::fetch_complete_neuron_collection,
+    model::{CompleteNeuronCollection, NnsNeuronCacheRows},
+    paths::nns_neuron_cache_paths,
 };
 use crate::{
     QueryProgress,
     nns::{
         LiveNnsSource, NnsGovernanceRefreshRequest,
-        governance::{
-            write_failed_governance_refresh_attempt, write_starting_governance_refresh_attempt,
-        },
+        governance::{NnsGovernanceRefreshReport, run_governance_snapshot_refresh},
         neuron::report::{
-            NnsNeuronHostError, enforce_mainnet_network,
+            NNS_NEURON_FETCHED_BY, NnsNeuronHostError, enforce_mainnet_network,
             source::{NnsNeuronSource, validate_page_size},
         },
     },
     progress::IgnoreQueryProgress,
-    snapshot_cache::{
-        LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
-        with_locked_snapshot_refresh,
-    },
+    snapshot_cache::SnapshotRefreshProgress,
 };
 
 /// Default age after which an NNS neuron refresh lock is reported as stale.
@@ -34,7 +26,7 @@ pub const DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 /// Refresh the complete public neuron index using the built-in live source.
 pub async fn refresh_nns_neuron_cache(
     request: &NnsGovernanceRefreshRequest,
-) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
     refresh_nns_neuron_cache_with_source(request, &LiveNnsSource::default()).await
 }
 
@@ -42,7 +34,7 @@ pub async fn refresh_nns_neuron_cache(
 pub async fn refresh_nns_neuron_cache_with_progress(
     request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
     refresh_with_source_and_progress(request, &LiveNnsSource::default(), progress).await
 }
 
@@ -50,7 +42,7 @@ pub async fn refresh_nns_neuron_cache_with_progress(
 pub async fn refresh_nns_neuron_cache_with_source(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
-) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
     let mut progress = IgnoreQueryProgress;
     refresh_with_source_and_progress(request, source, &mut progress).await
 }
@@ -59,55 +51,39 @@ async fn refresh_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNeuronRefreshReport, NnsNeuronHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
     validate_page_size(request.page_size)?;
     enforce_mainnet_network(&request.network)?;
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
-    with_locked_snapshot_refresh(
-        LockedSnapshotRefreshRequest {
-            cache_root: &request.cache_root,
-            snapshot_path: &paths.snapshot_path,
-            refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS,
-        },
-        cache_operation,
-        async |state| {
-            run_snapshot_refresh_with_attempts(
-                || {
-                    write_starting_governance_refresh_attempt(
-                        &paths.refresh_attempt_path,
-                        request,
-                        NNS_NEURON_CACHE_COMPONENT,
-                    )
-                    .map_err(NnsNeuronHostError::from)
-                },
-                async || {
-                    let complete = fetch_complete_neuron_collection(
-                        request,
-                        source,
-                        &paths.refresh_attempt_path,
-                        progress,
-                    )
-                    .await?;
-                    publish_complete_neuron_cache(
-                        request,
-                        &paths,
-                        state.replaced_existing_snapshot,
-                        complete,
-                    )
-                },
-                |error| {
-                    let _ = write_failed_governance_refresh_attempt(
-                        &paths.refresh_attempt_path,
-                        request,
-                        NNS_NEURON_CACHE_COMPONENT,
-                        error.to_string(),
-                    );
+    run_governance_snapshot_refresh(
+        request,
+        &paths,
+        NNS_NEURON_CACHE_COMPONENT,
+        DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS,
+        async |context| {
+            let CompleteNeuronCollection { neurons, state } = fetch_complete_neuron_collection(
+                request,
+                source,
+                &paths.refresh_attempt_path,
+                progress,
+            )
+            .await?;
+            let publication_progress = SnapshotRefreshProgress::new(
+                state.pages_fetched(),
+                neurons.len(),
+                state
+                    .next_start_neuron_id()
+                    .map(|cursor| cursor.to_string()),
+            );
+            context.publish(
+                "neurons",
+                NNS_NEURON_FETCHED_BY,
+                publication_progress,
+                NnsNeuronCacheRows {
+                    collection_state: state,
+                    neurons,
                 },
             )
-            .await
         },
     )
     .await

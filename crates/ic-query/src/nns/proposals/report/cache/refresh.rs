@@ -1,31 +1,23 @@
-//! Module: nns::proposals::report::cache::refresh
-//!
-//! Responsibility: run complete NNS proposal snapshot refreshes.
-//! Does not own: command parsing, text rendering, or live transport internals.
-//! Boundary: acquires the refresh lock, fetches pages, and publishes snapshots.
+//! Collect complete Governance snapshots through family-specific paging.
 
 use super::{
-    NNS_PROPOSAL_CACHE_COMPONENT, collection::fetch_complete_nns_proposal_collection,
-    model::NnsProposalRefreshReport, paths::nns_proposal_cache_paths,
-    publish::publish_complete_nns_proposal_cache,
+    NNS_PROPOSAL_CACHE_COMPONENT,
+    collection::fetch_complete_nns_proposal_collection,
+    model::{CompleteNnsProposalCollection, NnsProposalCacheRows},
+    paths::nns_proposal_cache_paths,
 };
 use crate::{
-    HostCacheError, QueryProgress,
+    QueryProgress,
     nns::{
         LiveNnsSource, NnsGovernanceRefreshRequest,
-        governance::{
-            write_failed_governance_refresh_attempt, write_starting_governance_refresh_attempt,
-        },
+        governance::{NnsGovernanceRefreshReport, run_governance_snapshot_refresh},
         proposals::report::{
-            NnsProposalHostError, enforce_mainnet_network,
+            NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError, enforce_mainnet_network,
             source::{NnsProposalSource, validate_proposal_page_size},
         },
     },
     progress::IgnoreQueryProgress,
-    snapshot_cache::{
-        LockedSnapshotRefreshRequest, run_snapshot_refresh_with_attempts,
-        with_locked_snapshot_refresh,
-    },
+    snapshot_cache::SnapshotRefreshProgress,
 };
 
 /// Default stale-lock threshold in seconds for proposal refreshes.
@@ -34,7 +26,7 @@ pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
 pub async fn refresh_nns_proposal_cache(
     request: &NnsGovernanceRefreshRequest,
-) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source(request, &LiveNnsSource::default()).await
 }
 
@@ -42,7 +34,7 @@ pub async fn refresh_nns_proposal_cache(
 pub async fn refresh_nns_proposal_cache_with_progress(
     request: &NnsGovernanceRefreshRequest,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -55,7 +47,7 @@ pub async fn refresh_nns_proposal_cache_with_progress(
 pub async fn refresh_nns_proposal_cache_with_source(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
-) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
     let mut progress = IgnoreQueryProgress;
     refresh_nns_proposal_cache_with_source_and_progress(request, source, &mut progress).await
 }
@@ -64,60 +56,40 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsProposalRefreshReport, NnsProposalHostError> {
+) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
     validate_proposal_page_size(request.page_size)?;
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    with_locked_snapshot_refresh(
-        LockedSnapshotRefreshRequest {
-            cache_root: &request.cache_root,
-            snapshot_path: &paths.snapshot_path,
-            refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS,
-        },
-        |error| {
-            NnsProposalHostError::Cache(HostCacheError::operation(
-                NNS_PROPOSAL_CACHE_COMPONENT,
-                error,
-            ))
-        },
-        async |refresh_state| {
-            run_snapshot_refresh_with_attempts(
-                || {
-                    write_starting_governance_refresh_attempt(
-                        &paths.refresh_attempt_path,
-                        request,
-                        NNS_PROPOSAL_CACHE_COMPONENT,
-                    )
-                    .map_err(NnsProposalHostError::from)
-                },
-                async || {
-                    let complete = fetch_complete_nns_proposal_collection(
-                        request,
-                        source,
-                        &paths.refresh_attempt_path,
-                        progress,
-                    )
-                    .await?;
-                    publish_complete_nns_proposal_cache(
-                        request,
-                        &paths,
-                        refresh_state.replaced_existing_snapshot,
-                        complete,
-                    )
-                },
-                |error| {
-                    let _ = write_failed_governance_refresh_attempt(
-                        &paths.refresh_attempt_path,
-                        request,
-                        NNS_PROPOSAL_CACHE_COMPONENT,
-                        error.to_string(),
-                    );
+    run_governance_snapshot_refresh(
+        request,
+        &paths,
+        NNS_PROPOSAL_CACHE_COMPONENT,
+        DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS,
+        async |context| {
+            let CompleteNnsProposalCollection { proposals, state } =
+                fetch_complete_nns_proposal_collection(
+                    request,
+                    source,
+                    &paths.refresh_attempt_path,
+                    progress,
+                )
+                .await?;
+            let publication_progress = SnapshotRefreshProgress::new(
+                state.pages_fetched(),
+                proposals.len(),
+                state
+                    .next_before_proposal_id()
+                    .map(|cursor| cursor.to_string()),
+            );
+            context.publish(
+                "proposals",
+                NNS_PROPOSAL_FETCHED_BY,
+                publication_progress,
+                NnsProposalCacheRows {
+                    collection_state: state,
+                    proposals,
                 },
             )
-            .await
         },
     )
     .await

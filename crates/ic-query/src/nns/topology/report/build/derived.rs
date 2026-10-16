@@ -8,7 +8,7 @@ use crate::nns::{
         NnsTopologyCoverageReport, NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
         NnsTopologyVersionsReport, check::topology_check_report_from_summary,
         coverage::topology_coverage_report_from_summary, enforce_mainnet_network,
-        registry_versions::topology_registry_versions, source::topology_source_request_from,
+        registry_versions::topology_registry_versions,
     },
 };
 
@@ -24,11 +24,8 @@ pub async fn build_nns_topology_versions_report_with_source(
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
     enforce_mainnet_network(&request.network)?;
 
-    let source_request = topology_source_request_from(request);
-    let subnet_report = source
-        .fetch_subnet_catalog_list_report(&source_request)
-        .await?;
-    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
+    let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
     let registry_versions = topology_registry_versions(
         &subnet_report,
         &reports.node,

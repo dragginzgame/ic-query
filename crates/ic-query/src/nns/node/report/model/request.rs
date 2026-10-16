@@ -1,6 +1,4 @@
-use crate::nns::NnsInventoryCacheRequest;
-#[cfg(feature = "nns-host")]
-use crate::nns::inventory::NnsInventoryListInput;
+use crate::nns::{NnsInventoryCacheRequest, NnsInventoryListRequest};
 use crate::subnet_catalog::SubnetKind;
 
 ///
@@ -11,9 +9,8 @@ use crate::subnet_catalog::SubnetKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsNodeListRequest {
-    pub cache: NnsInventoryCacheRequest,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
+    /// Complete inventory acquisition settings, independent of view filters.
+    pub inventory: NnsInventoryListRequest,
     pub filters: NnsNodeListFilters,
 }
 
@@ -25,9 +22,7 @@ impl NnsNodeListRequest {
         now_unix_secs: u64,
     ) -> Self {
         Self {
-            cache,
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            inventory: NnsInventoryListRequest::new(cache, source_endpoint, now_unix_secs),
             filters: NnsNodeListFilters::default(),
         }
     }
@@ -66,21 +61,6 @@ impl NnsNodeListRequest {
     pub fn with_node_operator(mut self, node_operator: impl Into<String>) -> Self {
         self.filters.node_operator = Some(node_operator.into());
         self
-    }
-}
-
-#[cfg(feature = "nns-host")]
-impl NnsInventoryListInput for NnsNodeListRequest {
-    fn cache(&self) -> &NnsInventoryCacheRequest {
-        &self.cache
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.source_endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
     }
 }
 

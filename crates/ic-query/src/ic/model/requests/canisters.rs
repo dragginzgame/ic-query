@@ -4,6 +4,8 @@
 //! Does not own: network metrics, network resources, transport, or reports.
 //! Boundary: keeps shared filters and explicit bounded cursor-page intent together.
 
+use super::IcDashboardRequest;
+
 use serde::Serialize;
 
 ///
@@ -14,10 +16,8 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterRequest {
-    /// Dashboard API base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Canister principal to inspect.
     pub canister_id: String,
 }
@@ -25,14 +25,9 @@ pub struct IcCanisterRequest {
 impl IcCanisterRequest {
     /// Construct a live Dashboard canister request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        canister_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(dashboard: IcDashboardRequest, canister_id: impl Into<String>) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             canister_id: canister_id.into(),
         }
     }
@@ -68,10 +63,8 @@ pub struct IcCanisterFilters {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterCountRequest {
-    /// Dashboard API v4 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Filters applied by the Dashboard.
     pub filters: IcCanisterFilters,
 }
@@ -79,10 +72,9 @@ pub struct IcCanisterCountRequest {
 impl IcCanisterCountRequest {
     /// Construct a live Dashboard canister-count request without filters.
     #[must_use]
-    pub fn new(source_endpoint: impl Into<String>, now_unix_secs: u64) -> Self {
+    pub fn new(dashboard: IcDashboardRequest) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             filters: IcCanisterFilters::default(),
         }
     }
@@ -103,10 +95,8 @@ impl IcCanisterCountRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcCanisterPageRequest {
-    /// Dashboard API v4 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Filters applied by the Dashboard.
     pub filters: IcCanisterFilters,
     /// Maximum rows requested from the API.
@@ -120,10 +110,9 @@ pub struct IcCanisterPageRequest {
 impl IcCanisterPageRequest {
     /// Construct a live Dashboard page request with the default bounded limit.
     #[must_use]
-    pub fn new(source_endpoint: impl Into<String>, now_unix_secs: u64) -> Self {
+    pub fn new(dashboard: IcDashboardRequest) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             filters: IcCanisterFilters::default(),
             limit: crate::ic::DEFAULT_IC_CANISTER_PAGE_LIMIT,
             after: None,

@@ -4,12 +4,18 @@
 //! Does not own: live transport, CLI parsing, caching, or text rendering.
 //! Boundary: preserves one explicit facade across native Governance report families.
 
+mod classification;
 mod economics;
 mod events;
 mod metrics;
 
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::fmt;
+
+pub use classification::NnsGovernanceVote;
+pub(in crate::nns) use classification::{
+    deserialize_code_label, native_code_classification, native_optional_code_classification,
+};
 
 ///
 /// NnsGovernanceCollectionStatus

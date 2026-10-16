@@ -6,13 +6,9 @@
 
 mod detail;
 mod list;
-#[cfg(feature = "sns-host")]
-mod refresh;
 mod single;
 
 pub use list::sns_proposals_report_text;
-#[cfg(feature = "sns-host")]
-pub use refresh::sns_proposals_refresh_report_text;
 pub use single::sns_proposal_report_text;
 
 pub(super) const SNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;

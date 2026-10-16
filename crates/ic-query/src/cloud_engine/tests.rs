@@ -1,6 +1,8 @@
 use super::*;
+use crate::subnet_catalog::MAINNET_NETWORK;
+#[cfg(feature = "subnet-catalog-host")]
 use crate::subnet_catalog::{
-    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope, MAINNET_NETWORK,
+    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope,
     MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogListReport, SubnetCatalogSubnetRow, SubnetKind,
     SubnetSpecialization,
 };
@@ -11,7 +13,9 @@ const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2
 const OPERATOR_ID: &str = "wlnge-zyaaa-aaabw-aaaaa-cai";
 const OWNER_ID: &str = "4vh3j-nyc2w-eaan4-vsl33-dguwj-7hlsb-bffh2-exinh-parof-qqlki-lae";
 const ADMIN_ID: &str = "bct5z-vccu4-6q4t2-3lb6l-wm43p-ulppt-o5sqq-w6het-rthdz-qp4yn-fqe";
+#[cfg(feature = "subnet-catalog-host")]
 const SUBNET_B: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
+#[cfg(feature = "subnet-catalog-host")]
 const SUBNET_C: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 
 struct FixtureSource {
@@ -55,12 +59,14 @@ impl CloudEngineSource for FixtureSource {
     }
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 struct BindingFixtureSource {
     calls: Mutex<usize>,
     request: CloudEngineSourceRequest,
     query_call_count: usize,
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 impl CloudEngineOperatorBindingSource for BindingFixtureSource {
     fn fetch_operator_binding<'a>(
         &'a self,
@@ -92,9 +98,13 @@ impl CloudEngineOperatorBindingSource for BindingFixtureSource {
 async fn operator_report_preserves_public_settings_and_provenance() {
     let request = request(MAINNET_NETWORK);
     let source = FixtureSource::new(&request);
-    let report = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &source)
-        .await
-        .expect("fixture CloudEngine operator report");
+    let report = build_cloud_engine_operator_report_with_source(
+        &request,
+        &SUBNET_ID.to_ascii_uppercase(),
+        &source,
+    )
+    .await
+    .expect("fixture CloudEngine operator report");
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.context.schema_version, 1);
@@ -181,6 +191,7 @@ async fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
     );
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
     let request = request(MAINNET_NETWORK);
@@ -271,6 +282,7 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
     );
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn list_report_enforces_fanout_and_successful_source_contracts() {
     let request = request(MAINNET_NETWORK);
@@ -374,6 +386,19 @@ async fn builders_reject_inconsistent_source_evidence() {
         CloudEngineHostError::InvalidSourceData { reason }
             if reason.contains("canonical non-negative decimal")
     ));
+
+    for operator in ["invalid".to_string(), OPERATOR_ID.to_ascii_uppercase()] {
+        let mut source = FixtureSource::new(&request);
+        source.operator.operator_canister_id = Some(operator);
+        let error = build_cloud_engine_operator_report_with_source(&request, SUBNET_ID, &source)
+            .await
+            .expect_err("operator evidence requires canonical principal text");
+        assert!(matches!(
+            error,
+            CloudEngineHostError::InvalidSourceData { reason }
+                if reason.contains("operator_canister_id")
+        ));
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -475,6 +500,7 @@ fn price_row(
     }
 }
 
+#[cfg(feature = "subnet-catalog-host")]
 fn list_catalog_report(subnet_ids: &[&str]) -> SubnetCatalogListReport {
     SubnetCatalogListReport {
         schema_version: 1,

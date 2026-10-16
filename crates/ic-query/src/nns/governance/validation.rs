@@ -13,6 +13,7 @@ use super::{
     NnsGovernanceError, NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
     NnsGovernanceSourceSelection,
 };
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text, parse_utc_timestamp_secs};
 
 pub fn validate_governance_request(
@@ -21,6 +22,72 @@ pub fn validate_governance_request(
     enforce_mainnet_network(&request.network)?;
     validate_source_selection(&request.source)?;
     parse_governance_timestamp("fetched_at", &request.fetched_at).map(|_| ())
+}
+
+/// Bind a continuation request to the collection's original network and source.
+pub fn validate_governance_continuation_request<Error>(
+    request: &NnsGovernanceRequest,
+    network: &str,
+    source: &NnsGovernanceSourceSelection,
+    mismatch: impl FnOnce(&'static str, String, String) -> Error,
+) -> Result<(), Error> {
+    if request.network != network {
+        return Err(mismatch(
+            "network",
+            network.to_string(),
+            request.network.clone(),
+        ));
+    }
+    if request.source != *source {
+        return Err(mismatch(
+            "requested_source",
+            format!("{source:?}"),
+            format!("{:?}", request.source),
+        ));
+    }
+    Ok(())
+}
+
+/// Admit restored collection identity and timestamps before family page-size checks.
+pub fn validate_governance_collection_identity<Error>(
+    network: &str,
+    canister_id: &str,
+    source: &NnsGovernanceSourceSelection,
+    (started_at, updated_at): (&str, &str),
+    invalid: impl FnOnce(String) -> Error,
+) -> Result<(), Error>
+where
+    Error: From<NnsGovernanceError>,
+{
+    if canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
+        return Err(invalid(format!(
+            "governance_canister_id is {canister_id}, expected {MAINNET_GOVERNANCE_CANISTER_ID}"
+        )));
+    }
+    validate_governance_request(&NnsGovernanceRequest {
+        network: network.to_string(),
+        fetched_at: started_at.to_string(),
+        source: source.clone(),
+    })?;
+    validate_governance_time_interval("started_at", started_at, "updated_at", updated_at)?;
+    Ok(())
+}
+
+/// Admit collection page ceilings before validating retained source provenance.
+pub fn validate_governance_collection_page_bounds<Error>(
+    max_pages: u32,
+    pages_fetched: u32,
+    invalid: impl FnOnce(String) -> Error,
+) -> Result<(), Error> {
+    if max_pages == 0 {
+        return Err(invalid("max_pages must be greater than zero".to_string()));
+    }
+    if pages_fetched > max_pages {
+        return Err(invalid(format!(
+            "pages_fetched {pages_fetched} exceeds max_pages {max_pages}"
+        )));
+    }
+    Ok(())
 }
 
 fn parse_governance_timestamp(field: &'static str, value: &str) -> Result<u64, NnsGovernanceError> {

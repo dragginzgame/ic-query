@@ -87,13 +87,17 @@ fn public_cloud_engine_reports_are_constructible_serializable_and_renderable() {
 fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
     let list_request = CloudEngineProviderListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
     );
     let info_request = CloudEngineProviderInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
         provider_row().principal_id,
     );
     let provider = provider_row();
@@ -127,14 +131,18 @@ fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
 fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
     let list_request = CloudEngineNodeListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
     )
     .with_node_provider_id(provider_row().principal_id);
     let info_request = CloudEngineNodeInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
         NODE_ID,
     );
     let node = cloud_engine_node_row();
@@ -181,13 +189,17 @@ fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
 async fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
     let list_request = CloudEngineProviderListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
     );
     let info_request = CloudEngineProviderInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
         provider_row().principal_id,
     );
     let list = build_cloud_engine_provider_list_report_with_source(&list_request, &ProviderFixture)
@@ -219,13 +231,17 @@ async fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
 async fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
     let list_request = CloudEngineNodeListRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
     );
     let info_request = CloudEngineNodeInfoRequest::new(
         "ic",
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
         NODE_ID,
     );
     let list = build_cloud_engine_node_list_report_with_source(&list_request, &ProviderFixture)

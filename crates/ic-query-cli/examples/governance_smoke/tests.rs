@@ -17,13 +17,10 @@ struct Directory(PathBuf);
 
 impl Directory {
     fn new() -> Self {
-        let root = env::temp_dir().join(format!(
-            "ic-query-smoke-{}-{}",
-            std::process::id(),
-            time::OffsetDateTime::now_utc().unix_timestamp_nanos()
-        ));
-        fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
-        Self(root.canonicalize().unwrap())
+        Self(
+            ic_host_fs::testing::create_fixture_directory(&env::temp_dir(), "ic-query-smoke")
+                .unwrap(),
+        )
     }
 }
 
@@ -69,8 +66,9 @@ fn actions_are_admitted_before_effects_and_help_commands_are_sorted() {
 }
 
 #[test]
-fn source_fingerprint_preserves_sorted_paths_raw_contents_and_complete_inputs() {
+fn source_fingerprint_covers_inventory_independent_of_checkout_location() {
     let directory = Directory::new();
+    let relocated = Directory::new();
     for path in [
         "tests/canister/probe.did",
         "rust-toolchain.toml",
@@ -81,18 +79,37 @@ fn source_fingerprint_preserves_sorted_paths_raw_contents_and_complete_inputs() 
         "Cargo.toml",
         "Cargo.lock",
     ] {
-        let path = directory.0.join(path);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, b"fixture\n").unwrap();
+        for root in [&directory.0, &relocated.0] {
+            let path = root.join(path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, b"fixture\n").unwrap();
+        }
     }
     let source = directory.0.join("crates/ic-query/src/large.rs");
     fs::write(&source, vec![b'x'; 65_537]).unwrap();
-    let expected = "2c947bca9ebcb90408ef8ba4a6f62b3a3992c82f23d18b684ff34ee4162c405b";
-    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
-    fs::write(directory.0.join("crates/ic-query/README.md"), b"guide").unwrap();
+    fs::write(
+        relocated.0.join("crates/ic-query/src/large.rs"),
+        vec![b'x'; 65_537],
+    )
+    .unwrap();
+    let expected = build::source_digest(&directory.0).unwrap();
+    assert_eq!(build::source_digest(&relocated.0).unwrap(), expected);
+    fs::write(&source, vec![b'y'; 65_537]).unwrap();
+    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::write(&source, vec![b'x'; 65_537]).unwrap();
+    let guide = directory.0.join("crates/ic-query/README.md");
+    fs::write(&guide, b"guide").unwrap();
+    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::remove_file(guide).unwrap();
+    let empty = directory.0.join("crates/ic-query/empty");
+    fs::create_dir(&empty).unwrap();
+    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::remove_dir(empty).unwrap();
     assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
     fs::rename(&source, source.with_file_name("renamed.rs")).unwrap();
     assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    fs::rename(source.with_file_name("renamed.rs"), source).unwrap();
+    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
     fs::remove_file(directory.0.join("Cargo.lock")).unwrap();
     assert_eq!(
         build::source_digest(&directory.0)

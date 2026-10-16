@@ -132,13 +132,13 @@ pub(in crate::sns::report) use model::{
 #[cfg(feature = "sns-host")]
 pub use model::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
-    SnsCacheSummary, SnsHostError, SnsNeuronRequest, SnsNeuronsRefreshReport,
-    SnsNeuronsRefreshRequest, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsProposalsRefreshReport, SnsProposalsRefreshRequest, SnsRefreshAttemptStatus,
-    SnsRewardCheckpointRequest,
+    SnsCacheSummary, SnsHostError, SnsNeuronRequest, SnsNeuronsReport, SnsNeuronsRequest,
+    SnsNeuronsSort, SnsRefreshAttemptStatus, SnsRewardCheckpointRequest, SnsSnapshotRefreshReport,
+    SnsSnapshotRefreshRequest,
 };
 pub(in crate::sns::report) use model::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+    validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
@@ -184,8 +184,8 @@ pub use text::{
 #[cfg(feature = "sns-host")]
 pub use text::{
     sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
-    sns_neurons_refresh_report_text, sns_neurons_report_text, sns_proposals_cache_list_report_text,
-    sns_proposals_cache_status_report_text, sns_proposals_refresh_report_text,
+    sns_neurons_report_text, sns_proposals_cache_list_report_text,
+    sns_proposals_cache_status_report_text, sns_snapshot_refresh_report_text,
 };
 
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";

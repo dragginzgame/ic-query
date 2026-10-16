@@ -12,9 +12,8 @@ use super::{
 };
 use crate::ic::{
     IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal,
-    canonicalize_node_status_rows_with_policy, dashboard_source_request, invalid_source,
-    invalid_source_value, node_status_counts, report_provenance, validate_dashboard_network,
-    validate_provenance,
+    canonicalize_node_status_rows_with_policy, invalid_source, invalid_source_value,
+    node_status_counts, report_provenance, validate_dashboard_network, validate_provenance,
 };
 use std::collections::HashSet;
 
@@ -58,7 +57,7 @@ pub async fn build_cloud_engine_node_list_report_with_source(
         .as_deref()
         .map(|value| canonical_request_principal("node_provider_id", value))
         .transpose()?;
-    let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let expected_source = request.dashboard.source_request();
     let mut source_data = source
         .fetch_cloud_engine_node_list(&expected_source, requested_node_provider_id.as_deref())
         .await?;
@@ -138,7 +137,7 @@ pub async fn build_cloud_engine_node_info_report_with_source(
 ) -> Result<CloudEngineNodeInfoReport, IcHostError> {
     validate_dashboard_network(&request.network)?;
     let requested_node_id = canonical_request_principal("node_id", &request.node_id)?;
-    let expected_source = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let expected_source = request.dashboard.source_request();
     let source_data = source
         .fetch_cloud_engine_node_info(&expected_source, &requested_node_id)
         .await?;

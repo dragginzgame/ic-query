@@ -4,7 +4,7 @@
 //! Does not own: live transport, cache IO, or text rendering.
 //! Boundary: preserves the unauthenticated Governance `NeuronInfo` fields without private state.
 
-use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote};
+use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
 use crate::nns::governance::{NnsGovernanceReportContext, NnsGovernanceRequest};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -37,7 +37,7 @@ pub struct NnsNeuronBallotRow {
     /// Raw Governance vote discriminant.
     pub vote: i32,
     /// Typed classification and stable display label for the raw vote.
-    pub vote_text: NnsNeuronVote,
+    pub vote_text: crate::nns::governance::NnsGovernanceVote,
 }
 
 ///

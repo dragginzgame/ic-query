@@ -16,6 +16,8 @@ mod metrics;
 mod neurons;
 mod params;
 mod proposals;
+#[cfg(feature = "sns-host")]
+mod refresh;
 mod swap;
 mod token;
 mod upgrade;
@@ -35,6 +37,8 @@ pub use governance::{
 pub use invocation::{SnsCanisterCallType, SnsCanisterMethod};
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
 pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
+#[cfg(feature = "sns-host")]
+pub use neurons::SnsNeuronsReport;
 pub use neurons::{
     SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
@@ -45,10 +49,9 @@ pub use neurons::{
     SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, sns_neuron_permission_name,
     validate_sns_reward_checkpoint_report,
 };
-#[cfg(feature = "sns-host")]
-pub use neurons::{SnsNeuronsRefreshReport, SnsNeuronsReport};
 pub(in crate::sns::report) use neurons::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+    validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use neurons::{
@@ -57,12 +60,12 @@ pub(in crate::sns::report) use neurons::{
     validate_sns_reward_running_version_evidence,
 };
 pub use params::SnsParamsReport;
-#[cfg(feature = "sns-host")]
-pub use proposals::SnsProposalsRefreshReport;
 pub use proposals::{
     SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
     SnsProposalReport, SnsProposalRow, SnsProposalTally, SnsProposalVote, SnsProposalsReport,
 };
+#[cfg(feature = "sns-host")]
+pub use refresh::SnsSnapshotRefreshReport;
 pub use swap::{
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,

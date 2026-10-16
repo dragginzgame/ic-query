@@ -112,8 +112,13 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     assert!(attempt_path.is_file());
     assert!(!lock_path.exists());
     assert!(refresh.complete);
+    assert_eq!(refresh.collection, "proposals");
+    let refresh_json = serde_json::to_value(&refresh).expect("serialize refresh result");
+    assert_eq!(refresh_json["schema_version"], 1);
+    assert_eq!(refresh_json["collection"], "proposals");
+    assert_eq!(refresh_json["row_count"], refresh.row_count);
     assert_eq!(refresh.page_count, 1);
-    assert_eq!(refresh.proposal_count, 1);
+    assert_eq!(refresh.row_count, 1);
 
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
@@ -454,7 +459,7 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
     for input in ["2", ROOT_B] {
         let root = temp_dir("ic-query-sns-second-position-refresh");
         let mut request = sns_proposals_refresh_request(&root, None);
-        request.input = input.to_string();
+        request.lookup.input = input.to_string();
         let refresh = refresh_sns_proposals_cache_with_source(&request, &SecondSnsProposalsSource)
             .await
             .expect("refresh second SNS");
@@ -546,7 +551,7 @@ async fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
     )
     .await
     .unwrap();
-    assert_eq!(report.proposal_count, 3);
+    assert_eq!(report.row_count, 3);
     let path = sns_proposals_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let original = fs::read(&path).unwrap();
     let error = refresh_sns_proposals_cache_with_source(

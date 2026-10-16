@@ -18,7 +18,6 @@ use ic_host_artifacts::{
 };
 use ic_host_fs::durable::write_bytes;
 use serde_json::json;
-use sha2::{Digest, Sha256};
 use std::{
     env, fs, io,
     path::{Path, PathBuf},
@@ -88,22 +87,9 @@ pub fn source_digest(root: &Path) -> Result<String> {
             .into());
         }
     }
-    let mut hash = Sha256::new();
-    for (path, value) in inputs.entries() {
-        if !matches!(value, InputEvidenceValue::File { .. })
-            || (!required.contains(path)
-                && path.extension().is_none_or(|extension| extension != "rs"))
-        {
-            continue;
-        }
-        // Preserve Query's relative-path/NUL/raw-bytes/NUL fingerprint contract.
-        hash.update(path.strip_prefix(root)?.as_os_str().as_encoded_bytes());
-        hash.update([0]);
-        io::copy(&mut fs::File::open(path)?, &mut hash)?;
-        hash.update([0]);
-    }
+    let digest = inputs.digest_relative_to(root)?;
     inputs.validate_after(&inputs)?;
-    Ok(format!("{:x}", hash.finalize()))
+    Ok(digest.to_string())
 }
 
 pub fn append_metadata_section(bytes: &mut Vec<u8>, name: &str, contents: &[u8]) -> Result<()> {

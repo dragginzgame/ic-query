@@ -4,6 +4,8 @@
 //! Does not own: transport, returned reward records, validation, or rendering.
 //! Boundary: captures one explicit page, one exact reward id, or one bounded history window.
 
+use super::IcDashboardRequest;
+
 use serde::Serialize;
 
 ///
@@ -42,10 +44,8 @@ impl IcNodeProviderRewardListQuery {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeProviderRewardListRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Explicit page bounds.
     pub query: IcNodeProviderRewardListQuery,
 }
@@ -53,16 +53,8 @@ pub struct IcNodeProviderRewardListRequest {
 impl IcNodeProviderRewardListRequest {
     /// Construct one bounded live Dashboard node-provider reward list request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        query: IcNodeProviderRewardListQuery,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            query,
-        }
+    pub const fn new(dashboard: IcDashboardRequest, query: IcNodeProviderRewardListQuery) -> Self {
+        Self { dashboard, query }
     }
 }
 
@@ -74,10 +66,8 @@ impl IcNodeProviderRewardListRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeProviderRewardInfoRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Exact Dashboard node-provider reward id.
     pub reward_id: u64,
 }
@@ -85,10 +75,9 @@ pub struct IcNodeProviderRewardInfoRequest {
 impl IcNodeProviderRewardInfoRequest {
     /// Construct one exact live Dashboard node-provider reward request.
     #[must_use]
-    pub fn new(source_endpoint: impl Into<String>, now_unix_secs: u64, reward_id: u64) -> Self {
+    pub const fn new(dashboard: IcDashboardRequest, reward_id: u64) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             reward_id,
         }
     }
@@ -130,10 +119,8 @@ impl IcNodeProviderRewardHistoryQuery {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcNodeProviderRewardHistoryRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Explicit history bounds.
     pub query: IcNodeProviderRewardHistoryQuery,
 }
@@ -141,15 +128,10 @@ pub struct IcNodeProviderRewardHistoryRequest {
 impl IcNodeProviderRewardHistoryRequest {
     /// Construct one bounded live Dashboard node-provider reward history request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+    pub const fn new(
+        dashboard: IcDashboardRequest,
         query: IcNodeProviderRewardHistoryQuery,
     ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            query,
-        }
+        Self { dashboard, query }
     }
 }

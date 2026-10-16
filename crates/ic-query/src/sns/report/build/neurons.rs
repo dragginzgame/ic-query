@@ -6,9 +6,9 @@
 
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::{SnsNeuronsLiveReportParts, sns_neurons_report_from_parts},
+    assemble::{SnsReportContext, SnsReportProvenance, sns_neurons_report_from_rows},
     live::LiveSnsSource,
-    lookup::{lookup_request_from_parts, resolve_sns_lookup},
+    lookup::resolve_sns_lookup,
     neurons_cache,
     source::{SnsNeuronsSource, validate_mainnet_sns_neurons},
 };
@@ -27,13 +27,7 @@ pub async fn build_sns_neurons_report_with_source(
         return neurons_cache::build_sns_neurons_report_from_cache(request);
     }
 
-    let lookup_request = lookup_request_from_parts(
-        &request.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        &request.input,
-    );
-    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let neurons = source
         .fetch_sns_neurons(
             &lookup.fetch_request,
@@ -43,13 +37,13 @@ pub async fn build_sns_neurons_report_with_source(
         )
         .await?;
     validate_mainnet_sns_neurons(&neurons, request.limit)?;
-    Ok(sns_neurons_report_from_parts(SnsNeuronsLiveReportParts {
-        fetch_request: lookup.fetch_request,
-        sns: lookup.sns,
-        requested_limit: request.limit,
-        owner_principal_id: request.owner_principal_id.clone(),
-        sort: request.sort,
-        verbose: request.verbose,
-        neurons,
-    }))
+    let total_neuron_count = neurons.neurons.len();
+    Ok(sns_neurons_report_from_rows(
+        request,
+        SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
+        SnsReportProvenance::live(),
+        request.owner_principal_id.clone(),
+        total_neuron_count,
+        neurons.neurons,
+    ))
 }

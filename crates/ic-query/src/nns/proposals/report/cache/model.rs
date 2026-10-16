@@ -35,48 +35,6 @@ pub(super) const NNS_PROPOSAL_CACHE_FIELDS: &[&str] = &[
 ];
 
 ///
-/// NnsProposalRefreshReport
-///
-/// Serializable report for complete NNS proposal snapshot refreshes.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsProposalRefreshReport {
-    /// Version of this report contract; currently `1`.
-    pub schema_version: u32,
-    /// Network identity; supported NNS reports use `ic`.
-    pub network: String,
-    /// Canonical mainnet Governance canister principal.
-    pub governance_canister_id: String,
-    /// Number of proposal rows returned in this report.
-    pub proposal_count: usize,
-    /// Maximum proposal rows requested in each collection page.
-    pub page_size: u32,
-    /// Number of source pages admitted by the collection.
-    pub page_count: u32,
-    /// Whether API exhaustion established a complete sequential collection.
-    pub complete: bool,
-    /// Whether publication replaced a previously existing snapshot file.
-    pub replaced_existing_cache: bool,
-    /// Whether the complete snapshot was successfully published.
-    pub wrote_cache: bool,
-    /// Failure to finalize the attempt sidecar after snapshot publication, when present.
-    pub attempt_finalization_error: Option<String>,
-    /// UTC collection timestamp retained with the snapshot.
-    pub fetched_at: String,
-    /// Exact replica endpoint used to collect the snapshot.
-    pub source_endpoint: String,
-    /// Collector identity recorded in snapshot provenance.
-    pub fetched_by: String,
-    /// Path of the complete proposal snapshot inspected or published.
-    pub cache_path: String,
-    /// Path of the latest refresh-attempt sidecar.
-    pub refresh_attempt_path: String,
-    /// Path of the lock guarding complete snapshot publication.
-    pub refresh_lock_path: String,
-}
-
-///
 /// NnsProposalCacheListReport
 ///
 /// Serializable report listing local complete NNS proposal caches.

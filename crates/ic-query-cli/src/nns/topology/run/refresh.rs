@@ -13,10 +13,12 @@ pub(super) async fn run_topology_refresh(
     let format = options.format;
     let cache_root = cache_root()?;
     let request = NnsTopologyRefreshRequest::new(
-        cache_root,
-        options.network,
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::nns::topology::NnsTopologyReadRequest::new(
+            cache_root,
+            options.network,
+            options.source_endpoint,
+            current_unix_secs()?,
+        ),
         options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);

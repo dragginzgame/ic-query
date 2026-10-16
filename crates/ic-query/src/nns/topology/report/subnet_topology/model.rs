@@ -1,7 +1,6 @@
 #[cfg(feature = "nns-topology-host")]
 use crate::cache_file::JsonCacheReport;
 use crate::subnet_catalog::SubnetKind;
-use candid::Principal;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "nns-topology-host")]
 use std::path::PathBuf;
@@ -328,22 +327,19 @@ fn validate_principal(
     value: &str,
     field: &'static str,
 ) -> Result<(), NnsSubnetTopologyValidationError> {
-    let principal = Principal::from_text(value).map_err(|err| {
-        NnsSubnetTopologyValidationError::InvalidPrincipal {
+    crate::principal_text::validate_canonical(
+        value,
+        |reason| NnsSubnetTopologyValidationError::InvalidPrincipal {
             field,
             value: value.to_string(),
-            reason: err.to_string(),
-        }
-    })?;
-    let canonical = principal.to_text();
-    if canonical != value {
-        return Err(NnsSubnetTopologyValidationError::NonCanonicalPrincipal {
+            reason,
+        },
+        |canonical| NnsSubnetTopologyValidationError::NonCanonicalPrincipal {
             field,
             value: value.to_string(),
             canonical,
-        });
-    }
-    Ok(())
+        },
+    )
 }
 
 ///

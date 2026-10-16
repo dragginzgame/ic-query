@@ -29,8 +29,8 @@ use crate::{
                 build_nns_proposal_activity_report, validate_time_window,
             },
             assemble::{
-                NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
-                nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
+                NnsProposalReportParts, NnsProposalReportProvenance,
+                nns_proposal_list_report_from_rows, nns_proposal_report_from_parts,
             },
             collection::validate_collection_state,
             enforce_mainnet_network,
@@ -39,9 +39,8 @@ use crate::{
                 NnsProposalRequest,
             },
             view::{
-                proposal_matches_before, proposal_matches_proposer, proposal_matches_query,
-                proposal_matches_reward_status, proposal_matches_status, proposal_matches_topic,
-                sort_nns_proposal_rows,
+                project_nns_proposal_rows, proposal_matches_before, proposal_matches_reward_status,
+                proposal_matches_status,
             },
         },
     },
@@ -279,6 +278,8 @@ fn validate_nns_proposal_cache(
         if !proposal_ids.insert(proposal_id) {
             return Err(invalid(format!("duplicate proposal id {proposal_id}")));
         }
+        super::super::source::validate_proposal_ballots(proposal)
+            .map_err(|error| invalid(error.to_string()))?;
     }
     Ok(())
 }
@@ -290,35 +291,21 @@ fn nns_proposal_list_report_from_cache(
 ) -> NnsProposalListReport {
     let cache_complete = cache.completeness.is_api_exhausted();
     let context = nns_proposal_cache_report_context(&cache);
-    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
-    let mut proposals = cache
+    let proposals = cache
         .data
         .proposals
         .into_iter()
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
         .filter(|proposal| proposal_matches_status(proposal, request.status))
-        .filter(|proposal| proposal_matches_reward_status(proposal, request.reward_status))
-        .filter(|proposal| proposal_matches_topic(proposal, request.topic))
-        .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
-        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
-        .collect::<Vec<_>>();
-    sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
+        .filter(|proposal| proposal_matches_reward_status(proposal, request.reward_status));
+    let mut proposals = project_nns_proposal_rows(proposals, request);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
-    nns_proposal_list_report_from_parts(NnsProposalListReportParts {
+    nns_proposal_list_report_from_rows(
+        request,
         context,
-        provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
-        requested_limit: request.limit,
-        before_proposal_id: request.before_proposal_id,
-        status: request.status,
-        reward_status: request.reward_status,
-        topic: request.topic,
-        proposer_neuron_id: request.proposer_neuron_id,
-        query: request.query.clone(),
-        sort: request.sort,
-        sort_direction: request.sort_direction,
-        verbose: request.verbose,
+        NnsProposalReportProvenance::cache(&cache_path, cache_complete),
         proposals,
-    })
+    )
 }
 
 fn nns_proposal_report_from_cache(

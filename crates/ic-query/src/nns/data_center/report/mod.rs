@@ -34,10 +34,8 @@ use resolve::resolve_data_center;
 pub use source::NnsDataCenterSource;
 
 #[cfg(feature = "nns-host")]
-pub use model::{NnsDataCenterHostError, NnsDataCenterRefreshReport};
+pub use model::NnsDataCenterHostError;
 pub use model::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRow};
-#[cfg(feature = "nns-host")]
-pub use text::nns_data_center_refresh_report_text;
 pub use text::{
     nns_data_center_info_report_text, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text,
@@ -50,8 +48,6 @@ pub const DEFAULT_DATA_CENTER_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub const NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-pub const NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 const NNS_DATA_CENTER_CACHE_DIR: &str = "data-center";
 #[cfg(feature = "nns-host")]

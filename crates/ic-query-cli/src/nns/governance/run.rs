@@ -5,7 +5,7 @@ use crate::nns::leaf::NnsCommonOptions;
 use crate::nns::{NnsCommandError, write_text_or_json};
 use clap::ArgMatches;
 use ic_query::nns::governance::{
-    NnsGovernanceHostError, NnsGovernanceRequest, build_nns_governance_economics_report,
+    NnsGovernanceError, NnsGovernanceRequest, build_nns_governance_economics_report,
     build_nns_governance_maturity_modulation_report, build_nns_governance_metrics_report,
     build_nns_governance_reward_event_report, nns_governance_economics_report_text,
     nns_governance_maturity_modulation_report_text, nns_governance_metrics_report_text,
@@ -61,7 +61,7 @@ pub(in crate::nns) async fn run(
 async fn run_report<Report>(
     matches: &ArgMatches,
     network: &str,
-    build: impl AsyncFn(&NnsGovernanceRequest) -> Result<Report, NnsGovernanceHostError>,
+    build: impl AsyncFn(&NnsGovernanceRequest) -> Result<Report, NnsGovernanceError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where

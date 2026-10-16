@@ -4,6 +4,7 @@
 //! Does not own: command option parsing, cache storage, or live neuron fetches.
 //! Boundary: carries validated neuron inputs into SNS report builders.
 
+use super::lookup::SnsLookupRequest;
 use crate::sns::report::SnsNeuronsSort;
 use std::path::PathBuf;
 
@@ -15,14 +16,8 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronRequest {
-    /// Requested IC network identity.
-    pub network: String,
-    /// Explicit IC API endpoint used for live calls.
-    pub source_endpoint: String,
-    /// Collection timestamp supplied by the caller.
-    pub now_unix_secs: u64,
-    /// SNS list id or Root canister principal.
-    pub input: String,
+    /// SNS target, explicit endpoint, network and caller clock.
+    pub lookup: SnsLookupRequest,
     /// Exact 32-byte neuron id encoded as 64 lowercase hexadecimal characters.
     pub neuron_id: String,
 }
@@ -30,18 +25,9 @@ pub struct SnsNeuronRequest {
 impl SnsNeuronRequest {
     /// Construct one exact SNS neuron detail request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        input: impl Into<String>,
-        neuron_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(lookup: SnsLookupRequest, neuron_id: impl Into<String>) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            input: input.into(),
+            lookup,
             neuron_id: neuron_id.into(),
         }
     }
@@ -55,14 +41,8 @@ impl SnsNeuronRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronsRequest {
-    /// Requested network identity; current live adapters support mainnet `ic`.
-    pub network: String,
-    /// Explicit replica API endpoint used for source calls.
-    pub source_endpoint: String,
-    /// Caller clock in Unix seconds used for freshness and provenance.
-    pub now_unix_secs: u64,
-    /// Deployed SNS list id or Root canister principal.
-    pub input: String,
+    /// SNS target, explicit endpoint, network and caller clock.
+    pub lookup: SnsLookupRequest,
     /// Maximum rows in the requested view; does not change snapshot identity.
     pub limit: u32,
     /// Optional principal whose neuron permissions select a targeted live view.
@@ -78,18 +58,9 @@ pub struct SnsNeuronsRequest {
 impl SnsNeuronsRequest {
     /// Construct neuron query settings using the caller clock.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        input: impl Into<String>,
-        limit: u32,
-    ) -> Self {
+    pub fn new(lookup: SnsLookupRequest, limit: u32) -> Self {
         Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            input: input.into(),
+            lookup,
             limit,
             owner_principal_id: None,
             sort: SnsNeuronsSort::default(),
@@ -123,60 +94,6 @@ impl SnsNeuronsRequest {
     #[must_use]
     pub const fn with_verbose(mut self, verbose: bool) -> Self {
         self.verbose = verbose;
-        self
-    }
-}
-
-///
-/// SnsNeuronsRefreshRequest
-///
-/// Request accepted by the complete SNS neuron snapshot refresh builder.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SnsNeuronsRefreshRequest {
-    /// Requested network identity; current live adapters support mainnet `ic`.
-    pub network: String,
-    /// Explicit replica API endpoint used for source calls.
-    pub source_endpoint: String,
-    /// Caller clock in Unix seconds used for freshness and provenance.
-    pub now_unix_secs: u64,
-    /// Deployed SNS list id or Root canister principal.
-    pub input: String,
-    /// Caller-selected root for confined managed cache files.
-    pub cache_root: PathBuf,
-    /// Maximum neurons requested per Governance page.
-    pub page_size: u32,
-    /// Optional page ceiling; reaching it before exhaustion prevents complete publication.
-    pub max_pages: Option<u32>,
-}
-
-impl SnsNeuronsRefreshRequest {
-    /// Construct neuron query settings using the caller clock.
-    #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        input: impl Into<String>,
-        page_size: u32,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            input: input.into(),
-            cache_root: cache_root.into(),
-            page_size,
-            max_pages: None,
-        }
-    }
-
-    /// Bound refresh pagination; truncated collections are not published as complete.
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
         self
     }
 }

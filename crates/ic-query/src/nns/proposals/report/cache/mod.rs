@@ -7,13 +7,11 @@
 mod collection;
 mod model;
 mod paths;
-mod publish;
 mod refresh;
 mod reports;
 
 pub use model::{
     NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalCacheSummary,
-    NnsProposalRefreshReport,
 };
 pub use paths::{
     nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,
@@ -35,5 +33,4 @@ mod tests;
 const NNS_PROPOSAL_CACHE_SCHEMA_VERSION: u32 = 1;
 const NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 const NNS_PROPOSAL_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
-const NNS_PROPOSAL_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(super) const NNS_PROPOSAL_CACHE_COMPONENT: &str = "NNS proposal";

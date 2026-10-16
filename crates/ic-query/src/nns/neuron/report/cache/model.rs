@@ -34,48 +34,6 @@ pub(super) const NNS_NEURON_CACHE_FIELDS: &[&str] = &[
 ];
 
 ///
-/// NnsNeuronRefreshReport
-///
-/// Serializable outcome of a complete public neuron-index refresh.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsNeuronRefreshReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Refreshed network identity.
-    pub network: String,
-    /// NNS Governance canister principal.
-    pub governance_canister_id: String,
-    /// Number of public neuron rows published.
-    pub neuron_count: usize,
-    /// Page size used for the walk.
-    pub page_size: u32,
-    /// Pages fetched through API exhaustion.
-    pub page_count: u32,
-    /// Whether the published collection is complete.
-    pub complete: bool,
-    /// Whether every row is guaranteed to describe one Governance instant.
-    pub point_in_time_guaranteed: bool,
-    /// Whether a previous complete cache was replaced.
-    pub replaced_existing_cache: bool,
-    /// Failure to finalize attempt metadata after successful publication.
-    pub attempt_finalization_error: Option<String>,
-    /// UTC collection timestamp.
-    pub fetched_at: String,
-    /// Replica endpoint used for every page.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// Published snapshot path.
-    pub cache_path: String,
-    /// Refresh-attempt sidecar path.
-    pub refresh_attempt_path: String,
-    /// Refresh-lock path.
-    pub refresh_lock_path: String,
-}
-
-///
 /// NnsNeuronCacheStatusReport
 ///
 /// Serializable local status of the complete NNS neuron snapshot.

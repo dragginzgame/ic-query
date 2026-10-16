@@ -10,7 +10,7 @@ use crate::sns::report::{
     SnsRewardEvent, SnsRewardSource, SnsRunningVersionResponse,
     assemble::{SnsRewardCheckpointReportParts, sns_reward_checkpoint_report_from_parts},
     live::LiveSnsSource,
-    lookup::{lookup_request_from_parts, resolve_sns_lookup},
+    lookup::resolve_sns_lookup,
     recompute_reward_checkpoint_summary, validate_sns_reward_checkpoint_parameter_evidence,
     validate_sns_reward_checkpoint_report, validate_sns_reward_event_evidence,
     validate_sns_reward_running_version_evidence,
@@ -30,13 +30,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     source: &dyn SnsRewardSource,
 ) -> Result<SnsRewardCheckpointReport, SnsHostError> {
     validate_request(request)?;
-    let lookup_request = lookup_request_from_parts(
-        &request.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        &request.input,
-    );
-    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
 
     let running_version_before = source
         .fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)
@@ -79,7 +73,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         &running_version_after,
     )?;
 
-    let completed_at = checkpoint_completion_time(request.now_unix_secs)?;
+    let completed_at = checkpoint_completion_time(request.lookup.now_unix_secs)?;
     let page_count = collection.page_count();
     let rows = collection.into_rows();
     let summary = recompute_reward_checkpoint_summary(&parameters_before, &rows)
@@ -87,7 +81,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     let report = sns_reward_checkpoint_report_from_parts(SnsRewardCheckpointReportParts {
         fetch_request: lookup.fetch_request,
         sns: lookup.sns,
-        collection_started_at_unix_secs: request.now_unix_secs,
+        collection_started_at_unix_secs: request.lookup.now_unix_secs,
         collection_completed_at_unix_secs: completed_at,
         page_count,
         collection_row_ceiling,

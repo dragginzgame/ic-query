@@ -9,15 +9,15 @@ use ic_query::ic::{
     DEFAULT_IC_STATE_SOURCE_ENDPOINT, DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
     DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
     IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
-    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
-    IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
-    IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcCertifiedStateProvenance, IcDailyStatsQuery,
-    IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance,
-    IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest, IcIcrcAccountListQuery,
-    IcIcrcAccountListReport, IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort,
-    IcIcrcHolderListQuery, IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcHolderRow,
-    IcIcrcHolderSort, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcCanisterCountReport,
+    IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport,
+    IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport, IcCanisterRequest,
+    IcCanisterUpgrade, IcCertifiedStateProvenance, IcDailyStatsQuery, IcDailyStatsReport,
+    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAccountInfoReport,
+    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListReport,
+    IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort, IcIcrcHolderListQuery,
+    IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcHolderRow, IcIcrcHolderSort,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueReport, IcIcrcTokenValueRequest, IcIcrcTokenValueRow,
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport,
     IcIcrcTotalSupplyRequest, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricReport,
@@ -59,9 +59,9 @@ use ic_query::ic::{
     IcIcrcAnalyticsSource, IcIcrcHolderListSourceData, IcIcrcHolderSourceRow, IcIcrcIndexSource,
     IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData, IcIcrcTokenValueSourceRow,
     IcIcrcTotalSupplySourceData, IcMetricSource, IcMetricSourceData, IcNetworkSource,
-    IcNodeProviderRewardSource, IcNodeStatusHostError, IcNodeStatusSnapshotRequest,
-    IcNodeStatusSource, IcNodeStatusSourceData, IcReplicaVersionSource, IcSourceRequest,
-    LiveIcSource, build_ic_boundary_node_data_centers_report,
+    IcNodeProviderRewardSource, IcNodeStatusHostError, IcNodeStatusSource, IcNodeStatusSourceData,
+    IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
+    build_ic_boundary_node_data_centers_report,
     build_ic_boundary_node_data_centers_report_with_source, build_ic_canister_count_report,
     build_ic_canister_count_report_with_source, build_ic_canister_page_report,
     build_ic_canister_page_report_with_source, build_ic_canister_report,
@@ -223,7 +223,7 @@ fn public_node_status_api_is_constructible_serializable_and_renderable_without_h
 
 #[test]
 fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
-    let request = IcBoundaryNodeDataCentersRequest::new(
+    let request = ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
         1_700_000_000,
     );
@@ -248,12 +248,11 @@ fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
 fn public_ic_daily_stats_api_is_constructible_serializable_and_renderable() {
     let query = IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400);
     let request = IcDailyStatsRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_785_542_400,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_785_542_400),
         query.clone(),
     );
     let report = IcDailyStatsReport {
-        provenance: public_provenance(request.source_endpoint),
+        provenance: public_provenance(request.dashboard.source_endpoint),
         query,
         returned_day_count: 1,
         rows: vec![public_daily_stats_row()],
@@ -276,8 +275,7 @@ fn public_ic_daily_stats_api_is_constructible_serializable_and_renderable() {
 fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() {
     let query = IcReplicaVersionListQuery::new(25, 0, None);
     let request = IcReplicaVersionListRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
         query.clone(),
     );
     let row = IcReplicaVersionListRow {
@@ -291,7 +289,7 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
         subnets: vec![public_replica_version_rollout()],
     };
     let list = IcReplicaVersionListReport {
-        provenance: public_provenance(request.source_endpoint),
+        provenance: public_provenance(request.dashboard.source_endpoint),
         query,
         resolved_max_proposal_index: 438,
         total_proposals: 438,
@@ -300,12 +298,11 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
         rows: vec![row],
     };
     let info_request = IcReplicaVersionInfoRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
         REPLICA_VERSION_ID,
     );
     let info = IcReplicaVersionInfoReport {
-        provenance: public_provenance(info_request.source_endpoint),
+        provenance: public_provenance(info_request.dashboard.source_endpoint),
         replica_version_id: info_request.replica_version_id,
         proposal_id: 143_250,
         executed_timestamp_seconds: 1_785_759_673,
@@ -334,8 +331,7 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
 fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderable() {
     let list_query = IcNodeProviderRewardListQuery::new(25, 0, Some(6_470));
     let list_request = IcNodeProviderRewardListRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
         list_query.clone(),
     );
     let reward = IcNodeProviderRewardRow {
@@ -359,7 +355,7 @@ fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderab
         },
     };
     let list = IcNodeProviderRewardListReport {
-        provenance: public_provenance(list_request.source_endpoint),
+        provenance: public_provenance(list_request.dashboard.source_endpoint),
         query: list_query,
         resolved_max_reward_index: 6_470,
         total_reward_records: 6_470,
@@ -369,22 +365,20 @@ fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderab
         rows: vec![reward.clone()],
     };
     let info_request = IcNodeProviderRewardInfoRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
         reward.reward_id,
     );
     let info = IcNodeProviderRewardInfoReport {
-        provenance: public_provenance(info_request.source_endpoint),
+        provenance: public_provenance(info_request.dashboard.source_endpoint),
         reward,
     };
     let history_query = IcNodeProviderRewardHistoryQuery::new(1_783_900_000, 1_784_300_000, 86_400);
     let history_request = IcNodeProviderRewardHistoryRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_800_000_000),
         history_query.clone(),
     );
     let history = IcNodeProviderRewardHistoryReport {
-        provenance: public_provenance(history_request.source_endpoint),
+        provenance: public_provenance(history_request.dashboard.source_endpoint),
         query: history_query,
         requested_observation_limit: 5,
         returned_observation_count: 1,
@@ -422,12 +416,14 @@ fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
         DEFAULT_IC_METRIC_STEP_SECS,
     );
     let request = IcMetricRequest::new(
-        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
         query.clone(),
     );
     let report = IcMetricReport {
-        provenance: public_provenance(request.source_endpoint),
+        provenance: public_provenance(request.dashboard.source_endpoint),
         query,
         returned_series_count: 1,
         returned_observation_count: 1,
@@ -457,13 +453,15 @@ fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
 fn public_icrc_analytics_api_is_constructible_serializable_and_renderable() {
     let query = IcIcrcTotalSupplyQuery::new(1_785_542_400, 1_785_628_800, 86_400);
     let request = IcIcrcTotalSupplyRequest::new(
-        "https://icrc-api.internetcomputer.org/api/v2",
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://icrc-api.internetcomputer.org/api/v2",
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         query.clone(),
     );
     let report = IcIcrcTotalSupplyReport {
-        provenance: public_provenance(request.analytics.source_endpoint),
+        provenance: public_provenance(request.analytics.dashboard.source_endpoint),
         ledger_canister_id: request.analytics.ledger_canister_id,
         query,
         requested_observation_limit: 2,
@@ -502,13 +500,15 @@ fn public_icrc_indexed_count_api_is_constructible_serializable_and_renderable() 
         (IcIcrcIndexedCountKind::Transaction, "transaction"),
     ] {
         let request = IcIcrcIndexedCountRequest::new(
-            "https://icrc-api.internetcomputer.org/api/v2",
-            1_785_628_800,
+            ic_query::ic::IcDashboardRequest::new(
+                "https://icrc-api.internetcomputer.org/api/v2",
+                1_785_628_800,
+            ),
             ICRC_LEDGER_ID,
             kind,
         );
         let report = IcIcrcIndexedCountReport {
-            provenance: public_provenance(request.analytics.source_endpoint),
+            provenance: public_provenance(request.analytics.dashboard.source_endpoint),
             ledger_canister_id: request.analytics.ledger_canister_id,
             kind: request.kind,
             total: 78_272,
@@ -546,13 +546,15 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
         .with_owner("aaaaa-aa")
         .with_after("cursor");
     let account_request = IcIcrcAccountListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
         ICRC_LEDGER_ID,
         account_query.clone(),
     );
     let account_report = IcIcrcAccountListReport {
-        provenance: public_provenance(account_request.analytics.source_endpoint),
+        provenance: public_provenance(account_request.analytics.dashboard.source_endpoint),
         ledger_canister_id: ICRC_LEDGER_ID.to_string(),
         query: account_query,
         returned_count: 1,
@@ -568,26 +570,30 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
     );
 
     let info_request = IcIcrcAccountInfoRequest::new(
-        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
         ICRC_LEDGER_ID,
         "aaaaa-aa",
     );
     let info_report = IcIcrcAccountInfoReport {
-        provenance: public_provenance(info_request.analytics.source_endpoint),
+        provenance: public_provenance(info_request.analytics.dashboard.source_endpoint),
         account: account_row,
     };
     assert!(icrc_account_info_report_text(&info_report).contains("account_id: aaaaa-aa"));
 
     let holder_query = IcIcrcHolderListQuery::new(20, IcIcrcHolderSort::BalanceDescending);
     let holder_request = IcIcrcHolderListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        1_800_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            1_800_000_000,
+        ),
         ICRC_LEDGER_ID,
         holder_query.clone(),
     );
     let holder_report = IcIcrcHolderListReport {
-        provenance: public_provenance(holder_request.analytics.source_endpoint),
+        provenance: public_provenance(holder_request.analytics.dashboard.source_endpoint),
         ledger_canister_id: ICRC_LEDGER_ID.to_string(),
         query: holder_query,
         returned_count: 1,
@@ -616,13 +622,15 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
 #[test]
 fn public_icrc_token_value_api_is_constructible_serializable_and_renderable() {
     let request = IcIcrcTokenValueRequest::new(
-        "https://icrc-api.internetcomputer.org/api/v2",
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://icrc-api.internetcomputer.org/api/v2",
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcTokenValueQuery::new(1_785_542_400, 1_785_628_800, 100),
     );
     let report = IcIcrcTokenValueReport {
-        provenance: public_provenance(request.analytics.source_endpoint),
+        provenance: public_provenance(request.analytics.dashboard.source_endpoint),
         ledger_canister_id: request.analytics.ledger_canister_id,
         query: request.query,
         returned_row_count: 1,
@@ -651,12 +659,14 @@ fn public_icrc_token_value_api_is_constructible_serializable_and_renderable() {
 #[test]
 fn public_ic_canister_api_is_constructible_and_renderable() {
     let request = IcCanisterRequest::new(
-        "https://ic-api.internetcomputer.org/api/v3",
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://ic-api.internetcomputer.org/api/v3",
+            1_700_000_000,
+        ),
         CANISTER_ID,
     );
     let report = IcCanisterReport {
-        provenance: public_provenance(request.source_endpoint.clone()),
+        provenance: public_provenance(request.dashboard.source_endpoint.clone()),
         canister_id: request.canister_id.clone(),
         dashboard_id: 226_973,
         canister_type: Some("ledger".to_string()),
@@ -678,11 +688,11 @@ fn public_ic_canister_api_is_constructible_and_renderable() {
     let text = ic_canister_report_text(&report);
     let json = serde_json::to_value(&report).expect("serializable canister report");
 
-    assert_eq!(request.now_unix_secs, 1_700_000_000);
+    assert_eq!(request.dashboard.now_unix_secs, 1_700_000_000);
     assert!(text.contains("canister_id: ryjl3-tyaaa-aaaaa-aaaba-cai"));
     assert!(text.contains("authority: official_ic_dashboard_api"));
     assert_eq!(json["schema_version"], 1);
-    assert_eq!(json["source_endpoint"], request.source_endpoint);
+    assert_eq!(json["source_endpoint"], request.dashboard.source_endpoint);
     assert!(json.get("provenance").is_none());
 }
 
@@ -693,25 +703,25 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
         query: Some("ICP Ledger".to_string()),
         ..IcCanisterFilters::default()
     };
-    let count_request = IcCanisterCountRequest::new(
+    let count_request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_filters(filters.clone());
-    let page_request = IcCanisterPageRequest::new(
+    let page_request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_filters(filters.clone())
     .with_limit(25)
     .with_after(CANISTER_ID);
     let count = IcCanisterCountReport {
-        provenance: public_provenance(count_request.source_endpoint),
+        provenance: public_provenance(count_request.dashboard.source_endpoint),
         filters: filters.clone(),
         total: 649,
     };
     let page = IcCanisterPageReport {
-        provenance: public_provenance(page_request.source_endpoint),
+        provenance: public_provenance(page_request.dashboard.source_endpoint),
         filters,
         requested_limit: page_request.limit,
         returned_count: 1,
@@ -791,13 +801,13 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         -> ic_query::report::SourceFuture<'a, Result<IcMetricReport, IcHostError>> =
         |arg0, arg1| Box::pin(build_ic_metric_report_with_source(arg0, arg1));
     let _: for<'a> fn(
-        &'a IcBoundaryNodeDataCentersRequest,
+        &'a ic_query::ic::IcDashboardRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
         Result<IcBoundaryNodeDataCentersReport, IcHostError>,
     > = |arg0| Box::pin(build_ic_boundary_node_data_centers_report(arg0));
     let _: for<'a> fn(
-        &'a IcBoundaryNodeDataCentersRequest,
+        &'a ic_query::ic::IcDashboardRequest,
         &'a dyn IcNetworkSource,
     ) -> ic_query::report::SourceFuture<
         'a,
@@ -828,8 +838,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
 
     let source = FixtureSource;
     let request = IcCanisterRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000),
         CANISTER_ID,
     );
     let report = build_ic_canister_report_with_source(&request, &source)
@@ -838,19 +847,19 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
 
     assert_eq!(report.canister_id, CANISTER_ID);
 
-    let count_request = IcCanisterCountRequest::new(
+    let count_request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    );
+    ));
     let count = build_ic_canister_count_report_with_source(&count_request, &source)
         .await
         .expect("custom count source report");
     assert_eq!(count.total, 1);
 
-    let page_request = IcCanisterPageRequest::new(
+    let page_request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_limit(1);
     let page = build_ic_canister_page_report_with_source(&page_request, &source)
         .await
@@ -858,8 +867,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
     assert_eq!(page.returned_count, 1);
 
     let metric_request = IcMetricRequest::new(
-        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
-        1_700_000_000,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+            1_700_000_000,
+        ),
         IcMetricQuery::new(
             IcMetricKind::InstructionRate,
             1_699_996_400,
@@ -872,7 +883,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
         .expect("custom metric source report");
     assert_eq!(metric.returned_observation_count, 1);
 
-    let network_request = IcBoundaryNodeDataCentersRequest::new(
+    let network_request = ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
         1_700_000_000,
     );
@@ -882,8 +893,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
     assert_eq!(network.data_center_count, 1);
 
     let daily_stats_request = IcDailyStatsRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_785_542_400,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_785_542_400),
         IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400),
     );
     let daily_stats = build_ic_daily_stats_report_with_source(&daily_stats_request, &source)
@@ -983,13 +993,13 @@ fn public_dashboard_node_provider_reward_host_api_exposes_builders() {
 #[tokio::test(flavor = "current_thread")]
 async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
     let _: for<'a> fn(
-        &'a IcNodeStatusSnapshotRequest,
+        &'a ic_query::ic::IcDashboardRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
         Result<IcNodeStatusSnapshot, IcHostError>,
     > = |arg0| Box::pin(build_ic_node_status_snapshot(arg0));
     let _: for<'a> fn(
-        &'a IcNodeStatusSnapshotRequest,
+        &'a ic_query::ic::IcDashboardRequest,
         &'a dyn IcNodeStatusSource,
     ) -> ic_query::report::SourceFuture<
         'a,
@@ -997,7 +1007,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders(
     > = |arg0, arg1| Box::pin(build_ic_node_status_snapshot_with_source(arg0, arg1));
 
     let request =
-        IcNodeStatusSnapshotRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000);
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000);
     let snapshot = build_ic_node_status_snapshot_with_source(&request, &FixtureSource)
         .await
         .expect("custom node-status source snapshot");
@@ -1106,8 +1116,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
 
     let source = FixtureSource;
     let count_request = IcIcrcIndexedCountRequest::new(
-        "https://icrc-api.internetcomputer.org/api/v2",
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://icrc-api.internetcomputer.org/api/v2",
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcIndexedCountKind::Transaction,
     );
@@ -1118,8 +1130,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     assert_eq!(count.total, 78_272);
 
     let account_request = IcIcrcAccountListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id),
     );
@@ -1129,8 +1143,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     assert_eq!(accounts.returned_count, 1);
 
     let holder_request = IcIcrcHolderListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcHolderListQuery::new(20, IcIcrcHolderSort::Principal),
     );
@@ -1140,8 +1156,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     assert_eq!(holders.returned_count, 1);
 
     let token_value_request = IcIcrcTokenValueRequest::new(
-        "https://icrc-api.internetcomputer.org/api/v2",
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://icrc-api.internetcomputer.org/api/v2",
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcTokenValueQuery::new(1_785_542_400, 1_785_628_800, 100),
     );
@@ -1151,8 +1169,10 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     assert_eq!(token_values.returned_row_count, 1);
 
     let request = IcIcrcTotalSupplyRequest::new(
-        "https://icrc-api.internetcomputer.org/api/v2",
-        1_785_628_800,
+        ic_query::ic::IcDashboardRequest::new(
+            "https://icrc-api.internetcomputer.org/api/v2",
+            1_785_628_800,
+        ),
         ICRC_LEDGER_ID,
         IcIcrcTotalSupplyQuery::new(1_785_542_400, 1_785_628_800, 86_400),
     );

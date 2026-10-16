@@ -57,10 +57,7 @@ mod host {
             DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeHostError, NnsNodeListRequest,
             build_nns_node_list_report, nns_node_list_report_text,
         },
-        nns::proposals::{
-            NnsProposalHostError, NnsProposalRefreshReport,
-            refresh_nns_proposal_cache_with_progress,
-        },
+        nns::proposals::{NnsProposalHostError, refresh_nns_proposal_cache_with_progress},
         nns::registry::{
             NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
             NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
@@ -72,12 +69,15 @@ mod host {
             NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
             refresh_nns_subnet_topology,
         },
-        nns::{NnsGovernanceRefreshRequest, NnsInventoryCacheRequest, NnsSourceRequest},
+        nns::{
+            NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest,
+            NnsSourceRequest,
+        },
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
-            SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest, SnsNeuronsRequest, SnsNeuronsSort,
-            SnsProposalSortDirection, SnsProposalsRefreshReport, SnsProposalsRefreshRequest,
-            SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, build_sns_metrics_report,
+            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection, SnsProposalsReport,
+            SnsProposalsRequest, SnsProposalsSort, SnsSnapshotRefreshReport,
+            SnsSnapshotRefreshRequest, build_sns_metrics_report,
             build_sns_neurons_cache_status_report, build_sns_neurons_report,
             build_sns_proposals_cache_status_report, build_sns_proposals_report,
             build_sns_proposals_report_with_progress, refresh_sns_neurons_cache_with_progress,
@@ -145,21 +145,21 @@ mod host {
             &'a mut dyn QueryProgress,
         ) -> ic_query::report::SourceFuture<
             'a,
-            Result<NnsProposalRefreshReport, NnsProposalHostError>,
+            Result<NnsGovernanceRefreshReport, NnsProposalHostError>,
         > = |arg0, arg1| Box::pin(refresh_nns_proposal_cache_with_progress(arg0, arg1));
         let _: for<'a> fn(
-            &'a SnsNeuronsRefreshRequest,
+            &'a SnsSnapshotRefreshRequest,
             &'a mut dyn QueryProgress,
         ) -> ic_query::report::SourceFuture<
             'a,
-            Result<SnsNeuronsRefreshReport, SnsHostError>,
+            Result<SnsSnapshotRefreshReport, SnsHostError>,
         > = |arg0, arg1| Box::pin(refresh_sns_neurons_cache_with_progress(arg0, arg1));
         let _: for<'a> fn(
-            &'a SnsProposalsRefreshRequest,
+            &'a SnsSnapshotRefreshRequest,
             &'a mut dyn QueryProgress,
         ) -> ic_query::report::SourceFuture<
             'a,
-            Result<SnsProposalsRefreshReport, SnsHostError>,
+            Result<SnsSnapshotRefreshReport, SnsHostError>,
         > = |arg0, arg1| Box::pin(refresh_sns_proposals_cache_with_progress(arg0, arg1));
         let _: for<'a> fn(
             &'a SnsProposalsRequest,
@@ -211,10 +211,12 @@ mod host {
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
         let request = SnsProposalsRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            now_unix_secs,
-            sns_input,
+            ic_query::sns::SnsLookupRequest::new(
+                "ic",
+                DEFAULT_SNS_SOURCE_ENDPOINT,
+                now_unix_secs,
+                sns_input,
+            ),
             25,
         )
         .with_cache_root(cache_root)
@@ -229,9 +231,13 @@ mod host {
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
-        let request =
-            SnsMetricsRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, now_unix_secs, sns_input)
-                .with_time_window_seconds(90 * 24 * 60 * 60);
+        let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            now_unix_secs,
+            sns_input,
+        ))
+        .with_time_window_seconds(90 * 24 * 60 * 60);
 
         let report = build_sns_metrics_report(&request).await?;
         Ok(sns_metrics_report_text(&report))
@@ -256,10 +262,12 @@ mod host {
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
         let request = SnsNeuronsRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            now_unix_secs,
-            sns_input,
+            ic_query::sns::SnsLookupRequest::new(
+                "ic",
+                DEFAULT_SNS_SOURCE_ENDPOINT,
+                now_unix_secs,
+                sns_input,
+            ),
             500,
         )
         .with_cache_root(cache_root)

@@ -14,14 +14,15 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError,
+        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsSnapshotRefreshReport,
+        SnsSnapshotRefreshRequest,
         cache_attempt::{
-            SnsRefreshContext, SnsRefreshRequestView, write_complete_sns_refresh_attempt,
+            SnsRefreshContext, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
         cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths},
         cache_storage::SnsCacheMetadata,
-        lookup::{lookup_request_from_parts, resolve_sns_lookup, validate_sns_refresh_page_size},
+        lookup::{resolve_sns_lookup, validate_sns_refresh_page_size},
         source::{MainnetSns, SnsDiscoverySource, SnsSourceRequest},
     },
 };
@@ -34,9 +35,9 @@ use std::marker::PhantomData;
 /// Resolved, locked context shared by one SNS complete-cache refresh.
 ///
 
-pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Request, Collection> {
+pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Collection> {
     /// Family request that selected the SNS and cache root.
-    pub(in crate::sns::report) request: &'a Request,
+    pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
     /// Canonical source request shared by lookup and collection calls.
     pub(in crate::sns::report) fetch_request: SnsSourceRequest,
     /// Resolved SNS identity and canister principals.
@@ -48,10 +49,7 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Request, Collect
     collection: PhantomData<Collection>,
 }
 
-impl<Request, Collection> SnsSnapshotRefreshContext<'_, Request, Collection>
-where
-    Request: SnsRefreshRequestView,
-{
+impl<Collection> SnsSnapshotRefreshContext<'_, Collection> {
     /// Borrow the shared inputs required by the attempt-sidecar writer.
     pub(in crate::sns::report) fn refresh_context(&self) -> SnsRefreshContext<'_> {
         SnsRefreshContext {
@@ -68,38 +66,31 @@ where
     clippy::future_not_send,
     reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
 )]
-pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Request, Collection, Report>(
-    request: &Request,
+pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Collection, Report>(
+    request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsDiscoverySource,
     lock_stale_after_seconds: u64,
     run_locked: impl AsyncFnOnce(
-        &SnsSnapshotRefreshContext<'_, Request, Collection>,
+        &SnsSnapshotRefreshContext<'_, Collection>,
     ) -> Result<Report, SnsHostError>,
 ) -> Result<Report, SnsHostError>
 where
-    Request: SnsRefreshRequestView,
     Collection: SnsCacheCollection,
 {
-    validate_sns_refresh_page_size(request.page_size())?;
-    let lookup_request = lookup_request_from_parts(
-        request.network(),
-        request.source_endpoint(),
-        request.now_unix_secs(),
-        request.input(),
-    );
-    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    validate_sns_refresh_page_size(request.page_size)?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let paths = sns_snapshot_cache_paths::<Collection>(
-        request.cache_root(),
-        request.network(),
+        &request.cache_root,
+        &request.lookup.network,
         &lookup.sns.root_canister_id,
     );
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
-            cache_root: request.cache_root(),
+            cache_root: &request.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: request.network(),
-            now_unix_secs: request.now_unix_secs(),
+            network: &request.lookup.network,
+            now_unix_secs: request.lookup.now_unix_secs,
             lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
@@ -124,16 +115,15 @@ where
 }
 
 /// Atomically publish a complete SNS family snapshot, then finalize its attempt sidecar.
-pub(in crate::sns::report) fn publish_complete_sns_snapshot<Request, Collection, Data>(
-    context: &SnsSnapshotRefreshContext<'_, Request, Collection>,
+pub(in crate::sns::report) fn publish_complete_sns_snapshot<Collection, Data>(
+    context: &SnsSnapshotRefreshContext<'_, Collection>,
     cache_schema_version: u32,
     page_count: u32,
     row_count: usize,
     last_cursor: Option<String>,
     data: Data,
-) -> Result<Option<String>, SnsHostError>
+) -> Result<SnsSnapshotRefreshReport, SnsHostError>
 where
-    Request: SnsRefreshRequestView,
     Collection: SnsCacheCollection,
     Data: Serialize,
 {
@@ -155,17 +145,17 @@ where
             governance_canister_id: context.sns.governance_canister_id.clone(),
         },
         completeness: CacheCollectionCompleteness::api_exhausted(
-            context.request.page_size(),
+            context.request.page_size,
             page_count,
             row_count,
             false,
         ),
         data,
     };
-    publish_snapshot_with_attempt(
+    let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
             write_managed_json_pretty_atomically(
-                context.request.cache_root(),
+                &context.request.cache_root,
                 &context.paths.snapshot_path,
                 &cache,
                 crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
@@ -185,5 +175,28 @@ where
                 SnapshotRefreshProgress::new(page_count, row_count, last_cursor),
             )
         },
-    )
+    )?;
+    Ok(SnsSnapshotRefreshReport {
+        schema_version: 1,
+        network: context.fetch_request.network.clone(),
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: context.fetch_request.fetched_at.clone(),
+        source_endpoint: context.fetch_request.endpoint.clone(),
+        fetched_by: context.fetch_request.fetched_by.clone(),
+        id: context.sns.id,
+        name: context.sns.name.clone(),
+        root_canister_id: context.sns.root_canister_id.clone(),
+        governance_canister_id: context.sns.governance_canister_id.clone(),
+        collection: Collection::COLLECTION.to_string(),
+        cache_path: context.paths.snapshot_path.display().to_string(),
+        refresh_lock_path: context.paths.refresh_lock_path.display().to_string(),
+        refresh_attempt_path: context.paths.refresh_attempt_path.display().to_string(),
+        page_size: context.request.page_size,
+        page_count,
+        row_count,
+        complete: true,
+        replaced_existing_cache: context.replaced_existing_cache,
+        wrote_cache: true,
+        attempt_finalization_error,
+    })
 }

@@ -41,12 +41,12 @@ pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsLookupReq
 }
 
 pub(in crate::sns::report::tests) fn metrics_request(input: &str) -> SnsMetricsRequest {
-    SnsMetricsRequest::new(
+    SnsMetricsRequest::new(crate::sns::SnsLookupRequest::new(
         MAINNET_NETWORK,
         DEFAULT_SNS_SOURCE_ENDPOINT,
         1_780_531_200,
         input,
-    )
+    ))
 }
 
 pub(in crate::sns::report::tests) fn swap_request(input: &str) -> SnsLookupRequest {
@@ -64,10 +64,12 @@ pub(in crate::sns::report::tests) fn upgrade_request(input: &str) -> SnsLookupRe
 
 pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposalRequest {
     SnsProposalRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            input.to_string(),
+        ),
         proposal_id: 42,
         cache_root: None,
         verbose: false,
@@ -77,10 +79,12 @@ pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposa
 
 pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsProposalsRequest {
     SnsProposalsRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            input.to_string(),
+        ),
         limit: 10,
         before_proposal_id: Some(99),
         status: SnsProposalStatusFilter::Open,
@@ -98,12 +102,14 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
 pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
     root: &Path,
     max_pages: Option<u32>,
-) -> SnsProposalsRefreshRequest {
-    SnsProposalsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
+) -> SnsSnapshotRefreshRequest {
+    SnsSnapshotRefreshRequest {
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            "1".to_string(),
+        ),
         cache_root: root.to_path_buf(),
         page_size: 100,
         max_pages,
@@ -112,10 +118,12 @@ pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
 
 pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsRequest {
     SnsNeuronsRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            input.to_string(),
+        ),
         limit: 10,
         owner_principal_id: None,
         sort: SnsNeuronsSort::Api,
@@ -126,10 +134,12 @@ pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsR
 
 pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronRequest {
     SnsNeuronRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            input.to_string(),
+        ),
         neuron_id: NEURON_A.to_string(),
     }
 }
@@ -137,23 +147,25 @@ pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronReq
 pub(in crate::sns::report::tests) fn reward_checkpoint_request(
     input: &str,
 ) -> SnsRewardCheckpointRequest {
-    SnsRewardCheckpointRequest::new(
+    SnsRewardCheckpointRequest::new(crate::sns::SnsLookupRequest::new(
         MAINNET_NETWORK,
         DEFAULT_SNS_SOURCE_ENDPOINT,
         1_780_531_200,
         input,
-    )
+    ))
 }
 
 pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(
     root: &Path,
     max_pages: Option<u32>,
-) -> SnsNeuronsRefreshRequest {
-    SnsNeuronsRefreshRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: "1".to_string(),
+) -> SnsSnapshotRefreshRequest {
+    SnsSnapshotRefreshRequest {
+        lookup: crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK.to_string(),
+            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            1_780_531_200,
+            "1".to_string(),
+        ),
         cache_root: root.to_path_buf(),
         page_size: 2,
         max_pages,

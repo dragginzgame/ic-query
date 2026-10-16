@@ -4,13 +4,12 @@
 //! Does not own: shared locking and attempt mechanics, cache publication, or text rendering.
 //! Boundary: adapts neuron collection and publication to the shared refresh lifecycle.
 
-use super::publish::publish_complete_sns_neurons_cache;
 use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
     sns::report::{
-        SnsHostError, SnsNeuronsRefreshReport, SnsNeuronsRefreshRequest,
-        cache_refresh::run_resolved_sns_snapshot_refresh,
+        SnsHostError, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
+        cache_refresh::{publish_complete_sns_snapshot, run_resolved_sns_snapshot_refresh},
         live::LiveSnsSource,
         neurons_cache::{collection::fetch_complete_sns_neurons, paths::SnsNeuronsCacheCollection},
         source::SnsNeuronsSource,
@@ -20,41 +19,50 @@ use crate::{
 pub const DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 pub async fn refresh_sns_neurons_cache(
-    request: &SnsNeuronsRefreshRequest,
-) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+    request: &SnsSnapshotRefreshRequest,
+) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
     refresh_sns_neurons_cache_with_source(request, &LiveSnsSource::default()).await
 }
 
 /// Refresh a complete SNS neuron snapshot and emit structured progress events.
 pub async fn refresh_sns_neurons_cache_with_progress(
-    request: &SnsNeuronsRefreshRequest,
+    request: &SnsSnapshotRefreshRequest,
     progress: &mut dyn QueryProgress,
-) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
     refresh_sns_neurons_cache_with_source_and_progress(request, &LiveSnsSource::default(), progress)
         .await
 }
 
 pub async fn refresh_sns_neurons_cache_with_source(
-    request: &SnsNeuronsRefreshRequest,
+    request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsNeuronsSource,
-) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
+) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
     let mut progress = IgnoreQueryProgress;
     refresh_sns_neurons_cache_with_source_and_progress(request, source, &mut progress).await
 }
 
 async fn refresh_sns_neurons_cache_with_source_and_progress(
-    request: &SnsNeuronsRefreshRequest,
+    request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsNeuronsSource,
     progress: &mut dyn QueryProgress,
-) -> Result<SnsNeuronsRefreshReport, SnsHostError> {
-    run_resolved_sns_snapshot_refresh::<_, SnsNeuronsCacheCollection, _>(
+) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
+    run_resolved_sns_snapshot_refresh::<SnsNeuronsCacheCollection, _>(
         request,
         source,
         DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
         async |context| {
             let complete =
                 fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;
-            publish_complete_sns_neurons_cache(context, complete)
+            publish_complete_sns_snapshot(
+                context,
+                crate::sns::report::neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION,
+                complete.page_count,
+                complete.rows.len(),
+                complete.last_cursor,
+                crate::sns::report::neurons_cache::model::SnsNeuronsCacheRows {
+                    neurons: complete.rows,
+                },
+            )
         },
     )
     .await

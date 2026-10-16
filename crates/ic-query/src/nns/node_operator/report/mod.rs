@@ -35,10 +35,8 @@ use resolve::resolve_node_operator;
 pub use source::NnsNodeOperatorSource;
 
 #[cfg(feature = "nns-host")]
-pub use model::{NnsNodeOperatorHostError, NnsNodeOperatorRefreshReport};
+pub use model::NnsNodeOperatorHostError;
 pub use model::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow};
-#[cfg(feature = "nns-host")]
-pub use text::nns_node_operator_refresh_report_text;
 pub use text::{
     nns_node_operator_info_report_text, nns_node_operator_list_report_text,
     nns_node_operator_list_report_verbose_text,
@@ -51,8 +49,6 @@ pub const DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub const NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-pub const NNS_NODE_OPERATOR_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 const NNS_NODE_OPERATOR_CACHE_DIR: &str = "node-operator";
 #[cfg(feature = "nns-host")]

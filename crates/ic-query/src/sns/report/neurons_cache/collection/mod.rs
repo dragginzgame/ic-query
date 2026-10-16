@@ -78,14 +78,14 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
                 .fetch_sns_neuron_page(
                     self.context.fetch_request,
                     self.context.sns,
-                    self.context.request.page_size(),
+                    self.context.request.page_size,
                     self.pages.next_cursor(),
                     None,
                 )
                 .await?;
             validate_mainnet_sns_neuron_page(
                 &page,
-                self.context.request.page_size(),
+                self.context.request.page_size,
                 self.pages.next_cursor(),
             )?;
             let page_len = page.neurons.len();

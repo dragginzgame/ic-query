@@ -6,7 +6,7 @@
 
 use crate::sns::report::{
     SnsHostError, SnsProposalReport, SnsProposalRequest,
-    assemble::{SnsProposalReportContext, SnsReportProvenance, sns_proposal_report_from_parts},
+    assemble::{SnsReportContext, SnsReportProvenance, sns_proposal_report_from_parts},
     cache_storage::load_sns_cache_for_input,
     proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
@@ -19,8 +19,8 @@ pub(in crate::sns::report) fn build_sns_proposal_report_from_cache(
 ) -> Result<Option<SnsProposalReport>, SnsHostError> {
     let (cache_path, cache) = match load_sns_cache_for_input::<SnsProposalsCacheCollection>(
         cache_root,
-        &request.network,
-        &request.input,
+        &request.lookup.network,
+        &request.lookup.input,
     ) {
         Ok(cache) => cache,
         Err(SnsHostError::MissingProposalsCache { .. }) => return Ok(None),
@@ -42,7 +42,7 @@ fn sns_proposal_report_from_cache(
         .find(|proposal| proposal.proposal_id == request.proposal_id)?;
     Some(sns_proposal_report_from_parts(
         request,
-        SnsProposalReportContext {
+        SnsReportContext {
             network: cache.network,
             sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
             fetched_at: cache.fetched_at,

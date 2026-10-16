@@ -1,7 +1,7 @@
 use super::{
     DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
-    NnsInventoryInfoRequest, NnsNodeHostError, NnsNodeInfoReport, NnsNodeListFilters,
-    NnsNodeListReport, NnsNodeListRequest,
+    NnsInventoryInfoRequest, NnsNodeHostError, NnsNodeInfoReport, NnsNodeListReport,
+    NnsNodeListRequest,
     cache::{load_cached_nns_node_report, nns_node_cache_path},
     filters::filter_node_list_report,
     refresh::refresh_nns_node_cache_with_source,
@@ -51,8 +51,11 @@ pub async fn build_nns_node_list_report_with_source_and_progress(
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
     let report = load_or_refresh_nns_inventory_report(
-        request,
-        nns_node_cache_path(&request.cache.cache_root, &request.cache.network),
+        &request.inventory,
+        nns_node_cache_path(
+            &request.inventory.cache.cache_root,
+            &request.inventory.cache.network,
+        ),
         DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS,
         progress,
         |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
@@ -93,12 +96,11 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
     source: &dyn NnsNodeSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
-    let list_request = NnsNodeListRequest {
-        cache: request.cache.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        filters: NnsNodeListFilters::default(),
-    };
+    let list_request = NnsNodeListRequest::new(
+        request.cache.clone(),
+        request.source_endpoint.clone(),
+        request.now_unix_secs,
+    );
     let report =
         build_nns_node_list_report_with_source_and_progress(&list_request, source, progress)
             .await?;

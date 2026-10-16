@@ -589,6 +589,11 @@ icq sns reward checkpoint <sns-root-principal> --max-pages 10 --json
 icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 ```
 
+SNS neuron and proposal refresh results share schema 1. Their JSON reports
+`collection` (`neurons` or `proposals`) and `row_count`, along with publication
+paths, page counts and any post-publication attempt-finalization error. Text
+refresh results use the same collection and row-count labels.
+
 SNS proposal list views can create a missing complete proposal cache and apply
 supported filters and sorts locally. Proposal detail prefers a complete cache
 that contains the row and otherwise performs a live lookup.

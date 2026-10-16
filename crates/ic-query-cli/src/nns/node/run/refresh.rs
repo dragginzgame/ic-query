@@ -2,10 +2,8 @@ use super::cache_request;
 use crate::cli::common::current_unix_secs;
 use crate::nns::{NnsCommandError, leaf::NnsLeafRefreshOptions, write_text_or_json};
 use clap::ArgMatches;
-use ic_query::nns::{
-    NnsInventoryRefreshRequest,
-    node::{nns_node_refresh_report_text, refresh_nns_node_report},
-};
+use ic_query::nns::nns_inventory_refresh_report_text;
+use ic_query::nns::{NnsInventoryRefreshRequest, node::refresh_nns_node_report};
 pub(super) async fn run_node_refresh(
     matches: &ArgMatches,
     network: &str,
@@ -23,5 +21,5 @@ pub(super) async fn run_node_refresh(
         request = request.with_output_path(output_path);
     }
     let report = refresh_nns_node_report(&request).await?;
-    write_text_or_json(format, &report, nns_node_refresh_report_text)
+    write_text_or_json(format, &report, nns_inventory_refresh_report_text)
 }

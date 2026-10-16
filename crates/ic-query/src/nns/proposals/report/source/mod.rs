@@ -12,17 +12,14 @@ mod host;
 use super::{
     NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalError,
     assemble::{
-        NnsProposalListReportParts, NnsProposalReportParts, NnsProposalReportProvenance,
-        nns_proposal_list_report_from_parts, nns_proposal_report_from_parts,
+        NnsProposalReportParts, NnsProposalReportProvenance, nns_proposal_list_report_from_rows,
+        nns_proposal_report_from_parts,
     },
     model::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
         NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter,
     },
-    view::{
-        proposal_matches_proposer, proposal_matches_query, proposal_matches_topic,
-        sort_nns_proposal_rows,
-    },
+    view::project_nns_proposal_rows,
 };
 #[cfg(any(
     feature = "nns-host",
@@ -31,7 +28,7 @@ use super::{
 use super::{
     model::{
         NnsProposalBallotRow, NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTally,
-        NnsProposalTopic, NnsProposalVote,
+        NnsProposalTopic,
     },
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
@@ -80,31 +77,12 @@ pub async fn build_nns_proposal_list_report_with_source(
     validate_source_provenance(&request.governance.source, &data.provenance)?;
     validate_proposal_page(&data.value, request.limit, request.before_proposal_id)?;
 
-    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
-    let mut proposals = data
-        .value
-        .into_iter()
-        .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
-        .filter(|proposal| proposal_matches_topic(proposal, request.topic))
-        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
-        .collect::<Vec<_>>();
-    sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
-    Ok(nns_proposal_list_report_from_parts(
-        NnsProposalListReportParts {
-            context: report_context(&request.governance, data.provenance),
-            provenance: NnsProposalReportProvenance::live(),
-            requested_limit: request.limit,
-            before_proposal_id: request.before_proposal_id,
-            status: request.status,
-            reward_status: request.reward_status,
-            topic: request.topic,
-            proposer_neuron_id: request.proposer_neuron_id,
-            query: request.query.clone(),
-            sort: request.sort,
-            sort_direction: request.sort_direction,
-            verbose: request.verbose,
-            proposals,
-        },
+    let proposals = project_nns_proposal_rows(data.value, request);
+    Ok(nns_proposal_list_report_from_rows(
+        request,
+        report_context(&request.governance, data.provenance),
+        NnsProposalReportProvenance::live(),
+        proposals,
     ))
 }
 
@@ -124,6 +102,7 @@ pub async fn build_nns_proposal_report_with_source(
             actual: data.value.proposal_id,
         });
     }
+    validate_proposal_ballots(&data.value)?;
     Ok(nns_proposal_report_from_parts(NnsProposalReportParts {
         context: report_context(&request.governance, data.provenance),
         provenance: NnsProposalReportProvenance::live(),
@@ -274,6 +253,7 @@ fn validate_proposal_page(
                 before_proposal_id,
             });
         }
+        validate_proposal_ballots(proposal)?;
     }
     Ok(())
 }
@@ -301,7 +281,7 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
         .map(|(neuron_id, ballot)| NnsProposalBallotRow {
             neuron_id,
             vote: ballot.vote,
-            vote_text: NnsProposalVote::from_code(ballot.vote),
+            vote_text: crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote),
             voting_power: ballot.voting_power,
         })
         .collect::<Vec<_>>();
@@ -316,4 +296,19 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
     (timestamp_seconds > 0)
         .then(|| crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds))
+}
+
+/// Reject contradictory raw and classified ballot evidence without rewriting it.
+pub(super) fn validate_proposal_ballots(proposal: &NnsProposalRow) -> Result<(), NnsProposalError> {
+    if let Some(ballot) = proposal.ballots.iter().find(|ballot| {
+        ballot.vote_text != crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote)
+    }) {
+        return Err(NnsProposalError::InvalidBallotVote {
+            proposal_id: proposal.proposal_id,
+            neuron_id: ballot.neuron_id,
+            vote: ballot.vote,
+            classification: ballot.vote_text,
+        });
+    }
+    Ok(())
 }

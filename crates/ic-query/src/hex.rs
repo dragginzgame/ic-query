@@ -29,7 +29,18 @@ pub fn is_canonical_lowercase_hex(value: &str) -> bool {
 
 #[cfg(any(test, feature = "sns-host", feature = "subnet-catalog-host"))]
 pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
-    if !value.len().is_multiple_of(2) || !is_lowercase_hex(value) {
+    is_lowercase_hex(value).then(|| decode_hex(value)).flatten()
+}
+
+/// Decode even-length ASCII hexadecimal with either letter case.
+#[cfg(any(
+    test,
+    feature = "icrc-host",
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
+))]
+pub fn decode_hex(value: &str) -> Option<Vec<u8>> {
+    if !value.len().is_multiple_of(2) || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return None;
     }
     (0..value.len())

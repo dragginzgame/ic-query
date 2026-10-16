@@ -3,11 +3,10 @@ use super::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronError,
     NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
     NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
-    NnsNeuronVote, build_nns_neuron_cache_status_report,
-    build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report_from_cache,
-    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
-    build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
-    nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
+    build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,
+    build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_source,
+    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_source,
+    nns_neuron_cache_path, nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
 };
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -393,7 +392,9 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         .await
         .expect("refresh complete neuron cache");
 
-    assert_eq!(refresh.neuron_count, 3);
+    assert_eq!(refresh.row_count, 3);
+    assert_eq!(refresh.collection, "neurons");
+    assert!(refresh.wrote_cache);
     assert_eq!(refresh.page_count, 2);
     assert!(refresh.complete);
     assert!(!refresh.point_in_time_guaranteed);
@@ -403,6 +404,19 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         serde_json::from_slice(&fs::read(&path).expect("read neuron cache"))
             .expect("parse neuron cache");
     assert_eq!(cache["collection"], "neurons");
+    let result_json = serde_json::to_value(&refresh).expect("serialize publication result");
+    for field in [
+        "network",
+        "fetched_at",
+        "source_endpoint",
+        "fetched_by",
+        "collection",
+    ] {
+        assert_eq!(result_json[field], cache[field], "published {field}");
+    }
+    assert_eq!(result_json["schema_version"], 1);
+    assert_eq!(result_json["row_count"], cache["completeness"]["row_count"]);
+    assert_eq!(result_json["point_in_time_guaranteed"], false);
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
     assert_eq!(cache["completeness"]["point_in_time_guaranteed"], false);
 
@@ -560,7 +574,7 @@ async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page()
 
     assert!(report.complete);
     assert_eq!(report.page_count, 2);
-    assert_eq!(report.neuron_count, 2);
+    assert_eq!(report.row_count, 2);
     let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
         &root,
         MAINNET_NETWORK,
@@ -713,7 +727,7 @@ fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
     vote_mismatch.recent_ballots.push(NnsNeuronBallotRow {
         proposal_id: Some(7),
         vote: 1,
-        vote_text: NnsNeuronVote::No,
+        vote_text: crate::nns::governance::NnsGovernanceVote::No,
     });
     assert!(matches!(
         validate_neuron_rows(&[vote_mismatch]),

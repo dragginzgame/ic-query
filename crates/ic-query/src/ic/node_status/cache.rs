@@ -121,20 +121,7 @@ pub async fn load_or_refresh_missing_ic_node_status_snapshot_with_source(
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
-    let expected_path =
-        ic_node_status_cache_path(&request.cache.cache_root, &request.cache.network);
-    let snapshot = load_or_refresh_cache(
-        || load_node_status_cache(&request.cache, request.now_unix_secs),
-        |_| false,
-        |error| cache_refresh_reason(error, &expected_path),
-        async |_| {
-            report_refresh(progress, request, &expected_path);
-            refresh_ic_node_status_snapshot_with_source(request, source).await?;
-            Ok(())
-        },
-    )
-    .await?;
-    Ok(snapshot.snapshot)
+    load_or_refresh_node_status_snapshot_with_source(request, source, progress, |_| false).await
 }
 
 /// Load a complete snapshot, refreshing missing, invalid, or older-than-policy content.
@@ -156,11 +143,23 @@ pub async fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
     source: &dyn IcNodeStatusSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
+    load_or_refresh_node_status_snapshot_with_source(request, source, progress, |cached| {
+        node_status_cache_is_stale(cached, request.now_unix_secs)
+    })
+    .await
+}
+
+async fn load_or_refresh_node_status_snapshot_with_source(
+    request: &IcNodeStatusRefreshRequest,
+    source: &dyn IcNodeStatusSource,
+    progress: &mut dyn QueryProgress,
+    is_stale: impl Fn(&LoadedNodeStatusSnapshot) -> bool,
+) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
     let expected_path =
         ic_node_status_cache_path(&request.cache.cache_root, &request.cache.network);
     let snapshot = load_or_refresh_cache(
         || load_node_status_cache(&request.cache, request.now_unix_secs),
-        |cached| node_status_cache_is_stale(cached, request.now_unix_secs),
+        is_stale,
         |error| cache_refresh_reason(error, &expected_path),
         async |_| {
             report_refresh(progress, request, &expected_path);
@@ -203,7 +202,7 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
                 node_count,
                 counts,
             } = build_ic_node_status_snapshot_with_source(
-                &super::IcNodeStatusSnapshotRequest::new(
+                &crate::ic::IcDashboardRequest::new(
                     &request.source_endpoint,
                     request.now_unix_secs,
                 ),

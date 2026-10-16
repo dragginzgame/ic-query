@@ -48,13 +48,16 @@ network and collection provenance use a shared source request instead of
 per-report request DTOs. Native Registry and inventory capabilities use
 `ic_query::nns::NnsSourceRequest`. Registry-derived NNS inventory operations
 share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
-`NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Simple
+`NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Their refreshes
+return `NnsInventoryRefreshReport` with explicit collection identity, row count,
+publication evidence and optional provider Governance identity. Inventory
+snapshots keep their family row models and persisted field names. Simple
 ledger-wide ICRC capabilities share `IcrcLedgerRequest`. SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts;
 the collection-specific builders still own their distinct cache paths and
 rendering. Complete NNS Governance proposal and neuron collections share
 `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
-`NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError`, while each
+`NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceError`, while each
 capability retains its own page validation, cache identity, report, and
 renderer. Portable proposal and public-neuron continuations share
 `NnsGovernanceCollectionStatus` under Governance ownership, with one set of
@@ -67,7 +70,14 @@ replica-query or replicated inter-canister collection. `LiveNnsSource` and
 `CanisterNnsSource` implement the native and Wasm canister transports. These
 remain live point-value reports rather than creating another collection cache.
 SNS capabilities share `SnsSourceRequest`, including explicit network and
-collection provenance. Complete catalog enrichment uses `SnsCatalogSource` to
+collection provenance. Targeted live-capable requests compose a `SnsLookupRequest`
+for network, endpoint, caller clock and target. Builders borrow that scope;
+cache-only and whole-SNS list requests keep their distinct acquisition inputs. Complete neuron/proposal refreshes accept one
+`SnsSnapshotRefreshRequest` and return `SnsSnapshotRefreshReport`, whose
+`collection` and `row_count` identify the published data. Separate collectors
+own cursor and page validation; the common lifecycle owns publication and
+attempt-finalization evidence. Shared neuron report assembly receives explicit
+live owner scope or cached whole-collection totals before view limits. Complete catalog enrichment uses `SnsCatalogSource` to
 add exact-target Swap lifecycles to `SnsDiscoverySource` inventory and
 Governance metadata. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate
@@ -84,6 +94,12 @@ Exact neuron permission/followee detail uses `SnsNeuronSource`, while bracketed
 API-exhausted maturity checkpoint collection uses `SnsRewardSource`. Both
 capabilities remain on `LiveSnsSource`; variable-size detail and reward
 evidence do not expand the ordinary fixed-size neuron collection cache.
+Dashboard caller requests share `IcDashboardRequest` for their explicit API
+endpoint and collection clock. Parameterized requests compose it as `dashboard`,
+including CloudEngine Dashboard requests and the shared ICRC analytics target; node-status snapshot and boundary-node
+data-center builders take it directly. The scope derives `IcSourceRequest` for
+live collection, and capability results echo that provenance for independent
+admission. API-specific endpoints and query bounds remain selected by callers.
 Official Dashboard capabilities share `IcSourceRequest`. Canister lookup uses
 focused `IcCanisterSource` and `IcCanisterCollectionSource` capabilities on
 `LiveIcSource`; bounded aggregate network time series use one `IcMetricSource`

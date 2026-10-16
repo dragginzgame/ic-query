@@ -385,11 +385,20 @@ and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.6.0/doc
 
 ## Shared probe build mechanics
 
-The development harness uses IC Build's named-example Cargo command factory and
-standalone input inventory. Query retains its sorted relative-path/NUL/raw-byte/NUL
-source fingerprint, probe DID and schema-1 metadata. The shared inventory refuses
-symlink and special-file inputs and checks for source changes while projecting the
-fingerprint; unrelated regular-file bytes do not enter that fingerprint.
+The development harness uses IC Build's named-example Cargo command factory,
+standalone input inventory and root-relative captured-evidence digest. The source
+fingerprint covers every selected file, directory and missing-path observation,
+including non-Rust files. Query selects the required manifests, lockfile, toolchain,
+probe DID and source roots. IC Build hashes their captured values using sorted
+relative paths; Query validates the inventory again before returning the digest.
+Symlink and special-file inputs are refused. No second raw-file hashing pass runs.
+
+The 0.59.0 hard cut replaces the descriptive `source_sha256` contract in schema-1
+probe metadata. Generate a new probe build and matching receipt together, and
+update any external fingerprint comparison to use the complete captured inventory.
+Existing artifacts and receipts remain evidence of their original builds; they
+are not rewritten or migrated. The digest is descriptive source evidence, not
+compiler or executable attestation.
 
 Cargo target discovery uses Cargo's canonical metadata schema through IC Build
 while retaining Query's bounded command executor. IC Build's caller-controlled
@@ -398,5 +407,5 @@ compilation, then revalidates semantic and raw input identities before Query rea
 or publishes the artifact. Each resolution has a 600-second probe deadline, the
 harness's cancellation predicate, five-second TERM grace and five-second bounded
 reaping; original Host process evidence remains in typed Build errors. The build
-command retains its existing 600-second policy. Query's fingerprint/DID/receipt
-bytes remain locally owned. No artifact cache, deployment or runtime is created.
+command retains its existing 600-second policy. Query owns the selected inventory,
+probe DID, metadata and receipts. No artifact cache, deployment or runtime is created.

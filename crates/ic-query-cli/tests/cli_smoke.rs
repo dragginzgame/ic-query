@@ -17,7 +17,6 @@ use std::{
     fs,
     path::Path,
     process::{Command, Output},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 struct EmptyGovernanceSource;
@@ -150,7 +149,8 @@ async fn binary_nns_cached_analytics_emit_text_and_raw_json() {
 
 #[test]
 fn binary_nns_cached_analytics_fail_visibly_without_creating_cache_files() {
-    let root = temp_cache_root("ic-query-cli-nns-analytics-errors");
+    let fixture = temp_cache_root("ic-query-cli-nns-analytics-errors");
+    let root = fixture.join("missing-cache");
     for (family, operation, path) in [
         ("proposal", "activity", nns_proposal_cache_path(&root, "ic")),
         ("neuron", "distribution", nns_neuron_cache_path(&root, "ic")),
@@ -168,6 +168,7 @@ fn binary_nns_cached_analytics_fail_visibly_without_creating_cache_files() {
         assert_eq!(fs::read(&path).unwrap(), b"{");
         fs::remove_dir_all(&root).unwrap();
     }
+    fs::remove_dir_all(fixture).unwrap();
 }
 
 fn run_icq(args: &[&str]) -> Output {
@@ -190,7 +191,6 @@ fn run_icq_in_root(root: &Path, args: &[&str]) -> Output {
 fn binary_inventory_authority_refusals_do_not_announce_live_refreshes() {
     use std::os::unix::fs::PermissionsExt;
     let root = temp_cache_root("ic-query-cli-inventory-authority");
-    fs::create_dir(&root).unwrap();
     fs::set_permissions(&root, fs::Permissions::from_mode(0o777)).unwrap();
     for args in [
         vec!["nns", "data-center", "list"],
@@ -240,11 +240,8 @@ fn assert_success(output: &Output) {
 }
 
 fn temp_cache_root(prefix: &str) -> std::path::PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system time after epoch")
-        .as_nanos();
-    std::env::temp_dir().join(format!("{prefix}-{}-{unique}", std::process::id()))
+    ic_host_fs::testing::create_fixture_directory(&std::env::temp_dir(), prefix)
+        .expect("create private CLI fixture directory")
 }
 
 #[cfg(unix)]
@@ -271,6 +268,7 @@ fn closed_stdout_succeeds_for_text_json_help_and_version() {
             .unwrap();
         assert_success(&output);
         assert_eq!(output.stderr, Vec::<u8>::new());
+        fs::remove_dir_all(root).unwrap();
     }
 }
 
@@ -671,7 +669,8 @@ fn binary_icrc_account_transaction_help_smoke() {
 
 #[test]
 fn binary_icrc_account_transaction_cache_status_is_local_only() {
-    let root = temp_cache_root("ic-query-cli-icrc-account-status");
+    let fixture = temp_cache_root("ic-query-cli-icrc-account-status");
+    let root = fixture.join("missing-cache");
 
     let output = run_icq_in_root(
         &root,
@@ -694,14 +693,14 @@ fn binary_icrc_account_transaction_cache_status_is_local_only() {
     assert_eq!(output.stderr, Vec::<u8>::new());
     assert!(!root.exists());
 
-    let _ = fs::remove_dir_all(root);
+    fs::remove_dir_all(fixture).unwrap();
 }
 
 #[test]
 fn binary_default_cache_root_uses_xdg_cache_home() {
     let cwd = temp_cache_root("ic-query-cli-cwd");
-    let xdg_cache_home = temp_cache_root("ic-query-cli-xdg");
-    fs::create_dir_all(&cwd).expect("create temporary working directory");
+    let xdg_fixture = temp_cache_root("ic-query-cli-xdg");
+    let xdg_cache_home = xdg_fixture.join("missing-cache");
 
     let output = run_icq_with_xdg_cache(
         &cwd,
@@ -726,6 +725,7 @@ fn binary_default_cache_root_uses_xdg_cache_home() {
     assert!(!xdg_cache_home.exists());
 
     let _ = fs::remove_dir_all(cwd);
+    fs::remove_dir_all(xdg_fixture).unwrap();
 }
 
 #[test]
@@ -1014,7 +1014,6 @@ fn binary_version_smoke() {
 #[test]
 fn binary_local_cache_commands_emit_json_without_live_calls() {
     let root = temp_cache_root("ic-query-cli-cache-json");
-    fs::create_dir_all(&root).expect("create temporary cache root");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

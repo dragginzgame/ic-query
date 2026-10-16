@@ -5,6 +5,74 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.59.0]
+
+- **Breaking:** Governance probe source fingerprints now cover the complete
+  captured inventory through IC Build. Regenerate probe artifacts and matching
+  receipts together; metadata schemas remain 1.
+- Share topology percentage arithmetic with IC Metrics, preserving nearest
+  one-decimal formatting. Overflowing coverage totals now render `-`.
+- Align the Governance harness with IC Build 0.8 and Host Process 0.21 while
+  retaining its TERM grace and bounded reaping.
+- Share the remaining CLI and topology test-directory allocation with Host FS.
+  Cache-header inspection uses captured completion state while preserving bounded
+  prefix reads and parse failures.
+
+- **Breaking:** Remove the public `NnsGovernanceQueryError`; native NNS queries
+  now return `NnsGovernanceError` directly. Update imports and error conversions.
+- Share CloudEngine, NNS, SNS and ICRC Candid transport and bounded decoding.
+  Consolidate hex byte decoding and NNS dimension validation while retaining their
+  input policies, raw report fields and checked totals.
+
+- Consolidate node-status cache recovery and portable Governance continuation
+  checks, preserving freshness policies, typed errors and continuation schemas.
+
+- Reuse validated reward-checkpoint summaries in SNS diffs while retaining raw
+  diagnostics for invalid checkpoints. Derive new/missing neuron flags from rows.
+- Compare archive manifests through the shared streaming canonical-JSON matcher.
+
+- Consolidate live/cached NNS proposal views and strict principal evidence checks,
+  preserving pagination policies, report fields and family-specific errors.
+- Complete bounded-read error handling for the selected Host 0.22 API.
+
+- **Breaking:** SNS neuron/proposal refreshes share `SnsSnapshotRefreshRequest`,
+  `SnsSnapshotRefreshReport` and `sns_snapshot_refresh_report_text`. Update imports
+  and JSON consumers to `collection` and `row_count`; report schemas remain 1.
+- **Breaking:** Native Governance builders return `NnsGovernanceError` directly;
+  remove matches and conversions for the deleted `NnsGovernanceHostError` wrapper.
+- Share live/cached SNS neuron report assembly, retaining owner scope, provenance
+  and complete-snapshot totals before view limits.
+
+- **Breaking:** NNS neuron/proposal refreshes share `NnsGovernanceRefreshReport`
+  and `nns_governance_refresh_report_text`. JSON uses `collection` and `row_count`,
+  with explicit publication and point-in-time assurance; report schemas remain 1.
+- **Breaking:** `NnsNodeListRequest` composes `inventory: NnsInventoryListRequest`
+  with view filters. Update struct literals and inventory-field access.
+
+- **Breaking:** Registry inventory refreshes share `NnsInventoryRefreshReport`
+  and `nns_inventory_refresh_report_text`. Update family imports and count fields
+  to `collection` and `row_count`; provider Governance identity remains explicit.
+- Share live/cached SNS proposal view projection and fix mixed-case live text
+  searches. Simplify inventory cache plumbing to the concrete shared requests.
+
+- **Breaking:** Targeted SNS requests compose `SnsLookupRequest`; update
+  constructors and access shared fields through `lookup`.
+- **Breaking:** Topology source capabilities take the public read/refresh
+  requests directly. Refresh settings compose a `read` scope; custom adapters
+  must update signatures and field access.
+- **Breaking:** NNS ballots share `NnsGovernanceVote`, retaining unknown vote
+  codes in text and JSON. Contradictory cached classifications refuse; preserve
+  old evidence and explicitly refresh affected proposal snapshots.
+
+- **Breaking:** Dashboard requests share `IcDashboardRequest` for endpoint and
+  caller clock. Parameterized requests compose it as `dashboard`; node-status
+  snapshot and boundary-node data-center builders take it directly. Update Rust
+  constructors, struct literals and field access; CLI and report JSON are unchanged.
+- Share NNS neuron/proposal snapshot locking, attempt sequencing and publication,
+  preserving collection-specific paging, stored evidence and finalization failures.
+
+Detailed release notes: [docs/changelog/0.59.md](docs/changelog/0.59.md)
+
 ## [0.58.0] - 2026-10-16
 
 - Delegate release cache and formatter preparation to Shared Tooling's pinned

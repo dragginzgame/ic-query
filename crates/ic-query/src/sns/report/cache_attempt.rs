@@ -14,8 +14,7 @@ use crate::{
         read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
     },
     sns::report::{
-        SNS_CACHE_COMPONENT, SnsHostError, SnsNeuronsRefreshRequest, SnsProposalsRefreshRequest,
-        SnsRefreshAttemptStatus,
+        SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
         source::{MainnetSns, SnsSourceRequest},
     },
 };
@@ -43,59 +42,6 @@ pub(in crate::sns::report) type SnsRefreshAttempt =
     SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
 
 ///
-/// SnsRefreshRequestView
-///
-/// Request fields shared by SNS neuron and proposal refresh orchestration.
-///
-
-pub(in crate::sns::report) trait SnsRefreshRequestView: Sync {
-    fn network(&self) -> &str;
-    fn source_endpoint(&self) -> &str;
-    fn now_unix_secs(&self) -> u64;
-    fn input(&self) -> &str;
-    fn cache_root(&self) -> &Path;
-    fn page_size(&self) -> u32;
-    fn max_pages(&self) -> Option<u32>;
-}
-
-macro_rules! impl_sns_refresh_request_view {
-    ($request:ty) => {
-        impl SnsRefreshRequestView for $request {
-            fn network(&self) -> &str {
-                &self.network
-            }
-
-            fn source_endpoint(&self) -> &str {
-                &self.source_endpoint
-            }
-
-            fn now_unix_secs(&self) -> u64 {
-                self.now_unix_secs
-            }
-
-            fn input(&self) -> &str {
-                &self.input
-            }
-
-            fn cache_root(&self) -> &Path {
-                &self.cache_root
-            }
-
-            fn page_size(&self) -> u32 {
-                self.page_size
-            }
-
-            fn max_pages(&self) -> Option<u32> {
-                self.max_pages
-            }
-        }
-    };
-}
-
-impl_sns_refresh_request_view!(SnsNeuronsRefreshRequest);
-impl_sns_refresh_request_view!(SnsProposalsRefreshRequest);
-
-///
 /// SnsRefreshContext
 ///
 /// Resolved inputs and paging policy shared by one SNS collection refresh.
@@ -104,7 +50,7 @@ impl_sns_refresh_request_view!(SnsProposalsRefreshRequest);
 #[derive(Clone, Copy)]
 pub(in crate::sns::report) struct SnsRefreshContext<'a> {
     pub(in crate::sns::report) path: &'a Path,
-    pub(in crate::sns::report) request: &'a dyn SnsRefreshRequestView,
+    pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
     pub(in crate::sns::report) fetch_request: &'a SnsSourceRequest,
     pub(in crate::sns::report) sns: &'a MainnetSns,
 }
@@ -124,7 +70,7 @@ impl SnsRefreshContext<'_> {
 
     pub(in crate::sns::report) fn max_pages_reached(self, page_count: u32) -> bool {
         self.request
-            .max_pages()
+            .max_pages
             .is_some_and(|max_pages| page_count >= max_pages)
     }
 
@@ -145,7 +91,7 @@ impl SnsRefreshContext<'_> {
         page: &PagedCollectionPage,
         has_next_cursor: bool,
     ) -> bool {
-        page.exhausts_collection(self.request.page_size(), has_next_cursor)
+        page.exhausts_collection(self.request.page_size, has_next_cursor)
     }
 }
 
@@ -187,9 +133,9 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     error: &SnsHostError,
 ) {
     let latest = read_sns_refresh_attempt(
-        context.request.cache_root(),
+        &context.request.cache_root,
         context.path,
-        context.request.network(),
+        &context.request.lookup.network,
         None,
     )
     .ok()
@@ -217,8 +163,8 @@ fn write_sns_refresh_attempt_status(
 ) -> Result<(), SnsHostError> {
     let attempt = SnsRefreshAttempt {
         schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        network: context.request.network().to_string(),
-        source_endpoint: context.request.source_endpoint().to_string(),
+        network: context.request.lookup.network.clone(),
+        source_endpoint: context.request.lookup.source_endpoint.clone(),
         started_at: context.fetch_request.fetched_at.clone(),
         updated_at: current_attempt_timestamp(&context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
@@ -227,14 +173,14 @@ fn write_sns_refresh_attempt_status(
             governance_canister_id: context.sns.governance_canister_id.clone(),
         },
         status,
-        page_size: context.request.page_size(),
+        page_size: context.request.page_size,
         pages_fetched: progress.pages_fetched,
         rows_fetched: progress.rows_fetched,
         last_cursor: progress.last_cursor,
         last_error,
     };
     write_managed_json_pretty_atomically(
-        context.request.cache_root(),
+        &context.request.cache_root,
         context.path,
         &attempt,
         crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,

@@ -4,6 +4,8 @@
 //! Does not own: transport, returned release records, validation, or rendering.
 //! Boundary: captures one explicit page or one exact replica-version target.
 
+use super::IcDashboardRequest;
+
 use serde::Serialize;
 
 ///
@@ -42,10 +44,8 @@ impl IcReplicaVersionListQuery {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcReplicaVersionListRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Explicit page bounds.
     pub query: IcReplicaVersionListQuery,
 }
@@ -53,16 +53,8 @@ pub struct IcReplicaVersionListRequest {
 impl IcReplicaVersionListRequest {
     /// Construct one bounded live Dashboard replica-version list request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        query: IcReplicaVersionListQuery,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            query,
-        }
+    pub const fn new(dashboard: IcDashboardRequest, query: IcReplicaVersionListQuery) -> Self {
+        Self { dashboard, query }
     }
 }
 
@@ -74,10 +66,8 @@ impl IcReplicaVersionListRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcReplicaVersionInfoRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Exact lowercase hexadecimal replica-version identifier.
     pub replica_version_id: String,
 }
@@ -85,14 +75,9 @@ pub struct IcReplicaVersionInfoRequest {
 impl IcReplicaVersionInfoRequest {
     /// Construct one exact live Dashboard replica-version request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        replica_version_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(dashboard: IcDashboardRequest, replica_version_id: impl Into<String>) -> Self {
         Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             replica_version_id: replica_version_id.into(),
         }
     }

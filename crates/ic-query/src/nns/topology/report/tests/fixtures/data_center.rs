@@ -1,16 +1,19 @@
+use crate::nns::NnsInventoryRefreshReport;
 use crate::{
-    nns::data_center::{NnsDataCenterListReport, NnsDataCenterRefreshReport, NnsDataCenterRow},
+    nns::data_center::{NnsDataCenterListReport, NnsDataCenterRow},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 
 pub(in crate::nns::topology::report::tests) fn data_center_refresh_report_fixture()
--> NnsDataCenterRefreshReport {
-    NnsDataCenterRefreshReport {
+-> NnsInventoryRefreshReport {
+    NnsInventoryRefreshReport {
         schema_version: 1,
+        collection: "data_centers".to_string(),
         network: MAINNET_NETWORK.to_string(),
         cache_path: "/cache/nns/ic/data-center/data-centers.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/data-center/refresh.lock".to_string(),
         output_path: None,
+        governance_canister_id: None,
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: 46,
         fetched_at: "2026-06-04T00:04:00Z".to_string(),
@@ -19,13 +22,13 @@ pub(in crate::nns::topology::report::tests) fn data_center_refresh_report_fixtur
         dry_run: false,
         wrote_cache: true,
         replaced_existing_cache: false,
-        data_center_count: 1,
+        row_count: 1,
     }
 }
 
 pub(in crate::nns::topology::report::tests) fn dry_run_data_center_refresh_report_fixture()
--> NnsDataCenterRefreshReport {
-    NnsDataCenterRefreshReport {
+-> NnsInventoryRefreshReport {
+    NnsInventoryRefreshReport {
         dry_run: true,
         wrote_cache: false,
         ..data_center_refresh_report_fixture()

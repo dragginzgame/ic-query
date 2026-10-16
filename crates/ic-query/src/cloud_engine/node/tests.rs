@@ -146,8 +146,7 @@ mod host {
         let source = Fixture::default();
         let request = CloudEngineNodeInfoRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            NOW,
+            crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
             NODE_A,
         );
         let report = build_cloud_engine_node_info_report_with_source(&request, &source)
@@ -272,8 +271,7 @@ mod host {
     fn list_request(node_provider_id: Option<&str>) -> CloudEngineNodeListRequest {
         let request = CloudEngineNodeListRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            NOW,
+            crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
         );
         match node_provider_id {
             Some(provider) => request.with_node_provider_id(provider),

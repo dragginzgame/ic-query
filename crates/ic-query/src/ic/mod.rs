@@ -50,11 +50,11 @@ pub use build::{build_ic_canister_report, build_ic_canister_report_with_source};
 #[cfg(feature = "dashboard-host")]
 pub use live::LiveIcSource;
 pub use model::{
-    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest,
-    IcCanisterCountReport, IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController,
-    IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
-    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcIcrcAccountInfoReport,
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcCanisterCountReport,
+    IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageController, IcCanisterPageReport,
+    IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport, IcCanisterRequest,
+    IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport, IcDailyStatsRequest, IcDailyStatsRow,
+    IcDashboardReportProvenance, IcDashboardRequest, IcIcrcAccountInfoReport,
     IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListReport,
     IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort, IcIcrcAnalyticsRequest,
     IcIcrcHolderListQuery, IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcHolderRow,
@@ -92,12 +92,11 @@ pub use node_status::{
     IcNodeCountComparisonCounts, IcNodeOperationalStatus, IcNodeProviderStatusReport,
     IcNodeProviderStatusRow, IcNodeStatusCacheEvidence, IcNodeStatusCounts,
     IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusProjectionError,
-    IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot,
-    IcNodeStatusSnapshotRequest, IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow,
-    MAX_IC_NODE_STATUS_ROWS, ic_node_provider_status_report_from_snapshot,
-    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
-    ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
-    ic_subnet_status_report_text,
+    IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
+    IcSubnetStatusReport, IcSubnetStatusRow, MAX_IC_NODE_STATUS_ROWS,
+    ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
+    ic_node_status_report_from_snapshot, ic_node_status_report_text,
+    ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 pub use node_status::{
@@ -122,9 +121,8 @@ pub use source::{
 };
 #[cfg(feature = "dashboard-host")]
 pub(crate) use source::{
-    canonical_request_principal, dashboard_source_request, invalid_source, invalid_source_value,
-    report_provenance, validate_canonical_principal, validate_dashboard_network,
-    validate_provenance,
+    canonical_request_principal, invalid_source, invalid_source_value, report_provenance,
+    validate_canonical_principal, validate_dashboard_network, validate_provenance,
 };
 pub(crate) use text::dashboard_provenance_lines;
 pub use text::{

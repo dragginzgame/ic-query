@@ -2,7 +2,8 @@ use candid::Principal;
 use ic_query::{
     nns::topology::{
         NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
-        NnsSubnetTopologyReport, NnsSubnetTopologyRow, nns_subnet_topology_report_text,
+        NnsSubnetTopologyReport, NnsSubnetTopologyRow, NnsSubnetTopologyValidationError,
+        nns_subnet_topology_report_text,
     },
     subnet_catalog::SubnetKind,
 };
@@ -16,6 +17,20 @@ fn public_subnet_topology_model_is_constructible_and_validatable_without_host() 
 
     assert!(text.contains("registry_version 42"));
     assert!(text.contains("cloud_engine"));
+
+    let mut invalid = report.clone();
+    invalid.registry_canister_id = report.registry_canister_id.to_ascii_uppercase();
+    assert!(matches!(
+        invalid.validate(),
+        Err(NnsSubnetTopologyValidationError::NonCanonicalPrincipal { field, canonical, .. })
+            if field == "registry_canister_id" && canonical == report.registry_canister_id
+    ));
+    invalid.registry_canister_id = "invalid".to_string();
+    assert!(matches!(
+        invalid.validate(),
+        Err(NnsSubnetTopologyValidationError::InvalidPrincipal { field, .. })
+            if field == "registry_canister_id"
+    ));
 }
 
 #[cfg(feature = "nns-topology-host")]
@@ -29,13 +44,7 @@ mod host {
         refresh_nns_subnet_topology_with_source,
     };
     use ic_query::nns::{LiveNnsSource, NnsSourceRequest};
-    use std::{
-        fs,
-        path::PathBuf,
-        sync::atomic::{AtomicU64, Ordering},
-    };
-
-    static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+    use std::fs;
 
     #[tokio::test(flavor = "current_thread")]
     async fn public_live_source_rejects_non_mainnet_before_agent_construction() {
@@ -73,7 +82,11 @@ mod host {
         ) {
         }
 
-        let root = temp_root();
+        let root = ic_host_fs::testing::create_fixture_directory(
+            &std::env::temp_dir(),
+            "ic-query-subnet-topology-public",
+        )
+        .unwrap();
         let cache = NnsSubnetTopologyCacheRequest::new(&root, "ic");
         let request =
             NnsSubnetTopologyRefreshRequest::new(cache.clone(), "https://mirror.example", 100, 30);
@@ -108,14 +121,6 @@ mod host {
         > {
             Box::pin(async move { Ok(fixture_report(77, &request.fetched_at, &request.endpoint)) })
         }
-    }
-
-    fn temp_root() -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "ic-query-subnet-topology-public-{}-{}",
-            std::process::id(),
-            TEMP_COUNTER.fetch_add(1, Ordering::Relaxed)
-        ))
     }
 }
 

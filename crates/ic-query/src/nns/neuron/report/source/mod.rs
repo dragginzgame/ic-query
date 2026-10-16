@@ -12,7 +12,7 @@ mod host;
 use super::{
     NNS_NEURON_INFO_REPORT_SCHEMA_VERSION, NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
     NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronError,
-    classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility, NnsNeuronVote},
+    classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility},
     model::{
         NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport, NnsNeuronListRequest,
         NnsNeuronRow,
@@ -261,11 +261,9 @@ pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuro
                 ),
             });
         }
-        if let Some(ballot) = row
-            .recent_ballots
-            .iter()
-            .find(|ballot| ballot.vote_text != NnsNeuronVote::from_code(ballot.vote))
-        {
+        if let Some(ballot) = row.recent_ballots.iter().find(|ballot| {
+            ballot.vote_text != crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote)
+        }) {
             return Err(NnsNeuronError::InvalidResponse {
                 reason: format!(
                     "neuron {} ballot vote classification {} does not match raw code {}",
@@ -408,7 +406,7 @@ pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
             .map(|ballot| NnsNeuronBallotRow {
                 proposal_id: ballot.proposal_id.map(|proposal| proposal.id),
                 vote: ballot.vote,
-                vote_text: NnsNeuronVote::from_code(ballot.vote),
+                vote_text: crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote),
             })
             .collect(),
     })

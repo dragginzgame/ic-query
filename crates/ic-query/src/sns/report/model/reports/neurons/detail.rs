@@ -6,7 +6,6 @@
 
 use super::SnsNeuronRow;
 use crate::{hex::is_lowercase_hex, report::ReportDataSource};
-use candid::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::collections::HashSet;
 
@@ -379,13 +378,11 @@ pub(in crate::sns::report) fn validate_maturity_disbursements(
 }
 
 pub(super) fn validate_canonical_principal(value: &str, field: &str) -> Result<(), String> {
-    let principal =
-        Principal::from_text(value).map_err(|err| format!("{field} {value} is invalid: {err}"))?;
-    if principal.to_text() == value {
-        Ok(())
-    } else {
-        Err(format!("{field} {value} is not canonical principal text"))
-    }
+    crate::principal_text::validate_canonical(
+        value,
+        |reason| format!("{field} {value} is invalid: {reason}"),
+        |_| format!("{field} {value} is not canonical principal text"),
+    )
 }
 
 #[cfg(test)]

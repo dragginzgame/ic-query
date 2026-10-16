@@ -20,16 +20,8 @@ pub(in crate::icrc) fn normalize_optional_subaccount_hex(
 
 #[cfg(any(test, feature = "icrc-host"))]
 pub(in crate::icrc) fn subaccount_bytes_from_hex(value: &str) -> Result<Vec<u8>, IcrcError> {
-    Ok(validated_subaccount_hex(value)?
-        .as_bytes()
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|pair| {
-            let pair = std::str::from_utf8(pair).expect("validated ASCII hexadecimal");
-            u8::from_str_radix(pair, 16).expect("validated hexadecimal byte")
-        })
-        .collect())
+    Ok(crate::hex::decode_hex(validated_subaccount_hex(value)?)
+        .expect("validated ASCII hexadecimal byte pairs"))
 }
 
 fn validated_subaccount_hex(value: &str) -> Result<&str, IcrcError> {

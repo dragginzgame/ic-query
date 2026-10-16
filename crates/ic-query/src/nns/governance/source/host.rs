@@ -31,8 +31,7 @@ impl NnsGovernanceSource for LiveNnsSource {
                 "get_network_economics_parameters",
                 "NetworkEconomics",
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             Ok(NnsGovernanceSourceData::new(economics, provenance))
         })
     }
@@ -45,8 +44,7 @@ impl NnsGovernanceSource for LiveNnsSource {
             let (request, provenance) = host_request(request)?;
             let result: GetMetricsResult =
                 query_nns_governance_no_args(self, &request, "get_metrics", "GetMetricsResult")
-                    .await
-                    .map_err(NnsGovernanceError::from)?;
+                    .await?;
             Ok(NnsGovernanceSourceData::new(
                 NnsGovernanceMetrics::from(metrics_result(result)?),
                 provenance,
@@ -66,8 +64,7 @@ impl NnsGovernanceSource for LiveNnsSource {
                 "get_latest_reward_event",
                 "RewardEvent",
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             Ok(NnsGovernanceSourceData::new(reward_event, provenance))
         })
     }
@@ -86,8 +83,7 @@ impl NnsGovernanceSource for LiveNnsSource {
                 "GetMaturityModulationResponse",
                 &GetMaturityModulationRequest {},
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             Ok(NnsGovernanceSourceData::new(
                 response.maturity_modulation,
                 provenance,

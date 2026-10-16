@@ -39,6 +39,7 @@ impl_nns_inventory_report!(
     "data_center",
     data_center_count,
     data_centers,
+    |_report: &NnsDataCenterListReport| None,
 );
 
 ///
@@ -84,29 +85,4 @@ pub struct NnsDataCenterInfoReport {
     pub node_operator_count: u32,
     pub node_provider_count: u32,
     pub node_count: u32,
-}
-
-///
-/// NnsDataCenterRefreshReport
-///
-/// Outcome of refreshing the cached NNS data center inventory.
-///
-
-#[cfg(feature = "nns-host")]
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsDataCenterRefreshReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub cache_path: String,
-    pub refresh_lock_path: String,
-    pub output_path: Option<String>,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
-    pub dry_run: bool,
-    pub wrote_cache: bool,
-    pub replaced_existing_cache: bool,
-    pub data_center_count: usize,
 }

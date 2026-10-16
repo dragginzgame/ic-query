@@ -5,13 +5,9 @@
 //! Boundary: combines component refresh reports into one topology refresh report.
 
 use super::{NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION, NnsTopologyRefreshReport};
+use crate::nns::NnsInventoryRefreshReport;
 use crate::{
-    nns::{
-        data_center::NnsDataCenterRefreshReport, node::NnsNodeRefreshReport,
-        node_operator::NnsNodeOperatorRefreshReport, node_provider::NnsNodeProviderRefreshReport,
-        topology::report::NnsTopologyRefreshRow,
-    },
-    subnet_catalog::SubnetCatalogRefreshReport,
+    nns::topology::report::NnsTopologyRefreshRow, subnet_catalog::SubnetCatalogRefreshReport,
 };
 
 ///
@@ -22,10 +18,10 @@ use crate::{
 
 pub(in crate::nns::topology::report) struct NnsTopologyRefreshComponentReports {
     pub(in crate::nns::topology::report) subnet: SubnetCatalogRefreshReport,
-    pub(in crate::nns::topology::report) node: NnsNodeRefreshReport,
-    pub(in crate::nns::topology::report) node_provider: NnsNodeProviderRefreshReport,
-    pub(in crate::nns::topology::report) node_operator: NnsNodeOperatorRefreshReport,
-    pub(in crate::nns::topology::report) data_center: NnsDataCenterRefreshReport,
+    pub(in crate::nns::topology::report) node: NnsInventoryRefreshReport,
+    pub(in crate::nns::topology::report) node_provider: NnsInventoryRefreshReport,
+    pub(in crate::nns::topology::report) node_operator: NnsInventoryRefreshReport,
+    pub(in crate::nns::topology::report) data_center: NnsInventoryRefreshReport,
 }
 
 pub(super) fn topology_refresh_report_from_reports(
@@ -56,23 +52,20 @@ pub(super) fn topology_refresh_report_from_reports(
     }
 }
 
-macro_rules! inventory_refresh_row {
-    ($report:expr, $source:literal, $count:ident) => {{
-        let report = $report;
-        NnsTopologyRefreshRow {
-            source: $source.to_string(),
-            cache_path: report.cache_path,
-            refresh_lock_path: report.refresh_lock_path,
-            registry_version: report.registry_version,
-            fetched_at: report.fetched_at,
-            source_endpoint: report.source_endpoint,
-            fetched_by: report.fetched_by,
-            dry_run: report.dry_run,
-            wrote_cache: report.wrote_cache,
-            replaced_existing_cache: report.replaced_existing_cache,
-            item_count: report.$count,
-        }
-    }};
+fn refresh_row_from_inventory_report(report: NnsInventoryRefreshReport) -> NnsTopologyRefreshRow {
+    NnsTopologyRefreshRow {
+        source: report.collection,
+        cache_path: report.cache_path,
+        refresh_lock_path: report.refresh_lock_path,
+        registry_version: report.registry_version,
+        fetched_at: report.fetched_at,
+        source_endpoint: report.source_endpoint,
+        fetched_by: report.fetched_by,
+        dry_run: report.dry_run,
+        wrote_cache: report.wrote_cache,
+        replaced_existing_cache: report.replaced_existing_cache,
+        item_count: report.row_count,
+    }
 }
 
 fn refresh_rows_from_reports(
@@ -80,10 +73,10 @@ fn refresh_rows_from_reports(
 ) -> Vec<NnsTopologyRefreshRow> {
     vec![
         refresh_row_from_subnet_report(reports.subnet),
-        inventory_refresh_row!(reports.node, "nodes", node_count),
-        inventory_refresh_row!(reports.node_provider, "node_providers", node_provider_count),
-        inventory_refresh_row!(reports.node_operator, "node_operators", node_operator_count),
-        inventory_refresh_row!(reports.data_center, "data_centers", data_center_count),
+        refresh_row_from_inventory_report(reports.node),
+        refresh_row_from_inventory_report(reports.node_provider),
+        refresh_row_from_inventory_report(reports.node_operator),
+        refresh_row_from_inventory_report(reports.data_center),
     ]
 }
 

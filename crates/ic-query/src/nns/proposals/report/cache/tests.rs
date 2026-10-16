@@ -6,6 +6,7 @@ use super::{
         build_nns_proposal_report_from_cache,
     },
 };
+use crate::nns::governance::nns_governance_refresh_report_text;
 use crate::{
     HostCacheError,
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -30,7 +31,7 @@ use crate::{
             source::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info},
             text::{
                 nns_proposal_cache_status_report_text, nns_proposal_list_report_text,
-                nns_proposal_refresh_report_text, nns_proposal_report_text,
+                nns_proposal_report_text,
             },
             wire::{
                 NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
@@ -226,7 +227,7 @@ async fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_i
 
     assert!(report.complete);
     assert_eq!(report.page_count, 1);
-    assert_eq!(report.proposal_count, 2);
+    assert_eq!(report.row_count, 2);
     let paths = nns_proposal_cache_paths(&root, MAINNET_NETWORK);
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&paths.snapshot_path).expect("read cache"))
@@ -258,24 +259,39 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     let report = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
         .await
         .expect("refresh cache");
-    let refresh_text = nns_proposal_refresh_report_text(&report);
+    let refresh_text = nns_governance_refresh_report_text(&report);
 
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(
         report.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert_eq!(report.proposal_count, 3);
+    assert_eq!(report.row_count, 3);
+    assert_eq!(report.collection, "proposals");
+    assert!(!report.point_in_time_guaranteed);
     assert_eq!(report.page_count, 2);
     assert!(report.complete);
     assert!(report.wrote_cache);
     assert!(!report.replaced_existing_cache);
-    assert!(refresh_text.contains("proposal_count: 3"));
+    assert!(refresh_text.contains("row_count: 3"));
     let cache_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
     assert!(cache_path.is_file());
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(cache_path).expect("read cache")).expect("parse cache");
     assert_eq!(cache["domain"], "nns");
+    let result_json = serde_json::to_value(&report).expect("serialize publication result");
+    for field in [
+        "network",
+        "fetched_at",
+        "source_endpoint",
+        "fetched_by",
+        "collection",
+    ] {
+        assert_eq!(result_json[field], cache[field], "published {field}");
+    }
+    assert_eq!(result_json["schema_version"], 1);
+    assert_eq!(result_json["row_count"], cache["completeness"]["row_count"]);
+    assert_eq!(result_json["wrote_cache"], true);
     assert_eq!(cache["entity"], "governance");
     assert_eq!(cache["collection"], "proposals");
     assert_eq!(cache["scope"], "full");
@@ -488,6 +504,25 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert!(text.contains("cache_complete: yes"));
     assert!(text.contains("query_filter: PrOpOsAl 1"));
     assert!(text.contains("result_scope: complete-cache"));
+
+    let mut request = request;
+    request.query = None;
+    request.sort = NnsProposalListSort::Id;
+    request.sort_direction = NnsProposalSortDirection::Desc;
+    let report = build_nns_proposal_list_report_from_cache(&request, &root)
+        .expect("cache lookup")
+        .expect("cached list report");
+    assert_eq!(report.proposals[0].proposal_id, Some(2));
+    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.requested_limit, 1);
+    assert_eq!(report.before_proposal_id, Some(3));
+
+    request.sort_direction = NnsProposalSortDirection::Asc;
+    let report = build_nns_proposal_list_report_from_cache(&request, &root)
+        .expect("cache lookup")
+        .expect("cached list report");
+    assert_eq!(report.proposals[0].proposal_id, Some(1));
+    assert_eq!(report.proposal_count, 1);
 }
 
 #[test]
@@ -908,4 +943,33 @@ fn proposal_info(proposal_id: u64) -> NnsProposalInfo {
         executed_timestamp_seconds: 1_700_000_300,
         total_potential_voting_power: Some(100),
     }
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn proposal_cache_preserves_unknown_votes_and_refuses_contradictory_labels() {
+    let root = temp_dir("ic-query-proposal-ballot-evidence");
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let request = NnsProposalListRequest::new(proposal_governance_request(1_700_100_000), 25);
+    for code in [-9, 99] {
+        let mut cache = original.clone();
+        cache["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(code);
+        cache["proposals"][0]["ballots"][0]["vote_text"] =
+            serde_json::json!(format!("unknown({code})"));
+        fs::write(&path, serde_json::to_vec_pretty(&cache).unwrap()).unwrap();
+        let report = build_nns_proposal_list_report_from_cache(&request, &root)
+            .unwrap()
+            .unwrap();
+        let ballot = &report.proposals[0].ballots[0];
+        assert_eq!(ballot.vote, code);
+        assert_eq!(ballot.vote_text.code(), code);
+        cache["proposals"][0]["ballots"][0]["vote_text"] = serde_json::json!("yes");
+        let bytes = serde_json::to_vec_pretty(&cache).unwrap();
+        fs::write(&path, &bytes).unwrap();
+        assert!(
+            matches!(build_nns_proposal_list_report_from_cache(&request, &root), Err(NnsProposalHostError::InvalidCache { path: actual, .. }) if actual == path)
+        );
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+    }
+    fs::remove_dir_all(root).unwrap();
 }

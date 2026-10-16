@@ -8,10 +8,8 @@ use crate::{
     QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, load_or_refresh_cache},
     sns::report::{
-        SnsHostError, SnsProposalsRefreshRequest, SnsProposalsReport, SnsProposalsRequest,
-        assemble::{
-            SnsProposalReportContext, SnsReportProvenance, sns_proposals_report_from_parts,
-        },
+        SnsHostError, SnsProposalsReport, SnsProposalsRequest, SnsSnapshotRefreshRequest,
+        assemble::{SnsReportContext, SnsReportProvenance, sns_proposals_report_from_parts},
         cache_storage::load_sns_cache_for_input,
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
@@ -20,9 +18,8 @@ use crate::{
         },
         source::SnsProposalsSource,
         view::{
-            proposal_matches_before, proposal_matches_eligibility, proposal_matches_proposer,
-            proposal_matches_query, proposal_matches_status, proposal_matches_topic,
-            sort_sns_proposal_rows,
+            apply_sns_proposal_view, proposal_matches_before, proposal_matches_status,
+            proposal_matches_topic,
         },
     },
 };
@@ -50,8 +47,8 @@ async fn load_or_refresh_sns_proposals_cache(
         || {
             load_sns_cache_for_input::<SnsProposalsCacheCollection>(
                 cache_root,
-                &request.network,
-                &request.input,
+                &request.lookup.network,
+                &request.lookup.input,
             )
         },
         |_| false,
@@ -66,7 +63,7 @@ async fn load_or_refresh_sns_proposals_cache(
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: "SNS proposals".to_string(),
                 path,
-                source_endpoint: request.source_endpoint.clone(),
+                source_endpoint: request.lookup.source_endpoint.clone(),
             });
             refresh_sns_proposals_cache_with_source_and_progress(
                 &proposals_refresh_request_from_list_request(request, cache_root),
@@ -83,12 +80,9 @@ async fn load_or_refresh_sns_proposals_cache(
 fn proposals_refresh_request_from_list_request(
     request: &SnsProposalsRequest,
     cache_root: &Path,
-) -> SnsProposalsRefreshRequest {
-    SnsProposalsRefreshRequest {
-        network: request.network.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-        input: request.input.clone(),
+) -> SnsSnapshotRefreshRequest {
+    SnsSnapshotRefreshRequest {
+        lookup: request.lookup.clone(),
         cache_root: cache_root.to_path_buf(),
         page_size: SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE,
         max_pages: None,
@@ -101,7 +95,6 @@ fn sns_proposals_report_from_cache(
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
     let mut proposals = cache
         .data
         .proposals
@@ -109,17 +102,12 @@ fn sns_proposals_report_from_cache(
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
         .filter(|proposal| proposal_matches_status(proposal, request.status))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
-        .filter(|proposal| proposal_matches_eligibility(proposal, request.eligibility))
-        .filter(|proposal| {
-            proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
-        })
-        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
         .collect::<Vec<_>>();
-    sort_sns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
+    apply_sns_proposal_view(&mut proposals, request);
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     sns_proposals_report_from_parts(
         request,
-        SnsProposalReportContext {
+        SnsReportContext {
             network: cache.network,
             sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
             fetched_at: cache.fetched_at,

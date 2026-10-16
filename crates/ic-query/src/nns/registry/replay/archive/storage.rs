@@ -11,7 +11,8 @@ use super::{
 };
 use crate::{
     cache_file::{
-        BoundedManagedFileReadError, CacheFileError, canonical_json_serialized_len,
+        BoundedManagedFileReadError, CacheFileError, canonical_json_matches,
+        canonical_json_serialized_len,
         read_bounded_managed_file as read_shared_bounded_managed_file,
         write_managed_file_atomically,
     },
@@ -496,9 +497,9 @@ pub(in crate::nns::registry::replay) fn load_nns_certified_registry_archive_with
             },
         )?;
     super::validate_nns_certified_registry_archive_manifest(&manifest, storage_limits.archive)?;
-    let canonical_manifest = serde_json::to_vec(&manifest)
-        .map_err(|source| NnsCertifiedRegistryArchiveStorageError::SerializeManifest { source })?;
-    if canonical_manifest != manifest_bytes {
+    if !canonical_json_matches(&manifest, &manifest_bytes)
+        .map_err(|source| NnsCertifiedRegistryArchiveStorageError::SerializeManifest { source })?
+    {
         return Err(
             NnsCertifiedRegistryArchiveStorageError::NonCanonicalManifest {
                 path: manifest_path,

@@ -123,8 +123,7 @@ mod host {
         let source = Fixture::default();
         let request = CloudEngineProviderInfoRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            NOW,
+            crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
             PROVIDER_A,
         );
         (*source.info_cloud_engine.lock().unwrap() = false);
@@ -154,8 +153,7 @@ mod host {
         let source = Fixture::default();
         let unsupported = CloudEngineProviderListRequest::new(
             "local",
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            NOW,
+            crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
         );
         assert!(matches!(
             build_cloud_engine_provider_list_report_with_source(&unsupported, &source).await,
@@ -255,8 +253,7 @@ mod host {
     fn list_request() -> CloudEngineProviderListRequest {
         CloudEngineProviderListRequest::new(
             "ic",
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            NOW,
+            crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
         )
     }
 }

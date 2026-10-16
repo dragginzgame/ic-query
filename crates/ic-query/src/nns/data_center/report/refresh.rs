@@ -1,21 +1,21 @@
 use super::{
-    NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE,
-    NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
-    NnsDataCenterRefreshReport, NnsInventoryRefreshRequest,
+    NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE, NnsDataCenterHostError,
+    NnsDataCenterListReport, NnsInventoryRefreshRequest,
     source::{NnsDataCenterSource, fetch_nns_data_center_list_report_with_source},
 };
+use crate::nns::NnsInventoryRefreshReport;
 use crate::nns::{LiveNnsSource, inventory::refresh_nns_inventory_cache};
 
 pub async fn refresh_nns_data_center_report(
     request: &NnsInventoryRefreshRequest,
-) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {
+) -> Result<NnsInventoryRefreshReport, NnsDataCenterHostError> {
     refresh_nns_data_center_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 pub async fn refresh_nns_data_center_report_with_source(
     request: &NnsInventoryRefreshRequest,
     source: &dyn NnsDataCenterSource,
-) -> Result<NnsDataCenterRefreshReport, NnsDataCenterHostError> {
+) -> Result<NnsInventoryRefreshReport, NnsDataCenterHostError> {
     refresh_nns_data_center_cache_with_source(request, source)
         .await
         .map(|(_, report)| report)
@@ -24,8 +24,8 @@ pub async fn refresh_nns_data_center_report_with_source(
 pub(super) async fn refresh_nns_data_center_cache_with_source(
     request: &NnsInventoryRefreshRequest,
     source: &dyn NnsDataCenterSource,
-) -> Result<(NnsDataCenterListReport, NnsDataCenterRefreshReport), NnsDataCenterHostError> {
-    let (report, write_result) = refresh_nns_inventory_cache(
+) -> Result<(NnsDataCenterListReport, NnsInventoryRefreshReport), NnsDataCenterHostError> {
+    refresh_nns_inventory_cache(
         request,
         NNS_DATA_CENTER_CACHE_DIR,
         NNS_DATA_CENTER_CACHE_FILE,
@@ -39,14 +39,5 @@ pub(super) async fn refresh_nns_data_center_cache_with_source(
             .await
         },
     )
-    .await?;
-    let refresh_report = nns_leaf_refresh_report!(
-        NnsDataCenterRefreshReport,
-        NNS_DATA_CENTER_REFRESH_REPORT_SCHEMA_VERSION,
-        request,
-        report,
-        write_result,
-        data_center_count,
-    );
-    Ok((report, refresh_report))
+    .await
 }

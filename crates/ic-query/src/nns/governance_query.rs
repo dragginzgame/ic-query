@@ -2,55 +2,14 @@
 //!
 //! Responsibility: perform typed query calls against mainnet NNS Governance.
 //! Does not own: report-specific errors, wire projections, or cache policy.
-//! Boundary: centralizes agent construction, Candid encoding, transport, decoding, and errors.
+//! Boundary: retains NNS agent policy while sharing Candid query mechanics.
 
 use crate::nns::{
-    MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest, governance::MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
+    MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest,
+    governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceError},
 };
 use candid::{CandidType, Deserialize, Principal};
-use thiserror::Error as ThisError;
-
-///
-/// NnsGovernanceQueryError
-///
-/// Transport failure from one typed NNS Governance query.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, ThisError)]
-pub enum NnsGovernanceQueryError {
-    /// The IC agent could not be constructed for the requested endpoint.
-    #[error("failed to build IC agent for {endpoint}: {reason}")]
-    AgentBuild {
-        /// Endpoint used to build the agent.
-        endpoint: String,
-        /// Agent construction failure.
-        reason: String,
-    },
-    /// A query call to the NNS Governance canister failed.
-    #[error("NNS Governance agent call {method} failed: {reason}")]
-    AgentCall {
-        /// Governance method being queried.
-        method: &'static str,
-        /// Agent call failure.
-        reason: String,
-    },
-    /// A Governance query argument could not be Candid encoded.
-    #[error("failed to encode Candid {message}: {reason}")]
-    CandidEncode {
-        /// Candid request type.
-        message: &'static str,
-        /// Encoding failure.
-        reason: String,
-    },
-    /// A Governance query response could not be Candid decoded.
-    #[error("failed to decode Candid {message}: {reason}")]
-    CandidDecode {
-        /// Candid response type.
-        message: &'static str,
-        /// Decoding failure.
-        reason: String,
-    },
-}
+use ic_agent::Agent;
 
 pub async fn query_nns_governance<Arg, Response>(
     source: &crate::nns::LiveNnsSource,
@@ -59,17 +18,14 @@ pub async fn query_nns_governance<Arg, Response>(
     request_message: &'static str,
     response_message: &'static str,
     arg: &Arg,
-) -> Result<Response, NnsGovernanceQueryError>
+) -> Result<Response, NnsGovernanceError>
 where
     Arg: CandidType + Sync,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = candid::encode_one(arg).map_err(|error| NnsGovernanceQueryError::CandidEncode {
-        message: request_message,
-        reason: error.to_string(),
-    })?;
-    let bytes = query_nns_governance_bytes(source, request, method, arg).await?;
-    decode_response(&bytes, response_message)
+    let arg = crate::candid_call::encode_request((arg,), request_message)?;
+    let (agent, canister) = governance_target(source, request)?;
+    crate::candid_call::query_encoded(agent, &canister, method, response_message, arg).await
 }
 
 pub async fn query_nns_governance_no_args<Response>(
@@ -77,60 +33,32 @@ pub async fn query_nns_governance_no_args<Response>(
     request: &NnsSourceRequest,
     method: &'static str,
     response_message: &'static str,
-) -> Result<Response, NnsGovernanceQueryError>
+) -> Result<Response, NnsGovernanceError>
 where
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = candid::encode_args(()).map_err(|error| NnsGovernanceQueryError::CandidEncode {
-        message: "()",
-        reason: error.to_string(),
-    })?;
-    let bytes = query_nns_governance_bytes(source, request, method, arg).await?;
-    decode_response(&bytes, response_message)
+    let arg = crate::candid_call::encode_request((), "()")?;
+    let (agent, canister) = governance_target(source, request)?;
+    crate::candid_call::query_encoded(agent, &canister, method, response_message, arg).await
 }
 
-async fn query_nns_governance_bytes(
-    source: &crate::nns::LiveNnsSource,
+fn governance_target<'a>(
+    source: &'a crate::nns::LiveNnsSource,
     request: &NnsSourceRequest,
-    method: &'static str,
-    arg: Vec<u8>,
-) -> Result<Vec<u8>, NnsGovernanceQueryError> {
+) -> Result<(&'a Agent, Principal), NnsGovernanceError> {
     let agent = source.agent.get(
         &request.endpoint,
         MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
-        |reason| NnsGovernanceQueryError::AgentBuild {
+        |reason| NnsGovernanceError::AgentBuild {
             endpoint: request.endpoint.clone(),
             reason,
         },
     )?;
     let canister = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).map_err(|error| {
-        NnsGovernanceQueryError::CandidDecode {
+        NnsGovernanceError::CandidDecode {
             message: "governance_canister_id",
             reason: error.to_string(),
         }
     })?;
-    agent
-        .query(&canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|error| NnsGovernanceQueryError::AgentCall {
-            method,
-            reason: error.to_string(),
-        })
-}
-
-fn decode_response<Response>(
-    bytes: &[u8],
-    response_message: &'static str,
-) -> Result<Response, NnsGovernanceQueryError>
-where
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    crate::candid_decode::decode_reply(bytes).map_err(|error| {
-        NnsGovernanceQueryError::CandidDecode {
-            message: response_message,
-            reason: error.to_string(),
-        }
-    })
+    Ok((agent, canister))
 }
