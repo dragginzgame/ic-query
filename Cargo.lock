@@ -1623,6 +1623,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be80caab63d3384a0b46e58d92720095b49099cd9a0026514da0860eb5b0626b"
 
 [[package]]
+name = "ic-metrics"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c30a384477a9783da95cd991e576f6f6a76c5d3691299fffe294f95affae3fd7"
+
+[[package]]
 name = "ic-query"
 version = "0.59.0"
 dependencies = [
@@ -1638,7 +1644,7 @@ dependencies = [
  "ic-host-fs 0.24.0",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics",
+ "ic-metrics 0.12.0",
  "ic-testkit",
  "ic-testkit-candid",
  "icrc-ledger-types",
@@ -1690,7 +1696,7 @@ dependencies = [
  "ic-host-artifacts 0.23.1",
  "ic-host-fs 0.23.1",
  "ic-host-process 0.23.1",
- "ic-metrics",
+ "ic-metrics 0.11.8",
  "ic-testkit-candid",
  "libc",
  "pocket-ic",
