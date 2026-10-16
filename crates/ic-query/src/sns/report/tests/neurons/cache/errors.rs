@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
 use crate::test_support::temp_dir;
 use std::fs;
@@ -174,7 +175,7 @@ impl SnsNeuronsSource for InvalidNeuronPageSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 

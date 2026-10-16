@@ -1,4 +1,5 @@
 use super::*;
+use crate::sns::report::SnsProposalRow;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_refresh_rejects_invalid_public_page_size() {
@@ -30,7 +31,7 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh does not use bounded proposal fetch") })
     }
 
@@ -40,13 +41,11 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(limit, 1);
             assert_eq!(before_proposal_id, None);
-            Ok(MainnetSnsProposalPage {
-                proposals: vec![fixture_proposal_row()],
-            })
+            Ok(vec![fixture_proposal_row()])
         })
     }
 }
@@ -434,7 +433,7 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses proposal pages") })
     }
 
@@ -444,12 +443,12 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
         sns: &'a MainnetSns,
         _limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(sns.id, 2);
             assert_eq!(sns.root_canister_id, ROOT_B);
             assert_eq!(before_proposal_id, None);
-            Ok(MainnetSnsProposalPage { proposals: vec![] })
+            Ok(vec![])
         })
     }
 }
@@ -506,7 +505,7 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
@@ -516,7 +515,7 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(limit, 2);
             let ids = match before_proposal_id {
@@ -524,16 +523,14 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
                 Some(20) => vec![if self.invalid_second_page { 20 } else { 10 }],
                 other => panic!("unexpected continuation {other:?}"),
             };
-            Ok(MainnetSnsProposalPage {
-                proposals: ids
-                    .into_iter()
-                    .map(|id| {
-                        let mut row = fixture_proposal_row();
-                        row.proposal_id = id;
-                        row
-                    })
-                    .collect(),
-            })
+            Ok(ids
+                .into_iter()
+                .map(|id| {
+                    let mut row = fixture_proposal_row();
+                    row.proposal_id = id;
+                    row
+                })
+                .collect())
         })
     }
 }

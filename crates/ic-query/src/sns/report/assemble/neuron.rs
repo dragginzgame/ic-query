@@ -4,11 +4,12 @@
 //! Does not own: neuron fetching, target discovery, validation, or rendering.
 //! Boundary: maps resolved live source parts into the serializable detail report.
 
+use crate::sns::report::SnsNeuronDetail;
 use crate::{
     report::ReportDataSource,
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsNeuron,
-        SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION, SnsNeuronDetailReport, SnsSourceRequest,
+        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION,
+        SnsNeuronDetailReport, SnsSourceRequest,
     },
 };
 
@@ -22,7 +23,7 @@ pub(in crate::sns::report) struct SnsNeuronDetailReportParts {
     pub(in crate::sns::report) fetch_request: SnsSourceRequest,
     pub(in crate::sns::report) sns: MainnetSns,
     pub(in crate::sns::report) neuron_id: String,
-    pub(in crate::sns::report) neuron: MainnetSnsNeuron,
+    pub(in crate::sns::report) neuron: SnsNeuronDetail,
 }
 
 /// Assemble an exact SNS neuron detail report from resolved live source parts.
@@ -42,6 +43,6 @@ pub(in crate::sns::report) fn sns_neuron_detail_report_from_parts(
         governance_canister_id: parts.sns.governance_canister_id,
         neuron_id: parts.neuron_id,
         data_source: ReportDataSource::Live,
-        detail: parts.neuron.detail,
+        detail: parts.neuron,
     }
 }

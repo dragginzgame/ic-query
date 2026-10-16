@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronDetail;
 use crate::sns::report::tests::{fixtures::*, *};
 
 struct NoCallSnsNeuronSource;
@@ -25,7 +26,7 @@ impl SnsNeuronSource for NoCallSnsNeuronSource {
         _request: &'a SnsSourceRequest,
         _sns: &'a MainnetSns,
         _neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move { unreachable!("invalid neuron id must fail before exact lookup") })
     }
 }
@@ -40,10 +41,10 @@ impl SnsNeuronSource for InvalidPolicySnsNeuronSource {
         _request: &'a SnsSourceRequest,
         _sns: &'a MainnetSns,
         _neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
             let mut neuron = fixture_sns_neuron();
-            neuron.detail.maturity_mint_conversion_observed_disabled =
+            neuron.maturity_mint_conversion_observed_disabled =
                 SnsPolicyObservationStatus::ObservedSatisfied;
             Ok(neuron)
         })

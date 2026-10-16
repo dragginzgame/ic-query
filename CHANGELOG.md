@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.60.0]
+
+- **Breaking:** SNS custom sources return `SnsNeuronDetail`, `SnsProposalRow`
+  and vectors of existing neuron/proposal rows directly. Remove the five
+  single-payload `MainnetSns*` result wrappers and update source implementations;
+  the neuron page retains its cursor. Source validation, report JSON and stored
+  snapshots remain unchanged.
+
+Detailed release notes: [docs/changelog/0.60.md](docs/changelog/0.60.md)
+
 ## [0.59.0] - 2026-10-16
 
 - **Breaking:** Governance probe source fingerprints now cover the complete

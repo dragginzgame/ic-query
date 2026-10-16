@@ -7,11 +7,8 @@
 mod list;
 mod single;
 use crate::sns::report::{
-    SnsHostError, SnsProposalTopicFilter,
-    source::{
-        MainnetSns, MainnetSnsProposal, MainnetSnsProposalPage, MainnetSnsProposals,
-        SnsSourceRequest,
-    },
+    SnsHostError, SnsProposalRow, SnsProposalTopicFilter,
+    source::{MainnetSns, SnsSourceRequest},
 };
 use list::{fetch_mainnet_sns_proposal_page_async, fetch_mainnet_sns_proposals_async};
 use single::fetch_mainnet_sns_proposal_async;
@@ -22,7 +19,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal(
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
-) -> Result<MainnetSnsProposal, SnsHostError> {
+) -> Result<SnsProposalRow, SnsHostError> {
     fetch_mainnet_sns_proposal_async(source, request, sns, proposal_id).await
 }
 
@@ -35,7 +32,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposals(
     before_proposal_id: Option<u64>,
     include_status: &[i32],
     topic: SnsProposalTopicFilter,
-) -> Result<MainnetSnsProposals, SnsHostError> {
+) -> Result<Vec<SnsProposalRow>, SnsHostError> {
     fetch_mainnet_sns_proposals_async(
         source,
         request,
@@ -55,6 +52,6 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal_page(
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
-) -> Result<MainnetSnsProposalPage, SnsHostError> {
+) -> Result<Vec<SnsProposalRow>, SnsHostError> {
     fetch_mainnet_sns_proposal_page_async(source, request, sns, limit, before_proposal_id).await
 }

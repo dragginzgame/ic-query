@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronRow;
 use crate::test_support::temp_dir;
 use crate::{
     HostCacheError,
@@ -106,7 +107,7 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
@@ -132,7 +133,7 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
                 neurons: ids
                     .into_iter()
                     .map(|id| {
-                        let mut row = fixture_sns_neuron().detail.neuron;
+                        let mut row = fixture_sns_neuron().neuron;
                         row.neuron_id = format!("{id:02x}").repeat(32);
                         row
                     })

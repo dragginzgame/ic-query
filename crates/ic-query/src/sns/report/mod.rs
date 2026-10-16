@@ -167,13 +167,11 @@ pub use reward_diff::build_sns_reward_diff_report;
 #[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronId,
+    SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,

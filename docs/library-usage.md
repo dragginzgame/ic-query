@@ -340,6 +340,16 @@ disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
 SHA-256, although `ic-agent` retains Reqwest, CBOR, and cryptographic packages
 transitively.
 
+SNS custom sources return the existing domain models directly:
+`SnsNeuronSource::fetch_sns_neuron` returns `SnsNeuronDetail`,
+`SnsProposalSource::fetch_sns_proposal` returns `SnsProposalRow`, and bounded
+neuron/proposal listings plus proposal pages return vectors of their row type.
+There are no single-payload source result wrappers. `MainnetSnsNeuronPage` retains
+its rows and native cursor for complete refreshes. Builders still validate source
+identity, row limits, derived evidence and pagination before report assembly or
+cache publication; these Rust source-signature changes do not alter report JSON
+or persisted snapshots.
+
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:
 
