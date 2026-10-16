@@ -13,7 +13,6 @@ use crate::{
     ic::IC_DASHBOARD_AUTHORITY,
     subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
 };
-use candid::Principal;
 use std::collections::HashMap;
 #[cfg(feature = "dashboard-host")]
 use std::collections::HashSet;
@@ -180,13 +179,11 @@ fn validate_node_status_rows(
 }
 
 fn canonical_row_principal(field: &'static str, value: &str) -> Result<(), String> {
-    let canonical = Principal::from_text(value)
-        .map(|principal| principal.to_text())
-        .map_err(|error| format!("{field} is not a valid canonical principal: {error}"))?;
-    if canonical != value {
-        return Err(format!("{field} is {value:?}, expected {canonical:?}"));
-    }
-    Ok(())
+    crate::principal_text::validate_canonical(
+        value,
+        |reason| format!("{field} is not a valid canonical principal: {reason}"),
+        |canonical| format!("{field} is {value:?}, expected {canonical:?}"),
+    )
 }
 
 fn canonical_optional_principal(field: &'static str, value: Option<&str>) -> Result<(), String> {

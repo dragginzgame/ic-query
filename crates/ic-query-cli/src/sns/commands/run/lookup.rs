@@ -55,12 +55,12 @@ pub(super) async fn run_sns_metrics(
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
-    let request = SnsMetricsRequest::new(
+    let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
         lookup.network,
         lookup.source_endpoint,
         now_unix_secs,
         lookup.input,
-    )
+    ))
     .with_time_window_seconds(time_window_seconds);
     let report = build_sns_metrics_report(&request).await?;
     write_text_or_json(format, &report, sns_metrics_report_text)

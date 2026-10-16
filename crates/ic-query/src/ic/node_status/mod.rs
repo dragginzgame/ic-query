@@ -34,8 +34,8 @@ pub use model::{
     IcNodeOperationalStatus, IcNodeProviderStatusReport, IcNodeProviderStatusRow,
     IcNodeStatusCacheEvidence, IcNodeStatusCounts, IcNodeStatusGroupCounts,
     IcNodeStatusObservation, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
-    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusSnapshotRequest, IcNodeStatusView,
-    IcSubnetStatusReport, IcSubnetStatusRow,
+    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
+    IcSubnetStatusRow,
 };
 #[cfg(feature = "dashboard-host")]
 pub use model::{

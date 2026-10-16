@@ -50,7 +50,11 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
+    assert_eq!(report.total_neuron_count, 1);
     assert_eq!(report.neuron_count, 1);
+    assert_eq!(report.data_source.as_str(), "live");
+    assert!(report.cache_path.is_none());
+    assert!(report.cache_complete.is_none());
     assert_eq!(report.neurons[0].neuron_id, NEURON_A);
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
     assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);

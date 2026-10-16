@@ -28,7 +28,7 @@ async fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
         vec![crate::QueryProgressEvent::CacheRefresh {
             component: "node".to_string(),
             path: path.clone(),
-            source_endpoint: request.source_endpoint.clone(),
+            source_endpoint: request.inventory.source_endpoint.clone(),
         }]
     );
     events.clear();
@@ -98,12 +98,11 @@ async fn live_node_source_rejects_non_mainnet_before_agent_construction() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn node_report_uses_live_registry_source() {
-    let request = NnsNodeListRequest {
-        cache: test_cache_request(MAINNET_NETWORK, "uses-live-source"),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_780_531_200,
-        filters: NnsNodeListFilters::default(),
-    };
+    let request = NnsNodeListRequest::new(
+        test_cache_request(MAINNET_NETWORK, "uses-live-source"),
+        "https://icp-api.io".to_string(),
+        1_780_531_200,
+    );
     let report = build_nns_node_list_report_with_source(
         &request,
         &FixtureNodeSource {
@@ -134,12 +133,11 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
     let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, &invalid_json)
         .expect("write invalid cache");
-    let request = NnsNodeListRequest {
-        cache: cache.clone(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_780_531_200,
-        filters: NnsNodeListFilters::default(),
-    };
+    let request = NnsNodeListRequest::new(
+        cache.clone(),
+        "https://icp-api.io".to_string(),
+        1_780_531_200,
+    );
 
     let error = load_cached_nns_node_report(&cache).expect_err("cache-only load is strict");
     assert!(matches!(
@@ -170,12 +168,11 @@ async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json")
         .expect("write invalid cache");
-    let request = NnsNodeListRequest {
-        cache: cache.clone(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_780_531_200,
-        filters: NnsNodeListFilters::default(),
-    };
+    let request = NnsNodeListRequest::new(
+        cache.clone(),
+        "https://icp-api.io".to_string(),
+        1_780_531_200,
+    );
 
     let error = build_nns_node_list_report_with_source(&request, &InvalidNodeSource)
         .await

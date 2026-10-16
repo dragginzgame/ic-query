@@ -1,5 +1,8 @@
 use super::write_nns_leaf_json_refresh_cache;
-use crate::test_support::temp_dir;
+use crate::{
+    nns::{NnsInventoryCacheRequest, NnsInventoryRefreshRequest},
+    test_support::temp_dir,
+};
 use serde::Serialize;
 use std::{fs, path::PathBuf};
 
@@ -87,24 +90,6 @@ async fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
     let _ = fs::remove_dir_all(root);
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct FixtureCacheRequest {
-    cache_root: PathBuf,
-    network: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct FixtureRefreshRequest {
-    cache: FixtureCacheRequest,
-    source_endpoint: String,
-    now_unix_secs: u64,
-    lock_stale_after_seconds: u64,
-    dry_run: bool,
-    output_path: Option<PathBuf>,
-}
-
-impl_nns_leaf_cache_and_refresh_requests!(FixtureCacheRequest, FixtureRefreshRequest);
-
 #[derive(Serialize)]
 struct FixtureReport {
     rows: Vec<&'static str>,
@@ -114,9 +99,9 @@ fn fixture_refresh_request(
     root: &std::path::Path,
     dry_run: bool,
     output_path: Option<PathBuf>,
-) -> FixtureRefreshRequest {
-    FixtureRefreshRequest {
-        cache: FixtureCacheRequest {
+) -> NnsInventoryRefreshRequest {
+    NnsInventoryRefreshRequest {
+        cache: NnsInventoryCacheRequest {
             cache_root: root.to_path_buf(),
             network: "ic".to_string(),
         },

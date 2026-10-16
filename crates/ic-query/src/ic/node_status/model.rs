@@ -325,31 +325,6 @@ pub struct IcNodeStatusSnapshot {
 }
 
 ///
-/// IcNodeStatusSnapshotRequest
-///
-/// Request for one live finite Dashboard node-status snapshot.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcNodeStatusSnapshotRequest {
-    /// Dashboard API v3 base endpoint.
-    pub source_endpoint: String,
-    /// Caller-supplied collection timestamp as Unix seconds.
-    pub now_unix_secs: u64,
-}
-
-impl IcNodeStatusSnapshotRequest {
-    /// Construct one live node-status snapshot request.
-    #[must_use]
-    pub fn new(source_endpoint: impl Into<String>, now_unix_secs: u64) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-        }
-    }
-}
-
-///
 /// IcNodeStatusSourceData
 ///
 /// Untrusted raw node rows and provenance returned by a Dashboard source capability.

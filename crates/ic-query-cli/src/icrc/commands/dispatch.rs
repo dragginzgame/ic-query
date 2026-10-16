@@ -79,8 +79,7 @@ async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcComm
             let options = IcrcAnalyticsAccountInfoOptions::from_matches(matches);
             let target = options.target;
             let request = IcIcrcAccountInfoRequest::new(
-                target.source_endpoint,
-                current_unix_secs()?,
+                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
                 target.ledger_canister_id,
                 options.account_id,
             );
@@ -95,8 +94,7 @@ async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcComm
             query.after = options.after;
             query.before = options.before;
             let request = IcIcrcAccountListRequest::new(
-                target.source_endpoint,
-                current_unix_secs()?,
+                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
                 target.ledger_canister_id,
                 query,
             );
@@ -119,8 +117,7 @@ async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcComma
             query.after = options.after;
             query.before = options.before;
             let request = IcIcrcHolderListRequest::new(
-                target.source_endpoint,
-                current_unix_secs()?,
+                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
                 target.ledger_canister_id,
                 query,
             );
@@ -141,8 +138,7 @@ async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), Icr
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS));
     let request = IcIcrcTokenValueRequest::new(
-        target.source_endpoint,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(target.source_endpoint, now_unix_secs),
         target.ledger_canister_id,
         IcIcrcTokenValueQuery::new(start_unix_secs, end_unix_secs, options.limit),
     );
@@ -166,8 +162,7 @@ async fn run_icrc_analytics_indexed_count_leaf(
 ) -> Result<(), IcrcCommandError> {
     let options = IcrcLedgerOptions::from_matches(matches);
     let request = IcIcrcIndexedCountRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         options.ledger_canister_id,
         kind,
     );
@@ -187,8 +182,7 @@ async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), Icr
             .max(MIN_ICRC_ANALYTICS_TIMESTAMP)
     });
     let request = IcIcrcTotalSupplyRequest::new(
-        target.source_endpoint,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(target.source_endpoint, now_unix_secs),
         target.ledger_canister_id,
         IcIcrcTotalSupplyQuery::new(start_unix_secs, end_unix_secs, options.step_secs),
     );

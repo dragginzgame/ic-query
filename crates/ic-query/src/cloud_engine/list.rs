@@ -12,8 +12,8 @@ use super::{
     CloudEngineSourceRequest, LiveCloudEngineSource, MAINNET_CLOUD_ENGINE_CANISTER_ID,
     MAX_CLOUD_ENGINE_LIST_ROWS,
     build::{
-        canonical_principal, invalid_source, validate_canonical_principal,
-        validate_principal_match, validate_source_request,
+        invalid_source, validate_canonical_principal, validate_principal_match,
+        validate_source_request,
     },
     enforce_mainnet_network,
 };
@@ -262,13 +262,19 @@ fn validate_catalog_rows(catalog: &SubnetCatalogListReport) -> Result<(), CloudE
                 subnet.subnet_kind.as_str()
             ));
         }
-        let canonical = canonical_principal("subnet_id", &subnet.subnet_principal)?;
-        if canonical != subnet.subnet_principal {
-            return invalid_source(format!(
-                "catalog subnet principal {:?} is not canonical; expected {canonical:?}",
-                subnet.subnet_principal
-            ));
-        }
+        crate::principal_text::validate_canonical(
+            &subnet.subnet_principal,
+            |reason| CloudEngineHostError::InvalidPrincipal {
+                field: "subnet_id",
+                reason,
+            },
+            |canonical| CloudEngineHostError::InvalidSourceData {
+                reason: format!(
+                    "catalog subnet principal {:?} is not canonical; expected {canonical:?}",
+                    subnet.subnet_principal
+                ),
+            },
+        )?;
     }
     if catalog
         .subnets

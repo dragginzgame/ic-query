@@ -13,8 +13,8 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsNeuronsRefreshRequest, refresh_sns_neurons_cache_with_progress,
-    sns_neurons_refresh_report_text,
+    SnsSnapshotRefreshRequest, refresh_sns_neurons_cache_with_progress,
+    sns_snapshot_refresh_report_text,
 };
 pub(super) async fn run_sns_neuron_refresh(
     matches: &ArgMatches,
@@ -25,16 +25,18 @@ pub(super) async fn run_sns_neuron_refresh(
     let now_unix_secs = current_unix_secs()?;
     let cache_root = cache_root()?;
     let format = lookup.format;
-    let request = SnsNeuronsRefreshRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+    let request = SnsSnapshotRefreshRequest {
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
     let mut progress = StderrQueryProgress::new();
     let report = refresh_sns_neurons_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(format, &report, sns_neurons_refresh_report_text)
+    write_text_or_json(format, &report, sns_snapshot_refresh_report_text)
 }

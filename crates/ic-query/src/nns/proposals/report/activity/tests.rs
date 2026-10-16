@@ -211,6 +211,14 @@ fn retained_activity_validation_rejects_noncanonical_dimensions() {
     let mut report = fixture_activity_report();
     report.earliest_included_proposal_timestamp_seconds = Some(86_400);
     assert_invalid_report(&report, "day count endpoints");
+
+    let mut report = fixture_activity_report();
+    report.status_counts[0].proposal_count = u64::MAX;
+    assert_invalid_report(&report, "status count total overflow");
+
+    let mut report = fixture_activity_report();
+    report.reward_status_counts[0].proposal_count = 0;
+    assert_invalid_report(&report, "reward-status count row must be nonzero");
 }
 
 #[test]

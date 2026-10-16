@@ -6,8 +6,7 @@ use crate::nns::{
         NnsTopologyProvidersReport, NnsTopologyReadRequest, NnsTopologyRegionsReport,
         NnsTopologySource, capacity::topology_capacity_report_from_report, enforce_mainnet_network,
         gaps::topology_gaps_report_from_reports, providers::topology_providers_report_from_reports,
-        regions::topology_regions_report_from_report, request::TopologyRequestParts,
-        source::topology_source_request_from,
+        regions::topology_regions_report_from_report,
     },
 };
 
@@ -21,14 +20,13 @@ pub async fn build_nns_topology_gaps_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyGapsReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.network())?;
+    enforce_mainnet_network(request.network.as_str())?;
 
-    let source_request = topology_source_request_from(request);
-    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
 
     Ok(topology_gaps_report_from_reports(
-        request.network().to_string(),
-        request.source_endpoint().to_string(),
+        request.network.clone(),
+        request.source_endpoint.clone(),
         reports.node,
         reports.node_provider,
         reports.node_operator,
@@ -46,16 +44,13 @@ pub async fn build_nns_topology_capacity_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.network())?;
+    enforce_mainnet_network(request.network.as_str())?;
 
-    let source_request = topology_source_request_from(request);
-    let node_operator_report = source
-        .fetch_node_operator_list_report(&source_request)
-        .await?;
+    let node_operator_report = source.fetch_node_operator_list_report(request).await?;
 
     Ok(topology_capacity_report_from_report(
-        request.network().to_string(),
-        request.source_endpoint().to_string(),
+        request.network.clone(),
+        request.source_endpoint.clone(),
         node_operator_report,
     ))
 }
@@ -70,16 +65,13 @@ pub async fn build_nns_topology_regions_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.network())?;
+    enforce_mainnet_network(request.network.as_str())?;
 
-    let source_request = topology_source_request_from(request);
-    let data_center_report = source
-        .fetch_data_center_list_report(&source_request)
-        .await?;
+    let data_center_report = source.fetch_data_center_list_report(request).await?;
 
     Ok(topology_regions_report_from_report(
-        request.network().to_string(),
-        request.source_endpoint().to_string(),
+        request.network.clone(),
+        request.source_endpoint.clone(),
         data_center_report,
     ))
 }
@@ -94,14 +86,13 @@ pub async fn build_nns_topology_providers_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyProvidersReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.network())?;
+    enforce_mainnet_network(request.network.as_str())?;
 
-    let source_request = topology_source_request_from(request);
-    let reports = fetch_topology_inventory_reports(&source_request, source).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
 
     Ok(topology_providers_report_from_reports(
-        request.network().to_string(),
-        request.source_endpoint().to_string(),
+        request.network.clone(),
+        request.source_endpoint.clone(),
         reports.node,
         reports.node_provider,
         reports.node_operator,

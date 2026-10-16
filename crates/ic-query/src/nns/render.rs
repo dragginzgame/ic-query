@@ -2,6 +2,7 @@
 
 use ic_host_text::escape::terminal_text;
 
+#[cfg(feature = "nns-host")]
 use crate::text_value::yes_no;
 
 #[must_use]
@@ -27,41 +28,19 @@ pub fn optional_node_count_text(value: Option<u32>) -> String {
     value.map_or_else(|| "unknown".to_string(), |count| count.to_string())
 }
 
-///
-/// NnsLeafRefreshText
-///
-/// Shared fields rendered for an NNS inventory refresh result.
-///
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NnsLeafRefreshText<'a> {
-    pub network: &'a str,
-    pub cache_path: &'a str,
-    pub refresh_lock_path: &'a str,
-    pub governance_canister_id: Option<&'a str>,
-    pub registry_canister_id: &'a str,
-    pub registry_version: u64,
-    pub fetched_at: &'a str,
-    pub source_endpoint: &'a str,
-    pub fetched_by: &'a str,
-    pub dry_run: bool,
-    pub wrote_cache: bool,
-    pub replaced_existing_cache: bool,
-    pub count_label: &'a str,
-    pub count: usize,
-}
-
+#[cfg(feature = "nns-host")]
 #[must_use]
-pub fn nns_leaf_refresh_report_text(report: NnsLeafRefreshText<'_>) -> String {
+/// Render a Registry inventory refresh publication outcome.
+pub fn nns_inventory_refresh_report_text(report: &crate::nns::NnsInventoryRefreshReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(report.network)),
-        format!("cache_path: {}", terminal_text(report.cache_path)),
+        format!("network: {}", terminal_text(&report.network)),
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_lock_path: {}",
-            terminal_text(report.refresh_lock_path)
+            terminal_text(&report.refresh_lock_path)
         ),
     ];
-    if let Some(governance_canister_id) = report.governance_canister_id {
+    if let Some(governance_canister_id) = &report.governance_canister_id {
         lines.push(format!(
             "governance_canister_id: {}",
             terminal_text(governance_canister_id)
@@ -70,16 +49,20 @@ pub fn nns_leaf_refresh_report_text(report: NnsLeafRefreshText<'_>) -> String {
     lines.extend([
         format!("registry_canister_id: {}", report.registry_canister_id),
         format!("registry_version: {}", report.registry_version),
-        format!("fetched_at: {}", terminal_text(report.fetched_at)),
-        format!("source_endpoint: {}", terminal_text(report.source_endpoint)),
-        format!("fetched_by: {}", terminal_text(report.fetched_by)),
+        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            terminal_text(&report.source_endpoint)
+        ),
+        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
         format!("dry_run: {}", yes_no(report.dry_run)),
         format!("wrote_cache: {}", yes_no(report.wrote_cache)),
         format!(
             "replaced_existing_cache: {}",
             yes_no(report.replaced_existing_cache)
         ),
-        format!("{}: {}", terminal_text(report.count_label), report.count),
+        format!("collection: {}", terminal_text(&report.collection)),
+        format!("row_count: {}", report.row_count),
     ]);
     lines.join("\n")
 }

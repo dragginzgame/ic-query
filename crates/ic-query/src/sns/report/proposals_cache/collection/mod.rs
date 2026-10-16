@@ -77,13 +77,13 @@ impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
                 .fetch_sns_proposal_page(
                     self.context.fetch_request,
                     self.context.sns,
-                    self.context.request.page_size(),
+                    self.context.request.page_size,
                     self.pages.next_cursor().copied(),
                 )
                 .await?;
             validate_mainnet_sns_proposal_page(
                 &page,
-                self.context.request.page_size(),
+                self.context.request.page_size,
                 self.pages.next_cursor().copied(),
             )?;
             let last_cursor = page

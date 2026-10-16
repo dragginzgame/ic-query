@@ -27,7 +27,6 @@ use std::{
     path::Path,
 };
 
-const HEADER_COMPLETE_SENTINEL: &str = "ic-query cache header complete";
 const MAX_CACHE_INSPECTION_BYTES: u64 = 64 * 1024 * 1024;
 
 struct GenericCacheHeader {
@@ -122,7 +121,7 @@ impl<'de> Visitor<'de> for GenericCacheHeaderVisitor<'_> {
                         entity,
                         collection,
                     });
-                    return Err(Map::Error::custom(HEADER_COMPLETE_SENTINEL));
+                    return Err(Map::Error::custom("cache payload follows captured header"));
                 }
                 _ => {
                     map.next_value::<IgnoredAny>()?;
@@ -295,13 +294,12 @@ fn read_cache_header(
             },
         )
     };
+    // The visitor captures only an admitted header, immediately before stopping.
+    if let Some(header) = captured {
+        return Ok(header);
+    }
     match parsed {
         Ok(header) => Ok(header),
-        Err(error)
-            if error.to_string().starts_with(HEADER_COMPLETE_SENTINEL) && captured.is_some() =>
-        {
-            Ok(captured.expect("header completion requires captured fields"))
-        }
         Err(error) if error.is_eof() && bounded.limit() == 0 => {
             Err(serde_json::Error::io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,

@@ -68,6 +68,9 @@ native timestamps such as metrics `timestamp_seconds`, reward-event
 `actual_timestamp_seconds`, and maturity-modulation
 `updated_at_timestamp_seconds` remain unchanged inside the payload.
 
+Native convenience builders and caller-source builders return the same
+`NnsGovernanceError`; no host-only error wrapper surrounds these live reports.
+
 `get_metrics` can return a typed Governance application error. That error is
 preserved separately from agent calls, inter-canister rejects, Candid encoding,
 Candid decoding, response-size validation, and local runtime failures.
@@ -88,6 +91,10 @@ explicit page ceiling, and distinguishes API exhaustion from a page-limit
 stop. Proposal cursors descend; neuron cursors ascend and remain exclusive.
 Neither continuation prescribes a storage or publication format, and
 sequential pages are not point-in-time.
+
+Governance validation owns shared continuation request binding, identity/time
+admission and page ceilings. Each family retains its typed errors, persisted
+fields, row accounting and cursor/exhaustion rules.
 
 Each advance validates the incoming continuation before a source call, then
 derives the next state from the validated page and checked accounting. It does
@@ -120,3 +127,10 @@ icq nns governance maturity-modulation
 All four commands are explicit live queries, render text by default, accept
 `--json` for raw JSON and `--source-endpoint` overrides, and honor the global
 NNS network identity.
+
+Native neuron and proposal refreshes share the Governance collection lifecycle:
+lock acquisition, running/failed attempts, envelope construction, atomic snapshot
+publication and complete-attempt finalization. Each family admits its request
+before that lifecycle and retains its paging source, cursor rules and row shape.
+Publication succeeds before attempt finalization; a finalization failure remains
+an explicit report diagnostic and does not relabel the published snapshot as failed.

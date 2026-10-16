@@ -54,12 +54,12 @@ async fn run_sns_reward_checkpoint(
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
-    let request = SnsRewardCheckpointRequest::new(
+    let request = SnsRewardCheckpointRequest::new(ic_query::sns::SnsLookupRequest::new(
         lookup.network,
         lookup.source_endpoint,
         now_unix_secs,
         lookup.input,
-    )
+    ))
     .with_max_pages(options.max_pages);
     let report = build_sns_reward_checkpoint_report(&request).await?;
     write_text_or_json(format, &report, sns_reward_checkpoint_report_text)

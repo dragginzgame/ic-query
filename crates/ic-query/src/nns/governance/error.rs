@@ -4,8 +4,6 @@
 //! Does not own: validation, transport execution, or process error presentation.
 //! Boundary: preserves transport details without coupling portable callers to a runtime.
 
-#[cfg(feature = "nns-host")]
-use crate::nns::NnsGovernanceQueryError;
 use thiserror::Error as ThisError;
 
 ///
@@ -150,35 +148,19 @@ pub enum NnsGovernanceError {
 }
 
 #[cfg(feature = "nns-host")]
-impl From<NnsGovernanceQueryError> for NnsGovernanceError {
-    fn from(value: NnsGovernanceQueryError) -> Self {
-        match value {
-            NnsGovernanceQueryError::AgentBuild { endpoint, reason } => {
-                Self::AgentBuild { endpoint, reason }
-            }
-            NnsGovernanceQueryError::AgentCall { method, reason } => {
-                Self::AgentCall { method, reason }
-            }
-            NnsGovernanceQueryError::CandidEncode { message, reason } => {
-                Self::CandidEncode { message, reason }
-            }
-            NnsGovernanceQueryError::CandidDecode { message, reason } => {
-                Self::CandidDecode { message, reason }
-            }
+impl crate::candid_call::CandidCallError for NnsGovernanceError {
+    fn candid_encode(message: &'static str, reason: String) -> Self {
+        Self::CandidEncode { message, reason }
+    }
+
+    fn agent_call(method: &'static str, error: ic_agent::AgentError) -> Self {
+        Self::AgentCall {
+            method,
+            reason: error.to_string(),
         }
     }
-}
 
-///
-/// NnsGovernanceHostError
-///
-/// Failure returned by the synchronous native Governance convenience builders.
-///
-
-#[cfg(feature = "nns-host")]
-#[derive(Debug, ThisError)]
-pub enum NnsGovernanceHostError {
-    /// Portable collection or report validation failed.
-    #[error(transparent)]
-    Governance(#[from] NnsGovernanceError),
+    fn candid_decode(message: &'static str, reason: String) -> Self {
+        Self::CandidDecode { message, reason }
+    }
 }

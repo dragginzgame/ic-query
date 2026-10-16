@@ -17,12 +17,12 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRefreshRequest,
-    SnsProposalsRequest, build_sns_proposal_report, build_sns_proposals_cache_list_report,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRequest,
+    SnsSnapshotRefreshRequest, build_sns_proposal_report, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
     refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
-    sns_proposals_refresh_report_text, sns_proposals_report_text,
+    sns_proposals_report_text, sns_snapshot_refresh_report_text,
 };
 pub(super) async fn run_sns_proposal(
     matches: &ArgMatches,
@@ -44,10 +44,12 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let cache_root = cache_root()?;
     let format = lookup.format;
     let request = SnsProposalRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         proposal_id: options.proposal_id,
         cache_root: Some(cache_root),
         verbose: options.verbose,
@@ -64,10 +66,12 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     let cache_root = cache_root()?;
     let format = lookup.format;
     let request = SnsProposalsRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
@@ -94,18 +98,20 @@ async fn run_sns_proposal_refresh(
     let now_unix_secs = current_unix_secs()?;
     let cache_root = cache_root()?;
     let format = lookup.format;
-    let request = SnsProposalsRefreshRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+    let request = SnsSnapshotRefreshRequest {
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         cache_root,
         page_size: options.page_size,
         max_pages: options.max_pages,
     };
     let mut progress = StderrQueryProgress::new();
     let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(format, &report, sns_proposals_refresh_report_text)
+    write_text_or_json(format, &report, sns_snapshot_refresh_report_text)
 }
 
 fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {

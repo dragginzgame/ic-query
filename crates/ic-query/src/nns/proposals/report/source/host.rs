@@ -7,7 +7,7 @@
 use super::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info};
 use crate::nns::{
     LiveNnsSource,
-    governance::{NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData, host_request},
+    governance::{NnsGovernanceRequest, NnsGovernanceSourceData, host_request},
     governance_query::query_nns_governance,
     proposals::report::{
         NnsProposalError,
@@ -54,8 +54,7 @@ impl NnsProposalSource for LiveNnsSource {
                     return_self_describing_action: Some(false),
                 },
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             Ok(NnsGovernanceSourceData::new(
                 response
                     .proposal_info
@@ -82,8 +81,7 @@ impl NnsProposalSource for LiveNnsSource {
                 "ProposalInfo",
                 &proposal_id,
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             let proposal = proposal.ok_or(NnsProposalError::ProposalNotFound { proposal_id })?;
             Ok(NnsGovernanceSourceData::new(
                 nns_proposal_row_from_info(proposal),

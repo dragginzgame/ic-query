@@ -14,9 +14,12 @@ use super::{
         ListDomainsResult,
     },
 };
-use crate::{agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES, subnet_catalog::format_utc_timestamp_secs};
-use candid::{CandidType, Principal};
-use serde::Deserialize;
+use crate::{
+    agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+    candid_call::{CandidCallError, encode_request, query_encoded},
+    subnet_catalog::format_utc_timestamp_secs,
+};
+use candid::Principal;
 
 const GET_ENGINE_OPERATOR_BY_SUBNET_METHOD: &str = "getEngineOperatorBySubnet";
 const GET_ENGINE_OWNER_METHOD: &str = "getEngineOwner";
@@ -206,37 +209,37 @@ async fn fetch_live_operator(
         });
     };
 
-    let empty_arg = empty_args()?;
-    let owner: GetEngineOwnerResult = query_candid(
+    let empty_arg = encode_request::<_, CloudEngineHostError>((), "()")?;
+    let owner: GetEngineOwnerResult = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &operator,
         GET_ENGINE_OWNER_METHOD,
-        empty_arg.clone(),
         "GetEngineOwnerResult",
+        empty_arg.clone(),
     )
     .await?;
-    let platform: GetPlatformAdminResult = query_candid(
+    let platform: GetPlatformAdminResult = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &operator,
         GET_PLATFORM_ADMIN_METHOD,
-        empty_arg.clone(),
         "GetPlatformAdminResult",
+        empty_arg.clone(),
     )
     .await?;
-    let caffeine: GetCaffeineSettingsResult = query_candid(
+    let caffeine: GetCaffeineSettingsResult = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &operator,
         GET_CAFFEINE_SETTINGS_METHOD,
-        empty_arg.clone(),
         "GetCaffeineSettingsResult",
+        empty_arg.clone(),
     )
     .await?;
-    let domains: ListDomainsResult = query_candid(
+    let domains: ListDomainsResult = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &operator,
         LIST_DOMAINS_METHOD,
-        empty_arg,
         "ListDomainsResult",
+        empty_arg,
     )
     .await?;
 
@@ -257,18 +260,18 @@ async fn resolve_operator(
     engine_canister: &Principal,
     subnet: Principal,
 ) -> Result<Option<Principal>, CloudEngineHostError> {
-    let resolve_arg = encode_one(
-        &GetEngineOperatorBySubnetArgs {
+    let resolve_arg = encode_request::<_, CloudEngineHostError>(
+        (&GetEngineOperatorBySubnetArgs {
             subnet_id: Some(subnet),
-        },
+        },),
         "GetEngineOperatorBySubnetArgs",
     )?;
-    let resolved: GetEngineOperatorBySubnetResult = query_candid(
+    let resolved: GetEngineOperatorBySubnetResult = query_encoded::<_, CloudEngineHostError>(
         agent,
         engine_canister,
         GET_ENGINE_OPERATOR_BY_SUBNET_METHOD,
-        resolve_arg,
         "GetEngineOperatorBySubnetResult",
+        resolve_arg,
     )
     .await?;
     Ok(resolved.engine_operator_id)
@@ -279,21 +282,21 @@ async fn fetch_live_prices(
     request: &CloudEngineSourceRequest,
 ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
     let (agent, engine_canister) = live_agent_and_canister(source, request)?;
-    let empty_arg = empty_args()?;
-    let network_fee: f64 = query_candid(
+    let empty_arg = encode_request::<_, CloudEngineHostError>((), "()")?;
+    let network_fee: f64 = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &engine_canister,
         GET_NETWORK_FEE_METHOD,
-        empty_arg.clone(),
         "NetworkFee",
+        empty_arg.clone(),
     )
     .await?;
-    let prices: Vec<CloudEngineMarketplaceEntryWire> = query_candid(
+    let prices: Vec<CloudEngineMarketplaceEntryWire> = query_encoded::<_, CloudEngineHostError>(
         &agent,
         &engine_canister,
         LIST_MARKETPLACE_PRICES_METHOD,
-        empty_arg,
         "MarketplaceEntry vector",
+        empty_arg,
     )
     .await?;
 
@@ -335,44 +338,19 @@ fn parse_principal(field: &'static str, value: &str) -> Result<Principal, CloudE
     })
 }
 
-fn empty_args() -> Result<Vec<u8>, CloudEngineHostError> {
-    candid::encode_args(()).map_err(|error| CloudEngineHostError::CandidEncode {
-        message: "()",
-        reason: error.to_string(),
-    })
-}
+impl CandidCallError for CloudEngineHostError {
+    fn candid_encode(message: &'static str, reason: String) -> Self {
+        Self::CandidEncode { message, reason }
+    }
 
-fn encode_one<T>(value: &T, message: &'static str) -> Result<Vec<u8>, CloudEngineHostError>
-where
-    T: CandidType,
-{
-    candid::encode_one(value).map_err(|error| CloudEngineHostError::CandidEncode {
-        message,
-        reason: error.to_string(),
-    })
-}
-
-async fn query_candid<T>(
-    agent: &ic_agent::Agent,
-    canister: &Principal,
-    method: &'static str,
-    arg: Vec<u8>,
-    response_name: &'static str,
-) -> Result<T, CloudEngineHostError>
-where
-    T: CandidType + for<'de> Deserialize<'de>,
-{
-    let bytes = agent
-        .query(canister, method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|error| CloudEngineHostError::AgentCall {
+    fn agent_call(method: &'static str, error: ic_agent::AgentError) -> Self {
+        Self::AgentCall {
             method,
             reason: error.to_string(),
-        })?;
-    crate::candid_decode::decode_reply(&bytes).map_err(|error| CloudEngineHostError::CandidDecode {
-        message: response_name,
-        reason: error.to_string(),
-    })
+        }
+    }
+
+    fn candid_decode(message: &'static str, reason: String) -> Self {
+        Self::CandidDecode { message, reason }
+    }
 }

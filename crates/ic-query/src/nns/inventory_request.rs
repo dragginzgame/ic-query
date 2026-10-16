@@ -135,6 +135,3 @@ impl NnsInventoryRefreshRequest {
         self
     }
 }
-
-#[cfg(feature = "nns-host")]
-impl_nns_leaf_cache_and_refresh_requests!(NnsInventoryCacheRequest, NnsInventoryRefreshRequest);

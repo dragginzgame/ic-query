@@ -298,6 +298,22 @@ fn retained_distribution_validation_rejects_corruption() {
     let mut report = fixture_distribution_report();
     report.state_distribution[0].effective_stake_e8s += 1;
     assert_invalid_report(&report, "effective stake sums");
+
+    let mut report = fixture_distribution_report();
+    report.visibility_distribution.swap(0, 1);
+    assert_invalid_report(&report, "visibility distribution");
+
+    let mut report = fixture_distribution_report();
+    report.neuron_type_distribution[1].neuron_type = report.neuron_type_distribution[0].neuron_type;
+    assert_invalid_report(&report, "neuron-type distribution");
+
+    let mut report = fixture_distribution_report();
+    report.state_distribution[0].neuron_count = u64::MAX;
+    assert_invalid_report(&report, "state total overflow");
+
+    let mut report = fixture_distribution_report();
+    report.state_distribution[0].effective_stake_e8s = u64::MAX;
+    assert_invalid_report(&report, "state stake total overflow");
 }
 
 #[test]

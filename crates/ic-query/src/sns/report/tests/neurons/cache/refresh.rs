@@ -22,9 +22,14 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert!(attempt_path.is_file());
     assert!(!lock_path.exists());
     assert!(refresh.complete);
+    assert_eq!(refresh.collection, "neurons");
+    let refresh_json = serde_json::to_value(&refresh).expect("serialize refresh result");
+    assert_eq!(refresh_json["schema_version"], 1);
+    assert_eq!(refresh_json["collection"], "neurons");
+    assert_eq!(refresh_json["row_count"], refresh.row_count);
     assert_eq!(refresh.id, 1);
     assert_eq!(refresh.page_count, 3);
-    assert_eq!(refresh.neuron_count, 3);
+    assert_eq!(refresh.row_count, 3);
 
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
@@ -44,6 +49,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     cached_request.sort = SnsNeuronsSort::Stake;
     cached_request.limit = 2;
     cached_request.verbose = true;
+    cached_request.owner_principal_id = Some(GOVERNANCE_A.to_string());
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect("cached neurons report");
@@ -144,7 +150,7 @@ async fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
         .await
         .expect("exclusive pages exhaust successfully");
     assert_eq!(refresh.page_count, 3);
-    assert_eq!(refresh.neuron_count, 4);
+    assert_eq!(refresh.row_count, 4);
     let cache: serde_json::Value = serde_json::from_slice(
         &fs::read(sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)).unwrap(),
     )

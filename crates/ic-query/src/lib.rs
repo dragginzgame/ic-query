@@ -42,7 +42,12 @@ pub mod cache;
     feature = "subnet-catalog-host"
 ))]
 mod cache_file;
-#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host"
+))]
 mod candid_call;
 #[cfg(any(
     test,
@@ -93,6 +98,7 @@ pub mod ledger_evidence;
 ))]
 mod network;
 pub mod nns;
+mod principal_text;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",

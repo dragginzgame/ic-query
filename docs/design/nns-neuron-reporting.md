@@ -139,8 +139,17 @@ Neither transport certifies the returned public neuron rows.
 
 Proposal and neuron native complete collections also share the
 public `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
-`NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceQueryError` contracts;
-their page validation, cache identities, and reports remain family-specific.
+`NnsGovernanceRefreshAttemptStatus`, `NnsGovernanceRefreshReport`, and
+`NnsGovernanceError` contracts. The common publication report derives collection
+identity, row counts, provenance and assurance from the successfully published
+snapshot. Both families use `nns_governance_refresh_report_text`; page validation,
+cache identities and collected row payloads remain family-specific.
 Custom sources must honor the same ordered pagination and exact detail-id
 contracts; report builders validate their results before projection or cache
 publication.
+
+NNS neuron and proposal ballot rows use the Governance-owned `NnsGovernanceVote`.
+Known codes retain their labels, while unknown i32 codes retain `unknown(code)`.
+Raw vote fields remain separate evidence and admission rejects disagreement with
+the classification. Proposal caches containing collapsed unknown classifications
+require an explicit refresh; reads preserve the rejected evidence bytes.

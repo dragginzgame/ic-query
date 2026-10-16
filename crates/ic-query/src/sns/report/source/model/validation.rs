@@ -5,7 +5,6 @@
 //! Boundary: preserves each capability label while validating principals, exact values, and row limits.
 
 use crate::sns::report::SnsHostError;
-use candid::Principal;
 
 ///
 /// SnsSourceValidator
@@ -56,11 +55,10 @@ impl SnsSourceValidator {
         field: &'static str,
         value: &str,
     ) -> Result<(), SnsHostError> {
-        let principal = Principal::from_text(value)
-            .map_err(|error| self.invalid(format!("{field} {value:?} is invalid: {error}")))?;
-        if principal.to_text() != value {
-            return Err(self.invalid(format!("{field} {value:?} is not canonical principal text")));
-        }
-        Ok(())
+        crate::principal_text::validate_canonical(
+            value,
+            |reason| self.invalid(format!("{field} {value:?} is invalid: {reason}")),
+            |_| self.invalid(format!("{field} {value:?} is not canonical principal text")),
+        )
     }
 }

@@ -102,7 +102,9 @@ where
         request = request.with_output_path(output_path);
     }
     let report = reports.refresh_report(&request).await.map_err(Into::into)?;
-    write_text_or_json(format, &report, |report| {
-        reports.refresh_report_text(report)
-    })
+    write_text_or_json(
+        format,
+        &report,
+        ic_query::nns::nns_inventory_refresh_report_text,
+    )
 }

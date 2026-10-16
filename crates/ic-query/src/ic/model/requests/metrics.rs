@@ -4,6 +4,8 @@
 //! Does not own: network resources, canister discovery, transport, or reports.
 //! Boundary: captures one selected aggregate metric and its explicit observation window.
 
+use super::IcDashboardRequest;
+
 use serde::Serialize;
 use std::{fmt, str::FromStr};
 
@@ -146,10 +148,8 @@ impl IcMetricQuery {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcMetricRequest {
-    /// Dashboard Metrics API base endpoint.
-    pub source_endpoint: String,
-    /// Collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Explicitly bounded metric query.
     pub query: IcMetricQuery,
 }
@@ -157,15 +157,7 @@ pub struct IcMetricRequest {
 impl IcMetricRequest {
     /// Construct one bounded live Dashboard metric request.
     #[must_use]
-    pub fn new(
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        query: IcMetricQuery,
-    ) -> Self {
-        Self {
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
-            query,
-        }
+    pub const fn new(dashboard: IcDashboardRequest, query: IcMetricQuery) -> Self {
+        Self { dashboard, query }
     }
 }

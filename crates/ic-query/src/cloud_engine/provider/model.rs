@@ -4,7 +4,7 @@
 //! Does not own: source validation, HTTP decoding, rendering, or command parsing.
 //! Boundary: preserves raw Dashboard provider and location fields without Registry promotion.
 
-use crate::ic::IcDashboardReportProvenance;
+use crate::ic::{IcDashboardReportProvenance, IcDashboardRequest};
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "dashboard-host")]
@@ -20,24 +20,17 @@ use crate::ic::IcSourceRequest;
 pub struct CloudEngineProviderListRequest {
     /// Requested network identity; the built-in source accepts only `ic`.
     pub network: String,
-    /// Official Dashboard v3 base endpoint.
-    pub source_endpoint: String,
-    /// Caller collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
 }
 
 impl CloudEngineProviderListRequest {
     /// Construct one live CloudEngine provider-list request.
     #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-    ) -> Self {
+    pub fn new(network: impl Into<String>, dashboard: IcDashboardRequest) -> Self {
         Self {
             network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
         }
     }
 }
@@ -52,10 +45,8 @@ impl CloudEngineProviderListRequest {
 pub struct CloudEngineProviderInfoRequest {
     /// Requested network identity; the built-in source accepts only `ic`.
     pub network: String,
-    /// Official Dashboard v3 base endpoint.
-    pub source_endpoint: String,
-    /// Caller collection time as Unix seconds.
-    pub now_unix_secs: u64,
+    /// Explicit Dashboard endpoint and caller collection clock.
+    pub dashboard: IcDashboardRequest,
     /// Exact node-provider principal.
     pub node_provider_id: String,
 }
@@ -65,14 +56,12 @@ impl CloudEngineProviderInfoRequest {
     #[must_use]
     pub fn new(
         network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
+        dashboard: IcDashboardRequest,
         node_provider_id: impl Into<String>,
     ) -> Self {
         Self {
             network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            dashboard,
             node_provider_id: node_provider_id.into(),
         }
     }

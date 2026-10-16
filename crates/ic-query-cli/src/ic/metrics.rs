@@ -42,8 +42,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_METRIC_WINDOW_SECS));
     let request = IcMetricRequest::new(
-        options.source_endpoint,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, now_unix_secs),
         IcMetricQuery::new(
             options.metric,
             start_unix_secs,

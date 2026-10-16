@@ -83,8 +83,7 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
     let account_query = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::BalanceDescending)
         .with_owner(ICRC_ACCOUNT_ID);
     let account_request = IcIcrcAccountListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
         account_query,
     );
@@ -102,8 +101,10 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
     assert!(!account.provenance.point_in_time_guaranteed);
 
     let info_request = IcIcrcAccountInfoRequest::new(
-        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+            ICRC_SUPPLY_END,
+        ),
         ICRC_LEDGER_ID,
         ICRC_ACCOUNT_ID,
     );
@@ -114,8 +115,7 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
     assert!(icrc_account_info_report_text(&info).contains("created_at_unix_secs: 1731833720"));
 
     let holder_request = IcIcrcHolderListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
         IcIcrcHolderListQuery::new(2, IcIcrcHolderSort::Principal),
     );
@@ -132,8 +132,7 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
 async fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_are_invalid() {
     let source = IcrcIndexFixture::default();
     let account_request = IcIcrcAccountListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
         IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::Id)
             .with_after("next")
@@ -146,8 +145,7 @@ async fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_ar
     );
 
     let holder_request = IcIcrcHolderListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
         IcIcrcHolderListQuery::new(0, IcIcrcHolderSort::Principal),
     );
@@ -158,8 +156,10 @@ async fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_ar
     );
 
     let info_request = IcIcrcAccountInfoRequest::new(
-        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+            ICRC_SUPPLY_END,
+        ),
         ICRC_LEDGER_ID,
         "",
     );
@@ -204,11 +204,11 @@ async fn icrc_token_value_request_is_validated_before_source_calls() {
         |request| {
             request.query.end_unix_secs =
                 request.query.start_unix_secs + MAX_ICRC_TOKEN_VALUE_WINDOW_SECS + 1;
-            request.analytics.now_unix_secs = request.query.end_unix_secs;
+            request.analytics.dashboard.now_unix_secs = request.query.end_unix_secs;
         },
         |request| request.query.limit = 0,
         |request| request.query.limit = MAX_ICRC_TOKEN_VALUE_ROWS + 1,
-        |request| request.query.end_unix_secs = request.analytics.now_unix_secs + 1,
+        |request| request.query.end_unix_secs = request.analytics.dashboard.now_unix_secs + 1,
     ];
 
     for mutate in mutations {
@@ -289,7 +289,7 @@ async fn icrc_total_supply_request_is_validated_before_source_calls() {
         |request| request.query.start_unix_secs = MIN_ICRC_ANALYTICS_TIMESTAMP - 1,
         |request| request.query.end_unix_secs = request.query.start_unix_secs - 1,
         |request| request.query.step_secs = 60,
-        |request| request.query.end_unix_secs = request.analytics.now_unix_secs + 1,
+        |request| request.query.end_unix_secs = request.analytics.dashboard.now_unix_secs + 1,
         |request| {
             request.query.end_unix_secs = request.query.start_unix_secs
                 + MAX_ICRC_ANALYTICS_OBSERVATIONS * u64::from(request.query.step_secs);
@@ -341,7 +341,7 @@ async fn icrc_total_supply_custom_source_contract_is_validated() {
 #[tokio::test(flavor = "current_thread")]
 async fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_provenance() {
     let source = NetworkFixture::default();
-    let request = IcBoundaryNodeDataCentersRequest::new(
+    let request = crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
         METRIC_END,
     );
@@ -380,7 +380,7 @@ async fn boundary_node_custom_source_contract_is_validated() {
             boundary_mutation: Mutex::new(Some(mutation)),
             ..NetworkFixture::default()
         };
-        let request = IcBoundaryNodeDataCentersRequest::new(
+        let request = crate::ic::IcDashboardRequest::new(
             DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
             METRIC_END,
         );
@@ -430,8 +430,13 @@ async fn daily_stats_request_bounds_are_validated_before_source_calls() {
         IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END + 1),
     ] {
         let source = NetworkFixture::default();
-        let request =
-            IcDailyStatsRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, DAILY_STATS_END, query);
+        let request = IcDailyStatsRequest::new(
+            crate::ic::IcDashboardRequest::new(
+                DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+                DAILY_STATS_END,
+            ),
+            query,
+        );
 
         let error = build_ic_daily_stats_report_with_source(&request, &source)
             .await
@@ -619,8 +624,7 @@ async fn canister_report_preserves_null_upgrade_history() {
 async fn request_principal_is_validated_before_calling_source() {
     let source = FixtureSource::default();
     let request = IcCanisterRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000),
         "not a principal",
     );
 
@@ -916,10 +920,10 @@ async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
         canister_types: vec!["ledger".to_string()],
         query: Some("ICP Ledger".to_string()),
     };
-    let request = IcCanisterCountRequest::new(
+    let request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_filters(filters);
 
     let report = build_ic_canister_count_report_with_source(&request, &source)
@@ -938,10 +942,10 @@ async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
 #[tokio::test(flavor = "current_thread")]
 async fn canister_page_returns_one_validated_slice_without_following_cursor() {
     let source = CollectionFixture::default();
-    let request = IcCanisterPageRequest::new(
+    let request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_limit(2);
 
     let report = build_ic_canister_page_report_with_source(&request, &source)
@@ -970,10 +974,10 @@ async fn canister_page_validates_bound_and_cursor_contract_before_source_call() 
         invalid_page_cursor,
     ] {
         let source = CollectionFixture::default();
-        let mut request = IcCanisterPageRequest::new(
+        let mut request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
             1_700_000_000,
-        );
+        ));
         mutate(&mut request);
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
@@ -991,10 +995,10 @@ async fn canister_page_validates_bound_and_cursor_contract_before_source_call() 
 #[tokio::test(flavor = "current_thread")]
 async fn canister_collection_filters_are_validated_before_source_calls() {
     let source = CollectionFixture::default();
-    let request = IcCanisterCountRequest::new(
+    let request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
+    ))
     .with_filters(IcCanisterFilters {
         query: Some("x".to_string()),
         ..IcCanisterFilters::default()
@@ -1029,10 +1033,10 @@ async fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
             page_mutation: Mutex::new(Some(mutation)),
             ..CollectionFixture::default()
         };
-        let request = IcCanisterPageRequest::new(
+        let request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
             1_700_000_000,
-        )
+        ))
         .with_limit(3);
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
@@ -1045,16 +1049,17 @@ async fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
 
 fn request() -> IcCanisterRequest {
     IcCanisterRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        1_700_000_000,
+        crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000),
         CANISTER_ID,
     )
 }
 
 fn metric_request() -> IcMetricRequest {
     IcMetricRequest::new(
-        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
-        METRIC_END,
+        crate::ic::IcDashboardRequest::new(
+            DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+            METRIC_END,
+        ),
         IcMetricQuery::new(
             IcMetricKind::InstructionRate,
             METRIC_START,
@@ -1078,8 +1083,7 @@ fn icrc_total_supply_request() -> IcIcrcTotalSupplyRequest {
 
 fn icrc_analytics_request() -> IcIcrcAnalyticsRequest {
     IcIcrcAnalyticsRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        ICRC_SUPPLY_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
     )
 }
@@ -1108,8 +1112,7 @@ const fn indexed_count_total(kind: IcIcrcIndexedCountKind) -> u64 {
 
 fn daily_stats_request() -> IcDailyStatsRequest {
     IcDailyStatsRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        DAILY_STATS_END,
+        crate::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, DAILY_STATS_END),
         IcDailyStatsQuery::new(DAILY_STATS_START, DAILY_STATS_END),
     )
 }

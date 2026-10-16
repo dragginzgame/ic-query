@@ -56,9 +56,7 @@ fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapaci
         assigned_node_count.map(|node_count| node_count.saturating_sub(operator.node_allowance));
     let utilization = assigned_node_count.map_or_else(
         || "-".to_string(),
-        |node_count| {
-            ratio_percent_text(u128::from(node_count), u128::from(operator.node_allowance))
-        },
+        |node_count| ratio_percent_text(node_count, operator.node_allowance),
     );
     let status = if over_assigned_node_count.is_some_and(|count| count > 0) {
         NnsTopologyCapacityStatus::Over

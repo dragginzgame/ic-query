@@ -37,12 +37,10 @@ use resolve::resolve_node;
 pub use source::NnsNodeSource;
 
 #[cfg(feature = "nns-host")]
-pub use model::{NnsNodeHostError, NnsNodeRefreshReport};
+pub use model::NnsNodeHostError;
 pub use model::{
     NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
 };
-#[cfg(feature = "nns-host")]
-pub use text::nns_node_refresh_report_text;
 pub use text::{
     nns_node_info_report_text, nns_node_list_report_text, nns_node_list_report_verbose_text,
 };
@@ -54,8 +52,6 @@ pub const DEFAULT_NODE_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 pub const NNS_NODE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_NODE_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-pub const NNS_NODE_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 const NNS_NODE_CACHE_DIR: &str = "node";
 #[cfg(feature = "nns-host")]

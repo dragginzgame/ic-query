@@ -6,11 +6,8 @@
 
 use crate::sns::report::{
     SnsHostError, SnsMetricsReport, SnsMetricsRequest, SnsMetricsSource,
-    assemble::sns_metrics_report_from_parts,
-    live::LiveSnsSource,
-    lookup::resolve_sns_lookup,
-    model::{sns_metrics_lookup_request, validate_sns_metrics_request},
-    source::canonicalize_mainnet_sns_metrics,
+    assemble::sns_metrics_report_from_parts, live::LiveSnsSource, lookup::resolve_sns_lookup,
+    model::validate_sns_metrics_request, source::canonicalize_mainnet_sns_metrics,
 };
 
 /// Build a live bounded Governance metrics report for one deployed SNS.
@@ -26,7 +23,7 @@ pub async fn build_sns_metrics_report_with_source(
     source: &dyn SnsMetricsSource,
 ) -> Result<SnsMetricsReport, SnsHostError> {
     validate_sns_metrics_request(request)?;
-    let lookup = resolve_sns_lookup(&sns_metrics_lookup_request(request), source).await?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let mut metrics = source
         .fetch_sns_metrics(
             &lookup.fetch_request,

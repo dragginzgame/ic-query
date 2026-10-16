@@ -79,6 +79,12 @@ ballot rows, and that proposal ids are unique within the collection. A
 contradictory row is invalid source or cache evidence rather than a value the
 view layer repairs.
 
+Live and cached proposal rows share eligibility, proposer, case-insensitive
+text matching and sorting in the view owner. Query normalization happens once
+there while reports retain the original text. Live requests remain bounded by
+the selected Governance page; cached reads apply before/status/topic scope first
+and truncate only after the shared view, over the complete snapshot.
+
 ## Cache Contract
 
 The cache key describes the collected data, not the rendered view:

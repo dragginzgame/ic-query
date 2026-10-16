@@ -17,8 +17,6 @@ use crate::{
     subnet_catalog::format_utc_timestamp_secs,
 };
 #[cfg(feature = "ic-state-host")]
-use candid::Principal;
-#[cfg(feature = "ic-state-host")]
 use std::{
     collections::HashSet,
     net::{Ipv4Addr, Ipv6Addr},
@@ -124,15 +122,15 @@ fn canonicalize_rows(rows: &mut [IcApiBoundaryNodeRow]) -> Result<(), IcApiBound
 
 #[cfg(feature = "ic-state-host")]
 fn validate_node_id(node_id: &str) -> Result<(), IcApiBoundaryNodeHostError> {
-    let principal = Principal::from_text(node_id).map_err(|error| {
-        invalid_source_value(format!(
-            "API boundary-node id {node_id:?} is invalid: {error}"
-        ))
-    })?;
-    if principal.to_text() != node_id {
-        return invalid_source(format!("API boundary-node id {node_id:?} is not canonical"));
-    }
-    Ok(())
+    crate::principal_text::validate_canonical(
+        node_id,
+        |reason| {
+            invalid_source_value(format!(
+                "API boundary-node id {node_id:?} is invalid: {reason}"
+            ))
+        },
+        |_| invalid_source_value(format!("API boundary-node id {node_id:?} is not canonical")),
+    )
 }
 
 #[cfg(feature = "ic-state-host")]

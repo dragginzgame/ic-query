@@ -5,29 +5,29 @@
 //! Boundary: validates request identity before any live source call.
 
 use crate::ic::{
-    IcBoundaryNodeDataCentersReport, IcBoundaryNodeDataCentersRequest, IcCanisterCollectionSource,
-    IcCanisterCountReport, IcCanisterCountRequest, IcCanisterPageReport, IcCanisterPageRequest,
-    IcCanisterReport, IcCanisterRequest, IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest,
-    IcHostError, IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest, IcIcrcAccountListReport,
-    IcIcrcAccountListRequest, IcIcrcAnalyticsRequest, IcIcrcAnalyticsSource,
-    IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcIndexSource, IcIcrcIndexedCountReport,
-    IcIcrcIndexedCountRequest, IcIcrcTokenValueReport, IcIcrcTokenValueRequest,
-    IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport, IcMetricRequest,
-    IcMetricSource, IcNetworkSource, IcNodeProviderRewardHistoryReport,
+    IcBoundaryNodeDataCentersReport, IcCanisterCollectionSource, IcCanisterCountReport,
+    IcCanisterCountRequest, IcCanisterPageReport, IcCanisterPageRequest, IcCanisterReport,
+    IcCanisterRequest, IcCanisterSource, IcDailyStatsReport, IcDailyStatsRequest,
+    IcDashboardRequest, IcHostError, IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest,
+    IcIcrcAccountListReport, IcIcrcAccountListRequest, IcIcrcAnalyticsRequest,
+    IcIcrcAnalyticsSource, IcIcrcHolderListReport, IcIcrcHolderListRequest, IcIcrcIndexSource,
+    IcIcrcIndexedCountReport, IcIcrcIndexedCountRequest, IcIcrcTokenValueReport,
+    IcIcrcTokenValueRequest, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricReport,
+    IcMetricRequest, IcMetricSource, IcNetworkSource, IcNodeProviderRewardHistoryReport,
     IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoReport,
     IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListReport,
     IcNodeProviderRewardListRequest, IcNodeProviderRewardSource, IcNodeStatusSnapshot,
-    IcNodeStatusSnapshotRequest, IcNodeStatusSource, IcReplicaVersionInfoReport,
-    IcReplicaVersionInfoRequest, IcReplicaVersionListReport, IcReplicaVersionListRequest,
-    IcReplicaVersionSource, IcSourceRequest, LiveIcSource,
+    IcNodeStatusSource, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
+    IcReplicaVersionListReport, IcReplicaVersionListRequest, IcReplicaVersionSource,
+    IcSourceRequest, LiveIcSource,
     source::{
         boundary_node_data_centers_report_from_source, canonical_canister_id,
         canonical_page_cursors, canonical_request_principal, count_report_from_source,
-        daily_stats_report_from_source, dashboard_source_request,
-        icrc_account_info_report_from_source, icrc_account_list_report_from_source,
-        icrc_holder_list_report_from_source, icrc_indexed_count_report_from_source,
-        icrc_token_value_report_from_source, icrc_total_supply_report_from_source,
-        metric_report_from_source, node_provider_reward_history_report_from_source,
+        daily_stats_report_from_source, icrc_account_info_report_from_source,
+        icrc_account_list_report_from_source, icrc_holder_list_report_from_source,
+        icrc_indexed_count_report_from_source, icrc_token_value_report_from_source,
+        icrc_total_supply_report_from_source, metric_report_from_source,
+        node_provider_reward_history_report_from_source,
         node_provider_reward_info_report_from_source, node_provider_reward_list_report_from_source,
         node_status_snapshot_from_source, normalized_account_list_query, normalized_filters,
         page_report_from_source, replica_version_info_report_from_source,
@@ -42,34 +42,34 @@ use crate::ic::{
 
 /// Build one finite live observed node-status snapshot from the official Dashboard API.
 pub async fn build_ic_node_status_snapshot(
-    request: &IcNodeStatusSnapshotRequest,
+    request: &IcDashboardRequest,
 ) -> Result<IcNodeStatusSnapshot, IcHostError> {
     build_ic_node_status_snapshot_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one finite observed node-status snapshot through a custom Dashboard source.
 pub async fn build_ic_node_status_snapshot_with_source(
-    request: &IcNodeStatusSnapshotRequest,
+    request: &IcDashboardRequest,
     source: &dyn IcNodeStatusSource,
 ) -> Result<IcNodeStatusSnapshot, IcHostError> {
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.source_request();
     let source_data = source.fetch_node_status_snapshot(&source_request).await?;
     node_status_snapshot_from_source(&source_request, source_data)
 }
 
 /// Build one live boundary-node data-center report from the official Dashboard API.
 pub async fn build_ic_boundary_node_data_centers_report(
-    request: &IcBoundaryNodeDataCentersRequest,
+    request: &IcDashboardRequest,
 ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> {
     build_ic_boundary_node_data_centers_report_with_source(request, &LiveIcSource::default()).await
 }
 
 /// Build one boundary-node data-center report through a custom Dashboard source.
 pub async fn build_ic_boundary_node_data_centers_report_with_source(
-    request: &IcBoundaryNodeDataCentersRequest,
+    request: &IcDashboardRequest,
     source: &dyn IcNetworkSource,
 ) -> Result<IcBoundaryNodeDataCentersReport, IcHostError> {
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.source_request();
     let source_data = source
         .fetch_boundary_node_data_centers(&source_request)
         .await?;
@@ -88,8 +88,8 @@ pub async fn build_ic_daily_stats_report_with_source(
     request: &IcDailyStatsRequest,
     source: &dyn IcNetworkSource,
 ) -> Result<IcDailyStatsReport, IcHostError> {
-    validate_daily_stats_request(request.now_unix_secs, &request.query)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_daily_stats_request(request.dashboard.now_unix_secs, &request.query)?;
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_daily_stats(&source_request, &request.query)
         .await?;
@@ -109,7 +109,7 @@ pub async fn build_ic_node_provider_reward_list_report_with_source(
     source: &dyn IcNodeProviderRewardSource,
 ) -> Result<IcNodeProviderRewardListReport, IcHostError> {
     validate_node_provider_reward_list_query(&request.query)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_node_provider_reward_list(&source_request, &request.query)
         .await?;
@@ -128,7 +128,7 @@ pub async fn build_ic_node_provider_reward_info_report_with_source(
     request: &IcNodeProviderRewardInfoRequest,
     source: &dyn IcNodeProviderRewardSource,
 ) -> Result<IcNodeProviderRewardInfoReport, IcHostError> {
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_node_provider_reward_info(&source_request, request.reward_id)
         .await?;
@@ -148,8 +148,8 @@ pub async fn build_ic_node_provider_reward_history_report_with_source(
     request: &IcNodeProviderRewardHistoryRequest,
     source: &dyn IcNodeProviderRewardSource,
 ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> {
-    validate_node_provider_reward_history_request(request.now_unix_secs, &request.query)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_node_provider_reward_history_request(request.dashboard.now_unix_secs, &request.query)?;
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_node_provider_reward_history(&source_request, &request.query)
         .await?;
@@ -169,7 +169,7 @@ pub async fn build_ic_replica_version_list_report_with_source(
     source: &dyn IcReplicaVersionSource,
 ) -> Result<IcReplicaVersionListReport, IcHostError> {
     validate_replica_version_list_query(&request.query)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_replica_version_list(&source_request, &request.query)
         .await?;
@@ -189,7 +189,7 @@ pub async fn build_ic_replica_version_info_report_with_source(
     source: &dyn IcReplicaVersionSource,
 ) -> Result<IcReplicaVersionInfoReport, IcHostError> {
     validate_replica_version_id(&request.replica_version_id)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_replica_version_info(&source_request, &request.replica_version_id)
         .await?;
@@ -212,8 +212,8 @@ pub async fn build_ic_metric_report_with_source(
     request: &IcMetricRequest,
     source: &dyn IcMetricSource,
 ) -> Result<IcMetricReport, IcHostError> {
-    validate_metric_request(request.now_unix_secs, &request.query)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    validate_metric_request(request.dashboard.now_unix_secs, &request.query)?;
+    let source_request = request.dashboard.source_request();
     let source_data = source.fetch_metric(&source_request, &request.query).await?;
     metric_report_from_source(&source_request, &request.query, source_data)
 }
@@ -230,7 +230,7 @@ pub async fn build_icrc_total_supply_report_with_source(
     request: &IcIcrcTotalSupplyRequest,
     source: &dyn IcIcrcAnalyticsSource,
 ) -> Result<IcIcrcTotalSupplyReport, IcHostError> {
-    validate_icrc_total_supply_request(request.analytics.now_unix_secs, &request.query)?;
+    validate_icrc_total_supply_request(request.analytics.dashboard.now_unix_secs, &request.query)?;
     let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
     let source_data = source
         .fetch_total_supply_series(&source_request, &ledger_canister_id, &request.query)
@@ -349,7 +349,7 @@ pub async fn build_icrc_token_value_report_with_source(
     request: &IcIcrcTokenValueRequest,
     source: &dyn IcIcrcAnalyticsSource,
 ) -> Result<IcIcrcTokenValueReport, IcHostError> {
-    validate_icrc_token_value_request(request.analytics.now_unix_secs, &request.query)?;
+    validate_icrc_token_value_request(request.analytics.dashboard.now_unix_secs, &request.query)?;
     let (source_request, ledger_canister_id) = icrc_analytics_target(&request.analytics)?;
     let source_data = source
         .fetch_token_value_series(&source_request, &ledger_canister_id, &request.query)
@@ -367,10 +367,7 @@ fn icrc_analytics_target(
 ) -> Result<(IcSourceRequest, String), IcHostError> {
     let ledger_canister_id =
         canonical_request_principal("ledger_canister_id", &request.ledger_canister_id)?;
-    Ok((
-        dashboard_source_request(&request.source_endpoint, request.now_unix_secs),
-        ledger_canister_id,
-    ))
+    Ok((request.dashboard.source_request(), ledger_canister_id))
 }
 
 /// Build one live canister report from the official IC Dashboard API.
@@ -386,7 +383,7 @@ pub async fn build_ic_canister_report_with_source(
     source: &dyn IcCanisterSource,
 ) -> Result<IcCanisterReport, IcHostError> {
     let canister_id = canonical_canister_id(&request.canister_id)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source.fetch_canister(&source_request, &canister_id).await?;
     report_from_source(&source_request, &canister_id, source_data)
 }
@@ -404,7 +401,7 @@ pub async fn build_ic_canister_count_report_with_source(
     source: &dyn IcCanisterCollectionSource,
 ) -> Result<IcCanisterCountReport, IcHostError> {
     let filters = normalized_filters(&request.filters)?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_canister_count(&source_request, &filters)
         .await?;
@@ -428,7 +425,7 @@ pub async fn build_ic_canister_page_report_with_source(
     let filters = normalized_filters(&request.filters)?;
     let (after, before) =
         canonical_page_cursors(request.after.as_deref(), request.before.as_deref())?;
-    let source_request = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let source_request = request.dashboard.source_request();
     let source_data = source
         .fetch_canister_page(
             &source_request,

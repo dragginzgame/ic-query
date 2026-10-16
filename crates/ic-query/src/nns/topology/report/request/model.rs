@@ -1,34 +1,4 @@
-#[cfg(feature = "nns-host")]
-use std::path::Path;
 use std::path::PathBuf;
-
-///
-/// TopologyRequestParts
-///
-/// Shared read settings required by host-backed topology source requests.
-///
-
-#[cfg(feature = "nns-host")]
-pub(in crate::nns::topology::report) trait TopologyRequestParts {
-    fn cache_root(&self) -> &Path;
-    fn network(&self) -> &str;
-    fn source_endpoint(&self) -> &str;
-    fn now_unix_secs(&self) -> u64;
-}
-
-///
-/// TopologyRefreshParts
-///
-/// Refresh-specific settings added to a host-backed topology request.
-///
-
-#[cfg(feature = "nns-host")]
-pub(in crate::nns::topology::report) trait TopologyRefreshParts:
-    TopologyRequestParts
-{
-    fn lock_stale_after_seconds(&self) -> u64;
-    fn dry_run(&self) -> bool;
-}
 
 ///
 /// NnsTopologyReadRequest
@@ -62,21 +32,16 @@ impl NnsTopologyReadRequest {
 }
 
 #[cfg(feature = "nns-host")]
-impl TopologyRequestParts for NnsTopologyReadRequest {
-    fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.source_endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
+impl NnsTopologyReadRequest {
+    /// Derive caller-clock provenance for a live collection; cached reports retain their original provenance.
+    #[must_use]
+    pub fn source_request(&self) -> crate::nns::NnsSourceRequest {
+        crate::nns::NnsSourceRequest::new(
+            &self.network,
+            &self.source_endpoint,
+            crate::subnet_catalog::format_utc_timestamp_secs(self.now_unix_secs),
+            "ic-query",
+        )
     }
 }
 
@@ -88,28 +53,17 @@ impl TopologyRequestParts for NnsTopologyReadRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NnsTopologyRefreshRequest {
-    pub cache_root: PathBuf,
-    pub network: String,
-    pub source_endpoint: String,
-    pub now_unix_secs: u64,
+    /// Network, endpoint, clock and cache scope shared with topology reads.
+    pub read: NnsTopologyReadRequest,
     pub lock_stale_after_seconds: u64,
     pub dry_run: bool,
 }
 
 impl NnsTopologyRefreshRequest {
     #[must_use]
-    pub fn new(
-        cache_root: impl Into<PathBuf>,
-        network: impl Into<String>,
-        source_endpoint: impl Into<String>,
-        now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
-    ) -> Self {
+    pub const fn new(read: NnsTopologyReadRequest, lock_stale_after_seconds: u64) -> Self {
         Self {
-            cache_root: cache_root.into(),
-            network: network.into(),
-            source_endpoint: source_endpoint.into(),
-            now_unix_secs,
+            read,
             lock_stale_after_seconds,
             dry_run: false,
         }
@@ -119,35 +73,5 @@ impl NnsTopologyRefreshRequest {
     pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
         self.dry_run = dry_run;
         self
-    }
-}
-
-#[cfg(feature = "nns-host")]
-impl TopologyRequestParts for NnsTopologyRefreshRequest {
-    fn cache_root(&self) -> &Path {
-        &self.cache_root
-    }
-
-    fn network(&self) -> &str {
-        &self.network
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.source_endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
-    }
-}
-
-#[cfg(feature = "nns-host")]
-impl TopologyRefreshParts for NnsTopologyRefreshRequest {
-    fn lock_stale_after_seconds(&self) -> u64 {
-        self.lock_stale_after_seconds
-    }
-
-    fn dry_run(&self) -> bool {
-        self.dry_run
     }
 }

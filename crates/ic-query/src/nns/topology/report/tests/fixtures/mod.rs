@@ -10,10 +10,7 @@ use crate::{
         node::{NnsNodeHostError, NnsNodeListReport},
         node_operator::NnsNodeOperatorListReport,
         node_provider::NnsNodeProviderListReport,
-        topology::report::{
-            NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
-            NnsTopologySourceRequest,
-        },
+        topology::report::{NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource},
     },
     subnet_catalog::SubnetCatalogListReport,
 };
@@ -59,11 +56,16 @@ impl RecordingTopologySource {
     fn record(
         &self,
         component: &'static str,
-        request: &NnsTopologySourceRequest,
+        request: &crate::nns::topology::NnsTopologyReadRequest,
     ) -> Result<(), NnsTopologyHostError> {
         assert_eq!(
             request,
-            &NnsTopologySourceRequest::new("/cache", "ic", "https://icp-api.io", 1_780_531_200)
+            &crate::nns::topology::NnsTopologyReadRequest::new(
+                "/cache",
+                "ic",
+                "https://icp-api.io",
+                1_780_531_200
+            )
         );
         self.calls.lock().unwrap().push(component);
         if self.fail_at == Some(component) {
@@ -79,7 +81,7 @@ impl RecordingTopologySource {
 impl NnsTopologySource for RecordingTopologySource {
     fn fetch_subnet_catalog_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a crate::nns::topology::NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -90,7 +92,7 @@ impl NnsTopologySource for RecordingTopologySource {
 
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a crate::nns::topology::NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>> {
         Box::pin(async move {
             self.record("nodes", request)?;
@@ -100,7 +102,7 @@ impl NnsTopologySource for RecordingTopologySource {
 
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a crate::nns::topology::NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -111,7 +113,7 @@ impl NnsTopologySource for RecordingTopologySource {
 
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a crate::nns::topology::NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {
@@ -122,7 +124,7 @@ impl NnsTopologySource for RecordingTopologySource {
 
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsTopologySourceRequest,
+        request: &'a crate::nns::topology::NnsTopologyReadRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>
     {
         Box::pin(async move {

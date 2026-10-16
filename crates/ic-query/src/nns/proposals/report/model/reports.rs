@@ -4,9 +4,7 @@
 //! Does not own: request selection, source transport, or text rendering.
 //! Boundary: defines the stable JSON contract for NNS proposal output.
 
-use super::selection::{
-    NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTopic, NnsProposalVote,
-};
+use super::selection::{NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTopic};
 use crate::{
     nns::governance::NnsGovernanceReportContext,
     report::{ReportDataSource, ReportResultScope},
@@ -164,7 +162,7 @@ pub struct NnsProposalBallotRow {
     /// Raw native Governance vote code.
     pub vote: i32,
     /// Classification derived from the raw vote code.
-    pub vote_text: NnsProposalVote,
+    pub vote_text: crate::nns::governance::NnsGovernanceVote,
     /// Voting power recorded for this neuron ballot.
     pub voting_power: u64,
 }

@@ -155,55 +155,6 @@ impl NnsProposalRewardStatus {
 }
 
 ///
-/// NnsProposalVote
-///
-/// Native NNS Governance ballot vote.
-///
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum NnsProposalVote {
-    /// Unspecified or unrecognized native vote code.
-    Unspecified,
-    /// Affirmative ballot.
-    Yes,
-    /// Negative ballot.
-    No,
-}
-
-impl NnsProposalVote {
-    /// Classify one raw native vote code.
-    #[must_use]
-    pub const fn from_code(code: i32) -> Self {
-        match code {
-            1 => Self::Yes,
-            2 => Self::No,
-            _ => Self::Unspecified,
-        }
-    }
-
-    /// Return the canonical native code for this classification.
-    #[must_use]
-    pub const fn code(self) -> i32 {
-        match self {
-            Self::Unspecified => 0,
-            Self::Yes => 1,
-            Self::No => 2,
-        }
-    }
-
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Unspecified => "unspecified",
-            Self::Yes => "yes",
-            Self::No => "no",
-        }
-    }
-}
-
-///
 /// NnsProposalTopic
 ///
 /// Native NNS Governance proposal topic.
@@ -717,20 +668,6 @@ mod tests {
             NnsProposalRewardStatus::from_code(99),
             NnsProposalRewardStatus::Unspecified
         );
-    }
-
-    #[test]
-    fn proposal_vote_codes_and_labels_round_trip() {
-        for (vote, code, label) in [
-            (NnsProposalVote::Unspecified, 0, "unspecified"),
-            (NnsProposalVote::Yes, 1, "yes"),
-            (NnsProposalVote::No, 2, "no"),
-        ] {
-            assert_eq!(vote.code(), code);
-            assert_eq!(NnsProposalVote::from_code(code), vote);
-            assert_json_label(vote, label);
-        }
-        assert_eq!(NnsProposalVote::from_code(99), NnsProposalVote::Unspecified);
     }
 
     #[test]

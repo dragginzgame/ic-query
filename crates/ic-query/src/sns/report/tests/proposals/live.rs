@@ -235,7 +235,7 @@ async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
-    request.query = Some("fixture proposal".to_string());
+    request.query = Some("FiXtUrE PrOpOsAl".to_string());
 
     let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
         .await
@@ -244,11 +244,11 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
 
     assert_eq!(report.data_source.as_str(), "live");
-    assert_eq!(report.query_filter.as_deref(), Some("fixture proposal"));
+    assert_eq!(report.query_filter.as_deref(), Some("FiXtUrE PrOpOsAl"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
-    assert_eq!(json["query_filter"], "fixture proposal");
-    assert!(text.contains("query_filter: fixture proposal"));
+    assert_eq!(json["query_filter"], "FiXtUrE PrOpOsAl");
+    assert!(text.contains("query_filter: FiXtUrE PrOpOsAl"));
 }
 
 #[tokio::test(flavor = "current_thread")]

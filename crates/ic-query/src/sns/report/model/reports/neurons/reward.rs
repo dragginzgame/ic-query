@@ -257,12 +257,20 @@ pub struct SnsRewardCheckpointValidationError {
 pub fn validate_sns_reward_checkpoint_report(
     report: &SnsRewardCheckpointReport,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
+    validated_reward_checkpoint_summary(report).map(|_| ())
+}
+
+/// Validate untrusted checkpoint evidence and retain the derived summary for projection.
+pub(in crate::sns::report) fn validated_reward_checkpoint_summary(
+    report: &SnsRewardCheckpointReport,
+) -> Result<SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError> {
     validate_checkpoint_header(report)?;
     validate_checkpoint_brackets(report)?;
     validate_checkpoint_rows(&report.rows, report.collection_completed_at_unix_secs)?;
     let summary = recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows)
         .map_err(invalid_validation)?;
-    validate_checkpoint_summary(report, &summary)
+    validate_checkpoint_summary(report, &summary)?;
+    Ok(summary)
 }
 
 fn validate_checkpoint_header(

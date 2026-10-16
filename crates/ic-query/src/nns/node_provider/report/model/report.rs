@@ -40,6 +40,7 @@ impl_nns_inventory_report!(
     "node_provider",
     node_provider_count,
     node_providers,
+    |report: &NnsNodeProviderListReport| Some(report.governance_canister_id.clone()),
     |report: &NnsNodeProviderListReport| {
         if report.governance_canister_id != crate::nns::MAINNET_GOVERNANCE_CANISTER_ID {
             return Err(format!(
@@ -88,30 +89,4 @@ pub struct NnsNodeProviderInfoReport {
     pub name: Option<String>,
     pub node_count: Option<u32>,
     pub reward_account_hex: Option<String>,
-}
-
-///
-/// NnsNodeProviderRefreshReport
-///
-/// Outcome of refreshing the cached NNS node provider inventory.
-///
-
-#[cfg(feature = "nns-host")]
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NnsNodeProviderRefreshReport {
-    pub schema_version: u32,
-    pub network: String,
-    pub cache_path: String,
-    pub refresh_lock_path: String,
-    pub output_path: Option<String>,
-    pub governance_canister_id: String,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
-    pub dry_run: bool,
-    pub wrote_cache: bool,
-    pub replaced_existing_cache: bool,
-    pub node_provider_count: usize,
 }

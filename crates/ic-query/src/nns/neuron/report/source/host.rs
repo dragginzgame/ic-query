@@ -10,7 +10,7 @@ use super::{
 };
 use crate::nns::{
     LiveNnsSource,
-    governance::{NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData, host_request},
+    governance::{NnsGovernanceRequest, NnsGovernanceSourceData, host_request},
     governance_query::query_nns_governance,
     neuron::report::{
         model::NnsNeuronRow,
@@ -42,8 +42,7 @@ impl NnsNeuronSource for LiveNnsSource {
                     page_size: Some(page_size),
                 },
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             let neurons = governance_result(result)?
                 .neurons
                 .into_iter()
@@ -77,8 +76,7 @@ impl NnsNeuronSource for LiveNnsSource {
                 "NeuronInfoResult",
                 &neuron_id,
             )
-            .await
-            .map_err(NnsGovernanceError::from)?;
+            .await?;
             let wire = governance_result(result)
                 .map_err(|error| map_neuron_info_error(error, neuron_id))?;
             Ok(NnsGovernanceSourceData::new(

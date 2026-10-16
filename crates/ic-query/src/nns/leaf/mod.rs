@@ -4,33 +4,6 @@ pub(in crate::nns) use cache::{load_nns_leaf_json_cache, write_nns_leaf_json_ref
 use std::path::{Path, PathBuf};
 
 ///
-/// NnsLeafCacheRequest
-///
-/// Cache identity contract shared by generic NNS leaf report requests.
-///
-
-pub(in crate::nns) trait NnsLeafCacheRequest: Clone {
-    fn cache_root(&self) -> &Path;
-    fn network(&self) -> &str;
-}
-
-///
-/// NnsLeafRefreshRequest
-///
-/// Report-builder request contract for generic NNS leaf refresh operations.
-///
-
-pub(in crate::nns) trait NnsLeafRefreshRequest {
-    type Cache: NnsLeafCacheRequest;
-
-    fn cache(&self) -> &Self::Cache;
-    fn now_unix_secs(&self) -> u64;
-    fn lock_stale_after_seconds(&self) -> u64;
-    fn dry_run(&self) -> bool;
-    fn output_path(&self) -> Option<&Path>;
-}
-
-///
 /// NnsLeafCachePaths
 ///
 /// Cache and lock paths for one generic NNS leaf component snapshot.

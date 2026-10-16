@@ -5,7 +5,8 @@
 //! Boundary: transforms proposal rows without changing source identity.
 
 use super::model::{
-    NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection, NnsProposalTopicFilter,
+    NnsProposalListRequest, NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection,
+    NnsProposalTopicFilter,
 };
 #[cfg(feature = "nns-host")]
 use super::model::{NnsProposalRewardStatusFilter, NnsProposalStatusFilter};
@@ -15,6 +16,22 @@ use crate::{
     },
     text_search::optional_text_contains_lowercase_query,
 };
+
+/// Apply only the local view filters and ordering shared by live and cached lists.
+pub(in crate::nns::proposals::report) fn project_nns_proposal_rows(
+    proposals: impl IntoIterator<Item = NnsProposalRow>,
+    request: &NnsProposalListRequest,
+) -> Vec<NnsProposalRow> {
+    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
+    let mut proposals = proposals
+        .into_iter()
+        .filter(|proposal| proposal_matches_proposer(proposal, request.proposer_neuron_id))
+        .filter(|proposal| proposal_matches_topic(proposal, request.topic))
+        .filter(|proposal| proposal_matches_query(proposal, lowercase_query.as_deref()))
+        .collect::<Vec<_>>();
+    sort_nns_proposal_rows(&mut proposals, request.sort, request.sort_direction);
+    proposals
+}
 
 #[cfg(feature = "nns-host")]
 pub(in crate::nns::proposals::report) fn proposal_matches_before(

@@ -5,8 +5,8 @@
 //! Boundary: normalizes shared request fields before lookup/source calls.
 
 use crate::sns::report::{
-    SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, SnsLookupRequest,
-    enforce_mainnet_network, source::SnsSourceRequest,
+    SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, enforce_mainnet_network,
+    source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
 use candid::Principal;
@@ -20,21 +20,6 @@ pub(in crate::sns::report) fn parse_sns_root_canister_input(
             input: input.to_string(),
         })
         .map(|principal| principal.to_text())
-}
-
-/// Build a shared SNS lookup request from command runtime fields.
-pub(in crate::sns::report) fn lookup_request_from_parts(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    input: &str,
-) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: network.to_string(),
-        source_endpoint: source_endpoint.to_string(),
-        now_unix_secs,
-        input: input.to_string(),
-    }
 }
 
 pub(in crate::sns::report) fn validate_sns_refresh_page_size(

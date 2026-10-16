@@ -8,7 +8,10 @@ use ic_host_artifacts::{
     artifact::Sha256Digest,
     wasm::{self, InspectionLimits},
 };
-use ic_host_fs::{durable::create_private_bytes_with_parents, read::read_file};
+use ic_host_fs::{
+    durable::{PublicationMode, WriteOptions, write_bytes},
+    read::read_file,
+};
 use ic_testkit_candid::{DecodeError, DecodeLimits, decode_exactly_one};
 use std::{future::Future, io, path::Path, time::Duration};
 use url::Url;
@@ -57,7 +60,14 @@ pub fn decode_reply(bytes: &[u8]) -> Result<String> {
 
 pub fn publish_reply(path: &Path, bytes: &[u8]) -> Result<String> {
     // Evidence is private and create-new, including replies rejected by admission.
-    create_private_bytes_with_parents(path, bytes)?;
+    write_bytes(
+        path,
+        WriteOptions {
+            mode: PublicationMode::CreateNew,
+            permissions: 0o600,
+        },
+        bytes,
+    )?;
     decode_reply(bytes)
 }
 

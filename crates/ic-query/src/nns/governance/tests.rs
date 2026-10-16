@@ -89,27 +89,19 @@ async fn live_governance_source_rejects_non_mainnet_before_agent_construction() 
 
     assert!(matches!(
         build_nns_governance_economics_report(&request).await,
-        Err(NnsGovernanceHostError::Governance(
-            NnsGovernanceError::UnsupportedNetwork { network }
-        )) if network == "local"
+        Err(NnsGovernanceError::UnsupportedNetwork { network }) if network == "local"
     ));
     assert!(matches!(
         build_nns_governance_metrics_report(&request).await,
-        Err(NnsGovernanceHostError::Governance(
-            NnsGovernanceError::UnsupportedNetwork { network }
-        )) if network == "local"
+        Err(NnsGovernanceError::UnsupportedNetwork { network }) if network == "local"
     ));
     assert!(matches!(
         build_nns_governance_reward_event_report(&request).await,
-        Err(NnsGovernanceHostError::Governance(
-            NnsGovernanceError::UnsupportedNetwork { network }
-        )) if network == "local"
+        Err(NnsGovernanceError::UnsupportedNetwork { network }) if network == "local"
     ));
     assert!(matches!(
         build_nns_governance_maturity_modulation_report(&request).await,
-        Err(NnsGovernanceHostError::Governance(
-            NnsGovernanceError::UnsupportedNetwork { network }
-        )) if network == "local"
+        Err(NnsGovernanceError::UnsupportedNetwork { network }) if network == "local"
     ));
 }
 

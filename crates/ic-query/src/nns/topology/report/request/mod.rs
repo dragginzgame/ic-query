@@ -10,6 +10,4 @@ mod refresh;
 pub(super) use list::{inventory_list_request, node_list_request, subnet_catalog_list_request};
 pub use model::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
 #[cfg(feature = "nns-host")]
-pub(super) use model::{TopologyRefreshParts, TopologyRequestParts};
-#[cfg(feature = "nns-host")]
 pub(super) use refresh::{inventory_refresh_request, subnet_catalog_refresh_request};

@@ -12,9 +12,7 @@ use ic_host_text::{
 
 use super::NnsProposalActivityReport;
 #[cfg(feature = "nns-host")]
-use super::cache::{
-    NnsProposalCacheListReport, NnsProposalCacheStatusReport, NnsProposalRefreshReport,
-};
+use super::cache::{NnsProposalCacheListReport, NnsProposalCacheStatusReport};
 use super::model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
 };
@@ -295,49 +293,6 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
     lines.join("\n")
 }
 
-/// Render snapshot publication and refresh-attempt outcomes as human-facing text.
-#[must_use]
-#[cfg(feature = "nns-host")]
-pub fn nns_proposal_refresh_report_text(report: &NnsProposalRefreshReport) -> String {
-    [
-        format!("network: {}", terminal_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("proposal_count: {}", report.proposal_count),
-        format!("page_size: {}", report.page_size),
-        format!("page_count: {}", report.page_count),
-        format!("complete: {}", yes_no(report.complete)),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!(
-            "attempt_finalized: {}",
-            yes_no(report.attempt_finalization_error.is_none())
-        ),
-        format!(
-            "attempt_finalization_error: {}",
-            terminal_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
-        ),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
-    ]
-    .join("\n")
-}
-
 /// Render the discovered local proposal snapshots as a table.
 #[must_use]
 #[cfg(feature = "nns-host")]
@@ -534,7 +489,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
             .map(|ballot| {
                 [
                     ballot.neuron_id.to_string(),
-                    ballot.vote_text.as_str().to_string(),
+                    ballot.vote_text.to_string(),
                     e8s_decimal_text(ballot.voting_power),
                 ]
             })

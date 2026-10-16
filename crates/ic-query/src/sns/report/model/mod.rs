@@ -14,8 +14,8 @@ mod sorts;
 pub use errors::SnsHostError;
 #[cfg(feature = "sns-host")]
 pub use reports::{
-    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsRefreshReport,
-    SnsNeuronsReport, SnsProposalsRefreshReport, SnsRefreshAttemptStatus,
+    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsReport,
+    SnsRefreshAttemptStatus, SnsSnapshotRefreshReport,
 };
 pub use reports::{
     SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
@@ -41,6 +41,7 @@ pub use reports::{
 };
 pub(in crate::sns::report) use reports::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
+    validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use reports::{
@@ -54,12 +55,12 @@ pub use requests::{
 };
 #[cfg(feature = "sns-host")]
 pub use requests::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronRequest, SnsNeuronsRefreshRequest,
-    SnsNeuronsRequest, SnsProposalsRefreshRequest, SnsRewardCheckpointRequest,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronRequest, SnsNeuronsRequest,
+    SnsRewardCheckpointRequest, SnsSnapshotRefreshRequest,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use requests::{
-    sns_metrics_lookup_request, validate_sns_metrics_request, validate_sns_metrics_time_window,
+    validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
 #[cfg(feature = "sns-host")]
 pub use sorts::SnsNeuronsSort;

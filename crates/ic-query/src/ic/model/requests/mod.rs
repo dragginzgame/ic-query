@@ -5,6 +5,7 @@
 //! Boundary: preserves one explicit request facade across bounded Dashboard capability families.
 
 mod canisters;
+mod dashboard;
 mod icrc_analytics;
 mod icrc_index;
 mod metrics;
@@ -15,6 +16,7 @@ mod replica_versions;
 pub use canisters::{
     IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
 };
+pub use dashboard::IcDashboardRequest;
 pub use icrc_analytics::{
     IcIcrcAnalyticsRequest, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest,
     IcIcrcTokenValueQuery, IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery,
@@ -25,7 +27,7 @@ pub use icrc_index::{
     IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcHolderSort,
 };
 pub use metrics::{IcMetricKind, IcMetricQuery, IcMetricRequest};
-pub use network::{IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery, IcDailyStatsRequest};
+pub use network::{IcDailyStatsQuery, IcDailyStatsRequest};
 pub use node_provider_rewards::{
     IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryRequest,
     IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery,

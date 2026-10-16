@@ -42,6 +42,25 @@ fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
 }
 
 #[test]
+fn status_preserves_header_failures_before_an_unread_payload() {
+    let root = temp_dir("ic-query-cache-status-invalid-prefix");
+    let history = root.join("nns/ic/subnet-catalog/history.json");
+    for contents in [
+        r#"{"schema_version":"invalid","checkpoints":["#,
+        r#"{"schema_version":1,"schema_version":1,"checkpoints":["#,
+        r#"{"schema_version":1,"network":123,"checkpoints":["#,
+        r#"{"network":"ic","checkpoints":["#,
+    ] {
+        write_cache(&root, &history, contents);
+        let report = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
+        assert_eq!(report.cache_count, 1);
+        assert_eq!(report.caches[0].header_status, CacheHeaderStatus::Invalid);
+        assert!(report.caches[0].inspection_error.is_some());
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn status_bounds_registered_files_while_allowing_large_unread_history_payloads() {
     let root = temp_dir("ic-query-cache-status-byte-bounds");
     let catalog_path = root.join("nns/ic/subnet-catalog/catalog.json");

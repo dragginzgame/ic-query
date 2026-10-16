@@ -37,7 +37,8 @@ macro_rules! impl_nns_inventory_report {
         $schema_version:expr,
         $item_name:literal,
         $count_field:ident,
-        $rows_field:ident
+        $rows_field:ident,
+        $governance:expr
         $(, $validate_family:expr)?
         $(,)?
     ) => {
@@ -71,6 +72,31 @@ macro_rules! impl_nns_inventory_report {
 
             fn row_count(&self) -> usize {
                 self.$rows_field.len()
+            }
+
+            fn refresh_outcome(
+                &self,
+                request: &$crate::nns::NnsInventoryRefreshRequest,
+                write: $crate::cache_file::RefreshCacheWriteResult,
+            ) -> $crate::nns::NnsInventoryRefreshReport {
+                $crate::nns::NnsInventoryRefreshReport {
+                    schema_version: 1,
+                    collection: stringify!($rows_field).to_string(),
+                    row_count: self.$count_field,
+                    network: self.network.clone(),
+                    cache_path: write.cache_path,
+                    refresh_lock_path: write.refresh_lock_path,
+                    output_path: write.output_path,
+                    governance_canister_id: ($governance)(self),
+                    registry_canister_id: self.registry_canister_id.clone(),
+                    registry_version: self.registry_version,
+                    fetched_at: self.fetched_at.clone(),
+                    source_endpoint: self.source_endpoint.clone(),
+                    fetched_by: self.fetched_by.clone(),
+                    dry_run: request.dry_run,
+                    wrote_cache: write.wrote_cache,
+                    replaced_existing_cache: write.replaced_existing_cache,
+                }
             }
 
             fn validate_family(&self) -> Result<(), String> {
@@ -138,105 +164,6 @@ macro_rules! nns_leaf_cache {
                 network,
                 $cache_file,
             )
-        }
-    };
-}
-
-#[cfg(feature = "nns-host")]
-macro_rules! nns_leaf_refresh_report {
-    (
-        $report_type:ident,
-        $schema_version:expr,
-        $request:ident,
-        $report:ident,
-        $write_result:ident,
-        $count_field:ident
-        $(, $governance_canister_id:expr)?
-        $(,)?
-    ) => {
-        $report_type {
-            schema_version: $schema_version,
-            network: $report.network.clone(),
-            cache_path: $write_result.cache_path,
-            refresh_lock_path: $write_result.refresh_lock_path,
-            output_path: $write_result.output_path,
-            $(governance_canister_id: $governance_canister_id,)?
-            registry_canister_id: $report.registry_canister_id.clone(),
-            registry_version: $report.registry_version,
-            fetched_at: $report.fetched_at.clone(),
-            source_endpoint: $report.source_endpoint.clone(),
-            fetched_by: $report.fetched_by.clone(),
-            dry_run: $request.dry_run,
-            wrote_cache: $write_result.wrote_cache,
-            replaced_existing_cache: $write_result.replaced_existing_cache,
-            $count_field: $report.$count_field,
-        }
-    };
-}
-
-#[cfg(feature = "nns-host")]
-macro_rules! nns_leaf_refresh_report_text {
-    (
-        $report:ident,
-        $governance_canister_id:expr,
-        $count_label:literal,
-        $count_field:ident
-        $(,)?
-    ) => {
-        $crate::nns::render::nns_leaf_refresh_report_text($crate::nns::render::NnsLeafRefreshText {
-            network: &$report.network,
-            cache_path: &$report.cache_path,
-            refresh_lock_path: &$report.refresh_lock_path,
-            governance_canister_id: $governance_canister_id,
-            registry_canister_id: &$report.registry_canister_id,
-            registry_version: $report.registry_version,
-            fetched_at: &$report.fetched_at,
-            source_endpoint: &$report.source_endpoint,
-            fetched_by: &$report.fetched_by,
-            dry_run: $report.dry_run,
-            wrote_cache: $report.wrote_cache,
-            replaced_existing_cache: $report.replaced_existing_cache,
-            count_label: $count_label,
-            count: $report.$count_field,
-        })
-    };
-}
-
-#[cfg(feature = "nns-host")]
-macro_rules! impl_nns_leaf_cache_and_refresh_requests {
-    ($cache:ty, $refresh:ty) => {
-        impl crate::nns::leaf::NnsLeafCacheRequest for $cache {
-            fn cache_root(&self) -> &std::path::Path {
-                &self.cache_root
-            }
-
-            fn network(&self) -> &str {
-                &self.network
-            }
-        }
-
-        impl crate::nns::leaf::NnsLeafRefreshRequest for $refresh {
-            type Cache = $cache;
-
-            fn cache(&self) -> &Self::Cache {
-                &self.cache
-            }
-
-            fn now_unix_secs(&self) -> u64 {
-                self.now_unix_secs
-            }
-
-            fn lock_stale_after_seconds(&self) -> u64 {
-                self.lock_stale_after_seconds
-            }
-
-            fn dry_run(&self) -> bool {
-                self.dry_run
-            }
-
-            fn output_path(&self) -> Option<&std::path::Path> {
-                self.output_path.as_deref()
-            }
         }
     };
 }

@@ -62,18 +62,23 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterCollectionOptions::from_matches(matches);
-    let request = IcCanisterCountRequest::new(options.source_endpoint, current_unix_secs()?)
-        .with_filters(options.filters);
+    let request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
+        options.source_endpoint,
+        current_unix_secs()?,
+    ))
+    .with_filters(options.filters);
     let report = build_ic_canister_count_report(&request).await?;
     write_text_or_json(options.format, &report, ic_canister_count_report_text)
 }
 
 async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterPageOptions::from_matches(matches);
-    let mut request =
-        IcCanisterPageRequest::new(options.collection.source_endpoint, current_unix_secs()?)
-            .with_filters(options.collection.filters)
-            .with_limit(options.limit);
+    let mut request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
+        options.collection.source_endpoint,
+        current_unix_secs()?,
+    ))
+    .with_filters(options.collection.filters)
+    .with_limit(options.limit);
     request.after = options.after;
     request.before = options.before;
     let report = build_ic_canister_page_report(&request).await?;
@@ -87,8 +92,7 @@ async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterInfoOptions::from_matches(matches);
     let request = IcCanisterRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         options.canister_id,
     );
     let report = build_ic_canister_report(&request).await?;

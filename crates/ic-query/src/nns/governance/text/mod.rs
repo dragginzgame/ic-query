@@ -6,6 +6,10 @@
 
 use ic_host_text::escape::terminal_text;
 
+#[cfg(feature = "nns-host")]
+mod collection;
+#[cfg(feature = "nns-host")]
+pub use collection::nns_governance_refresh_report_text;
 mod economics;
 mod events;
 mod metrics;

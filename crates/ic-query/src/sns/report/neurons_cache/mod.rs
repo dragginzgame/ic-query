@@ -24,4 +24,3 @@ pub use reports::{build_sns_neurons_cache_list_report, build_sns_neurons_cache_s
 pub(super) const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
-pub(super) const SNS_NEURONS_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;

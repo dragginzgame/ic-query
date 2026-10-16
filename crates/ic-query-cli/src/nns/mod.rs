@@ -25,7 +25,7 @@ use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::{
     ic::{IcHostError, IcNodeStatusHostError},
     nns::{
-        data_center::NnsDataCenterHostError, governance::NnsGovernanceHostError,
+        data_center::NnsDataCenterHostError, governance::NnsGovernanceError,
         neuron::NnsNeuronHostError, node::NnsNodeHostError,
         node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
         proposals::NnsProposalHostError, registry::NnsRegistryHostError,
@@ -55,7 +55,7 @@ pub enum NnsCommandError {
     #[error(transparent)]
     DataCenterHost(#[from] NnsDataCenterHostError),
     #[error(transparent)]
-    GovernanceHost(#[from] NnsGovernanceHostError),
+    Governance(#[from] NnsGovernanceError),
     #[error(transparent)]
     NodeHost(#[from] NnsNodeHostError),
     #[error(transparent)]

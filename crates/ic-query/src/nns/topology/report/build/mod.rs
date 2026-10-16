@@ -3,7 +3,7 @@ mod direct;
 mod refresh;
 mod summary;
 
-use super::{NnsTopologyHostError, NnsTopologySource, NnsTopologySourceRequest};
+use super::{NnsTopologyHostError, NnsTopologySource};
 use crate::nns::{
     data_center::NnsDataCenterListReport, node::NnsNodeListReport,
     node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
@@ -39,7 +39,7 @@ struct TopologyInventoryReports {
 }
 
 async fn fetch_topology_inventory_reports(
-    request: &NnsTopologySourceRequest,
+    request: &crate::nns::topology::NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<TopologyInventoryReports, NnsTopologyHostError> {
     Ok(TopologyInventoryReports {

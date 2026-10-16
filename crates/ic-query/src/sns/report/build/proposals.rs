@@ -8,15 +8,15 @@ use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SnsHostError, SnsProposalReport, SnsProposalRequest,
-        SnsProposalStatusFilter, SnsProposalsReport, SnsProposalsRequest,
+        SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
+        SnsProposalsReport, SnsProposalsRequest,
         assemble::{
-            SnsProposalReportContext, SnsReportProvenance, sns_proposal_report_from_parts,
+            SnsReportContext, SnsReportProvenance, sns_proposal_report_from_parts,
             sns_proposals_report_from_parts,
         },
         enforce_mainnet_network,
         live::LiveSnsSource,
-        lookup::{lookup_request_from_parts, resolve_sns_lookup},
+        lookup::resolve_sns_lookup,
         proposals_cache::{
             build_sns_proposal_report_from_cache, build_sns_proposals_report_from_cache_or_refresh,
         },
@@ -24,10 +24,7 @@ use crate::{
             SnsProposalSource, SnsProposalsSource, validate_mainnet_sns_proposal,
             validate_mainnet_sns_proposals,
         },
-        view::{
-            proposal_matches_eligibility, proposal_matches_proposer, proposal_matches_query,
-            sort_sns_proposal_rows,
-        },
+        view::apply_sns_proposal_view,
     },
 };
 
@@ -60,36 +57,20 @@ pub async fn build_sns_proposal_report_with_source(
     request: &SnsProposalRequest,
     source: &dyn SnsProposalSource,
 ) -> Result<SnsProposalReport, SnsHostError> {
-    enforce_mainnet_network(&request.network)?;
+    enforce_mainnet_network(&request.lookup.network)?;
     if let Some(cache_root) = request.cache_root.as_ref()
         && let Some(report) = build_sns_proposal_report_from_cache(request, cache_root)?
     {
         return Ok(report);
     }
-    let lookup_request = lookup_request_from_parts(
-        &request.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        &request.input,
-    );
-    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let proposal = source
         .fetch_sns_proposal(&lookup.fetch_request, &lookup.sns, request.proposal_id)
         .await?;
     validate_mainnet_sns_proposal(&proposal, request.proposal_id)?;
     Ok(sns_proposal_report_from_parts(
         request,
-        SnsProposalReportContext {
-            network: lookup.fetch_request.network,
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            fetched_at: lookup.fetch_request.fetched_at,
-            source_endpoint: lookup.fetch_request.endpoint,
-            fetched_by: lookup.fetch_request.fetched_by,
-            id: lookup.sns.id,
-            name: lookup.sns.name,
-            root_canister_id: lookup.sns.root_canister_id,
-            governance_canister_id: lookup.sns.governance_canister_id,
-        },
+        SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         SnsReportProvenance::live(),
         proposal.proposal,
     ))
@@ -119,7 +100,7 @@ async fn build_sns_proposals_report_with_source_and_progress(
 }
 
 fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
-    enforce_mainnet_network(&request.network)?;
+    enforce_mainnet_network(&request.lookup.network)?;
     if request.status == SnsProposalStatusFilter::Decided && request.cache_root.is_none() {
         return Err(SnsHostError::UnsupportedProposalView {
             reason: "`--status decided` requires a complete proposal cache".to_string(),
@@ -132,13 +113,7 @@ async fn build_sns_proposals_report_live(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    let lookup_request = lookup_request_from_parts(
-        &request.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-        &request.input,
-    );
-    let lookup = resolve_sns_lookup(&lookup_request, source).await?;
+    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let include_status = request
         .status
         .governance_status_code()
@@ -155,33 +130,10 @@ async fn build_sns_proposals_report_live(
         )
         .await?;
     validate_mainnet_sns_proposals(&proposals, request.limit)?;
-    proposals
-        .proposals
-        .retain(|proposal| proposal_matches_eligibility(proposal, request.eligibility));
-    proposals.proposals.retain(|proposal| {
-        proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
-    });
-    proposals
-        .proposals
-        .retain(|proposal| proposal_matches_query(proposal, request.query.as_deref()));
-    sort_sns_proposal_rows(
-        &mut proposals.proposals,
-        request.sort,
-        request.sort_direction,
-    );
+    apply_sns_proposal_view(&mut proposals.proposals, request);
     Ok(sns_proposals_report_from_parts(
         request,
-        SnsProposalReportContext {
-            network: lookup.fetch_request.network,
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            fetched_at: lookup.fetch_request.fetched_at,
-            source_endpoint: lookup.fetch_request.endpoint,
-            fetched_by: lookup.fetch_request.fetched_by,
-            id: lookup.sns.id,
-            name: lookup.sns.name,
-            root_canister_id: lookup.sns.root_canister_id,
-            governance_canister_id: lookup.sns.governance_canister_id,
-        },
+        SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         SnsReportProvenance::live(),
         proposals.proposals,
     ))

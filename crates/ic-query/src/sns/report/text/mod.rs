@@ -16,6 +16,8 @@ mod neuron;
 mod neurons;
 mod params;
 mod proposals;
+#[cfg(feature = "sns-host")]
+mod refresh;
 mod reward;
 mod reward_diff;
 mod swap;
@@ -35,11 +37,11 @@ pub use list::sns_list_report_text;
 pub use metrics::sns_metrics_report_text;
 pub use neuron::sns_neuron_detail_report_text;
 #[cfg(feature = "sns-host")]
-pub use neurons::{sns_neurons_refresh_report_text, sns_neurons_report_text};
+pub use neurons::sns_neurons_report_text;
 pub use params::sns_params_report_text;
-#[cfg(feature = "sns-host")]
-pub use proposals::sns_proposals_refresh_report_text;
 pub use proposals::{sns_proposal_report_text, sns_proposals_report_text};
+#[cfg(feature = "sns-host")]
+pub use refresh::sns_snapshot_refresh_report_text;
 pub use reward::sns_reward_checkpoint_report_text;
 pub use reward_diff::sns_reward_diff_report_text;
 pub use swap::sns_swap_report_text;

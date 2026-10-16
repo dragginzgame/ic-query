@@ -4,15 +4,19 @@
 //! Does not own: proposal or neuron paging, cache paths, or report rendering.
 //! Boundary: centralizes shared DTOs plus attempt construction and validation.
 
+mod refresh;
+pub(in crate::nns) use refresh::run_governance_snapshot_refresh;
+
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
     nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{
-        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
-        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotEnvelope, SnapshotJsonPaths,
+        SnapshotRefreshAttempt, SnapshotRefreshAttemptReadError, SnapshotRefreshProgress,
+        current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
+        validate_snapshot_refresh_attempt,
     },
     subnet_catalog::format_utc_timestamp_secs,
 };
@@ -101,6 +105,87 @@ impl NnsGovernanceCacheRequest {
     #[must_use]
     pub fn cache_root(&self) -> &Path {
         &self.cache_root
+    }
+}
+
+///
+/// NnsGovernanceRefreshReport
+///
+/// Serializable outcome of a complete NNS Governance collection refresh.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Independent snapshot assurance and publication observations remain explicit in raw JSON."
+)]
+pub struct NnsGovernanceRefreshReport {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Refreshed network identity.
+    pub network: String,
+    /// NNS Governance canister principal.
+    pub governance_canister_id: String,
+    /// Number of rows in the published collection.
+    pub row_count: usize,
+    /// Published collection, either neurons or proposals.
+    pub collection: String,
+    /// Whether the complete snapshot was published.
+    pub wrote_cache: bool,
+    /// Page size used for the walk.
+    pub page_size: u32,
+    /// Pages fetched through API exhaustion.
+    pub page_count: u32,
+    /// Whether the published collection is complete.
+    pub complete: bool,
+    /// Whether every row is guaranteed to describe one Governance instant.
+    pub point_in_time_guaranteed: bool,
+    /// Whether a previous complete cache was replaced.
+    pub replaced_existing_cache: bool,
+    /// Failure to finalize attempt metadata after successful publication.
+    pub attempt_finalization_error: Option<String>,
+    /// UTC collection timestamp.
+    pub fetched_at: String,
+    /// Replica endpoint used for every page.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Published snapshot path.
+    pub cache_path: String,
+    /// Refresh-attempt sidecar path.
+    pub refresh_attempt_path: String,
+    /// Refresh-lock path.
+    pub refresh_lock_path: String,
+}
+
+impl NnsGovernanceRefreshReport {
+    /// Project the snapshot only after its publication succeeded.
+    pub(in crate::nns) fn from_snapshot<Rows>(
+        cache: &SnapshotEnvelope<NnsGovernanceCacheMetadata, Rows>,
+        paths: &SnapshotJsonPaths,
+        replaced_existing_cache: bool,
+        attempt_finalization_error: Option<String>,
+    ) -> Self {
+        Self {
+            schema_version: 1,
+            network: cache.network.clone(),
+            governance_canister_id: cache.metadata.governance_canister_id.clone(),
+            row_count: cache.completeness.row_count,
+            collection: cache.collection.clone(),
+            page_size: cache.completeness.page_size,
+            page_count: cache.completeness.page_count,
+            complete: cache.completeness.is_api_exhausted(),
+            point_in_time_guaranteed: cache.completeness.point_in_time_guaranteed,
+            wrote_cache: true,
+            replaced_existing_cache,
+            attempt_finalization_error,
+            fetched_at: cache.fetched_at.clone(),
+            source_endpoint: cache.source_endpoint.clone(),
+            fetched_by: cache.fetched_by.clone(),
+            cache_path: paths.snapshot_path.display().to_string(),
+            refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
+            refresh_lock_path: paths.refresh_lock_path.display().to_string(),
+        }
     }
 }
 

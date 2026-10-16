@@ -4,34 +4,16 @@
 //! Does not own: proposal fetching, cache loading, view filtering/sorting, or rendering.
 //! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
 
-use super::SnsReportProvenance;
+use super::{SnsReportContext, SnsReportProvenance};
 use crate::sns::report::{
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
     SnsProposalRequest, SnsProposalRow, SnsProposalsReport, SnsProposalsRequest,
 };
 
-///
-/// SnsProposalReportContext
-///
-/// Validated identity and acquisition metadata used by proposal reports.
-///
-
-pub(in crate::sns::report) struct SnsProposalReportContext {
-    pub(in crate::sns::report) network: String,
-    pub(in crate::sns::report) sns_wasm_canister_id: String,
-    pub(in crate::sns::report) fetched_at: String,
-    pub(in crate::sns::report) source_endpoint: String,
-    pub(in crate::sns::report) fetched_by: String,
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) name: String,
-    pub(in crate::sns::report) root_canister_id: String,
-    pub(in crate::sns::report) governance_canister_id: String,
-}
-
 /// Assemble resolved proposal evidence with the original detail view options.
 pub(in crate::sns::report) fn sns_proposal_report_from_parts(
     request: &SnsProposalRequest,
-    context: SnsProposalReportContext,
+    context: SnsReportContext,
     provenance: SnsReportProvenance,
     proposal: SnsProposalRow,
 ) -> SnsProposalReport {
@@ -59,7 +41,7 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
 /// Assemble resolved proposal evidence with the original list view options.
 pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     request: &SnsProposalsRequest,
-    context: SnsProposalReportContext,
+    context: SnsReportContext,
     provenance: SnsReportProvenance,
     proposals: Vec<SnsProposalRow>,
 ) -> SnsProposalsReport {

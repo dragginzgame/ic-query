@@ -17,8 +17,9 @@ use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
         NnsGovernanceCollectionStatus, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
-        NnsGovernanceSourceSelection, validate_governance_request,
-        validate_governance_time_interval, validate_source_provenance,
+        NnsGovernanceSourceSelection, validate_governance_collection_identity,
+        validate_governance_collection_page_bounds, validate_governance_continuation_request,
+        validate_governance_request, validate_governance_time_interval, validate_source_provenance,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -197,7 +198,16 @@ pub async fn advance_nns_neuron_collection_with_source(
 ) -> Result<NnsNeuronCollectionStep, NnsNeuronError> {
     validate_governance_request(request)?;
     validate_collection_state(state)?;
-    validate_continuation_request(request, state)?;
+    validate_governance_continuation_request(
+        request,
+        &state.network,
+        &state.requested_source,
+        |field, expected, actual| NnsNeuronError::CollectionRequestMismatch {
+            field,
+            expected,
+            actual,
+        },
+    )?;
     validate_governance_time_interval(
         "updated_at",
         &state.updated_at,
@@ -264,27 +274,6 @@ pub async fn advance_nns_neuron_collection_with_source(
     })
 }
 
-fn validate_continuation_request(
-    request: &NnsGovernanceRequest,
-    state: &NnsNeuronCollectionState,
-) -> Result<(), NnsNeuronError> {
-    if request.network != state.network {
-        return Err(NnsNeuronError::CollectionRequestMismatch {
-            field: "network",
-            expected: state.network.clone(),
-            actual: request.network.clone(),
-        });
-    }
-    if request.source != state.requested_source {
-        return Err(NnsNeuronError::CollectionRequestMismatch {
-            field: "requested_source",
-            expected: format!("{:?}", state.requested_source),
-            actual: format!("{:?}", request.source),
-        });
-    }
-    Ok(())
-}
-
 pub(super) fn validate_collection_state(
     state: &NnsNeuronCollectionState,
 ) -> Result<(), NnsNeuronError> {
@@ -295,34 +284,15 @@ pub(super) fn validate_collection_state(
             state.schema_version
         )));
     }
-    if state.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
-        return Err(invalid(format!(
-            "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
-            state.governance_canister_id
-        )));
-    }
-    let state_request = NnsGovernanceRequest {
-        network: state.network.clone(),
-        fetched_at: state.started_at.clone(),
-        source: state.requested_source.clone(),
-    };
-    validate_governance_request(&state_request)?;
-    validate_governance_time_interval(
-        "started_at",
-        &state.started_at,
-        "updated_at",
-        &state.updated_at,
+    validate_governance_collection_identity(
+        &state.network,
+        &state.governance_canister_id,
+        &state.requested_source,
+        (&state.started_at, &state.updated_at),
+        invalid,
     )?;
     validate_page_size(state.page_size)?;
-    if state.max_pages == 0 {
-        return Err(invalid("max_pages must be greater than zero".to_string()));
-    }
-    if state.pages_fetched > state.max_pages {
-        return Err(invalid(format!(
-            "pages_fetched {} exceeds max_pages {}",
-            state.pages_fetched, state.max_pages
-        )));
-    }
+    validate_governance_collection_page_bounds(state.max_pages, state.pages_fetched, invalid)?;
     if let Some(source) = &state.source {
         validate_source_provenance(&state.requested_source, source)?;
     }
@@ -447,6 +417,22 @@ mod tests {
             1_700_000_000,
         );
         let valid_state = NnsNeuronCollectionState::new(&request, 2, 3).expect("valid state");
+        for (field, value) in [
+            ("governance_canister_id", serde_json::json!("aaaaa-aa")),
+            ("max_pages", serde_json::json!(0)),
+            ("pages_fetched", serde_json::json!(4)),
+        ] {
+            let mut restored = serde_json::to_value(&valid_state).unwrap();
+            restored[field] = value;
+            let restored = serde_json::from_value(restored).unwrap();
+            assert!(
+                matches!(
+                    validate_collection_state(&restored),
+                    Err(NnsNeuronError::InvalidCollectionState { .. })
+                ),
+                "invalid restored {field}"
+            );
+        }
         for timestamp in ["not a UTC timestamp", "+2023-11-14T22:13:20Z"] {
             request.fetched_at = timestamp.to_string();
             assert!(matches!(

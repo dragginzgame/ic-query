@@ -5,7 +5,7 @@ use super::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
         NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
         NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTopic,
-        NnsProposalTopicFilter, NnsProposalVote,
+        NnsProposalTopicFilter,
         selection::{
             NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
             NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,

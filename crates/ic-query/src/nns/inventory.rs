@@ -1,8 +1,8 @@
 //! Module: nns::inventory
 //!
 //! Responsibility: share Registry-inventory lifecycle and row-resolution mechanics.
-//! Does not own: family DTOs, source implementations, cache identity, projection, or public errors.
-//! Boundary: one control flow serves node, provider, operator, and data-center reports.
+//! Does not own: family row DTOs, source implementations, cache identity, or public errors.
+//! Boundary: one lifecycle and publication outcome serve node, provider, operator, and data-center reports.
 
 use super::{
     NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest, NnsSourceRequest,
@@ -18,6 +18,48 @@ use crate::{
 };
 use serde::Serialize;
 use std::path::PathBuf;
+
+///
+/// NnsInventoryRefreshReport
+///
+/// Publication outcome shared by Registry-derived NNS inventory refreshes.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, Serialize)]
+pub struct NnsInventoryRefreshReport {
+    /// Serialized report schema version, currently 1.
+    pub schema_version: u32,
+    /// Registry inventory represented by this refresh.
+    pub collection: String,
+    /// Number of rows collected before any view filtering.
+    pub row_count: usize,
+    /// Network whose inventory was collected.
+    pub network: String,
+    /// Managed complete inventory cache path.
+    pub cache_path: String,
+    /// Refresh lock path.
+    pub refresh_lock_path: String,
+    /// Explicit export path, when requested.
+    pub output_path: Option<String>,
+    /// Governance principal supplying provider metadata, when applicable.
+    pub governance_canister_id: Option<String>,
+    /// Registry principal supplying inventory records.
+    pub registry_canister_id: String,
+    /// Registry version used for collection.
+    pub registry_version: u64,
+    /// UTC collection timestamp.
+    pub fetched_at: String,
+    /// Explicit replica endpoint used for collection.
+    pub source_endpoint: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Whether managed-cache publication was disabled.
+    pub dry_run: bool,
+    /// Whether the managed complete cache was published.
+    pub wrote_cache: bool,
+    /// Whether a cache existed at write admission, including during a dry run.
+    pub replaced_existing_cache: bool,
+}
 
 ///
 /// NnsInventoryHostError
@@ -51,6 +93,13 @@ pub(in crate::nns) trait NnsInventoryReport {
     fn source_endpoint(&self) -> &str;
     fn declared_row_count(&self) -> usize;
     fn row_count(&self) -> usize;
+
+    /// Project an admitted inventory and the actual publication result.
+    fn refresh_outcome(
+        &self,
+        request: &NnsInventoryRefreshRequest,
+        write: RefreshCacheWriteResult,
+    ) -> NnsInventoryRefreshReport;
 
     /// Validate cache-stable provenance, count, and family-specific evidence.
     fn validate(&self) -> Result<(), String> {
@@ -123,42 +172,9 @@ pub(in crate::nns) trait NnsInventoryReport {
     }
 }
 
-///
-/// NnsInventoryListInput
-///
-/// Internal view of the collection inputs shared by Registry inventory list requests.
-///
-
-pub(in crate::nns) trait NnsInventoryListInput {
-    /// Cache identity for the complete inventory snapshot.
-    fn cache(&self) -> &NnsInventoryCacheRequest;
-    /// Explicit live endpoint used only when the cache needs read-through refresh.
-    fn source_endpoint(&self) -> &str;
-    /// Caller-provided timestamp used by a read-through refresh.
-    fn now_unix_secs(&self) -> u64;
-}
-
-impl NnsInventoryListInput for NnsInventoryListRequest {
-    fn cache(&self) -> &NnsInventoryCacheRequest {
-        &self.cache
-    }
-
-    fn source_endpoint(&self) -> &str {
-        &self.source_endpoint
-    }
-
-    fn now_unix_secs(&self) -> u64 {
-        self.now_unix_secs
-    }
-}
-
 /// Load one Registry inventory cache, refreshing missing or invalid local content.
-#[expect(
-    clippy::future_not_send,
-    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
-)]
 pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report, Error>(
-    request: &impl NnsInventoryListInput,
+    request: &NnsInventoryListRequest,
     expected_cache_path: PathBuf,
     lock_stale_after_seconds: u64,
     progress: &mut dyn QueryProgress,
@@ -170,19 +186,19 @@ where
     Report: NnsInventoryReport,
 {
     load_or_refresh_cache(
-        || load(request.cache()),
+        || load(&request.cache),
         |_| false,
         |error| error.cache_refresh_reason(expected_cache_path.clone()),
         async |_| {
             progress.report(QueryProgressEvent::CacheRefresh {
                 component: Report::ITEM_NAME.replace('_', "-"),
                 path: expected_cache_path.clone(),
-                source_endpoint: request.source_endpoint().to_string(),
+                source_endpoint: request.source_endpoint.clone(),
             });
             let refresh_request = NnsInventoryRefreshRequest::new(
-                request.cache().clone(),
-                request.source_endpoint(),
-                request.now_unix_secs(),
+                request.cache.clone(),
+                &request.source_endpoint,
+                request.now_unix_secs,
                 lock_stale_after_seconds,
             );
             refresh(&refresh_request).await
@@ -219,7 +235,7 @@ pub(in crate::nns) async fn refresh_nns_inventory_cache<Report, Error>(
     component_dir: &'static str,
     cache_file: &str,
     fetch: impl AsyncFnOnce(&str, &str, u64) -> Result<Report, Error>,
-) -> Result<(Report, RefreshCacheWriteResult), Error>
+) -> Result<(Report, NnsInventoryRefreshReport), Error>
 where
     Report: NnsInventoryReport + Serialize,
     Error: From<HostCacheError> + NnsInventoryHostError,
@@ -242,7 +258,8 @@ where
         .map_err(Error::invalid_source_data)?;
     let write_result =
         write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report).await?;
-    Ok((report, write_result))
+    let outcome = report.refresh_outcome(request, write_result);
+    Ok((report, outcome))
 }
 
 ///

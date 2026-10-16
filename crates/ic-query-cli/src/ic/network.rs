@@ -17,8 +17,8 @@ use crate::cli::{
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::{
     DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcBoundaryNodeDataCentersRequest, IcDailyStatsQuery,
-    IcDailyStatsRequest, MIN_IC_DAILY_STATS_TIMESTAMP, build_ic_boundary_node_data_centers_report,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcDailyStatsQuery, IcDailyStatsRequest,
+    MIN_IC_DAILY_STATS_TIMESTAMP, build_ic_boundary_node_data_centers_report,
     build_ic_daily_stats_report, ic_boundary_node_data_centers_report_text,
     ic_daily_stats_report_text,
 };
@@ -59,7 +59,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 async fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = SourceOutputOptions::from_matches(matches);
     let request =
-        IcBoundaryNodeDataCentersRequest::new(options.source_endpoint, current_unix_secs()?);
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?);
     let report = build_ic_boundary_node_data_centers_report(&request).await?;
     write_text_or_json(
         options.format,
@@ -76,8 +76,7 @@ async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_DAILY_STATS_WINDOW_SECS));
     let request = IcDailyStatsRequest::new(
-        options.source.source_endpoint,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, now_unix_secs),
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
     let report = build_ic_daily_stats_report(&request).await?;

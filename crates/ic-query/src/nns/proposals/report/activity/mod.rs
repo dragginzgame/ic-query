@@ -292,9 +292,39 @@ pub fn validate_nns_proposal_activity_report(
 ) -> Result<(), NnsProposalActivityValidationError> {
     validate_activity_header(report)?;
     validate_activity_selection(report)?;
-    validate_topic_counts(report)?;
-    validate_status_counts(report)?;
-    validate_reward_status_counts(report)?;
+    validate_code_counts(
+        report,
+        "topic",
+        report.topic_counts.iter().map(|row| {
+            (
+                row.topic,
+                row.topic_text == NnsProposalTopic::from_code(row.topic),
+                row.proposal_count,
+            )
+        }),
+    )?;
+    validate_code_counts(
+        report,
+        "status",
+        report.status_counts.iter().map(|row| {
+            (
+                row.status,
+                row.status_text == NnsProposalStatus::from_code(row.status),
+                row.proposal_count,
+            )
+        }),
+    )?;
+    validate_code_counts(
+        report,
+        "reward-status",
+        report.reward_status_counts.iter().map(|row| {
+            (
+                row.reward_status,
+                row.reward_status_text == NnsProposalRewardStatus::from_code(row.reward_status),
+                row.proposal_count,
+            )
+        }),
+    )?;
     validate_day_counts(report)
 }
 
@@ -431,73 +461,28 @@ fn validate_included_range(
     Ok(())
 }
 
-fn validate_topic_counts(
+fn validate_code_counts(
     report: &NnsProposalActivityReport,
+    dimension: &'static str,
+    rows: impl Iterator<Item = (i32, bool, u64)>,
 ) -> Result<(), NnsProposalActivityValidationError> {
     let mut previous = None;
     let mut total = 0_u64;
-    for row in &report.topic_counts {
-        if previous.is_some_and(|topic| topic >= row.topic) {
-            return Err(invalid_validation(
-                "topic count rows are not strictly raw-code ordered",
-            ));
-        }
-        if row.topic_text != NnsProposalTopic::from_code(row.topic) {
+    for (key, classification_matches, count) in rows {
+        if previous.is_some_and(|previous| previous >= key) {
             return Err(invalid_validation(format!(
-                "topic classification for raw code {} is inconsistent",
-                row.topic
+                "{dimension} count rows are not strictly raw-code ordered"
             )));
         }
-        total = add_dimension_count(total, row.proposal_count, "topic")?;
-        previous = Some(row.topic);
-    }
-    validate_dimension_total(total, report.included_proposal_count, "topic")
-}
-
-fn validate_status_counts(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    let mut previous = None;
-    let mut total = 0_u64;
-    for row in &report.status_counts {
-        if previous.is_some_and(|status| status >= row.status) {
-            return Err(invalid_validation(
-                "status count rows are not strictly raw-code ordered",
-            ));
-        }
-        if row.status_text != NnsProposalStatus::from_code(row.status) {
+        if !classification_matches {
             return Err(invalid_validation(format!(
-                "status classification for raw code {} is inconsistent",
-                row.status
+                "{dimension} classification for raw code {key} is inconsistent"
             )));
         }
-        total = add_dimension_count(total, row.proposal_count, "status")?;
-        previous = Some(row.status);
+        total = add_dimension_count(total, count, dimension)?;
+        previous = Some(key);
     }
-    validate_dimension_total(total, report.included_proposal_count, "status")
-}
-
-fn validate_reward_status_counts(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    let mut previous = None;
-    let mut total = 0_u64;
-    for row in &report.reward_status_counts {
-        if previous.is_some_and(|reward_status| reward_status >= row.reward_status) {
-            return Err(invalid_validation(
-                "reward-status count rows are not strictly raw-code ordered",
-            ));
-        }
-        if row.reward_status_text != NnsProposalRewardStatus::from_code(row.reward_status) {
-            return Err(invalid_validation(format!(
-                "reward-status classification for raw code {} is inconsistent",
-                row.reward_status
-            )));
-        }
-        total = add_dimension_count(total, row.proposal_count, "reward-status")?;
-        previous = Some(row.reward_status);
-    }
-    validate_dimension_total(total, report.included_proposal_count, "reward-status")
+    validate_dimension_total(total, report.included_proposal_count, dimension)
 }
 
 fn validate_day_counts(

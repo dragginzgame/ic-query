@@ -28,6 +28,5 @@ pub use reports::{build_sns_proposals_cache_list_report, build_sns_proposals_cac
 pub(super) const SNS_PROPOSALS_CACHE_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(super) const SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;
-pub(super) const SNS_PROPOSALS_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 const SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE: u32 = 100;

@@ -1,13 +1,13 @@
 //! Module: sns::report::view::proposals
 //!
-//! Responsibility: apply SNS proposal list view ordering.
-//! Does not own: proposal fetching, cache filtering, report assembly, or text rendering.
-//! Boundary: sorts proposal rows without changing cache identity.
+//! Responsibility: apply shared SNS proposal view filtering and ordering.
+//! Does not own: proposal fetching, cache scope/limits, report assembly, or text rendering.
+//! Boundary: projects already-collected proposal rows without changing cache identity.
 
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
+    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsRequest, SnsProposalsSort,
 };
 use crate::{
     report_sort::{
@@ -16,6 +16,20 @@ use crate::{
     },
     text_search::optional_text_contains_lowercase_query,
 };
+
+/// Apply view-only filters and ordering after live or cached scope selection.
+pub(in crate::sns::report) fn apply_sns_proposal_view(
+    proposals: &mut Vec<SnsProposalRow>,
+    request: &SnsProposalsRequest,
+) {
+    let lowercase_query = request.query.as_deref().map(str::to_lowercase);
+    proposals.retain(|proposal| {
+        proposal_matches_eligibility(proposal, request.eligibility)
+            && proposal_matches_proposer(proposal, request.proposer_neuron_id.as_deref())
+            && proposal_matches_query(proposal, lowercase_query.as_deref())
+    });
+    sort_sns_proposal_rows(proposals, request.sort, request.sort_direction);
+}
 
 pub(in crate::sns::report) fn proposal_matches_before(
     proposal: &SnsProposalRow,

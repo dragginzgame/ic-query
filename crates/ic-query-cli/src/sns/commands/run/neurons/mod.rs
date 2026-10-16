@@ -42,10 +42,12 @@ async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), 
     let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
     let request = SnsNeuronRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         neuron_id: options.neuron_id,
     };
     let report = build_sns_neuron_detail_report(&request).await?;
@@ -59,10 +61,12 @@ async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), 
     let format = lookup.format;
     let cache_root = cache_root_for_sort(options.sort)?;
     let request = SnsNeuronsRequest {
-        network: lookup.network,
-        source_endpoint: lookup.source_endpoint,
-        now_unix_secs,
-        input: lookup.input,
+        lookup: ic_query::sns::SnsLookupRequest::new(
+            lookup.network,
+            lookup.source_endpoint,
+            now_unix_secs,
+            lookup.input,
+        ),
         limit: options.limit,
         owner_principal_id: options.owner_principal_id,
         sort: options.sort.into(),

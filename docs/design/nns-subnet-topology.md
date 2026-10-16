@@ -88,6 +88,12 @@ providers remain visible without Governance metadata. Governance and Registry
 node counts are separate observations. Spare slots and over-assignment are
 summed per operator, so spare capacity at one operator does not cancel another
 operator's deficit.
+
+Capacity utilization and join coverage use IC Metrics' exact nearest/half-up
+integer projection, rendered locally with one decimal place and `%`. Counts must
+fit the shared u64 denominator. Coverage refuses an overflowing known-plus-unknown
+total rather than projecting a saturated count as exact; that case and a zero
+denominator render `-`. Report counts and raw JSON fields remain unchanged.
 Capacity diagnostics consume the operator inventory, move row identities,
 and accumulate totals while constructing rows. Unknown assigned counts remain
 unknown in the row and contribute no available slots to the capacity summary;
@@ -105,3 +111,13 @@ Catalog first; versions projects the same five provenance rows directly
 without constructing summary counts or relation indexes. Coverage and check
 retain their full-summary dependency, and capacity and regions read only their
 required component. Every read stops at the first component failure.
+
+## Canonical topology request boundary
+
+Topology source capabilities accept the same `NnsTopologyReadRequest` and
+`NnsTopologyRefreshRequest` passed to report builders. Refresh settings compose
+one `read` scope plus stale-lock age and dry-run policy. Source callbacks receive
+the caller's scope directly rather than a reconstructed source DTO. Native
+adapters retain each component's cache policy and diagnostic request order.
+`read.source_request()` derives caller-clock live provenance through the existing
+NNS source contract; a cached component retains its stored timestamp and collector.

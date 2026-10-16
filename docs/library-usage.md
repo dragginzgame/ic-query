@@ -770,17 +770,13 @@ Native tools can build the same bounded official Dashboard report as
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterRequest, IcHostError,
-    build_ic_canister_report, ic_canister_report_text,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterRequest, IcHostError, build_ic_canister_report,
+    ic_canister_report_text,
 };
 
-async fn render_canister(
-    canister_id: &str,
-    now_unix_secs: u64,
-) -> Result<String, IcHostError> {
+async fn render_canister(canister_id: &str, now_unix_secs: u64) -> Result<String, IcHostError> {
     let request = IcCanisterRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, now_unix_secs),
         canister_id,
     );
     let report = build_ic_canister_report(&request).await?;
@@ -824,17 +820,13 @@ offset automatically, and does not claim runtime-version evidence:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError,
-    IcReplicaVersionListQuery, IcReplicaVersionListRequest,
-    build_ic_replica_version_list_report,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError, IcReplicaVersionListQuery,
+    IcReplicaVersionListRequest, build_ic_replica_version_list_report,
 };
 
-async fn recent_replica_versions(
-    now_unix_secs: u64,
-) -> Result<Vec<String>, IcHostError> {
+async fn recent_replica_versions(now_unix_secs: u64) -> Result<Vec<String>, IcHostError> {
     let request = IcReplicaVersionListRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, now_unix_secs),
         IcReplicaVersionListQuery::new(25, 0, None),
     );
     let report = build_ic_replica_version_list_report(&request).await?;
@@ -859,17 +851,13 @@ single bounded aggregate request:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError,
-    IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryRequest,
-    build_ic_node_provider_reward_history_report,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcHostError, IcNodeProviderRewardHistoryQuery,
+    IcNodeProviderRewardHistoryRequest, build_ic_node_provider_reward_history_report,
 };
 
-async fn node_provider_reward_history(
-    now_unix_secs: u64,
-) -> Result<Vec<(u64, u64)>, IcHostError> {
+async fn node_provider_reward_history(now_unix_secs: u64) -> Result<Vec<(u64, u64)>, IcHostError> {
     let request = IcNodeProviderRewardHistoryRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, now_unix_secs),
         IcNodeProviderRewardHistoryQuery::new(
             now_unix_secs.saturating_sub(30 * 24 * 60 * 60),
             now_unix_secs,
@@ -897,22 +885,19 @@ does not follow the returned cursor or write a cache:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
-    IcCanisterFilters, IcCanisterPageRequest, IcHostError,
-    build_ic_canister_page_report,
+    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT, IcCanisterFilters,
+    IcCanisterPageRequest, IcHostError, build_ic_canister_page_report,
 };
 
-async fn discover_named_canisters(
-    now_unix_secs: u64,
-) -> Result<Vec<String>, IcHostError> {
+async fn discover_named_canisters(now_unix_secs: u64) -> Result<Vec<String>, IcHostError> {
     let filters = IcCanisterFilters {
         has_name: Some(true),
         ..IcCanisterFilters::default()
     };
-    let request = IcCanisterPageRequest::new(
+    let request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         now_unix_secs,
-    )
+    ))
     .with_filters(filters)
     .with_limit(25);
     let report = build_ic_canister_page_report(&request).await?;
@@ -929,9 +914,8 @@ cannot fan out over the metric catalog or create a cache:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
-    IcHostError, IcMetricKind, IcMetricQuery, IcMetricRequest,
-    build_ic_metric_report,
+    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS, IcHostError,
+    IcMetricKind, IcMetricQuery, IcMetricRequest, build_ic_metric_report,
 };
 
 async fn instruction_rate(
@@ -945,8 +929,10 @@ async fn instruction_rate(
         DEFAULT_IC_METRIC_STEP_SECS,
     );
     let request = IcMetricRequest::new(
-        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
-        end_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+            end_unix_secs,
+        ),
         query,
     );
     let report = build_ic_metric_report(&request).await?;
@@ -968,15 +954,12 @@ adapter. Boundary-node rows are data-center aggregates, not individual nodes:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
-    IcBoundaryNodeDataCentersRequest, IcHostError,
+    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, IcDashboardRequest, IcHostError,
     build_ic_boundary_node_data_centers_report,
 };
 
-async fn boundary_node_data_center_ids(
-    now_unix_secs: u64,
-) -> Result<Vec<String>, IcHostError> {
-    let request = IcBoundaryNodeDataCentersRequest::new(
+async fn boundary_node_data_center_ids(now_unix_secs: u64) -> Result<Vec<String>, IcHostError> {
+    let request = IcDashboardRequest::new(
         DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
         now_unix_secs,
     );
@@ -993,8 +976,8 @@ window:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcDailyStatsQuery,
-    IcDailyStatsRequest, IcHostError, build_ic_daily_stats_report,
+    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcDailyStatsQuery, IcDailyStatsRequest, IcHostError,
+    build_ic_daily_stats_report,
 };
 
 async fn daily_average_transaction_rates(
@@ -1002,8 +985,7 @@ async fn daily_average_transaction_rates(
     end_unix_secs: u64,
 ) -> Result<Vec<String>, IcHostError> {
     let request = IcDailyStatsRequest::new(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        end_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, end_unix_secs),
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
     let report = build_ic_daily_stats_report(&request).await?;
@@ -1026,15 +1008,15 @@ total supply adds one explicit time window:
 
 ```rust
 use ic_query::ic::{
-    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-    DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, DEFAULT_ICRC_TOKEN_VALUE_LIMIT,
-    DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS,
-    DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError, IcIcrcAccountInfoRequest,
-    IcIcrcAccountListQuery, IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort,
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
-    IcIcrcTokenValueRow, IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyQuery,
-    IcIcrcTotalSupplyRequest, build_icrc_account_info_report, build_icrc_account_list_report,
-    build_icrc_indexed_count_report, build_icrc_token_value_report, build_icrc_total_supply_report,
+    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+    DEFAULT_ICRC_TOKEN_VALUE_LIMIT, DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS,
+    DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS, IcHostError,
+    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest, IcIcrcAccountRow,
+    IcIcrcAccountSort, IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery,
+    IcIcrcTokenValueRequest, IcIcrcTokenValueRow, IcIcrcTotalSupplyObservation,
+    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, build_icrc_account_info_report,
+    build_icrc_account_list_report, build_icrc_indexed_count_report, build_icrc_token_value_report,
+    build_icrc_total_supply_report,
 };
 
 async fn account_page(
@@ -1042,8 +1024,10 @@ async fn account_page(
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcAccountRow>, IcHostError> {
     let request = IcIcrcAccountListRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            now_unix_secs,
+        ),
         ledger_canister_id,
         IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::BalanceDescending),
     );
@@ -1056,8 +1040,10 @@ async fn exact_account(
     now_unix_secs: u64,
 ) -> Result<IcIcrcAccountRow, IcHostError> {
     let request = IcIcrcAccountInfoRequest::new(
-        DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
+            now_unix_secs,
+        ),
         ledger_canister_id,
         account_id,
     );
@@ -1070,8 +1056,10 @@ async fn indexed_count(
     kind: IcIcrcIndexedCountKind,
 ) -> Result<u64, IcHostError> {
     let request = IcIcrcIndexedCountRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            now_unix_secs,
+        ),
         ledger_canister_id,
         kind,
     );
@@ -1083,8 +1071,10 @@ async fn total_supply_history(
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcTotalSupplyObservation>, IcHostError> {
     let request = IcIcrcTotalSupplyRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            now_unix_secs,
+        ),
         ledger_canister_id,
         IcIcrcTotalSupplyQuery::new(
             now_unix_secs.saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS),
@@ -1100,8 +1090,10 @@ async fn token_value_history(
     now_unix_secs: u64,
 ) -> Result<Vec<IcIcrcTokenValueRow>, IcHostError> {
     let request = IcIcrcTokenValueRequest::new(
-        DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-        now_unix_secs,
+        ic_query::ic::IcDashboardRequest::new(
+            DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
+            now_unix_secs,
+        ),
         ledger_canister_id,
         IcIcrcTokenValueQuery::new(
             now_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS),
@@ -1496,20 +1488,17 @@ their own timestamps.
 
 ```rust
 use ic_query::sns::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsMetricsRequest,
-    build_sns_metrics_report, sns_metrics_report_text,
+    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsMetricsRequest, build_sns_metrics_report,
+    sns_metrics_report_text,
 };
 
-async fn render_sns_metrics(
-    sns_input: &str,
-    now_unix_secs: u64,
-) -> Result<String, SnsHostError> {
-    let request = SnsMetricsRequest::new(
+async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
+    let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
         "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         now_unix_secs,
         sns_input,
-    )
+    ))
     .with_time_window_seconds(90 * 24 * 60 * 60);
 
     let report = build_sns_metrics_report(&request).await?;
@@ -1535,12 +1524,12 @@ async fn collect_reward_checkpoint(
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<SnsRewardCheckpointReport, SnsHostError> {
-    let request = SnsRewardCheckpointRequest::new(
+    let request = SnsRewardCheckpointRequest::new(ic_query::sns::SnsLookupRequest::new(
         "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         now_unix_secs,
         sns_input,
-    );
+    ));
     build_sns_reward_checkpoint_report(&request).await
 }
 ```
@@ -1590,9 +1579,8 @@ use std::path::Path;
 
 use ic_query::sns::{
     DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsProposalSortDirection, SnsProposalsRequest, SnsProposalsSort,
-    build_sns_neurons_report, build_sns_proposals_report, sns_neurons_report_text,
-    sns_proposals_report_text,
+    SnsProposalSortDirection, SnsProposalsRequest, SnsProposalsSort, build_sns_neurons_report,
+    build_sns_proposals_report, sns_neurons_report_text, sns_proposals_report_text,
 };
 
 async fn render_recent_sns_proposals(
@@ -1601,10 +1589,12 @@ async fn render_recent_sns_proposals(
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
     let request = SnsProposalsRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        now_unix_secs,
-        sns_input,
+        ic_query::sns::SnsLookupRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            now_unix_secs,
+            sns_input,
+        ),
         25,
     )
     .with_cache_root(cache_root)
@@ -1621,10 +1611,12 @@ async fn render_cached_sns_neurons(
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
     let request = SnsNeuronsRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        now_unix_secs,
-        sns_input,
+        ic_query::sns::SnsLookupRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            now_unix_secs,
+            sns_input,
+        ),
         500,
     )
     .with_cache_root(cache_root)

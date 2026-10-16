@@ -24,23 +24,26 @@ pub use build::{
     build_nns_governance_reward_event_report_with_source,
 };
 #[cfg(feature = "nns-host")]
+pub use collection::NnsGovernanceRefreshReport;
+#[cfg(feature = "nns-host")]
 pub(super) use collection::{
-    NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, mainnet_governance_cache_metadata,
-    read_governance_refresh_attempt_status, validate_governance_cache_metadata,
-    write_complete_governance_refresh_attempt, write_failed_governance_refresh_attempt,
-    write_running_governance_refresh_attempt, write_starting_governance_refresh_attempt,
+    NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata,
+    read_governance_refresh_attempt_status, run_governance_snapshot_refresh,
+    validate_governance_cache_metadata, write_running_governance_refresh_attempt,
 };
 pub use error::NnsGovernanceError;
-#[cfg(feature = "nns-host")]
-pub use error::NnsGovernanceHostError;
 pub use model::{
     NnsGovernanceCollectionStatus, NnsGovernanceDecimal, NnsGovernanceEconomics,
     NnsGovernanceEconomicsReport, NnsGovernanceExecutionAssurance, NnsGovernanceMaturityModulation,
     NnsGovernanceMaturityModulationReport, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
     NnsGovernanceMetricsReport, NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage,
     NnsGovernanceProposalId, NnsGovernanceReportContext, NnsGovernanceRewardEvent,
-    NnsGovernanceRewardEventReport, NnsGovernanceSourceProvenance, NnsNeuronsFundEconomics,
-    NnsNeuronsFundMatchedFundingCurveCoefficients, NnsVotingPowerEconomics,
+    NnsGovernanceRewardEventReport, NnsGovernanceSourceProvenance, NnsGovernanceVote,
+    NnsNeuronsFundEconomics, NnsNeuronsFundMatchedFundingCurveCoefficients,
+    NnsVotingPowerEconomics,
+};
+pub(in crate::nns) use model::{
+    deserialize_code_label, native_code_classification, native_optional_code_classification,
 };
 pub use request::{NnsGovernanceRequest, NnsGovernanceSourceSelection};
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
@@ -50,6 +53,8 @@ pub(crate) use source::canister::{call_with_arg, canister_provenance};
 #[cfg(feature = "nns-host")]
 pub(crate) use source::host::host_request;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
+#[cfg(feature = "nns-host")]
+pub use text::nns_governance_refresh_report_text;
 pub(crate) use text::{
     context_lines as governance_context_lines, source_lines as governance_source_lines,
 };
@@ -60,8 +65,9 @@ pub use text::{
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
 pub(crate) use validation::{
-    validate_governance_report_source, validate_governance_request,
-    validate_governance_time_interval, validate_source_provenance,
+    validate_governance_collection_identity, validate_governance_collection_page_bounds,
+    validate_governance_continuation_request, validate_governance_report_source,
+    validate_governance_request, validate_governance_time_interval, validate_source_provenance,
 };
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";

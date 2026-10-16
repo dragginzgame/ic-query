@@ -12,9 +12,9 @@ use super::{
     MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
 };
 use crate::ic::{
-    IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal,
-    dashboard_source_request, invalid_source, report_provenance, validate_canonical_principal,
-    validate_dashboard_network, validate_provenance,
+    IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal, invalid_source,
+    report_provenance, validate_canonical_principal, validate_dashboard_network,
+    validate_provenance,
 };
 use std::collections::HashSet;
 
@@ -52,7 +52,7 @@ pub async fn build_cloud_engine_provider_list_report_with_source(
     source: &dyn CloudEngineProviderSource,
 ) -> Result<CloudEngineProviderListReport, IcHostError> {
     validate_dashboard_network(&request.network)?;
-    let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let expected = request.dashboard.source_request();
     let mut source_data = source.fetch_cloud_engine_provider_list(&expected).await?;
     validate_provenance(&expected, &source_data.source)?;
     validate_complete_provider_resource(&mut source_data.providers)?;
@@ -86,7 +86,7 @@ pub async fn build_cloud_engine_provider_info_report_with_source(
     validate_dashboard_network(&request.network)?;
     let requested_provider =
         canonical_request_principal("node_provider_id", &request.node_provider_id)?;
-    let expected = dashboard_source_request(&request.source_endpoint, request.now_unix_secs);
+    let expected = request.dashboard.source_request();
     let source_data = source
         .fetch_cloud_engine_provider_info(&expected, &requested_provider)
         .await?;

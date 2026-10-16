@@ -82,8 +82,7 @@ pub(super) async fn run(matches: &ArgMatches, _network: &str) -> Result<(), NnsC
 async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardInfoOptions::from_matches(matches);
     let request = IcNodeProviderRewardInfoRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         options.reward_id,
     );
     let report = build_ic_node_provider_reward_info_report(&request).await?;
@@ -97,8 +96,7 @@ async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
 async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardListOptions::from_matches(matches);
     let request = IcNodeProviderRewardListRequest::new(
-        options.source_endpoint,
-        current_unix_secs()?,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
         IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
     );
     let report = build_ic_node_provider_reward_list_report(&request).await?;
@@ -117,8 +115,7 @@ async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
         .start_unix_secs
         .unwrap_or_else(|| end.saturating_sub(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS));
     let request = IcNodeProviderRewardHistoryRequest::new(
-        options.source_endpoint,
-        now,
+        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, now),
         IcNodeProviderRewardHistoryQuery::new(start, end, options.step_secs),
     );
     let report = build_ic_node_provider_reward_history_report(&request).await?;
