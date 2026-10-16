@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.58.0]
+## [0.58.0] - 2026-10-16
 
 - Delegate release cache and formatter preparation to Shared Tooling's pinned
   preflight helper. Keep source admission, explicit offline validation and
