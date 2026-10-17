@@ -17,7 +17,9 @@ use std::{
 };
 
 #[cfg(unix)]
-use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_at_with};
+use ic_host_fs::durable::{
+    NamedWriteError, PublicationMode, WriteOptions, write_at_validated_with,
+};
 #[cfg(unix)]
 use std::os::fd::AsFd;
 
@@ -303,7 +305,7 @@ impl ConfinedManagedPath {
                     },
                 )
             })?;
-            write_at_with(
+            write_at_validated_with(
                 parent.as_fd(),
                 self.file_name(),
                 WriteOptions {
@@ -311,6 +313,7 @@ impl ConfinedManagedPath {
                     permissions: MANAGED_FILE_MODE,
                 },
                 write,
+                |()| Ok(()),
             )
             .map_err(|error| managed_publication_error(&self.display_path, error))
         }

@@ -119,7 +119,7 @@ Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
 errors. Cache-only operations report them directly, and read-through policies
 must not reinterpret them as invalid content that authorizes a live refresh.
 Publication passes the admitted parent descriptor and final filename to
-`ic-host-fs::durable::write_at_with`, with replace mode and `0600` staging.
+`ic-host-fs::durable::write_at_validated_with`, with replace mode and `0600` staging.
 The shared engine owns exclusive staging, file sync, rename, owned cleanup and
 parent sync. Effects stay beneath the held parent when its original path moves
 or is replaced; Query retains root, parent and final-target admission. Callers
