@@ -12,12 +12,10 @@ use ic_host_text::{
 
 use super::NnsProposalActivityReport;
 #[cfg(feature = "nns-host")]
-use super::cache::{NnsProposalCacheListReport, NnsProposalCacheStatusReport};
+use super::cache::NnsProposalCacheListReport;
 use super::model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
 };
-#[cfg(feature = "nns-host")]
-use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::{
     nns::governance::{governance_context_lines, governance_source_lines},
     subnet_catalog::format_utc_timestamp_secs,
@@ -341,47 +339,6 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
     lines.join("\n")
 }
 
-/// Render snapshot validation and the latest refresh-attempt evidence.
-#[must_use]
-#[cfg(feature = "nns-host")]
-pub fn nns_proposal_cache_status_report_text(report: &NnsProposalCacheStatusReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("found: {}", yes_no(report.found)),
-        format!(
-            "expected_cache_path: {}",
-            terminal_text(&report.expected_cache_path)
-        ),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-    ];
-    if let Some(cache) = report.cache.as_ref() {
-        lines.extend([
-            format!("governance_canister_id: {}", cache.governance_canister_id),
-            format!("cache_status: {}", cache.cache_status),
-            format!("complete: {}", yes_no(cache.complete)),
-            format!("row_count: {}", cache.row_count),
-            format!("page_count: {}", cache.page_count),
-            format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
-            format!("cache_path: {}", terminal_text(&cache.cache_path)),
-        ]);
-        if let Some(error) = cache.cache_error.as_ref() {
-            lines.push(format!("cache_error: {}", terminal_text(error)));
-        }
-    } else {
-        lines.push("refresh_hint: icq nns proposal refresh".to_string());
-    }
-    if let Some(attempt) = report.latest_attempt.as_ref() {
-        lines.extend(attempt_lines(attempt));
-    }
-    lines.join("\n")
-}
-
 fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>) -> Vec<String> {
     let tally = proposal.latest_tally.as_ref();
     vec![
@@ -503,25 +460,4 @@ fn push_activity_section(lines: &mut Vec<String>, title: &str, table: Option<Str
     lines.push(String::new());
     lines.push(title.to_string());
     lines.push(table.unwrap_or_else(|| "-".to_string()));
-}
-
-#[cfg(feature = "nns-host")]
-fn attempt_lines(attempt: &NnsGovernanceRefreshAttemptStatus) -> [String; 9] {
-    [
-        "latest_attempt:".to_string(),
-        format!("  status: {}", attempt.status),
-        format!("  started_at: {}", terminal_text(&attempt.started_at)),
-        format!("  updated_at: {}", terminal_text(&attempt.updated_at)),
-        format!("  page_size: {}", attempt.page_size),
-        format!("  pages_fetched: {}", attempt.pages_fetched),
-        format!("  rows_fetched: {}", attempt.rows_fetched),
-        format!(
-            "  last_cursor: {}",
-            terminal_text(attempt.last_cursor.as_deref().unwrap_or("-"))
-        ),
-        format!(
-            "  last_error: {}",
-            terminal_text(attempt.last_error.as_deref().unwrap_or("-"))
-        ),
-    ]
 }

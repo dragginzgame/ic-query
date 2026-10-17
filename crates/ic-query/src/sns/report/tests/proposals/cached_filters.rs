@@ -3,7 +3,7 @@ use super::*;
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-status-decided");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Any;
@@ -71,7 +71,7 @@ async fn sns_proposals_cached_query_filters_complete_snapshot() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_topic_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-topic-governance");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Governance;
@@ -101,7 +101,7 @@ async fn sns_proposals_cached_topic_filters_complete_snapshot() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     let root = temp_dir("ic-query-sns-proposals-topic-decided");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Governance;

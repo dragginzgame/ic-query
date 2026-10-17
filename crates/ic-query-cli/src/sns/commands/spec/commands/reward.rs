@@ -21,7 +21,7 @@ use std::path::PathBuf;
 const SNS_REWARD_CHECKPOINT_HELP_AFTER: &str = "\
 Examples:
   icq sns reward checkpoint 1
-  icq sns reward checkpoint 23ten-uaaaa-aaaaq-aabia-cai --json
+  icq sns reward checkpoint be2us-64aaa-aaaaa-qaabq-cai --json
   icq sns reward checkpoint 1 --max-pages 10 --json
 
 The collector brackets strict list_neurons exhaustion with complete Governance

@@ -25,19 +25,19 @@ const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
 const SNS_NEURONS_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron list 1
-  icq sns neuron list 23ten-uaaaa-aaaaq-aabia-cai --limit 10
+  icq sns neuron list be2us-64aaa-aaaaa-qaabq-cai --limit 10
   icq sns neuron list 1 --owner zqfso-syaaa-aaaaq-aaafq-cai
   icq sns neuron list 1 --verbose
   icq sns neuron refresh 1
   icq sns neuron cache list
-  icq sns neuron cache status 1
-  icq sns neuron list 1 --limit 500 --sort stake
+  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns neuron list be2us-64aaa-aaaaa-qaabq-cai --limit 500 --sort stake
   icq --network ic sns neuron list 1 --json";
 
 const SNS_NEURON_INFO_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-  icq sns neuron info 23ten-uaaaa-aaaaq-aabia-cai 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+  icq sns neuron info be2us-64aaa-aaaaa-qaabq-cai 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
   icq --network ic sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --json";
 
 pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {

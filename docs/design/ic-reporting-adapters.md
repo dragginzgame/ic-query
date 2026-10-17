@@ -52,14 +52,22 @@ share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
 return `NnsInventoryRefreshReport` with explicit collection identity, row count,
 publication evidence and optional provider Governance identity. Inventory
 snapshots keep their family row models and persisted field names. Simple
-ledger-wide ICRC capabilities share `IcrcLedgerRequest`. SNS neuron and
+ledger-wide ICRC capabilities share `IcrcLedgerRequest`; balance, allowance,
+transaction, archive and account-page requests compose that same ledger scope.
+Clock-free account-cache identity remains separate from collection clocks. SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts;
 the collection-specific builders still own their distinct cache paths and
-rendering. Complete NNS Governance proposal and neuron collections share
+rendering. Targeted cache reads and status require an SNS root principal;
+numeric discovery is confined to live requests and explicit refresh. Complete NNS Governance proposal and neuron collections share
 `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 `NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceError`, while each
 capability retains its own page validation, cache identity, report, and
-renderer. Portable proposal and public-neuron continuations share
+renderer. Native cache inspection shares `NnsGovernanceCacheStatusReport`,
+`NnsGovernanceCacheSummary` and the Governance status renderer. Status identifies
+its collection; proposal list/status attempt evidence lives at report level,
+independently of the last complete snapshot. Family loaders retain their own
+row/continuation validation and strict versus best-effort sidecar policies.
+Portable proposal and public-neuron continuations share
 `NnsGovernanceCollectionStatus` under Governance ownership, with one set of
 persisted labels and display rules. Each collector owns its state validation,
 cursor progression, and API exhaustion evidence.

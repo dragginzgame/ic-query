@@ -88,13 +88,13 @@ fn identity_home(root: &Path, project: &Path, target: &Path, selected: &Path) ->
     if selected.as_os_str().is_empty() {
         return Err(refuse());
     }
-    let home = canonicalize_allow_missing(selected, root)?;
+    let home = canonicalize_allow_missing(selected, root, usize::MAX)?;
     for disposable in [
         root.join("target"),
         target.to_path_buf(),
         project.join(".icp"),
     ] {
-        if home.starts_with(canonicalize_allow_missing(&disposable, root)?) {
+        if home.starts_with(canonicalize_allow_missing(&disposable, root, usize::MAX)?) {
             return Err(refuse());
         }
     }

@@ -89,6 +89,8 @@ does not present `cycles_per_xdr` as a separately queried CMC field.
 `CmcSourceRequest` carries network, endpoint, collection timestamp, and
 collector identity. `CmcSource` owns the one coherent certified-rate
 capability, and both report builders use it; there is no adapter per view.
+The cycles builder reuses the validated XDR-report builder before applying its
+exact integer derivation. Both text views reuse the same rate-line projection.
 Custom sources can reuse the report construction contract through the
 `*_with_source` builders.
 

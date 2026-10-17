@@ -6,11 +6,11 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError, SnsNeuronId, SnsProposalTopicFilter,
-    SnsRewardEvent, SnsRunningVersionResponse, SnsSourceRequest,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsGovernanceParameters, SnsHostError, SnsNeuronDetail, SnsNeuronId, SnsNeuronRow,
+    SnsProposalRow, SnsProposalTopicFilter, SnsRewardEvent, SnsRunningVersionResponse,
+    SnsSourceRequest,
 };
 
 ///
@@ -77,7 +77,7 @@ pub trait SnsNeuronSource: SnsDiscoverySource + Sync {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>>;
 }
 
 ///
@@ -94,7 +94,7 @@ pub trait SnsNeuronsSource: SnsDiscoverySource + Sync {
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>>;
 
     /// Fetch one ascending neuron page for complete snapshot refresh.
     /// A supplied cursor must equal the final row's id; empty pages omit it.
@@ -222,7 +222,7 @@ pub trait SnsProposalSource: SnsDiscoverySource + Sync {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>>;
 }
 
 ///
@@ -241,7 +241,7 @@ pub trait SnsProposalsSource: SnsDiscoverySource + Sync {
         before_proposal_id: Option<u64>,
         include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>>;
 
     /// Fetch one unfiltered SNS governance proposal page for snapshot refresh.
     fn fetch_sns_proposal_page<'a>(
@@ -250,7 +250,7 @@ pub trait SnsProposalsSource: SnsDiscoverySource + Sync {
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>>;
 }
 
 ///

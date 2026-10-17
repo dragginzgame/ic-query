@@ -7,7 +7,7 @@
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
     assemble::{SnsReportContext, SnsReportProvenance, sns_neurons_report_from_rows},
-    cache_storage::load_sns_cache_for_input,
+    cache_storage::load_sns_cache_for_root,
     neurons_cache::paths::SnsNeuronsCacheCollection,
     view::sort_sns_neurons,
 };
@@ -19,7 +19,7 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
         .cache_root
         .as_ref()
         .ok_or(SnsHostError::MissingCacheRoot)?;
-    let (cache_path, mut cache) = load_sns_cache_for_input::<SnsNeuronsCacheCollection>(
+    let (cache_path, mut cache) = load_sns_cache_for_root::<SnsNeuronsCacheCollection>(
         cache_root,
         &request.lookup.network,
         &request.lookup.input,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::sns::report::SnsProposalRow;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_refresh_rejects_invalid_public_page_size() {
@@ -30,7 +31,7 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh does not use bounded proposal fetch") })
     }
 
@@ -40,13 +41,11 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(limit, 1);
             assert_eq!(before_proposal_id, None);
-            Ok(MainnetSnsProposalPage {
-                proposals: vec![fixture_proposal_row()],
-            })
+            Ok(vec![fixture_proposal_row()])
         })
     }
 }
@@ -81,9 +80,9 @@ async fn sns_proposals_failed_refresh_preserves_page_progress() {
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
-        input: "1".to_string(),
+        input: ROOT_A.to_string(),
     })
-    .expect("numeric failed-attempt status");
+    .expect("failed-attempt status by root");
     assert!(!status.found);
     assert_eq!(
         status
@@ -155,7 +154,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
-        input: "1".to_string(),
+        input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
     let text = sns_proposals_cache_status_report_text(&status);
@@ -202,24 +201,6 @@ fn sns_proposals_cache_status_reports_missing_cache() {
     assert!(text.contains("found: no"));
     assert!(text.contains("refresh_hint: icq sns proposal refresh"));
 
-    let numeric_status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.clone(),
-        input: "99".to_string(),
-    })
-    .expect("missing numeric proposal cache status");
-    let numeric_text = sns_proposals_cache_status_report_text(&numeric_status);
-    assert!(numeric_status.expected_cache_path.is_none());
-    assert!(numeric_text.contains("refresh_hint: icq sns proposal refresh 99"));
-
-    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.clone(),
-    })
-    .expect("proposal cache list");
-    assert_eq!(list.cache_count, 0);
-    assert_eq!(list.caches, Vec::new());
-
     let _ = fs::remove_dir_all(root);
 }
 
@@ -251,18 +232,16 @@ async fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best
     let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     fs::write(&attempt_path, "{").unwrap();
 
-    for input in ["1", ROOT_A] {
-        assert!(matches!(
-            build_sns_proposals_cache_status_report(&SnsCacheStatusRequest::new(
-                &root,
-                MAINNET_NETWORK,
-                input,
-            )),
-            Err(SnsHostError::Cache(
-                crate::HostCacheError::ParseCache { .. }
-            ))
-        ));
-    }
+    assert!(matches!(
+        build_sns_proposals_cache_status_report(&SnsCacheStatusRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            ROOT_A,
+        )),
+        Err(SnsHostError::Cache(
+            crate::HostCacheError::ParseCache { .. }
+        ))
+    ));
     let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
@@ -434,7 +413,7 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses proposal pages") })
     }
 
@@ -444,12 +423,12 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
         sns: &'a MainnetSns,
         _limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(sns.id, 2);
             assert_eq!(sns.root_canister_id, ROOT_B);
             assert_eq!(before_proposal_id, None);
-            Ok(MainnetSnsProposalPage { proposals: vec![] })
+            Ok(vec![])
         })
     }
 }
@@ -479,7 +458,7 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
         assert_eq!(attempt["root_canister_id"], ROOT_B);
         assert_eq!(attempt["status"], "complete");
 
-        let mut cached_request = proposals_request("2");
+        let mut cached_request = proposals_request(ROOT_B);
         cached_request.cache_root = Some(root.clone());
         let report =
             build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
@@ -506,7 +485,7 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
         _before_proposal_id: Option<u64>,
         _include_status: &'a [i32],
         _topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move { unreachable!("refresh uses pages") })
     }
 
@@ -516,7 +495,7 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(limit, 2);
             let ids = match before_proposal_id {
@@ -524,16 +503,14 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
                 Some(20) => vec![if self.invalid_second_page { 20 } else { 10 }],
                 other => panic!("unexpected continuation {other:?}"),
             };
-            Ok(MainnetSnsProposalPage {
-                proposals: ids
-                    .into_iter()
-                    .map(|id| {
-                        let mut row = fixture_proposal_row();
-                        row.proposal_id = id;
-                        row
-                    })
-                    .collect(),
-            })
+            Ok(ids
+                .into_iter()
+                .map(|id| {
+                    let mut row = fixture_proposal_row();
+                    row.proposal_id = id;
+                    row
+                })
+                .collect())
         })
     }
 }

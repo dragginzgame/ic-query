@@ -145,7 +145,7 @@ mod tests {
 
     use candid::Principal;
     use ic_agent::{AgentError, agent_error::TransportError};
-    use ic_testkit::testing::read_http_request;
+    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
     use std::{io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]
@@ -202,12 +202,14 @@ mod tests {
         let address = listener.local_addr().expect("test replica address");
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("accept test agent request");
-            read_http_request(
+            capture_http_request(
                 &mut stream,
                 Duration::from_secs(10),
                 64 * 1024,
                 8 * 1024 * 1024,
+                HttpContentLength::Optional,
             )
+            .into_result()
             .expect("read bounded test agent request");
             stream
                 .write_all(

@@ -43,6 +43,7 @@ impl SnsCacheListRequest {
 pub struct SnsCacheStatusRequest {
     pub network: String,
     pub cache_root: PathBuf,
+    /// SNS root canister principal; no discovery or live resolution is performed.
     pub input: String,
 }
 

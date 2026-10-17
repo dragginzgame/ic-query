@@ -41,8 +41,11 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let options = SnsProposalOptions::from_matches(matches, network);
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let cache_root = cache_root()?;
     let format = lookup.format;
+    let cache_root = candid::Principal::from_text(&lookup.input)
+        .ok()
+        .map(|_| cache_root())
+        .transpose()?;
     let request = SnsProposalRequest {
         lookup: ic_query::sns::SnsLookupRequest::new(
             lookup.network,
@@ -51,7 +54,7 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
             lookup.input,
         ),
         proposal_id: options.proposal_id,
-        cache_root: Some(cache_root),
+        cache_root,
         verbose: options.verbose,
         show_ballots: options.show_ballots,
     };

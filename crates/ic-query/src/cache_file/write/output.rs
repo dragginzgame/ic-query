@@ -6,7 +6,7 @@
 
 use super::path::create_output_parent_directory;
 use crate::cache_file::CacheFileError;
-use ic_host_fs::path::canonicalize_allow_missing_with_symlink_limit;
+use ic_host_fs::path::canonicalize_allow_missing;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::{
@@ -26,18 +26,14 @@ pub fn validate_output_path(
     } else {
         PathBuf::new()
     };
-    let resolved_output =
-        canonicalize_allow_missing_with_symlink_limit(output_path, &base, OUTPUT_SYMLINK_LIMIT)
-            .map_err(|source| output_error(output_path, source))?;
+    let resolved_output = canonicalize_allow_missing(output_path, &base, OUTPUT_SYMLINK_LIMIT)
+        .map_err(|source| output_error(output_path, source))?;
     let output_metadata =
         optional_metadata(output_path).map_err(|source| output_error(output_path, source))?;
     for &managed_path in managed_paths {
-        let resolved_managed = canonicalize_allow_missing_with_symlink_limit(
-            managed_path,
-            &base,
-            OUTPUT_SYMLINK_LIMIT,
-        )
-        .map_err(|source| output_error(output_path, source))?;
+        let resolved_managed =
+            canonicalize_allow_missing(managed_path, &base, OUTPUT_SYMLINK_LIMIT)
+                .map_err(|source| output_error(output_path, source))?;
         let managed_metadata =
             optional_metadata(managed_path).map_err(|source| output_error(output_path, source))?;
         if resolved_output == resolved_managed

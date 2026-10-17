@@ -7,8 +7,8 @@
 use super::proposals::sns_topic_text;
 use crate::{
     sns::report::{
-        MainnetSnsNeuron, SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount,
-        SnsNeuronDetail, SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
+        SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
+        SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
         SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
         SnsPolicyObservationStatus, SnsRewardCheckpointRow, hex_bytes,
         live::types::{
@@ -49,7 +49,7 @@ pub(in crate::sns::report::live) fn sns_neuron_row(
 /// Convert one exact SNS Governance neuron into full detail source data.
 pub(in crate::sns::report::live) fn mainnet_sns_neuron(
     neuron: SnsGovernanceNeuronDetail,
-) -> Result<MainnetSnsNeuron, SnsHostError> {
+) -> Result<SnsNeuronDetail, SnsHostError> {
     let SnsGovernanceNeuronDetail {
         id,
         staked_maturity_e8s_equivalent,
@@ -107,7 +107,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_neuron(
     let (mint, staking) = detail.derived_policy_observations();
     detail.maturity_mint_conversion_observed_disabled = mint;
     detail.manual_maturity_staking_observed_disabled = staking;
-    Ok(MainnetSnsNeuron { detail })
+    Ok(detail)
 }
 
 /// Convert one reward-checkpoint neuron projection into report evidence.
@@ -304,36 +304,30 @@ mod tests {
     fn exact_neuron_conversion_preserves_variable_native_evidence() {
         let detail = mainnet_sns_neuron(detail_neuron()).expect("convert detail");
 
-        assert_eq!(detail.detail.neuron.neuron_id, "01".repeat(32));
+        assert_eq!(detail.neuron.neuron_id, "01".repeat(32));
         assert_eq!(
-            detail.detail.permissions[0].principal.as_deref(),
+            detail.permissions[0].principal.as_deref(),
             Some("2vxsx-fae")
         );
-        assert_eq!(detail.detail.permissions[0].permission_types[0].code, 9);
-        assert_eq!(
-            detail.detail.permissions[0].permission_types[1].name,
-            "unknown"
-        );
-        let disbursement = &detail.detail.disburse_maturity_in_progress[0];
+        assert_eq!(detail.permissions[0].permission_types[0].code, 9);
+        assert_eq!(detail.permissions[0].permission_types[1].name, "unknown");
+        let disbursement = &detail.disburse_maturity_in_progress[0];
         let account = disbursement
             .account_to_disburse_to
             .as_ref()
             .expect("destination account");
         assert_eq!(account.owner.as_deref(), Some("2vxsx-fae"));
         assert_eq!(account.subaccount_hex.as_deref(), Some(&*"ab".repeat(32)));
-        assert_eq!(
-            detail.detail.followees[0].followee_neuron_ids[0],
-            "02".repeat(32)
-        );
-        let topic = &detail.detail.topic_followees.as_ref().expect("topics")[0];
+        assert_eq!(detail.followees[0].followee_neuron_ids[0], "02".repeat(32));
+        let topic = &detail.topic_followees.as_ref().expect("topics")[0];
         assert_eq!(topic.topic.as_deref(), Some("governance"));
         assert_eq!(topic.followees[0].alias.as_deref(), Some("lead"));
         assert_eq!(
-            detail.detail.maturity_mint_conversion_observed_disabled,
+            detail.maturity_mint_conversion_observed_disabled,
             SnsPolicyObservationStatus::Violated
         );
         assert_eq!(
-            detail.detail.manual_maturity_staking_observed_disabled,
+            detail.manual_maturity_staking_observed_disabled,
             SnsPolicyObservationStatus::Violated
         );
     }

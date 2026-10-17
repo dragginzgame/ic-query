@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use icrc_ledger_types::icrc::generic_metadata_value::MetadataValue;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() {
@@ -74,7 +75,7 @@ async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
 fn sns_token_logo_metadata_preserves_raw_text() {
     let row = metadata_row(
         "icrc1:logo".to_string(),
-        IcrcMetadataValue::Text("data:image/png;base64,large-logo".to_string()),
+        MetadataValue::Text("data:image/png;base64,large-logo".to_string()),
     );
 
     assert_eq!(row.key, "icrc1:logo");
@@ -89,7 +90,7 @@ fn sns_token_logo_metadata_preserves_raw_text() {
 fn sns_token_empty_logo_metadata_remains_raw() {
     let row = metadata_row(
         "icrc1:logo".to_string(),
-        IcrcMetadataValue::Text(" ".to_string()),
+        MetadataValue::Text(" ".to_string()),
     );
 
     assert_eq!(row.value_type, IcrcMetadataValueKind::Text);

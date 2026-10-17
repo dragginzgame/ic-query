@@ -112,7 +112,7 @@ fn sns_neuron_help_is_advertised() {
     assert!(!neuron_cache_list.contains("--source-endpoint"));
     assert!(neuron_cache_list.contains("--json"));
     assert!(neuron_cache_status.contains("icq sns neuron cache status"));
-    assert!(neuron_cache_status.contains("id|root-principal"));
+    assert!(neuron_cache_status.contains("root-principal"));
     assert!(neuron_cache_status.contains("Collection mode: Local cache inspection"));
     assert!(!neuron_cache_status.contains("--source-endpoint"));
     assert!(neuron_refresh.contains("icq sns neuron refresh"));

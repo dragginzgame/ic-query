@@ -12,11 +12,12 @@ use super::{
 use crate::{
     hex::hex_bytes,
     icrc::{
-        ledger::{IcrcAccount, nat_text},
+        ledger::nat_text,
         model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow},
     },
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
+use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 enum IcrcIndexTransactionsResult {
@@ -58,28 +59,28 @@ struct IcrcIndexTransaction {
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexApprove {
     fee: Option<Nat>,
-    from: IcrcAccount,
+    from: LedgerAccount,
     memo: Option<Vec<u8>>,
     created_at_time: Option<u64>,
     amount: Nat,
     expected_allowance: Option<Nat>,
     expires_at: Option<u64>,
-    spender: IcrcAccount,
+    spender: LedgerAccount,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexBurn {
-    from: IcrcAccount,
+    from: LedgerAccount,
     memo: Option<Vec<u8>>,
     created_at_time: Option<u64>,
     amount: Nat,
-    spender: Option<IcrcAccount>,
+    spender: Option<LedgerAccount>,
     fee: Option<Nat>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexMint {
-    to: IcrcAccount,
+    to: LedgerAccount,
     memo: Option<Vec<u8>>,
     created_at_time: Option<u64>,
     amount: Nat,
@@ -88,26 +89,26 @@ struct IcrcIndexMint {
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexTransfer {
-    to: IcrcAccount,
+    to: LedgerAccount,
     fee: Option<Nat>,
-    from: IcrcAccount,
+    from: LedgerAccount,
     memo: Option<Vec<u8>>,
     created_at_time: Option<u64>,
     amount: Nat,
-    spender: Option<IcrcAccount>,
+    spender: Option<LedgerAccount>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexFeeCollector {
     caller: Option<Principal>,
-    fee_collector: Option<IcrcAccount>,
+    fee_collector: Option<LedgerAccount>,
     ts: Option<u64>,
     mthd: Option<String>,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexAuthorizedMint {
-    to: IcrcAccount,
+    to: LedgerAccount,
     amount: Nat,
     created_at_time: Option<u64>,
     caller: Option<Principal>,
@@ -117,7 +118,7 @@ struct IcrcIndexAuthorizedMint {
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexAuthorizedBurn {
-    from: IcrcAccount,
+    from: LedgerAccount,
     amount: Nat,
     created_at_time: Option<u64>,
     caller: Option<Principal>,
@@ -247,10 +248,14 @@ fn transaction_summary(transaction: &IcrcIndexTransaction) -> TransactionSummary
     TransactionSummary::default()
 }
 
-fn account_row(account: &IcrcAccount) -> IcrcAccountRow {
+fn account_row(account: &LedgerAccount) -> IcrcAccountRow {
     IcrcAccountRow {
         owner: Some(account.owner.to_text()),
-        subaccount_hex: account.subaccount.as_deref().map(hex_bytes),
+        subaccount_hex: account
+            .subaccount
+            .as_ref()
+            .map(<[u8; 32]>::as_slice)
+            .map(hex_bytes),
         account_identifier: None,
     }
 }
@@ -342,7 +347,7 @@ mod tests {
         let page = decode(&bytes, &Principal::management_canister())
             .unwrap()
             .unwrap();
-        let from = json!({"owner": "2vxsx-fae", "subaccount_hex": "00ff"});
+        let from = json!({"owner": "2vxsx-fae", "subaccount_hex": "ff".repeat(32)});
         let to = json!({"owner": "aaaaa-aa", "subaccount_hex": null});
         let amount = "3402823669209384634633746074317682114561234";
         let timestamp = "18446744073709551615";
@@ -394,11 +399,11 @@ mod tests {
 
     #[test]
     fn current_index_wire_shape_round_trips_and_projects_approve_losslessly() {
-        let owner = IcrcAccount {
+        let owner = LedgerAccount {
             owner: Principal::anonymous(),
-            subaccount: Some(vec![0xaa; 32]),
+            subaccount: Some([0xaa; 32]),
         };
-        let spender = IcrcAccount {
+        let spender = LedgerAccount {
             owner: Principal::management_canister(),
             subaccount: None,
         };
@@ -418,7 +423,7 @@ mod tests {
                         amount: Nat::from(250_u64),
                         expected_allowance: Some(Nat::from(200_u64)),
                         expires_at: Some(1_800_000_000_000_000_000),
-                        spender: spender.clone(),
+                        spender,
                     }),
                     fee_collector: Some(IcrcIndexFeeCollector {
                         caller: Some(Principal::anonymous()),
@@ -469,11 +474,11 @@ mod tests {
 
     fn every_operation_response() -> IcrcIndexTransactionsResult {
         let amount = Nat::parse(b"3402823669209384634633746074317682114561234").unwrap();
-        let from = IcrcAccount {
+        let from = LedgerAccount {
             owner: Principal::anonymous(),
-            subaccount: Some(vec![0, 255]),
+            subaccount: Some([0xff; 32]),
         };
-        let to = IcrcAccount {
+        let to = LedgerAccount {
             owner: Principal::management_canister(),
             subaccount: None,
         };
@@ -482,16 +487,16 @@ mod tests {
             timestamp: u64::MAX,
             approve: Some(IcrcIndexApprove {
                 fee: None,
-                from: from.clone(),
+                from,
                 memo: Some(vec![]),
                 created_at_time: Some(u64::MAX),
                 amount: amount.clone(),
                 expected_allowance: Some(amount.clone()),
                 expires_at: None,
-                spender: to.clone(),
+                spender: to,
             }),
             burn: Some(IcrcIndexBurn {
-                from: from.clone(),
+                from,
                 memo: None,
                 created_at_time: None,
                 amount: amount.clone(),
@@ -499,24 +504,24 @@ mod tests {
                 fee: Some(Nat::from(0_u64)),
             }),
             mint: Some(IcrcIndexMint {
-                to: to.clone(),
+                to,
                 memo: Some(vec![255]),
                 created_at_time: None,
                 amount: amount.clone(),
                 fee: None,
             }),
             transfer: Some(IcrcIndexTransfer {
-                to: to.clone(),
+                to,
                 fee: Some(amount.clone()),
-                from: from.clone(),
+                from,
                 memo: Some(vec![0, 255]),
                 created_at_time: None,
                 amount: amount.clone(),
-                spender: Some(to.clone()),
+                spender: Some(to),
             }),
             fee_collector: Some(IcrcIndexFeeCollector {
                 caller: Some(Principal::anonymous()),
-                fee_collector: Some(to.clone()),
+                fee_collector: Some(to),
                 ts: Some(u64::MAX),
                 mthd: None,
             }),

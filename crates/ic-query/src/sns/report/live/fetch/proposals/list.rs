@@ -5,6 +5,7 @@
 //! Boundary: builds list_proposals requests and maps responses into source models.
 
 use crate::candid_call::query_canister;
+use crate::sns::report::SnsProposalRow;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError, SnsProposalTopicFilter,
     live::{
@@ -15,7 +16,7 @@ use crate::sns::report::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,
         },
     },
-    source::{MainnetSns, MainnetSnsProposalPage, MainnetSnsProposals, SnsSourceRequest},
+    source::{MainnetSns, SnsSourceRequest},
 };
 
 /// Fetch a bounded SNS governance proposal listing from one resolved SNS.
@@ -27,7 +28,7 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
     before_proposal_id: Option<u64>,
     include_status: &[i32],
     topic: SnsProposalTopicFilter,
-) -> Result<MainnetSnsProposals, SnsHostError> {
+) -> Result<Vec<SnsProposalRow>, SnsHostError> {
     let agent = sns_agent(source, request)?;
     let governance_canister = governance_canister(sns)?;
     let response: ListProposalsResponse = query_canister::<_, _, SnsHostError>(
@@ -46,12 +47,11 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
         },
     )
     .await?;
-    let proposals = response
+    response
         .proposals
         .into_iter()
         .map(sns_proposal_row)
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(MainnetSnsProposals { proposals })
+        .collect::<Result<Vec<_>, _>>()
 }
 
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
@@ -61,8 +61,8 @@ pub(super) async fn fetch_mainnet_sns_proposal_page_async(
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
-) -> Result<MainnetSnsProposalPage, SnsHostError> {
-    let proposals = fetch_mainnet_sns_proposals_async(
+) -> Result<Vec<SnsProposalRow>, SnsHostError> {
+    fetch_mainnet_sns_proposals_async(
         source,
         request,
         sns,
@@ -71,9 +71,7 @@ pub(super) async fn fetch_mainnet_sns_proposal_page_async(
         &[],
         SnsProposalTopicFilter::Any,
     )
-    .await?
-    .proposals;
-    Ok(MainnetSnsProposalPage { proposals })
+    .await
 }
 
 /// Build Candid topic selectors for a concrete SNS proposal topic filter.

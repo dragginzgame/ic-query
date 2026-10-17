@@ -20,29 +20,6 @@ const SNS_NEURON_ID_HEX_LENGTH: usize = 64;
 const NEURON_DETAIL_CAPABILITY: &str = "SNS neuron detail";
 
 ///
-/// MainnetSnsNeurons
-///
-/// Source-layer bounded SNS neuron listing.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsNeurons {
-    pub neurons: Vec<SnsNeuronRow>,
-}
-
-///
-/// MainnetSnsNeuron
-///
-/// Source-layer exact SNS neuron detail result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsNeuron {
-    /// Full native neuron detail returned by the source.
-    pub detail: SnsNeuronDetail,
-}
-
-///
 /// MainnetSnsNeuronPage
 ///
 /// Source-layer SNS neuron page used by complete snapshot refresh.
@@ -67,12 +44,12 @@ pub struct SnsNeuronId {
 
 /// Validate one bounded neuron result returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_neurons(
-    neurons: &MainnetSnsNeurons,
+    neurons: &[SnsNeuronRow],
     requested_limit: u32,
 ) -> Result<(), SnsHostError> {
     let validator = SnsSourceValidator::new("SNS neurons");
-    validator.row_limit(neurons.neurons.len(), requested_limit)?;
-    validate_sns_neuron_rows(&neurons.neurons).map_err(|reason| validator.invalid(reason))
+    validator.row_limit(neurons.len(), requested_limit)?;
+    validate_sns_neuron_rows(neurons).map_err(|reason| validator.invalid(reason))
 }
 
 /// Validate one neuron page returned by a public source implementation.
@@ -178,24 +155,24 @@ pub(in crate::sns::report) fn sns_neuron_id_from_text(
 
 /// Validate one exact neuron detail result returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
-    neuron: &MainnetSnsNeuron,
+    neuron: &SnsNeuronDetail,
     requested_neuron_id: &str,
 ) -> Result<(), SnsHostError> {
     sns_neuron_id_from_text(requested_neuron_id)?;
-    validate_sns_neuron_row(&neuron.detail.neuron).map_err(invalid_neuron_detail)?;
-    if neuron.detail.neuron.neuron_id != requested_neuron_id {
+    validate_sns_neuron_row(&neuron.neuron).map_err(invalid_neuron_detail)?;
+    if neuron.neuron.neuron_id != requested_neuron_id {
         return Err(invalid_neuron_detail(format!(
             "returned neuron id {}, expected {requested_neuron_id}",
-            neuron.detail.neuron.neuron_id
+            neuron.neuron.neuron_id
         )));
     }
 
-    validate_neuron_permissions(&neuron.detail.permissions, true).map_err(invalid_neuron_detail)?;
-    validate_maturity_disbursements(&neuron.detail.disburse_maturity_in_progress)
+    validate_neuron_permissions(&neuron.permissions, true).map_err(invalid_neuron_detail)?;
+    validate_maturity_disbursements(&neuron.disburse_maturity_in_progress)
         .map_err(invalid_neuron_detail)?;
 
     let mut function_ids = HashSet::new();
-    for followees in &neuron.detail.followees {
+    for followees in &neuron.followees {
         if !function_ids.insert(followees.function_id) {
             return Err(invalid_neuron_detail(format!(
                 "duplicate legacy followee function id {}",
@@ -205,7 +182,7 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
         validate_followee_ids(&followees.followee_neuron_ids)?;
     }
 
-    if let Some(topic_followees) = neuron.detail.topic_followees.as_ref() {
+    if let Some(topic_followees) = neuron.topic_followees.as_ref() {
         let mut topic_codes = HashSet::new();
         for topic in topic_followees {
             if !topic_codes.insert(topic.topic_code) {
@@ -227,13 +204,13 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
         }
     }
 
-    let (mint, staking) = neuron.detail.derived_policy_observations();
-    if neuron.detail.maturity_mint_conversion_observed_disabled != mint {
+    let (mint, staking) = neuron.derived_policy_observations();
+    if neuron.maturity_mint_conversion_observed_disabled != mint {
         return Err(invalid_neuron_detail(
             "maturity_mint_conversion_observed_disabled does not match raw evidence",
         ));
     }
-    if neuron.detail.manual_maturity_staking_observed_disabled != staking {
+    if neuron.manual_maturity_staking_observed_disabled != staking {
         return Err(invalid_neuron_detail(
             "manual_maturity_staking_observed_disabled does not match raw evidence",
         ));
@@ -299,9 +276,7 @@ mod tests {
 
     #[test]
     fn bounded_neuron_results_require_unique_ids_and_requested_limit() {
-        let duplicate = MainnetSnsNeurons {
-            neurons: vec![neuron(&"01".repeat(32)), neuron(&"01".repeat(32))],
-        };
+        let duplicate = vec![neuron(&"01".repeat(32)), neuron(&"01".repeat(32))];
         assert!(matches!(
             validate_mainnet_sns_neurons(&duplicate, 2),
             Err(SnsHostError::InvalidSourceData {
@@ -310,9 +285,7 @@ mod tests {
             })
         ));
 
-        let over_limit = MainnetSnsNeurons {
-            neurons: vec![neuron(&"01".repeat(32)), neuron(&"02".repeat(32))],
-        };
+        let over_limit = vec![neuron(&"01".repeat(32)), neuron(&"02".repeat(32))];
         let error = validate_mainnet_sns_neurons(&over_limit, 1).expect_err("limit enforced");
         assert!(matches!(
             error,
@@ -322,12 +295,12 @@ mod tests {
             } if reason == "returned 2 rows for requested limit 1"
         ));
         let mut unordered = over_limit.clone();
-        unordered.neurons.reverse();
+        unordered.reverse();
         validate_mainnet_sns_neurons(&unordered, 2)
             .expect("bounded results need uniqueness without requiring page ordering");
 
         let page = MainnetSnsNeuronPage {
-            neurons: over_limit.neurons,
+            neurons: over_limit,
             last_cursor: None,
         };
         assert!(matches!(

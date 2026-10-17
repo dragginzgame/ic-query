@@ -46,10 +46,7 @@ mod tests;
 #[cfg(feature = "sns-host")]
 use crate::hex::hex_bytes;
 #[cfg(all(test, feature = "sns-host"))]
-use crate::icrc::{
-    IcrcMetadataValueKind,
-    ledger::{IcrcMetadataValue, metadata_row},
-};
+use crate::icrc::{IcrcMetadataValueKind, ledger::metadata_row};
 #[cfg(all(test, feature = "sns-host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 #[cfg(all(test, feature = "sns-host"))]
@@ -82,7 +79,7 @@ pub use build::{
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use cache_summary::{
-    build_sns_cache_list_report, find_sns_cache_summary_by_id, load_sns_cache_summary_at,
+    build_sns_cache_list_report, load_sns_cache_summary_at,
 };
 #[cfg(feature = "sns-host")]
 pub use catalog_cache::{
@@ -167,13 +164,11 @@ pub use reward_diff::build_sns_reward_diff_report;
 #[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronId,
+    SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,

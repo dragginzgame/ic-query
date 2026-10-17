@@ -4,16 +4,14 @@
 //! Does not own: index discovery, collection state, public reports, caching, or text rendering.
 //! Boundary: shares only the request envelope; generic ICRC and deployed ICP responses remain separate.
 
+use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
 mod generic;
 mod icp;
 mod json;
 
 use super::collection::AccountTransactionsPage;
 use crate::candid_call::query_bytes;
-use crate::icrc::{
-    ledger::IcrcAccount,
-    model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError},
-};
+use crate::icrc::model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_agent::Agent;
 
@@ -21,7 +19,7 @@ const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 struct IcrcIndexAccountTransactionsArgs {
-    account: IcrcAccount,
+    account: LedgerAccount,
     start: Option<Nat>,
     max_results: Nat,
 }
@@ -42,12 +40,12 @@ struct TransactionSummary {
 pub(super) async fn query_account_transaction_page(
     agent: &Agent,
     index_canister: &Principal,
-    account: &IcrcAccount,
+    account: &LedgerAccount,
     start: Option<Nat>,
     limit: u32,
 ) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
     let args = IcrcIndexAccountTransactionsArgs {
-        account: account.clone(),
+        account: *account,
         start,
         max_results: Nat::from(limit),
     };

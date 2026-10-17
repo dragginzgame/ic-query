@@ -3,7 +3,7 @@ use super::*;
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_sort_created_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
@@ -49,7 +49,7 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created-asc");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
@@ -99,7 +99,7 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_sort_decided_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-decided");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
@@ -145,7 +145,7 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_sort_executed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-executed");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;
@@ -191,7 +191,7 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cached_sort_failed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-failed");
-    let mut request = proposals_request("1");
+    let mut request = proposals_request(ROOT_A);
     request.cache_root = Some(root.clone());
     request.status = SnsProposalStatusFilter::Any;
     request.topic = SnsProposalTopicFilter::Any;

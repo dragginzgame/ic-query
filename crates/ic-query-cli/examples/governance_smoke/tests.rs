@@ -1126,7 +1126,7 @@ fn process_fixture() {
 #[test]
 fn signals_during_startup_publish_failure_and_still_stop_the_network() {
     use ic_host_process::{
-        child::OwnedChild,
+        child::{CleanupPolicy, OwnedChild},
         tool::{OutputLimit, OutputLimits, SuccessfulExit, communicate_child},
     };
     for signal in [libc::SIGINT, libc::SIGTERM] {
@@ -1139,7 +1139,7 @@ fn signals_during_startup_publish_failure_and_still_stop_the_network() {
             .env("ICQ_SMOKE_FIXTURE_DIRECTORY", &directory.0)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
-        let mut child = OwnedChild::spawn(&mut command).unwrap();
+        let mut child = OwnedChild::spawn(&mut command, CleanupPolicy::KillAndWait).unwrap();
         let deadline = Instant::now() + Duration::from_secs(10);
         while !marker.exists() {
             assert!(Instant::now() < deadline);

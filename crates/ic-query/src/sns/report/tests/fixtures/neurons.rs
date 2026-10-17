@@ -1,5 +1,6 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, ROOT_A};
 use crate::sns::report::tests::*;
+use crate::sns::report::{SnsNeuronDetail, SnsNeuronRow};
 
 pub(in crate::sns::report::tests) const NEURON_A: &str =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
@@ -20,7 +21,7 @@ impl SnsNeuronSource for FixtureSnsNeuronSource {
         _request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
             assert_eq!(neuron_id, NEURON_A);
@@ -29,55 +30,53 @@ impl SnsNeuronSource for FixtureSnsNeuronSource {
     }
 }
 
-pub(in crate::sns::report::tests) fn fixture_sns_neuron() -> MainnetSnsNeuron {
-    MainnetSnsNeuron {
-        detail: SnsNeuronDetail {
-            neuron: SnsNeuronRow {
-                neuron_id: NEURON_A.to_string(),
-                cached_neuron_stake_e8s: 100_000_000,
-                maturity_e8s_equivalent: 50_000_000,
-                staked_maturity_e8s_equivalent: Some(25_000_000),
-                created_timestamp_seconds: 1_780_272_000,
-                created_at: "2026-06-01T00:00:00Z".to_string(),
-                source_nns_neuron_id: Some(42),
-                auto_stake_maturity: Some(true),
-                aging_since_timestamp_seconds: 1_780_272_100,
-                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
-                voting_power_percentage_multiplier: 100,
-                vesting_period_seconds: Some(63_072_000),
-                neuron_fees_e8s: 10_000,
-            },
-            permissions: vec![SnsNeuronPermissionRow {
-                principal: Some(GOVERNANCE_A.to_string()),
-                permission_types: [1, 2, 3, 4, 9, 10]
-                    .into_iter()
-                    .map(SnsNeuronPermissionValue::from_code)
-                    .collect(),
-            }],
-            disburse_maturity_in_progress: vec![SnsMaturityDisbursementRow {
-                timestamp_of_disbursement_seconds: 1_780_272_200,
-                amount_e8s: 12_500_000,
-                account_to_disburse_to: Some(SnsNeuronAccount {
-                    owner: Some(ROOT_A.to_string()),
-                    subaccount_hex: Some("ab".repeat(32)),
-                }),
-                finalize_disbursement_timestamp_seconds: Some(1_780_358_600),
-            }],
-            followees: vec![SnsNeuronFolloweesRow {
-                function_id: 1,
-                followee_neuron_ids: vec!["11".repeat(32)],
-            }],
-            topic_followees: Some(vec![SnsNeuronTopicFolloweesRow {
-                topic_code: 5,
-                topic: Some("governance".to_string()),
-                followees: vec![SnsNeuronFolloweeRow {
-                    neuron_id: Some("22".repeat(32)),
-                    alias: Some("governance lead".to_string()),
-                }],
-            }]),
-            maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::Violated,
-            manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::Violated,
+pub(in crate::sns::report::tests) fn fixture_sns_neuron() -> SnsNeuronDetail {
+    SnsNeuronDetail {
+        neuron: SnsNeuronRow {
+            neuron_id: NEURON_A.to_string(),
+            cached_neuron_stake_e8s: 100_000_000,
+            maturity_e8s_equivalent: 50_000_000,
+            staked_maturity_e8s_equivalent: Some(25_000_000),
+            created_timestamp_seconds: 1_780_272_000,
+            created_at: "2026-06-01T00:00:00Z".to_string(),
+            source_nns_neuron_id: Some(42),
+            auto_stake_maturity: Some(true),
+            aging_since_timestamp_seconds: 1_780_272_100,
+            dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+            voting_power_percentage_multiplier: 100,
+            vesting_period_seconds: Some(63_072_000),
+            neuron_fees_e8s: 10_000,
         },
+        permissions: vec![SnsNeuronPermissionRow {
+            principal: Some(GOVERNANCE_A.to_string()),
+            permission_types: [1, 2, 3, 4, 9, 10]
+                .into_iter()
+                .map(SnsNeuronPermissionValue::from_code)
+                .collect(),
+        }],
+        disburse_maturity_in_progress: vec![SnsMaturityDisbursementRow {
+            timestamp_of_disbursement_seconds: 1_780_272_200,
+            amount_e8s: 12_500_000,
+            account_to_disburse_to: Some(SnsNeuronAccount {
+                owner: Some(ROOT_A.to_string()),
+                subaccount_hex: Some("ab".repeat(32)),
+            }),
+            finalize_disbursement_timestamp_seconds: Some(1_780_358_600),
+        }],
+        followees: vec![SnsNeuronFolloweesRow {
+            function_id: 1,
+            followee_neuron_ids: vec!["11".repeat(32)],
+        }],
+        topic_followees: Some(vec![SnsNeuronTopicFolloweesRow {
+            topic_code: 5,
+            topic: Some("governance".to_string()),
+            followees: vec![SnsNeuronFolloweeRow {
+                neuron_id: Some("22".repeat(32)),
+                alias: Some("governance lead".to_string()),
+            }],
+        }]),
+        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::Violated,
+        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::Violated,
     }
 }
 
@@ -98,28 +97,26 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
             assert_eq!(limit, 10);
             assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
-            Ok(MainnetSnsNeurons {
-                neurons: vec![SnsNeuronRow {
-                    neuron_id: NEURON_A.to_string(),
-                    cached_neuron_stake_e8s: 123,
-                    maturity_e8s_equivalent: 456,
-                    staked_maturity_e8s_equivalent: Some(789),
-                    created_timestamp_seconds: 1_780_272_000,
-                    created_at: "2026-06-01T00:00:00Z".to_string(),
-                    source_nns_neuron_id: Some(42),
-                    auto_stake_maturity: Some(true),
-                    aging_since_timestamp_seconds: 1_780_272_100,
-                    dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
-                    voting_power_percentage_multiplier: 100,
-                    vesting_period_seconds: Some(63_072_000),
-                    neuron_fees_e8s: 10,
-                }],
-            })
+            Ok(vec![SnsNeuronRow {
+                neuron_id: NEURON_A.to_string(),
+                cached_neuron_stake_e8s: 123,
+                maturity_e8s_equivalent: 456,
+                staked_maturity_e8s_equivalent: Some(789),
+                created_timestamp_seconds: 1_780_272_000,
+                created_at: "2026-06-01T00:00:00Z".to_string(),
+                source_nns_neuron_id: Some(42),
+                auto_stake_maturity: Some(true),
+                aging_since_timestamp_seconds: 1_780_272_100,
+                dissolve_state: Some(SnsNeuronDissolveState::DissolveDelaySeconds(31_536_000)),
+                voting_power_percentage_multiplier: 100,
+                vesting_period_seconds: Some(63_072_000),
+                neuron_fees_e8s: 10,
+            }])
         })
     }
 
@@ -177,7 +174,7 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
             unreachable!("paged fixture is only used by complete cache refresh tests")
         })
@@ -252,7 +249,7 @@ impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(
             async move { unreachable!("cache-backed neuron report should not fetch live neurons") },
         )

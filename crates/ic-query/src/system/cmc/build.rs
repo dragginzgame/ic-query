@@ -48,13 +48,11 @@ pub async fn build_cmc_cycles_report_with_source(
     request: &CmcSourceRequest,
     source: &dyn CmcSource,
 ) -> Result<CmcCyclesReport, CmcHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let certified = source.fetch_certified_icp_xdr_rate(request).await?;
-    validate_certified_rate(&certified)?;
+    let certified = build_cmc_xdr_report_with_source(request, source).await?;
     let cycles_per_icp = u128::from(certified.rate.xdr_permyriad_per_icp) * CYCLES_PER_XDR
         / ICP_XDR_PERMYRIAD_DENOMINATOR;
     Ok(CmcCyclesReport {
-        context: report_context(request),
+        context: certified.context,
         rate: certified.rate,
         cycles_per_xdr: CYCLES_PER_XDR,
         cycles_per_xdr_source: CYCLES_PER_XDR_SOURCE.to_string(),

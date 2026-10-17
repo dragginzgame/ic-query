@@ -14,7 +14,7 @@ use crate::{
         },
     },
     sns::commands::spec::{
-        commands::args::sns_lookup_input_arg,
+        commands::args::{sns_lookup_input_arg, sns_root_input_arg},
         values::{
             SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
             SnsProposalTopicArg, SnsProposalsSortArg,
@@ -31,41 +31,41 @@ const SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
 const SNS_PROPOSALS_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposal list 1
-  icq sns proposal list 1 --status open
-  icq sns proposal list 1 --status decided
-  icq sns proposal list 1 --topic governance
-  icq sns proposal list 1 --eligible yes
-  icq sns proposal list 1 --proposer 00010203
-  icq sns proposal list 1 --query treasury
-  icq sns proposal list 1 --sort status
-  icq sns proposal list 1 --sort topic
-  icq sns proposal list 1 --sort proposer
-  icq sns proposal list 1 --sort title
-  icq sns proposal list 1 --sort action
-  icq sns proposal list 1 --sort action-id
-  icq sns proposal list 1 --sort total-votes
-  icq sns proposal list 1 --sort tally-time
-  icq sns proposal list 1 --sort ballots
-  icq sns proposal list 1 --sort eligible
-  icq sns proposal list 1 --sort reject-cost
-  icq sns proposal list 1 --sort reward-round
-  icq sns proposal list 1 --sort reward-end
-  icq sns proposal list 1 --sort created
-  icq sns proposal list 1 --sort decided
-  icq sns proposal list 1 --sort executed
-  icq sns proposal list 1 --sort failed
-  icq sns proposal list 1 --sort created --asc
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --status open
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --status decided
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --topic governance
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --eligible yes
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --proposer 00010203
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --query treasury
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort status
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort topic
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort proposer
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort title
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort action
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort action-id
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort total-votes
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort tally-time
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort ballots
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort eligible
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort reject-cost
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort reward-round
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort reward-end
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort created
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort decided
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort executed
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort failed
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --sort created --asc
   icq sns proposal refresh 1
-  icq sns proposal cache status 1
-  icq sns proposal list 1 --before 100 --limit 50
-  icq sns proposal list 23ten-uaaaa-aaaaq-aabia-cai --verbose
-  icq --network ic sns proposal list 1 --json";
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --before 100 --limit 50
+  icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --verbose
+  icq --network ic sns proposal list be2us-64aaa-aaaaa-qaabq-cai --json";
 
 const SNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal info 1 387
-  icq sns proposal info 23ten-uaaaa-aaaaq-aabia-cai 387
+  icq sns proposal info be2us-64aaa-aaaaa-qaabq-cai 387
   icq sns proposal info 1 387 --ballots
   icq sns proposal info 1 387 --verbose
   icq --network ic sns proposal info 1 387 --json";
@@ -73,16 +73,16 @@ Examples:
 const SNS_PROPOSALS_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal refresh 1
-  icq sns proposal refresh 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns proposal refresh be2us-64aaa-aaaaa-qaabq-cai
   icq sns proposal refresh 1 --page-size 100
   icq --network ic sns proposal refresh 1 --json";
 
 const SNS_PROPOSALS_CACHE_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal cache list
-  icq sns proposal cache status 1
-  icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposal cache status 1 --json";
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai --json";
 
 const SNS_PROPOSALS_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -91,9 +91,9 @@ Examples:
 
 const SNS_PROPOSALS_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
-  icq sns proposal cache status 1
-  icq sns proposal cache status 23ten-uaaaa-aaaaq-aabia-cai
-  icq sns proposal cache status 1 --json";
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+  icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai --json";
 
 pub(in crate::sns::commands) fn sns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
@@ -141,8 +141,8 @@ pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
     ClapCommand::new("list")
         .bin_name("icq sns proposal list")
-        .about("List SNS governance proposals by list id or root principal")
-        .arg(sns_lookup_input_arg())
+        .about("List SNS governance proposals from a complete cache by root principal")
+        .arg(sns_root_input_arg())
         .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
@@ -285,7 +285,7 @@ pub(in crate::sns::commands) fn sns_proposal_cache_status_command() -> ClapComma
     ClapCommand::new("status")
         .bin_name("icq sns proposal cache status")
         .about("Show local SNS proposal snapshot and refresh-attempt status")
-        .arg(sns_lookup_input_arg())
+        .arg(sns_root_input_arg())
         .arg(json_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

@@ -259,9 +259,11 @@ async fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> 
     let options = IcrcAccountOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcBalanceRequest {
-        source_endpoint: ledger.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: ledger.ledger_canister_id,
+        ledger: IcrcLedgerRequest::new(
+            ledger.source_endpoint,
+            current_unix_secs()?,
+            ledger.ledger_canister_id,
+        ),
         account_owner: options.account_owner,
         subaccount_hex: options.subaccount_hex,
     };
@@ -273,9 +275,11 @@ async fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError
     let options = IcrcAllowanceOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcAllowanceRequest {
-        source_endpoint: ledger.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: ledger.ledger_canister_id,
+        ledger: IcrcLedgerRequest::new(
+            ledger.source_endpoint,
+            current_unix_secs()?,
+            ledger.ledger_canister_id,
+        ),
         account_owner: options.account_owner,
         account_subaccount_hex: options.account_subaccount_hex,
         spender_owner: options.spender_owner,
@@ -300,9 +304,11 @@ async fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), I
     let format = options.target.ledger.format;
     let target = options.target;
     let request = IcrcAccountTransactionPageRequest {
-        source_endpoint: target.ledger.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: target.ledger.ledger_canister_id,
+        ledger: IcrcLedgerRequest::new(
+            target.ledger.source_endpoint,
+            current_unix_secs()?,
+            target.ledger.ledger_canister_id,
+        ),
         index_canister_id: options.index_canister_id,
         account_owner: target.account_owner,
         subaccount_hex: target.subaccount_hex,
@@ -383,9 +389,11 @@ async fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandEr
     let options = IcrcTransactionsOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcTransactionsRequest {
-        source_endpoint: ledger.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: ledger.ledger_canister_id,
+        ledger: IcrcLedgerRequest::new(
+            ledger.source_endpoint,
+            current_unix_secs()?,
+            ledger.ledger_canister_id,
+        ),
         start: options.start,
         limit: options.limit,
         follow_archives: options.follow_archives,
@@ -398,9 +406,11 @@ async fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError>
     let options = IcrcArchivesOptions::from_matches(matches);
     let ledger = options.ledger;
     let request = IcrcArchivesRequest {
-        source_endpoint: ledger.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: ledger.ledger_canister_id,
+        ledger: IcrcLedgerRequest::new(
+            ledger.source_endpoint,
+            current_unix_secs()?,
+            ledger.ledger_canister_id,
+        ),
         from_canister_id: options.from_canister_id,
     };
     let report = build_icrc_archives_report(&request).await?;

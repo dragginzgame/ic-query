@@ -19,7 +19,7 @@ const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 const SNS_NEURONS_REFRESH_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron refresh 1
-  icq sns neuron refresh 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns neuron refresh be2us-64aaa-aaaaa-qaabq-cai
   icq sns neuron refresh 1 --page-size 100
   icq --network ic sns neuron refresh 1 --json";
 

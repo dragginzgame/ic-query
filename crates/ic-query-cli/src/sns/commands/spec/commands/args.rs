@@ -15,6 +15,18 @@ pub(super) fn sns_lookup_input_arg() -> clap::Arg {
         .help("SNS list id or root canister principal")
 }
 
+pub(super) fn sns_root_input_arg() -> clap::Arg {
+    value_arg("input")
+        .value_name("root-principal")
+        .required(true)
+        .value_parser(clap::builder::ValueParser::new(|value: &str| {
+            Principal::from_text(value)
+                .map(|_| value.to_string())
+                .map_err(|error| error.to_string())
+        }))
+        .help("SNS root canister principal identifying the complete collection")
+}
+
 pub(super) fn principal_value_parser() -> clap::builder::ValueParser {
     clap::builder::ValueParser::new(|value: &str| {
         Principal::from_text(value).map_err(|err| err.to_string())

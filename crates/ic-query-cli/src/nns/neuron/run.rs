@@ -9,13 +9,15 @@ use crate::{
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
-use ic_query::nns::governance::nns_governance_refresh_report_text;
+use ic_query::nns::governance::{
+    nns_governance_cache_status_report_text, nns_governance_refresh_report_text,
+};
 use ic_query::nns::neuron::{
     NnsNeuronInfoRequest, NnsNeuronListRequest, build_nns_neuron_cache_status_report,
     build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report,
     build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report,
-    build_nns_neuron_list_report_from_cache, nns_neuron_cache_status_report_text,
-    nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
+    build_nns_neuron_list_report_from_cache, nns_neuron_distribution_report_text,
+    nns_neuron_info_report_text, nns_neuron_list_report_text,
     refresh_nns_neuron_cache_with_progress,
 };
 use ic_query::nns::{
@@ -107,5 +109,9 @@ fn run_cache_status(matches: &ArgMatches, network: &str) -> Result<(), NnsComman
     let options = NetworkOutputOptions::from_matches(matches, network);
     let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_neuron_cache_status_report(&request)?;
-    write_text_or_json(options.format, &report, nns_neuron_cache_status_report_text)
+    write_text_or_json(
+        options.format,
+        &report,
+        nns_governance_cache_status_report_text,
+    )
 }

@@ -1,3 +1,4 @@
+use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
 
 struct InvalidBoundedSnsNeuronsSource;
@@ -11,12 +12,12 @@ impl SnsNeuronsSource for InvalidBoundedSnsNeuronsSource {
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
             let mut neurons = FixtureSnsNeuronsSource
                 .fetch_sns_neurons(request, sns, limit, owner_principal_id)
                 .await?;
-            neurons.neurons[0].neuron_id = "0A".to_string();
+            neurons[0].neuron_id = "0A".to_string();
             Ok(neurons)
         })
     }

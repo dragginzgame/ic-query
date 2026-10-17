@@ -6,12 +6,11 @@
 
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource,
-    SnsGovernanceParameters, SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronSource,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalTopicFilter,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsGovernanceParameters, SnsHostError,
+    SnsMetricsSource, SnsNeuronDetail, SnsNeuronId, SnsNeuronRow, SnsNeuronSource,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalRow, SnsProposalSource, SnsProposalTopicFilter,
     SnsProposalsSource, SnsRewardEvent, SnsRewardSource, SnsRunningVersionResponse,
     SnsSourceRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
     live::fetch::{
@@ -79,7 +78,7 @@ impl SnsNeuronSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(fetch_mainnet_sns_neuron(self, request, sns, neuron_id))
     }
 }
@@ -146,7 +145,7 @@ impl SnsProposalSource for LiveSnsSource {
         request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(fetch_mainnet_sns_proposal(self, request, sns, proposal_id))
     }
 }
@@ -160,7 +159,7 @@ impl SnsProposalsSource for LiveSnsSource {
         before_proposal_id: Option<u64>,
         include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(fetch_mainnet_sns_proposals(
             self,
             request,
@@ -178,7 +177,7 @@ impl SnsProposalsSource for LiveSnsSource {
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(fetch_mainnet_sns_proposal_page(
             self,
             request,
@@ -196,7 +195,7 @@ impl SnsNeuronsSource for LiveSnsSource {
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(fetch_mainnet_sns_neurons(
             self,
             request,

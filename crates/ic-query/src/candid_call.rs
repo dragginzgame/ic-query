@@ -135,7 +135,7 @@ mod tests {
     #[cfg(all(not(feature = "nns-host"), feature = "sns-host"))]
     use crate::sns::SnsHostError as QueryError;
     use ciborium::value::Value;
-    use ic_testkit::testing::read_http_request;
+    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
     use std::{io::Write, net::TcpListener, thread, time::Duration};
 
     #[tokio::test(flavor = "current_thread")]
@@ -163,12 +163,14 @@ mod tests {
                     stream
                         .set_write_timeout(Some(Duration::from_secs(10)))
                         .unwrap();
-                    let request = read_http_request(
+                    let request = capture_http_request(
                         &mut stream,
                         Duration::from_secs(10),
                         64 * 1024,
                         64 * 1024,
+                        HttpContentLength::Optional,
                     )
+                    .into_result()
                     .unwrap();
                     let body_start = request
                         .windows(4)

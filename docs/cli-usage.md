@@ -573,16 +573,16 @@ inventory.
 Proposal and neuron collections:
 
 ```bash
-icq sns proposal list 1 --limit 25
+icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --limit 25
 icq sns proposal info 1 387
 icq sns proposal refresh 1
-icq sns proposal cache status 1
+icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
 
 icq sns neuron list 1 --sort api
 icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
 icq sns neuron refresh 1
-icq sns neuron list 1 --sort stake --limit 500
-icq sns neuron cache status 1
+icq sns neuron list be2us-64aaa-aaaaa-qaabq-cai --sort stake --limit 500
+icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
 
 icq sns reward checkpoint 1 --json
 icq sns reward checkpoint <sns-root-principal> --max-pages 10 --json
@@ -595,8 +595,10 @@ paths, page counts and any post-publication attempt-finalization error. Text
 refresh results use the same collection and row-count labels.
 
 SNS proposal list views can create a missing complete proposal cache and apply
-supported filters and sorts locally. Proposal detail prefers a complete cache
-that contains the row and otherwise performs a live lookup.
+supported filters and sorts locally. Root-addressed proposal detail prefers a complete cache
+that contains the row and otherwise performs a live lookup. Numeric proposal
+detail selectors always use live discovery. Cache-backed lists, neuron sorts
+and cache status require root principals; explicit refresh still accepts list ids.
 
 SNS neuron `--sort api` is a bounded live view. Whole-collection sorts require
 a previously refreshed complete neuron snapshot so a normal view command

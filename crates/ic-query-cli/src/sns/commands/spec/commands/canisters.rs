@@ -10,7 +10,7 @@ use clap::Command as ClapCommand;
 const SNS_CANISTER_LIST_HELP_AFTER: &str = "\
 Examples:
   icq sns canister list 1
-  icq sns canister list 23ten-uaaaa-aaaaq-aabia-cai
+  icq sns canister list be2us-64aaa-aaaaa-qaabq-cai
   icq --network ic sns canister list 1 --json
 
 Health collection calls SNS Root's read-only get_sns_canisters_summary ingress

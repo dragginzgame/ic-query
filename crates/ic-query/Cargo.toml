@@ -60,6 +60,7 @@ sns-host = [
     "dep:ic-agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
+    "dep:icrc-ledger-types",
     "dep:tokio",
 ]
 subnet-catalog-host = [
@@ -105,6 +106,7 @@ url.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 ic-host-fs = { workspace = true, features = ["test-support"] }
+ic-host-process = { workspace = true, features = ["test-support"] }
 ic-testkit.workspace = true
 tokio = { workspace = true, features = ["net"] }
 wat.workspace = true

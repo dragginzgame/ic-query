@@ -68,6 +68,13 @@ impl SnsNeuronsOptions {
                 "`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string(),
             ));
         }
+        if self.sort != SnsNeuronsSortArg::Api {
+            Principal::from_text(&self.lookup.input).map_err(|_| {
+                SnsCommandError::Usage(
+                    "cached neuron views require an SNS root canister principal".to_string(),
+                )
+            })?;
+        }
         Ok(())
     }
 }

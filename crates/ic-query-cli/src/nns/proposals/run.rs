@@ -10,14 +10,16 @@ use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::storage::cache_root;
 use crate::{cli::common::write_text_or_json, nns::NnsCommandError, progress::StderrQueryProgress};
 use clap::ArgMatches;
-use ic_query::nns::governance::nns_governance_refresh_report_text;
+use ic_query::nns::governance::{
+    nns_governance_cache_status_report_text, nns_governance_refresh_report_text,
+};
 use ic_query::nns::proposals::{
     NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_activity_report_from_cache,
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
     build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_report, build_nns_proposal_report_from_cache,
     nns_proposal_activity_report_text, nns_proposal_cache_list_report_text,
-    nns_proposal_cache_status_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
+    nns_proposal_list_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
 };
 use ic_query::nns::{
@@ -158,6 +160,6 @@ fn run_nns_proposal_cache_status(
     write_text_or_json(
         options.format,
         &report,
-        nns_proposal_cache_status_report_text,
+        nns_governance_cache_status_report_text,
     )
 }

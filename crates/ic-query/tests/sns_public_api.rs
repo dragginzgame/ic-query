@@ -35,16 +35,15 @@ use ic_query::sns::{
     DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuron,
-    MainnetSnsNeuronPage, MainnetSnsNeurons, MainnetSnsProposal, MainnetSnsProposalPage,
-    MainnetSnsProposals, MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource,
-    SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource,
-    SnsDiscoverySource, SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest,
-    SnsNeuronSource, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource,
-    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsRewardCheckpointRequest,
-    SnsRewardSource, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSourceRequest,
-    SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
+    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
+    SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource, SnsDiscoverySource,
+    SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource,
+    SnsProposalSource, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
+    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSourceRequest, SnsSwapSource,
+    SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
     build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
     build_sns_list_report_from_cache_or_refresh, build_sns_list_report_with_source,
@@ -1763,16 +1762,14 @@ impl SnsProposalSource for FixtureSnsSource {
         _request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         proposal_id: u64,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposal, SnsHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
                 sns.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(proposal_id, 42);
-            Ok(MainnetSnsProposal {
-                proposal: sample_sns_proposal_row(),
-            })
+            Ok(sample_sns_proposal_row())
         })
     }
 }
@@ -1787,7 +1784,7 @@ impl SnsProposalsSource for FixtureSnsSource {
         before_proposal_id: Option<u64>,
         include_status: &'a [i32],
         topic: SnsProposalTopicFilter,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposals, SnsHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
                 sns.governance_canister_id,
@@ -1797,9 +1794,7 @@ impl SnsProposalsSource for FixtureSnsSource {
             assert_eq!(before_proposal_id, Some(99));
             assert_eq!(include_status, &[1]);
             assert_eq!(topic, SnsProposalTopicFilter::Governance);
-            Ok(MainnetSnsProposals {
-                proposals: vec![sample_sns_proposal_row()],
-            })
+            Ok(vec![sample_sns_proposal_row()])
         })
     }
 
@@ -1809,7 +1804,7 @@ impl SnsProposalsSource for FixtureSnsSource {
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsProposalPage, SnsHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
                 sns.governance_canister_id,
@@ -1817,9 +1812,7 @@ impl SnsProposalsSource for FixtureSnsSource {
             );
             assert_eq!(limit, 100);
             assert_eq!(before_proposal_id, None);
-            Ok(MainnetSnsProposalPage {
-                proposals: vec![sample_sns_proposal_row()],
-            })
+            Ok(vec![sample_sns_proposal_row()])
         })
     }
 }
@@ -1831,16 +1824,14 @@ impl SnsNeuronSource for FixtureSnsSource {
         _request: &'a SnsSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeuron, SnsHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
                 sns.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(neuron_id, SAMPLE_SNS_NEURON_ID);
-            Ok(MainnetSnsNeuron {
-                detail: sample_sns_neuron_detail(),
-            })
+            Ok(sample_sns_neuron_detail())
         })
     }
 }
@@ -1853,7 +1844,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeurons, SnsHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
                 sns.governance_canister_id,
@@ -1861,9 +1852,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
             );
             assert_eq!(limit, 50);
             assert_eq!(owner_principal_id, Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID));
-            Ok(MainnetSnsNeurons {
-                neurons: vec![sample_sns_neuron_row()],
-            })
+            Ok(vec![sample_sns_neuron_row()])
         })
     }
 

@@ -11,7 +11,8 @@ use super::{
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
     nns::{
-        LiveNnsSource, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
+        LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest,
+        NnsGovernanceRefreshRequest,
         governance::{
             NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData,
             NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
@@ -452,6 +453,15 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     ))
     .expect("cache status");
     assert!(status.found);
+    assert_eq!(status.collection, "neurons");
+    let summary = status.cache.as_ref().expect("cache summary");
+    assert_eq!(
+        summary.governance_canister_id,
+        MAINNET_GOVERNANCE_CANISTER_ID
+    );
+    assert!(summary.complete);
+    assert!(!summary.point_in_time_guaranteed);
+    assert_eq!(summary.row_count, 3);
     assert_eq!(
         status.cache.as_ref().expect("cache summary").cache_status,
         CacheValidationStatus::Valid
