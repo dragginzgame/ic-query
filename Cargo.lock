@@ -1724,9 +1724,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a94fb60f019548012a2a07887aba72fb49534f15a8e1df7855f534f139c6429"
+checksum = "c4c6f68dc69e6755bcb43f88aa2778dc8598e12cc3261314bbf49e006e7b79ce"
 dependencies = [
  "leb128",
  "sha2 0.10.9",
@@ -1745,11 +1745,11 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52900a21c26d592a2be924abdb24ec657d7a472da48acbd4b773a7e37639d683"
+checksum = "2512971658e8a048fa1e36154e7fef1704920f5257febc6764c99a59bc444be4"
 dependencies = [
- "ic-host-artifacts 0.26.0",
+ "ic-host-artifacts 0.26.1",
  "rustix",
  "thiserror 2.0.18",
 ]
@@ -1769,31 +1769,31 @@ dependencies = [
 
 [[package]]
 name = "ic-host-process"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec23536325ed5a2a3b5770f2d297aea15ed6e5d76747486054bdc0a7f5ad6c9e"
+checksum = "dc6ece3c0dfc22228de37fba171fe85601ba9f906712e50afce2ac3060ddf11c"
 dependencies = [
  "command-fds",
- "ic-host-artifacts 0.26.0",
- "ic-host-fs 0.26.0",
+ "ic-host-artifacts 0.26.1",
+ "ic-host-fs 0.26.1",
  "libc",
  "rustix",
 ]
 
 [[package]]
 name = "ic-host-text"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c869731e7caadf16cc0b66d2debcad058e24b7c37aa5dc6e2af1a271555ebc2"
+checksum = "739024c7ab969703236ac84d517b3c3d3b2303a77c101d88ba72f65fcbe1ac93"
 dependencies = [
  "unicode-width 0.2.2",
 ]
 
 [[package]]
 name = "ic-host-tools"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f535f3b1c105c597d6a39e07d86c05649eaa860375724def501982a7412052"
+checksum = "0c36d86903036dfb56b34bdd10cdc1833f088f20eaadf749e264e685cdeb1c3e"
 dependencies = [
  "candid_parser",
  "ciborium",
@@ -1838,9 +1838,9 @@ dependencies = [
  "ic-agent",
  "ic-cdk",
  "ic-certification",
- "ic-host-artifacts 0.26.0",
- "ic-host-fs 0.26.0",
- "ic-host-process 0.26.0",
+ "ic-host-artifacts 0.26.1",
+ "ic-host-fs 0.26.1",
+ "ic-host-process 0.26.1",
  "ic-host-text",
  "ic-host-tools",
  "ic-metrics 0.13.2",
@@ -1868,9 +1868,9 @@ dependencies = [
  "futures",
  "ic-agent",
  "ic-build",
- "ic-host-artifacts 0.26.0",
- "ic-host-fs 0.26.0",
- "ic-host-process 0.26.0",
+ "ic-host-artifacts 0.26.1",
+ "ic-host-fs 0.26.1",
+ "ic-host-process 0.26.1",
  "ic-host-text",
  "ic-query",
  "ic-testkit-candid",

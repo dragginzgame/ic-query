@@ -26,6 +26,8 @@ crate follows [Semantic Versioning](https://semver.org/).
 - **Breaking:** SNS joined, list and info models compose their five canister
   principals in `canisters: MainnetSnsCanisters`. JSON remains flat.
 - Include the MIT license text in both published crate packages.
+- Align feature-boundary checks with Host's unconditional Candid parser while
+  keeping portable and canister builds free of that dependency.
 - Fix native host compilation with Host 0.25 while preserving confined,
   atomic cache publication and failure evidence. Update canister fixtures for
   Testkit 0.51’s explicit installation fields and caller principal.
