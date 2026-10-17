@@ -20,6 +20,8 @@ crate follows [Semantic Versioning](https://semver.org/).
   raw codes without duplicated classification fields. Text labels are derived
   when rendered. Update Rust/JSON consumers and explicitly refresh neuron
   snapshots; strict row decoding rejects the replaced shape. Schemas remain 1.
+- Select ICP CLI 1.7.0 for development and canister tooling. Run
+  `make install-ic-tools` before offline tool checks.
 - Share SNS version-hash validation while preserving upgrade hex admission and
   the stricter 32-byte reward-checkpoint requirement.
 

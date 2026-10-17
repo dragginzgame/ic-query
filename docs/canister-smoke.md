@@ -104,7 +104,7 @@ Query keeps its caller-selected decoder budgets until that package is available.
 - Rust 1.99.0, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
 - The verified repository-local IC toolset, including
-  ICP CLI **1.6.0**. Prepare it explicitly with `make install-ic-tools`;
+  ICP CLI **1.7.0**. Prepare it explicitly with `make install-ic-tools`;
   `make ic-tools-check` verifies the installed set offline.
 - The selected workspace dependency cache, including the development-only
   IC Host Tooling dependencies. The canister Make entry points prepare it with
@@ -120,17 +120,32 @@ Testkit; the separate deterministic check above does. After adopting Shared 0.2.
 before offline checks; prior six-tool bundles remain retained evidence.
 
 The managed runtime is pinned to network launcher **16.0.0** in `icp.yaml`.
-ICP CLI 1.6.0 bundles launcher **16.0.0-2026-09-18-03-28**; the project pin
-keeps local NNS execution on the existing stable runtime. ICP identities,
+The ICP binary selection is independent of this project pin, which keeps
+local NNS execution on the existing stable runtime. ICP identities,
 settings and launcher packages use the persistent ignored `.icp-smoke-home/`
 by default. Receipts, Wasm and bundles live under `target/canister-smoke/`;
 runtime state lives in `tests/canister/.icp/`. These directories belong outside
 commits and release artifacts. The library's supported minimum Rust version remains **1.91.0**;
 `make msrv` verifies it separately from the development toolchain.
 
+### ICP binary selection
+
+Query selects ICP CLI 1.7.0 ahead of Shared Tooling 0.15.0’s 1.6.0 default.
+The separate complete catalog `ci/ic-tools-query.tsv` changes only ICP and
+retains all other reviewed selections. Make setup/checks, validation inputs,
+the direct harness, release pin admission and retained tool evidence use that
+same catalog. The immutable shared catalog remains intact.
+
+The three ICP archive hashes come from the official 1.7.0 release metadata.
+Linux x86-64 installation and offline admission are checked locally; native
+macOS Intel/Apple Silicon execution and full local-NNS smoke remain pending
+the configured CI matrix. Replace this exception with a reviewed shared catalog
+once its owner adopts and qualifies the release under
+[Shared #268 — Adopt ICP CLI 1.7.0](https://github.com/dragginzgame/shared-tooling/issues/268).
+
 ## Identity storage and cleanup
 
-The pinned [ICP CLI 1.6.0 home implementation](https://github.com/dfinity/icp-cli/blob/18435e1747162447fca231548b74d97e4cf48888/crates/icp-app/src/directories.rs)
+The pinned [ICP CLI 1.7.0 home implementation](https://github.com/dfinity/icp-cli/blob/eda771516212045748dc14933c10148c118dbc2c/crates/icp-app/src/directories.rs)
 places identities, settings and launcher packages beneath one `ICP_HOME` on
 Linux and macOS. The harness selects that home only for ICP children; it
 preserves the parent environment and caller XDG settings. An explicit
@@ -168,8 +183,8 @@ make canister-smoke
 
 The harness selects `.tools/ic/bin/icp` explicitly, verifies the installed set
 offline before ICP execution, and never installs tools implicitly. The check
-uses `IC_TOOL_PINS` when explicitly selected in Make or the environment, otherwise
-the snapshot matrix, which owns executable version qualification. Receipts record
+uses the explicit `IC_TOOL_PINS` selection, defaulting to Query’s reviewed
+[IC matrix](../ci/ic-tools-query.tsv), including for direct Cargo invocation. Receipts record
 the observed ICP version. Direct invocation needs no global ICP selection.
 
 `canister-build` invokes `icp build -e local` against the isolated project in
@@ -327,7 +342,7 @@ intermediate upgrade occurred.
 make canister-bundle
 ```
 
-This uses ICP 1.6.0's `icp project bundle -e mainnet-smoke` to produce
+This uses ICP 1.7.0's `icp project bundle -e mainnet-smoke` to produce
 `target/canister-smoke/governance-probe.tar.gz`. The archive contains only the
 probe Wasm and a manifest using a prebuilt step with its SHA-256 hash. It
 needs no Rust checkout to deploy. The ordinary `ic` environment contains no
@@ -364,8 +379,8 @@ receipt gap remains documented in the [0.38 design](design/0.38/0.38-design.md).
 
 The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
 and macOS 15 Intel. It explicitly installs and checks the common local IC set
-from the snapshot's single pin matrix, retaining ICP CLI 1.6.0 and its existing
-archive digests. It selects `.tools/ic/bin`, runs the local smoke, and builds
+from Query’s explicitly selected IC matrix, including ICP CLI 1.7.0 and its
+reviewed archive digests. It selects `.tools/ic/bin`, runs the local smoke, and builds
 the bundle. It uploads receipts and their adjacent binary Candid replies, the probe Wasm,
 and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
 failed runs. Identities and runtime state are excluded from uploads.
@@ -380,8 +395,8 @@ through `make ci-scripts-check`. Artifact-helper Rust unit tests run through
 one owner in the complete CI gate. `make ci` does not start a local network; use
 `make canister-smoke` for the separate runtime gate.
 
-Upstream contracts: [ICP 1.6.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.6.0)
-and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.6.0/docs/reference/configuration.md).
+Upstream contracts: [ICP 1.7.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.7.0)
+and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.7.0/docs/reference/configuration.md).
 
 ## Shared probe build mechanics
 

@@ -41,6 +41,7 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
+IC_TOOL_PINS ?= $(REPO_ROOT)ci/ic-tools-query.tsv
 LOCAL_TOOL_INSTALL_TARGETS += install-dependency-tools
 LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
 include $(REPO_ROOT)make/consumer.mk
@@ -55,7 +56,7 @@ CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-c
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
 CI_INPUTS := Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/ic-tools.tsv .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml ci/tool-versions.env $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -68,7 +69,7 @@ help:
 	@echo "  canister-test    Run deterministic Governance Wasm tests with prepared Testkit"
 	@echo "  install-testkit  Prepare the selected Testkit CLI and its PocketIC server"
 	@echo "  testkit-check    Admit the selected Testkit CLI and server offline"
-	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.6.0"
+	@echo "  canister-build   Build the isolated Governance probe with ICP CLI 1.7.0"
 	@echo "  canister-bundle  Bundle the probe for explicit mainnet-smoke deployment"
 	@echo "  canister-smoke   Deploy on a local NNS network and retain an execution receipt"
 	@echo "  fmt        Sort Cargo manifests and format Rust code"
