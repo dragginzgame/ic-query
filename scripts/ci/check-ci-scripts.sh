@@ -385,16 +385,18 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools-query.tsv; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
     DRIFT_INPUT="$drift_case/$input" VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     "$make_bin" --no-print-directory -C "$drift_case" ci > "$drift_case/drift-output" 2>&1; then
     fail "CI accepted changed $input"
   fi
   printf 'shared-tooling-check\n' > "$drift_case/expected"
-  cmp "$drift_case/expected" "$drift_case/trace" || fail 'CI continued after input drift'
+  cmp "$drift_case/expected" "$drift_case/trace" \
+    || fail 'CI did not dispatch exactly the first stage before detecting input drift'
   grep -Fq "validation input changed: $input" "$drift_case/failures/latest.log" \
     || fail 'CI lost changed-input diagnostics'
   cp "$drift_case/original-input" "$drift_case/$input"
@@ -404,6 +406,7 @@ if (
   cd "$drift_case"
   unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
   PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" DRIFT_INPUT="$drift_case/Cargo.lock" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
     VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     bash scripts/ci/run-validation-targets.sh --input Cargo.lock ci
 ) > "$drift_case/nested-output" 2>&1; then

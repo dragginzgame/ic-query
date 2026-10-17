@@ -28,6 +28,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Include the MIT license text in both published crate packages.
 - Align feature-boundary checks with Host's unconditional Candid parser while
   keeping portable and canister builds free of that dependency.
+- Keep CI input-drift fixtures bound to their own tool-pin catalog when run
+  from a parent CI or release process.
+- Use typed Cargo selections and fresh source-evidence validation in the
+  Governance probe build harness.
 - Fix native host compilation with Host 0.25 while preserving confined,
   atomic cache publication and failure evidence. Update canister fixtures for
   Testkit 0.51’s explicit installation fields and caller principal.
