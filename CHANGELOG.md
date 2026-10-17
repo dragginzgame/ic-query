@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.62.0]
+## [0.62.0] - 2026-10-17
 
 - Align the compiled Governance fixture with Testkit 0.53’s explicit Candid
   argument-list helpers, preserving the selected dependency update.
