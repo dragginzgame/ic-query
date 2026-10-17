@@ -47,14 +47,13 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         None,
     );
     let probe = pic
-        .try_create_and_install(
-            InstallSpec::new(
-                probe_wasm,
-                candid::encode_args(()).unwrap(),
-                2_000_000_000_000,
-            )
-            .label("Query Governance probe"),
-        )
+        .try_create_and_install(InstallSpec {
+            wasm: probe_wasm,
+            init_bytes: candid::encode_args(()).unwrap(),
+            cycles: 2_000_000_000_000,
+            install_sender: None,
+            label: Some("Query Governance probe".into()),
+        })
         .expect("install compiled Query probe");
     assert_reports(pic, probe, governance);
     replies[1].1 = candid::encode_one(GetMetricsResult::Err(GovernanceError {
@@ -144,6 +143,7 @@ fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
     let reply: String = pic
         .update_candid(
             probe,
+            candid::Principal::anonymous(),
             "report",
             (kind.to_string(),),
             DecodeLimits {
