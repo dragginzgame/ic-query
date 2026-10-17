@@ -4,7 +4,7 @@
 //! Does not own: ledger calls, token amount formatting, or rendering.
 //! Boundary: preserves raw token metadata fields for text and JSON output.
 
-use crate::icrc::{IcrcTokenMetadataRow, IcrcTokenStandardRow};
+use crate::icrc::IcrcTokenData;
 use serde::Serialize;
 
 ///
@@ -26,15 +26,9 @@ pub struct SnsTokenReport {
     pub root_canister_id: String,
     pub ledger_canister_id: String,
     pub sns_index_canister_id: String,
-    pub token_name: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub transfer_fee: String,
-    pub total_supply: String,
-    pub minting_account_owner: Option<String>,
-    pub minting_account_subaccount_hex: Option<String>,
+    /// Raw ledger metadata shared with ICRC reports and sources.
+    #[serde(flatten)]
+    pub token: IcrcTokenData,
     pub ledger_index_canister_id: Option<String>,
     pub ledger_index_error: Option<String>,
-    pub supported_standards: Vec<IcrcTokenStandardRow>,
-    pub metadata: Vec<IcrcTokenMetadataRow>,
 }

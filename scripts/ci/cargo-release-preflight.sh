@@ -32,7 +32,7 @@ else
     selected=("${checks[@]}")
 fi
 for target in "${selected[@]}"; do
-    make --no-print-directory -C "$root" "$target"
+    "${RELEASE_MAKE:-make}" --no-print-directory -C "$root" "$target"
     for ((index=0; index<${#pins[@]}; index++)); do
         if [[ "$(bash "$helper" --print sha256 "${pins[index]}")" != "${digests[index]}" ]]; then
             printf 'selected tool pins changed during release preflight: %s\n' "${pins[index]}" >&2

@@ -51,24 +51,24 @@ pub use model::normalize_subaccount_hex;
 #[cfg(feature = "icrc-host")]
 pub use model::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcBalanceData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTransactionsData,
+    IcrcCapabilitiesData, IcrcIndexData, IcrcTransactionsData,
 };
 pub use model::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
     IcrcAccountTransactionCacheSummary, IcrcAccountTransactionError,
     IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
-    IcrcAccountTransactionPageReport, IcrcAccountTransactionPageRequest,
-    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
-    IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionRow,
-    IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort, IcrcAllowanceReport,
-    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
-    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
-    IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcFollowedArchiveBlockRow,
-    IcrcIndexReport, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport,
-    IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
-    IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcAccountTransactionPageData, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshAttemptStatus,
+    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRefreshRequest,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort,
+    IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow,
+    IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport,
+    IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow,
+    IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus,
+    IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexReport, IcrcLedgerRequest,
+    IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenData, IcrcTokenMetadataRow,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
+    IcrcTransactionsRequest,
 };
 pub use text::{
     icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,

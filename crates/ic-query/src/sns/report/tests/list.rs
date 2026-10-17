@@ -1,5 +1,6 @@
 use super::{fixtures::*, *};
 use crate::QueryProgressEvent;
+use crate::sns::report::sns_swap_lifecycle_name;
 use crate::test_support::temp_dir;
 use std::{fs, sync::Mutex};
 
@@ -27,7 +28,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.lifecycle_error_count, 0);
     assert_eq!(report.sns_instances[0].lifecycle, Some(3));
     assert_eq!(
-        report.sns_instances[0].lifecycle_name.as_deref(),
+        sns_swap_lifecycle_name(report.sns_instances[0].lifecycle),
         Some("committed")
     );
     assert_eq!(report.data_source.as_str(), "live");
@@ -48,7 +49,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
 
     let json = serde_json::to_value(&report).expect("serialize SNS list report");
     assert_eq!(json["sns_instances"][0]["lifecycle"], 3);
-    assert_eq!(json["sns_instances"][0]["lifecycle_name"], "committed");
+    assert_eq!(json["sns_instances"][0]["lifecycle"], 3);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -172,28 +173,32 @@ async fn sns_list_refreshes_invalid_catalog_content() {
             cache["domain"] = serde_json::json!("wrong");
         }),
         ("row_id", |cache: &mut serde_json::Value| {
-            cache["sns_instances"][0]["id"] = serde_json::json!(0);
+            cache["data"]["sns_instances"][0]["id"] = serde_json::json!(0);
         }),
         ("principal", |cache: &mut serde_json::Value| {
-            cache["sns_instances"][0]["governance_canister_id"] = serde_json::json!("invalid");
+            cache["data"]["sns_instances"][0]["governance_canister_id"] =
+                serde_json::json!("invalid");
+        }),
+        ("unknown_row_field", |cache: &mut serde_json::Value| {
+            cache["data"]["sns_instances"][0]["unexpected"] = serde_json::json!(true);
         }),
         ("metadata", |cache: &mut serde_json::Value| {
-            cache["sns_instances"][0]["name"] = serde_json::json!(" untrimmed ");
+            cache["data"]["sns_instances"][0]["name"] = serde_json::json!(" untrimmed ");
         }),
         ("missing_lifecycle", |cache: &mut serde_json::Value| {
-            cache["sns_instances"][0]["lifecycle"] = serde_json::Value::Null;
-            cache["sns_instances"][0]["lifecycle_name"] = serde_json::Value::Null;
+            cache["data"]["sns_instances"][0]["lifecycle"] = serde_json::Value::Null;
         }),
         (
             "contradictory_lifecycle",
             |cache: &mut serde_json::Value| {
-                cache["sns_instances"][0]["lifecycle_error"] = serde_json::json!("query failed");
+                cache["data"]["sns_instances"][0]["lifecycle_error"] =
+                    serde_json::json!("query failed");
             },
         ),
         ("duplicate_root", |cache: &mut serde_json::Value| {
-            let mut duplicate = cache["sns_instances"][0].clone();
+            let mut duplicate = cache["data"]["sns_instances"][0].clone();
             duplicate["id"] = serde_json::json!(2);
-            cache["sns_instances"]
+            cache["data"]["sns_instances"]
                 .as_array_mut()
                 .unwrap()
                 .push(duplicate);
@@ -226,7 +231,13 @@ async fn sns_list_refreshes_invalid_catalog_content() {
 
         let error = build_sns_list_report_from_cache(&request, &root)
             .expect_err("cache-only reads reject invalid content");
-        if !["schema", "network", "identity"].contains(&case) {
+        if case == "unknown_row_field" {
+            assert!(
+                matches!(error, SnsHostError::Cache(crate::HostCacheError::ParseCache {
+                path: actual, ..
+            }) if actual == path)
+            );
+        } else if !["schema", "network", "identity"].contains(&case) {
             assert!(
                 matches!(error, SnsHostError::InvalidCache { path: actual, .. } if actual == path)
             );
@@ -513,11 +524,10 @@ async fn sns_list_report_rejects_inexact_lifecycle_results() {
         (empty_lifecycle_error, "lifecycle_error"),
         (untrimmed_lifecycle_error, "surrounding whitespace"),
         (contradictory_lifecycle_result, "both value fields"),
-        (mismatched_lifecycle_name, "lifecycle_name"),
         (
             |rows| {
                 rows[0].lifecycle = None;
-                rows[0].lifecycle_name = None;
+
                 rows[0].lifecycle_error = None;
             },
             "neither a value nor lifecycle_error",
@@ -545,7 +555,6 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let root = temp_dir("ic-query-sns-unknown-lifecycle");
     let source = MutatingLifecycleSource(|rows| {
         rows[0].lifecycle = Some(99);
-        rows[0].lifecycle_name = Some("unknown".to_string());
     });
     let request = list_request(false).with_all_lifecycles(true);
     let live = build_sns_list_report_with_source(&request, &source)
@@ -564,7 +573,7 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     assert_eq!(cached.sns_instances, live.sns_instances);
     assert_eq!(cached.sns_instances[0].lifecycle, Some(99));
     assert_eq!(
-        cached.sns_instances[0].lifecycle_name.as_deref(),
+        sns_swap_lifecycle_name(cached.sns_instances[0].lifecycle),
         Some("unknown")
     );
 
@@ -572,7 +581,6 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let original = fs::read(&path).expect("read published snapshot");
     let invalid_source = MutatingLifecycleSource(|rows| {
         rows[0].lifecycle = None;
-        rows[0].lifecycle_name = None;
     });
     let mut stale_request = request;
     stale_request.now_unix_secs += DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS + 1;
@@ -731,7 +739,7 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
     );
     assert_eq!(all_report.sns_instances[1].lifecycle, Some(4));
     assert_eq!(
-        all_report.sns_instances[1].lifecycle_name.as_deref(),
+        sns_swap_lifecycle_name(all_report.sns_instances[1].lifecycle),
         Some("aborted")
     );
     assert!(sns_list_report_text(&all_report).contains("aborted"));
@@ -1207,7 +1215,7 @@ fn invalidate_lifecycle_root(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
 )]
 fn empty_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     lifecycles[0].lifecycle = None;
-    lifecycles[0].lifecycle_name = None;
+
     lifecycles[0].lifecycle_error = Some("  ".to_string());
 }
 
@@ -1217,7 +1225,7 @@ fn empty_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
 )]
 fn untrimmed_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     lifecycles[0].lifecycle = None;
-    lifecycles[0].lifecycle_name = None;
+
     lifecycles[0].lifecycle_error = Some(" query rejected ".to_string());
 }
 
@@ -1233,16 +1241,8 @@ fn contradictory_lifecycle_result(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     clippy::ptr_arg,
     reason = "shared lifecycle mutation fixture signature"
 )]
-fn mismatched_lifecycle_name(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
-    lifecycles[0].lifecycle_name = Some("aborted".to_string());
-}
-
-#[expect(
-    clippy::ptr_arg,
-    reason = "shared lifecycle mutation fixture signature"
-)]
 fn lifecycle_query_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     lifecycles[0].lifecycle = None;
-    lifecycles[0].lifecycle_name = None;
+
     lifecycles[0].lifecycle_error = Some("get_lifecycle: query rejected".to_string());
 }

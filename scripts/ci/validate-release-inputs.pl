@@ -1,14 +1,18 @@
 #!/usr/bin/env perl
+# Shared companions: scripts/ci/StableVersion.pm
 use strict;
 use warnings;
+use FindBin qw($RealBin);
+use lib $RealBin;
+use StableVersion qw(stable);
 
 # Pure admission: stable u64 version components, or Gregorian UTC date spelling.
 # Increment headroom and release/receipt identity remain caller-owned.
 @ARGV == 2 or die "usage: validate-release-inputs.pl version|date VALUE\n";
 my ($kind, $value) = @ARGV;
 if ($kind eq 'version') {
-    my @parts = $value =~ /\A(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\z/;
-    @parts == 3 or die "expected canonical stable major.minor.patch version\n";
+    stable($value) or die "expected canonical stable major.minor.patch version\n";
+    my @parts = split /\./, $value;
     for my $part (@parts) {
         length($part) < 20 || (length($part) == 20 && $part le '18446744073709551615')
             or die "release version component exceeds u64\n";

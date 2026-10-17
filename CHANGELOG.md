@@ -5,6 +5,51 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.0]
+
+- **Breaking:** ICRC balance and allowance reports compose their existing payloads
+  in `value`; Rust callers use `report.value`. Text and flat JSON stay unchanged.
+- **Breaking:** CloudEngine node-class JSON uses the native Candid spelling
+  (`type4_1` through `type4_5`). Marketplace keys and text retain dotted labels.
+- **Breaking:** CloudEngine list rows store `operator` as one lookup result:
+  a native principal, successful absence, or a bounded error. Update Rust/JSON
+  consumers; schema remains 1. Invalid custom-source evidence still fails the report.
+
+- Adopt Shared Tooling 0.23.0 and its common ICP 1.7.0 catalog. Retain Query's
+  IC-tool setup/checks and documentation-debt gate under their local owners.
+
+- **Breaking:** SNS neuron, proposal and ballot rows retain native timestamps
+  without stored UTC strings. Text derives those strings when rendered. Update
+  Rust/JSON consumers, preserve evidence and explicitly refresh affected caches.
+- Share Dashboard token-value response decoding with its existing source row,
+  preserving nullable raw values and validated report timestamps.
+
+- **Breaking:** SNS lifecycle and treasury records retain native numeric codes
+  without stored labels or a parallel treasury enum. Update JSON/Rust consumers
+  and explicitly refresh SNS catalogs after preserving required evidence.
+- **Breaking:** SNS metrics and swap reports compose their existing source
+  payloads in `metrics` and `swap`. Payloads are available without host features;
+  report JSON remains flat apart from the removed derived labels.
+
+- **Breaking:** SNS proposal rows and ballots retain native action IDs and vote
+  codes without duplicated classifications. Labels remain available in text and
+  filtering. Update Rust/JSON consumers and explicitly refresh proposal caches.
+- **Breaking:** ICRC account-page reports compose `page: IcrcAccountTransactionPageData`;
+  existing text and flat JSON fields remain unchanged.
+- **Breaking:** SNS reward checkpoints compose `summary: SnsRewardCheckpointSummary`.
+  Update Rust/JSON consumers and regenerate checkpoints explicitly if needed;
+  preserve original evidence. Schema identifiers remain 1.
+
+- **Breaking:** ICRC and SNS token reports compose their shared metadata as
+  `token: IcrcTokenData`. Update Rust field access; text and flat report JSON
+  preserve their existing fields and raw values.
+- **Breaking:** Shared complete snapshots store explicit `metadata` and `data`
+  objects, and refresh-attempt files store explicit `metadata`. Preserve any
+  needed existing evidence, then explicitly refresh the affected caches. Schemas
+  remain 1; readers reject unknown and duplicate fields without migration.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.61.0] - 2026-10-17
 
 - **Breaking:** SNS token reports and custom sources use

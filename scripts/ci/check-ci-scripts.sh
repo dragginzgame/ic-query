@@ -112,10 +112,9 @@ STUB
 check_release_assertions
 
 copy_makefile() {
-  mkdir -p "$1/make" "$1/scripts/ci"
-  cp "$repo_root/Makefile" "$1/Makefile"
-  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk "$1/make/"
-  cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution,run-formatting}.sh "$1/scripts/ci/"
+  mkdir -p "$1"
+  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$1" \
+    Makefile scripts/ci/check-release-source.sh
 }
 
 check_clean_worktree() {
@@ -385,11 +384,11 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools-query.tsv; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
-    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools.tsv" \
     DRIFT_INPUT="$drift_case/$input" VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     "$make_bin" --no-print-directory -C "$drift_case" ci > "$drift_case/drift-output" 2>&1; then
     fail "CI accepted changed $input"
@@ -406,7 +405,7 @@ if (
   cd "$drift_case"
   unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
   PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" DRIFT_INPUT="$drift_case/Cargo.lock" \
-    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools.tsv" \
     VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     bash scripts/ci/run-validation-targets.sh --input Cargo.lock ci
 ) > "$drift_case/nested-output" 2>&1; then
@@ -640,7 +639,7 @@ for family in host ic rust; do
 set -euo pipefail
 family="${0##*/install-}"
 family="${family%-tools.sh}"
-[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/rust/common/bin:"* ]] || exit 71
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/rust/common/bin:"* ]] || exit 71
 printf '%s %s\n' "$family" "$*" >> "$TRACE_FILE"
 if [[ "${!#}" == --preflight ]]; then
   [[ "$family" != "${FAIL_PREFLIGHT:-}" ]] || exit 72
@@ -681,12 +680,11 @@ for mode in install check; do
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$mode.log" 2>&1
   : > "$tools_case/expected"
   if [[ "$mode" == install ]]; then
-    printf '%s\n' "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv --preflight" \
-      "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
+    printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
   fi
   printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
-    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" \
-    "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" >> "$tools_case/expected"
+    "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
+    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" >> "$tools_case/expected"
   if [[ "$mode" == check ]]; then
     printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --check" \
       'cargo sort --version' 'cargo fmt --version' >> "$tools_case/expected"
@@ -711,20 +709,15 @@ for mode in install check; do
   done
 done
 
-for family in ic rust; do
-  : > "$tools_case/trace"
-  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT="$family" \
-    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
-    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
-    "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-$family.log" 2>&1; then
-    fail "tool setup accepted a failed $family preflight"
-  fi
-  printf 'ic --consumer %s --pins %s/ci/ic-tools.tsv --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
-  if [[ "$family" == rust ]]; then
-    printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" >> "$tools_case/expected-preflight"
-  fi
-  cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
-done
+: > "$tools_case/trace"
+if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT=rust \
+  MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+  HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+  "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-rust.log" 2>&1; then
+  fail 'tool setup accepted a failed Rust preflight'
+fi
+printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
+cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
 
 cat > "$tools_case/scripts/ci/check-dependencies.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -769,7 +762,7 @@ done
 cat > "$tools_case/scripts/dev/cloc.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:"* ]] || exit 71
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/host/bin:"* ]] || exit 71
 printf 'cloc %s\n' "$*" >> "$TRACE_FILE"
 exit "${CLOC_RESULT:-0}"
 EOF

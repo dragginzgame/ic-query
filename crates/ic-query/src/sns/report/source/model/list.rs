@@ -69,8 +69,6 @@ pub struct MainnetSnsLifecycle {
     pub root_canister_id: String,
     /// Native Swap lifecycle discriminant.
     pub lifecycle: Option<i32>,
-    /// Stable native lifecycle label derived from `lifecycle`.
-    pub lifecycle_name: Option<String>,
     /// Bounded lifecycle query failure retained instead of dropping the SNS row.
     pub lifecycle_error: Option<String>,
 }
@@ -82,6 +80,7 @@ pub struct MainnetSnsLifecycle {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MainnetSns {
     pub id: usize,
     pub name: String,
@@ -93,8 +92,6 @@ pub struct MainnetSns {
     pub metadata_error: Option<String>,
     /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
     pub lifecycle: Option<i32>,
-    /// Stable native lifecycle label derived from `lifecycle`.
-    pub lifecycle_name: Option<String>,
     /// Bounded lifecycle query failure retained instead of dropping the SNS row.
     pub lifecycle_error: Option<String>,
 }
@@ -222,7 +219,6 @@ pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
         validate_lifecycle_fields(
             &sns.canisters.root_canister_id,
             sns.lifecycle,
-            sns.lifecycle_name.as_deref(),
             sns.lifecycle_error.as_deref(),
         )?;
     }
@@ -239,7 +235,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
             .remove(&sns.canisters.root_canister_id)
             .expect("exact lifecycle validation requires every inventory root");
         sns.lifecycle = lifecycle.lifecycle;
-        sns.lifecycle_name = lifecycle.lifecycle_name;
+
         sns.lifecycle_error = lifecycle.lifecycle_error;
     }
     Ok(())
@@ -323,7 +319,6 @@ fn index_mainnet_sns_lifecycles(
         validate_lifecycle_fields(
             &row.root_canister_id,
             row.lifecycle,
-            row.lifecycle_name.as_deref(),
             row.lifecycle_error.as_deref(),
         )?;
         by_root.insert(row.root_canister_id.clone(), row);
@@ -340,31 +335,20 @@ fn index_mainnet_sns_lifecycles(
 fn validate_lifecycle_fields(
     root_canister_id: &str,
     lifecycle: Option<i32>,
-    lifecycle_name: Option<&str>,
+
     lifecycle_error: Option<&str>,
 ) -> Result<(), SnsHostError> {
     if let Some(error) = lifecycle_error {
         validate_lifecycle_text(root_canister_id, "lifecycle_error", error)?;
-        if lifecycle.is_some() || lifecycle_name.is_some() {
+        if lifecycle.is_some() {
             return Err(LIFECYCLE_VALIDATOR.invalid(format!(
                 "lifecycle for {root_canister_id} contains both value fields and lifecycle_error"
             )));
         }
         return Ok(());
     }
-    if let Some(lifecycle) = lifecycle {
-        let expected_name = super::swap::sns_swap_lifecycle_name(Some(lifecycle));
-        if lifecycle_name != expected_name {
-            return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-                "lifecycle_name is {lifecycle_name:?}, expected {expected_name:?} for lifecycle {lifecycle}"
-            )));
-        }
+    if lifecycle.is_some() {
         return Ok(());
-    }
-    if lifecycle_name.is_some() {
-        return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-            "lifecycle for {root_canister_id} has a name without a raw value"
-        )));
     }
     Err(LIFECYCLE_VALIDATOR.invalid(format!(
         "lifecycle for {root_canister_id} has neither a value nor lifecycle_error"
@@ -436,7 +420,7 @@ fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetada
         canisters,
         metadata_error: metadata.metadata_error,
         lifecycle: None,
-        lifecycle_name: None,
+
         lifecycle_error: None,
     }
 }

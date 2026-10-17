@@ -21,9 +21,6 @@ use crate::{
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::Path;
 
-pub(in crate::sns::report) const SNS_REFRESH_ATTEMPT_METADATA_FIELDS: &[&str] =
-    &["id", "root_canister_id", "governance_canister_id"];
-
 ///
 /// SnsRefreshAttemptMetadata
 ///
@@ -32,6 +29,7 @@ pub(in crate::sns::report) const SNS_REFRESH_ATTEMPT_METADATA_FIELDS: &[&str] =
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(in crate::sns::report) struct SnsRefreshAttemptMetadata {
     pub(in crate::sns::report) id: usize,
     pub(in crate::sns::report) root_canister_id: String,
@@ -234,28 +232,23 @@ fn read_sns_refresh_attempt(
     expected_network: &str,
     budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Option<SnsRefreshAttempt>, SnsHostError> {
-    read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(
-        cache_root,
-        path,
-        SNS_REFRESH_ATTEMPT_METADATA_FIELDS,
-        budget,
-    )
-    .map_err(|error| match error {
-        SnapshotRefreshAttemptReadError::Operation(source) => {
-            SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source))
-        }
-        SnapshotRefreshAttemptReadError::Parse { path, source } => SnsHostError::from(
-            HostCacheError::parse_cache(SNS_CACHE_COMPONENT, path, source),
-        ),
-        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
-            SnsHostError::InvalidRefreshAttempt { path, reason }
-        }
-    })?
-    .map(|attempt| {
-        validate_sns_refresh_attempt(path, expected_network, &attempt)?;
-        Ok(attempt)
-    })
-    .transpose()
+    read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(cache_root, path, budget)
+        .map_err(|error| match error {
+            SnapshotRefreshAttemptReadError::Operation(source) => {
+                SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source))
+            }
+            SnapshotRefreshAttemptReadError::Parse { path, source } => SnsHostError::from(
+                HostCacheError::parse_cache(SNS_CACHE_COMPONENT, path, source),
+            ),
+            SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+                SnsHostError::InvalidRefreshAttempt { path, reason }
+            }
+        })?
+        .map(|attempt| {
+            validate_sns_refresh_attempt(path, expected_network, &attempt)?;
+            Ok(attempt)
+        })
+        .transpose()
 }
 
 pub(in crate::sns::report) fn read_sns_refresh_attempt_status_strict(

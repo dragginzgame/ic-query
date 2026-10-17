@@ -17,22 +17,6 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 pub(super) type NnsProposalCache =
     SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsProposalCacheRows>;
 
-pub(super) const NNS_PROPOSAL_CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "governance_canister_id",
-    "completeness",
-    "collection_state",
-    "proposals",
-];
-
 ///
 /// NnsProposalCacheListReport
 ///
@@ -66,6 +50,7 @@ pub struct NnsProposalCacheListReport {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct NnsProposalCacheRows {
     pub(super) collection_state: NnsProposalCollectionState,
     pub(super) proposals: Vec<NnsProposalRow>,

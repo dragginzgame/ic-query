@@ -48,7 +48,10 @@ async fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
     ))
     .expect_err("unknown attempt field must remain visible");
 
-    assert!(matches!(err, SnsHostError::InvalidRefreshAttempt { .. }));
+    assert!(matches!(
+        err,
+        SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
+    ));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -208,11 +211,7 @@ async fn sns_neurons_cache_status_reports_unsupported_schema() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_neurons_cache_status_rejects_unknown_fields_and_false_authority() {
     for (field, value, expected_error) in [
-        (
-            "unexpected",
-            serde_json::json!(true),
-            "unknown top-level cache field",
-        ),
+        ("unexpected", serde_json::json!(true), "unknown field"),
         (
             "point_in_time_guaranteed",
             serde_json::json!(true),
@@ -275,8 +274,8 @@ async fn sns_neurons_cache_status_reports_duplicate_neuron_ids() {
     let cache_path = refresh_fixture_sns_neurons_cache(&root).await;
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read cache")).expect("parse cache");
-    let duplicate = cache["neurons"][0].clone();
-    cache["neurons"]
+    let duplicate = cache["data"]["neurons"][0].clone();
+    cache["data"]["neurons"]
         .as_array_mut()
         .expect("neuron rows")
         .push(duplicate);

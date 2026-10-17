@@ -634,12 +634,12 @@ async fn token_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.token_name, "Fixture Token");
-    assert_eq!(report.token_symbol, "FIX");
-    assert_eq!(report.transfer_fee, "123456789");
-    assert_eq!(report.total_supply, "100000000000");
+    assert_eq!(report.token.token_name, "Fixture Token");
+    assert_eq!(report.token.token_symbol, "FIX");
+    assert_eq!(report.token.transfer_fee, "123456789");
+    assert_eq!(report.token.total_supply, "100000000000");
     assert_eq!(
-        report.minting_account_subaccount_hex.as_deref(),
+        report.token.minting_account_subaccount_hex.as_deref(),
         Some(LOWER_SUBACCOUNT_HEX)
     );
 
@@ -676,7 +676,7 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
-    assert_eq!(report.balance, "123456789");
+    assert_eq!(report.value.balance, "123456789");
 
     let text = icrc_balance_report_text(&report);
     assert!(text.contains("balance: 1.23 FIX"));
@@ -714,9 +714,9 @@ async fn allowance_report_builds_text_and_json_friendly_fields() {
         report.spender_subaccount_hex.as_deref(),
         Some(LOWER_SUBACCOUNT_HEX)
     );
-    assert_eq!(report.allowance, "123456789");
+    assert_eq!(report.value.allowance, "123456789");
     assert_eq!(
-        report.expires_at_unix_nanos.as_deref(),
+        report.value.expires_at_unix_nanos.as_deref(),
         Some("1700000000123456789")
     );
 
@@ -782,13 +782,16 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.index_canister_id, INDEX_CANISTER_ID);
+    assert_eq!(report.page.index_canister_id, INDEX_CANISTER_ID);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
     assert_eq!(report.requested_start.as_deref(), Some("42"));
-    assert_eq!(report.next_start.as_deref(), Some("40"));
-    assert_eq!(report.oldest_transaction_id.as_deref(), Some("7"));
-    assert_eq!(report.balance, "250000000");
-    assert_eq!(report.transactions[0].memo_hex.as_deref(), Some("aabb"));
+    assert_eq!(report.page.next_start.as_deref(), Some("40"));
+    assert_eq!(report.page.oldest_transaction_id.as_deref(), Some("7"));
+    assert_eq!(report.page.balance, "250000000");
+    assert_eq!(
+        report.page.transactions[0].memo_hex.as_deref(),
+        Some("aabb")
+    );
 
     let text = icrc_account_transaction_page_report_text(&report);
     assert!(text.contains(&format!("index_canister_id: {INDEX_CANISTER_ID}")));

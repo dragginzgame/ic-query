@@ -9,6 +9,8 @@ mod row;
 
 pub use report::{SnsProposalReport, SnsProposalsReport};
 pub use row::{
-    SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
-    SnsProposalRow, SnsProposalTally, SnsProposalVote,
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalRow,
+    SnsProposalTally,
 };
+
+pub(in crate::sns::report) use row::{sns_proposal_action_label, sns_proposal_vote_label};

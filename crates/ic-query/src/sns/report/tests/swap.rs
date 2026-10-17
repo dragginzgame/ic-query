@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::sns::report::sns_swap_lifecycle_name;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
@@ -9,13 +10,14 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
 
     assert_eq!(report.schema_version, SNS_SWAP_REPORT_SCHEMA_VERSION);
     assert_eq!(report.id, 1);
-    assert_eq!(report.swap_canister_id, SWAP_A);
+    assert_eq!(report.swap.swap_canister_id, SWAP_A);
     assert_eq!(report.component_query_count, 3);
     assert_eq!(report.successful_component_query_count, 3);
     assert_eq!(report.component_gap_count, 0);
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.swap.point_in_time_guaranteed);
     assert_eq!(
         report
+            .swap
             .lifecycle
             .as_ref()
             .and_then(|lifecycle| lifecycle.lifecycle),
@@ -23,13 +25,15 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     );
     assert_eq!(
         report
+            .swap
             .lifecycle
             .as_ref()
-            .and_then(|lifecycle| lifecycle.lifecycle_name.as_deref()),
+            .and_then(|lifecycle| sns_swap_lifecycle_name(lifecycle.lifecycle)),
         Some("open")
     );
     assert_eq!(
         report
+            .swap
             .sale_parameters
             .as_ref()
             .map(|params| params.min_participants),
@@ -37,6 +41,7 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     );
     assert_eq!(
         report
+            .swap
             .derived_state
             .as_ref()
             .and_then(|state| state.direct_participant_count),
@@ -61,12 +66,18 @@ async fn sns_swap_retains_partial_query_failure_as_a_typed_gap() {
     assert_eq!(report.component_query_count, 3);
     assert_eq!(report.successful_component_query_count, 2);
     assert_eq!(report.component_gap_count, 1);
-    assert!(report.lifecycle.is_some());
-    assert!(report.sale_parameters.is_some());
-    assert!(report.derived_state.is_none());
-    assert_eq!(report.gaps[0].component, SnsSwapComponent::DerivedState);
-    assert_eq!(report.gaps[0].method, SnsCanisterMethod::GetDerivedState);
-    assert!(report.gaps[0].reason.contains("query rejected"));
+    assert!(report.swap.lifecycle.is_some());
+    assert!(report.swap.sale_parameters.is_some());
+    assert!(report.swap.derived_state.is_none());
+    assert_eq!(
+        report.swap.gaps[0].component,
+        SnsSwapComponent::DerivedState
+    );
+    assert_eq!(
+        report.swap.gaps[0].method,
+        SnsCanisterMethod::GetDerivedState
+    );
+    assert!(report.swap.gaps[0].reason.contains("query rejected"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -81,8 +92,8 @@ async fn sns_swap_preserves_successful_empty_sale_parameters_without_a_gap() {
     assert_eq!(report.component_query_count, 3);
     assert_eq!(report.successful_component_query_count, 3);
     assert_eq!(report.component_gap_count, 0);
-    assert!(report.sale_parameters.is_none());
-    assert_eq!(report.gaps, Vec::new());
+    assert!(report.swap.sale_parameters.is_none());
+    assert_eq!(report.swap.gaps, Vec::new());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -97,11 +108,12 @@ async fn sns_swap_preserves_three_independent_component_failures() {
     assert_eq!(report.component_query_count, 3);
     assert_eq!(report.successful_component_query_count, 0);
     assert_eq!(report.component_gap_count, 3);
-    assert!(report.lifecycle.is_none());
-    assert!(report.sale_parameters.is_none());
-    assert!(report.derived_state.is_none());
+    assert!(report.swap.lifecycle.is_none());
+    assert!(report.swap.sale_parameters.is_none());
+    assert!(report.swap.derived_state.is_none());
     assert_eq!(
         report
+            .swap
             .gaps
             .iter()
             .map(|gap| gap.component)
@@ -159,7 +171,6 @@ async fn sns_swap_rejects_invalid_custom_source_evidence() {
             "lifecycle_method",
         ),
         (claim_atomic_snapshot, "point-in-time guarantee"),
-        (wrong_lifecycle_name, "lifecycle_name"),
         (negative_derived_rate, "finite non-negative"),
         (value_and_gap_for_component, "both a value and a query gap"),
     ] {
@@ -186,13 +197,6 @@ const fn wrong_lifecycle_method(swap: &mut MainnetSnsSwap) {
 
 const fn claim_atomic_snapshot(swap: &mut MainnetSnsSwap) {
     swap.point_in_time_guaranteed = true;
-}
-
-fn wrong_lifecycle_name(swap: &mut MainnetSnsSwap) {
-    swap.lifecycle
-        .as_mut()
-        .expect("fixture lifecycle")
-        .lifecycle_name = Some("committed".to_string());
 }
 
 const fn negative_derived_rate(swap: &mut MainnetSnsSwap) {

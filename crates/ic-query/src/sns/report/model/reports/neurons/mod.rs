@@ -27,13 +27,12 @@ pub use diff::{
 #[cfg(feature = "sns-host")]
 pub use report::SnsNeuronsReport;
 pub use reward::{
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointValidationError,
-    SnsRewardCollectionStatus, SnsRewardEvent, SnsRewardProposalId,
-    validate_sns_reward_checkpoint_report,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
+    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardEvent,
+    SnsRewardProposalId, validate_sns_reward_checkpoint_report,
 };
 pub(in crate::sns::report) use reward::{
-    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
-    validated_reward_checkpoint_summary,
+    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use reward::{

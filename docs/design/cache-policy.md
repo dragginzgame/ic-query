@@ -85,12 +85,14 @@ counts are invalid content: cache-only reads remain strict, while the owning
 read-through policies visibly recollect them. No fallback reader or migration
 is added, and schemas remain `1`.
 
-Strict shared loads validate top-level duplicates, supported fields, schema,
-and network in one header pass, then deserialize the typed report. An isolated
-local harness over the actual old/new loaders, with shared regular-file IO
-stubs, measured five warmed samples per case: median time fell from 0.299 s to
-0.221 s for 13.7 MB and from 1.827 s to 1.445 s for 68.5 MB. These compare JSON
-loading work, not complete native cache or network performance.
+Strict shared loads deserialize one typed report before validating its schema
+and network. Typed snapshot, metadata and data objects reject unknown and
+duplicate fields without a preliminary header parse or manual field allowlists.
+An earlier isolated local harness over two previous loader versions, with shared
+regular-file IO stubs, measured five warmed samples per case: median time fell
+from 0.299 s to 0.221 s for 13.7 MB and from 1.827 s to 1.445 s for 68.5 MB.
+Those historical JSON-loading measurements predate the current typed-only loader;
+they do not measure its performance or complete native cache/network operations.
 
 Cache-status discovery queues paths rather than live directory handles. It
 caps selected files at the requested scan limit, all visited entries at 16
@@ -392,7 +394,7 @@ unsupported and require an explicit refresh.
 Complete snapshot loaders also reject unknown top-level fields and authority
 claims that the owning source cannot make, including a true point-in-time
 guarantee for paginated Governance or index histories. Current-shape loading
-therefore cannot silently reinterpret a foreign or newer flattened snapshot.
+therefore cannot silently reinterpret a foreign or newer snapshot.
 Family-specific cache status and cache list commands render malformed,
 unsupported, or identity-mismatched local snapshot files as invalid local
 cache rows instead of silently ignoring them or making live calls. The global
@@ -625,3 +627,39 @@ rejects unsupported fields, so snapshots from the replaced schema-1 shape
 require explicit refresh after preserving any needed evidence. Cache-only
 admission does not rewrite them or invoke a live source. Identity, pagination,
 ordering, aggregate totals and collection provenance checks remain in force.
+
+## Nested snapshot and attempt contracts
+
+The 0.62 hard cut keeps schema 1 and uses explicit `metadata` and `data` objects
+for shared NNS/SNS and observed node-status snapshots. Refresh-attempt sidecars
+use explicit `metadata` as well, including ICRC account-history attempts.
+Family metadata and payloads reject unknown fields through their typed models;
+duplicate declared fields, trailing JSON and invalid types remain parse errors.
+Readers deserialize once before validating schema/network and family identity.
+Malformed payloads can therefore report a parse error before a schema mismatch.
+
+Retain any required existing snapshots or attempt evidence before explicitly
+refreshing the affected collection. Readers never migrate, rewrite or delete
+rejected files, and cache-only operations never fetch replacement data. Family
+validators still enforce row order, completeness, provenance and cache identity;
+view sorts and limits remain outside snapshot keys. ICRC account-history snapshot
+fields remain unchanged; its reader now enforces its declared fields directly.
+
+SNS proposal snapshots retain native action IDs and ballot vote codes without
+stored classifications. Labels are derived for text and views. Before replacing
+older snapshots, preserve required evidence and coordinate raw-code consumers,
+then explicitly refresh; strict rows reject unknown fields and schemas remain 1.
+SNS neuron/proposal rows and ballots likewise retain only native timestamps,
+without stored UTC display strings. Rendering derives text from those values.
+Preserve required snapshots and coordinate timestamp consumers before explicit
+refresh; rejected cache evidence is never rewritten or removed automatically.
+Reward checkpoint files nest aggregates and policy observations in `summary`;
+raw before/after brackets and neuron evidence remain intact, and loading compares
+the complete summary with checked recomputation. Retain old checkpoints and
+update consumers before explicit recollection; no migration or rewrite occurs.
+
+Joined SNS catalog rows store the native lifecycle value or a bounded query
+error, without a second stored lifecycle label. Unknown fields are rejected
+on restore, including in joined rows with flattened canister identities.
+Preserve required evidence and update consumers before an explicit catalog
+refresh; schema identifiers remain 1 and no fallback reader is retained.

@@ -8,8 +8,7 @@ use crate::sns::report::{
     SnsHostError,
     cache_storage::SnsCacheStorageFamily,
     neurons_cache::{
-        SNS_NEURONS_CACHE_SCHEMA_VERSION,
-        model::{SNS_NEURONS_CACHE_FIELDS, SnsNeuronsCacheRows},
+        SNS_NEURONS_CACHE_SCHEMA_VERSION, model::SnsNeuronsCacheRows,
         paths::SnsNeuronsCacheCollection,
     },
     source::validate_sns_neuron_rows,
@@ -20,7 +19,7 @@ impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {
     type Data = SnsNeuronsCacheRows;
 
     const CACHE_SCHEMA_VERSION: u32 = SNS_NEURONS_CACHE_SCHEMA_VERSION;
-    const CACHE_FIELDS: &'static [&'static str] = SNS_NEURONS_CACHE_FIELDS;
+
     const CACHE_ITEM_NAME: &'static str = "neuron";
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError {

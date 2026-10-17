@@ -4,6 +4,7 @@
 //! Does not own: live calls, report construction, source validation, or JSON output.
 //! Boundary: labels cached treasury evidence and raw timestamps without conflation.
 
+use crate::sns::report::sns_treasury_kind;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -24,37 +25,43 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
         format!("sns_id: {}", report.id),
         format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("method: {}", report.method.as_str()),
-        format!("call_type: {}", report.call_type.as_str()),
+        format!(
+            "governance_canister_id: {}",
+            report.metrics.governance_canister_id
+        ),
+        format!("method: {}", report.metrics.method.as_str()),
+        format!("call_type: {}", report.metrics.call_type.as_str()),
         format!(
             "time_window: {}",
-            display_duration_seconds(report.time_window_seconds)
+            display_duration_seconds(report.metrics.time_window_seconds)
         ),
-        format!("time_window_seconds: {}", report.time_window_seconds),
+        format!(
+            "time_window_seconds: {}",
+            report.metrics.time_window_seconds
+        ),
         format!(
             "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+            yes_no(report.metrics.point_in_time_guaranteed)
         ),
         format!(
             "treasury_metrics_cached: {}",
-            yes_no(report.treasury_metrics_cached)
+            yes_no(report.metrics.treasury_metrics_cached)
         ),
         format!(
             "num_recently_submitted_proposals: {}",
-            optional_u64_text(report.num_recently_submitted_proposals)
+            optional_u64_text(report.metrics.num_recently_submitted_proposals)
         ),
         format!(
             "num_recently_executed_proposals: {}",
-            optional_u64_text(report.num_recently_executed_proposals)
+            optional_u64_text(report.metrics.num_recently_executed_proposals)
         ),
         format!(
             "last_ledger_block_timestamp: {}",
-            optional_u64_text(report.last_ledger_block_timestamp)
+            optional_u64_text(report.metrics.last_ledger_block_timestamp)
         ),
         format!(
             "genesis_timestamp_seconds: {}",
-            optional_u64_text(report.genesis_timestamp_seconds)
+            optional_u64_text(report.metrics.genesis_timestamp_seconds)
         ),
         format!("treasury_metric_count: {}", report.treasury_metric_count),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
@@ -66,11 +73,11 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
         format!("fetched_by: {}", terminal_text(&report.fetched_by)),
         String::new(),
         "treasury_metrics:".to_string(),
-        treasury_metrics_text(&report.treasury_metrics),
+        treasury_metrics_text(&report.metrics.treasury_metrics),
         String::new(),
         "voting_power_metrics:".to_string(),
     ];
-    lines.push(report.voting_power_metrics.as_ref().map_or_else(
+    lines.push(report.metrics.voting_power_metrics.as_ref().map_or_else(
         || "-".to_string(),
         |metrics| {
             render(
@@ -113,7 +120,7 @@ fn treasury_metrics_text(metrics: &[SnsTreasuryMetricRow]) -> String {
             .iter()
             .map(|metric| {
                 [
-                    metric.treasury_kind.as_str().to_string(),
+                    sns_treasury_kind(metric.treasury).to_string(),
                     metric.treasury.to_string(),
                     optional_text(metric.name.as_ref()),
                     optional_text(metric.ledger_canister_id.as_ref()),

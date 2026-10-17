@@ -229,8 +229,8 @@ async fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_i
     let cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&paths.snapshot_path).expect("read cache"))
             .expect("parse cache");
-    assert_eq!(cache["proposals"][0]["proposal_id"], 2);
-    assert_eq!(cache["proposals"][1]["proposal_id"], 1);
+    assert_eq!(cache["data"]["proposals"][0]["proposal_id"], 2);
+    assert_eq!(cache["data"]["proposals"][1]["proposal_id"], 1);
     let attempt: serde_json::Value =
         serde_json::from_slice(&fs::read(&paths.refresh_attempt_path).expect("read attempt"))
             .expect("parse attempt");
@@ -661,7 +661,7 @@ async fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
         ),
     ] {
         let mut cache = original.clone();
-        cache["collection_state"][field] = value;
+        cache["data"]["collection_state"][field] = value;
         fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
         assert!(
             matches!(
@@ -690,12 +690,12 @@ async fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
         (serde_json::Value::Null, "without an id"),
         (serde_json::json!(0), "id zero"),
         (
-            original["proposals"][1]["proposal_id"].clone(),
+            original["data"]["proposals"][1]["proposal_id"].clone(),
             "duplicate proposal id",
         ),
     ] {
         let mut cache = original.clone();
-        cache["proposals"][0]["proposal_id"] = id;
+        cache["data"]["proposals"][0]["proposal_id"] = id;
         fs::write(
             &path,
             serde_json::to_vec_pretty(&cache).expect("serialize cache"),
@@ -967,14 +967,15 @@ async fn proposal_cache_preserves_unknown_votes_and_refuses_unknown_fields() {
     let request = NnsProposalListRequest::new(proposal_governance_request(1_700_100_000), 25);
     for code in [-9, 99] {
         let mut cache = original.clone();
-        cache["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(code);
+        cache["data"]["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(code);
         fs::write(&path, serde_json::to_vec_pretty(&cache).unwrap()).unwrap();
         let report = build_nns_proposal_list_report_from_cache(&request, &root)
             .unwrap()
             .unwrap();
         let ballot = &report.proposals[0].ballots[0];
         assert_eq!(ballot.vote, code);
-        cache["proposals"][0]["ballots"][0]["unexpected_evidence"] = serde_json::json!(true);
+        cache["data"]["proposals"][0]["ballots"][0]["unexpected_evidence"] =
+            serde_json::json!(true);
         let bytes = serde_json::to_vec_pretty(&cache).unwrap();
         fs::write(&path, &bytes).unwrap();
         assert!(

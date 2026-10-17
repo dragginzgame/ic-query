@@ -14,9 +14,9 @@ use super::{
 };
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow,
-    SnsNeuronsSort, SnsProposalAction, SnsProposalDecisionState, SnsProposalEligibilityFilter,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsSort, source::MainnetSns,
+    SnsNeuronsSort, SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalRow,
+    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsSort, source::MainnetSns,
 };
 
 #[test]
@@ -176,9 +176,9 @@ fn proposal_title_sort_orders_case_insensitive_with_id_tiebreaker() {
 #[test]
 fn proposal_action_sort_orders_descending_with_id_tiebreaker() {
     let mut proposals = vec![
-        proposal_row_with_action(2, SnsProposalAction::Motion),
-        proposal_row_with_action(10, SnsProposalAction::UpgradeSnsControlledCanister),
-        proposal_row_with_action(1, SnsProposalAction::Motion),
+        proposal_row_with_action(2, 1),
+        proposal_row_with_action(10, 3),
+        proposal_row_with_action(1, 1),
     ];
 
     sort_sns_proposal_rows(
@@ -461,7 +461,7 @@ fn mainnet_sns(id: usize, name: &str) -> MainnetSns {
         },
         metadata_error: None,
         lifecycle: None,
-        lifecycle_name: None,
+
         lifecycle_error: None,
     }
 }
@@ -485,7 +485,7 @@ fn neuron_row(
         maturity_e8s_equivalent: maturity_e8s,
         staked_maturity_e8s_equivalent: None,
         created_timestamp_seconds,
-        created_at: created_timestamp_seconds.to_string(),
+
         source_nns_neuron_id: None,
         auto_stake_maturity: None,
         aging_since_timestamp_seconds: created_timestamp_seconds,
@@ -535,7 +535,7 @@ fn proposal_with_query_text() -> SnsProposalRow {
     SnsProposalRow {
         title: "Treasury motion".to_string(),
         action_id: 3,
-        action: SnsProposalAction::UpgradeSnsControlledCanister,
+
         summary: "Committee review".to_string(),
         url: Some("https://forum.example/proposal".to_string()),
         payload_text_rendering: Some("Payload preview".to_string()),
@@ -568,10 +568,9 @@ fn proposal_row_with_title(proposal_id: u64, title: &str) -> SnsProposalRow {
     }
 }
 
-fn proposal_row_with_action(proposal_id: u64, action: SnsProposalAction) -> SnsProposalRow {
+fn proposal_row_with_action(proposal_id: u64, action_id: u64) -> SnsProposalRow {
     SnsProposalRow {
-        action_id: action.id(),
-        action,
+        action_id,
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -629,7 +628,7 @@ fn proposal_row_with_decision(
     SnsProposalRow {
         proposal_id,
         decided_timestamp_seconds,
-        decided_at: decided_timestamp_seconds.map(|value| value.to_string()),
+
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -641,7 +640,7 @@ fn proposal_row_with_execution(
     SnsProposalRow {
         proposal_id,
         executed_timestamp_seconds,
-        executed_at: executed_timestamp_seconds.map(|value| value.to_string()),
+
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -653,7 +652,7 @@ fn proposal_row_with_failure(
     SnsProposalRow {
         proposal_id,
         failed_timestamp_seconds,
-        failed_at: failed_timestamp_seconds.map(|value| value.to_string()),
+
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -662,7 +661,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id,
         action_id: 0,
-        action: SnsProposalAction::Unspecified,
+
         title: String::new(),
         summary: String::new(),
         url: None,
@@ -671,13 +670,9 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
         topic: None,
         reject_cost_e8s: 0,
         proposal_creation_timestamp_seconds: created_at_secs,
-        created_at: created_at_secs.to_string(),
         decided_timestamp_seconds: None,
-        decided_at: None,
         executed_timestamp_seconds: None,
-        executed_at: None,
         failed_timestamp_seconds: None,
-        failed_at: None,
         failure_reason: None,
         reward_event_round: 0,
         reward_event_end_timestamp_seconds: None,

@@ -11,7 +11,6 @@ use crate::{
         SnsHostError, SnsNeuronDetail, SnsNeuronRow,
         model::{validate_maturity_disbursements, validate_neuron_permissions},
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
 use candid::{CandidType, Deserialize};
 use std::collections::HashSet;
@@ -128,13 +127,6 @@ pub(in crate::sns::report) fn validate_sns_neuron_row(neuron: &SnsNeuronRow) -> 
         ));
     }
 
-    let expected_created_at = format_utc_timestamp_secs(neuron.created_timestamp_seconds);
-    if neuron.created_at != expected_created_at {
-        return Err(format!(
-            "neuron {} created_at does not match created_timestamp_seconds",
-            neuron.neuron_id
-        ));
-    }
     Ok(())
 }
 
@@ -253,24 +245,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn neuron_rows_require_canonical_ids_and_derived_created_at() {
+    fn neuron_rows_require_canonical_ids() {
         let valid = neuron(&"01".repeat(32));
         assert!(validate_sns_neuron_rows(std::slice::from_ref(&valid)).is_ok());
 
-        let mut uppercase = valid.clone();
+        let mut uppercase = valid;
         uppercase.neuron_id = "0A".repeat(32);
         assert!(
             validate_sns_neuron_rows(&[uppercase])
                 .expect_err("uppercase id rejected")
                 .contains("canonical lowercase hexadecimal")
-        );
-
-        let mut mismatched_timestamp = valid;
-        mismatched_timestamp.created_at = "not-derived".to_string();
-        assert!(
-            validate_sns_neuron_rows(&[mismatched_timestamp])
-                .expect_err("mismatched timestamp rejected")
-                .contains("created_at does not match")
         );
     }
 
@@ -371,7 +355,6 @@ mod tests {
             maturity_e8s_equivalent: 10,
             staked_maturity_e8s_equivalent: None,
             created_timestamp_seconds: 1_700_000_000,
-            created_at: "2023-11-14T22:13:20Z".to_string(),
             source_nns_neuron_id: None,
             auto_stake_maturity: None,
             aging_since_timestamp_seconds: 1_700_000_000,

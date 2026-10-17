@@ -41,14 +41,17 @@ pub fn load_cached_nns_subnet_topology(
     request: &NnsSubnetTopologyCacheRequest,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     enforce_mainnet_network(&request.network)?;
-    let cached = load_json_cache(LoadJsonCacheRequest {
-        component: CACHE_COMPONENT,
-        cache_root: &request.cache_root,
-        path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
-        network: &request.network,
-        expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-        maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
-    })
+    let cached = load_json_cache(
+        LoadJsonCacheRequest {
+            component: CACHE_COMPONENT,
+            cache_root: &request.cache_root,
+            path: nns_subnet_topology_cache_path(&request.cache_root, &request.network),
+            network: &request.network,
+            expected_schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
+            maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
+        },
+        None,
+    )
     .map_err(NnsSubnetTopologyHostError::from)?;
     validate_report_identity(&cached.report, &request.network, None)?;
     Ok(CachedNnsSubnetTopologyReport {

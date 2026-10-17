@@ -26,10 +26,6 @@ use crate::{
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-/// Refresh-attempt fields owned by NNS Governance collection metadata.
-pub(in crate::nns) const NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS: &[&str] =
-    &["governance_canister_id"];
-
 ///
 /// NnsGovernanceRefreshRequest
 ///
@@ -225,6 +221,7 @@ pub struct NnsGovernanceRefreshAttemptStatus {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(in crate::nns) struct NnsGovernanceCacheMetadata {
     /// NNS Governance canister principal.
     pub(in crate::nns) governance_canister_id: String,
@@ -309,12 +306,7 @@ pub(in crate::nns) fn read_governance_refresh_attempt(
 {
     let attempt = read_snapshot_refresh_attempt_strict::<
         SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
-    >(
-        cache_root,
-        path,
-        NNS_GOVERNANCE_ATTEMPT_METADATA_FIELDS,
-        None,
-    )
+    >(cache_root, path, None)
     .map_err(|error| match error {
         SnapshotRefreshAttemptReadError::Operation(source) => {
             NnsGovernanceAttemptReadError::Cache(HostCacheError::operation(cache_component, source))

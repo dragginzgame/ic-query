@@ -31,24 +31,27 @@ const STANDARD_TABLE_HEADERS: [&str; 2] = ["STANDARD", "URL"];
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("token_name: {}", terminal_text(&report.token_name)),
-        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
-        format!("decimals: {}", report.decimals),
+        format!("token_name: {}", terminal_text(&report.token.token_name)),
+        format!(
+            "token_symbol: {}",
+            terminal_text(&report.token.token_symbol)
+        ),
+        format!("decimals: {}", report.token.decimals),
         format!(
             "transfer_fee: {}",
-            base_units_decimal_text(&report.transfer_fee, report.decimals)
+            base_units_decimal_text(&report.token.transfer_fee, report.token.decimals)
         ),
         format!(
             "total_supply: {}",
-            base_units_decimal_text(&report.total_supply, report.decimals)
+            base_units_decimal_text(&report.token.total_supply, report.token.decimals)
         ),
         format!(
             "minting_account_owner: {}",
-            optional_text(report.minting_account_owner.as_ref())
+            optional_text(report.token.minting_account_owner.as_ref())
         ),
         format!(
             "minting_account_subaccount_hex: {}",
-            optional_text(report.minting_account_subaccount_hex.as_ref())
+            optional_text(report.token.minting_account_subaccount_hex.as_ref())
         ),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
@@ -58,11 +61,11 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
     ];
     push_table_section(
         &mut lines,
-        &report.supported_standards,
+        &report.token.supported_standards,
         render_standard_rows_table,
     );
-    push_table_section(&mut lines, &report.metadata, |rows| {
-        render_metadata_rows_table(rows, report.decimals)
+    push_table_section(&mut lines, &report.token.metadata, |rows| {
+        render_metadata_rows_table(rows, report.token.decimals)
     });
     lines.join("\n")
 }

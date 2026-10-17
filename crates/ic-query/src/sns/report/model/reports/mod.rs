@@ -36,7 +36,7 @@ pub use governance::{
 };
 pub use invocation::{SnsCanisterCallType, SnsCanisterMethod};
 pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
-pub use metrics::{SnsMetricsReport, SnsTreasuryKind, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
+pub use metrics::{SnsMetricsReport, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
 #[cfg(feature = "sns-host")]
 pub use neurons::SnsNeuronsReport;
 pub use neurons::{
@@ -44,14 +44,13 @@ pub use neurons::{
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
     SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
-    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
-    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, sns_neuron_permission_name,
-    validate_sns_reward_checkpoint_report,
+    SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
+    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
+    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
+    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 pub(in crate::sns::report) use neurons::{
-    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
-    validated_reward_checkpoint_summary,
+    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use neurons::{
@@ -61,8 +60,8 @@ pub(in crate::sns::report) use neurons::{
 };
 pub use params::SnsParamsReport;
 pub use proposals::{
-    SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRow, SnsProposalTally, SnsProposalVote, SnsProposalsReport,
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
+    SnsProposalRow, SnsProposalTally, SnsProposalsReport,
 };
 #[cfg(feature = "sns-host")]
 pub use refresh::SnsSnapshotRefreshReport;
@@ -75,3 +74,13 @@ pub use token::SnsTokenReport;
 pub use upgrade::{
     SnsPendingUpgrade, SnsRunningVersionResponse, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
 };
+
+pub(in crate::sns::report) use proposals::{sns_proposal_action_label, sns_proposal_vote_label};
+
+pub use metrics::MainnetSnsMetrics;
+
+pub use swap::MainnetSnsSwap;
+
+pub(in crate::sns::report) use swap::sns_swap_lifecycle_name;
+
+pub(in crate::sns::report) use metrics::sns_treasury_kind;

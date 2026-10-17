@@ -1,3 +1,5 @@
+# IC Query development and validation targets.
+# Shared companions: make/consumer.mk
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
@@ -41,11 +43,11 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
-IC_TOOL_PINS ?= $(REPO_ROOT)ci/ic-tools-query.tsv
-LOCAL_TOOL_INSTALL_TARGETS += install-dependency-tools
-LOCAL_TOOL_CHECK_TARGETS += format-tools-check dependency-tools-check
+LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools
+LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check
 include $(REPO_ROOT)make/consumer.mk
 export IC_TOOL_PINS
+export PATH := $(REPO_ROOT).tools/ic/bin:$(PATH)
 
 format-tools-check: format-installation-check
 

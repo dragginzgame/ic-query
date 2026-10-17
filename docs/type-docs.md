@@ -27,5 +27,9 @@ macros or prove whether a source-visible declaration is exported. Callers retain
 compiler/rustdoc validation and review generated declarations separately. Type
 aliases are outside this check's selected declaration kinds.
 
-Select the checker as a canonical snapshot entrypoint; this guide is its companion.
+Select the checker as a canonical snapshot entrypoint; the export includes this
+guide and `scripts/ci/RustSource.pm`. Type-layout and public-documentation debt
+checks share that core-only tokenizer while retaining their own selection policy.
 Run `perl scripts/ci/test-type-docs.pl` for isolated selection/layout fixtures.
+Expected rejection diagnostics stay in per-case logs; an unexpected result
+replays its output and retains the fixture directory for inspection.

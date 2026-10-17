@@ -5,20 +5,17 @@
 //! Boundary: maps live neuron rows and cursors into source/report models.
 
 use super::proposals::sns_topic_text;
-use crate::{
-    sns::report::{
-        SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
-        SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
-        SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-        SnsPolicyObservationStatus, SnsRewardCheckpointRow, hex_bytes,
-        live::types::{
-            SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
-            SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
-            SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceRewardNeuron,
-            SnsGovernanceTopicFollowees,
-        },
+use crate::sns::report::{
+    SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
+    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
+    SnsRewardCheckpointRow, hex_bytes,
+    live::types::{
+        SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
+        SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
+        SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceRewardNeuron,
+        SnsGovernanceTopicFollowees,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
 
 /// Convert one SNS governance neuron wire row into a report/cache row.
@@ -35,7 +32,6 @@ pub(in crate::sns::report::live) fn sns_neuron_row(
         maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
         staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
         created_timestamp_seconds: neuron.created_timestamp_seconds,
-        created_at: format_utc_timestamp_secs(neuron.created_timestamp_seconds),
         source_nns_neuron_id: neuron.source_nns_neuron_id,
         auto_stake_maturity: neuron.auto_stake_maturity,
         aging_since_timestamp_seconds: neuron.aging_since_timestamp_seconds,
@@ -272,7 +268,7 @@ mod tests {
         assert_eq!(row.maturity_e8s_equivalent, 10_000_000);
         assert_eq!(row.staked_maturity_e8s_equivalent, Some(5_000_000));
         assert_eq!(row.created_timestamp_seconds, 1_700_000_000);
-        assert_eq!(row.created_at, "2023-11-14T22:13:20Z");
+        assert_eq!(row.created_timestamp_seconds, 1_700_000_000);
         assert_eq!(row.source_nns_neuron_id, Some(42));
         assert_eq!(row.auto_stake_maturity, Some(true));
         assert_eq!(row.aging_since_timestamp_seconds, 1_700_000_100);

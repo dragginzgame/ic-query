@@ -4,7 +4,7 @@
 //! Does not own: account-index history, requests, live transport, archive following, or rendering.
 //! Boundary: preserves raw ledger, block, archive, certificate, and capability fields.
 
-use crate::icrc::{IcrcTokenMetadataRow, IcrcTokenStandardRow};
+use crate::icrc::{IcrcTokenData, IcrcTokenStandardRow};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 
@@ -21,15 +21,9 @@ pub struct IcrcTokenReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub token_name: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub transfer_fee: String,
-    pub total_supply: String,
-    pub minting_account_owner: Option<String>,
-    pub minting_account_subaccount_hex: Option<String>,
-    pub supported_standards: Vec<IcrcTokenStandardRow>,
-    pub metadata: Vec<IcrcTokenMetadataRow>,
+    /// Raw ledger metadata shared with token source capabilities.
+    #[serde(flatten)]
+    pub token: IcrcTokenData,
 }
 
 ///

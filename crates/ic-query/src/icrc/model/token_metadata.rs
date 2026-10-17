@@ -9,7 +9,7 @@ use serde_json::Value as JsonValue;
 /// Source-layer token metadata returned by an ICRC ledger.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenData {
     /// Native ledger token name.
     pub token_name: String,

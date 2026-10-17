@@ -1060,6 +1060,22 @@ if awk -v version=0.1.1 -v previous=0.1.0 -v date=2026-10-06 \
 [[ ! -s byte-result ]] || exit 1
 
 # Strict candidate admission replaces consumer-owned heading scanners.
+for layout in suffix mixed-duplicate misplaced wrong-date not-increasing; do
+    selected=0.1.1
+    case "$layout" in
+        suffix) printf '## [0.1.1] - Unreleased\n\n- Pending.\n' > strict-notes ;;
+        mixed-duplicate) printf '## [0.1.1]\n\n- Pending.\n\n## [0.1.1] - Unreleased\n' > strict-notes ;;
+        misplaced) printf '## [0.1.0]\n\n- History.\n\n## [0.1.1] - Unreleased\n' > strict-notes ;;
+        wrong-date) printf '## [0.1.1] - 2026-10-05\n' > strict-notes ;;
+        not-increasing) selected=0.1.0; printf '## [0.1.0] - Unreleased\n' > strict-notes ;;
+    esac
+    cp strict-notes strict-before
+    if awk -v version="$selected" -v previous=0.1.0 -v date=2026-10-06 \
+        -f "$ROOT/scripts/ci/finalize-release-changelog.awk" strict-notes > strict-result 2> strict-error; then exit 1; fi
+    [[ ! -s strict-result ]] || exit 1
+    rg -F "expected pending heading: ## [$selected]" strict-error >/dev/null
+    cmp strict-before strict-notes
+done
 for top in '## [Draft]' '## [0.0.9]' '## Unexpected'; do
     printf '# Changelog\n\n%s\n\n- Notes.\n' "$top" > strict-notes
     if awk -v version=0.1.1 -v previous=0.1.0 -v date=2026-10-06 \

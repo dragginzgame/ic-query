@@ -535,7 +535,9 @@ async fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&cache_path).expect("read fixture cache"))
             .expect("parse fixture cache");
-    let nodes = cache["nodes"].as_array_mut().expect("cached node rows");
+    let nodes = cache["data"]["nodes"]
+        .as_array_mut()
+        .expect("cached node rows");
     nodes.swap(0, 1);
     fs::write(
         &cache_path,
@@ -592,7 +594,13 @@ async fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refresh
         ("cloud_engine_nodes_included", serde_json::json!(true)),
     ] {
         let mut invalid_cache = valid_cache.clone();
-        invalid_cache[field] = value;
+        match field {
+            "certified"
+            | "point_in_time_guaranteed"
+            | "authority"
+            | "cloud_engine_nodes_included" => invalid_cache["metadata"][field] = value,
+            _ => invalid_cache[field] = value,
+        }
         let bytes = serde_json::to_vec_pretty(&invalid_cache).expect("serialize invalid cache");
         fs::write(&cache_path, &bytes).expect("write invalid cache");
         let strict = load_cached_ic_node_status_snapshot(&request.cache, now);

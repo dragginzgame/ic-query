@@ -23,10 +23,8 @@ fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 git clone --quiet --shared "$repo_root" "$work_dir/repository"
 cd "$work_dir/repository"
 mkdir -p scripts/release scripts/ci make "$work_dir/bin"
-cp "$repo_root/Makefile" Makefile
-cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,validate-release-inputs.pl,finalize-release-changelog.awk,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,run-formatting.sh,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-source.sh} scripts/ci/
+bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
+  Makefile scripts/release/adapter.sh
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -57,12 +55,8 @@ for notes in CHANGELOG.md "$detail"; do
   cmp "$notes" <(printf '# Changelog\n\n## [9.9.9]\n')
   cp "$work_dir/pending-notes" "$notes"
 done
-git add -- Makefile make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/release/adapter.sh scripts/release/metadata.pl \
-  scripts/ci/next-release-version.sh scripts/ci/validate-release-inputs.pl scripts/ci/finalize-release-changelog.awk \
-  scripts/ci/run-validation-targets.sh scripts/ci/verify-file-checksum.sh scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh \
-  scripts/ci/rewrite-local-lock-versions.pl scripts/ci/render-cargo-workspace-version.pl \
-  scripts/ci/read-cargo-workspace-version.sh scripts/ci/check-release-source.sh \
-  Cargo.toml Cargo.lock README.md docs/library-usage.md CHANGELOG.md "$detail"
+# Capture the complete prepared source closure in this disposable clone only.
+git add --all -- .
 RELEASE_SOURCE="$(git write-tree)"
 evidence=".git/release-state/$RELEASE_VERSION.verify.real-git"
 mkdir -p "$evidence"

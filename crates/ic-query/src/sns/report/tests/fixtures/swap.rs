@@ -108,7 +108,7 @@ fn fixture_mainnet_sns_swap(swap_canister_id: &str) -> MainnetSnsSwap {
         point_in_time_guaranteed: false,
         lifecycle: Some(SnsSwapLifecycle {
             lifecycle: Some(2),
-            lifecycle_name: Some("open".to_string()),
+
             decentralization_sale_open_timestamp_seconds: Some(1_780_531_000),
             decentralization_swap_termination_timestamp_seconds: None,
         }),

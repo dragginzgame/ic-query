@@ -49,7 +49,7 @@ pub(in crate::sns::report) trait SnsCacheStorageFamily:
     type Data: DeserializeOwned;
 
     const CACHE_SCHEMA_VERSION: u32;
-    const CACHE_FIELDS: &'static [&'static str];
+
     const CACHE_ITEM_NAME: &'static str;
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError;
@@ -81,6 +81,7 @@ pub(in crate::sns::report) type SnsStoredCacheWithPath<Family> = (PathBuf, SnsSt
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(in crate::sns::report) struct SnsCacheMetadata {
     pub(in crate::sns::report) sns_wasm_canister_id: String,
     pub(in crate::sns::report) id: usize,
@@ -142,7 +143,6 @@ where
         },
         budget,
         &key,
-        Family::CACHE_FIELDS,
         Family::missing_cache_error,
         |completeness| SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,

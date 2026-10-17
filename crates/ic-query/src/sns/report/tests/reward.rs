@@ -94,7 +94,7 @@ async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requir
     .expect("checkpoint preserves incomplete and unknown evidence");
     validate_sns_reward_checkpoint_report(&report).expect("restored evidence remains valid");
     assert_eq!(
-        report.maturity_conversion_policy_observed_status,
+        report.summary.maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::Unassessable,
     );
     let mut neuron = fixture_sns_neuron();
@@ -140,16 +140,19 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
     assert_eq!(report.row_count, 2);
     assert_eq!(report.unique_neuron_id_count, 2);
     assert_eq!(report.client_query_count, 9);
-    assert_eq!(report.aggregate_maturity_e8s_equivalent, 300);
-    assert_eq!(report.aggregate_staked_maturity_e8s_equivalent, 30);
-    assert_eq!(report.aggregate_combined_maturity_e8s_equivalent, 330);
+    assert_eq!(report.summary.aggregate_maturity_e8s_equivalent, 300);
+    assert_eq!(report.summary.aggregate_staked_maturity_e8s_equivalent, 30);
+    assert_eq!(
+        report.summary.aggregate_combined_maturity_e8s_equivalent,
+        330
+    );
     assert_eq!(
         report.collection_status,
         SnsRewardCollectionStatus::ApiExhaustedObserved
     );
     assert!(!report.point_in_time_guaranteed);
     assert_eq!(
-        report.maturity_conversion_policy_observed_status,
+        report.summary.maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::ObservedSatisfied
     );
     assert!(text.contains("collection_status: api_exhausted_observed"));

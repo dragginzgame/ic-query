@@ -105,7 +105,7 @@ pub(in crate::sns::report::tests) fn fixture_mainnet_sns_metrics(
         treasury_metrics: vec![
             SnsTreasuryMetricRow {
                 treasury: 2,
-                treasury_kind: SnsTreasuryKind::SnsToken,
+
                 name: Some("SNS token treasury".to_string()),
                 ledger_canister_id: Some(LEDGER_A.to_string()),
                 account_owner: Some(ROOT_A.to_string()),
@@ -116,7 +116,7 @@ pub(in crate::sns::report::tests) fn fixture_mainnet_sns_metrics(
             },
             SnsTreasuryMetricRow {
                 treasury: 1,
-                treasury_kind: SnsTreasuryKind::Icp,
+
                 name: Some("ICP treasury".to_string()),
                 ledger_canister_id: None,
                 account_owner: None,

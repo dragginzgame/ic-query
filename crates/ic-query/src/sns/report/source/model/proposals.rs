@@ -5,7 +5,7 @@
 //! Boundary: checks row identities, derived fields, limits and proposal-page cursors.
 
 use super::validation::SnsSourceValidator;
-use crate::sns::report::{SnsHostError, SnsProposalAction, SnsProposalRow, SnsProposalVote};
+use crate::sns::report::{SnsHostError, SnsProposalRow};
 use std::collections::HashSet;
 
 const PROPOSAL_CAPABILITY: &str = "SNS proposal";
@@ -77,13 +77,6 @@ pub(in crate::sns::report) fn validate_sns_proposal_rows(
 }
 
 fn validate_sns_proposal_row(proposal: &SnsProposalRow) -> Result<(), String> {
-    let expected_action = SnsProposalAction::from_id(proposal.action_id);
-    if proposal.action != expected_action {
-        return Err(format!(
-            "proposal {} action classification {} does not match raw action id {}",
-            proposal.proposal_id, proposal.action, proposal.action_id
-        ));
-    }
     if proposal.ballot_count != proposal.ballots.len() {
         return Err(format!(
             "proposal {} ballot_count {} does not match {} ballot rows",
@@ -91,15 +84,6 @@ fn validate_sns_proposal_row(proposal: &SnsProposalRow) -> Result<(), String> {
             proposal.ballot_count,
             proposal.ballots.len()
         ));
-    }
-    for ballot in &proposal.ballots {
-        let expected_vote = SnsProposalVote::from_code(ballot.vote);
-        if ballot.vote_text != expected_vote {
-            return Err(format!(
-                "proposal {} ballot {} vote classification {} does not match raw vote code {}",
-                proposal.proposal_id, ballot.neuron_id, ballot.vote_text, ballot.vote
-            ));
-        }
     }
     Ok(())
 }

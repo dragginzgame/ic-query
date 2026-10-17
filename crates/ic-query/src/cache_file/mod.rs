@@ -67,24 +67,15 @@ pub use confined::{
 pub use confined::{collect_managed_files, open_managed_file, read_bounded_stream};
 pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
-#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
-pub use json::JsonCacheHeader;
-#[cfg(feature = "nns-topology-host")]
-pub use json::load_json_cache;
-#[cfg(all(
-    feature = "icrc-host",
-    not(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))
-))]
-pub use json::load_json_cache_strict;
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
-pub use json::{CachedJsonReport, load_json_cache_strict};
+pub use json::CachedJsonReport;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub use json::{JsonCacheReport, LoadJsonCacheRequest};
+pub use json::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache};
 pub use lock::RefreshLockRequest;
 #[cfg(feature = "subnet-catalog-host")]
 pub use lock::with_refresh_lock;

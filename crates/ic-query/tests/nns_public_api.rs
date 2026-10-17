@@ -3590,7 +3590,7 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
             "entity": "governance",
             "collection": "proposals",
             "scope": "full",
-            "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+            "metadata": {"governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai"},
             "completeness": {
                 "status": "api_exhausted",
                 "page_size": 100,
@@ -3598,7 +3598,7 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
                 "row_count": 1,
                 "point_in_time_guaranteed": false
             },
-            "proposals": [sample_nns_proposal_row()],
+            "data": { "proposals": [sample_nns_proposal_row()],
             "collection_state": {
                 "schema_version": 1,
                 "network": "ic",
@@ -3613,7 +3613,7 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
                 "started_at": "2023-11-14T22:13:20Z",
                 "updated_at": "2023-11-14T22:13:20Z",
                 "status": "complete"
-            }
+            }}
         }),
     );
 }

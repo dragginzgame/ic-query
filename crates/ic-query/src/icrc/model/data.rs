@@ -12,57 +12,6 @@ use super::contracts::{
 use std::path::PathBuf;
 
 ///
-/// IcrcBalanceData
-///
-/// Source-layer balance result plus enough token metadata for display.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcBalanceData {
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub balance: String,
-}
-
-///
-/// IcrcAllowanceData
-///
-/// Source-layer allowance result plus enough token metadata for display.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcAllowanceData {
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub allowance: String,
-    pub expires_at_unix_nanos: Option<String>,
-}
-
-///
-/// IcrcAccountTransactionPageData
-///
-/// Source-layer account-history page returned by an ICRC index canister.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcAccountTransactionPageData {
-    /// Index canister that answered the query.
-    pub index_canister_id: String,
-    /// Account balance reported by the index.
-    pub balance: String,
-    /// Oldest transaction id known for the account.
-    pub oldest_transaction_id: Option<String>,
-    /// Cursor for requesting the next older page.
-    pub next_start: Option<String>,
-    /// Ledger token symbol.
-    pub token_symbol: String,
-    /// Ledger token decimals.
-    pub decimals: u8,
-    /// Account transactions in index response order.
-    pub transactions: Vec<IcrcAccountTransactionRow>,
-}
-
-///
 /// IcrcAccountTransactionCollectionData
 ///
 /// Complete account history returned after a source exhausts one verified index.

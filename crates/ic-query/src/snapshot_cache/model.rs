@@ -14,6 +14,7 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnapshotEnvelope<Metadata, Data> {
     pub schema_version: u32,
     pub network: String,
@@ -24,10 +25,8 @@ pub struct SnapshotEnvelope<Metadata, Data> {
     pub entity: String,
     pub collection: String,
     pub scope: String,
-    #[serde(flatten)]
     pub metadata: Metadata,
     pub completeness: CacheCollectionCompleteness,
-    #[serde(flatten)]
     pub data: Data,
 }
 

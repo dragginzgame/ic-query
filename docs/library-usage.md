@@ -313,6 +313,14 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
+CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
+JSON. JSON node classes use `type4_1` through `type4_5`; marketplace keys and human
+text use dotted labels. Each inventory row stores `operator` as
+`Result<Option<candid::Principal>, String>`: a registered principal, successful
+absence, or bounded failure evidence. JSON represents these as `{"Ok":"principal"}`,
+`{"Ok":null}` and `{"Err":"reason"}`. Invalid successful custom-source evidence
+aborts collection; ordinary lookup failures remain per-row results.
+
 For native ICRC ledger/index reports, certified-tip verification, and complete
 account-history caches, use:
 
@@ -334,6 +342,12 @@ Native balance, allowance, transaction, archive and account-page requests compos
 and caller collection clock. Pass this scope first to their constructors and
 access shared fields through `request.ledger`. Account-cache requests keep their
 clock-free identity; report JSON keeps its raw flat provenance fields.
+
+Balance and allowance reports compose their existing raw payloads under `value`:
+use `report.value.balance`, `report.value.allowance` and the corresponding token
+metadata or expiry fields. `IcrcBalanceData` and `IcrcAllowanceData` are available
+without host features for portable construction and rendering. Source traits
+return those same payloads; serialized report JSON remains flat.
 
 NNS proposal rows, ballots and activity buckets keep raw numeric topic, status,
 reward-status and vote codes. Use the public classification enums’ `from_code`
@@ -1766,3 +1780,44 @@ bindings, as well as their once-only journal admission and reconciliation.
 Typed failures distinguish resource budgets, malformed encoding or tip leaves,
 certificate authentication, witness mismatch, chain mismatch and unsupported
 values. Query report builders retain their report-specific projections.
+
+### Shared token report payload
+
+ICRC and SNS token reports compose `token: icrc::IcrcTokenData`; Rust consumers
+read values such as `report.token.transfer_fee` and `report.token.decimals`.
+Their JSON remains flat and preserves exact base-unit strings and metadata.
+Constructing the canonical payload once avoids copying fields into each report.
+For the nested schema-1 cache hard cut and required explicit refresh, see
+[cache policy](design/cache-policy.md#nested-snapshot-and-attempt-contracts).
+
+### Shared account-page and SNS evidence payloads
+
+`IcrcAccountTransactionPageReport.page` carries the same
+`IcrcAccountTransactionPageData` returned by its source; the payload is available
+without host features. Report JSON remains flat. IC transport continues to use
+published ledger types such as `icrc_ledger_types::icrc1::account::Account` and
+Candid `Nat`; the report payload adds display metadata and lossless JSON rows.
+
+SNS proposal rows retain the native `u64` action ID and `i32` ballot vote code.
+Text and view filters derive their labels without a second classification field
+or reverse label parser. Unknown codes remain raw numeric evidence.
+
+SNS neuron, proposal and ballot rows retain their native timestamp fields only.
+Text derives UTC creation/decision/execution/failure times; an absent optional
+time or zero ballot time displays `-`. JSON retains Unix seconds rather than
+stored display strings. Update consumers and preserve needed evidence before
+explicitly refreshing affected complete snapshots; schemas remain 1.
+
+SNS reward checkpoint aggregates and policy observations live under
+`report.summary` and the JSON `summary` object. The same
+`SnsRewardCheckpointSummary` is recomputed from raw parameters and neuron rows
+when validating a checkpoint. Retain existing checkpoint evidence and update
+consumers before explicitly collecting replacements; there is no migration.
+
+`SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
+`MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host
+features. Their report JSON fields remain flat. Native SNS lifecycle and
+treasury codes are retained without stored labels or a second classification
+type; text derives those labels. Lifecycle query failures remain separate from
+absent/raw values. Coordinate catalog consumers and retain needed evidence
+before explicit refresh; schemas stay 1 without migration.

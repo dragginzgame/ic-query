@@ -10,15 +10,14 @@ use crate::sns::report::{
     live::types::{
         GetDerivedStateResponse, GetLifecycleResponse, GetSaleParametersResponse, SnsSwapParams,
     },
-    source::sns_swap_lifecycle_name,
 };
 
-pub(in crate::sns::report::live) fn sns_swap_lifecycle(
+pub(in crate::sns::report::live) const fn sns_swap_lifecycle(
     response: GetLifecycleResponse,
 ) -> SnsSwapLifecycle {
     SnsSwapLifecycle {
         lifecycle: response.lifecycle,
-        lifecycle_name: sns_swap_lifecycle_name(response.lifecycle).map(str::to_string),
+
         decentralization_sale_open_timestamp_seconds: response
             .decentralization_sale_open_timestamp_seconds,
         decentralization_swap_termination_timestamp_seconds: response

@@ -4,6 +4,8 @@
 //! Does not own: public reports, caller requests, errors, transport, or validation.
 //! Boundary: preserves source inputs and raw returned evidence for validation.
 
+use serde::Deserialize;
+
 use super::{
     reports::{
         IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
@@ -299,7 +301,7 @@ pub struct IcIcrcHolderListSourceData {
 /// One untrusted raw token-value record returned by an analytics source.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct IcIcrcTokenValueSourceRow {
     /// Raw legacy price field, when returned.
     pub price: Option<String>,
@@ -314,6 +316,7 @@ pub struct IcIcrcTokenValueSourceRow {
     /// External value-provider URL, when returned.
     pub source_url: Option<String>,
     /// Raw optional observation timestamp returned by the source.
+    #[serde(rename = "timestamp")]
     pub timestamp_unix_secs: Option<u64>,
 }
 

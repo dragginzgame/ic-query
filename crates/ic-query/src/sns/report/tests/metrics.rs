@@ -9,24 +9,29 @@ async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
     let text = sns_metrics_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_METRICS_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
-    assert_eq!(report.method, SnsCanisterMethod::GetMetrics);
-    assert_eq!(report.call_type, SnsCanisterCallType::CompositeQuery);
-    assert_eq!(report.time_window_seconds, 30 * 24 * 60 * 60);
-    assert!(!report.point_in_time_guaranteed);
-    assert!(report.treasury_metrics_cached);
+    assert_eq!(report.metrics.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.metrics.method, SnsCanisterMethod::GetMetrics);
+    assert_eq!(
+        report.metrics.call_type,
+        SnsCanisterCallType::CompositeQuery
+    );
+    assert_eq!(report.metrics.time_window_seconds, 30 * 24 * 60 * 60);
+    assert!(!report.metrics.point_in_time_guaranteed);
+    assert!(report.metrics.treasury_metrics_cached);
     assert_eq!(report.treasury_metric_count, 2);
     assert_eq!(
         report
+            .metrics
             .treasury_metrics
             .iter()
             .map(|row| row.treasury)
             .collect::<Vec<_>>(),
         vec![1, 2]
     );
-    assert_eq!(report.num_recently_submitted_proposals, Some(12));
+    assert_eq!(report.metrics.num_recently_submitted_proposals, Some(12));
     assert_eq!(
         report
+            .metrics
             .voting_power_metrics
             .as_ref()
             .and_then(|metrics| metrics.timestamp_seconds),
@@ -47,11 +52,8 @@ async fn sns_metrics_preserves_unknown_native_treasury_codes() {
     .await
     .expect("unknown native code is preserved");
 
-    assert_eq!(report.treasury_metrics[1].treasury, 99);
-    assert_eq!(
-        report.treasury_metrics[1].treasury_kind,
-        SnsTreasuryKind::Unknown
-    );
+    assert_eq!(report.metrics.treasury_metrics[1].treasury, 99);
+    assert!(sns_metrics_report_text(&report).contains("unknown"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -128,7 +130,7 @@ async fn sns_metrics_rejects_invalid_custom_source_evidence() {
 
 type MetricsMutation = (fn(&mut MainnetSnsMetrics), &'static str);
 
-fn invalid_metrics_mutations() -> [MetricsMutation; 12] {
+fn invalid_metrics_mutations() -> [MetricsMutation; 11] {
     [
         (wrong_target, "governance_canister_id"),
         (wrong_method, "method"),
@@ -137,7 +139,6 @@ fn invalid_metrics_mutations() -> [MetricsMutation; 12] {
         (claim_atomic_snapshot, "point-in-time guarantee"),
         (claim_uncached_treasury, "treasury_metrics_cached"),
         (duplicate_treasury_code, "duplicate treasury code"),
-        (wrong_treasury_kind, "expected"),
         (invalid_ledger_principal, "ledger_canister_id"),
         (untrimmed_name, "surrounding whitespace"),
         (invalid_subaccount, "32-byte lowercase hexadecimal"),
@@ -147,7 +148,6 @@ fn invalid_metrics_mutations() -> [MetricsMutation; 12] {
 
 fn use_unknown_treasury_code(metrics: &mut MainnetSnsMetrics) {
     metrics.treasury_metrics[0].treasury = 99;
-    metrics.treasury_metrics[0].treasury_kind = SnsTreasuryKind::Unknown;
 }
 
 fn wrong_target(metrics: &mut MainnetSnsMetrics) {
@@ -176,11 +176,6 @@ const fn claim_uncached_treasury(metrics: &mut MainnetSnsMetrics) {
 
 fn duplicate_treasury_code(metrics: &mut MainnetSnsMetrics) {
     metrics.treasury_metrics[1].treasury = 2;
-    metrics.treasury_metrics[1].treasury_kind = SnsTreasuryKind::SnsToken;
-}
-
-fn wrong_treasury_kind(metrics: &mut MainnetSnsMetrics) {
-    metrics.treasury_metrics[0].treasury_kind = SnsTreasuryKind::Icp;
 }
 
 fn invalid_ledger_principal(metrics: &mut MainnetSnsMetrics) {
@@ -200,12 +195,6 @@ fn too_many_treasury_rows(metrics: &mut MainnetSnsMetrics) {
     metrics.treasury_metrics = (0_i32..17)
         .map(|treasury| SnsTreasuryMetricRow {
             treasury,
-            treasury_kind: match treasury {
-                0 => SnsTreasuryKind::Unspecified,
-                1 => SnsTreasuryKind::Icp,
-                2 => SnsTreasuryKind::SnsToken,
-                _ => SnsTreasuryKind::Unknown,
-            },
             ..template.clone()
         })
         .collect();

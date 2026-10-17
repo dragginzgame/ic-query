@@ -130,17 +130,15 @@ commits and release artifacts. The library's supported minimum Rust version rema
 
 ### ICP binary selection
 
-Query selects ICP CLI 1.7.0 ahead of Shared Tooling 0.15.0’s 1.6.0 default.
-The separate complete catalog `ci/ic-tools-query.tsv` changes only ICP and
-retains all other reviewed selections. Make setup/checks, validation inputs,
-the direct harness, release pin admission and retained tool evidence use that
-same catalog. The immutable shared catalog remains intact.
+Query uses ICP CLI 1.7.0 from the adopted Shared Tooling catalog
+`ci/ic-tools.tsv`. Make setup/checks, validation inputs, the direct harness,
+release pin admission and retained tool evidence use that same catalog.
+`IC_TOOL_PINS` still permits an explicit reviewed catalog selection.
 
 The three ICP archive hashes come from the official 1.7.0 release metadata.
 Linux x86-64 installation and offline admission are checked locally; native
 macOS Intel/Apple Silicon execution and full local-NNS smoke remain pending
-the configured CI matrix. Replace this exception with a reviewed shared catalog
-once its owner adopts and qualifies the release under
+the configured CI matrix. The shared adoption is tracked in
 [Shared #268 — Adopt ICP CLI 1.7.0](https://github.com/dragginzgame/shared-tooling/issues/268).
 
 ## Identity storage and cleanup
@@ -184,7 +182,7 @@ make canister-smoke
 The harness selects `.tools/ic/bin/icp` explicitly, verifies the installed set
 offline before ICP execution, and never installs tools implicitly. The check
 uses the explicit `IC_TOOL_PINS` selection, defaulting to Query’s reviewed
-[IC matrix](../ci/ic-tools-query.tsv), including for direct Cargo invocation. Receipts record
+[IC matrix](../ci/ic-tools.tsv), including for direct Cargo invocation. Receipts record
 the observed ICP version. Direct invocation needs no global ICP selection.
 
 `canister-build` invokes `icp build -e local` against the isolated project in

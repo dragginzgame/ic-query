@@ -48,27 +48,14 @@ const CACHE_COMPONENT: &str = "SNS catalog";
 const CACHE_DOMAIN: &str = "sns";
 const CACHE_ENTITY: &str = "catalog";
 const CACHE_COLLECTION: &str = "discovery";
-const CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "sns_wasm_canister_id",
-    "completeness",
-    "sns_instances",
-];
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SnsCatalogMetadata {
     sns_wasm_canister_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SnsCatalogData {
     sns_instances: Vec<MainnetSns>,
 }
@@ -238,7 +225,6 @@ fn load_cached_sns_catalog(
         },
         None,
         &key,
-        CACHE_FIELDS,
         missing_catalog_cache_error,
         |completeness| SnsHostError::InvalidCache {
             path: path.clone(),

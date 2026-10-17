@@ -16,14 +16,10 @@ export TMPDIR="${work_dir%/*}"
 fail() { echo "release cache fixture failed: $*" >&2; exit 1; }
 mkdir -p "$work_dir/repository/"{make,ci,scripts/ci,scripts/dev,scripts/release} "$work_dir/bin"
 cd "$work_dir/repository"
-cp "$repo_root/Makefile" Makefile
-cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-cp "$repo_root/scripts/ci/"{check-make-execution,run-formatting}.sh scripts/ci/
-cp "$repo_root/scripts/release/adapter.sh" scripts/release/
-cp "$repo_root/scripts/ci/"{next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,verify-file-checksum.sh} scripts/ci/
-cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
+bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
+  Makefile scripts/release/adapter.sh
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
-printf 'selected IC pins\n' > ci/ic-tools-query.tsv
+printf 'selected IC pins\n' > ci/ic-tools.tsv
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail

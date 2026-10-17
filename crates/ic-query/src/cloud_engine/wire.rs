@@ -84,34 +84,6 @@ pub(super) struct ListDomainsResult {
     pub(super) domains: Option<Vec<String>>,
 }
 
-///
-/// CloudEngineNodeTypeWire
-///
-/// Wire spelling of CloudEngine marketplace node classes.
-///
-
-#[expect(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, CandidType, Deserialize)]
-pub(super) enum CloudEngineNodeTypeWire {
-    type4_1,
-    type4_2,
-    type4_3,
-    type4_4,
-    type4_5,
-}
-
-impl From<CloudEngineNodeTypeWire> for CloudEngineNodeType {
-    fn from(value: CloudEngineNodeTypeWire) -> Self {
-        match value {
-            CloudEngineNodeTypeWire::type4_1 => Self::Type4_1,
-            CloudEngineNodeTypeWire::type4_2 => Self::Type4_2,
-            CloudEngineNodeTypeWire::type4_3 => Self::Type4_3,
-            CloudEngineNodeTypeWire::type4_4 => Self::Type4_4,
-            CloudEngineNodeTypeWire::type4_5 => Self::Type4_5,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
 struct CloudEnginePriceWire {
     gross_cycles: Nat,
@@ -120,7 +92,7 @@ struct CloudEnginePriceWire {
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
 struct CloudEnginePriceEntryWire {
-    node_type: CloudEngineNodeTypeWire,
+    node_type: CloudEngineNodeType,
     dc: Option<String>,
     provider: Option<Principal>,
     price: CloudEnginePriceWire,
@@ -143,7 +115,7 @@ impl CloudEngineMarketplaceEntryWire {
     pub(super) fn into_report_row(self) -> CloudEnginePriceRow {
         CloudEnginePriceRow {
             key: self.key,
-            node_type: self.entry.node_type.into(),
+            node_type: self.entry.node_type,
             data_center_id: self.entry.dc,
             provider_id: self.entry.provider.map(|principal| principal.to_text()),
             net_cycles_per_month: self.entry.price.net_cycles.0.to_str_radix(10),
@@ -178,11 +150,67 @@ mod tests {
     }
 
     #[test]
+    fn marketplace_node_classes_decode_exact_candid_labels() {
+        // Independent Candid fixtures: one null variant with its wire label hash.
+        for (expected, label, bytes) in [
+            (
+                CloudEngineNodeType::Type4_1,
+                "type4_1",
+                &[
+                    0x44, 0x49, 0x44, 0x4c, 0x01, 0x6b, 0x01, 0xac, 0x8b, 0xcf, 0xc5, 0x0f, 0x7f,
+                    0x01, 0x00, 0x00,
+                ][..],
+            ),
+            (
+                CloudEngineNodeType::Type4_2,
+                "type4_2",
+                &[
+                    0x44, 0x49, 0x44, 0x4c, 0x01, 0x6b, 0x01, 0xad, 0x8b, 0xcf, 0xc5, 0x0f, 0x7f,
+                    0x01, 0x00, 0x00,
+                ][..],
+            ),
+            (
+                CloudEngineNodeType::Type4_3,
+                "type4_3",
+                &[
+                    0x44, 0x49, 0x44, 0x4c, 0x01, 0x6b, 0x01, 0xae, 0x8b, 0xcf, 0xc5, 0x0f, 0x7f,
+                    0x01, 0x00, 0x00,
+                ][..],
+            ),
+            (
+                CloudEngineNodeType::Type4_4,
+                "type4_4",
+                &[
+                    0x44, 0x49, 0x44, 0x4c, 0x01, 0x6b, 0x01, 0xaf, 0x8b, 0xcf, 0xc5, 0x0f, 0x7f,
+                    0x01, 0x00, 0x00,
+                ][..],
+            ),
+            (
+                CloudEngineNodeType::Type4_5,
+                "type4_5",
+                &[
+                    0x44, 0x49, 0x44, 0x4c, 0x01, 0x6b, 0x01, 0xb0, 0x8b, 0xcf, 0xc5, 0x0f, 0x7f,
+                    0x01, 0x00, 0x00,
+                ][..],
+            ),
+        ] {
+            let decoded: CloudEngineNodeType = candid::decode_one(bytes).expect("wire node class");
+            assert_eq!(decoded, expected);
+            assert_eq!(serde_json::to_value(decoded).unwrap(), label);
+            let encoded = candid::encode_one(decoded).expect("encode node class");
+            assert_eq!(
+                candid::decode_one::<CloudEngineNodeType>(&encoded).unwrap(),
+                expected
+            );
+        }
+    }
+
+    #[test]
     fn marketplace_shape_preserves_arbitrary_precision_cycle_amounts() {
         let row = CloudEngineMarketplaceEntryWire {
             key: "type4.1".to_string(),
             entry: CloudEnginePriceEntryWire {
-                node_type: CloudEngineNodeTypeWire::type4_1,
+                node_type: CloudEngineNodeType::Type4_1,
                 dc: None,
                 provider: None,
                 price: CloudEnginePriceWire {

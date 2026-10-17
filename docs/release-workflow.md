@@ -89,6 +89,11 @@ remain in Shared Tooling's owner suite. The linked maintenance task catalog and
 schedule templates are retained offline, without enabling a timer or recurring
 agent execution.
 
+Make and release fixtures copy their declared dependency closure through Shared's
+script-fixture preparer. Local adapters declare their direct helper inputs;
+stubs and assertions remain Query-owned. Metadata fixtures capture that complete
+prepared source in their disposable index before testing release-only changes.
+
 The reviewed [consumer Make entrypoint](make-interface.md), `make/consumer.mk`,
 owns common tool setup/checks, snapshot verification, release routing,
 root-workspace formatting and parse-time Make admission through its companions.

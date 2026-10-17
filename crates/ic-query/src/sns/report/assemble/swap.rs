@@ -25,17 +25,9 @@ pub(in crate::sns::report) fn sns_swap_report_from_parts(
         id: sns.id,
         name: sns.name,
         root_canister_id: sns.canisters.root_canister_id,
-        swap_canister_id: swap.swap_canister_id,
-        lifecycle_method: swap.lifecycle_method,
-        sale_parameters_method: swap.sale_parameters_method,
-        derived_state_method: swap.derived_state_method,
-        point_in_time_guaranteed: swap.point_in_time_guaranteed,
         component_query_count: SNS_SWAP_QUERY_COUNT,
         successful_component_query_count: SNS_SWAP_QUERY_COUNT - component_gap_count,
         component_gap_count,
-        lifecycle: swap.lifecycle,
-        sale_parameters: swap.sale_parameters,
-        derived_state: swap.derived_state,
-        gaps: swap.gaps,
+        swap,
     }
 }

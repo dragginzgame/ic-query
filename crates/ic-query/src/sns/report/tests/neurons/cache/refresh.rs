@@ -39,11 +39,15 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(cache["entity"], ROOT_A);
     assert_eq!(cache["collection"], "neurons");
     assert_eq!(cache["scope"], "full");
-    assert_eq!(cache["id"], 1);
+    assert_eq!(cache["metadata"]["id"], 1);
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
-    assert_eq!(cache["neurons"].as_array().expect("cache neurons").len(), 3);
-    assert!(cache.get("metadata").is_none());
-    assert!(cache.get("data").is_none());
+    assert_eq!(
+        cache["data"]["neurons"]
+            .as_array()
+            .expect("cache neurons")
+            .len(),
+        3
+    );
 
     let mut cached_request = neurons_request(ROOT_A);
     cached_request.cache_root = Some(root.clone());
@@ -75,7 +79,15 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         "root_canister_id",
         "governance_canister_id",
     ] {
-        assert_eq!(report_json[field], cache[field], "cached {field}");
+        let expected = match field {
+            "sns_wasm_canister_id"
+            | "id"
+            | "name"
+            | "root_canister_id"
+            | "governance_canister_id" => &cache["metadata"][field],
+            _ => &cache[field],
+        };
+        assert_eq!(&report_json[field], expected, "cached {field}");
     }
     assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 50);
@@ -89,9 +101,8 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(attempt["pages_fetched"], 3);
     assert_eq!(attempt["rows_fetched"], 3);
     assert_eq!(attempt["last_cursor"], "03".repeat(32));
-    assert_eq!(attempt["id"], refresh.id);
-    assert_eq!(attempt["root_canister_id"], ROOT_A);
-    assert!(attempt.get("metadata").is_none());
+    assert_eq!(attempt["metadata"]["id"], refresh.id);
+    assert_eq!(attempt["metadata"]["root_canister_id"], ROOT_A);
 
     let _ = fs::remove_dir_all(root);
 }
@@ -156,7 +167,7 @@ async fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
         &fs::read(sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)).unwrap(),
     )
     .unwrap();
-    let ids: Vec<_> = cache["neurons"]
+    let ids: Vec<_> = cache["data"]["neurons"]
         .as_array()
         .unwrap()
         .iter()

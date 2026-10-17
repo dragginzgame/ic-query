@@ -9,6 +9,30 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 ///
+/// IcrcAccountTransactionPageData
+///
+/// Source-layer account-history page returned by an ICRC index canister.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionPageData {
+    /// Index canister that answered the query.
+    pub index_canister_id: String,
+    /// Account balance reported by the index.
+    pub balance: String,
+    /// Oldest transaction id known for the account.
+    pub oldest_transaction_id: Option<String>,
+    /// Cursor for requesting the next older page.
+    pub next_start: Option<String>,
+    /// Ledger token symbol.
+    pub token_symbol: String,
+    /// Ledger token decimals.
+    pub decimals: u8,
+    /// Account transactions in index response order.
+    pub transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+///
 /// IcrcAccountTransactionPageReport
 ///
 /// Serializable report for a backward page of ICRC index account transactions.
@@ -20,8 +44,6 @@ pub struct IcrcAccountTransactionPageReport {
     pub schema_version: u32,
     /// Ledger canister whose transactions were indexed.
     pub ledger_canister_id: String,
-    /// Index canister that answered the account-history query.
-    pub index_canister_id: String,
     /// Queried account owner principal.
     pub account_owner: String,
     /// Queried subaccount as normalized hex.
@@ -30,24 +52,15 @@ pub struct IcrcAccountTransactionPageReport {
     pub requested_start: Option<String>,
     /// Maximum number of transactions requested.
     pub requested_limit: u32,
-    /// Cursor to pass as `start` to request the next older page.
-    pub next_start: Option<String>,
-    /// Oldest transaction id known for this account.
-    pub oldest_transaction_id: Option<String>,
-    /// Account balance reported by the index at its synchronized tip.
-    pub balance: String,
-    /// Ledger token symbol used for text rendering.
-    pub token_symbol: String,
-    /// Ledger token decimals used for text rendering.
-    pub decimals: u8,
     /// Collection timestamp in UTC text form.
     pub fetched_at: String,
     /// IC API endpoint used for ledger and index calls.
     pub source_endpoint: String,
     /// Collector identity.
     pub fetched_by: String,
-    /// Transactions returned by the index in its native page order.
-    pub transactions: Vec<IcrcAccountTransactionRow>,
+    /// Validated index response and ledger display metadata.
+    #[serde(flatten)]
+    pub page: IcrcAccountTransactionPageData,
 }
 
 ///
@@ -57,6 +70,7 @@ pub struct IcrcAccountTransactionPageReport {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct IcrcAccountTransactionSnapshot {
     /// Cache schema version.
     pub schema_version: u32,

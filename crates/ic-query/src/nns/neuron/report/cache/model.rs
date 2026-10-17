@@ -15,22 +15,6 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 pub(super) type NnsNeuronCache = SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsNeuronCacheRows>;
 
-pub(super) const NNS_NEURON_CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "governance_canister_id",
-    "completeness",
-    "collection_state",
-    "neurons",
-];
-
 ///
 /// NnsNeuronCacheRows
 ///
@@ -38,6 +22,7 @@ pub(super) const NNS_NEURON_CACHE_FIELDS: &[&str] = &[
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct NnsNeuronCacheRows {
     pub(super) collection_state: NnsNeuronCollectionState,
     pub(super) neurons: Vec<NnsNeuronRow>,

@@ -7,7 +7,7 @@
 use super::{
     NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
-    model::{NNS_PROPOSAL_CACHE_FIELDS, NnsProposalCache, NnsProposalCacheListReport},
+    model::{NnsProposalCache, NnsProposalCacheListReport},
     paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
 };
 use crate::{
@@ -221,7 +221,6 @@ fn load_nns_proposal_cache(
         },
         None,
         &key,
-        NNS_PROPOSAL_CACHE_FIELDS,
         missing_proposal_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),

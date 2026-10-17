@@ -7,6 +7,40 @@
 use serde::Serialize;
 
 ///
+/// IcrcBalanceData
+///
+/// Raw balance result shared by sources and reports plus enough token metadata for display.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcBalanceData {
+    /// Ledger token symbol.
+    pub token_symbol: String,
+    /// Ledger token decimal places.
+    pub decimals: u8,
+    /// Balance in raw decimal base units.
+    pub balance: String,
+}
+
+///
+/// IcrcAllowanceData
+///
+/// Raw allowance result shared by sources and reports plus enough token metadata for display.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAllowanceData {
+    /// Ledger token symbol.
+    pub token_symbol: String,
+    /// Ledger token decimal places.
+    pub decimals: u8,
+    /// Allowance in raw decimal base units.
+    pub allowance: String,
+    /// Optional expiry in raw decimal Unix nanoseconds.
+    pub expires_at_unix_nanos: Option<String>,
+}
+
+///
 /// IcrcBalanceReport
 ///
 /// Serializable report for one generic ICRC account balance lookup.
@@ -21,9 +55,9 @@ pub struct IcrcBalanceReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub balance: String,
+    /// Raw balance and token display metadata.
+    #[serde(flatten)]
+    pub value: IcrcBalanceData,
 }
 
 ///
@@ -43,8 +77,7 @@ pub struct IcrcAllowanceReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub allowance: String,
-    pub expires_at_unix_nanos: Option<String>,
+    /// Raw allowance, expiry and token display metadata.
+    #[serde(flatten)]
+    pub value: IcrcAllowanceData,
 }

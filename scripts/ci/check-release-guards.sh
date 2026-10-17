@@ -243,15 +243,8 @@ new_fixture() {
   local name="$1" kind="$2" candidate minor
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/dev" "$work_dir/$name/scripts/release" "$work_dir/$name/ci" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
-  cp "$repo_root/Makefile" Makefile
-  mkdir -p make
-  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-tag.sh,check-release-source.sh} scripts/ci/
-  cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-  cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
-  cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
-  cp "$repo_root/ci/tool-versions.env" ci/
-  cp "$repo_root/ci/ic-tools.tsv" "$repo_root/ci/ic-tools-query.tsv" ci/
+  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
+    Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"

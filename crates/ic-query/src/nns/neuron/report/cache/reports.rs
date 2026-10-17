@@ -6,7 +6,7 @@
 
 use super::{
     NNS_NEURON_CACHE_COMPONENT, NNS_NEURON_CACHE_SCHEMA_VERSION,
-    model::{NNS_NEURON_CACHE_FIELDS, NnsNeuronCache},
+    model::NnsNeuronCache,
     paths::{
         NNS_NEURON_CACHE_COLLECTION, NNS_NEURON_CACHE_DOMAIN, NNS_NEURON_CACHE_ENTITY,
         nns_neuron_cache_path, nns_neuron_cache_paths,
@@ -172,7 +172,6 @@ fn load_cache_at(
         },
         None,
         &key,
-        NNS_NEURON_CACHE_FIELDS,
         missing_neuron_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_neuron_identity_mismatch_error(path.to_path_buf(), mismatch),
