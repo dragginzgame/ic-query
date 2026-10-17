@@ -827,7 +827,7 @@ Focused host features let embedders select one reporting family:
 | `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
 | `host` | Convenience union of every focused host family |
 | `certificate-host` | Bounded typed certificate/witness authentication and certified ledger tips |
-| `ledger-evidence-host` | Certificate support plus immutable bounded generic block-chain verification |
+| `ledger-evidence-host` | Certificate support, bounded generic block-chain verification and ICP protobuf transfer decoding |
 
 Public report families are exposed from:
 
