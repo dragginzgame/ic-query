@@ -2,6 +2,8 @@
 //!
 //! Callers authenticate the tip and interpret transaction semantics; no spending authority lives here.
 
+pub mod icp;
+
 #[cfg(test)]
 mod tests;
 

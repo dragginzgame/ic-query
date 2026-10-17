@@ -15,7 +15,7 @@ categories = ["command-line-utilities"]
 
 [features]
 default = []
-ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types"]
+ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types", "dep:prost"]
 certificate-host = ["dep:ic-agent", "dep:ic-host-tools", "dep:ic-certification"]
 canister = ["dep:ic-cdk"]
 host = [

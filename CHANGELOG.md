@@ -5,6 +5,12 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.61.1]
+
+- Add bounded ICP protobuf transfer decoding under `ledger-evidence-host`, with
+  exact re-encoding and required-field checks. Callers still authenticate blocks
+  and compare decoded fields with their own expected transfer.
+
 ## [0.61.0] - 2026-10-17
 
 - **Breaking:** SNS token reports and custom sources use
