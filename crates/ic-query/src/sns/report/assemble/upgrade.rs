@@ -24,7 +24,7 @@ pub(in crate::sns::report) fn sns_upgrade_report_from_parts(
         fetched_by: fetch_request.fetched_by,
         id: sns.id,
         name: sns.name,
-        root_canister_id: sns.root_canister_id,
+        root_canister_id: sns.canisters.root_canister_id,
         governance_canister_id: upgrade.governance_canister_id,
         running_version_method: upgrade.running_version_method,
         next_version_method: upgrade.next_version_method,

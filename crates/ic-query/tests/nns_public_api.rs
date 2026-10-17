@@ -101,10 +101,9 @@ use ic_query::nns::proposals::{
     NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
     NnsProposalActivityValidationError, NnsProposalBallotRow, NnsProposalCollectionState,
     NnsProposalDayCount, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
-    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
-    NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter, NnsProposalRow,
-    NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
-    NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
+    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusCount,
+    NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection, NnsProposalSource,
+    NnsProposalSourceFuture, NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally,
     NnsProposalTopicCount, NnsProposalTopicFilter, advance_nns_proposal_collection_with_source,
     build_nns_proposal_activity_report, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report_with_source, nns_proposal_activity_report_text,
@@ -2641,10 +2640,10 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
     let list_text = nns_proposal_list_report_text(&list_report);
 
-    assert_eq!(list_json["proposals"][0]["topic_text"], "governance");
-    assert_eq!(list_json["proposals"][0]["status_text"], "executed");
-    assert_eq!(list_json["proposals"][0]["reward_status_text"], "settled");
-    assert_eq!(list_json["proposals"][0]["ballots"][0]["vote_text"], "yes");
+    assert_eq!(list_json["proposals"][0]["topic"], 4);
+    assert_eq!(list_json["proposals"][0]["status"], 4);
+    assert_eq!(list_json["proposals"][0]["reward_status"], 3);
+    assert_eq!(list_json["proposals"][0]["ballots"][0]["vote"], 1);
     assert!(list_text.contains("proposal_count: 1"));
     assert!(list_text.contains("topic_filter: governance"));
     assert!(list_text.contains("proposal_details:"));
@@ -4161,11 +4160,11 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         proposal_id: Some(132_411),
         proposer_neuron_id: Some(12_345),
         topic: 4,
-        topic_text: NnsProposalTopic::Governance,
+
         status: 4,
-        status_text: NnsProposalStatus::Executed,
+
         reward_status: 3,
-        reward_status_text: NnsProposalRewardStatus::Settled,
+
         title: Some("Upgrade subnet".to_string()),
         summary: "Upgrade subnet replica version.".to_string(),
         url: "https://dashboard.internetcomputer.org/proposal/132411".to_string(),
@@ -4193,7 +4192,7 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         ballots: vec![NnsProposalBallotRow {
             neuron_id: 12_345,
             vote: 1,
-            vote_text: ic_query::nns::governance::NnsGovernanceVote::Yes,
+
             voting_power: 100_000_000,
         }],
     }

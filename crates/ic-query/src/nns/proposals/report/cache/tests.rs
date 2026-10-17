@@ -960,7 +960,7 @@ fn proposal_info(proposal_id: u64) -> NnsProposalInfo {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn proposal_cache_preserves_unknown_votes_and_refuses_contradictory_labels() {
+async fn proposal_cache_preserves_unknown_votes_and_refuses_unknown_fields() {
     let root = temp_dir("ic-query-proposal-ballot-evidence");
     let path = refresh_fixture_nns_proposal_cache(&root).await;
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -968,22 +968,23 @@ async fn proposal_cache_preserves_unknown_votes_and_refuses_contradictory_labels
     for code in [-9, 99] {
         let mut cache = original.clone();
         cache["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(code);
-        cache["proposals"][0]["ballots"][0]["vote_text"] =
-            serde_json::json!(format!("unknown({code})"));
         fs::write(&path, serde_json::to_vec_pretty(&cache).unwrap()).unwrap();
         let report = build_nns_proposal_list_report_from_cache(&request, &root)
             .unwrap()
             .unwrap();
         let ballot = &report.proposals[0].ballots[0];
         assert_eq!(ballot.vote, code);
-        assert_eq!(ballot.vote_text.code(), code);
-        cache["proposals"][0]["ballots"][0]["vote_text"] = serde_json::json!("yes");
+        cache["proposals"][0]["ballots"][0]["unexpected_evidence"] = serde_json::json!(true);
         let bytes = serde_json::to_vec_pretty(&cache).unwrap();
         fs::write(&path, &bytes).unwrap();
         assert!(
-            matches!(build_nns_proposal_list_report_from_cache(&request, &root), Err(NnsProposalHostError::InvalidCache { path: actual, .. }) if actual == path)
+            matches!(build_nns_proposal_list_report_from_cache(&request, &root), Err(NnsProposalHostError::Cache(crate::HostCacheError::ParseCache { path: actual, .. })) if actual == path)
         );
         assert_eq!(fs::read(&path).unwrap(), bytes);
     }
+    refresh_fixture_nns_proposal_cache(&root).await;
+    build_nns_proposal_list_report_from_cache(&request, &root)
+        .expect("explicit refresh restores valid cache")
+        .expect("refreshed complete snapshot");
     fs::remove_dir_all(root).unwrap();
 }

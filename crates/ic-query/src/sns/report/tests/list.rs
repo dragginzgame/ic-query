@@ -22,7 +22,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.sort, "id");
     assert_eq!(report.sns_instances[0].id, 1);
     assert_eq!(report.sns_instances[0].name, "Fixture SNS");
-    assert_eq!(report.sns_instances[0].root_canister_id, ROOT_A);
+    assert_eq!(report.sns_instances[0].canisters.root_canister_id, ROOT_A);
     assert_eq!(report.metadata_error_count, 0);
     assert_eq!(report.lifecycle_error_count, 0);
     assert_eq!(report.sns_instances[0].lifecycle, Some(3));
@@ -655,7 +655,7 @@ async fn sns_info_resolves_root_principal() {
             .expect("sns info report");
 
     assert_eq!(report.id, 1);
-    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.canisters.root_canister_id, ROOT_A);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -671,11 +671,11 @@ async fn sns_list_ids_follow_source_order() {
 
     assert_eq!(report.sns_instances[0].id, 1);
     assert_eq!(report.sns_instances[0].name, "A Name");
-    assert_eq!(report.sns_instances[0].root_canister_id, ROOT_A);
+    assert_eq!(report.sns_instances[0].canisters.root_canister_id, ROOT_A);
     assert_eq!(report.sns_instances[1].id, 2);
     assert_eq!(report.sns_instances[1].name, "Z Name");
     assert_eq!(info.id, 1);
-    assert_eq!(info.root_canister_id, ROOT_A);
+    assert_eq!(info.canisters.root_canister_id, ROOT_A);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -700,7 +700,7 @@ async fn sns_list_name_sort_keeps_stable_ids() {
     assert_eq!(report.sns_instances[1].name, "Z Name");
     assert!(text.contains("sort: name"));
     assert_eq!(info.id, 1);
-    assert_eq!(info.root_canister_id, ROOT_A);
+    assert_eq!(info.canisters.root_canister_id, ROOT_A);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -725,7 +725,10 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
     assert_eq!(all_report.excluded_sns_count, 0);
     assert_eq!(all_report.sns_count, 2);
     assert_eq!(all_report.sns_instances[1].id, 2);
-    assert_eq!(all_report.sns_instances[1].root_canister_id, ROOT_B);
+    assert_eq!(
+        all_report.sns_instances[1].canisters.root_canister_id,
+        ROOT_B
+    );
     assert_eq!(all_report.sns_instances[1].lifecycle, Some(4));
     assert_eq!(
         all_report.sns_instances[1].lifecycle_name.as_deref(),
@@ -788,7 +791,7 @@ async fn direct_lookup_enriches_only_the_resolved_sns() {
             .expect("targeted SNS info report");
 
         assert_eq!(report.id, 2);
-        assert_eq!(report.root_canister_id, ROOT_B);
+        assert_eq!(report.canisters.root_canister_id, ROOT_B);
         assert_eq!(report.network, request.network);
         assert_eq!(report.sns_wasm_canister_id, MAINNET_SNS_WASM_CANISTER_ID);
         assert_eq!(report.source_endpoint, request.source_endpoint);
@@ -799,7 +802,7 @@ async fn direct_lookup_enriches_only_the_resolved_sns() {
         );
         assert_eq!(
             source.metadata_targets.lock().unwrap().as_slice(),
-            &[vec![report.root_canister_id]]
+            &[vec![report.canisters.root_canister_id]]
         );
     }
 }

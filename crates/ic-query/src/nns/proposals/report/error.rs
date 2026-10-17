@@ -83,21 +83,6 @@ pub enum NnsProposalError {
         actual: Option<u64>,
     },
 
-    /// A ballot classification disagrees with the original numeric vote evidence.
-    #[error(
-        "NNS proposal {proposal_id:?} ballot for neuron {neuron_id} classifies vote {vote} as {classification}"
-    )]
-    InvalidBallotVote {
-        /// Proposal containing contradictory vote evidence.
-        proposal_id: Option<u64>,
-        /// Neuron whose ballot disagrees with its raw vote.
-        neuron_id: u64,
-        /// Original Governance vote code.
-        vote: i32,
-        /// Classification supplied with the raw vote.
-        classification: crate::nns::governance::NnsGovernanceVote,
-    },
-
     /// A resumable collection was configured without any page capacity.
     #[error("invalid NNS proposal collection page limit 0; expected at least one page")]
     InvalidCollectionMaxPages,

@@ -1614,14 +1614,14 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f3e88f4805bc349ae0aa50973d016b79599dbbe273ec5a062196f96d4c2baca"
+checksum = "957e87919fc46aed675896ee99cd01d0e18baca91c459b52ee2211d38d670f09"
 dependencies = [
  "cargo_metadata",
- "ic-host-artifacts",
- "ic-host-fs",
- "ic-host-process",
+ "ic-host-artifacts 0.25.1",
+ "ic-host-fs 0.25.1",
+ "ic-host-process 0.25.1",
  "libc",
  "rustix",
  "serde",
@@ -1723,13 +1723,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-host-artifacts"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a94fb60f019548012a2a07887aba72fb49534f15a8e1df7855f534f139c6429"
+dependencies = [
+ "leb128",
+ "sha2 0.10.9",
+ "wasmparser 0.261.0",
+]
+
+[[package]]
 name = "ic-host-fs"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83baf7fd8d3aefbdd364d1ed52ea302f64eb421e58041e13876078c82a8ccb7e"
 dependencies = [
- "ic-host-artifacts",
+ "ic-host-artifacts 0.25.1",
  "rustix",
+]
+
+[[package]]
+name = "ic-host-fs"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52900a21c26d592a2be924abdb24ec657d7a472da48acbd4b773a7e37639d683"
+dependencies = [
+ "ic-host-artifacts 0.26.0",
+ "rustix",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1739,26 +1761,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fed8de8998dea5db718fe45db29a4cf1ad1b4159e362503a3d0617518f564ca"
 dependencies = [
  "command-fds",
- "ic-host-artifacts",
- "ic-host-fs",
+ "ic-host-artifacts 0.25.1",
+ "ic-host-fs 0.25.1",
+ "libc",
+ "rustix",
+]
+
+[[package]]
+name = "ic-host-process"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec23536325ed5a2a3b5770f2d297aea15ed6e5d76747486054bdc0a7f5ad6c9e"
+dependencies = [
+ "command-fds",
+ "ic-host-artifacts 0.26.0",
+ "ic-host-fs 0.26.0",
  "libc",
  "rustix",
 ]
 
 [[package]]
 name = "ic-host-text"
-version = "0.25.1"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c8b41c94c23b7b84f2f87b6b8e4eb440e6895313109282df73295343936d517"
+checksum = "7c869731e7caadf16cc0b66d2debcad058e24b7c37aa5dc6e2af1a271555ebc2"
 dependencies = [
  "unicode-width 0.2.2",
 ]
 
 [[package]]
 name = "ic-host-tools"
-version = "0.25.1"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c576e12e7014863b4e3c5bd4abc042215fe7b04ea1dacf3a829e09cc5fddc54"
+checksum = "f6f535f3b1c105c597d6a39e07d86c05649eaa860375724def501982a7412052"
 dependencies = [
  "candid_parser",
  "ciborium",
@@ -1786,6 +1821,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c30a384477a9783da95cd991e576f6f6a76c5d3691299fffe294f95affae3fd7"
 
 [[package]]
+name = "ic-metrics"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078fddb70578cd0e42b600ad2ad8652a47bef26d2c82275e8631b6f9e9bbe18e"
+
+[[package]]
 name = "ic-query"
 version = "0.60.0"
 dependencies = [
@@ -1797,12 +1838,12 @@ dependencies = [
  "ic-agent",
  "ic-cdk",
  "ic-certification",
- "ic-host-artifacts",
- "ic-host-fs",
- "ic-host-process",
+ "ic-host-artifacts 0.26.0",
+ "ic-host-fs 0.26.0",
+ "ic-host-process 0.26.0",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics",
+ "ic-metrics 0.13.2",
  "ic-testkit",
  "ic-testkit-candid",
  "icrc-ledger-types",
@@ -1827,9 +1868,9 @@ dependencies = [
  "futures",
  "ic-agent",
  "ic-build",
- "ic-host-artifacts",
- "ic-host-fs",
- "ic-host-process",
+ "ic-host-artifacts 0.26.0",
+ "ic-host-fs 0.26.0",
+ "ic-host-process 0.26.0",
  "ic-host-text",
  "ic-query",
  "ic-testkit-candid",
@@ -1851,10 +1892,10 @@ checksum = "6126b4d409a45692b71b2e336194ecf53b0a1095ba19fb072cc01403f00616ab"
 dependencies = [
  "candid",
  "ic-cdk",
- "ic-host-artifacts",
- "ic-host-fs",
- "ic-host-process",
- "ic-metrics",
+ "ic-host-artifacts 0.25.1",
+ "ic-host-fs 0.25.1",
+ "ic-host-process 0.25.1",
+ "ic-metrics 0.12.0",
  "ic-testkit-candid",
  "libc",
  "pocket-ic",

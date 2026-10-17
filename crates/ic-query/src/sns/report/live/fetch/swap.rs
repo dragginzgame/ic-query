@@ -24,7 +24,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     sns: &MainnetSns,
 ) -> Result<MainnetSnsSwap, SnsHostError> {
     let agent = sns_agent(source, request)?;
-    let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
+    let swap_canister = principal_from_text(&sns.canisters.swap_canister_id, "swap_canister_id")?;
     let request = SnsSwapQueryRequest {};
     let mut gaps = Vec::new();
 
@@ -78,7 +78,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     };
 
     Ok(MainnetSnsSwap {
-        swap_canister_id: sns.swap_canister_id.clone(),
+        swap_canister_id: sns.canisters.swap_canister_id.clone(),
         lifecycle_method: SnsCanisterMethod::GetLifecycle,
         sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
         derived_state_method: SnsCanisterMethod::GetDerivedState,

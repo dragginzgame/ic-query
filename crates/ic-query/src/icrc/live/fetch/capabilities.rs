@@ -19,8 +19,7 @@ use crate::icrc::{
         index_principal_error_text, query_index_principal,
     },
     model::{
-        IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
-        IcrcLedgerRequest, IcrcTipCertificateData,
+        IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcLedgerRequest,
     },
 };
 use candid::{Nat, Principal};
@@ -161,15 +160,13 @@ async fn fetch_tip_certificate_capability(
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
     match query_tip_certificate::<CapabilityQueryError>(agent, ledger_canister).await {
-        Ok(IcrcTipCertificateData {
-            certificate_bytes: Some(certificate_bytes),
-            hash_tree_bytes: Some(hash_tree_bytes),
-            ..
-        }) => available_capability_row(
+        Ok(Some(certificate)) => available_capability_row(
             "ICRC-3 tip certificate",
             ICRC3_GET_TIP_CERTIFICATE_METHOD,
             format!(
-                "verified certificate {certificate_bytes} bytes, hash tree {hash_tree_bytes} bytes"
+                "verified certificate {} bytes, hash tree {} bytes",
+                certificate.certificate.len(),
+                certificate.hash_tree.len()
             ),
         ),
         Ok(_) => available_capability_row(

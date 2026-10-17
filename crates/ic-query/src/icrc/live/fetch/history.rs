@@ -16,8 +16,8 @@ use crate::{
         model::{
             IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
             IcrcArchivesRequest, IcrcBlockTypeRow, IcrcError, IcrcFollowedArchiveBlockRow,
-            IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData, IcrcTransactionBlockRow,
-            IcrcTransactionsData, IcrcTransactionsRequest,
+            IcrcIndexData, IcrcLedgerRequest, IcrcTransactionBlockRow, IcrcTransactionsData,
+            IcrcTransactionsRequest,
         },
     },
 };
@@ -379,7 +379,7 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
 pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
     source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
-) -> Result<IcrcTipCertificateData, IcrcError> {
+) -> Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
         &request.source_endpoint,
@@ -439,7 +439,7 @@ pub(super) async fn query_archives<E: CandidCallError>(
 pub(super) async fn query_tip_certificate<E: CandidCallError + From<IcrcError>>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<IcrcTipCertificateData, E> {
+) -> Result<Option<ICRC3DataCertificate>, E> {
     let certificate = query_no_args::<Option<ICRC3DataCertificate>, E>(
         agent,
         ledger_canister,

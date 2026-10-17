@@ -82,7 +82,7 @@ where
     let paths = sns_snapshot_cache_paths::<Collection>(
         &request.cache_root,
         &request.lookup.network,
-        &lookup.sns.root_canister_id,
+        &lookup.sns.canisters.root_canister_id,
     );
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
@@ -134,15 +134,15 @@ where
         source_endpoint: context.fetch_request.endpoint.clone(),
         fetched_by: context.fetch_request.fetched_by.clone(),
         domain: "sns".to_string(),
-        entity: context.sns.root_canister_id.clone(),
+        entity: context.sns.canisters.root_canister_id.clone(),
         collection: Collection::COLLECTION.to_string(),
         scope: "full".to_string(),
         metadata: SnsCacheMetadata {
             sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
             id: context.sns.id,
             name: context.sns.name.clone(),
-            root_canister_id: context.sns.root_canister_id.clone(),
-            governance_canister_id: context.sns.governance_canister_id.clone(),
+            root_canister_id: context.sns.canisters.root_canister_id.clone(),
+            governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
         },
         completeness: CacheCollectionCompleteness::api_exhausted(
             context.request.page_size,
@@ -185,8 +185,8 @@ where
         fetched_by: context.fetch_request.fetched_by.clone(),
         id: context.sns.id,
         name: context.sns.name.clone(),
-        root_canister_id: context.sns.root_canister_id.clone(),
-        governance_canister_id: context.sns.governance_canister_id.clone(),
+        root_canister_id: context.sns.canisters.root_canister_id.clone(),
+        governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
         collection: Collection::COLLECTION.to_string(),
         cache_path: context.paths.snapshot_path.display().to_string(),
         refresh_lock_path: context.paths.refresh_lock_path.display().to_string(),

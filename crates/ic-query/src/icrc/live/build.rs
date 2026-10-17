@@ -343,11 +343,19 @@ pub async fn build_icrc_tip_certificate_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        certificate_present: certificate.certificate_hex.is_some(),
-        certificate_hex: certificate.certificate_hex,
-        certificate_bytes: certificate.certificate_bytes,
-        hash_tree_hex: certificate.hash_tree_hex,
-        hash_tree_bytes: certificate.hash_tree_bytes,
+        certificate_present: certificate.is_some(),
+        certificate_hex: certificate
+            .as_ref()
+            .map(|evidence| crate::hex::hex_bytes(&evidence.certificate)),
+        certificate_bytes: certificate
+            .as_ref()
+            .map(|evidence| evidence.certificate.len()),
+        hash_tree_hex: certificate
+            .as_ref()
+            .map(|evidence| crate::hex::hex_bytes(&evidence.hash_tree)),
+        hash_tree_bytes: certificate
+            .as_ref()
+            .map(|evidence| evidence.hash_tree.len()),
     })
 }
 

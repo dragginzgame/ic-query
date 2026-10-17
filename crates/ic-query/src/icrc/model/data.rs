@@ -130,20 +130,6 @@ pub struct IcrcTransactionsData {
 }
 
 ///
-/// IcrcTipCertificateData
-///
-/// Source-layer ICRC-3 tip certificate result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcTipCertificateData {
-    pub certificate_hex: Option<String>,
-    pub certificate_bytes: Option<usize>,
-    pub hash_tree_hex: Option<String>,
-    pub hash_tree_bytes: Option<usize>,
-}
-
-///
 /// IcrcCapabilitiesData
 ///
 /// Source-layer generic ICRC ledger capability probe result.

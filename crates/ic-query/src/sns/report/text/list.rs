@@ -65,11 +65,11 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                     [
                         sns.id.to_string(),
                         sns.name.clone(),
-                        principal_for_list(&sns.root_canister_id, report.verbose),
-                        principal_for_list(&sns.governance_canister_id, report.verbose),
-                        principal_for_list(&sns.ledger_canister_id, report.verbose),
-                        principal_for_list(&sns.swap_canister_id, report.verbose),
-                        principal_for_list(&sns.index_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.root_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.governance_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.ledger_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.swap_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.index_canister_id, report.verbose),
                         lifecycle_status(
                             sns.lifecycle_name.as_deref(),
                             sns.lifecycle_error.as_deref(),

@@ -17,8 +17,8 @@ use super::{
         IcrcArchivedRangeRow, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
         IcrcBlockTypeRow, IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
         IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcLedgerRequest, IcrcMetadataValueKind,
-        IcrcTipCertificateData, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow,
-        IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+        IcrcTransactionsData, IcrcTransactionsRequest,
     },
     text::{
         icrc_account_transaction_page_report_text, icrc_allowance_report_text,
@@ -308,17 +308,20 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+    > {
         Box::pin(async move {
             assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-            Ok(IcrcTipCertificateData {
-                certificate_hex: Some("010203".to_string()),
-                certificate_bytes: Some(3),
-                hash_tree_hex: Some("aabb".to_string()),
-                hash_tree_bytes: Some(2),
-            })
+            Ok(Some(
+                icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate {
+                    certificate: vec![1, 2, 3].into(),
+                    hash_tree: vec![170, 187].into(),
+                },
+            ))
         })
     }
 }

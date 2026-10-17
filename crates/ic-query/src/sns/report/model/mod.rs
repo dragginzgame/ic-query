@@ -6,9 +6,12 @@
 
 #[cfg(feature = "sns-host")]
 mod errors;
+mod identity;
 mod reports;
 mod requests;
 mod sorts;
+
+pub use identity::MainnetSnsCanisters;
 
 #[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;

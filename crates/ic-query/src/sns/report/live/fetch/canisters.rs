@@ -22,7 +22,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_canisters(
     sns: &MainnetSns,
 ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
     let agent = sns_agent(source, request)?;
-    let root_canister = principal_from_text(&sns.root_canister_id, "root_canister_id")?;
+    let root_canister = principal_from_text(&sns.canisters.root_canister_id, "root_canister_id")?;
     let inventory: ListSnsCanistersResponse = query_canister::<_, _, SnsHostError>(
         agent,
         &root_canister,

@@ -10,8 +10,8 @@ use ic_query::icrc::{
     IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceData,
     IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceData, IcrcBalanceSource,
     IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource, IcrcError, IcrcIndexData,
-    IcrcIndexSource, IcrcTipCertificateData, IcrcTipCertificateSource, IcrcTokenData,
-    IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
+    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenData, IcrcTokenSource,
+    IcrcTransactionsData, IcrcTransactionsSource,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report,
     build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
@@ -632,15 +632,11 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate<'a>(
         &'a self,
         _request: &'a IcrcLedgerRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
-        Box::pin(async move {
-            Ok(IcrcTipCertificateData {
-                certificate_hex: None,
-                certificate_bytes: None,
-                hash_tree_hex: None,
-                hash_tree_bytes: None,
-            })
-        })
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+    > {
+        Box::pin(async move { Ok(None) })
     }
 }
 

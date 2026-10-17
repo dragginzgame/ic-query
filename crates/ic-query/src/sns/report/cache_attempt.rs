@@ -169,8 +169,8 @@ fn write_sns_refresh_attempt_status(
         updated_at: current_attempt_timestamp(&context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
             id: context.sns.id,
-            root_canister_id: context.sns.root_canister_id.clone(),
-            governance_canister_id: context.sns.governance_canister_id.clone(),
+            root_canister_id: context.sns.canisters.root_canister_id.clone(),
+            governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
         },
         status,
         page_size: context.request.page_size,

@@ -29,7 +29,7 @@ pub use contracts::{
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
     IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcBalanceData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTipCertificateData, IcrcTransactionsData,
+    IcrcIndexData, IcrcTransactionsData,
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;

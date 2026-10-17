@@ -426,7 +426,7 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(sns.id, 2);
-            assert_eq!(sns.root_canister_id, ROOT_B);
+            assert_eq!(sns.canisters.root_canister_id, ROOT_B);
             assert_eq!(before_proposal_id, None);
             Ok(vec![])
         })

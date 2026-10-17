@@ -120,7 +120,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
         before_proposal_id: Option<u64>,
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             assert_eq!(limit, 100);
             assert_eq!(before_proposal_id, None);
             Ok(vec![

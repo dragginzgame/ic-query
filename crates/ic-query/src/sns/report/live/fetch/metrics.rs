@@ -35,7 +35,11 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metrics(
         },
     )
     .await?;
-    metrics_response(&sns.governance_canister_id, time_window_seconds, response)
+    metrics_response(
+        &sns.canisters.governance_canister_id,
+        time_window_seconds,
+        response,
+    )
 }
 
 fn metrics_response(

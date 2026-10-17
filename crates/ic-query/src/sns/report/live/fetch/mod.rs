@@ -40,5 +40,8 @@ pub(super) use upgrade::{fetch_mainnet_sns_running_version, fetch_mainnet_sns_up
 
 /// Parse the governance canister id for one resolved SNS.
 fn governance_canister(sns: &MainnetSns) -> Result<Principal, SnsHostError> {
-    principal_from_text(&sns.governance_canister_id, "governance_canister_id")
+    principal_from_text(
+        &sns.canisters.governance_canister_id,
+        "governance_canister_id",
+    )
 }

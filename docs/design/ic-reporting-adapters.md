@@ -376,6 +376,9 @@ assurance.
   resolves that inventory before requesting metadata for exactly one target;
   unknown lookup requests no metadata. The resolved `MainnetSns` owns the
   original inventory id used by live reports and complete-cache refreshes.
+  Its `canisters: MainnetSnsCanisters` value carries all five principals into
+  list and info reports without unpacking them. The canonical model is portable;
+  Serde flattening preserves the current report and catalog JSON fields.
   Lookup owns root-principal text normalization for live resolution, complete
   cache reads, and cache-status inspection.
   Direct reports and refreshes retain that row and the shared source request;

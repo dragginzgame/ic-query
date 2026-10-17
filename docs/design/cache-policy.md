@@ -615,3 +615,13 @@ and order during collection, so finalization does not sort or deduplicate again.
 Disk loads and caller-supplied complete collections retain their own boundary
 validation. Sparse ids, arbitrary-size naturals, and empty terminal pages remain
 supported; exhaustion still does not establish a point-in-time snapshot.
+
+## Raw NNS proposal classification evidence
+
+Proposal rows, ballots and activity count buckets persist raw protocol codes;
+renderers and view sorts derive classifications through the public enums.
+Unknown raw codes remain evidence. Strict proposal and ballot deserialization
+rejects unsupported fields, so snapshots from the replaced schema-1 shape
+require explicit refresh after preserving any needed evidence. Cache-only
+admission does not rewrite them or invoke a live source. Identity, pagination,
+ordering, aggregate totals and collection provenance checks remain in force.

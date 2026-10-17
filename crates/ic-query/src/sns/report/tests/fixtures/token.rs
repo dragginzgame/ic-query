@@ -19,7 +19,7 @@ impl SnsTokenSource for FixtureSnsTokenSource {
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.ledger_canister_id, LEDGER_A);
+            assert_eq!(sns.canisters.ledger_canister_id, LEDGER_A);
             Ok(MainnetSnsToken {
                 token: IcrcTokenData {
                     token_name: "Fixture Token".to_string(),

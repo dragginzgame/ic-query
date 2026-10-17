@@ -611,13 +611,24 @@ fn public_sns_info_api_is_constructible_and_renderable() {
         name: "Example SNS".to_string(),
         description: Some("Example description".to_string()),
         url: None,
-        root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
-        ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-        swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
-        index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
+        canisters: ic_query::sns::MainnetSnsCanisters {
+            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
+            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+            ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+            swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
+            index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
+        },
         metadata_error: None,
     };
+
+    let json = serde_json::to_value(&report).expect("serialize SNS identity");
+    let identity = serde_json::to_value(&report.canisters).expect("serialize canonical identity");
+    for (key, value) in identity.as_object().expect("identity object") {
+        assert_eq!(&json[key], value);
+    }
+    let decoded: ic_query::sns::MainnetSnsCanisters =
+        serde_json::from_value(identity).expect("read canonical identity");
+    assert_eq!(decoded, report.canisters);
 
     assert_eq!(request.input, "1");
 
@@ -1141,7 +1152,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
 
     let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
     let info = build_sns_info_report_with_source(&info_request, &source).await?;
-    assert_eq!(info.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+    assert_eq!(info.canisters.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
 
     let metrics_request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
         "ic",
@@ -1661,14 +1672,14 @@ impl SnsCanisterSource for FixtureSnsSource {
                 point_in_time_guaranteed: false,
                 canisters: vec![SnsCanisterRow {
                     role: SnsCanisterRole::Root,
-                    canister_id: sns.root_canister_id.clone(),
+                    canister_id: sns.canisters.root_canister_id.clone(),
                     status: Some(SnsCanisterStatus::Running),
                     module_hash_hex: Some("01020304".to_string()),
                     cycles: Some("1000000".to_string()),
                     cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
                     memory_size: Some("2000000".to_string()),
                     idle_cycles_burned_per_day: Some("3000".to_string()),
-                    controllers: vec![sns.governance_canister_id.clone()],
+                    controllers: vec![sns.canisters.governance_canister_id.clone()],
                 }],
                 health_query_gap: None,
                 gaps: Vec::new(),
@@ -1685,7 +1696,7 @@ impl SnsTokenSource for FixtureSnsSource {
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
+            assert_eq!(sns.canisters.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
             Ok(sample_mainnet_sns_token())
         })
     }
@@ -1700,7 +1711,7 @@ impl SnsParamsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             Ok(sample_sns_governance_parameters())
@@ -1718,7 +1729,7 @@ impl SnsMetricsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             Ok(sample_mainnet_sns_metrics(time_window_seconds))
@@ -1734,7 +1745,7 @@ impl SnsSwapSource for FixtureSnsSource {
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
+            assert_eq!(sns.canisters.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
             Ok(sample_mainnet_sns_swap())
         })
     }
@@ -1749,7 +1760,7 @@ impl SnsUpgradeSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             Ok(sample_mainnet_sns_upgrade())
@@ -1767,7 +1778,7 @@ impl SnsProposalSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(proposal_id, 42);
@@ -1789,7 +1800,7 @@ impl SnsProposalsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(limit, 10);
@@ -1809,7 +1820,7 @@ impl SnsProposalsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(limit, 100);
@@ -1829,7 +1840,7 @@ impl SnsNeuronSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(neuron_id, SAMPLE_SNS_NEURON_ID);
@@ -1849,7 +1860,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(limit, 50);
@@ -1868,7 +1879,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(
-                sns.governance_canister_id,
+                sns.canisters.governance_canister_id,
                 SAMPLE_SNS_GOVERNANCE_CANISTER_ID
             );
             assert_eq!(limit, 100);

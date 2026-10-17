@@ -25,9 +25,7 @@ pub(in crate::sns::report) use list::{
     JoinedMainnetSnsInventory, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
     validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
 };
-pub use list::{
-    MainnetSns, MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
-};
+pub use list::{MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata};
 pub use metrics::MainnetSnsMetrics;
 pub(in crate::sns::report) use metrics::{
     SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics, sns_treasury_kind,

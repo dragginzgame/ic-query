@@ -39,11 +39,7 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         .map(|sns| SnsListRow {
             id: sns.id,
             name: sns.name,
-            root_canister_id: sns.root_canister_id,
-            governance_canister_id: sns.governance_canister_id,
-            ledger_canister_id: sns.ledger_canister_id,
-            swap_canister_id: sns.swap_canister_id,
-            index_canister_id: sns.index_canister_id,
+            canisters: sns.canisters,
             metadata_error: sns.metadata_error,
             lifecycle: sns.lifecycle,
             lifecycle_name: sns.lifecycle_name,
@@ -87,11 +83,7 @@ pub(in crate::sns::report) fn sns_info_report_from_parts(
         name: sns.name,
         description: sns.description,
         url: sns.url,
-        root_canister_id: sns.root_canister_id,
-        governance_canister_id: sns.governance_canister_id,
-        ledger_canister_id: sns.ledger_canister_id,
-        swap_canister_id: sns.swap_canister_id,
-        index_canister_id: sns.index_canister_id,
+        canisters: sns.canisters,
         metadata_error: sns.metadata_error,
     }
 }

@@ -25,8 +25,10 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
     sns: &MainnetSns,
 ) -> Result<MainnetSnsUpgrade, SnsHostError> {
     let agent = sns_agent(source, request)?;
-    let governance_canister =
-        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let governance_canister = principal_from_text(
+        &sns.canisters.governance_canister_id,
+        "governance_canister_id",
+    )?;
     let sns_wasm_canister =
         principal_from_text(MAINNET_SNS_WASM_CANISTER_ID, "sns_wasm_canister_id")?;
 
@@ -36,7 +38,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
             .deployed_version
             .ok_or_else(|| SnsHostError::MissingRunningSnsVersion {
                 method: SnsCanisterMethod::GetRunningSnsVersion.as_str(),
-                governance_canister_id: sns.governance_canister_id.clone(),
+                governance_canister_id: sns.canisters.governance_canister_id.clone(),
             })?;
     let deployed_version = sns_version(deployed_wire.clone());
     let pending_upgrade = running.pending_version.map(sns_pending_upgrade);
@@ -70,7 +72,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
         };
 
     Ok(MainnetSnsUpgrade {
-        governance_canister_id: sns.governance_canister_id.clone(),
+        governance_canister_id: sns.canisters.governance_canister_id.clone(),
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
         running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
         next_version_method: SnsCanisterMethod::GetNextSnsVersion,
@@ -88,8 +90,10 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_running_version(
     sns: &MainnetSns,
 ) -> Result<SnsRunningVersionResponse, SnsHostError> {
     let agent = sns_agent(source, request)?;
-    let governance_canister =
-        principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
+    let governance_canister = principal_from_text(
+        &sns.canisters.governance_canister_id,
+        "governance_canister_id",
+    )?;
     let response = query_running_sns_version(agent, &governance_canister).await?;
     Ok(sns_running_version_response(response))
 }

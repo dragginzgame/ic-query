@@ -335,6 +335,22 @@ and caller collection clock. Pass this scope first to their constructors and
 access shared fields through `request.ledger`. Account-cache requests keep their
 clock-free identity; report JSON keeps its raw flat provenance fields.
 
+NNS proposal rows, ballots and activity buckets keep raw numeric topic, status,
+reward-status and vote codes. Use the public classification enums’ `from_code`
+helpers when labels are needed. Preserve old proposal snapshots before an
+explicit refresh; strict row decoding rejects unsupported fields without
+rewriting the original evidence.
+
+ICRC tip-certificate custom sources return the standard optional
+`icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate` byte pair. Complete
+authentication before returning it. The report builder derives its hex strings
+and byte counts from those same bytes.
+
+SNS joined catalog, list and info models share `MainnetSnsCanisters` through
+their `canisters` field. For example, access a list row’s Root principal with
+`row.canisters.root_canister_id`. This identity model is portable. Serde keeps
+the five existing principal fields flat in report and catalog JSON.
+
 For targeted cache reads and `SnsCacheStatusRequest`, supply the SNS root
 principal in `input`. Cache-backed proposal lists and neuron sorts resolve one
 root path without inventory discovery. Numeric selectors remain supported for

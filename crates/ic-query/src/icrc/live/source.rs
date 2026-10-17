@@ -21,10 +21,11 @@ use crate::{
         IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
         IcrcAccountTransactionRefreshRequest, IcrcAllowanceData, IcrcAllowanceRequest,
         IcrcArchiveRow, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypeRow,
-        IcrcCapabilitiesData, IcrcError, IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData,
-        IcrcTokenData, IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcCapabilitiesData, IcrcError, IcrcIndexData, IcrcLedgerRequest, IcrcTokenData,
+        IcrcTransactionsData, IcrcTransactionsRequest,
     },
 };
+use icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate;
 
 ///
 /// IcrcTokenSource
@@ -138,7 +139,7 @@ pub trait IcrcTipCertificateSource: Sync {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Option<ICRC3DataCertificate>, IcrcError>>;
 }
 
 ///
@@ -270,7 +271,7 @@ impl IcrcTipCertificateSource for LiveIcrcSource {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Option<ICRC3DataCertificate>, IcrcError>> {
         Box::pin(fetch_tip_certificate_async(self, request))
     }
 }

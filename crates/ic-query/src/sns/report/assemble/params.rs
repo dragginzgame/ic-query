@@ -23,8 +23,8 @@ pub(in crate::sns::report) fn sns_params_report_from_parts(
         fetched_by: fetch_request.fetched_by,
         id: sns.id,
         name: sns.name,
-        root_canister_id: sns.root_canister_id,
-        governance_canister_id: sns.governance_canister_id,
+        root_canister_id: sns.canisters.root_canister_id,
+        governance_canister_id: sns.canisters.governance_canister_id,
         parameters,
     }
 }

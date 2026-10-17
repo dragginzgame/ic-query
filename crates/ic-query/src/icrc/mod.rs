@@ -52,7 +52,7 @@ pub use model::normalize_subaccount_hex;
 pub use model::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
     IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcBalanceData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTipCertificateData, IcrcTransactionsData,
+    IcrcIndexData, IcrcTransactionsData,
 };
 pub use model::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,

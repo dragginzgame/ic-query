@@ -18,7 +18,8 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_token(
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
     let agent = sns_agent(source, request)?;
-    let ledger_canister = principal_from_text(&sns.ledger_canister_id, "ledger_canister_id")?;
+    let ledger_canister =
+        principal_from_text(&sns.canisters.ledger_canister_id, "ledger_canister_id")?;
     let token = Box::pin(fetch_icrc1_token_metadata::<SnsHostError>(
         agent,
         &ledger_canister,

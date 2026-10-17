@@ -16,10 +16,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 - **Breaking:** `CmcCyclesReport` retains the complete certified XDR report in
   `xdr`; access provenance, rate and certification through that field. JSON
   remains flat with the existing fields.
-- **Breaking:** NNS neuron rows, recent ballots and distribution buckets retain
-  raw codes without duplicated classification fields. Text labels are derived
-  when rendered. Update Rust/JSON consumers and explicitly refresh neuron
-  snapshots; strict row decoding rejects the replaced shape. Schemas remain 1.
+- **Breaking:** NNS neuron and proposal rows, ballots and aggregate buckets
+  retain raw codes without duplicated classification fields. Text labels are
+  derived when rendered. Update Rust/JSON consumers and explicitly refresh
+  neuron and proposal snapshots; strict row decoding rejects the replaced
+  shapes. Schemas remain 1.
+- **Breaking:** ICRC tip-certificate sources return the standard optional byte
+  pair; reports derive their existing hex and length fields during assembly.
+- **Breaking:** SNS joined, list and info models compose their five canister
+  principals in `canisters: MainnetSnsCanisters`. JSON remains flat.
+- Include the MIT license text in both published crate packages.
 - Fix native host compilation with Host 0.25 while preserving confined,
   atomic cache publication and failure evidence. Update canister fixtures for
   Testkit 0.51’s explicit installation fields and caller principal.
