@@ -1614,14 +1614,14 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "957e87919fc46aed675896ee99cd01d0e18baca91c459b52ee2211d38d670f09"
+checksum = "ce36c43488b210b5c6265c6f3a6962411d394e0ba98695c71d817235effe415d"
 dependencies = [
  "cargo_metadata",
- "ic-host-artifacts 0.25.1",
- "ic-host-fs 0.25.1",
- "ic-host-process 0.25.1",
+ "ic-host-artifacts 0.26.1",
+ "ic-host-fs 0.26.1",
+ "ic-host-process 0.26.1",
  "libc",
  "rustix",
  "serde",
@@ -1822,9 +1822,9 @@ checksum = "c30a384477a9783da95cd991e576f6f6a76c5d3691299fffe294f95affae3fd7"
 
 [[package]]
 name = "ic-metrics"
-version = "0.13.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "078fddb70578cd0e42b600ad2ad8652a47bef26d2c82275e8631b6f9e9bbe18e"
+checksum = "57aba474ca1a1c31e591d7c22bb66a5ac1b0cce80bfb0141ca2f9ae6c9d14989"
 
 [[package]]
 name = "ic-query"
@@ -1843,7 +1843,7 @@ dependencies = [
  "ic-host-process 0.26.1",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics 0.13.2",
+ "ic-metrics 0.13.3",
  "ic-testkit",
  "ic-testkit-candid",
  "icrc-ledger-types",

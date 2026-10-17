@@ -32,6 +32,8 @@ crate follows [Semantic Versioning](https://semver.org/).
   from a parent CI or release process.
 - Use typed Cargo selections and fresh source-evidence validation in the
   Governance probe build harness.
+- Align Governance probe builds with IC Build 0.15 and Host 0.26, resolving
+  the shared process-cleanup policy type mismatch.
 - Fix native host compilation with Host 0.25 while preserving confined,
   atomic cache publication and failure evidence. Update canister fixtures for
   Testkit 0.51’s explicit installation fields and caller principal.
