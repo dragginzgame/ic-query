@@ -21,7 +21,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
 
     assert!(cache_path.is_file());
     assert!(attempt_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     assert!(refresh.complete);
     assert_eq!(refresh.collection, "neurons");
     let refresh_json = serde_json::to_value(&refresh).expect("serialize refresh result");
@@ -216,34 +216,26 @@ async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn sns_neurons_refresh_rejects_stale_lock_without_publishing() {
-    let root = temp_dir("ic-query-sns-neurons-stale-lock");
+async fn sns_neurons_refresh_rejects_invalid_coordination_file_without_publishing() {
+    let root = temp_dir("ic-query-sns-neurons-invalid-lock");
     let request = sns_neurons_refresh_request(&root, None);
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let lock_path = sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A);
     crate::cache_file::write_managed_text_atomically(
         &root,
         &lock_path,
-        &serde_json::to_string_pretty(&serde_json::json!({
-            "schema_version": 1,
-            "network": MAINNET_NETWORK,
-            "pid": 999_999,
-            "started_at_unix_ms": 1,
-            "stale_after_seconds": DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
-            "target_path": cache_path.display().to_string(),
-        }))
-        .expect("serialize stale lock"),
+        "invalid coordination content",
     )
-    .expect("write stale lock");
+    .expect("write invalid coordination file");
 
     let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
         .await
-        .expect_err("stale lock requires manual cleanup");
+        .expect_err("invalid coordination file requires manual cleanup");
 
     assert!(matches!(
         err,
         SnsHostError::Cache(HostCacheError::Operation {
-            source: CacheFileError::StaleRefreshLock { .. },
+            source: CacheFileError::InvalidRefreshLock { .. },
             ..
         })
     ));

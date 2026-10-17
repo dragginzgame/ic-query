@@ -2,11 +2,10 @@
 use ic_query::QueryProgress;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::{
-    CachedIcrcAccountTransactionSnapshot,
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
-    ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCacheStatusReport,
-    IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
-    IcrcAccountTransactionError, IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
+    CachedIcrcAccountTransactionSnapshot, ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
+    IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCollectionData,
+    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionError,
+    IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
     IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceSource,
     IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesData,
     IcrcCapabilitiesSource, IcrcError, IcrcIndexData, IcrcIndexSource, IcrcTipCertificateSource,
@@ -273,7 +272,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
     )
     .with_subaccount_hex(SUBACCOUNT_HEX);
     let refresh =
-        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100, 1_800)
+        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100)
             .with_index_canister_id(ARCHIVE_CANISTER_ID)
             .with_max_pages(Some(50));
     let list = IcrcAccountTransactionListRequest::new(cache, 25)
@@ -312,10 +311,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
 #[test]
 fn public_icrc_host_api_exposes_live_builder_entry_points() {
     assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
-    assert_eq!(
-        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
-        1_800
-    );
+
     accepts_public_function::<IcrcTokenBuilder>(|arg0| Box::pin(build_icrc_token_report(arg0)));
     accepts_public_function::<IcrcBalanceBuilder>(|arg0| Box::pin(build_icrc_balance_report(arg0)));
     accepts_public_function::<IcrcAllowanceBuilder>(|arg0| {
@@ -462,7 +458,6 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
                 ),
                 FETCHED_AT_UNIX_SECS,
                 100,
-                1_800,
             ),
             &mut progress,
         )

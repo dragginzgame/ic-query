@@ -1,7 +1,6 @@
 use super::{
-    DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS, NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
-    NnsInventoryInfoRequest, NnsInventoryListRequest, NnsNodeProviderHostError,
-    NnsNodeProviderInfoReport, NnsNodeProviderListReport,
+    NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
+    NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::{load_cached_nns_node_provider_report, nns_node_provider_cache_path},
     refresh::refresh_nns_node_provider_cache_with_source,
     resolve::resolve_node_provider,
@@ -56,7 +55,6 @@ pub async fn build_nns_node_provider_list_report_with_source_and_progress(
     load_or_refresh_nns_inventory_report(
         request,
         nns_node_provider_cache_path(&request.cache.cache_root, &request.cache.network),
-        DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
         progress,
         |cache| load_cached_nns_node_provider_report(cache).map(|cached| cached.report),
         async |refresh_request| {

@@ -826,9 +826,10 @@ row keeps generic header integrity, age state, file size, applicable stale
 threshold, invalid-content recovery policy, and inspection errors separate.
 The report sets `family_validation_performed` to `false`: readable generic
 headers are not claims that an owning family's semantic validator would accept
-the complete payload. It also reports active, stale, malformed, and
-future-dated refresh locks from their recorded owner, target, acquisition time,
-and stale policy.
+the complete payload. It also reports `active`, `available` and `invalid`
+refresh coordination files. Status briefly probes existing kernel locks without
+writing file contents; file presence and age do not establish ownership.
+Coordination files remain empty and persistent after refresh completion.
 
 The scan is local-only, bounded to 10,000 cache and lock candidates, rejects
 symlinks, skips refresh-attempt sidecars as report rows, and never refreshes,

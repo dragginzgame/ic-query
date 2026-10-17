@@ -91,7 +91,7 @@ fn topology_refresh_parses_defaults_and_dry_run() {
     assert_eq!(defaults.network, MAINNET_NETWORK);
     assert_eq!(defaults.format, OutputFormat::Text);
     assert_eq!(defaults.source_endpoint, DEFAULT_NNS_NODE_SOURCE_ENDPOINT);
-    assert_eq!(defaults.lock_stale_after_seconds, 30 * 60);
+
     assert!(!defaults.dry_run);
 
     let options = parse_test_options(
@@ -100,8 +100,6 @@ fn topology_refresh_parses_defaults_and_dry_run() {
             "--json",
             "--source-endpoint",
             "https://icp-api.io",
-            "--lock-stale-after",
-            "5m",
             "--dry-run",
         ],
         TopologyRefreshOptions::from_matches,
@@ -109,6 +107,6 @@ fn topology_refresh_parses_defaults_and_dry_run() {
     .expect("parse topology refresh");
 
     assert_topology_json_source(options.format, &options.source_endpoint);
-    assert_eq!(options.lock_stale_after_seconds, 300);
+
     assert!(options.dry_run);
 }

@@ -18,7 +18,6 @@ pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[cfg(feature = "icrc-host")]
 pub use account_transaction_cache::{
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     icrc_account_transaction_cache_path, icrc_account_transaction_refresh_attempt_path,
     icrc_account_transaction_refresh_lock_path, load_cached_icrc_account_transactions,

@@ -210,8 +210,32 @@ pub struct SnsRewardCheckpointReport {
     pub running_version_before: SnsRunningVersionResponse,
     /// Complete running-version response read after neuron pagination.
     pub running_version_after: SnsRunningVersionResponse,
-    /// Summary recomputed from raw parameters and neuron evidence.
-    pub summary: SnsRewardCheckpointSummary,
+    /// Checked aggregate unstaked maturity across every row.
+    pub aggregate_maturity_e8s_equivalent: u64,
+    /// Checked aggregate staked maturity across every row.
+    pub aggregate_staked_maturity_e8s_equivalent: u64,
+    /// Checked aggregate combined maturity across every row.
+    pub aggregate_combined_maturity_e8s_equivalent: u64,
+    /// Number of principal permission entries observed across every row.
+    pub permission_entry_count: usize,
+    /// Number of raw unknown or anomalous permission codes observed globally and per-neuron.
+    pub unassessable_permission_code_count: usize,
+    /// Number of pending maturity disbursements observed across every row.
+    pub pending_maturity_disbursement_count: usize,
+    /// Number of neurons with automatic maturity staking enabled.
+    pub auto_stake_maturity_enabled_count: usize,
+    /// Number of neurons with automatic maturity staking explicitly disabled.
+    pub auto_stake_maturity_disabled_count: usize,
+    /// Number of neurons without an automatic maturity-staking value.
+    pub auto_stake_maturity_unspecified_count: usize,
+    /// Whether permission 2 is currently grantable, or unknown when the list is missing.
+    pub manage_principals_grantable: Option<bool>,
+    /// Global observation for disabling permissions 7 and 8 and pending disbursements.
+    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
+    /// Global observation for disabling manual maturity-staking permission 9.
+    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
+    /// Combined observed maturity-conversion policy status.
+    pub maturity_conversion_policy_observed_status: SnsPolicyObservationStatus,
     /// Strictly increasing full neuron rows retained as raw checkpoint evidence.
     pub rows: Vec<SnsRewardCheckpointRow>,
 }
@@ -445,7 +469,28 @@ fn validate_checkpoint_summary(
     report: &SnsRewardCheckpointReport,
     summary: &SnsRewardCheckpointSummary,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
-    if report.summary == *summary {
+    let valid = report.aggregate_maturity_e8s_equivalent
+        == summary.aggregate_maturity_e8s_equivalent
+        && report.aggregate_staked_maturity_e8s_equivalent
+            == summary.aggregate_staked_maturity_e8s_equivalent
+        && report.aggregate_combined_maturity_e8s_equivalent
+            == summary.aggregate_combined_maturity_e8s_equivalent
+        && report.permission_entry_count == summary.permission_entry_count
+        && report.unassessable_permission_code_count == summary.unassessable_permission_code_count
+        && report.pending_maturity_disbursement_count
+            == summary.pending_maturity_disbursement_count
+        && report.auto_stake_maturity_enabled_count == summary.auto_stake_maturity_enabled_count
+        && report.auto_stake_maturity_disabled_count == summary.auto_stake_maturity_disabled_count
+        && report.auto_stake_maturity_unspecified_count
+            == summary.auto_stake_maturity_unspecified_count
+        && report.manage_principals_grantable == summary.manage_principals_grantable
+        && report.maturity_mint_conversion_observed_disabled
+            == summary.maturity_mint_conversion_observed_disabled
+        && report.manual_maturity_staking_observed_disabled
+            == summary.manual_maturity_staking_observed_disabled
+        && report.maturity_conversion_policy_observed_status
+            == summary.maturity_conversion_policy_observed_status;
+    if valid {
         Ok(())
     } else {
         Err(invalid_validation(

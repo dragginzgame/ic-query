@@ -54,6 +54,5 @@ fn topology_help_is_advertised_under_nns() {
     assert!(refresh.contains("Collection mode: Forced live refresh"));
     assert!(refresh.contains("--json"));
     assert!(refresh.contains("--source-endpoint"));
-    assert!(refresh.contains("--lock-stale-after"));
     assert!(refresh.contains("--dry-run"));
 }

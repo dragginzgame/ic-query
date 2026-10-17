@@ -48,52 +48,40 @@ pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> 
         ),
         format!(
             "aggregate_unstaked_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_maturity_e8s_equivalent)
+            e8s_decimal_text(report.aggregate_maturity_e8s_equivalent)
         ),
         format!(
             "aggregate_staked_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_staked_maturity_e8s_equivalent)
+            e8s_decimal_text(report.aggregate_staked_maturity_e8s_equivalent)
         ),
         format!(
             "aggregate_combined_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_combined_maturity_e8s_equivalent)
+            e8s_decimal_text(report.aggregate_combined_maturity_e8s_equivalent)
         ),
-        format!(
-            "permission_entry_count: {}",
-            report.summary.permission_entry_count
-        ),
+        format!("permission_entry_count: {}", report.permission_entry_count),
         format!(
             "pending_maturity_disbursement_count: {}",
-            report.summary.pending_maturity_disbursement_count
+            report.pending_maturity_disbursement_count
         ),
         format!(
             "unassessable_permission_code_count: {}",
-            report.summary.unassessable_permission_code_count
+            report.unassessable_permission_code_count
         ),
         format!(
             "manage_principals_grantable: {}",
-            optional_bool_text(report.summary.manage_principals_grantable)
+            optional_bool_text(report.manage_principals_grantable)
         ),
         format!(
             "maturity_mint_conversion_observed_disabled: {}",
-            report
-                .summary
-                .maturity_mint_conversion_observed_disabled
-                .as_str()
+            report.maturity_mint_conversion_observed_disabled.as_str()
         ),
         format!(
             "manual_maturity_staking_observed_disabled: {}",
-            report
-                .summary
-                .manual_maturity_staking_observed_disabled
-                .as_str()
+            report.manual_maturity_staking_observed_disabled.as_str()
         ),
         format!(
             "maturity_conversion_policy_observed_status: {}",
-            report
-                .summary
-                .maturity_conversion_policy_observed_status
-                .as_str()
+            report.maturity_conversion_policy_observed_status.as_str()
         ),
         format!(
             "source_endpoint: {}",

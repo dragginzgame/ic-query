@@ -45,8 +45,6 @@ pub struct NnsCertifiedRegistryArchiveBootstrapRequest {
     pub archive_root: PathBuf,
     /// Explicit manifest and retained-report storage ceilings.
     pub storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
-    /// Age after which an abandoned archive refresh lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
 }
 
 impl NnsCertifiedRegistryArchiveBootstrapRequest {
@@ -57,14 +55,12 @@ impl NnsCertifiedRegistryArchiveBootstrapRequest {
         cache_root: impl Into<PathBuf>,
         archive_root: impl Into<PathBuf>,
         storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             bootstrap,
             cache_root: cache_root.into(),
             archive_root: archive_root.into(),
             storage_limits,
-            lock_stale_after_seconds,
         }
     }
 }
@@ -142,10 +138,6 @@ pub(in crate::nns::registry::replay) async fn bootstrap_archive_with_authenticat
         RefreshLockRequest {
             cache_root: &request.cache_root,
             lock_path: &lock_path,
-            target_path: &manifest_path,
-            network: &request.bootstrap.network,
-            now_unix_secs: request.bootstrap.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         archive_filesystem_error,
         async || collect_and_publish(request, source, authenticator).await,

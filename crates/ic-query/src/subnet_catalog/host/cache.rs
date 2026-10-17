@@ -17,8 +17,8 @@ use crate::{
     cache_file::{BoundedManagedFileReadError, HostCacheError, read_bounded_managed_file},
     subnet_catalog::{
         CatalogAssurance, CatalogSnapshotAuthorityEvidence, CatalogValidationContext,
-        DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-        MAINNET_REGISTRY_CANISTER_ID, ValidatedSubnetCatalog, catalog_stale_status,
+        DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS, MAINNET_REGISTRY_CANISTER_ID,
+        ValidatedSubnetCatalog, catalog_stale_status,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -552,7 +552,6 @@ async fn refresh_then_load_detailed(
         request.cache.clone(),
         source_selection.clone(),
         request.now_unix_secs,
-        DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     )
     .with_max_future_skew_seconds(request.max_future_skew_seconds);
     let refresh =

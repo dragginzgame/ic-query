@@ -49,7 +49,7 @@ async fn refresh_holds_one_lock_and_publishes_one_validated_snapshot() {
         cached.path,
         nns_subnet_topology_cache_path(&root, MAINNET_NETWORK)
     );
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     let loaded = load_cached_nns_subnet_topology(&request.cache).expect("load snapshot");
     assert_eq!(loaded.report, cached.report);
     let _ = fs::remove_dir_all(root);
@@ -229,7 +229,6 @@ fn refresh_request(root: &std::path::Path, now_unix_secs: u64) -> NnsSubnetTopol
         NnsSubnetTopologyCacheRequest::new(root, MAINNET_NETWORK),
         DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
         now_unix_secs,
-        DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     )
 }
 

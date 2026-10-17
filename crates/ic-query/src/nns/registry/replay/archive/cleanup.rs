@@ -20,7 +20,6 @@ use crate::{
         remove_managed_regular_file, scan_managed_directory_files, with_refresh_lock,
     },
     nns::registry::NnsRegistryReplaySessionLimits,
-    subnet_catalog::MAINNET_NETWORK,
 };
 use std::{cell::Cell, collections::BTreeSet, path::PathBuf};
 use thiserror::Error as ThisError;
@@ -77,8 +76,6 @@ pub struct NnsCertifiedRegistryArchiveCleanupRequest {
     pub storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
     /// Explicit exact-directory discovery and orphan-deletion ceilings.
     pub cleanup_limits: NnsCertifiedRegistryArchiveCleanupLimits,
-    /// Age after which an abandoned archive maintenance lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
 }
 
 impl NnsCertifiedRegistryArchiveCleanupRequest {
@@ -91,7 +88,6 @@ impl NnsCertifiedRegistryArchiveCleanupRequest {
         replay_limits: NnsRegistryReplaySessionLimits,
         storage_limits: NnsCertifiedRegistryArchiveStorageLimits,
         cleanup_limits: NnsCertifiedRegistryArchiveCleanupLimits,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             now_unix_secs,
@@ -100,7 +96,6 @@ impl NnsCertifiedRegistryArchiveCleanupRequest {
             replay_limits,
             storage_limits,
             cleanup_limits,
-            lock_stale_after_seconds,
         }
     }
 }
@@ -209,10 +204,6 @@ pub(in crate::nns::registry::replay) fn cleanup_archive_with_authenticator(
         RefreshLockRequest {
             cache_root: &request.cache_root,
             lock_path: &lock_path,
-            target_path: &manifest_path,
-            network: MAINNET_NETWORK,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |source| {
             let (removed_object_count, removed_bytes) = completed_removal.get();

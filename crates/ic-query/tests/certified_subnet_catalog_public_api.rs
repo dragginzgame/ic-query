@@ -29,7 +29,7 @@ fn focused_certified_subnet_catalog_surface_is_constructible() {
         "/tmp/ic-query-focused-certified-catalog/catalog",
         1_000_000,
     );
-    let request = NnsCertifiedSubnetCatalogLoadRequest::publish_missing(location.clone(), 300);
+    let request = NnsCertifiedSubnetCatalogLoadRequest::publish_missing(location.clone());
 
     assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
     assert_eq!(NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, 1);
@@ -38,9 +38,7 @@ fn focused_certified_subnet_catalog_surface_is_constructible() {
     assert_eq!(request.location, location);
     assert_eq!(
         request.policy,
-        NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
-            lock_stale_after_seconds: 300,
-        }
+        NnsCertifiedSubnetCatalogReadPolicy::PublishMissing
     );
     assert_eq!(
         nns_certified_registry_archive_manifest_path(Path::new("/archive")),

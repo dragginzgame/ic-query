@@ -7,6 +7,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.62.0]
 
+- Align the compiled Governance fixture with Testkit 0.53’s explicit Candid
+  argument-list helpers, preserving the selected dependency update.
+
+- **Breaking:** Cache refreshes use persistent empty coordination files with
+  Host descriptor locking. Remove lock-age arguments, constants and CLI options;
+  cache status reports `active`, `available` or `invalid` from current exclusion.
+  Before upgrading, stop all writers and explicitly retire incompatible nonempty
+  lock files. Keep cache/attempt evidence; never unlink live coordination files.
+
 - **Breaking:** ICRC balance and allowance reports compose their existing payloads
   in `value`; Rust callers use `report.value`. Text and flat JSON stay unchanged.
 - **Breaking:** CloudEngine node-class JSON uses the native Candid spelling
@@ -36,9 +45,8 @@ crate follows [Semantic Versioning](https://semver.org/).
   filtering. Update Rust/JSON consumers and explicitly refresh proposal caches.
 - **Breaking:** ICRC account-page reports compose `page: IcrcAccountTransactionPageData`;
   existing text and flat JSON fields remain unchanged.
-- **Breaking:** SNS reward checkpoints compose `summary: SnsRewardCheckpointSummary`.
-  Update Rust/JSON consumers and regenerate checkpoints explicitly if needed;
-  preserve original evidence. Schema identifiers remain 1.
+- Preserve the existing flat SNS reward-checkpoint format for historical
+  before/after reconciliation. Continue validating aggregates against raw evidence.
 
 - **Breaking:** ICRC and SNS token reports compose their shared metadata as
   `token: IcrcTokenData`. Update Rust field access; text and flat report JSON

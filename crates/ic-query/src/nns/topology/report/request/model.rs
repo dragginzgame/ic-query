@@ -55,16 +55,16 @@ impl NnsTopologyReadRequest {
 pub struct NnsTopologyRefreshRequest {
     /// Network, endpoint, clock and cache scope shared with topology reads.
     pub read: NnsTopologyReadRequest,
-    pub lock_stale_after_seconds: u64,
+
     pub dry_run: bool,
 }
 
 impl NnsTopologyRefreshRequest {
     #[must_use]
-    pub const fn new(read: NnsTopologyReadRequest, lock_stale_after_seconds: u64) -> Self {
+    pub const fn new(read: NnsTopologyReadRequest) -> Self {
         Self {
             read,
-            lock_stale_after_seconds,
+
             dry_run: false,
         }
     }

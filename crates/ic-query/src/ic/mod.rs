@@ -87,16 +87,16 @@ pub(crate) use node_status::canonicalize_node_status_rows_with_policy;
 #[cfg(feature = "dashboard-host")]
 pub(crate) use node_status::node_status_counts;
 pub use node_status::{
-    DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
-    IC_NODE_STATUS_SCHEMA_VERSION, IcNodeAssignmentStatusCounts, IcNodeCountComparison,
-    IcNodeCountComparisonCounts, IcNodeOperationalStatus, IcNodeProviderStatusReport,
-    IcNodeProviderStatusRow, IcNodeStatusCacheEvidence, IcNodeStatusCounts,
-    IcNodeStatusGroupCounts, IcNodeStatusObservation, IcNodeStatusProjectionError,
-    IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView,
-    IcSubnetStatusReport, IcSubnetStatusRow, MAX_IC_NODE_STATUS_ROWS,
-    ic_node_provider_status_report_from_snapshot, ic_node_provider_status_report_text,
-    ic_node_status_report_from_snapshot, ic_node_status_report_text,
-    ic_subnet_status_report_from_snapshot, ic_subnet_status_report_text,
+    DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS, IC_NODE_STATUS_SCHEMA_VERSION,
+    IcNodeAssignmentStatusCounts, IcNodeCountComparison, IcNodeCountComparisonCounts,
+    IcNodeOperationalStatus, IcNodeProviderStatusReport, IcNodeProviderStatusRow,
+    IcNodeStatusCacheEvidence, IcNodeStatusCounts, IcNodeStatusGroupCounts,
+    IcNodeStatusObservation, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
+    IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
+    IcSubnetStatusRow, MAX_IC_NODE_STATUS_ROWS, ic_node_provider_status_report_from_snapshot,
+    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
+    ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
+    ic_subnet_status_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 pub use node_status::{

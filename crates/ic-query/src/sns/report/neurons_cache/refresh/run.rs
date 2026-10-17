@@ -16,8 +16,6 @@ use crate::{
     },
 };
 
-pub const DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
 pub async fn refresh_sns_neurons_cache(
     request: &SnsSnapshotRefreshRequest,
 ) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
@@ -49,7 +47,6 @@ async fn refresh_sns_neurons_cache_with_source_and_progress(
     run_resolved_sns_snapshot_refresh::<SnsNeuronsCacheCollection, _>(
         request,
         source,
-        DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
         async |context| {
             let complete =
                 fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;

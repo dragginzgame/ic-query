@@ -35,7 +35,7 @@ async fn nns_leaf_refresh_writer_dry_run_writes_output_without_cache() {
     assert!(!result.replaced_existing_cache);
     assert!(!result.wrote_cache);
     assert!(!cache_path.exists());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     assert!(
         fs::read_to_string(&output_path)
             .expect("read dry-run output")
@@ -86,7 +86,7 @@ async fn nns_leaf_refresh_writer_replaces_component_cache_atomically() {
             .expect("read written cache")
             .contains("second")
     );
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     let _ = fs::remove_dir_all(root);
 }
 
@@ -107,7 +107,7 @@ fn fixture_refresh_request(
         },
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1,
-        lock_stale_after_seconds: 60,
+
         dry_run,
         output_path,
     }

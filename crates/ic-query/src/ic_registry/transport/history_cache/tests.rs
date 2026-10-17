@@ -393,13 +393,6 @@ async fn competing_writer_lock_skips_publication_and_preserves_prior_history() {
         RefreshLockRequest {
             cache_root: &root,
             lock_path: &cache.lock_path,
-            target_path: &cache.path,
-            network: MAINNET_NETWORK,
-            now_unix_secs: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            lock_stale_after_seconds: 600,
         },
         operation,
         || {
@@ -423,17 +416,12 @@ async fn competing_writer_lock_skips_publication_and_preserves_prior_history() {
 }
 
 #[test]
-fn stale_writer_lock_remains_visible_and_requires_manual_cleanup() {
+fn invalid_writer_coordination_preserves_history() {
     let root = temp_dir("ic-query-history-stale-writer");
     seed(&root);
     let cache = RegistryHistoryCache::new(root.clone());
     let original = fs::read(&cache.path).unwrap();
-    let lock = serde_json::json!({
-        "schema_version": 1, "network": MAINNET_NETWORK, "pid": 123,
-        "started_at_unix_ms": 0, "stale_after_seconds": 600,
-        "target_path": cache.path.display().to_string(),
-    });
-    write_managed_text_atomically(&root, &cache.lock_path, &lock.to_string()).unwrap();
+    write_managed_text_atomically(&root, &cache.lock_path, "invalid coordination content").unwrap();
     let error = futures::executor::block_on(collect_key_family(
         PREFIX,
         4,
@@ -443,11 +431,11 @@ fn stale_writer_lock_remains_visible_and_requires_manual_cleanup() {
             std::future::ready(Ok(response(4, &[(4, true)])))
         },
     ))
-    .expect_err("stale lock");
+    .expect_err("invalid coordination file");
     assert!(matches!(
         error,
         RegistryFetchError::HistoryCache(HostCacheError::Operation {
-            source: CacheFileError::StaleRefreshLock { .. },
+            source: CacheFileError::InvalidRefreshLock { .. },
             ..
         })
     ));
@@ -487,7 +475,13 @@ async fn cancellation_keeps_only_complete_pages_for_a_new_source() {
     ))
     .expect("resume cancelled prefix");
     assert_eq!(keys, Vec::<String>::new());
-    assert!(!RegistryHistoryCache::new(root.clone()).lock_path.exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(RegistryHistoryCache::new(root.clone()).lock_path)
+        )
+        .unwrap()
+    );
     fs::remove_dir_all(root).expect("cleanup");
 }
 

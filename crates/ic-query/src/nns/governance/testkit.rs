@@ -11,8 +11,8 @@ use super::{
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use candid::Principal;
 use ic_testkit::pic::{
-    CandidCallExt, CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder,
-    PocketIcStartupConfig,
+    CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig,
+    update_candid_args,
 };
 use ic_testkit::pocket_ic::Time;
 use ic_testkit_candid::DecodeLimits;
@@ -140,21 +140,21 @@ fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
 }
 
 fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
-    let reply: String = pic
-        .update_candid(
-            probe,
-            Principal::anonymous(),
-            "report",
-            (kind.to_string(),),
-            DecodeLimits {
-                reply_bytes: 2 * 1024 * 1024,
-                decoding_quota: 64_000_000,
-                skipping_quota: 100_000,
-                type_entries: 4_096,
-                header_bytes: 64 * 1024,
-            },
-        )
-        .expect("execute compiled report entry point");
+    let (reply,): (String,) = update_candid_args(
+        pic,
+        probe,
+        Principal::anonymous(),
+        "report",
+        (kind.to_string(),),
+        DecodeLimits {
+            reply_bytes: 2 * 1024 * 1024,
+            decoding_quota: 64_000_000,
+            skipping_quota: 100_000,
+            type_entries: 4_096,
+            header_bytes: 64 * 1024,
+        },
+    )
+    .expect("execute compiled report entry point");
     serde_json::from_str(&reply).expect("probe JSON report")
 }
 

@@ -24,9 +24,6 @@ pub struct LockedSnapshotRefreshRequest<'a> {
     pub cache_root: &'a Path,
     pub snapshot_path: &'a Path,
     pub refresh_lock_path: &'a Path,
-    pub network: &'a str,
-    pub now_unix_secs: u64,
-    pub lock_stale_after_seconds: u64,
 }
 
 ///
@@ -55,10 +52,6 @@ pub async fn with_locked_snapshot_refresh<T, Error>(
         RefreshLockRequest {
             cache_root: request.cache_root,
             lock_path: request.refresh_lock_path,
-            target_path: request.snapshot_path,
-            network: request.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         &cache_error,
         async || {

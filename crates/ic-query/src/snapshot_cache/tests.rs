@@ -595,9 +595,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 1,
-            lock_stale_after_seconds: 60,
         },
         identity_cache_error,
         async |state| {
@@ -607,9 +604,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
                     cache_root: &root,
                     snapshot_path: &snapshot_path,
                     refresh_lock_path: &lock_path,
-                    network: "ic",
-                    now_unix_secs: 1,
-                    lock_stale_after_seconds: 60,
                 },
                 identity_cache_error,
                 async |_| panic!("competing refresh must not run"),
@@ -633,9 +627,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 2,
-            lock_stale_after_seconds: 60,
         },
         identity_cache_error,
         async |state| {
@@ -648,7 +639,7 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
 
     assert_eq!(observed.into_inner(), vec![false, true]);
     assert!(snapshot_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     let _ = fs::remove_dir_all(root);
 }
 
@@ -664,9 +655,6 @@ async fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure()
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 1,
-            lock_stale_after_seconds: 60,
         },
         |error| {
             assert!(
@@ -682,7 +670,7 @@ async fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure()
         result,
         Err::<(), _>(CacheFileError::Confinement { .. })
     ));
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     fs::remove_dir_all(root).unwrap();
 }
 

@@ -91,7 +91,7 @@ async fn catalog_lock_refusal_does_not_announce_a_source_call() {
     let request = list_request(&root);
     let refresh = refresh_request(&root);
     let lock = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
-    write_refresh_lock_for_test(&lock, &refresh, request.now_unix_secs * 1_000);
+    let _lock_guard = hold_refresh_lock_for_test(&lock, &refresh);
     let source = FixtureRefreshSource::ok(fixture_catalog());
     let mut events = Vec::new();
     assert!(

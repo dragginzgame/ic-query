@@ -41,8 +41,6 @@ use std::path::{Path, PathBuf};
 
 /// Default age after which `sns list` refreshes its joined catalog.
 pub const DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS: u64 = 60 * 60;
-/// Default age after which a deployed-SNS catalog refresh lock is stale.
-pub const DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 const CACHE_COMPONENT: &str = "SNS catalog";
 const CACHE_DOMAIN: &str = "sns";
@@ -152,9 +150,6 @@ pub async fn refresh_sns_catalog_with_source(
             cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
         async |state| {
@@ -347,7 +342,6 @@ fn refresh_request(request: &SnsListRequest, cache_root: &Path) -> SnsCatalogRef
         &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
-        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS,
     )
 }
 

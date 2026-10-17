@@ -1,6 +1,4 @@
-use super::args::{
-    DRY_RUN_ARG, INPUT_ARG, VERBOSE_ARG, output_path_arg, refresh_lock_stale_after_arg,
-};
+use super::args::{DRY_RUN_ARG, INPUT_ARG, VERBOSE_ARG, output_path_arg};
 use crate::{
     cli::{
         clap::{flag_arg, value_arg},
@@ -87,7 +85,6 @@ pub(in crate::nns) fn refresh_command(
         .about(spec.refresh_about)
         .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.refresh_source_help))
-        .arg(refresh_lock_stale_after_arg())
         .arg(
             flag_arg(DRY_RUN_ARG)
                 .long(DRY_RUN_ARG)

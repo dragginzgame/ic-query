@@ -609,8 +609,6 @@ pub struct IcNodeStatusRefreshRequest {
     pub source_endpoint: String,
     /// Caller-supplied observation time as Unix seconds.
     pub now_unix_secs: u64,
-    /// Age after which an abandoned refresh lock can be reclaimed.
-    pub lock_stale_after_seconds: u64,
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -622,13 +620,11 @@ impl IcNodeStatusRefreshRequest {
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache: IcNodeStatusCacheRequest::new(cache_root, network),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
-            lock_stale_after_seconds,
         }
     }
 }
@@ -666,7 +662,6 @@ impl IcNodeStatusReadRequest {
                 network,
                 source_endpoint,
                 now_unix_secs,
-                super::DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS,
             ),
             view: IcNodeStatusView::attention(),
             force_refresh: false,

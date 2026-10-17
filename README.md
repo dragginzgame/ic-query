@@ -642,8 +642,8 @@ Use `icq cache status` to inspect known complete caches across that root,
 including generic header integrity, separate fresh/stale/unmanaged/unknown age,
 sizes, stale thresholds, and automatic/explicit/missing-only invalid-content
 recovery policy. The bounded inventory explicitly reports that it did not
-perform family-specific semantic validation. It also reports active, stale,
-and invalid refresh locks without live calls, process probes, full history
+perform family-specific semantic validation. It also reports active, available,
+and invalid refresh coordination files without live calls, process probes, full history
 scans, or cache mutation.
 
 Subnet Catalog history transcripts and their writer lock appear as
@@ -1095,7 +1095,7 @@ bootstrap.
 `refresh_nns_certified_registry_archive_async` is the explicit live incremental
 coordinator for an existing schema-1 archive. Its
 `NnsCertifiedRegistryArchiveRefreshRequest` requires the collection, cumulative
-replay/storage, confined path, and lock-staleness policies. It rejects
+replay/storage and confined-path policies. It rejects
 non-mainnet and missing archives before source work, holds the archive lock
 across local reauthentication and every bounded call, and atomically publishes
 one complete successor segment. An unchanged Registry version is retained as
@@ -1114,8 +1114,7 @@ network call.
 
 `bootstrap_nns_certified_registry_archive_async` is the explicit live
 publication coordinator. Its request requires the source/time/replay policy,
-caller-selected confined roots, archive storage ceilings, and lock-staleness
-policy. It rejects non-mainnet before filesystem or source work, holds one
+caller-selected confined roots and archive storage ceilings. It rejects non-mainnet before filesystem or source work, holds one
 dedicated archive refresh lock, reserves a worst-case batch before every call,
 locally reauthenticates every returned report, and publishes the manifest only
 after exact-target completion. The custom-source counterpart applies the same
@@ -1172,8 +1171,8 @@ Certified projections use the same explicit-policy shape as ordinary catalog
 loads. `load_nns_certified_subnet_catalog` accepts a caller-selected confined
 root, dedicated cache directory, maximum envelope bytes, and one
 `NnsCertifiedSubnetCatalogReadPolicy`: cache-only, publish-missing,
-publish-missing-or-invalid, or force-publication. Publication policies also
-carry the explicit stale-lock age; there is no default path, size, or policy.
+publish-missing-or-invalid, or force-publication. Publication holds persistent descriptor-based exclusion; there is no default
+path, size, or publication policy.
 
 Every policy is local-only. The loader bounds and strictly decodes an existing
 envelope, freshly projects the supplied `NnsAuthenticatedRegistryArchive`, and

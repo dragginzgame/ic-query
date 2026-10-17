@@ -19,6 +19,7 @@ mod policy;
 mod tests;
 mod write;
 
+#[cfg(feature = "subnet-catalog-host")]
 pub use write::ensure_managed_write_size;
 
 /// Maximum encoded bytes admitted for inventories and bounded report snapshots.
@@ -77,11 +78,11 @@ pub use json::CachedJsonReport;
 ))]
 pub use json::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache};
 pub use lock::RefreshLockRequest;
+#[cfg(feature = "host")]
+pub use lock::inspect_refresh_lock;
 #[cfg(feature = "subnet-catalog-host")]
 pub use lock::with_refresh_lock;
 pub use lock::with_refresh_lock_async;
-#[cfg(feature = "host")]
-pub use lock::{RefreshLockEvidence, inspect_refresh_lock};
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",

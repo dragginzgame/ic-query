@@ -35,7 +35,7 @@ use crate::{
         LockedSnapshotRefreshRequest, SnapshotJsonPaths, publish_snapshot_with_attempt,
         run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
     },
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+    subnet_catalog::format_utc_timestamp_secs,
 };
 use std::time::{Duration, Instant};
 
@@ -84,9 +84,6 @@ async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
             cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: MAINNET_NETWORK,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         cache_operation_error,
         async |state| {
@@ -364,7 +361,6 @@ fn normalize_refresh_request(
         index_canister_id,
         page_size: request.page_size,
         max_pages: request.max_pages,
-        lock_stale_after_seconds: request.lock_stale_after_seconds,
     })
 }
 
@@ -402,7 +398,7 @@ mod tests {
             "ryjl3-tyaaa-aaaaa-aaaba-cai",
             "aaaaa-aa",
         );
-        let request = IcrcAccountTransactionRefreshRequest::new(cache, 2_000_000_000, 100, 1_800);
+        let request = IcrcAccountTransactionRefreshRequest::new(cache, 2_000_000_000, 100);
         let paths = cache_paths(&request.cache);
         let complete = IcrcAccountTransactionCollectionData {
             index_canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai".to_string(),

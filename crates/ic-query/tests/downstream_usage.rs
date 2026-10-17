@@ -64,10 +64,9 @@ mod host {
             nns_registry_version_report_text,
         },
         nns::topology::{
-            CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
-            DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, NnsSubnetTopologyCacheRequest,
-            NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
-            refresh_nns_subnet_topology,
+            CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
+            NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
+            NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
         },
         nns::{
             NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest,
@@ -251,7 +250,6 @@ mod host {
             NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
             DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
             now_unix_secs,
-            DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
         );
         refresh_nns_subnet_topology(&request).await
     }

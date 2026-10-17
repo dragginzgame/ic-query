@@ -10,8 +10,8 @@ mod text;
 
 pub use model::{SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest};
 pub use run::{
-    DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
-    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
+    DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS, build_sns_list_report_from_cache,
+    build_sns_list_report_from_cache_or_refresh,
     build_sns_list_report_from_cache_or_refresh_with_source, refresh_sns_catalog,
     refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
 };

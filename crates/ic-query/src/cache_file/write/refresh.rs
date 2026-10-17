@@ -28,9 +28,7 @@ pub struct RefreshCacheWriteRequest<'a, T> {
     pub cache_root: &'a Path,
     pub cache_path: &'a Path,
     pub lock_path: &'a Path,
-    pub network: &'a str,
-    pub now_unix_secs: u64,
-    pub lock_stale_after_seconds: u64,
+
     pub dry_run: bool,
     /// Optional export that must not alias the managed cache or refresh lock.
     pub output_path: Option<&'a Path>,
@@ -70,10 +68,6 @@ where
         RefreshLockRequest {
             cache_root: request.cache_root,
             lock_path: request.lock_path,
-            target_path: request.cache_path,
-            network: request.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         &cache_error,
         || {

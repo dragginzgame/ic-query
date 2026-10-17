@@ -90,9 +90,6 @@ pub const DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS: u64 = 5 * 60;
 /// Default snapshot age threshold in seconds for reporting stale catalog data.
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_STALE_AFTER_SECONDS: u64 = 7 * 24 * 60 * 60;
-/// Default age in seconds beyond which a catalog refresh lock is stale.
-#[cfg(feature = "subnet-catalog-host")]
-pub const DEFAULT_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 /// Default replica endpoint used for live Registry catalog collection.
 #[cfg(feature = "subnet-catalog-host")]
 pub const DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT: &str = "https://icp-api.io";

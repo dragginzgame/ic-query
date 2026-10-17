@@ -63,34 +63,23 @@ pub(super) fn refresh_request(root: &Path) -> SubnetCatalogRefreshRequest {
         cache: cache_request(root),
         source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
         now_unix_secs: 1_780_531_200,
-        lock_stale_after_seconds: DEFAULT_REFRESH_LOCK_STALE_SECONDS,
+
         max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         dry_run: false,
         output_path: None,
     }
 }
 
-pub(super) fn write_refresh_lock_for_test(
+pub(super) fn hold_refresh_lock_for_test(
     lock_path: &Path,
     request: &SubnetCatalogRefreshRequest,
-    started_at_unix_ms: u64,
-) {
-    let lock = serde_json::json!({
-        "schema_version": 1,
-        "network": request.cache.network.clone(),
-        "pid": 12345,
-        "started_at_unix_ms": started_at_unix_ms,
-        "stale_after_seconds": request.lock_stale_after_seconds,
-        "target_path": subnet_catalog_path(&request.cache.cache_root, &request.cache.network)
-            .display()
-            .to_string(),
-    });
-    crate::cache_file::write_managed_text_atomically(
-        &request.cache.cache_root,
-        lock_path,
-        &serde_json::to_string_pretty(&lock).expect("serialize lock"),
-    )
-    .expect("write lock");
+) -> std::fs::File {
+    crate::cache_file::create_managed_parent_directory(&request.cache.cache_root, lock_path)
+        .unwrap();
+    // Test roots are fresh and private; product code owns confined admission.
+    let file = ic_host_fs::durable::open_private_regular_lock_file(lock_path).unwrap();
+    ic_host_fs::durable::try_lock_exclusive(&file).unwrap();
+    file
 }
 
 ///

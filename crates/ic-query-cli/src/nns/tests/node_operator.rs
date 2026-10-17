@@ -77,10 +77,7 @@ fn node_operator_refresh_parses_defaults_and_export_options() {
         defaults.source_endpoint,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT
     );
-    assert_eq!(
-        defaults.lock_stale_after_seconds,
-        DEFAULT_NODE_OPERATOR_REFRESH_LOCK_STALE_SECONDS
-    );
+
     assert!(!defaults.dry_run);
     assert_eq!(defaults.output_path, None);
 
@@ -93,8 +90,6 @@ fn node_operator_refresh_parses_defaults_and_export_options() {
             "--json",
             "--source-endpoint",
             "https://icp-api.io",
-            "--lock-stale-after",
-            "5m",
             "--dry-run",
             "--output",
             "operators.preview.json",
@@ -105,7 +100,7 @@ fn node_operator_refresh_parses_defaults_and_export_options() {
 
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
-    assert_eq!(options.lock_stale_after_seconds, 300);
+
     assert!(options.dry_run);
     assert_eq!(
         options.output_path,

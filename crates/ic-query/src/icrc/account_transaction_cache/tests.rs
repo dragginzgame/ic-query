@@ -461,9 +461,11 @@ async fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
     ));
     assert_eq!(fs::read(&path).unwrap(), before);
     assert!(
-        !icrc_account_transaction_refresh_lock_path(&cache)
-            .unwrap()
-            .exists()
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(icrc_account_transaction_refresh_lock_path(&cache).unwrap())
+        )
+        .unwrap()
     );
     let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
     assert_eq!(
@@ -529,7 +531,7 @@ fn refresh_request(
     cache: IcrcAccountTransactionCacheRequest,
     now_unix_secs: u64,
 ) -> IcrcAccountTransactionRefreshRequest {
-    IcrcAccountTransactionRefreshRequest::new(cache, now_unix_secs, 100, 1_800)
+    IcrcAccountTransactionRefreshRequest::new(cache, now_unix_secs, 100)
 }
 
 fn row(id: &str) -> IcrcAccountTransactionRow {

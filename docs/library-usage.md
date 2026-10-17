@@ -495,7 +495,7 @@ To collect and retain the complete evidence sequence in one operation, use
 `bootstrap_nns_certified_registry_archive_async` with an explicit
 `NnsCertifiedRegistryArchiveBootstrapRequest`. The request combines the
 source/time/replay bootstrap request with caller-selected cache and archive
-roots, manifest/object ceilings, and lock staleness. It starts from Registry
+roots and manifest/object ceilings. It starts from Registry
 version zero, reserves worst-case capacity before every call, holds one archive
 refresh lock, locally reauthenticates every report, and publishes the final
 manifest only after exact-target completion. Its custom-source counterpart
@@ -531,7 +531,7 @@ Interrupted publication can leave a durable content-addressed object that no
 manifest references. Remove these only through the explicit local
 `cleanup_nns_certified_registry_archive` operation. Its request supplies the
 archive authentication limits, exact-directory scan ceiling, removal count and
-byte ceilings, confined roots, observation time, and lock policy. Cleanup holds
+byte ceilings, confined roots, observation time, and exclusive coordination. Cleanup holds
 the archive lock, reauthenticates the complete retained archive before
 classification, scans no directory except the flat `objects/` directory, and
 checks every ceiling before its first deletion. Its report returns the
@@ -1404,8 +1404,7 @@ cache or view:
 use std::path::Path;
 
 use ic_query::subnet_catalog::{
-    CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-    SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
+    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
     SubnetCatalogRefreshRequest, refresh_subnet_catalog,
 };
 
@@ -1418,7 +1417,6 @@ async fn refresh_agreed_catalog(
         SubnetCatalogCacheRequest::new(cache_root, "ic"),
         CatalogSourceSelection::multi_endpoint_agreement(endpoints),
         now_unix_secs,
-        DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_subnet_catalog(&request).await
 }
@@ -1443,7 +1441,6 @@ feature:
 use std::path::Path;
 
 use ic_query::nns::topology::{
-    DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, CachedNnsSubnetTopologyReport,
     NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
     NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
@@ -1457,7 +1454,6 @@ async fn refresh_subnet_topology(
         NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
         DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
         now_unix_secs,
-        DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_nns_subnet_topology(&request).await
 }
@@ -1479,7 +1475,6 @@ shelling out to `icq`:
 use std::path::Path;
 
 use ic_query::icrc::{
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionRefreshRequest,
     IcrcAccountTransactionRefreshReport, refresh_icrc_account_transaction_cache,
 };
@@ -1500,7 +1495,6 @@ async fn refresh_account_history(
         cache,
         now_unix_secs,
         100,
-        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_icrc_account_transaction_cache(&request).await
 }
@@ -1808,11 +1802,11 @@ time or zero ballot time displays `-`. JSON retains Unix seconds rather than
 stored display strings. Update consumers and preserve needed evidence before
 explicitly refreshing affected complete snapshots; schemas remain 1.
 
-SNS reward checkpoint aggregates and policy observations live under
-`report.summary` and the JSON `summary` object. The same
-`SnsRewardCheckpointSummary` is recomputed from raw parameters and neuron rows
-when validating a checkpoint. Retain existing checkpoint evidence and update
-consumers before explicitly collecting replacements; there is no migration.
+SNS reward checkpoint aggregates and policy observations retain their flat
+Rust and JSON fields. `SnsRewardCheckpointSummary` is recomputed from raw
+parameters and neuron rows, then compared with every stored aggregate and policy
+observation. Historical files remain current evidence; recollection is not a
+substitute for an earlier observation.
 
 `SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
 `MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host
@@ -1821,3 +1815,12 @@ treasury codes are retained without stored labels or a second classification
 type; text derives those labels. Lifecycle query failures remain separate from
 absent/raw values. Coordinate catalog consumers and retain needed evidence
 before explicit refresh; schemas stay 1 without migration.
+
+Refresh coordination uses persistent empty regular files and nonblocking Host
+descriptor locks. Requests no longer accept a lock-age policy. Cancellation and
+process death release exclusion; file presence alone does not mean a refresh is
+active. Cache status observes `active`, `available` or invalid coordination
+content. Before adopting this contract, stop every old writer using the root,
+retain required cache/attempt evidence and explicitly retire nonempty lock files.
+Never unlink a coordination file while writers may use that root. Cache freshness
+and recorded refresh-attempt times remain separate product evidence.

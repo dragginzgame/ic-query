@@ -67,9 +67,7 @@ where
             cache_root: &cache.cache_root,
             cache_path: &paths.cache_path,
             lock_path: &paths.lock_path,
-            network: &cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
+
             dry_run: request.dry_run,
             output_path: request.output_path.as_deref(),
             report,

@@ -176,7 +176,7 @@ pub(in crate::nns) trait NnsInventoryReport {
 pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report, Error>(
     request: &NnsInventoryListRequest,
     expected_cache_path: PathBuf,
-    lock_stale_after_seconds: u64,
+
     progress: &mut dyn QueryProgress,
     mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, Error>,
     refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), Error>,
@@ -199,7 +199,6 @@ where
                 request.cache.clone(),
                 &request.source_endpoint,
                 request.now_unix_secs,
-                lock_stale_after_seconds,
             );
             refresh(&refresh_request).await
         },

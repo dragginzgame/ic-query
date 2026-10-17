@@ -44,8 +44,7 @@ pub struct SubnetCatalogRefreshRequest {
     pub source: CatalogSourceSelection,
     /// Caller-supplied observation time in Unix seconds.
     pub now_unix_secs: u64,
-    /// Age in seconds beyond which a retained refresh lock is stale.
-    pub lock_stale_after_seconds: u64,
+
     /// Maximum accepted lead of the collection timestamp over the observation time.
     pub max_future_skew_seconds: u64,
     /// Validate a collected catalog without replacing the managed snapshot.
@@ -61,13 +60,12 @@ impl SubnetCatalogRefreshRequest {
         cache: SubnetCatalogCacheRequest,
         source: CatalogSourceSelection,
         now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache,
             source,
             now_unix_secs,
-            lock_stale_after_seconds,
+
             max_future_skew_seconds: DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
             dry_run: false,
             output_path: None,
@@ -168,10 +166,6 @@ pub(super) async fn refresh_subnet_catalog_detailed_with_progress_async(
         RefreshLockRequest {
             cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
-            target_path: &catalog_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         move |error| {
             cache_failure(

@@ -4,7 +4,7 @@
 //! Does not own: path confinement, cache schemas, or atomic publication.
 //! Boundary: opens only validated regular files beneath a capability root.
 
-use super::{CacheFileError, ConfinedCacheRoot, ConfinedManagedPath};
+use super::{CacheFileError, ConfinedCacheRoot};
 use ic_host_artifacts::artifact::{ArtifactError, read_reader};
 use std::{
     io::{self, Read},
@@ -155,21 +155,6 @@ fn read_budgeted_stream(
         Err(_) => {}
     }
     result
-}
-
-impl ConfinedManagedPath {
-    pub(in crate::cache_file) fn read_bounded(
-        &self,
-        maximum: u64,
-    ) -> Result<Option<Vec<u8>>, BoundedManagedFileReadError> {
-        let Some(file) = self
-            .open_regular_file()
-            .map_err(BoundedManagedFileReadError::Operation)?
-        else {
-            return Ok(None);
-        };
-        read_opened_file_bounded(file, &self.display_path, maximum, None).map(Some)
-    }
 }
 
 fn read_opened_file_bounded(

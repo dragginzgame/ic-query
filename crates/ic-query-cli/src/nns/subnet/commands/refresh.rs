@@ -23,7 +23,6 @@ pub(in crate::nns) fn refresh_command() -> ClapCommand {
             leaf::source_endpoint_arg(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the NNS registry query"),
         )
-        .arg(leaf::refresh_lock_stale_after_arg())
         .arg(
             flag_arg("dry-run")
                 .long("dry-run")

@@ -35,9 +35,7 @@ pub use report::{
 
 #[cfg(feature = "sns-host")]
 pub use report::{
-    DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
-    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, LiveSnsSource, MainnetSns,
+    DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS, LiveSnsSource, MainnetSns,
     MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
     MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
     SNS_REFRESH_MAX_PAGE_SIZE, SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport,

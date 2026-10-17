@@ -215,4 +215,5 @@ qualification remains distinct from source review or Linux-only evidence.
   files before editing.
 - Keep text output readable and JSON output stable/raw.
 - Keep cache refresh behavior explicit: missing cache, refresh progress,
-  partial failure, stale locks, and complete snapshots should be visible.
+  partial failure, lock contention, invalid coordination files, and complete
+  snapshots should be visible.

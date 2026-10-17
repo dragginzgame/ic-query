@@ -20,9 +20,9 @@ use clap::ArgMatches;
 use ic_query::{
     QueryProgress, QueryProgressEvent,
     sns::{
-        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, SnsCatalogRefreshRequest, SnsListReport,
-        SnsListRequest, build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog,
-        sns_catalog_cache_path, sns_catalog_refresh_report_text, sns_list_report_text,
+        SnsCatalogRefreshRequest, SnsListReport, SnsListRequest,
+        build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog, sns_catalog_cache_path,
+        sns_catalog_refresh_report_text, sns_list_report_text,
     },
 };
 use std::{
@@ -119,7 +119,6 @@ async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsC
         network,
         &options.source_endpoint,
         now_unix_secs,
-        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS,
     );
     let mut progress = StderrQueryProgress::new();
     progress.report(QueryProgressEvent::CacheRefresh {

@@ -91,13 +91,9 @@ where
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.format;
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
-    let mut request = NnsInventoryRefreshRequest::new(
-        cache,
-        options.source_endpoint,
-        current_unix_secs()?,
-        options.lock_stale_after_seconds,
-    )
-    .with_dry_run(options.dry_run);
+    let mut request =
+        NnsInventoryRefreshRequest::new(cache, options.source_endpoint, current_unix_secs()?)
+            .with_dry_run(options.dry_run);
     if let Some(output_path) = options.output_path {
         request = request.with_output_path(output_path);
     }

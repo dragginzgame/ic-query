@@ -83,10 +83,6 @@ pub async fn refresh_nns_subnet_topology_with_source(
         RefreshLockRequest {
             cache_root: &request.cache.cache_root,
             lock_path: &lock_path,
-            target_path: &cache_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| HostCacheError::operation(CACHE_COMPONENT, error).into(),
         async || {

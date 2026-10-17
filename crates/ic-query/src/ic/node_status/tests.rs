@@ -406,7 +406,6 @@ async fn non_mainnet_refresh_fails_before_calling_the_source() {
         "local",
         "https://example.test/api/v3",
         fixture_now(),
-        DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS,
     );
 
     let error = refresh_ic_node_status_snapshot_with_source(&request, &source)
@@ -973,13 +972,7 @@ impl IcNodeStatusSource for FixtureSource {
 
 #[cfg(feature = "dashboard-host")]
 fn refresh_request(root: &std::path::Path, now_unix_secs: u64) -> IcNodeStatusRefreshRequest {
-    IcNodeStatusRefreshRequest::new(
-        root,
-        "ic",
-        "https://example.test/api/v3",
-        now_unix_secs,
-        DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS,
-    )
+    IcNodeStatusRefreshRequest::new(root, "ic", "https://example.test/api/v3", now_unix_secs)
 }
 
 #[cfg(feature = "dashboard-host")]

@@ -173,9 +173,6 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
             cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
         async |state| {

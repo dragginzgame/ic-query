@@ -4,7 +4,9 @@
 //! Does not own: JSON cache schemas, refresh locking internals, or report construction.
 //! Boundary: exposes parent creation, atomic text writes, and refresh publication helpers.
 
+#[cfg(feature = "subnet-catalog-host")]
 use crate::cache_file::CacheFileError;
+#[cfg(feature = "subnet-catalog-host")]
 use std::path::Path;
 
 mod json;
@@ -30,6 +32,7 @@ pub use output::{validate_output_path, write_text_output};
 pub use refresh::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
 
 /// Reject an encoded managed file that exceeds its owner's read ceiling.
+#[cfg(feature = "subnet-catalog-host")]
 pub fn ensure_managed_write_size(
     path: &Path,
     length: u64,

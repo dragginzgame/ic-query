@@ -244,7 +244,13 @@ async fn invalid_neuron_page_preserves_complete_cache_and_records_failure() {
         assert_eq!(attempt["status"], "failed");
         assert_eq!(attempt["pages_fetched"], 1);
         assert_eq!(attempt["rows_fetched"], 2);
-        assert!(!sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                &(sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A))
+            )
+            .unwrap()
+        );
     }
     fs::remove_dir_all(root).unwrap();
 }

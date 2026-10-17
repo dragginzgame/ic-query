@@ -172,17 +172,17 @@ impl CacheRecoveryPolicy {
 ///
 /// CacheRefreshLockStatus
 ///
-/// Generic age or validity classification for one refresh lock.
+/// Observed kernel exclusion or invalid coordination-file classification.
 ///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheRefreshLockStatus {
-    /// The lock is within the stale threshold recorded by its owner.
+    /// Another open descriptor holds exclusive refresh ownership.
     Active,
-    /// The lock is older than the stale threshold recorded by its owner.
-    Stale,
-    /// The lock is unreadable, malformed, or future-dated.
+    /// The persistent coordination file is currently unlocked.
+    Available,
+    /// The coordination file is invalid.
     Invalid,
 }
 
@@ -192,7 +192,7 @@ impl CacheRefreshLockStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Active => "active",
-            Self::Stale => "stale",
+            Self::Available => "available",
             Self::Invalid => "invalid",
         }
     }
@@ -265,11 +265,11 @@ pub struct CacheStatusReport {
     pub caches: Vec<CacheStatusRow>,
     /// Number of refresh-lock rows returned.
     pub refresh_lock_count: usize,
-    /// Number of locks still active under their recorded stale policy.
+    /// Number of coordination files held by a refreshing process.
     pub active_refresh_lock_count: usize,
-    /// Number of locks older than their recorded stale policy.
-    pub stale_refresh_lock_count: usize,
-    /// Number of unreadable, malformed, or future-dated locks.
+    /// Number of currently unlocked coordination files.
+    pub available_refresh_lock_count: usize,
+    /// Number of invalid coordination files.
     pub invalid_refresh_lock_count: usize,
     /// Sum of filesystem sizes for returned refresh-lock files.
     pub refresh_lock_size_bytes: u64,
@@ -316,38 +316,22 @@ pub struct CacheStatusRow {
 ///
 /// CacheRefreshLockStatusRow
 ///
-/// Local identity, ownership, age, and stale policy for one refresh lock.
+/// Local path and observed kernel exclusion for one persistent coordination file.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CacheRefreshLockStatusRow {
-    /// Stable component label inferred from the recorded cache target.
+    /// Stable component label inferred from the coordination-file path.
     pub component: String,
     /// Absolute refresh-lock path.
     pub refresh_lock_path: String,
     /// Cache-root-relative refresh-lock path.
     pub relative_path: String,
-    /// Generic lock age or validity classification.
+    /// Observed kernel exclusion or invalid sidecar classification.
     pub status: CacheRefreshLockStatus,
-    /// Serialized refresh-lock schema version when readable.
-    pub schema_version: Option<u32>,
-    /// Serialized network identity when readable.
-    pub network: Option<String>,
-    /// Operating-system process id recorded by the lock owner when readable.
-    pub pid: Option<u32>,
-    /// Raw Unix-millisecond acquisition time when readable.
-    pub started_at_unix_ms: Option<u64>,
-    /// UTC acquisition timestamp when readable.
-    pub started_at: Option<String>,
-    /// Caller-relative lock age when the timestamp is not in the future.
-    pub age_seconds: Option<u64>,
-    /// Stale threshold recorded by the lock owner.
-    pub stale_after_seconds: Option<u64>,
-    /// Cache target recorded by the lock owner when readable.
-    pub target_path: Option<String>,
     /// Filesystem size of this refresh-lock file.
     pub size_bytes: u64,
-    /// Lock parse, shape, or timestamp error.
+    /// Coordination-file admission failure.
     pub error: Option<String>,
 }
 
@@ -425,7 +409,7 @@ mod tests {
         }
         for (status, expected) in [
             (CacheRefreshLockStatus::Active, "active"),
-            (CacheRefreshLockStatus::Stale, "stale"),
+            (CacheRefreshLockStatus::Available, "available"),
             (CacheRefreshLockStatus::Invalid, "invalid"),
         ] {
             assert_eq!(status.as_str(), expected);

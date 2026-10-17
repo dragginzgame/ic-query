@@ -14,7 +14,6 @@ pub(super) async fn run_node_refresh(
         cache_request(&options.network)?,
         options.source_endpoint,
         current_unix_secs()?,
-        options.lock_stale_after_seconds,
     )
     .with_dry_run(options.dry_run);
     if let Some(output_path) = options.output_path {

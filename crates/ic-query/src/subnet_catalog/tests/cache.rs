@@ -240,7 +240,13 @@ async fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger()
         fs::metadata(path).expect("old cache retained").len(),
         128 * 1024 * 1024
     );
-    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 

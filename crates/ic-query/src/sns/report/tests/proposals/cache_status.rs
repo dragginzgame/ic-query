@@ -109,7 +109,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
 
     assert!(cache_path.is_file());
     assert!(attempt_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     assert!(refresh.complete);
     assert_eq!(refresh.collection, "proposals");
     let refresh_json = serde_json::to_value(&refresh).expect("serialize refresh result");
@@ -439,7 +439,13 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
 
         assert_eq!(refresh.id, 2);
         assert_eq!(refresh.root_canister_id, ROOT_B);
-        assert!(!std::path::Path::new(&refresh.refresh_lock_path).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                std::path::Path::new(&refresh.refresh_lock_path)
+            )
+            .unwrap()
+        );
         let cache: serde_json::Value =
             serde_json::from_slice(&fs::read(&refresh.cache_path).expect("read cache"))
                 .expect("parse cache");

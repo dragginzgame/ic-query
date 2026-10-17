@@ -4,11 +4,10 @@ mod report;
 
 #[cfg(feature = "nns-topology-host")]
 pub use report::{
-    CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
-    NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
-    NnsSubnetTopologySource, load_cached_nns_subnet_topology,
-    load_or_refresh_missing_nns_subnet_topology,
+    CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
+    DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS, NnsSubnetTopologyCacheRequest,
+    NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest, NnsSubnetTopologySource,
+    load_cached_nns_subnet_topology, load_or_refresh_missing_nns_subnet_topology,
     load_or_refresh_missing_nns_subnet_topology_with_source,
     load_or_refresh_stale_nns_subnet_topology,
     load_or_refresh_stale_nns_subnet_topology_with_source, nns_subnet_topology_cache_path,
