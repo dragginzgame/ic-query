@@ -5,6 +5,13 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.60.1]
+
+- Prepare native qualification callers for Testkit 0.51's explicit-principal
+  calls and field-based installation inputs, preserving existing senders and
+  reply budgets. This draft requires Testkit publication and normal dependency
+  adoption before integration; stored product data is unchanged.
+
 ## [0.60.0] - 2026-10-17
 
 - **Breaking:** NNS neuron/proposal cache status and summary reports share
