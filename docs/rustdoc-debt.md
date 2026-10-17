@@ -4,7 +4,10 @@
 with an explicitly selected JSON baseline of item identities. It uses Perl and
 its core JSON::PP module, and runs no Cargo command, installer, network request
 or source edit.
-Select the helper as a snapshot entrypoint; this guide is its declared companion.
+Query owns this temporary debt checker, its fixtures and this guide alongside
+`scripts/ci/check-public-docs.sh` and `scripts/ci/public-docs-baseline.json`.
+They are not Shared Tooling snapshot payloads. Snapshot refreshes must preserve
+these local files; do not select them as shared entrypoints.
 
 Run from the source checkout so relative diagnostic paths name the intended
 files. The caller owns source/diagnostic custody, package/features, compiler
@@ -13,7 +16,7 @@ not proof that compilation completed successfully. Preserve failed compiler logs
 before invoking the comparison. For an already admitted diagnostic file:
 
 ```bash
-perl scripts/ci/check-public-docs.pl target/rustdoc.jsonl ci/docs-baseline.json
+perl scripts/ci/check-public-docs.pl target/rustdoc.jsonl scripts/ci/public-docs-baseline.json
 ```
 
 Identities include source path, owner scopes, item kind and declared name.
@@ -33,7 +36,7 @@ warning shape and source custody remain consumer qualification obligations.
 Baseline creation/replacement is a separately selected operation:
 
 ```bash
-perl scripts/ci/check-public-docs.pl target/rustdoc.jsonl ci/docs-baseline.json \
+perl scripts/ci/check-public-docs.pl target/rustdoc.jsonl scripts/ci/public-docs-baseline.json \
   --write-baseline
 ```
 
@@ -44,8 +47,10 @@ as `struct` or `mod`. Adoption requires explicit review of any
 changed baseline identities; no fallback identities or automatic rewrite exists.
 
 Query retains its Cargo wrapper, current debt file and section-style type-doc
-checker; those have separate contracts. Shared's Perl identity/CLI fixtures
+checker; those have separate contracts. Query's Perl identity/CLI fixtures
 use synthetic admitted compiler records and temporary sources. The separate `test-public-docs.sh` fixture runs actual locked,
 offline Cargo/rustdoc on a dependency-free crate to qualify declaration names and
-unchanged-count debt replacement. Consumers still qualify their own compiler
-output and baseline before retiring a local checker.
+unchanged-count debt replacement. Run both fixtures when changing the checker;
+the wrapper's compiler-failure retention remains covered by the consumer CI
+script fixtures. Once the debt is resolved, replace the ratchet with rustdoc's
+`-D missing-docs` and remove the baseline and item-identity machinery.

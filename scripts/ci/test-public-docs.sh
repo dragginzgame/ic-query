@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/check-public-docs.pl scripts/ci/fixture-lifecycle.sh
+# Query-owned compiler qualification; lifecycle support stays in the shared snapshot.
 set -euo pipefail
 root="${BASH_SOURCE[0]}"
 [[ "$root" == /* ]] || root="$PWD/$root"

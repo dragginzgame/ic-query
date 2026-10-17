@@ -89,10 +89,7 @@ revision	fec7c9b97f6a35a23daf54abe9a6472a5d1829b0
 # entrypoint	docs/tool-catalog-bindings.md
 # entrypoint	scripts/ci/run-cargo-publication.sh
 # entrypoint	docs/cargo-publication.md
-# entrypoint	scripts/ci/check-public-docs.pl
 # entrypoint	scripts/ci/check-type-docs.pl
-# entrypoint	scripts/ci/test-public-docs.pl
-# entrypoint	scripts/ci/test-public-docs.sh
 # entrypoint	scripts/ci/test-type-docs.pl
 # entrypoint	scripts/ci/collect-tool-evidence.sh
 # entrypoint	scripts/ci/test-collect-tool-evidence.sh
@@ -184,10 +181,7 @@ file	f5ad60c7981daa237ac4e84bbe40ccaf2f795e417873b2aa5af6c5c01140ce65	x	scripts/
 file	0eeb04f87a50c93b485bc3b7d845187b8f1161d62904848d01e959c207c492d5	-	docs/tool-catalog-bindings.md
 file	bb6b526aaa03153cc0ddc974a04fdab83af003ab7d34053c15807e822ef99d49	x	scripts/ci/run-cargo-publication.sh
 file	c9971d3de02546e81e25f19ab74dfa7997164fa05fe76e0d323b200a30f28318	-	docs/cargo-publication.md
-file	565d754af11c56752065919e078800903adb1a1dd77d1d3b3eea9319d011ee2b	-	scripts/ci/check-public-docs.pl
 file	212a7337c402983260131edcb4125b12dafe693a3ffbf6dfc2c105dcd8ac079f	x	scripts/ci/check-type-docs.pl
-file	216451ffcaec79f06c530d977410fc0f35ec258b832d06111f2175d563ca1b77	-	scripts/ci/test-public-docs.pl
-file	b62ef318bf1139c27e82536e12f8d8ef93bfc1c9cc6340113d35e6dfb812787f	x	scripts/ci/test-public-docs.sh
 file	22459209ced6e15a6e3a4ec521c09fe2afccffc01c4f918e4131bb66e9ba8b4f	x	scripts/ci/test-type-docs.pl
 file	ad65666b8b34e4967cecff3cfc97038dbc5dfbce146ac57316add2b380310ae1	x	scripts/ci/collect-tool-evidence.sh
 file	be23910d48a7110d10fcac2232e050df0f5c847f8a250328107fc195693bed55	x	scripts/ci/test-collect-tool-evidence.sh
@@ -207,6 +201,5 @@ file	ebf236f1db579744a13bc995ec1c58c2ee87e34caed23088a6d9b75e638dd27f	x	scripts/
 file	775da89f655a3781059f433f80470ee6db9675e08942a805c111614183322fe1	-	scripts/ci/ic-tool-pins.awk
 file	05da2ac2b805c7cf9597d4af75983efc1268d619a0fb1e42c7f6d3fdb481880b	-	ci/ic-tools.tsv
 file	eeeca9e6e7b92b888fd6547733d6136f0e7e9859d37c983f8048e60551a15c39	-	scripts/ci/StableVersion.pm
-file	8d0934adf861fd095544cb053ef6365c1931fed267cac31c743d6eccb63d1fe4	-	docs/rustdoc-debt.md
 file	686190bf803692bba80522c575b3604c3cae6e72e9cd40ad781f104d4cd44513	-	docs/type-docs.md
 file	37477ebdbf9f03da16473290b12bb99436c73f1855df27d592438dc6324e05ea	x	scripts/ci/tool-catalog-records.pl

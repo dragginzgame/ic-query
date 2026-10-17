@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Shared companions: scripts/ci/check-public-docs.pl
+# Query-owned public-documentation debt identity and CLI fixtures.
 use strict;
 use warnings;
 use utf8;
@@ -57,6 +57,19 @@ isnt(key('pub enum Error { 型甲 { value: u64 } }', 'value: u64'), key('pub enu
 like(key('macro_rules! exported { () => {} }', 'macro_rules! exported { () => {} }', 'a macro'), qr/::exported$/, 'macro name');
 like(key('impl Request { pub const fn with_sort() {} }', 'pub const fn with_sort()', 'a method'), qr/::with_sort$/, 'const method');
 is(key('const X: &str = r#"{fake}"#; /* outer /* {nested} */ end */ pub struct Real { pub value: u64 }', 'pub value: u64'), 'struct Real::a struct field::value', 'raw literals and nested comments');
+for my $prefix (
+    q{const BYTE: u8 = b'{'; const CHAR: char = '}';},
+    q{const TEXT: &str = "escaped \" {fake}";},
+    qq{const TEXT: &str = "Unicode é\n{fake}";\n},
+    q{const RAW: &[u8] = br###"{ fake "## still literal }"###;},
+) {
+    is(key("$prefix pub struct 型甲 { pub value: u64 }", 'pub value: u64'),
+        'struct 型甲::a struct field::value', 'literal contents preserve the Unicode owner');
+}
+for my $prefix ('/* outer /* closed inner */', 'const X: &[u8] = br##"unterminated"#') {
+    ok(!eval { key("$prefix pub struct Real { pub value: u64 }", 'pub value: u64'); 1 },
+        'unterminated comment or raw literal refuses identity');
+}
 my $msg = message($source, 'pub endpoint: String');
 my $record = encode_json({message => $msg}) . "\n";
 write_bytes("$root/input", $record x 2);
