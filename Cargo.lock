@@ -1630,7 +1630,7 @@ checksum = "c30a384477a9783da95cd991e576f6f6a76c5d3691299fffe294f95affae3fd7"
 
 [[package]]
 name = "ic-query"
-version = "0.59.0"
+version = "0.60.0"
 dependencies = [
  "candid",
  "cap-fs-ext",
@@ -1663,7 +1663,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.59.0"
+version = "0.60.0"
 dependencies = [
  "candid",
  "clap",
