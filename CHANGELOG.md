@@ -5,6 +5,13 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.61.0]
+
+- Include the repository’s MIT license text in both published crate packages,
+  preserving the existing copyright notice and inherited license declarations.
+
+Detailed release notes: [docs/changelog/0.61.md](docs/changelog/0.61.md)
+
 ## [0.60.0] - 2026-10-17
 
 - **Breaking:** NNS neuron/proposal cache status and summary reports share
