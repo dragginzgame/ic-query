@@ -5,10 +5,7 @@
 //! Boundary: projects complete public `NeuronInfo` evidence into portable distributions.
 
 use super::{
-    NnsNeuronCollectionState,
-    classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility},
-    collection::validate_collection_state,
-    model::NnsNeuronRow,
+    NnsNeuronCollectionState, collection::validate_collection_state, model::NnsNeuronRow,
     source::validate_neuron_rows,
 };
 use crate::{
@@ -35,11 +32,10 @@ pub const NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION: u32 = 1;
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNeuronStateDistribution {
     /// Raw native Governance state code.
     pub state: i32,
-    /// Classification derived from the raw state code.
-    pub state_text: NnsNeuronState,
     /// Number of collected neurons with this state code.
     pub neuron_count: u64,
     /// Sum of public effective stake for neurons with this state code.
@@ -53,11 +49,10 @@ pub struct NnsNeuronStateDistribution {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNeuronVisibilityDistribution {
     /// Raw optional native Governance visibility code.
     pub visibility: Option<i32>,
-    /// Classification derived from the raw optional visibility code.
-    pub visibility_text: NnsNeuronVisibility,
     /// Number of collected neurons with this visibility code or absence.
     pub neuron_count: u64,
     /// Sum of public effective stake for neurons with this visibility code or absence.
@@ -71,11 +66,10 @@ pub struct NnsNeuronVisibilityDistribution {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNeuronTypeDistribution {
     /// Raw optional native Governance neuron-type code.
     pub neuron_type: Option<i32>,
-    /// Classification derived from the raw optional neuron-type code.
-    pub neuron_type_text: NnsNeuronType,
     /// Number of collected neurons with this type code or absence.
     pub neuron_count: u64,
     /// Sum of public effective stake for neurons with this type code or absence.
@@ -258,40 +252,28 @@ pub fn validate_nns_neuron_distribution_report(
         report,
         "state",
         "raw-code",
-        report.state_distribution.iter().map(|row| {
-            (
-                row.state,
-                row.state_text == NnsNeuronState::from_code(row.state),
-                row.neuron_count,
-                row.effective_stake_e8s,
-            )
-        }),
+        report
+            .state_distribution
+            .iter()
+            .map(|row| (row.state, row.neuron_count, row.effective_stake_e8s)),
     )?;
     validate_distribution(
         report,
         "visibility",
         "optional-raw-code",
-        report.visibility_distribution.iter().map(|row| {
-            (
-                row.visibility,
-                row.visibility_text == NnsNeuronVisibility::from_code(row.visibility),
-                row.neuron_count,
-                row.effective_stake_e8s,
-            )
-        }),
+        report
+            .visibility_distribution
+            .iter()
+            .map(|row| (row.visibility, row.neuron_count, row.effective_stake_e8s)),
     )?;
     validate_distribution(
         report,
         "neuron-type",
         "optional-raw-code",
-        report.neuron_type_distribution.iter().map(|row| {
-            (
-                row.neuron_type,
-                row.neuron_type_text == NnsNeuronType::from_code(row.neuron_type),
-                row.neuron_count,
-                row.effective_stake_e8s,
-            )
-        }),
+        report
+            .neuron_type_distribution
+            .iter()
+            .map(|row| (row.neuron_type, row.neuron_count, row.effective_stake_e8s)),
     )
 }
 
@@ -440,20 +422,15 @@ fn validate_distribution<Key: Copy + Ord + std::fmt::Debug>(
     report: &NnsNeuronDistributionReport,
     dimension: &'static str,
     order: &'static str,
-    rows: impl Iterator<Item = (Key, bool, u64, u64)>,
+    rows: impl Iterator<Item = (Key, u64, u64)>,
 ) -> Result<(), NnsNeuronDistributionValidationError> {
     let mut previous = None;
     let mut neuron_count = 0_u64;
     let mut stake = 0_u64;
-    for (key, classification_matches, count, effective_stake) in rows {
+    for (key, count, effective_stake) in rows {
         if previous.is_some_and(|previous| previous >= key) {
             return Err(invalid_validation(format!(
                 "{dimension} distribution is not strictly {order} ordered"
-            )));
-        }
-        if !classification_matches {
-            return Err(invalid_validation(format!(
-                "{dimension} classification for raw code {key:?} is inconsistent"
             )));
         }
         neuron_count = add_distribution_count(neuron_count, count, dimension)?;
@@ -692,7 +669,7 @@ impl DistributionAccumulator {
                 .into_iter()
                 .map(|(state, distribution)| NnsNeuronStateDistribution {
                     state,
-                    state_text: NnsNeuronState::from_code(state),
+
                     neuron_count: distribution.neuron_count,
                     effective_stake_e8s: distribution.effective_stake_e8s,
                 })
@@ -703,7 +680,7 @@ impl DistributionAccumulator {
                 .map(
                     |(visibility, distribution)| NnsNeuronVisibilityDistribution {
                         visibility,
-                        visibility_text: NnsNeuronVisibility::from_code(visibility),
+
                         neuron_count: distribution.neuron_count,
                         effective_stake_e8s: distribution.effective_stake_e8s,
                     },
@@ -714,7 +691,7 @@ impl DistributionAccumulator {
                 .into_iter()
                 .map(|(neuron_type, distribution)| NnsNeuronTypeDistribution {
                     neuron_type,
-                    neuron_type_text: NnsNeuronType::from_code(neuron_type),
+
                     neuron_count: distribution.neuron_count,
                     effective_stake_e8s: distribution.effective_stake_e8s,
                 })

@@ -14,10 +14,9 @@ use super::{
         IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionPageData,
         IcrcAccountTransactionPageRequest, IcrcAccountTransactionRow, IcrcAllowanceData,
         IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-        IcrcArchivedRangeRow, IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData,
-        IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcCapabilitiesData,
-        IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcFollowedArchiveBlockRow,
-        IcrcIndexData, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateData,
+        IcrcArchivedRangeRow, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
+        IcrcBlockTypeRow, IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
+        IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcLedgerRequest, IcrcMetadataValueKind,
         IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow,
         IcrcTransactionsData, IcrcTransactionsRequest,
     },
@@ -264,25 +263,21 @@ impl IcrcBlockTypesSource for FixtureIcrcSource {
     fn fetch_block_types<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcBlockTypeRow>, IcrcError>> {
         Box::pin(async move {
             assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-            Ok(IcrcBlockTypesData {
-                block_types: vec![
-                    IcrcBlockTypeRow {
-                        block_type: "1xfer".to_string(),
-                        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3"
-                            .to_string(),
-                    },
-                    IcrcBlockTypeRow {
-                        block_type: "2approve".to_string(),
-                        url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3"
-                            .to_string(),
-                    },
-                ],
-            })
+            Ok(vec![
+                IcrcBlockTypeRow {
+                    block_type: "1xfer".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+                },
+                IcrcBlockTypeRow {
+                    block_type: "2approve".to_string(),
+                    url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
+                },
+            ])
         })
     }
 }
@@ -291,7 +286,7 @@ impl IcrcArchivesSource for FixtureIcrcSource {
     fn fetch_archives<'a>(
         &'a self,
         request: &'a IcrcArchivesRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcArchiveRow>, IcrcError>> {
         Box::pin(async move {
             assert_eq!(request.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.ledger.source_endpoint, SOURCE_ENDPOINT);
@@ -300,13 +295,11 @@ impl IcrcArchivesSource for FixtureIcrcSource {
                 Some(ARCHIVE_CANISTER_ID)
             );
 
-            Ok(IcrcArchivesData {
-                archives: vec![IcrcArchiveRow {
-                    canister_id: ARCHIVE_CANISTER_ID.to_string(),
-                    start: "0".to_string(),
-                    end: "999".to_string(),
-                }],
-            })
+            Ok(vec![IcrcArchiveRow {
+                canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                start: "0".to_string(),
+                end: "999".to_string(),
+            }])
         })
     }
 }
@@ -315,17 +308,20 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+    > {
         Box::pin(async move {
             assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-            Ok(IcrcTipCertificateData {
-                certificate_hex: Some("010203".to_string()),
-                certificate_bytes: Some(3),
-                hash_tree_hex: Some("aabb".to_string()),
-                hash_tree_bytes: Some(2),
-            })
+            Ok(Some(
+                icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate {
+                    certificate: vec![1, 2, 3].into(),
+                    hash_tree: vec![170, 187].into(),
+                },
+            ))
         })
     }
 }

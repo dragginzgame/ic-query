@@ -7,7 +7,7 @@
 use crate::{
     candid_call::{CandidCallError, query_no_args},
     hex::hex_bytes,
-    icrc::IcrcMetadataValueKind,
+    icrc::{IcrcMetadataValueKind, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow},
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_agent::Agent;
@@ -15,61 +15,7 @@ use icrc_ledger_types::icrc::generic_metadata_value::MetadataValue;
 use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
 use serde_json::Value as JsonValue;
 
-///
-/// IcrcLedgerTokenMetadata
-///
-/// Raw ICRC-1 token metadata fetched from one ledger canister.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcLedgerTokenMetadata {
-    pub token_name: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub transfer_fee: String,
-    pub total_supply: String,
-    pub minting_account_owner: Option<String>,
-    pub minting_account_subaccount_hex: Option<String>,
-    pub supported_standards: Vec<IcrcLedgerStandardRow>,
-    pub metadata: Vec<IcrcLedgerMetadataRow>,
-}
-
-///
-/// IcrcLedgerStandardRow
-///
-/// Generic row for one ICRC standard supported by a ledger.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcLedgerStandardRow {
-    pub name: String,
-    pub url: String,
-}
-
-///
-/// IcrcLedgerMetadataRow
-///
-/// Generic row for one ICRC ledger metadata key/value pair.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcLedgerMetadataRow {
-    pub key: String,
-    pub value_type: IcrcMetadataValueKind,
-    pub value: JsonValue,
-}
-
-///
-/// GetIndexPrincipalResult
-///
-/// Candid result returned by ICRC-106 index discovery.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-pub enum GetIndexPrincipalResult {
-    Ok(Principal),
-    Err(GetIndexPrincipalError),
-}
+pub const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principal";
 
 ///
 /// GetIndexPrincipalError
@@ -86,12 +32,6 @@ pub enum GetIndexPrincipalError {
     },
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-struct IcrcSupportedStandard {
-    name: String,
-    url: String,
-}
-
 #[cfg(feature = "icrc-host")]
 pub fn principal_from_text(
     value: &str,
@@ -106,7 +46,7 @@ pub fn principal_from_text(
 pub async fn fetch_icrc1_token_metadata<E>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<IcrcLedgerTokenMetadata, E>
+) -> Result<IcrcTokenData, E>
 where
     E: CandidCallError,
 {
@@ -130,7 +70,7 @@ where
         query_no_args::<Vec<(String, MetadataValue)>, E>(agent, ledger_canister, "icrc1_metadata"),
     )?;
 
-    Ok(IcrcLedgerTokenMetadata {
+    Ok(IcrcTokenData {
         token_name,
         token_symbol,
         decimals,
@@ -154,19 +94,24 @@ where
 pub async fn fetch_icrc_supported_standards<E>(
     agent: &Agent,
     ledger_canister: &Principal,
-) -> Result<Vec<IcrcLedgerStandardRow>, E>
+) -> Result<Vec<IcrcTokenStandardRow>, E>
 where
     E: CandidCallError,
 {
-    let supported_standards: Vec<IcrcSupportedStandard> =
-        query_no_args(agent, ledger_canister, "icrc1_supported_standards").await?;
-    Ok(supported_standards
-        .into_iter()
-        .map(|standard| IcrcLedgerStandardRow {
-            name: standard.name,
-            url: standard.url,
-        })
-        .collect())
+    query_no_args(agent, ledger_canister, "icrc1_supported_standards").await
+}
+
+/// Query native ICRC-106 discovery while callers retain their failure policy.
+pub async fn query_index_principal<E: CandidCallError>(
+    agent: &Agent,
+    ledger_canister: &Principal,
+) -> Result<Result<Principal, GetIndexPrincipalError>, E> {
+    query_no_args::<Result<Principal, GetIndexPrincipalError>, E>(
+        agent,
+        ledger_canister,
+        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+    )
+    .await
 }
 
 /// Return plain decimal text for raw Candid naturals without display separators.
@@ -174,14 +119,14 @@ pub fn nat_text(value: &Nat) -> String {
     value.0.to_str_radix(10)
 }
 
-pub fn metadata_row(key: String, value: MetadataValue) -> IcrcLedgerMetadataRow {
+pub fn metadata_row(key: String, value: MetadataValue) -> IcrcTokenMetadataRow {
     let (value_type, value) = match value {
         MetadataValue::Nat(value) => (IcrcMetadataValueKind::Nat, nat_text(&value)),
         MetadataValue::Int(value) => (IcrcMetadataValueKind::Int, value.0.to_str_radix(10)),
         MetadataValue::Text(value) => (IcrcMetadataValueKind::Text, value),
         MetadataValue::Blob(value) => (IcrcMetadataValueKind::Blob, hex_bytes(&value)),
     };
-    IcrcLedgerMetadataRow {
+    IcrcTokenMetadataRow {
         key,
         value_type,
         value: JsonValue::String(value),
@@ -203,6 +148,43 @@ pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
 mod tests {
     use super::*;
     use candid::Int;
+
+    #[test]
+    fn native_index_and_standard_replies_decode_without_projection() {
+        // Independent fixtures: didc encode of native Ok/Err variants and standard records.
+        for (encoded, expected) in [
+            (
+                "4449444c016b01bc8a01680100000100",
+                Ok(Principal::management_canister()),
+            ),
+            (
+                "4449444c026b01c5fed201016b01cbfde8ed047f01000000",
+                Err(GetIndexPrincipalError::IndexPrincipalNotSet),
+            ),
+            (
+                "4449444c036b01c5fed201016b01d1c4987c026c02fc91f4f80571c498b1b50d7d0100000007666978747572652a",
+                Err(GetIndexPrincipalError::GenericError {
+                    error_code: Nat::from(42_u8),
+                    description: "fixture".to_string(),
+                }),
+            ),
+        ] {
+            let bytes = crate::hex::decode_hex(encoded).unwrap();
+            let actual: Result<Principal, GetIndexPrincipalError> =
+                crate::candid_decode::decode_reply(&bytes).unwrap();
+            assert_eq!(actual, expected);
+        }
+        let bytes = crate::hex::decode_hex("4449444c026d016c02efd6e40271cbe4fdc704710100011c68747470733a2f2f6578616d706c652e636f6d2f7374616e6461726406494352432d31").unwrap();
+        let standards: Vec<IcrcTokenStandardRow> =
+            crate::candid_decode::decode_reply(&bytes).unwrap();
+        assert_eq!(
+            standards,
+            vec![IcrcTokenStandardRow {
+                name: "ICRC-1".to_string(),
+                url: "https://example.com/standard".to_string()
+            }]
+        );
+    }
 
     #[test]
     fn metadata_conversion_preserves_native_kind_and_value() {

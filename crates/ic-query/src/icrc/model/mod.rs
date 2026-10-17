@@ -9,6 +9,7 @@ mod contracts;
 mod data;
 mod error;
 mod subaccount;
+mod token_metadata;
 
 pub use contracts::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
@@ -21,20 +22,22 @@ pub use contracts::{
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
     IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
     IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
-    IcrcIndexReport, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport,
-    IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
-    IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport,
+    IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 #[cfg(feature = "icrc-host")]
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcArchivesData, IcrcBalanceData,
-    IcrcBlockTypesData, IcrcCapabilitiesData, IcrcIndexData, IcrcTipCertificateData, IcrcTokenData,
-    IcrcTransactionsData,
+    IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcBalanceData, IcrcCapabilitiesData,
+    IcrcIndexData, IcrcTransactionsData,
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;
 #[cfg(feature = "icrc-host")]
 pub(in crate::icrc) use subaccount::{
     normalize_optional_subaccount_hex, subaccount_bytes_from_hex,
+};
+
+pub use token_metadata::{
+    IcrcMetadataValueKind, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow,
 };

@@ -18,7 +18,7 @@ impl SnsUpgradeSource for FixtureSnsUpgradeSource {
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             Ok(fixture_mainnet_sns_upgrade())
         })
     }

@@ -200,7 +200,7 @@ fn execute(action: Action) -> Result<()> {
         return build::build_wasm(&root, &target);
     }
     let pins = env::var_os("IC_TOOL_PINS")
-        .unwrap_or_else(|| root.join("ci/ic-tools.tsv").into_os_string());
+        .unwrap_or_else(|| root.join("ci/ic-tools-query.tsv").into_os_string());
     let mut check = build::command(&root, "bash", &[]);
     check
         .arg(root.join("scripts/dev/install-ic-tools.sh"))

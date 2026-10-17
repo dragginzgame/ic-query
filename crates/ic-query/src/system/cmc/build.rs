@@ -52,13 +52,11 @@ pub async fn build_cmc_cycles_report_with_source(
     let cycles_per_icp = u128::from(certified.rate.xdr_permyriad_per_icp) * CYCLES_PER_XDR
         / ICP_XDR_PERMYRIAD_DENOMINATOR;
     Ok(CmcCyclesReport {
-        context: certified.context,
-        rate: certified.rate,
+        xdr: certified,
         cycles_per_xdr: CYCLES_PER_XDR,
         cycles_per_xdr_source: CYCLES_PER_XDR_SOURCE.to_string(),
         cycles_per_icp,
         cycles_per_icp_formula: CYCLES_PER_ICP_FORMULA.to_string(),
-        certification: certified.certification,
     })
 }
 

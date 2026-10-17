@@ -26,10 +26,7 @@ use super::{
     all(feature = "canister", target_arch = "wasm32")
 ))]
 use super::{
-    model::{
-        NnsProposalBallotRow, NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTally,
-        NnsProposalTopic,
-    },
+    model::{NnsProposalBallotRow, NnsProposalTally},
     wire::{NnsGovernanceBallot, NnsProposalInfo},
 };
 #[cfg(feature = "nns-host")]
@@ -102,7 +99,6 @@ pub async fn build_nns_proposal_report_with_source(
             actual: data.value.proposal_id,
         });
     }
-    validate_proposal_ballots(&data.value)?;
     Ok(nns_proposal_report_from_parts(NnsProposalReportParts {
         context: report_context(&request.governance, data.provenance),
         provenance: NnsProposalReportProvenance::live(),
@@ -161,11 +157,11 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
         proposal_id: info.id.map(|id| id.id),
         proposer_neuron_id: info.proposer.map(|id| id.id),
         topic: info.topic,
-        topic_text: NnsProposalTopic::from_code(info.topic),
+
         status: info.status,
-        status_text: NnsProposalStatus::from_code(info.status),
+
         reward_status: info.reward_status,
-        reward_status_text: NnsProposalRewardStatus::from_code(info.reward_status),
+
         title: proposal
             .as_ref()
             .and_then(|proposal| proposal.title.clone()),
@@ -253,7 +249,6 @@ fn validate_proposal_page(
                 before_proposal_id,
             });
         }
-        validate_proposal_ballots(proposal)?;
     }
     Ok(())
 }
@@ -281,7 +276,7 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
         .map(|(neuron_id, ballot)| NnsProposalBallotRow {
             neuron_id,
             vote: ballot.vote,
-            vote_text: crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote),
+
             voting_power: ballot.voting_power,
         })
         .collect::<Vec<_>>();
@@ -296,19 +291,4 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
     (timestamp_seconds > 0)
         .then(|| crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds))
-}
-
-/// Reject contradictory raw and classified ballot evidence without rewriting it.
-pub(super) fn validate_proposal_ballots(proposal: &NnsProposalRow) -> Result<(), NnsProposalError> {
-    if let Some(ballot) = proposal.ballots.iter().find(|ballot| {
-        ballot.vote_text != crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote)
-    }) {
-        return Err(NnsProposalError::InvalidBallotVote {
-            proposal_id: proposal.proposal_id,
-            neuron_id: ballot.neuron_id,
-            vote: ballot.vote,
-            classification: ballot.vote_text,
-        });
-    }
-    Ok(())
 }

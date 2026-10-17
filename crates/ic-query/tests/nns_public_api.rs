@@ -101,10 +101,9 @@ use ic_query::nns::proposals::{
     NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
     NnsProposalActivityValidationError, NnsProposalBallotRow, NnsProposalCollectionState,
     NnsProposalDayCount, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
-    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
-    NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter, NnsProposalRow,
-    NnsProposalSortDirection, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
-    NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
+    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatusCount,
+    NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSortDirection, NnsProposalSource,
+    NnsProposalSourceFuture, NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally,
     NnsProposalTopicCount, NnsProposalTopicFilter, advance_nns_proposal_collection_with_source,
     build_nns_proposal_activity_report, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report_with_source, nns_proposal_activity_report_text,
@@ -752,6 +751,18 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     assert_eq!(NNS_NEURON_MAX_PAGE_SIZE, 300);
 
     let row = sample_public_neuron(11);
+    assert_eq!(
+        NnsNeuronState::from_code(row.state),
+        NnsNeuronState::NotDissolving
+    );
+    assert_eq!(
+        NnsNeuronVisibility::from_code(row.visibility),
+        NnsNeuronVisibility::Public
+    );
+    assert_eq!(
+        NnsNeuronType::from_code(row.neuron_type),
+        NnsNeuronType::Unknown
+    );
     let report = ic_query::nns::neuron::NnsNeuronListReport {
         context: governance_report_context(&request.governance),
         cache_path: None,
@@ -769,9 +780,12 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
     assert_eq!(report_json["schema_version"], 1);
     assert_eq!(report_json["source"]["source_transport"], "replica_query");
-    assert_eq!(report_json["neurons"][0]["state_text"], "not-dissolving");
-    assert_eq!(report_json["neurons"][0]["visibility_text"], "public");
-    assert_eq!(report_json["neurons"][0]["neuron_type_text"], "unknown");
+    assert_eq!(report_json["neurons"][0]["state"], 1);
+    assert_eq!(report_json["neurons"][0]["visibility"], 2);
+    assert_eq!(
+        report_json["neurons"][0]["neuron_type"],
+        serde_json::Value::Null
+    );
     assert_eq!(
         serde_json::to_value(ic_query::nns::governance::NnsGovernanceVote::Unknown(99))
             .expect("serialize unknown neuron vote"),
@@ -1216,11 +1230,9 @@ fn sample_public_neuron(neuron_id: u64) -> NnsNeuronRow {
     NnsNeuronRow {
         neuron_id,
         state: 1,
-        state_text: NnsNeuronState::NotDissolving,
         visibility: Some(2),
-        visibility_text: NnsNeuronVisibility::Public,
+
         neuron_type: None,
-        neuron_type_text: NnsNeuronType::Unknown,
         stake_e8s: 100_000_000,
         staked_maturity_e8s_equivalent: None,
         dissolve_delay_seconds: 31_536_000,
@@ -2628,10 +2640,10 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
     let list_text = nns_proposal_list_report_text(&list_report);
 
-    assert_eq!(list_json["proposals"][0]["topic_text"], "governance");
-    assert_eq!(list_json["proposals"][0]["status_text"], "executed");
-    assert_eq!(list_json["proposals"][0]["reward_status_text"], "settled");
-    assert_eq!(list_json["proposals"][0]["ballots"][0]["vote_text"], "yes");
+    assert_eq!(list_json["proposals"][0]["topic"], 4);
+    assert_eq!(list_json["proposals"][0]["status"], 4);
+    assert_eq!(list_json["proposals"][0]["reward_status"], 3);
+    assert_eq!(list_json["proposals"][0]["ballots"][0]["vote"], 1);
     assert!(list_text.contains("proposal_count: 1"));
     assert!(list_text.contains("topic_filter: governance"));
     assert!(list_text.contains("proposal_details:"));
@@ -4148,11 +4160,11 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         proposal_id: Some(132_411),
         proposer_neuron_id: Some(12_345),
         topic: 4,
-        topic_text: NnsProposalTopic::Governance,
+
         status: 4,
-        status_text: NnsProposalStatus::Executed,
+
         reward_status: 3,
-        reward_status_text: NnsProposalRewardStatus::Settled,
+
         title: Some("Upgrade subnet".to_string()),
         summary: "Upgrade subnet replica version.".to_string(),
         url: "https://dashboard.internetcomputer.org/proposal/132411".to_string(),
@@ -4180,7 +4192,7 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
         ballots: vec![NnsProposalBallotRow {
             neuron_id: 12_345,
             vote: 1,
-            vote_text: ic_query::nns::governance::NnsGovernanceVote::Yes,
+
             voting_power: 100_000_000,
         }],
     }

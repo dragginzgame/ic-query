@@ -23,7 +23,7 @@ impl SnsNeuronSource for FixtureSnsNeuronSource {
         neuron_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             assert_eq!(neuron_id, NEURON_A);
             Ok(fixture_sns_neuron())
         })
@@ -99,7 +99,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             assert_eq!(limit, 10);
             assert_eq!(owner_principal_id, Some(GOVERNANCE_A));
             Ok(vec![SnsNeuronRow {
@@ -129,7 +129,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             assert_eq!(limit, 10);
             assert!(start_page_at.is_none());
             assert_eq!(owner_principal_id, None);
@@ -189,7 +189,7 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             assert_eq!(limit, 2);
             assert_eq!(owner_principal_id, None);
             let cursor = start_page_at.map(|cursor| cursor.id.as_slice());

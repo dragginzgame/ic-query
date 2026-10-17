@@ -19,7 +19,7 @@ impl SnsMetricsSource for FixtureSnsMetricsSource {
         time_window_seconds: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             Ok(fixture_mainnet_sns_metrics(time_window_seconds))
         })
     }

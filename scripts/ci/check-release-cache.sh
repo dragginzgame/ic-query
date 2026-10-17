@@ -23,7 +23,7 @@ cp "$repo_root/scripts/release/adapter.sh" scripts/release/
 cp "$repo_root/scripts/ci/"{next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,verify-file-checksum.sh} scripts/ci/
 cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
 printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
-printf 'selected IC pins\n' > ci/ic-tools.tsv
+printf 'selected IC pins\n' > ci/ic-tools-query.tsv
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail

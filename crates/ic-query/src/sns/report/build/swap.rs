@@ -26,7 +26,7 @@ pub async fn build_sns_swap_report_with_source(
     let mut swap = source
         .fetch_sns_swap(&lookup.fetch_request, &lookup.sns)
         .await?;
-    canonicalize_mainnet_sns_swap(&mut swap, &lookup.sns.swap_canister_id)?;
+    canonicalize_mainnet_sns_swap(&mut swap, &lookup.sns.canisters.swap_canister_id)?;
     Ok(sns_swap_report_from_parts(
         lookup.fetch_request,
         lookup.sns,

@@ -82,7 +82,10 @@ The multiplication uses `u128`, and division is exact because
 `cycles_per_xdr` is divisible by 10,000. `CmcCyclesReport` retains the raw
 certified rate, both derived cycle values, the formula string, the explicit
 `ic_protocol_constant` source label, and the same certificate evidence. It
-does not present `cycles_per_xdr` as a separately queried CMC field.
+does not present `cycles_per_xdr` as a separately queried CMC field. In Rust,
+`CmcCyclesReport::xdr` carries the complete `CmcXdrReport` used for derivation.
+Its flattened Serde representation retains the top-level context, `rate` and
+`certification` fields alongside the derived cycle values.
 
 ## Adapter and network contract
 

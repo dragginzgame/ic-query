@@ -24,7 +24,7 @@ pub(in crate::sns::report) fn sns_swap_report_from_parts(
         fetched_by: fetch_request.fetched_by,
         id: sns.id,
         name: sns.name,
-        root_canister_id: sns.root_canister_id,
+        root_canister_id: sns.canisters.root_canister_id,
         swap_canister_id: swap.swap_canister_id,
         lifecycle_method: swap.lifecycle_method,
         sale_parameters_method: swap.sale_parameters_method,

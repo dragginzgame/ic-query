@@ -506,31 +506,13 @@ pub(in crate::sns::report) fn validate_sns_reward_running_version_evidence(
         .deployed_version
         .as_ref()
         .ok_or_else(|| "running version has no deployed_version".to_string())?;
-    validate_version("deployed_version", deployed)?;
+    deployed.validate_hashes("deployed_version", Some(32))?;
     if let Some(target) = response
         .pending_version
         .as_ref()
         .and_then(|pending| pending.target_version.as_ref())
     {
-        validate_version("pending_version.target_version", target)?;
-    }
-    Ok(())
-}
-
-fn validate_version(field: &str, version: &crate::sns::report::SnsVersion) -> Result<(), String> {
-    for (role, hash) in [
-        ("archive", version.archive_wasm_hash_hex.as_str()),
-        ("root", version.root_wasm_hash_hex.as_str()),
-        ("swap", version.swap_wasm_hash_hex.as_str()),
-        ("ledger", version.ledger_wasm_hash_hex.as_str()),
-        ("governance", version.governance_wasm_hash_hex.as_str()),
-        ("index", version.index_wasm_hash_hex.as_str()),
-    ] {
-        if hash.len() != 64 || !is_canonical_lowercase_hex(hash) {
-            return Err(format!(
-                "{field}.{role}_wasm_hash_hex is not a 32-byte lowercase hexadecimal hash"
-            ));
-        }
+        target.validate_hashes("pending_version.target_version", Some(32))?;
     }
     Ok(())
 }

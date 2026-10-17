@@ -33,7 +33,7 @@ pub async fn build_sns_metrics_report_with_source(
         .await?;
     canonicalize_mainnet_sns_metrics(
         &mut metrics,
-        &lookup.sns.governance_canister_id,
+        &lookup.sns.canisters.governance_canister_id,
         request.time_window_seconds,
     )?;
     Ok(sns_metrics_report_from_parts(

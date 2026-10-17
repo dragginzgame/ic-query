@@ -14,10 +14,11 @@ use super::NnsProposalActivityReport;
 #[cfg(feature = "nns-host")]
 use super::cache::NnsProposalCacheListReport;
 use super::model::{
-    NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRow,
+    NnsProposalBallotRow, NnsProposalListReport, NnsProposalReport, NnsProposalRewardStatus,
+    NnsProposalRow, NnsProposalStatus, NnsProposalTopic,
 };
 use crate::{
-    nns::governance::{governance_context_lines, governance_source_lines},
+    nns::governance::{NnsGovernanceVote, governance_context_lines, governance_source_lines},
     subnet_catalog::format_utc_timestamp_secs,
     text_value::{optional_u64_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
@@ -104,7 +105,7 @@ fn topic_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
             .map(|row| {
                 [
                     row.topic.to_string(),
-                    row.topic_text.as_str().to_string(),
+                    NnsProposalTopic::from_code(row.topic).as_str().to_string(),
                     row.proposal_count.to_string(),
                 ]
             })
@@ -126,7 +127,9 @@ fn status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
             .map(|row| {
                 [
                     row.status.to_string(),
-                    row.status_text.as_str().to_string(),
+                    NnsProposalStatus::from_code(row.status)
+                        .as_str()
+                        .to_string(),
                     row.proposal_count.to_string(),
                 ]
             })
@@ -148,7 +151,9 @@ fn reward_status_activity_table(report: &NnsProposalActivityReport) -> Option<St
             .map(|row| {
                 [
                     row.reward_status.to_string(),
-                    row.reward_status_text.as_str().to_string(),
+                    NnsProposalRewardStatus::from_code(row.reward_status)
+                        .as_str()
+                        .to_string(),
                     row.proposal_count.to_string(),
                 ]
             })
@@ -228,8 +233,12 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
                 .map(|proposal| {
                     [
                         optional_u64_text(proposal.proposal_id),
-                        proposal.topic_text.as_str().to_string(),
-                        proposal.status_text.as_str().to_string(),
+                        NnsProposalTopic::from_code(proposal.topic)
+                            .as_str()
+                            .to_string(),
+                        NnsProposalStatus::from_code(proposal.status)
+                            .as_str()
+                            .to_string(),
                         proposal.proposed_at.clone(),
                         proposal_title(proposal),
                     ]
@@ -349,17 +358,17 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
         ),
         format!(
             "topic: {} ({})",
-            terminal_text(proposal.topic_text.as_str()),
+            terminal_text(NnsProposalTopic::from_code(proposal.topic).as_str()),
             proposal.topic
         ),
         format!(
             "status: {} ({})",
-            terminal_text(proposal.status_text.as_str()),
+            terminal_text(NnsProposalStatus::from_code(proposal.status).as_str()),
             proposal.status
         ),
         format!(
             "reward_status: {} ({})",
-            terminal_text(proposal.reward_status_text.as_str()),
+            terminal_text(NnsProposalRewardStatus::from_code(proposal.reward_status).as_str()),
             proposal.reward_status
         ),
         format!(
@@ -446,7 +455,7 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
             .map(|ballot| {
                 [
                     ballot.neuron_id.to_string(),
-                    ballot.vote_text.to_string(),
+                    NnsGovernanceVote::from_code(ballot.vote).to_string(),
                     e8s_decimal_text(ballot.voting_power),
                 ]
             })

@@ -12,6 +12,7 @@ trap 'fixture_finish "$?" "$work_dir" "Feature boundary diagnostics retained"' E
 export TMPDIR="${work_dir%/*}"
 
 forbidden_pure_library_dependencies=(
+  candid_parser
   clap
   futures
   ic-agent
@@ -30,6 +31,7 @@ forbidden_direct_pure_library_dependencies=(
 )
 
 forbidden_canister_dependencies=(
+  candid_parser
   cap-fs-ext
   cap-std
   clap
@@ -44,17 +46,15 @@ forbidden_canister_dependencies=(
   tokio
 )
 
+# Host Tools includes its Candid parser unconditionally; certificate consumers
+# still exclude interface extraction, process execution and archive decoding.
 forbidden_host_dependencies=(
   clap
   ic-host-process
   'ic-host-artifacts feature "archive"'
   'ic-host-artifacts feature "gzip"'
   'ic-host-artifacts feature "wasm"'
-  candid_parser
-  'ic-host-tools feature "candid-extraction"'
-  'ic-host-tools feature "candid-service"'
   'ic-host-tools feature "ic-interface"'
-  'ic-host-tools feature "ic-limits"'
 )
 
 forbidden_direct_registry_host_dependencies=(

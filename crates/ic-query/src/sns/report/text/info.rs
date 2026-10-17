@@ -19,11 +19,17 @@ pub fn sns_info_report_text(report: &SnsInfoReport) -> String {
             optional_text(report.description.as_ref())
         ),
         format!("url: {}", optional_text(report.url.as_ref())),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("swap_canister_id: {}", report.swap_canister_id),
-        format!("index_canister_id: {}", report.index_canister_id),
+        format!("root_canister_id: {}", report.canisters.root_canister_id),
+        format!(
+            "governance_canister_id: {}",
+            report.canisters.governance_canister_id
+        ),
+        format!(
+            "ledger_canister_id: {}",
+            report.canisters.ledger_canister_id
+        ),
+        format!("swap_canister_id: {}", report.canisters.swap_canister_id),
+        format!("index_canister_id: {}", report.canisters.index_canister_id),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(

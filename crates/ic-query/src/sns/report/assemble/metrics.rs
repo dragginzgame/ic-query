@@ -23,7 +23,7 @@ pub(in crate::sns::report) fn sns_metrics_report_from_parts(
         fetched_by: fetch_request.fetched_by,
         id: sns.id,
         name: sns.name,
-        root_canister_id: sns.root_canister_id,
+        root_canister_id: sns.canisters.root_canister_id,
         governance_canister_id: metrics.governance_canister_id,
         method: metrics.method,
         call_type: metrics.call_type,

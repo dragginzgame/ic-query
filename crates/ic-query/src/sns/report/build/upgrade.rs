@@ -26,7 +26,7 @@ pub async fn build_sns_upgrade_report_with_source(
     let upgrade = source
         .fetch_sns_upgrade(&lookup.fetch_request, &lookup.sns)
         .await?;
-    canonicalize_mainnet_sns_upgrade(&upgrade, &lookup.sns.governance_canister_id)?;
+    canonicalize_mainnet_sns_upgrade(&upgrade, &lookup.sns.canisters.governance_canister_id)?;
     Ok(sns_upgrade_report_from_parts(
         lookup.fetch_request,
         lookup.sns,

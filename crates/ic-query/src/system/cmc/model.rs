@@ -90,11 +90,9 @@ pub struct CmcXdrReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CmcCyclesReport {
-    /// Query and authority provenance.
+    /// Complete certified rate and provenance used by the derivation.
     #[serde(flatten)]
-    pub context: CmcReportContext,
-    /// Raw CMC conversion-rate value used by the derivation.
-    pub rate: CmcIcpXdrConversionRate,
+    pub xdr: CmcXdrReport,
     /// IC protocol constant for the number of cycles corresponding to one XDR.
     pub cycles_per_xdr: u128,
     /// Authority label for `cycles_per_xdr`, distinct from the certified CMC rate.
@@ -103,8 +101,6 @@ pub struct CmcCyclesReport {
     pub cycles_per_icp: u128,
     /// Exact formula used to derive `cycles_per_icp`.
     pub cycles_per_icp_formula: String,
-    /// Authenticated certificate and witness evidence for `rate`.
-    pub certification: CmcCertification,
 }
 
 ///

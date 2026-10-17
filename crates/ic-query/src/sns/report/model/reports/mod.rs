@@ -71,7 +71,7 @@ pub use swap::{
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters,
 };
-pub use token::{SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow};
+pub use token::SnsTokenReport;
 pub use upgrade::{
     SnsPendingUpgrade, SnsRunningVersionResponse, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
 };

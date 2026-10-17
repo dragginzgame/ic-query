@@ -4,6 +4,7 @@
 //! Does not own: command parsing, live transport internals, or report assembly.
 //! Boundary: resolves id/root against raw SNS-W inventory before targeted metadata enrichment.
 
+use crate::sns::report::MainnetSnsCanisters;
 use crate::sns::report::lookup::{
     model::SnsLookup,
     request::{fetch_request_from_parts, parse_sns_root_canister_input},
@@ -11,7 +12,7 @@ use crate::sns::report::lookup::{
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{
-        MainnetSnsCanisters, MainnetSnsInventory, SnsDiscoverySource, join_mainnet_sns_inventory,
+        MainnetSnsInventory, SnsDiscoverySource, join_mainnet_sns_inventory,
         validate_mainnet_sns_inventory,
     },
 };

@@ -5,9 +5,7 @@
 //! Boundary: projects complete proposal evidence into deterministic portable activity reports.
 
 use super::{
-    NnsProposalCollectionState,
-    collection::validate_collection_state,
-    model::{NnsProposalRewardStatus, NnsProposalRow, NnsProposalStatus, NnsProposalTopic},
+    NnsProposalCollectionState, collection::validate_collection_state, model::NnsProposalRow,
 };
 use crate::{
     nns::{
@@ -49,11 +47,10 @@ pub struct NnsProposalActivityRequest {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalTopicCount {
     /// Raw native Governance topic code.
     pub topic: i32,
-    /// Classification derived from the raw topic code.
-    pub topic_text: NnsProposalTopic,
     /// Number of included proposals with this topic code.
     pub proposal_count: u64,
 }
@@ -65,11 +62,10 @@ pub struct NnsProposalTopicCount {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalStatusCount {
     /// Raw native Governance decision-status code.
     pub status: i32,
-    /// Classification derived from the raw status code.
-    pub status_text: NnsProposalStatus,
     /// Number of included proposals with this status code.
     pub proposal_count: u64,
 }
@@ -81,11 +77,10 @@ pub struct NnsProposalStatusCount {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalRewardStatusCount {
     /// Raw native Governance reward-status code.
     pub reward_status: i32,
-    /// Classification derived from the raw reward-status code.
-    pub reward_status_text: NnsProposalRewardStatus,
     /// Number of included proposals with this reward-status code.
     pub proposal_count: u64,
 }
@@ -233,51 +228,6 @@ pub enum NnsProposalActivityError {
         proposal_id: u64,
     },
 
-    /// A typed topic classification disagrees with its raw code.
-    #[error(
-        "NNS proposal {proposal_id} topic classification {actual:?} does not match raw code {topic} ({expected:?})"
-    )]
-    TopicClassificationMismatch {
-        /// Proposal identifier carrying the mismatch.
-        proposal_id: u64,
-        /// Raw native topic code.
-        topic: i32,
-        /// Classification supplied by the row.
-        actual: NnsProposalTopic,
-        /// Classification derived from the raw code.
-        expected: NnsProposalTopic,
-    },
-
-    /// A typed decision-status classification disagrees with its raw code.
-    #[error(
-        "NNS proposal {proposal_id} status classification {actual:?} does not match raw code {status} ({expected:?})"
-    )]
-    StatusClassificationMismatch {
-        /// Proposal identifier carrying the mismatch.
-        proposal_id: u64,
-        /// Raw native decision-status code.
-        status: i32,
-        /// Classification supplied by the row.
-        actual: NnsProposalStatus,
-        /// Classification derived from the raw code.
-        expected: NnsProposalStatus,
-    },
-
-    /// A typed reward-status classification disagrees with its raw code.
-    #[error(
-        "NNS proposal {proposal_id} reward-status classification {actual:?} does not match raw code {reward_status} ({expected:?})"
-    )]
-    RewardStatusClassificationMismatch {
-        /// Proposal identifier carrying the mismatch.
-        proposal_id: u64,
-        /// Raw native reward-status code.
-        reward_status: i32,
-        /// Classification supplied by the row.
-        actual: NnsProposalRewardStatus,
-        /// Classification derived from the raw code.
-        expected: NnsProposalRewardStatus,
-    },
-
     /// A row-count conversion or aggregate increment exceeded `u64`.
     #[error("NNS proposal activity accounting overflow while updating {field}")]
     AccountingOverflow {
@@ -295,35 +245,26 @@ pub fn validate_nns_proposal_activity_report(
     validate_code_counts(
         report,
         "topic",
-        report.topic_counts.iter().map(|row| {
-            (
-                row.topic,
-                row.topic_text == NnsProposalTopic::from_code(row.topic),
-                row.proposal_count,
-            )
-        }),
+        report
+            .topic_counts
+            .iter()
+            .map(|row| (row.topic, row.proposal_count)),
     )?;
     validate_code_counts(
         report,
         "status",
-        report.status_counts.iter().map(|row| {
-            (
-                row.status,
-                row.status_text == NnsProposalStatus::from_code(row.status),
-                row.proposal_count,
-            )
-        }),
+        report
+            .status_counts
+            .iter()
+            .map(|row| (row.status, row.proposal_count)),
     )?;
     validate_code_counts(
         report,
         "reward-status",
-        report.reward_status_counts.iter().map(|row| {
-            (
-                row.reward_status,
-                row.reward_status_text == NnsProposalRewardStatus::from_code(row.reward_status),
-                row.proposal_count,
-            )
-        }),
+        report
+            .reward_status_counts
+            .iter()
+            .map(|row| (row.reward_status, row.proposal_count)),
     )?;
     validate_day_counts(report)
 }
@@ -464,19 +405,14 @@ fn validate_included_range(
 fn validate_code_counts(
     report: &NnsProposalActivityReport,
     dimension: &'static str,
-    rows: impl Iterator<Item = (i32, bool, u64)>,
+    rows: impl Iterator<Item = (i32, u64)>,
 ) -> Result<(), NnsProposalActivityValidationError> {
     let mut previous = None;
     let mut total = 0_u64;
-    for (key, classification_matches, count) in rows {
+    for (key, count) in rows {
         if previous.is_some_and(|previous| previous >= key) {
             return Err(invalid_validation(format!(
                 "{dimension} count rows are not strictly raw-code ordered"
-            )));
-        }
-        if !classification_matches {
-            return Err(invalid_validation(format!(
-                "{dimension} classification for raw code {key} is inconsistent"
             )));
         }
         total = add_dimension_count(total, count, dimension)?;
@@ -729,7 +665,7 @@ impl ActivityAccumulator {
                 .into_iter()
                 .map(|(topic, proposal_count)| NnsProposalTopicCount {
                     topic,
-                    topic_text: NnsProposalTopic::from_code(topic),
+
                     proposal_count,
                 })
                 .collect(),
@@ -738,7 +674,7 @@ impl ActivityAccumulator {
                 .into_iter()
                 .map(|(status, proposal_count)| NnsProposalStatusCount {
                     status,
-                    status_text: NnsProposalStatus::from_code(status),
+
                     proposal_count,
                 })
                 .collect(),
@@ -748,7 +684,7 @@ impl ActivityAccumulator {
                 .map(
                     |(reward_status, proposal_count)| NnsProposalRewardStatusCount {
                         reward_status,
-                        reward_status_text: NnsProposalRewardStatus::from_code(reward_status),
+
                         proposal_count,
                     },
                 )
@@ -800,35 +736,6 @@ fn validate_proposal_row(
         return Err(NnsProposalActivityError::ZeroProposalTimestamp { proposal_id });
     }
 
-    let expected_topic = NnsProposalTopic::from_code(proposal.topic);
-    if proposal.topic_text != expected_topic {
-        return Err(NnsProposalActivityError::TopicClassificationMismatch {
-            proposal_id,
-            topic: proposal.topic,
-            actual: proposal.topic_text,
-            expected: expected_topic,
-        });
-    }
-    let expected_status = NnsProposalStatus::from_code(proposal.status);
-    if proposal.status_text != expected_status {
-        return Err(NnsProposalActivityError::StatusClassificationMismatch {
-            proposal_id,
-            status: proposal.status,
-            actual: proposal.status_text,
-            expected: expected_status,
-        });
-    }
-    let expected_reward_status = NnsProposalRewardStatus::from_code(proposal.reward_status);
-    if proposal.reward_status_text != expected_reward_status {
-        return Err(
-            NnsProposalActivityError::RewardStatusClassificationMismatch {
-                proposal_id,
-                reward_status: proposal.reward_status,
-                actual: proposal.reward_status_text,
-                expected: expected_reward_status,
-            },
-        );
-    }
     Ok(())
 }
 

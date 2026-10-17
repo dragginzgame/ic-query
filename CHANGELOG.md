@@ -5,12 +5,52 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.60.1]
+## [0.61.1]
 
-- Prepare native qualification callers for Testkit 0.51's explicit-principal
-  calls and field-based installation inputs, preserving existing senders and
-  reply budgets. This draft requires Testkit publication and normal dependency
-  adoption before integration; stored product data is unchanged.
+- Align native Governance qualification with Testkit 0.53's bounded reply-argument
+  calls. Preserve the anonymous caller, reply budgets and report assertions;
+  published query behavior and stored product formats are unchanged.
+
+Detailed release notes: [docs/changelog/0.61.md](docs/changelog/0.61.md)
+
+## [0.61.0] - 2026-10-17
+
+- **Breaking:** SNS token reports and custom sources use
+  `icrc::IcrcTokenStandardRow` and `icrc::IcrcTokenMetadataRow` directly. Remove
+  the equivalent SNS row types and redundant ledger-to-report conversions.
+  `MainnetSnsToken` composes its metadata as `token: IcrcTokenData`.
+- **Breaking:** `IcrcBlockTypesSource` and `IcrcArchivesSource` return vectors
+  of their existing row types directly; update custom source implementations.
+- **Breaking:** `CmcCyclesReport` retains the complete certified XDR report in
+  `xdr`; access provenance, rate and certification through that field. JSON
+  remains flat with the existing fields.
+- **Breaking:** NNS neuron and proposal rows, ballots and aggregate buckets
+  retain raw codes without duplicated classification fields. Text labels are
+  derived when rendered. Update Rust/JSON consumers and explicitly refresh
+  neuron and proposal snapshots; strict row decoding rejects the replaced
+  shapes. Schemas remain 1.
+- **Breaking:** ICRC tip-certificate sources return the standard optional byte
+  pair; reports derive their existing hex and length fields during assembly.
+- **Breaking:** SNS joined, list and info models compose their five canister
+  principals in `canisters: MainnetSnsCanisters`. JSON remains flat.
+- Include the MIT license text in both published crate packages.
+- Align feature-boundary checks with Host's unconditional Candid parser while
+  keeping portable and canister builds free of that dependency.
+- Keep CI input-drift fixtures bound to their own tool-pin catalog when run
+  from a parent CI or release process.
+- Use typed Cargo selections and fresh source-evidence validation in the
+  Governance probe build harness.
+- Align Governance probe builds with IC Build 0.15 and Host 0.26, resolving
+  the shared process-cleanup policy type mismatch.
+- Fix native host compilation with Host 0.25 while preserving confined,
+  atomic cache publication and failure evidence. Update canister fixtures for
+  Testkit 0.51’s explicit installation fields and caller principal.
+- Select ICP CLI 1.7.0 for development and canister tooling. Run
+  `make install-ic-tools` before offline tool checks.
+- Share SNS version-hash validation while preserving upgrade hex admission and
+  the stricter 32-byte reward-checkpoint requirement.
+
+Detailed release notes: [docs/changelog/0.61.md](docs/changelog/0.61.md)
 
 ## [0.60.0] - 2026-10-17
 

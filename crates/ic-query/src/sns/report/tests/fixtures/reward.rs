@@ -64,7 +64,7 @@ impl SnsRewardSource for FixtureSnsRewardSource {
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.governance_canister_id, GOVERNANCE_A);
+            assert_eq!(sns.canisters.governance_canister_id, GOVERNANCE_A);
             self.calls.lock().unwrap().push("version");
             let call = *self.version_calls.lock().unwrap();
             (*self.version_calls.lock().unwrap() = call + 1);

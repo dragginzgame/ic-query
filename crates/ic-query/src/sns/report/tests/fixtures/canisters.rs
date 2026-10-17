@@ -18,7 +18,7 @@ impl SnsCanisterSource for FixtureSnsCanisterSource {
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.root_canister_id, ROOT_A);
+            assert_eq!(sns.canisters.root_canister_id, ROOT_A);
             Ok(MainnetSnsCanisterInventory {
                 inventory_method: SnsCanisterMethod::ListSnsCanisters,
                 health_method: SnsCanisterMethod::GetSnsCanistersSummary,

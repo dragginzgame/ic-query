@@ -97,7 +97,7 @@ case "$operation" in
     bash scripts/ci/check-release-source.sh
     metadata preflight
     preparation=(bash scripts/ci/cargo-release-preflight.sh "$repo_root" "$prepare_cache"
-      --pin ci/tool-versions.env --pin ci/ic-tools.tsv
+      --pin ci/tool-versions.env --pin "${IC_TOOL_PINS:-ci/ic-tools-query.tsv}"
       --check install-rust-tools --prepare install-rust-tools)
     [[ "$prepare_cache" == 1 ]] || preparation=(env CARGO_NET_OFFLINE=true "${preparation[@]}")
     if "${preparation[@]}"; then

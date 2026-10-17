@@ -1,12 +1,11 @@
-use super::source::validate_neuron_rows;
 use super::{
-    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronBallotRow, NnsNeuronError,
-    NnsNeuronHostError, NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
-    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType, NnsNeuronVisibility,
-    build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_source,
-    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_source,
-    nns_neuron_cache_path, nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
+    DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NnsKnownNeuronData, NnsNeuronError, NnsNeuronHostError,
+    NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
+    NnsNeuronSourceFuture, NnsNeuronVisibility, build_nns_neuron_cache_status_report,
+    build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report_from_cache,
+    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
+    build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
+    nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
 };
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -257,7 +256,10 @@ async fn public_list_and_info_reports_preserve_governance_rows() {
         vec![1, 2]
     );
     assert_eq!(list.neurons[0].visibility, Some(2));
-    assert_eq!(list.neurons[0].visibility_text, NnsNeuronVisibility::Public);
+    assert_eq!(
+        NnsNeuronVisibility::from_code(list.neurons[0].visibility),
+        NnsNeuronVisibility::Public
+    );
 
     let info_request = NnsNeuronInfoRequest::new(governance_request(1_700_000_000), 42);
     let info = build_nns_neuron_info_report_with_source(&info_request, &FixtureSource)
@@ -530,8 +532,7 @@ async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
     let original = fs::read(&path).expect("read initial snapshot");
 
     for mutate in [
-        (|page| page.neurons[0].state_text = NnsNeuronState::Dissolved) as fn(&mut NnsNeuronPage),
-        |page| page.neurons[0].neuron_id = 2,
+        (|page: &mut NnsNeuronPage| page.neurons[0].neuron_id = 2) as fn(&mut NnsNeuronPage),
         |page| page.next_start_neuron_id = Some(3),
     ] {
         let error = refresh_nns_neuron_cache_with_source(&request, &MutatingLastPageSource(mutate))
@@ -681,11 +682,9 @@ fn sample_neuron(neuron_id: u64) -> NnsNeuronRow {
     NnsNeuronRow {
         neuron_id,
         state: 1,
-        state_text: NnsNeuronState::NotDissolving,
         visibility: Some(2),
-        visibility_text: NnsNeuronVisibility::Public,
+
         neuron_type: None,
-        neuron_type_text: NnsNeuronType::Unknown,
         stake_e8s: neuron_id.saturating_mul(100_000_000),
         staked_maturity_e8s_equivalent: Some(10),
         dissolve_delay_seconds: 31_536_000,
@@ -707,41 +706,51 @@ fn sample_neuron(neuron_id: u64) -> NnsNeuronRow {
     }
 }
 
-#[test]
-fn neuron_rows_reject_classifications_that_contradict_raw_codes() {
-    let mut state_mismatch = sample_neuron(1);
-    state_mismatch.state_text = NnsNeuronState::Dissolved;
-    assert!(matches!(
-        validate_neuron_rows(&[state_mismatch]),
-        Err(NnsNeuronError::InvalidResponse { reason })
-            if reason.contains("state classification dissolved does not match raw code 1")
-    ));
-
-    let mut visibility_mismatch = sample_neuron(1);
-    visibility_mismatch.visibility_text = NnsNeuronVisibility::Private;
-    assert!(matches!(
-        validate_neuron_rows(&[visibility_mismatch]),
-        Err(NnsNeuronError::InvalidResponse { reason })
-            if reason.contains("visibility classification private does not match raw code Some(2)")
-    ));
-
-    let mut type_mismatch = sample_neuron(1);
-    type_mismatch.neuron_type_text = NnsNeuronType::Seed;
-    assert!(matches!(
-        validate_neuron_rows(&[type_mismatch]),
-        Err(NnsNeuronError::InvalidResponse { reason })
-            if reason.contains("type classification seed does not match raw code None")
-    ));
-
-    let mut vote_mismatch = sample_neuron(1);
-    vote_mismatch.recent_ballots.push(NnsNeuronBallotRow {
-        proposal_id: Some(7),
-        vote: 1,
-        vote_text: crate::nns::governance::NnsGovernanceVote::No,
-    });
-    assert!(matches!(
-        validate_neuron_rows(&[vote_mismatch]),
-        Err(NnsNeuronError::InvalidResponse { reason })
-            if reason.contains("ballot vote classification no does not match raw code 1")
-    ));
+#[tokio::test(flavor = "current_thread")]
+async fn cache_rows_reject_unknown_fields_without_rewriting_evidence() {
+    let root = temp_dir("ic-query-neuron-row-admission");
+    let refresh = NnsGovernanceRefreshRequest::new(
+        &root,
+        MAINNET_NETWORK,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+        1_700_000_000,
+        2,
+    );
+    refresh_nns_neuron_cache_with_source(&refresh, &FixtureSource)
+        .await
+        .unwrap();
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    for mutate in [
+        (|cache: &mut serde_json::Value| {
+            cache["neurons"][0]["unexpected_evidence"] = serde_json::json!(true);
+        }) as fn(&mut serde_json::Value),
+        |cache| {
+            cache["neurons"][0]["recent_ballots"] =
+                serde_json::json!([{ "proposal_id": 7, "vote": 99, "unexpected_evidence": true }]);
+        },
+    ] {
+        let mut cache = original.clone();
+        mutate(&mut cache);
+        let bytes = serde_json::to_vec(&cache).unwrap();
+        fs::write(&path, &bytes).unwrap();
+        let error = build_nns_neuron_distribution_report_from_cache(
+            &NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            NnsNeuronHostError::Cache(crate::HostCacheError::ParseCache { .. })
+        ));
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+    }
+    refresh_nns_neuron_cache_with_source(&refresh, &FixtureSource)
+        .await
+        .unwrap();
+    let restored = build_nns_neuron_distribution_report_from_cache(
+        &NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK),
+    )
+    .unwrap();
+    assert_eq!(restored.collected_neuron_count, 3);
+    fs::remove_dir_all(root).unwrap();
 }

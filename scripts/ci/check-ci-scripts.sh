@@ -385,16 +385,18 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools-query.tsv; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
     DRIFT_INPUT="$drift_case/$input" VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     "$make_bin" --no-print-directory -C "$drift_case" ci > "$drift_case/drift-output" 2>&1; then
     fail "CI accepted changed $input"
   fi
   printf 'shared-tooling-check\n' > "$drift_case/expected"
-  cmp "$drift_case/expected" "$drift_case/trace" || fail 'CI continued after input drift'
+  cmp "$drift_case/expected" "$drift_case/trace" \
+    || fail 'CI did not dispatch exactly the first stage before detecting input drift'
   grep -Fq "validation input changed: $input" "$drift_case/failures/latest.log" \
     || fail 'CI lost changed-input diagnostics'
   cp "$drift_case/original-input" "$drift_case/$input"
@@ -404,6 +406,7 @@ if (
   cd "$drift_case"
   unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
   PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" DRIFT_INPUT="$drift_case/Cargo.lock" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
     VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     bash scripts/ci/run-validation-targets.sh --input Cargo.lock ci
 ) > "$drift_case/nested-output" 2>&1; then
@@ -995,12 +998,13 @@ for failed_command in check test tree; do
 done
 
 for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
-  'ic-host-tools feature "candid-extraction"' 'ic-host-tools feature "candid-service"' \
-  'ic-host-tools feature "ic-interface"' 'ic-host-tools feature "ic-limits"' \
+  'ic-host-tools feature "ic-interface"' \
   'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
   'ic-host-artifacts feature "wasm"'; do
   scope=host
-  [[ "$dependency" != ic-host-artifacts && "$dependency" != ic-host-fs && "$dependency" != ic-host-tools ]] || scope=pure
+  case "$dependency" in
+    ic-host-artifacts|ic-host-fs|ic-host-tools|candid_parser) scope=pure ;;
+  esac
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \
@@ -1012,18 +1016,14 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools can
     || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
 done
 
-TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
-  FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE=ic-host-fs TRACE_FILE="${feature_boundary_case}/trace" \
-  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
-    >"${feature_boundary_case}/filesystem-accepted.log" 2>&1 \
-    || fail 'the cache host feature boundary rejected its current filesystem dependency'
-
-TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
-  FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE='ic-host-tools feature "certificate"' \
-  TRACE_FILE="${feature_boundary_case}/trace" \
-  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
-    >"${feature_boundary_case}/certificate-accepted.log" 2>&1 \
-    || fail 'the host feature boundary rejected the selected certificate decoder'
+for dependency in ic-host-fs candid_parser 'ic-host-tools feature "certificate"'; do
+  TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE="$dependency" \
+    TRACE_FILE="${feature_boundary_case}/trace" \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/dependency-accepted.log" 2>&1 \
+      || fail "the host feature boundary rejected its current dependency $dependency"
+done
 
 retention_case="$work_dir/fixture-retention"
 mkdir -p "$retention_case/bin"

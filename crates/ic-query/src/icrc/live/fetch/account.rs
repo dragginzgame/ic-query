@@ -7,14 +7,10 @@
 use super::live_query_context;
 use crate::candid_call::{query_canister, query_no_args};
 use crate::icrc::{
-    ledger::{
-        IcrcLedgerMetadataRow, IcrcLedgerStandardRow, IcrcLedgerTokenMetadata,
-        fetch_icrc1_token_metadata, nat_text, principal_from_text,
-    },
+    ledger::{fetch_icrc1_token_metadata, nat_text, principal_from_text},
     model::{
         IcrcAllowanceData, IcrcAllowanceRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcError,
-        IcrcLedgerRequest, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow,
-        subaccount_bytes_from_hex,
+        IcrcLedgerRequest, IcrcTokenData, subaccount_bytes_from_hex,
     },
 };
 use candid::{Nat, Principal};
@@ -42,7 +38,6 @@ pub(in crate::icrc::live) async fn fetch_token_async(
         &ledger_canister,
     ))
     .await
-    .map(token_data_from_ledger)
 }
 
 pub(in crate::icrc::live) async fn fetch_balance_async(
@@ -139,41 +134,4 @@ pub(in crate::icrc::live) fn account_from_parts(
         owner: principal_from_text(owner, owner_field)?,
         subaccount: subaccount_hex.map(subaccount_bytes_from_hex).transpose()?,
     })
-}
-
-fn token_data_from_ledger(token: IcrcLedgerTokenMetadata) -> IcrcTokenData {
-    IcrcTokenData {
-        token_name: token.token_name,
-        token_symbol: token.token_symbol,
-        decimals: token.decimals,
-        transfer_fee: token.transfer_fee,
-        total_supply: token.total_supply,
-        minting_account_owner: token.minting_account_owner,
-        minting_account_subaccount_hex: token.minting_account_subaccount_hex,
-        supported_standards: token
-            .supported_standards
-            .into_iter()
-            .map(token_standard_row_from_ledger)
-            .collect(),
-        metadata: token
-            .metadata
-            .into_iter()
-            .map(token_metadata_row_from_ledger)
-            .collect(),
-    }
-}
-
-pub(super) fn token_standard_row_from_ledger(row: IcrcLedgerStandardRow) -> IcrcTokenStandardRow {
-    IcrcTokenStandardRow {
-        name: row.name,
-        url: row.url,
-    }
-}
-
-fn token_metadata_row_from_ledger(row: IcrcLedgerMetadataRow) -> IcrcTokenMetadataRow {
-    IcrcTokenMetadataRow {
-        key: row.key,
-        value_type: row.value_type,
-        value: row.value,
-    }
 }

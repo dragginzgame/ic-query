@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: implemented through the 0.40.0 slice
+- Status: implemented, including the pending 0.61.0 raw-code contract
 - Authority: mainnet NNS Governance canister
 - Public boundary: unauthenticated `NeuronInfo` views
 - Collection guarantee: API exhaustion without a point-in-time guarantee
@@ -39,9 +39,8 @@ rows. `ic-query` preserves that cursor contract and requires every page to:
   collection exhaustion unproven.
 
 Complete refresh walks the same endpoint and Governance canister until a
-short or empty page proves API exhaustion. Page admission validates row
-classifications and strict order; the exclusive cursor preserves that order
-across pages. Publication moves the admitted rows without revalidating them.
+short or empty page proves API exhaustion. Page admission validates strict row
+order; the exclusive cursor preserves that order across pages. Publication moves the admitted rows without revalidating them.
 The collector retains the row vector without allocating a second full-history
 id set. Disk reads and caller-owned analytics inputs validate their rows at
 their own trust boundaries.
@@ -86,10 +85,26 @@ The builder validates caller-owned collection state and rows before aggregation,
 uses checked accounting, and emits ordered dimensions from its aggregate maps.
 It does not repeat validation on the report it constructs. Restored caller-owned
 reports retain a separate pure validator that checks both collection timestamps,
-page and row accounting, classifications, and aggregate consistency.
+page and row accounting, dimension ordering, and aggregate consistency.
 API exhaustion and internally consistent aggregates do not authenticate the
 retained rows, recover private neuron fields, or establish an atomic
 Governance balance.
+
+## Raw-code contract
+
+Neuron rows, recent ballots and distribution buckets retain raw Governance codes
+without stored classification labels. Text derives classifications through the
+existing public `from_code` helpers; unknown codes and absent optional codes
+remain distinct. Rust and JSON consumers use those raw fields as the authority.
+Row and bucket decoding rejects unknown fields rather than accepting another shape.
+
+The 0.61 hard cut requires explicit refresh of existing neuron snapshots whose
+rows include the replaced classification fields. Preserve any retained evidence
+needed by consumers before running `icq nns neuron refresh`. Cache-only reads
+refuse those snapshots without changing them. Refresh publishes a new complete
+snapshot atomically and preserves the existing bytes on failure. Schemas stay 1;
+there is no automatic reset, migration or fallback reader. Update exported report
+consumers together; continuation and collection evidence remain unchanged.
 
 ## Cache Contract
 

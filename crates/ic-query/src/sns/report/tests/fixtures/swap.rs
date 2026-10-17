@@ -18,7 +18,7 @@ impl SnsSwapSource for FixtureSnsSwapSource {
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {
-            assert_eq!(sns.swap_canister_id, SWAP_A);
+            assert_eq!(sns.canisters.swap_canister_id, SWAP_A);
             Ok(fixture_mainnet_sns_swap(SWAP_A))
         })
     }

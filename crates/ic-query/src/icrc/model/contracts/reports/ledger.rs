@@ -4,7 +4,8 @@
 //! Does not own: account-index history, requests, live transport, archive following, or rendering.
 //! Boundary: preserves raw ledger, block, archive, certificate, and capability fields.
 
-use serde::{Deserialize, Serialize};
+use crate::icrc::{IcrcTokenMetadataRow, IcrcTokenStandardRow};
+use serde::Serialize;
 use serde_json::Value as JsonValue;
 
 ///
@@ -186,63 +187,6 @@ impl IcrcCapabilityStatus {
 }
 
 ///
-/// IcrcTokenStandardRow
-///
-/// Serializable row for one ICRC standard supported by a ledger.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcrcTokenStandardRow {
-    pub name: String,
-    pub url: String,
-}
-
-///
-/// IcrcTokenMetadataRow
-///
-/// Serializable row for one raw ICRC ledger metadata entry.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcrcTokenMetadataRow {
-    pub key: String,
-    pub value_type: IcrcMetadataValueKind,
-    pub value: JsonValue,
-}
-
-///
-/// IcrcMetadataValueKind
-///
-/// Native ICRC-1 metadata value variant represented by a report row.
-///
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum IcrcMetadataValueKind {
-    /// An arbitrary-precision unsigned integer.
-    Nat,
-    /// An arbitrary-precision signed integer.
-    Int,
-    /// A Unicode text value.
-    Text,
-    /// An opaque byte sequence.
-    Blob,
-}
-
-impl IcrcMetadataValueKind {
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Nat => "nat",
-            Self::Int => "int",
-            Self::Text => "text",
-            Self::Blob => "blob",
-        }
-    }
-}
-
-///
 /// IcrcTransactionBlockRow
 ///
 /// Serializable row for one ICRC-3 block returned by a ledger canister.
@@ -317,26 +261,6 @@ mod tests {
                 format!("\"{label}\"")
             );
             assert_eq!(status.as_str(), label);
-        }
-    }
-
-    #[test]
-    fn metadata_value_kind_labels_round_trip() {
-        for (kind, label) in [
-            (IcrcMetadataValueKind::Nat, "nat"),
-            (IcrcMetadataValueKind::Int, "int"),
-            (IcrcMetadataValueKind::Text, "text"),
-            (IcrcMetadataValueKind::Blob, "blob"),
-        ] {
-            assert_eq!(
-                serde_json::to_string(&kind).unwrap(),
-                format!("\"{label}\"")
-            );
-            assert_eq!(
-                serde_json::from_str::<IcrcMetadataValueKind>(&format!("\"{label}\"")).unwrap(),
-                kind
-            );
-            assert_eq!(kind.as_str(), label);
         }
     }
 }

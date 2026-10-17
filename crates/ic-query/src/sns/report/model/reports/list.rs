@@ -5,6 +5,7 @@
 //! Boundary: preserves raw report fields for text and JSON output writers.
 
 use crate::report::ReportDataSource;
+use crate::sns::report::model::MainnetSnsCanisters;
 use serde::Serialize;
 
 ///
@@ -52,11 +53,9 @@ pub struct SnsListReport {
 pub struct SnsListRow {
     pub id: usize,
     pub name: String,
-    pub root_canister_id: String,
-    pub governance_canister_id: String,
-    pub ledger_canister_id: String,
-    pub swap_canister_id: String,
-    pub index_canister_id: String,
+    /// Complete deployed-SNS canister identity, serialized as the existing flat fields.
+    #[serde(flatten)]
+    pub canisters: MainnetSnsCanisters,
     pub metadata_error: Option<String>,
     /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
     pub lifecycle: Option<i32>,
@@ -84,10 +83,8 @@ pub struct SnsInfoReport {
     pub name: String,
     pub description: Option<String>,
     pub url: Option<String>,
-    pub root_canister_id: String,
-    pub governance_canister_id: String,
-    pub ledger_canister_id: String,
-    pub swap_canister_id: String,
-    pub index_canister_id: String,
+    /// Complete deployed-SNS canister identity, serialized as the existing flat fields.
+    #[serde(flatten)]
+    pub canisters: MainnetSnsCanisters,
     pub metadata_error: Option<String>,
 }

@@ -15,14 +15,12 @@ pub(in crate::icrc) use self::cursor::{
     normalize_transaction_cursor, validate_account_transaction_page,
     validate_canonical_account_transactions, validate_transaction_cursor_text,
 };
-use super::fetch::{
-    account_from_parts, live_query_context, query_index_principal, query_token_display_fields,
-};
+use super::fetch::{account_from_parts, live_query_context, query_token_display_fields};
 use crate::candid_call::query_no_args;
 use crate::{
     QueryProgress, QueryProgressState,
     icrc::{
-        ledger::{GetIndexPrincipalResult, index_principal_error_text, principal_from_text},
+        ledger::{index_principal_error_text, principal_from_text, query_index_principal},
         model::{
             IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
             IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
@@ -187,8 +185,8 @@ async fn resolve_index_canister(
             source,
         })?;
     match result {
-        GetIndexPrincipalResult::Ok(index_canister) => Ok(index_canister),
-        GetIndexPrincipalResult::Err(error) => Err(IcrcAccountTransactionError::IndexUnavailable {
+        Ok(index_canister) => Ok(index_canister),
+        Err(error) => Err(IcrcAccountTransactionError::IndexUnavailable {
             ledger_canister_id: ledger_canister.to_text(),
             reason: index_principal_error_text(error),
         }),

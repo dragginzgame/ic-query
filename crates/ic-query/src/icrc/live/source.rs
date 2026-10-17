@@ -20,11 +20,12 @@ use crate::{
         IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
         IcrcAccountTransactionPageData, IcrcAccountTransactionPageRequest,
         IcrcAccountTransactionRefreshRequest, IcrcAllowanceData, IcrcAllowanceRequest,
-        IcrcArchivesData, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
-        IcrcBlockTypesData, IcrcCapabilitiesData, IcrcError, IcrcIndexData, IcrcLedgerRequest,
-        IcrcTipCertificateData, IcrcTokenData, IcrcTransactionsData, IcrcTransactionsRequest,
+        IcrcArchiveRow, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest, IcrcBlockTypeRow,
+        IcrcCapabilitiesData, IcrcError, IcrcIndexData, IcrcLedgerRequest, IcrcTokenData,
+        IcrcTransactionsData, IcrcTransactionsRequest,
     },
 };
+use icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate;
 
 ///
 /// IcrcTokenSource
@@ -110,7 +111,7 @@ pub trait IcrcBlockTypesSource: Sync {
     fn fetch_block_types<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcBlockTypeRow>, IcrcError>>;
 }
 
 ///
@@ -124,7 +125,7 @@ pub trait IcrcArchivesSource: Sync {
     fn fetch_archives<'a>(
         &'a self,
         request: &'a IcrcArchivesRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcArchiveRow>, IcrcError>>;
 }
 
 ///
@@ -138,7 +139,7 @@ pub trait IcrcTipCertificateSource: Sync {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>>;
+    ) -> crate::report::SourceFuture<'a, Result<Option<ICRC3DataCertificate>, IcrcError>>;
 }
 
 ///
@@ -252,7 +253,7 @@ impl IcrcBlockTypesSource for LiveIcrcSource {
     fn fetch_block_types<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcBlockTypeRow>, IcrcError>> {
         Box::pin(fetch_block_types_async(self, request))
     }
 }
@@ -261,7 +262,7 @@ impl IcrcArchivesSource for LiveIcrcSource {
     fn fetch_archives<'a>(
         &'a self,
         request: &'a IcrcArchivesRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Vec<IcrcArchiveRow>, IcrcError>> {
         Box::pin(fetch_archives_async(self, request))
     }
 }
@@ -270,7 +271,7 @@ impl IcrcTipCertificateSource for LiveIcrcSource {
     fn fetch_tip_certificate<'a>(
         &'a self,
         request: &'a IcrcLedgerRequest,
-    ) -> crate::report::SourceFuture<'a, Result<IcrcTipCertificateData, IcrcError>> {
+    ) -> crate::report::SourceFuture<'a, Result<Option<ICRC3DataCertificate>, IcrcError>> {
         Box::pin(fetch_tip_certificate_async(self, request))
     }
 }

@@ -119,7 +119,7 @@ Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
 errors. Cache-only operations report them directly, and read-through policies
 must not reinterpret them as invalid content that authorizes a live refresh.
 Publication passes the admitted parent descriptor and final filename to
-`ic-host-fs::durable::write_at_with`, with replace mode and `0600` staging.
+`ic-host-fs::durable::write_at_validated_with`, with replace mode and `0600` staging.
 The shared engine owns exclusive staging, file sync, rename, owned cleanup and
 parent sync. Effects stay beneath the held parent when its original path moves
 or is replaced; Query retains root, parent and final-target admission. Callers
@@ -615,3 +615,13 @@ and order during collection, so finalization does not sort or deduplicate again.
 Disk loads and caller-supplied complete collections retain their own boundary
 validation. Sparse ids, arbitrary-size naturals, and empty terminal pages remain
 supported; exhaustion still does not establish a point-in-time snapshot.
+
+## Raw NNS proposal classification evidence
+
+Proposal rows, ballots and activity count buckets persist raw protocol codes;
+renderers and view sorts derive classifications through the public enums.
+Unknown raw codes remain evidence. Strict proposal and ballot deserialization
+rejects unsupported fields, so snapshots from the replaced schema-1 shape
+require explicit refresh after preserving any needed evidence. Cache-only
+admission does not rewrite them or invoke a live source. Identity, pagination,
+ordering, aggregate totals and collection provenance checks remain in force.

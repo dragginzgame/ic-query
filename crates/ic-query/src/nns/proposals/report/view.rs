@@ -5,8 +5,8 @@
 //! Boundary: transforms proposal rows without changing source identity.
 
 use super::model::{
-    NnsProposalListRequest, NnsProposalListSort, NnsProposalRow, NnsProposalSortDirection,
-    NnsProposalTopicFilter,
+    NnsProposalListRequest, NnsProposalListSort, NnsProposalRewardStatus, NnsProposalRow,
+    NnsProposalSortDirection, NnsProposalStatus, NnsProposalTopic, NnsProposalTopicFilter,
 };
 #[cfg(feature = "nns-host")]
 use super::model::{NnsProposalRewardStatusFilter, NnsProposalStatusFilter};
@@ -111,9 +111,13 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
             proposals,
             descending,
             |proposal| match sort {
-                NnsProposalListSort::Status => proposal.status_text.as_str(),
-                NnsProposalListSort::RewardStatus => proposal.reward_status_text.as_str(),
-                NnsProposalListSort::Topic => proposal.topic_text.as_str(),
+                NnsProposalListSort::Status => {
+                    NnsProposalStatus::from_code(proposal.status).as_str()
+                }
+                NnsProposalListSort::RewardStatus => {
+                    NnsProposalRewardStatus::from_code(proposal.reward_status).as_str()
+                }
+                NnsProposalListSort::Topic => NnsProposalTopic::from_code(proposal.topic).as_str(),
                 _ => unreachable!("sort key is selected by the outer match"),
             },
             by_id,

@@ -6,8 +6,7 @@
 
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
-    hex::hex_bytes,
-    icrc::model::{IcrcError, IcrcTipCertificateData},
+    icrc::model::IcrcError,
 };
 use candid::Principal;
 use ic_agent::{
@@ -25,14 +24,9 @@ pub(super) fn verified_tip_certificate_data(
     agent: &Agent,
     ledger_canister: &Principal,
     wire: Option<ICRC3DataCertificate>,
-) -> Result<IcrcTipCertificateData, IcrcError> {
+) -> Result<Option<ICRC3DataCertificate>, IcrcError> {
     let Some(wire) = wire else {
-        return Ok(IcrcTipCertificateData {
-            certificate_hex: None,
-            certificate_bytes: None,
-            hash_tree_hex: None,
-            hash_tree_bytes: None,
-        });
+        return Ok(None);
     };
 
     let hash_tree = authenticate_canister_hash_tree(
@@ -45,12 +39,7 @@ pub(super) fn verified_tip_certificate_data(
     .map_err(map_certified_data_error)?;
     verify_tip_leaves(&hash_tree)?;
 
-    Ok(IcrcTipCertificateData {
-        certificate_hex: Some(hex_bytes(&wire.certificate)),
-        certificate_bytes: Some(wire.certificate.len()),
-        hash_tree_hex: Some(hex_bytes(&wire.hash_tree)),
-        hash_tree_bytes: Some(wire.hash_tree.len()),
-    })
+    Ok(Some(wire))
 }
 
 fn verify_tip_leaves(hash_tree: &HashTree<Vec<u8>>) -> Result<(), IcrcError> {

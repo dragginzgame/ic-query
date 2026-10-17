@@ -10,6 +10,7 @@ use ic_host_text::{
     table::{Alignment, render},
 };
 
+use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
 use super::distribution::NnsNeuronDistributionReport;
 use super::model::{NnsNeuronInfoReport, NnsNeuronListReport, NnsNeuronRow};
 use crate::{
@@ -134,7 +135,7 @@ fn state_distribution_table(report: &NnsNeuronDistributionReport) -> Option<Stri
             .map(|row| {
                 [
                     row.state.to_string(),
-                    row.state_text.to_string(),
+                    NnsNeuronState::from_code(row.state).to_string(),
                     row.neuron_count.to_string(),
                     e8s_decimal_text(row.effective_stake_e8s),
                 ]
@@ -163,7 +164,7 @@ fn visibility_distribution_table(report: &NnsNeuronDistributionReport) -> Option
                 [
                     row.visibility
                         .map_or_else(|| "-".to_string(), |value| value.to_string()),
-                    row.visibility_text.to_string(),
+                    NnsNeuronVisibility::from_code(row.visibility).to_string(),
                     row.neuron_count.to_string(),
                     e8s_decimal_text(row.effective_stake_e8s),
                 ]
@@ -197,7 +198,7 @@ fn neuron_type_distribution_table(report: &NnsNeuronDistributionReport) -> Optio
                 [
                     row.neuron_type
                         .map_or_else(|| "-".to_string(), |value| value.to_string()),
-                    row.neuron_type_text.to_string(),
+                    NnsNeuronType::from_code(row.neuron_type).to_string(),
                     row.neuron_count.to_string(),
                     e8s_decimal_text(row.effective_stake_e8s),
                 ]
@@ -301,8 +302,8 @@ fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
             .map(|neuron| {
                 [
                     neuron.neuron_id.to_string(),
-                    neuron.state_text.to_string(),
-                    neuron.visibility_text.to_string(),
+                    NnsNeuronState::from_code(neuron.state).to_string(),
+                    NnsNeuronVisibility::from_code(neuron.visibility).to_string(),
                     e8s_decimal_text(neuron.stake_e8s),
                     display_duration_seconds(neuron.dissolve_delay_seconds),
                     optional_u64_text(neuron.deciding_voting_power),
@@ -330,17 +331,21 @@ fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
     let known = neuron.known_neuron_data.as_ref();
     vec![
         format!("neuron_id: {}", neuron.neuron_id),
-        format!("state: {} ({})", neuron.state_text, neuron.state),
+        format!(
+            "state: {} ({})",
+            NnsNeuronState::from_code(neuron.state),
+            neuron.state
+        ),
         format!(
             "visibility: {} ({})",
-            neuron.visibility_text,
+            NnsNeuronVisibility::from_code(neuron.visibility),
             neuron
                 .visibility
                 .map_or_else(|| "-".to_string(), |value| value.to_string())
         ),
         format!(
             "neuron_type: {} ({})",
-            neuron.neuron_type_text,
+            NnsNeuronType::from_code(neuron.neuron_type),
             neuron
                 .neuron_type
                 .map_or_else(|| "-".to_string(), |value| value.to_string())

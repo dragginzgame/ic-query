@@ -10,7 +10,10 @@ use ic_build::{
         CargoInputProbePolicy, InputEvidence, InputEvidenceSpec, InputEvidenceValue,
         ResolvedCargoBuildInputs, WasmBuildSpec, resolve_cargo_build_inputs_with_probe_policy,
     },
-    cargo::observation::schema::Metadata,
+    cargo::{
+        observation::schema::Metadata,
+        selection::{CargoFeatureSelection, CargoSelection},
+    },
 };
 use ic_host_artifacts::{
     artifact::hash_reader,
@@ -88,7 +91,7 @@ pub fn source_digest(root: &Path) -> Result<String> {
         }
     }
     let digest = inputs.digest_relative_to(root)?;
-    inputs.validate_after(&inputs)?;
+    inputs.validate_after(&spec)?;
     Ok(digest.to_string())
 }
 
@@ -110,14 +113,16 @@ pub fn probe_spec(root: &Path, target: &Path) -> WasmBuildSpec {
         .with_example("governance_probe")
         .with_target("wasm32-unknown-unknown")
         .with_cargo_program("cargo")
-        .with_cargo_profile_args([
-            "--release",
-            "--no-default-features",
-            "--features",
-            "canister",
-            "--locked",
-            "--offline",
-        ])
+        .with_cargo_selection(CargoSelection {
+            profile: Some("release".into()),
+            features: CargoFeatureSelection {
+                features: ["canister".into()].into(),
+                default_features: false,
+                all_features: false,
+            },
+            locked: true,
+            offline: true,
+        })
 }
 
 pub fn resolve_probe_inputs(

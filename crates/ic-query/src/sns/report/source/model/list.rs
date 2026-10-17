@@ -5,7 +5,7 @@
 //! Boundary: validates discovery provenance and exact enrichment target coverage before joining.
 
 use super::{SnsSourceRequest, validation::SnsSourceValidator};
-use crate::sns::report::{MAINNET_SNS_WASM_CANISTER_ID, SnsHostError};
+use crate::sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsCanisters, SnsHostError};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -35,26 +35,6 @@ pub struct MainnetSnsInventory {
     pub source_endpoint: String,
     /// Deployed SNS canister sets in authoritative SNS-W response order.
     pub sns_instances: Vec<MainnetSnsCanisters>,
-}
-
-///
-/// MainnetSnsCanisters
-///
-/// Native canister identities for one deployed SNS-W inventory row.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsCanisters {
-    /// SNS Root canister principal.
-    pub root_canister_id: String,
-    /// SNS Governance canister principal.
-    pub governance_canister_id: String,
-    /// SNS ledger canister principal.
-    pub ledger_canister_id: String,
-    /// SNS decentralization-swap canister principal.
-    pub swap_canister_id: String,
-    /// SNS ledger index canister principal.
-    pub index_canister_id: String,
 }
 
 ///
@@ -107,11 +87,9 @@ pub struct MainnetSns {
     pub name: String,
     pub description: Option<String>,
     pub url: Option<String>,
-    pub root_canister_id: String,
-    pub governance_canister_id: String,
-    pub ledger_canister_id: String,
-    pub swap_canister_id: String,
-    pub index_canister_id: String,
+    /// Complete SNS-W canister identity, preserved flat in serialized catalogs.
+    #[serde(flatten)]
+    pub canisters: MainnetSnsCanisters,
     pub metadata_error: Option<String>,
     /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
     pub lifecycle: Option<i32>,
@@ -213,32 +191,36 @@ pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
                 .invalid(format!("SNS list id is {}, expected {expected_id}", sns.id)));
         }
         validate_sns_canister_ids(
-            &sns.root_canister_id,
-            &sns.governance_canister_id,
-            &sns.ledger_canister_id,
-            &sns.swap_canister_id,
-            &sns.index_canister_id,
+            &sns.canisters.root_canister_id,
+            &sns.canisters.governance_canister_id,
+            &sns.canisters.ledger_canister_id,
+            &sns.canisters.swap_canister_id,
+            &sns.canisters.index_canister_id,
         )?;
-        if !roots.insert(sns.root_canister_id.as_str()) {
+        if !roots.insert(sns.canisters.root_canister_id.as_str()) {
             return Err(INVENTORY_VALIDATOR.invalid(format!(
                 "duplicate root canister id {}",
-                sns.root_canister_id
+                sns.canisters.root_canister_id
             )));
         }
-        validate_metadata_text(&sns.root_canister_id, "name", &sns.name)?;
+        validate_metadata_text(&sns.canisters.root_canister_id, "name", &sns.name)?;
         validate_optional_metadata_text(
-            &sns.root_canister_id,
+            &sns.canisters.root_canister_id,
             "description",
             sns.description.as_deref(),
         )?;
-        validate_optional_metadata_text(&sns.root_canister_id, "url", sns.url.as_deref())?;
         validate_optional_metadata_text(
-            &sns.root_canister_id,
+            &sns.canisters.root_canister_id,
+            "url",
+            sns.url.as_deref(),
+        )?;
+        validate_optional_metadata_text(
+            &sns.canisters.root_canister_id,
             "metadata_error",
             sns.metadata_error.as_deref(),
         )?;
         validate_lifecycle_fields(
-            &sns.root_canister_id,
+            &sns.canisters.root_canister_id,
             sns.lifecycle,
             sns.lifecycle_name.as_deref(),
             sns.lifecycle_error.as_deref(),
@@ -254,7 +236,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
     let mut lifecycle_by_root = index_mainnet_sns_lifecycles(&inventory.sns_instances, lifecycles)?;
     for sns in &mut inventory.sns_instances {
         let lifecycle = lifecycle_by_root
-            .remove(&sns.root_canister_id)
+            .remove(&sns.canisters.root_canister_id)
             .expect("exact lifecycle validation requires every inventory root");
         sns.lifecycle = lifecycle.lifecycle;
         sns.lifecycle_name = lifecycle.lifecycle_name;
@@ -320,7 +302,7 @@ fn index_mainnet_sns_lifecycles(
 ) -> Result<BTreeMap<String, MainnetSnsLifecycle>, SnsHostError> {
     let mut expected_roots = targets
         .iter()
-        .map(|sns| sns.root_canister_id.as_str())
+        .map(|sns| sns.canisters.root_canister_id.as_str())
         .collect::<BTreeSet<_>>();
     let mut by_root = BTreeMap::new();
     for row in lifecycles {
@@ -451,11 +433,7 @@ fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetada
         name,
         description: metadata.description,
         url: metadata.url,
-        root_canister_id: canisters.root_canister_id,
-        governance_canister_id: canisters.governance_canister_id,
-        ledger_canister_id: canisters.ledger_canister_id,
-        swap_canister_id: canisters.swap_canister_id,
-        index_canister_id: canisters.index_canister_id,
+        canisters,
         metadata_error: metadata.metadata_error,
         lifecycle: None,
         lifecycle_name: None,

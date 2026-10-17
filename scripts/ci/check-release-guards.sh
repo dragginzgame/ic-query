@@ -251,7 +251,7 @@ new_fixture() {
   cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
   cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
   cp "$repo_root/ci/tool-versions.env" ci/
-  cp "$repo_root/ci/ic-tools.tsv" ci/
+  cp "$repo_root/ci/ic-tools.tsv" "$repo_root/ci/ic-tools-query.tsv" ci/
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"

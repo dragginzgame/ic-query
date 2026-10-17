@@ -335,6 +335,22 @@ and caller collection clock. Pass this scope first to their constructors and
 access shared fields through `request.ledger`. Account-cache requests keep their
 clock-free identity; report JSON keeps its raw flat provenance fields.
 
+NNS proposal rows, ballots and activity buckets keep raw numeric topic, status,
+reward-status and vote codes. Use the public classification enums’ `from_code`
+helpers when labels are needed. Preserve old proposal snapshots before an
+explicit refresh; strict row decoding rejects unsupported fields without
+rewriting the original evidence.
+
+ICRC tip-certificate custom sources return the standard optional
+`icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate` byte pair. Complete
+authentication before returning it. The report builder derives its hex strings
+and byte counts from those same bytes.
+
+SNS joined catalog, list and info models share `MainnetSnsCanisters` through
+their `canisters` field. For example, access a list row’s Root principal with
+`row.canisters.root_canister_id`. This identity model is portable. Serde keeps
+the five existing principal fields flat in report and catalog JSON.
+
 For targeted cache reads and `SnsCacheStatusRequest`, supply the SNS root
 principal in `input`. Cache-backed proposal lists and neuron sorts resolve one
 root path without inventory discovery. Numeric selectors remain supported for
@@ -551,6 +567,13 @@ No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
 `ic-agent`, Reqwest, Tokio, or `futures`. That is a host-dependency boundary,
 not a `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`,
 and other normal `std`-using crates.
+
+NNS neuron rows, recent ballots and distribution buckets expose raw codes only.
+Use the public classification types' `from_code` helpers for labels; terminal
+rendering already does this. The 0.61 contract requires updating consumers of
+classification fields and explicitly refreshing existing neuron snapshots after
+preserving any evidence still needed. Strict row decoding rejects unknown fields;
+cache-only operations never rewrite a refused snapshot.
 
 ## Async host execution
 
@@ -1187,7 +1210,9 @@ construction. The operation is live-only and does not read or write a cache.
 No-default consumers can construct, serialize, and render `CmcXdrReport` and
 `CmcCyclesReport` without the live adapter. Host consumers can implement the
 single `CmcSource` capability for a fixture or proxy and reuse the same report
-projection.
+projection. `CmcCyclesReport::xdr` retains the underlying `CmcXdrReport`:
+read `report.xdr.context`, `report.xdr.rate` and `report.xdr.certification` for
+its provenance and evidence. JSON retains those fields in its existing flat shape.
 
 ## Pure Rendering Example
 

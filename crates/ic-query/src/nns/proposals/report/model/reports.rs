@@ -4,7 +4,6 @@
 //! Does not own: request selection, source transport, or text rendering.
 //! Boundary: defines the stable JSON contract for NNS proposal output.
 
-use super::selection::{NnsProposalRewardStatus, NnsProposalStatus, NnsProposalTopic};
 use crate::{
     nns::governance::NnsGovernanceReportContext,
     report::{ReportDataSource, ReportResultScope},
@@ -90,6 +89,7 @@ pub struct NnsProposalReport {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalRow {
     /// Governance proposal identifier, when supplied in the source row.
     pub proposal_id: Option<u64>,
@@ -97,16 +97,10 @@ pub struct NnsProposalRow {
     pub proposer_neuron_id: Option<u64>,
     /// Raw native Governance topic code.
     pub topic: i32,
-    /// Classification derived from the raw topic code.
-    pub topic_text: NnsProposalTopic,
     /// Raw native Governance decision-status code.
     pub status: i32,
-    /// Classification derived from the raw decision-status code.
-    pub status_text: NnsProposalStatus,
     /// Raw native Governance reward-settlement code.
     pub reward_status: i32,
-    /// Classification derived from the raw reward-settlement code.
-    pub reward_status_text: NnsProposalRewardStatus,
     /// Proposal title, when supplied by Governance.
     pub title: Option<String>,
     /// Proposal summary supplied by Governance.
@@ -156,13 +150,12 @@ pub struct NnsProposalRow {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalBallotRow {
     /// Governance neuron identifier attached to this ballot.
     pub neuron_id: u64,
     /// Raw native Governance vote code.
     pub vote: i32,
-    /// Classification derived from the raw vote code.
-    pub vote_text: crate::nns::governance::NnsGovernanceVote,
     /// Voting power recorded for this neuron ballot.
     pub voting_power: u64,
 }

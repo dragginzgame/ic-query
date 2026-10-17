@@ -5,12 +5,9 @@
 //! Boundary: validates target identity, native methods, versions, and next-version gaps.
 
 use super::validation::SnsSourceValidator;
-use crate::{
-    hex::is_canonical_lowercase_hex,
-    sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SnsCanisterMethod, SnsHostError, SnsPendingUpgrade,
-        SnsUpgradeQueryGap, SnsVersion,
-    },
+use crate::sns::report::{
+    MAINNET_SNS_WASM_CANISTER_ID, SnsCanisterMethod, SnsHostError, SnsPendingUpgrade,
+    SnsUpgradeQueryGap, SnsVersion,
 };
 
 pub(in crate::sns::report) const SNS_UPGRADE_QUERY_COUNT: usize = 2;
@@ -77,14 +74,21 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_upgrade(
         ));
     }
 
-    validate_version("deployed_version", &upgrade.deployed_version)?;
+    upgrade
+        .deployed_version
+        .validate_hashes("deployed_version", None)
+        .map_err(|reason| VALIDATOR.invalid(reason))?;
     if let Some(pending) = &upgrade.pending_upgrade
         && let Some(version) = &pending.target_version
     {
-        validate_version("pending_upgrade.target_version", version)?;
+        version
+            .validate_hashes("pending_upgrade.target_version", None)
+            .map_err(|reason| VALIDATOR.invalid(reason))?;
     }
     if let Some(version) = &upgrade.next_version {
-        validate_version("next_version", version)?;
+        version
+            .validate_hashes("next_version", None)
+            .map_err(|reason| VALIDATOR.invalid(reason))?;
     }
     if let Some(gap) = &upgrade.next_version_gap {
         if upgrade.next_version.is_some() {
@@ -103,24 +107,6 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_upgrade(
         if gap.reason.trim() != gap.reason {
             return Err(VALIDATOR
                 .invalid("next_version query gap reason has surrounding whitespace".to_string()));
-        }
-    }
-    Ok(())
-}
-
-fn validate_version(field: &'static str, version: &SnsVersion) -> Result<(), SnsHostError> {
-    for (role, hash) in [
-        ("archive", version.archive_wasm_hash_hex.as_str()),
-        ("root", version.root_wasm_hash_hex.as_str()),
-        ("swap", version.swap_wasm_hash_hex.as_str()),
-        ("ledger", version.ledger_wasm_hash_hex.as_str()),
-        ("governance", version.governance_wasm_hash_hex.as_str()),
-        ("index", version.index_wasm_hash_hex.as_str()),
-    ] {
-        if !is_canonical_lowercase_hex(hash) {
-            return Err(VALIDATOR.invalid(format!(
-                "{field}.{role}_wasm_hash_hex is not lowercase even-length hexadecimal text"
-            )));
         }
     }
     Ok(())

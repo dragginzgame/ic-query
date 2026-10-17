@@ -277,8 +277,6 @@ fn validate_nns_proposal_cache(
         if !proposal_ids.insert(proposal_id) {
             return Err(invalid(format!("duplicate proposal id {proposal_id}")));
         }
-        super::super::source::validate_proposal_ballots(proposal)
-            .map_err(|error| invalid(error.to_string()))?;
     }
     Ok(())
 }

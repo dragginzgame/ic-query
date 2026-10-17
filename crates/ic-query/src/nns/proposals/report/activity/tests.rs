@@ -57,13 +57,9 @@ fn complete_activity_is_canonical_and_input_order_independent() {
         report
             .topic_counts
             .iter()
-            .map(|row| (row.topic, row.topic_text, row.proposal_count))
+            .map(|row| (row.topic, row.proposal_count))
             .collect::<Vec<_>>(),
-        vec![
-            (-7, NnsProposalTopic::Unspecified, 1),
-            (0, NnsProposalTopic::Unspecified, 1),
-            (4, NnsProposalTopic::Governance, 1),
-        ]
+        vec![(-7, 1), (0, 1), (4, 1)]
     );
     assert_eq!(
         report
@@ -181,20 +177,12 @@ fn retained_activity_validation_rejects_noncanonical_dimensions() {
     assert_invalid_report(&report, "topic count rows");
 
     let mut report = fixture_activity_report();
-    report.topic_counts[0].topic_text = NnsProposalTopic::NodeAdmin;
-    assert_invalid_report(&report, "topic classification");
-
-    let mut report = fixture_activity_report();
     report.topic_counts[0].proposal_count = 0;
     assert_invalid_report(&report, "topic count row must be nonzero");
 
     let mut report = fixture_activity_report();
     report.topic_counts[0].proposal_count += 1;
     assert_invalid_report(&report, "topic counts sum");
-
-    let mut report = fixture_activity_report();
-    report.status_counts[0].status_text = NnsProposalStatus::Failed;
-    assert_invalid_report(&report, "status classification");
 
     let mut report = fixture_activity_report();
     report.reward_status_counts.swap(0, 1);
@@ -363,27 +351,6 @@ fn builder_rejects_malformed_rows_before_applying_the_view() {
     assert!(matches!(
         build_nns_proposal_activity_report(&request, &collection, &[proposal_row(1, 0, 4, 1, 3)]),
         Err(NnsProposalActivityError::ZeroProposalTimestamp { proposal_id: 1 })
-    ));
-
-    let mut row = proposal_row(1, 1, 4, 1, 3);
-    row.topic_text = NnsProposalTopic::NodeAdmin;
-    assert!(matches!(
-        build_nns_proposal_activity_report(&request, &collection, &[row]),
-        Err(NnsProposalActivityError::TopicClassificationMismatch { .. })
-    ));
-
-    let mut row = proposal_row(1, 1, 4, 1, 3);
-    row.status_text = NnsProposalStatus::Failed;
-    assert!(matches!(
-        build_nns_proposal_activity_report(&request, &collection, &[row]),
-        Err(NnsProposalActivityError::StatusClassificationMismatch { .. })
-    ));
-
-    let mut row = proposal_row(1, 1, 4, 1, 3);
-    row.reward_status_text = NnsProposalRewardStatus::Ineligible;
-    assert!(matches!(
-        build_nns_proposal_activity_report(&request, &collection, &[row]),
-        Err(NnsProposalActivityError::RewardStatusClassificationMismatch { .. })
     ));
 
     assert!(matches!(
@@ -565,11 +532,11 @@ fn proposal_row(
         proposal_id: Some(proposal_id),
         proposer_neuron_id: Some(99),
         topic,
-        topic_text: NnsProposalTopic::from_code(topic),
+
         status,
-        status_text: NnsProposalStatus::from_code(status),
+
         reward_status,
-        reward_status_text: NnsProposalRewardStatus::from_code(reward_status),
+
         title: Some(format!("Proposal {proposal_id}")),
         summary: "Fixture proposal".to_string(),
         url: String::new(),
