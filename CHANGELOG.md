@@ -41,6 +41,11 @@ crate follows [Semantic Versioning](https://semver.org/).
   the neuron page retains its cursor. Source validation, report JSON and stored
   snapshots remain unchanged.
 
+- Fix test compilation with Testkit 0.50 by using Host Process HTTP readers
+  directly and supplying explicit Candid reply budgets for the Governance probe.
+  Preserve fixture deadlines, request-size limits and raw response behavior.
+  [#72](https://github.com/dragginzgame/ic-query/pull/72).
+
 Detailed release notes: [docs/changelog/0.60.md](docs/changelog/0.60.md)
 
 ## [0.59.0] - 2026-10-16

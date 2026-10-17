@@ -1,5 +1,5 @@
 use super::*;
-use ic_testkit::testing::read_http_request;
+use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
 use serde::Deserialize;
 use std::{
     io::Write,
@@ -122,8 +122,15 @@ fn serve_once(response: Vec<u8>) -> TestServer {
     let address = listener.local_addr().expect("test HTTP server address");
     let handle = thread::spawn(move || {
         let (mut stream, _) = listener.accept().expect("accept test HTTP request");
-        read_http_request(&mut stream, Duration::from_secs(10), 64 * 1024, 0)
-            .expect("read bounded test HTTP request");
+        capture_http_request(
+            &mut stream,
+            Duration::from_secs(10),
+            64 * 1024,
+            0,
+            HttpContentLength::Optional,
+        )
+        .into_result()
+        .expect("read bounded test HTTP request");
         stream
             .write_all(&response)
             .expect("write test HTTP response");

@@ -1642,6 +1642,7 @@ dependencies = [
  "ic-certification",
  "ic-host-artifacts 0.24.0",
  "ic-host-fs 0.24.0",
+ "ic-host-process 0.24.0",
  "ic-host-text",
  "ic-host-tools",
  "ic-metrics 0.12.0",

@@ -645,7 +645,7 @@ fn icrc3_value_json(value: &ICRC3Value) -> JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_testkit::testing::read_http_request;
+    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
     use icrc_ledger_types::icrc3::archive::QueryArchiveFn;
     use serde_cbor::Value;
     use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
@@ -767,12 +767,14 @@ mod tests {
         .unwrap();
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
-            let request = read_http_request(
+            let request = capture_http_request(
                 &mut stream,
                 Duration::from_secs(10),
                 64 * 1024,
                 8 * 1024 * 1024,
+                HttpContentLength::Optional,
             )
+            .into_result()
             .unwrap();
             let body_start = request
                 .windows(4)
