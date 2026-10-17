@@ -34,10 +34,9 @@ pub use reports::{
     SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
-    SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-    SnsVotingPowerMetrics, SnsVotingRewardsParameters, sns_neuron_permission_name,
-    validate_sns_reward_checkpoint_report,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryKind, SnsTreasuryMetricRow,
+    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics,
+    SnsVotingRewardsParameters, sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 pub(in crate::sns::report) use reports::{
     SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,

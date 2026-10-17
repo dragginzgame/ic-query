@@ -14,6 +14,11 @@ pub(in crate::sns::report) fn sns_token_report_from_parts(
     sns: MainnetSns,
     token: MainnetSnsToken,
 ) -> SnsTokenReport {
+    let MainnetSnsToken {
+        token,
+        ledger_index_canister_id,
+        ledger_index_error,
+    } = token;
     SnsTokenReport {
         schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
         network: fetch_request.network,
@@ -33,8 +38,8 @@ pub(in crate::sns::report) fn sns_token_report_from_parts(
         total_supply: token.total_supply,
         minting_account_owner: token.minting_account_owner,
         minting_account_subaccount_hex: token.minting_account_subaccount_hex,
-        ledger_index_canister_id: token.ledger_index_canister_id,
-        ledger_index_error: token.ledger_index_error,
+        ledger_index_canister_id,
+        ledger_index_error,
         supported_standards: token.supported_standards,
         metadata: token.metadata,
     }

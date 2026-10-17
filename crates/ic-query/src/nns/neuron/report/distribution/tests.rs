@@ -1,4 +1,5 @@
 use super::*;
+use crate::nns::neuron::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
 use crate::nns::{
     governance::NnsGovernanceRequest,
     neuron::{NnsKnownNeuronData, nns_neuron_distribution_report_text},
@@ -52,7 +53,7 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
             .map(|row| {
                 (
                     row.state,
-                    row.state_text,
+                    NnsNeuronState::from_code(row.state),
                     row.neuron_count,
                     row.effective_stake_e8s,
                 )
@@ -71,7 +72,7 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
             .map(|row| {
                 (
                     row.visibility,
-                    row.visibility_text,
+                    NnsNeuronVisibility::from_code(row.visibility),
                     row.neuron_count,
                     row.effective_stake_e8s,
                 )
@@ -90,7 +91,7 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
             .map(|row| {
                 (
                     row.neuron_type,
-                    row.neuron_type_text,
+                    NnsNeuronType::from_code(row.neuron_type),
                     row.neuron_count,
                     row.effective_stake_e8s,
                 )
@@ -163,13 +164,6 @@ fn builder_rejects_incomplete_invalid_mismatched_and_malformed_inputs() {
         })
     ));
 
-    let mut mismatched = sample_neuron(1, 100, 1, Some(2), None, 100);
-    mismatched.state_text = NnsNeuronState::Dissolved;
-    assert!(matches!(
-        build_nns_neuron_distribution_report(&complete_collection(1), &[mismatched]),
-        Err(NnsNeuronDistributionError::InvalidNeuronRows { .. })
-    ));
-
     let unordered = [
         sample_neuron(2, 100, 1, Some(2), None, 100),
         sample_neuron(1, 100, 1, Some(2), None, 100),
@@ -231,12 +225,18 @@ fn serialized_distribution_round_trips_and_text_separates_sections() {
     assert_eq!(json["source"]["source_transport"], "replica_query");
     assert_eq!(json["total_effective_stake_e8s"], 1_000);
     assert_eq!(
+        json["state_distribution"][0],
+        serde_json::json!({"state": -7, "neuron_count": 1, "effective_stake_e8s": 400})
+    );
+    assert_eq!(
         json["visibility_distribution"][0]["visibility"],
         serde_json::Value::Null
     );
 
     let text = nns_neuron_distribution_report_text(&report);
     assert!(text.contains("source_transport: replica_query"));
+    assert!(text.contains("unknown(-7)"));
+    assert!(text.contains("unknown(-8)"));
     assert!(text.contains("point_in_time_guaranteed: no"));
     assert!(text.contains("total_reported_staked_maturity_icp: 0.00"));
     assert!(text.contains("\n\nstates:\n"));
@@ -286,10 +286,6 @@ fn retained_distribution_validation_rejects_corruption() {
     let mut report = fixture_distribution_report();
     report.state_distribution.swap(0, 1);
     assert_invalid_report(&report, "state distribution");
-
-    let mut report = fixture_distribution_report();
-    report.visibility_distribution[0].visibility_text = NnsNeuronVisibility::Private;
-    assert_invalid_report(&report, "visibility classification");
 
     let mut report = fixture_distribution_report();
     report.neuron_type_distribution[0].neuron_count = 0;
@@ -380,11 +376,11 @@ fn sample_neuron(
     NnsNeuronRow {
         neuron_id,
         state,
-        state_text: NnsNeuronState::from_code(state),
+
         visibility,
-        visibility_text: NnsNeuronVisibility::from_code(visibility),
+
         neuron_type,
-        neuron_type_text: NnsNeuronType::from_code(neuron_type),
+
         stake_e8s,
         staked_maturity_e8s_equivalent: None,
         dissolve_delay_seconds: 0,
@@ -472,4 +468,18 @@ fn assert_invalid_report(report: &NnsNeuronDistributionReport, expected_reason: 
         "unexpected validation reason: {}",
         error.reason
     );
+}
+
+#[test]
+fn distribution_bucket_decoding_rejects_unknown_fields() {
+    let original = serde_json::to_value(fixture_distribution_report()).unwrap();
+    for dimension in [
+        "state_distribution",
+        "visibility_distribution",
+        "neuron_type_distribution",
+    ] {
+        let mut report = original.clone();
+        report[dimension][0]["unexpected_evidence"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<NnsNeuronDistributionReport>(report).is_err());
+    }
 }

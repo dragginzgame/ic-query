@@ -23,8 +23,8 @@ pub fn cmc_xdr_report_text(report: &CmcXdrReport) -> String {
 /// Render one cycles conversion report derived from a certified CMC rate.
 #[must_use]
 pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
-    let mut lines = context_lines(&report.context);
-    lines.extend(rate_lines(&report.rate));
+    let mut lines = context_lines(&report.xdr.context);
+    lines.extend(rate_lines(&report.xdr.rate));
     lines.extend([
         format!(
             "cycles_per_xdr: {}",
@@ -37,7 +37,7 @@ pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
         ),
         format!("cycles_per_icp_formula: {}", report.cycles_per_icp_formula),
     ]);
-    lines.extend(certification_lines(&report.certification));
+    lines.extend(certification_lines(&report.xdr.certification));
     lines.join("\n")
 }
 

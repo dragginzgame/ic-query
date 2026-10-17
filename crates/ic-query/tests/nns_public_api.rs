@@ -752,6 +752,18 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     assert_eq!(NNS_NEURON_MAX_PAGE_SIZE, 300);
 
     let row = sample_public_neuron(11);
+    assert_eq!(
+        NnsNeuronState::from_code(row.state),
+        NnsNeuronState::NotDissolving
+    );
+    assert_eq!(
+        NnsNeuronVisibility::from_code(row.visibility),
+        NnsNeuronVisibility::Public
+    );
+    assert_eq!(
+        NnsNeuronType::from_code(row.neuron_type),
+        NnsNeuronType::Unknown
+    );
     let report = ic_query::nns::neuron::NnsNeuronListReport {
         context: governance_report_context(&request.governance),
         cache_path: None,
@@ -769,9 +781,12 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
     assert_eq!(report_json["schema_version"], 1);
     assert_eq!(report_json["source"]["source_transport"], "replica_query");
-    assert_eq!(report_json["neurons"][0]["state_text"], "not-dissolving");
-    assert_eq!(report_json["neurons"][0]["visibility_text"], "public");
-    assert_eq!(report_json["neurons"][0]["neuron_type_text"], "unknown");
+    assert_eq!(report_json["neurons"][0]["state"], 1);
+    assert_eq!(report_json["neurons"][0]["visibility"], 2);
+    assert_eq!(
+        report_json["neurons"][0]["neuron_type"],
+        serde_json::Value::Null
+    );
     assert_eq!(
         serde_json::to_value(ic_query::nns::governance::NnsGovernanceVote::Unknown(99))
             .expect("serialize unknown neuron vote"),
@@ -1216,11 +1231,9 @@ fn sample_public_neuron(neuron_id: u64) -> NnsNeuronRow {
     NnsNeuronRow {
         neuron_id,
         state: 1,
-        state_text: NnsNeuronState::NotDissolving,
         visibility: Some(2),
-        visibility_text: NnsNeuronVisibility::Public,
+
         neuron_type: None,
-        neuron_type_text: NnsNeuronType::Unknown,
         stake_e8s: 100_000_000,
         staked_maturity_e8s_equivalent: None,
         dissolve_delay_seconds: 31_536_000,

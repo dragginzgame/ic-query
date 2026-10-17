@@ -12,7 +12,6 @@ mod host;
 use super::{
     NNS_NEURON_INFO_REPORT_SCHEMA_VERSION, NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
     NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronError,
-    classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility},
     model::{
         NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport, NnsNeuronListRequest,
         NnsNeuronRow,
@@ -236,42 +235,6 @@ pub(super) fn validate_page_size(page_size: u32) -> Result<(), NnsNeuronError> {
 }
 
 pub(super) fn validate_neuron_rows(rows: &[NnsNeuronRow]) -> Result<(), NnsNeuronError> {
-    for row in rows {
-        if row.state_text != NnsNeuronState::from_code(row.state) {
-            return Err(NnsNeuronError::InvalidResponse {
-                reason: format!(
-                    "neuron {} state classification {} does not match raw code {}",
-                    row.neuron_id, row.state_text, row.state
-                ),
-            });
-        }
-        if row.visibility_text != NnsNeuronVisibility::from_code(row.visibility) {
-            return Err(NnsNeuronError::InvalidResponse {
-                reason: format!(
-                    "neuron {} visibility classification {} does not match raw code {:?}",
-                    row.neuron_id, row.visibility_text, row.visibility
-                ),
-            });
-        }
-        if row.neuron_type_text != NnsNeuronType::from_code(row.neuron_type) {
-            return Err(NnsNeuronError::InvalidResponse {
-                reason: format!(
-                    "neuron {} type classification {} does not match raw code {:?}",
-                    row.neuron_id, row.neuron_type_text, row.neuron_type
-                ),
-            });
-        }
-        if let Some(ballot) = row.recent_ballots.iter().find(|ballot| {
-            ballot.vote_text != crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote)
-        }) {
-            return Err(NnsNeuronError::InvalidResponse {
-                reason: format!(
-                    "neuron {} ballot vote classification {} does not match raw code {}",
-                    row.neuron_id, ballot.vote_text, ballot.vote
-                ),
-            });
-        }
-    }
     if rows
         .windows(2)
         .any(|pair| pair[0].neuron_id >= pair[1].neuron_id)
@@ -378,11 +341,9 @@ pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
     Ok(NnsNeuronRow {
         neuron_id,
         state: wire.state,
-        state_text: NnsNeuronState::from_code(wire.state),
         visibility: wire.visibility,
-        visibility_text: NnsNeuronVisibility::from_code(wire.visibility),
+
         neuron_type: wire.neuron_type,
-        neuron_type_text: NnsNeuronType::from_code(wire.neuron_type),
         stake_e8s: wire.stake_e8s,
         staked_maturity_e8s_equivalent: wire.staked_maturity_e8s_equivalent,
         dissolve_delay_seconds: wire.dissolve_delay_seconds,
@@ -406,7 +367,6 @@ pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
             .map(|ballot| NnsNeuronBallotRow {
                 proposal_id: ballot.proposal_id.map(|proposal| proposal.id),
                 vote: ballot.vote,
-                vote_text: crate::nns::governance::NnsGovernanceVote::from_code(ballot.vote),
             })
             .collect(),
     })

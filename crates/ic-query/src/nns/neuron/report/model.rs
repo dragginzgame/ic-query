@@ -4,7 +4,6 @@
 //! Does not own: live transport, cache IO, or text rendering.
 //! Boundary: preserves the unauthenticated Governance `NeuronInfo` fields without private state.
 
-use super::classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
 use crate::nns::governance::{NnsGovernanceReportContext, NnsGovernanceRequest};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
@@ -31,13 +30,12 @@ pub struct NnsKnownNeuronData {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNeuronBallotRow {
     /// Proposal identifier when supplied by Governance.
     pub proposal_id: Option<u64>,
     /// Raw Governance vote discriminant.
     pub vote: i32,
-    /// Typed classification and stable display label for the raw vote.
-    pub vote_text: crate::nns::governance::NnsGovernanceVote,
 }
 
 ///
@@ -47,21 +45,16 @@ pub struct NnsNeuronBallotRow {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNeuronRow {
     /// Stable Governance neuron identifier.
     pub neuron_id: u64,
     /// Raw Governance state discriminant.
     pub state: i32,
-    /// Typed classification and stable display label for the raw state.
-    pub state_text: NnsNeuronState,
     /// Raw optional neuron visibility discriminant.
     pub visibility: Option<i32>,
-    /// Typed classification and stable display label for the raw visibility.
-    pub visibility_text: NnsNeuronVisibility,
     /// Raw optional neuron-type discriminant.
     pub neuron_type: Option<i32>,
-    /// Typed classification and stable display label for the raw neuron type.
-    pub neuron_type_text: NnsNeuronType,
     /// Public effective stake, including staked maturity, in e8s.
     pub stake_e8s: u64,
     /// Staked maturity included in effective stake, in e8s when supplied.

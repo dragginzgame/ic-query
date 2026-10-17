@@ -192,6 +192,24 @@ canister health fields. Candid's human-facing `Display` adds underscore grouping
 and is unsuitable for these
 raw fields or the history validator's decimal inputs.
 
+Token metadata payload and supported-standard/metadata rows have one portable owner under
+`icrc::model::token_metadata`. Ledger collection, ICRC reports and SNS reports
+use the same public ICRC rows. Native ledger fetching and SNS sources share
+`IcrcTokenData`; SNS composes it beside independent ledger-index discovery
+evidence and retains its own report and source provenance. The shared ledger
+module owns the typed ICRC-106 query and method identity; callers retain their
+distinct failure policies and account-history ledger/index binding checks.
+ICRC-106 uses standard Rust `Result` for native Ok/Err replies, and supported
+standards decode directly into the canonical row without a wire-only copy.
+ICRC block-type and archive source capabilities return vectors of their report
+rows directly, without payload-only result envelopes. Requests retain archive
+cursors and reports retain collection provenance.
+
+SNS version hash validation belongs beside `SnsVersion`. Upgrade admission
+requires nonempty lowercase even-length hex, while reward evidence requires
+32-byte hashes. Each caller still validates its own target, consistency and
+bracketing evidence; shared representation checks do not replace those gates.
+
 Human-facing cycle counts and decimal cycle rates share the unit table in
 `human_quantity`. Integer counts use bounded arithmetic; rates round borrowed
 decimal digits without limiting input to `u128`. Full decimal input validation

@@ -301,7 +301,7 @@ pub async fn build_icrc_block_types_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        block_types: block_types.block_types,
+        block_types,
     })
 }
 
@@ -328,7 +328,7 @@ pub async fn build_icrc_archives_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        archives: archives.archives,
+        archives,
     })
 }
 

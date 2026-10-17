@@ -11,13 +11,13 @@ use crate::{
     hex::hex_bytes,
     icrc::{
         ledger::{
-            GetIndexPrincipalResult, index_principal_error_text, nat_text, principal_from_text,
+            index_principal_error_text, nat_text, principal_from_text, query_index_principal,
         },
         model::{
             IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
-            IcrcArchivesData, IcrcArchivesRequest, IcrcBlockTypeRow, IcrcBlockTypesData, IcrcError,
-            IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData,
-            IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsRequest,
+            IcrcArchivesRequest, IcrcBlockTypeRow, IcrcError, IcrcFollowedArchiveBlockRow,
+            IcrcIndexData, IcrcLedgerRequest, IcrcTipCertificateData, IcrcTransactionBlockRow,
+            IcrcTransactionsData, IcrcTransactionsRequest,
         },
     },
 };
@@ -35,7 +35,6 @@ use std::collections::BTreeSet;
 const MAX_ARCHIVE_CALLBACKS: usize = 100;
 const MAX_ARCHIVE_REPLY_BYTES: usize = 64 * 1024 * 1024;
 
-pub(super) const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principal";
 pub(super) const ICRC3_GET_BLOCKS_METHOD: &str = "icrc3_get_blocks";
 pub(super) const ICRC3_SUPPORTED_BLOCK_TYPES_METHOD: &str = "icrc3_supported_block_types";
 pub(super) const ICRC3_GET_ARCHIVES_METHOD: &str = "icrc3_get_archives";
@@ -53,11 +52,11 @@ pub(in crate::icrc::live) async fn fetch_index_async(
     let result = query_index_principal::<IcrcError>(&agent, &ledger_canister).await?;
 
     Ok(match result {
-        GetIndexPrincipalResult::Ok(principal) => IcrcIndexData {
+        Ok(principal) => IcrcIndexData {
             index_canister_id: Some(principal.to_text()),
             index_error: None,
         },
-        GetIndexPrincipalResult::Err(error) => IcrcIndexData {
+        Err(error) => IcrcIndexData {
             index_canister_id: None,
             index_error: Some(index_principal_error_text(error)),
         },
@@ -342,7 +341,7 @@ fn validate_archive_reply(
 pub(in crate::icrc::live) async fn fetch_block_types_async(
     source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
-) -> Result<IcrcBlockTypesData, IcrcError> {
+) -> Result<Vec<IcrcBlockTypeRow>, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
         &request.source_endpoint,
@@ -350,18 +349,16 @@ pub(in crate::icrc::live) async fn fetch_block_types_async(
     )?;
     let block_types = query_block_types::<IcrcError>(&agent, &ledger_canister).await?;
 
-    Ok(IcrcBlockTypesData {
-        block_types: block_types
-            .into_iter()
-            .map(block_type_row_from_wire)
-            .collect(),
-    })
+    Ok(block_types
+        .into_iter()
+        .map(block_type_row_from_wire)
+        .collect())
 }
 
 pub(in crate::icrc::live) async fn fetch_archives_async(
     source: &crate::icrc::LiveIcrcSource,
     request: &IcrcArchivesRequest,
-) -> Result<IcrcArchivesData, IcrcError> {
+) -> Result<Vec<IcrcArchiveRow>, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
         &request.ledger.source_endpoint,
@@ -376,9 +373,7 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
     };
     let archives = query_archives::<IcrcError>(&agent, &ledger_canister, &args).await?;
 
-    Ok(IcrcArchivesData {
-        archives: archives.into_iter().map(archive_row_from_wire).collect(),
-    })
+    Ok(archives.into_iter().map(archive_row_from_wire).collect())
 }
 
 pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
@@ -452,18 +447,6 @@ pub(super) async fn query_tip_certificate<E: CandidCallError + From<IcrcError>>(
     )
     .await?;
     verified_tip_certificate_data(agent, ledger_canister, certificate).map_err(E::from)
-}
-
-pub(in crate::icrc::live) async fn query_index_principal<E: CandidCallError>(
-    agent: &Agent,
-    ledger_canister: &Principal,
-) -> Result<GetIndexPrincipalResult, E> {
-    query_no_args::<GetIndexPrincipalResult, E>(
-        agent,
-        ledger_canister,
-        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-    )
-    .await
 }
 
 fn transactions_data_from_blocks(

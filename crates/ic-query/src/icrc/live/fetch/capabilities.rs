@@ -5,17 +5,19 @@
 //! Boundary: projects shared ledger queries into capability availability rows.
 
 use super::{
-    account::token_standard_row_from_ledger,
     history::{
         ICRC3_GET_ARCHIVES_METHOD, ICRC3_GET_BLOCKS_METHOD, ICRC3_GET_TIP_CERTIFICATE_METHOD,
-        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD, ICRC106_GET_INDEX_PRINCIPAL_METHOD, query_archives,
-        query_block_types, query_blocks, query_index_principal, query_tip_certificate,
+        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD, query_archives, query_block_types, query_blocks,
+        query_tip_certificate,
     },
     live_query_context,
 };
 use crate::candid_call::CandidCallError;
 use crate::icrc::{
-    ledger::{GetIndexPrincipalResult, fetch_icrc_supported_standards, index_principal_error_text},
+    ledger::{
+        ICRC106_GET_INDEX_PRINCIPAL_METHOD, fetch_icrc_supported_standards,
+        index_principal_error_text, query_index_principal,
+    },
     model::{
         IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
         IcrcLedgerRequest, IcrcTipCertificateData,
@@ -55,9 +57,6 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
                 format!("{} standard(s)", standards.len()),
             ));
             standards
-                .into_iter()
-                .map(token_standard_row_from_ledger)
-                .collect()
         }
         Err(err) => {
             capabilities.push(error_capability_row(
@@ -79,12 +78,12 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
 
 async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
     match query_index_principal::<CapabilityQueryError>(agent, ledger_canister).await {
-        Ok(GetIndexPrincipalResult::Ok(principal)) => available_capability_row(
+        Ok(Ok(principal)) => available_capability_row(
             "ICRC-106 index discovery",
             ICRC106_GET_INDEX_PRINCIPAL_METHOD,
             format!("index canister {}", principal.to_text()),
         ),
-        Ok(GetIndexPrincipalResult::Err(error)) => available_capability_row(
+        Ok(Err(error)) => available_capability_row(
             "ICRC-106 index discovery",
             ICRC106_GET_INDEX_PRINCIPAL_METHOD,
             index_principal_error_text(error),

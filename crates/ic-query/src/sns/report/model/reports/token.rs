@@ -4,9 +4,8 @@
 //! Does not own: ledger calls, token amount formatting, or rendering.
 //! Boundary: preserves raw token metadata fields for text and JSON output.
 
-use crate::icrc::IcrcMetadataValueKind;
+use crate::icrc::{IcrcTokenMetadataRow, IcrcTokenStandardRow};
 use serde::Serialize;
-use serde_json::Value as JsonValue;
 
 ///
 /// SnsTokenReport
@@ -36,31 +35,6 @@ pub struct SnsTokenReport {
     pub minting_account_subaccount_hex: Option<String>,
     pub ledger_index_canister_id: Option<String>,
     pub ledger_index_error: Option<String>,
-    pub supported_standards: Vec<SnsTokenStandardRow>,
-    pub metadata: Vec<SnsTokenMetadataRow>,
-}
-
-///
-/// SnsTokenStandardRow
-///
-/// Serializable row for one token standard supported by an SNS ledger.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct SnsTokenStandardRow {
-    pub name: String,
-    pub url: String,
-}
-
-///
-/// SnsTokenMetadataRow
-///
-/// Serializable row for one raw SNS ledger metadata entry.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct SnsTokenMetadataRow {
-    pub key: String,
-    pub value_type: IcrcMetadataValueKind,
-    pub value: JsonValue,
+    pub supported_standards: Vec<IcrcTokenStandardRow>,
+    pub metadata: Vec<IcrcTokenMetadataRow>,
 }

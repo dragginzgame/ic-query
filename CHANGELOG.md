@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.61.0]
+
+- **Breaking:** SNS token reports and custom sources use
+  `icrc::IcrcTokenStandardRow` and `icrc::IcrcTokenMetadataRow` directly. Remove
+  the equivalent SNS row types and redundant ledger-to-report conversions.
+  `MainnetSnsToken` composes its metadata as `token: IcrcTokenData`.
+- **Breaking:** `IcrcBlockTypesSource` and `IcrcArchivesSource` return vectors
+  of their existing row types directly; update custom source implementations.
+- **Breaking:** `CmcCyclesReport` retains the complete certified XDR report in
+  `xdr`; access provenance, rate and certification through that field. JSON
+  remains flat with the existing fields.
+- **Breaking:** NNS neuron rows, recent ballots and distribution buckets retain
+  raw codes without duplicated classification fields. Text labels are derived
+  when rendered. Update Rust/JSON consumers and explicitly refresh neuron
+  snapshots; strict row decoding rejects the replaced shape. Schemas remain 1.
+- Share SNS version-hash validation while preserving upgrade hex admission and
+  the stricter 32-byte reward-checkpoint requirement.
+
+Detailed release notes: [docs/changelog/0.61.md](docs/changelog/0.61.md)
+
 ## [0.60.0] - 2026-10-17
 
 - **Breaking:** NNS neuron/proposal cache status and summary reports share

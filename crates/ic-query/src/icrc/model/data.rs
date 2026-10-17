@@ -4,31 +4,12 @@
 //! Does not own: public report envelopes, request construction, errors, or rendering.
 //! Boundary: carries raw source results into report assembly without display conversion.
 
+use super::IcrcTokenStandardRow;
 use super::contracts::{
-    IcrcAccountTransactionRow, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-    IcrcBlockTypeRow, IcrcCapabilityRow, IcrcFollowedArchiveBlockRow, IcrcTokenMetadataRow,
-    IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcAccountTransactionRow, IcrcArchiveFollowErrorRow, IcrcArchivedBlocksRow, IcrcCapabilityRow,
+    IcrcFollowedArchiveBlockRow, IcrcTransactionBlockRow,
 };
 use std::path::PathBuf;
-
-///
-/// IcrcTokenData
-///
-/// Source-layer token metadata returned by an ICRC ledger.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcTokenData {
-    pub token_name: String,
-    pub token_symbol: String,
-    pub decimals: u8,
-    pub transfer_fee: String,
-    pub total_supply: String,
-    pub minting_account_owner: Option<String>,
-    pub minting_account_subaccount_hex: Option<String>,
-    pub supported_standards: Vec<IcrcTokenStandardRow>,
-    pub metadata: Vec<IcrcTokenMetadataRow>,
-}
 
 ///
 /// IcrcBalanceData
@@ -146,28 +127,6 @@ pub struct IcrcTransactionsData {
     pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
     pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
     pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
-}
-
-///
-/// IcrcBlockTypesData
-///
-/// Source-layer ICRC-3 supported block types result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcBlockTypesData {
-    pub block_types: Vec<IcrcBlockTypeRow>,
-}
-
-///
-/// IcrcArchivesData
-///
-/// Source-layer ICRC-3 archive range discovery result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcArchivesData {
-    pub archives: Vec<IcrcArchiveRow>,
 }
 
 ///

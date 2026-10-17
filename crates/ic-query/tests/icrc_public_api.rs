@@ -8,10 +8,10 @@ use ic_query::icrc::{
     IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
     IcrcAccountTransactionError, IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
     IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceData,
-    IcrcAllowanceSource, IcrcArchivesData, IcrcArchivesSource, IcrcBalanceData, IcrcBalanceSource,
-    IcrcBlockTypesData, IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource,
-    IcrcError, IcrcIndexData, IcrcIndexSource, IcrcTipCertificateData, IcrcTipCertificateSource,
-    IcrcTokenData, IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
+    IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceData, IcrcBalanceSource,
+    IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource, IcrcError, IcrcIndexData,
+    IcrcIndexSource, IcrcTipCertificateData, IcrcTipCertificateSource, IcrcTokenData,
+    IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report,
     build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
@@ -612,12 +612,8 @@ impl IcrcBlockTypesSource for FixtureIcrcSource {
     fn fetch_block_types<'a>(
         &'a self,
         _request: &'a IcrcLedgerRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcBlockTypesData, IcrcError>> {
-        Box::pin(async move {
-            Ok(IcrcBlockTypesData {
-                block_types: Vec::new(),
-            })
-        })
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<IcrcBlockTypeRow>, IcrcError>> {
+        Box::pin(async move { Ok(Vec::new()) })
     }
 }
 
@@ -626,12 +622,8 @@ impl IcrcArchivesSource for FixtureIcrcSource {
     fn fetch_archives<'a>(
         &'a self,
         _request: &'a IcrcArchivesRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcArchivesData, IcrcError>> {
-        Box::pin(async move {
-            Ok(IcrcArchivesData {
-                archives: Vec::new(),
-            })
-        })
+    ) -> ic_query::report::SourceFuture<'a, Result<Vec<IcrcArchiveRow>, IcrcError>> {
+        Box::pin(async move { Ok(Vec::new()) })
     }
 }
 

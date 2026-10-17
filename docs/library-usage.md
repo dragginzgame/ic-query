@@ -552,6 +552,13 @@ No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
 not a `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`,
 and other normal `std`-using crates.
 
+NNS neuron rows, recent ballots and distribution buckets expose raw codes only.
+Use the public classification types' `from_code` helpers for labels; terminal
+rendering already does this. The 0.61 contract requires updating consumers of
+classification fields and explicitly refreshing existing neuron snapshots after
+preserving any evidence still needed. Strict row decoding rejects unknown fields;
+cache-only operations never rewrite a refused snapshot.
+
 ## Async host execution
 
 Live collection and cache reads that may refresh return futures. Poll them on
@@ -1187,7 +1194,9 @@ construction. The operation is live-only and does not read or write a cache.
 No-default consumers can construct, serialize, and render `CmcXdrReport` and
 `CmcCyclesReport` without the live adapter. Host consumers can implement the
 single `CmcSource` capability for a fixture or proxy and reuse the same report
-projection.
+projection. `CmcCyclesReport::xdr` retains the underlying `CmcXdrReport`:
+read `report.xdr.context`, `report.xdr.rate` and `report.xdr.certification` for
+its provenance and evidence. JSON retains those fields in its existing flat shape.
 
 ## Pure Rendering Example
 

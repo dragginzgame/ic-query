@@ -1,10 +1,11 @@
 //! Module: sns::report::model::reports::upgrade
 //!
 //! Responsibility: bounded native SNS upgrade report DTOs.
-//! Does not own: Governance or SNS-W calls, source validation, lookup, or rendering.
-//! Boundary: preserves native deployed, pending, and next blessed SNS versions.
+//! Does not own: Governance or SNS-W calls, target admission, lookup, or rendering.
+//! Boundary: preserves native versions and validates their shared hash representation.
 
 use super::invocation::SnsCanisterMethod;
+use crate::hex::is_canonical_lowercase_hex;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -28,6 +29,34 @@ pub struct SnsVersion {
     pub governance_wasm_hash_hex: String,
     /// Ledger index Wasm hash.
     pub index_wasm_hash_hex: String,
+}
+
+impl SnsVersion {
+    pub(in crate::sns::report) fn validate_hashes(
+        &self,
+        field: &str,
+        expected_bytes: Option<usize>,
+    ) -> Result<(), String> {
+        for (role, hash) in [
+            ("archive", self.archive_wasm_hash_hex.as_str()),
+            ("root", self.root_wasm_hash_hex.as_str()),
+            ("swap", self.swap_wasm_hash_hex.as_str()),
+            ("ledger", self.ledger_wasm_hash_hex.as_str()),
+            ("governance", self.governance_wasm_hash_hex.as_str()),
+            ("index", self.index_wasm_hash_hex.as_str()),
+        ] {
+            if !is_canonical_lowercase_hex(hash)
+                || expected_bytes.is_some_and(|bytes| hash.len() / 2 != bytes)
+            {
+                let expectation = expected_bytes.map_or_else(
+                    || "lowercase even-length hexadecimal text".to_string(),
+                    |bytes| format!("a {bytes}-byte lowercase hexadecimal hash"),
+                );
+                return Err(format!("{field}.{role}_wasm_hash_hex is not {expectation}"));
+            }
+        }
+        Ok(())
+    }
 }
 
 ///
@@ -126,4 +155,39 @@ pub struct SnsUpgradeReport {
     pub next_version: Option<SnsVersion>,
     /// Failed next-version query, distinct from a successful response with no successor.
     pub next_version_gap: Option<SnsUpgradeQueryGap>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SnsVersion;
+
+    #[test]
+    fn version_hash_admission_preserves_upgrade_and_checkpoint_policies() {
+        for (hash, upgrade_valid, checkpoint_valid) in [
+            ("0a".repeat(32), true, true),
+            ("0a".to_string(), true, false),
+            ("0a".repeat(33), true, false),
+            (String::new(), false, false),
+            ("a".to_string(), false, false),
+            ("AB".repeat(32), false, false),
+            ("zz".repeat(32), false, false),
+        ] {
+            let version = SnsVersion {
+                archive_wasm_hash_hex: hash.clone(),
+                root_wasm_hash_hex: hash.clone(),
+                swap_wasm_hash_hex: hash.clone(),
+                ledger_wasm_hash_hex: hash.clone(),
+                governance_wasm_hash_hex: hash.clone(),
+                index_wasm_hash_hex: hash,
+            };
+            assert_eq!(
+                version.validate_hashes("version", None).is_ok(),
+                upgrade_valid
+            );
+            assert_eq!(
+                version.validate_hashes("version", Some(32)).is_ok(),
+                checkpoint_valid
+            );
+        }
+    }
 }

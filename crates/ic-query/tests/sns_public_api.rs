@@ -1,6 +1,8 @@
 #[cfg(feature = "sns-host")]
 use ic_query::HostCacheError;
-use ic_query::icrc::IcrcMetadataValueKind;
+#[cfg(feature = "sns-host")]
+use ic_query::icrc::IcrcTokenData;
+use ic_query::icrc::{IcrcMetadataValueKind, IcrcTokenMetadataRow, IcrcTokenStandardRow};
 use ic_query::report::ReportDataSource;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
@@ -21,10 +23,10 @@ use ic_query::sns::{
     SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId,
     SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenMetadataRow, SnsTokenReport, SnsTokenStandardRow,
-    SnsTreasuryKind, SnsTreasuryMetricRow, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-    SnsVotingPowerMetrics, SnsVotingRewardsParameters, build_sns_reward_diff_report,
-    sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryKind, SnsTreasuryMetricRow,
+    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics,
+    SnsVotingRewardsParameters, build_sns_reward_diff_report, sns_canister_report_text,
+    sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
     sns_neuron_detail_report_text, sns_neuron_permission_name, sns_params_report_text,
     sns_proposal_report_text, sns_proposals_report_text, sns_reward_checkpoint_report_text,
     sns_reward_diff_report_text, sns_swap_report_text, sns_token_report_text,
@@ -785,11 +787,11 @@ fn public_sns_token_api_is_constructible_and_renderable() {
         minting_account_subaccount_hex: None,
         ledger_index_canister_id: None,
         ledger_index_error: Some("not configured".to_string()),
-        supported_standards: vec![SnsTokenStandardRow {
+        supported_standards: vec![IcrcTokenStandardRow {
             name: "ICRC-1".to_string(),
             url: "https://github.com/dfinity/ICRC-1".to_string(),
         }],
-        metadata: vec![SnsTokenMetadataRow {
+        metadata: vec![IcrcTokenMetadataRow {
             key: "icrc1:symbol".to_string(),
             value_type: IcrcMetadataValueKind::Text,
             value: json!("EXT"),
@@ -1975,24 +1977,26 @@ fn sample_mainnet_sns_inventory(request: &SnsSourceRequest) -> MainnetSnsInvento
 #[cfg(feature = "sns-host")]
 fn sample_mainnet_sns_token() -> MainnetSnsToken {
     MainnetSnsToken {
-        token_name: "Example Token".to_string(),
-        token_symbol: "EXT".to_string(),
-        decimals: 8,
-        transfer_fee: "100000000".to_string(),
-        total_supply: "1000000000".to_string(),
-        minting_account_owner: Some("aaaaa-aa".to_string()),
-        minting_account_subaccount_hex: None,
+        token: IcrcTokenData {
+            token_name: "Example Token".to_string(),
+            token_symbol: "EXT".to_string(),
+            decimals: 8,
+            transfer_fee: "100000000".to_string(),
+            total_supply: "1000000000".to_string(),
+            minting_account_owner: Some("aaaaa-aa".to_string()),
+            minting_account_subaccount_hex: None,
+            supported_standards: vec![IcrcTokenStandardRow {
+                name: "ICRC-1".to_string(),
+                url: "https://github.com/dfinity/ICRC-1".to_string(),
+            }],
+            metadata: vec![IcrcTokenMetadataRow {
+                key: "icrc1:symbol".to_string(),
+                value_type: IcrcMetadataValueKind::Text,
+                value: json!("EXT"),
+            }],
+        },
         ledger_index_canister_id: Some(SAMPLE_SNS_INDEX_CANISTER_ID.to_string()),
         ledger_index_error: None,
-        supported_standards: vec![SnsTokenStandardRow {
-            name: "ICRC-1".to_string(),
-            url: "https://github.com/dfinity/ICRC-1".to_string(),
-        }],
-        metadata: vec![SnsTokenMetadataRow {
-            key: "icrc1:symbol".to_string(),
-            value_type: IcrcMetadataValueKind::Text,
-            value: json!("EXT"),
-        }],
     }
 }
 
