@@ -52,9 +52,9 @@ qualified by this matrix.
   selected Rust/Cargo toolchain, with Rustup auto-installation disabled. This
   read-only preflight runs before downloads and creates no tool/build directories.
   It then prepares host tools followed by the complete IC set:
-  Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
-  wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
-  owner in `ci/ic-tools.tsv`, followed by common cargo-sort and cargo-sort-derives.
+  Quill, ICP CLI, didc, ic-wasm and wasm-opt under `.tools/ic/bin`, followed by
+  common cargo-sort and cargo-sort-derives. The selected IC versions, host mappings
+  and archive digests are owned by the [IC tool catalog](../ci/ic-tools.tsv).
   Query does not select candid-extractor. Query's Audit/Machete owners follow
   through the ordered local extension lists. `make tools-check` verifies all
   those selections offline; neither command prepares a Rust toolchain.
@@ -85,10 +85,11 @@ qualified by this matrix.
 The [Governance canister smoke harness](canister-smoke.md) has additional ICP CLI
 and local-network prerequisites. Its separate live integration job is configured
 on all three hosts, explicitly preparing and checking the common IC set.
-ICP CLI remains 1.6.0 with the same reviewed architecture-specific digests. Each
-downloaded archive is verified before extraction and the executable version is checked before PATH admission. Native macOS canister-network
-qualification requires passing smoke runs on this configuration; Rust
-cross-compilation and the general macOS gate do not qualify it.
+The smoke job uses the ICP CLI version and host-specific digest from the same
+[IC tool catalog](../ci/ic-tools.tsv). Each downloaded archive is verified before
+extraction and the executable version is checked before PATH admission. Native
+macOS canister-network qualification requires passing smoke runs on this
+configuration; Rust cross-compilation and the general macOS gate do not qualify it.
 
 Tool installation explicitly selects `/bin/bash` and puts `/bin` first on PATH.
 The macOS workflow also puts `/bin/bash` first on PATH before the complete gate,
