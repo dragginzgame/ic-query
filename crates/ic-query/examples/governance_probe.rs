@@ -19,7 +19,7 @@ mod probe {
         }
     }
 
-    #[ic_cdk::update]
+    #[ic_platform::cdk::update]
     async fn report(kind: String) -> String {
         let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
             "ic",

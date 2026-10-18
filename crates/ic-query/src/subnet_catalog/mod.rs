@@ -11,6 +11,7 @@ mod report;
 mod resolver;
 #[cfg(feature = "subnet-catalog-host")]
 mod text;
+#[cfg(feature = "subnet-catalog-host")]
 mod time;
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -38,6 +39,7 @@ pub use host::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
+pub(crate) use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]
 pub use model::UncertifiedCatalogCollection;
@@ -75,8 +77,6 @@ pub use text::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub use time::catalog_stale_status;
-pub(crate) use time::format_utc_timestamp_secs;
-pub(crate) use time::parse_utc_timestamp_secs;
 
 /// Current persisted Subnet Catalog schema identifier; remains `1` before package 1.0.
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;

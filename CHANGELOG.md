@@ -7,16 +7,22 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.62.2]
 
+- Reuse Host's canonical UTC, exact decimal rounding and protected export writers.
+  Preserve report text, cache freshness rules and typed export errors while
+  removing the competing local implementations.
+
 - Reuse Shared Tooling’s committed graph checker (6eb8c41, PR #285) while
   retaining local roots, feature selections and exclusion policy. This selects
   unmerged topic source, not a new Shared release.
   Keep graph-only qualification independently runnable, preserving direct
   dependency depth and forbidden dependency-feature edges.
 
-- Adopt published IC Platform 0.1.9 for Candid, certification and native Agent
+- Adopt published IC Platform 0.1.11 for Candid, certification and native Agent
   APIs, preserving wire types, authentication and caller policies. Remove direct
-  Agent declarations and the remaining Agent hash-tree imports. Retain documented
-  CDK macro/runtime exceptions pending upstream support.
+  Agent declarations and the remaining Agent hash-tree imports.
+- Route Governance calls and the typed probe entrypoint through Platform's CDK
+  facade and generator, removing the final direct Candid/CDK dependencies.
+  Preserve bounded calls, reply limits, wire types and upstream runtime behavior.
 - Use Testkit 0.54 and Platform's codec in compiled Governance tests, retiring
   the separate decoder dependency without changing reply limits or call behavior.
 - Route standard ledger account, metadata, allowance, block/archive and certificate

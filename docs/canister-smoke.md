@@ -69,6 +69,9 @@ an in-memory Governance fixture at the fixed NNS principal. Testkit owns server
 admission/lifecycle, instance startup, probe installation and typed Candid
 calls. Query checks all four reports, collector provenance, raw metric buckets,
 Governance application errors, malformed replies and inter-canister rejects.
+Entrypoint checks preserve bounded skipping of unused arguments, reject malformed
+or wrong-type arguments and excessive skipping work, then verify subsequent calls
+still succeed after those traps.
 The fixture uses the existing private Governance wire contracts rather than
 copying them into a mock application.
 
@@ -456,11 +459,14 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.1.9, verified from the crates.io
+The selected published `ic-platform` release is 0.1.11, verified from the crates.io
 sparse registry record and the downloaded archive checksum
-`bdfb66170e95bae421449fbd50e3e2a26196fbd6277ae13556026bf3001974c3`.
+`8d55106ea1d1ccd65bd67c7d2a681b7d8199f3c0206ae990e24589b3ce502bdf`.
 Published source and features were inspected directly; sibling sources are not
-substituted for the registry package.
+substituted for the registry package. Compared with 0.1.10, the selected
+release adds CDK cycle and instruction-counter exports that Query does not use;
+the entrypoint generator and Candid/Agent/certification implementations are
+unchanged.
 
 The optional certification surface preserves the same upstream certificate/tree
 identities as Agent and Host. Query uses it for types and witness constructors;
@@ -476,19 +482,22 @@ identities. Query keeps its byte-dependent work quota, skipping/type/header
 ceilings and original Candid error projection. The harness keeps exactly-one-reply
 admission, raw reply bytes and existing limits. There are no local generated
 Candid bindings or generators; Registry Protobuf declarations are a separate wire
-boundary. CDK-generated probe entrypoints still emit absolute `::candid` paths.
+boundary. Platform's maintained entrypoint generator routes generated runtime
+and Candid references through its facade and contract exports.
 
-[Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) blocks removal
-of the existing Wasm CDK calls, canister identity API and probe macro. Its generated Candid
-paths require a Wasm-only development declaration. Platform 0.1.9
-documents a zero-argument, hidden, manual-reply CDK subset that avoids those
-paths, but this probe has a typed `String -> String` async entrypoint. Keep the
-typed macro instead of adding manual argument/reply handling solely to hide the
-dependency. The subset still requires CDK and does not replace the Governance
-call adapter. Testkit 0.54's typed calls use Platform's `DecodeLimits` and
+Query's `canister` feature selects Platform's `cdk` facade. Governance uses its
+original upstream `Call`, `CallFailed` and `canister_self` identities; the probe
+uses `#[ic_platform::cdk::update]` with its existing typed `String -> String`
+entrypoint. The runtime remains CDK 0.20.3 with one executor 2.0.0 and ic0 1.2.0
+identity. Bounded waits, raw replies, reply limits and automatic argument/reply
+handling remain unchanged. The compiled Governance fixture qualifies the
+simulator integration; installed-IC callback/trap and fleet qualification remain
+separate obligations tracked in
+[Platform #1](https://github.com/dragginzgame/ic-platform/issues/1).
+Testkit 0.54's typed calls use Platform's `DecodeLimits` and
 `DecodeError` identities, with the fixture's existing five explicit ceilings.
-The probe reads its clock through Platform's `ic0` feature, selected only by the
-Wasm development dependency. CDK's former time helper delegates to that same
+The probe reads its clock through Platform's `ic0` feature, selected by the
+CDK integration. CDK's former time helper delegates to that same
 selected upstream system call. No callback, executor or lifecycle implementation
 is replaced.
 
@@ -497,13 +506,13 @@ selects it through a development dependency. Public Agent errors retain their
 upstream identities. Endpoints, root-key admission, query verification, deadlines,
 bounded HTTP clients and raw replies stay with Query. Direct Agent and certification
 declarations are forbidden. Platform's native transport and parser stay out of the
-canister graph; the optional parser is not selected on native hosts either.
+canister graph. Native Host Tools owns its transitive Platform parser selection.
 
 `make dependency-boundary-check` uses Shared Tooling's canonical Cargo metadata
 checker, including aliases and normal/build/dev/target-specific declarations.
-The policy permits those two exceptions only in `ic-query`; it cannot restrict
-an allowed package to one dependency kind/target. Review those manifest scopes
-alongside the gate. It does not inspect generated imports, validate role comments,
+The policy rejects direct Candid, CDK, certification, Agent, ledger DTO and macro
+dependencies throughout the workspace, without package exceptions. It does not
+inspect generated imports, validate role comments,
 prove registry availability, or establish transitive/deployed dependency absence.
-The normal/build graph checks remain separate. Query does not select Platform's
-executor feature; the existing CDK supplies the single selected executor.
+The normal/build graph checks remain separate. Platform's `cdk` feature selects
+its exact-pinned executor; portable and native host selections do not enable CDK.

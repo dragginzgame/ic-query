@@ -13,15 +13,11 @@ repository.workspace = true
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-candid.workspace = true
-ic-platform = { workspace = true, features = ["ic0"] }
-
 [features]
 default = []
 ledger-evidence-host = ["certificate-host", "ic-platform/icrc-ledger-types"]
 certificate-host = ["ic-platform/agent", "dep:ic-host-tools", "ic-platform/certification"]
-canister = ["dep:ic-cdk"]
+canister = ["ic-platform/cdk"]
 host = [
     "cloud-engine-host",
     "cmc-host",
@@ -78,9 +74,6 @@ subnet-catalog-host = [
     "dep:sha2",
     "dep:tokio",
 ]
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-ic-cdk = { workspace = true, optional = true }
 
 [dependencies]
 cap-fs-ext = { workspace = true, optional = true }

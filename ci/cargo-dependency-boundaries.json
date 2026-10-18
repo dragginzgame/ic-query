@@ -1,9 +1,7 @@
 [
   {
     "dependency": "candid",
-    "allowed_packages": [
-      "ic-query"
-    ]
+    "allowed_packages": []
   },
   {
     "dependency": "candid_parser",
@@ -11,9 +9,7 @@
   },
   {
     "dependency": "ic-cdk",
-    "allowed_packages": [
-      "ic-query"
-    ]
+    "allowed_packages": []
   },
   {
     "dependency": "ic-cdk-macros",
@@ -21,6 +17,10 @@
   },
   {
     "dependency": "ic-cdk-executor",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic-platform-macros",
     "allowed_packages": []
   },
   {

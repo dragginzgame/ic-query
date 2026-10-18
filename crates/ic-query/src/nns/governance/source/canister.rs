@@ -17,11 +17,11 @@ use crate::nns::{
         wire::{GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult},
     },
 };
-use ic_cdk::{
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
+use ic_platform::cdk::{
     api::canister_self,
     call::{Call, CallFailed},
 };
-use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
 /// CanisterNnsSource

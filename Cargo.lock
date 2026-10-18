@@ -1615,15 +1615,14 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.17.3"
+version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2764868c7e1dcdf6821c837bd006e8a1c6a5fd631cb32350878461005644520"
+checksum = "2a104bff5a78e8bcc9a29b92e6b793b8b566a96d81a6a160d359fb77bd59680a"
 dependencies = [
  "cargo_metadata",
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
- "libc",
  "rustix",
  "serde",
  "serde_json",
@@ -1783,20 +1782,23 @@ dependencies = [
 
 [[package]]
 name = "ic-metrics"
-version = "0.14.1"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e8586a09ef26a61beaccd1187f5d7ecc442c04b592959332662c29f8f5a76cd"
+checksum = "dac61137e8b7a67d649f475bdff907b278168292fe4bf103578293d1fb842651"
 
 [[package]]
 name = "ic-platform"
-version = "0.1.9"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdfb66170e95bae421449fbd50e3e2a26196fbd6277ae13556026bf3001974c3"
+checksum = "e0ab384614a5d8fe251bc2c27c508263d4001d776edf31382b5b985a1a4ced2d"
 dependencies = [
  "candid",
  "candid_parser",
  "ic-agent",
+ "ic-cdk",
+ "ic-cdk-executor",
  "ic-certification",
+ "ic-platform-macros",
  "ic0",
  "ic_principal",
  "icrc-ledger-types",
@@ -1804,15 +1806,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-platform-macros"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b5de9771169e34ca8da9bbb04c9c6196b1d2de8d2d0d21bc79d5921984ce6be"
+dependencies = [
+ "darling 0.23.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "ic-query"
 version = "0.62.1"
 dependencies = [
- "candid",
  "cap-fs-ext",
  "cap-std",
  "ciborium",
  "futures",
- "ic-cdk",
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
