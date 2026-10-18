@@ -61,19 +61,7 @@ impl IcIcrcAnalyticsSource for LiveIcSource {
                 source: request.clone(),
                 ledger_canister_id: wire.ledger_canister_id,
                 query: query.clone(),
-                rows: wire
-                    .data
-                    .into_iter()
-                    .map(|row| IcIcrcTokenValueSourceRow {
-                        price: row.price,
-                        volume_24h: row.volume_24h,
-                        price_usd: row.price_usd,
-                        volume_24h_usd: row.volume_24h_usd,
-                        source: row.source,
-                        source_url: row.source_url,
-                        timestamp_unix_secs: row.timestamp,
-                    })
-                    .collect(),
+                rows: wire.data,
             })
         })
     }
@@ -164,18 +152,7 @@ struct IndexedCount {
 #[derive(SerdeDeserialize)]
 struct TokenValueSeries {
     ledger_canister_id: String,
-    data: Vec<TokenValue>,
-}
-
-#[derive(SerdeDeserialize)]
-struct TokenValue {
-    price: Option<String>,
-    volume_24h: Option<String>,
-    price_usd: Option<String>,
-    volume_24h_usd: Option<String>,
-    source: Option<String>,
-    source_url: Option<String>,
-    timestamp: Option<u64>,
+    data: Vec<IcIcrcTokenValueSourceRow>,
 }
 
 #[cfg(test)]
@@ -251,7 +228,7 @@ mod tests {
         assert_eq!(wire.data.len(), 1);
         assert_eq!(wire.data[0].volume_24h, None);
         assert_eq!(wire.data[0].source.as_deref(), Some("ICPSwap-API"));
-        assert_eq!(wire.data[0].timestamp, Some(1_785_542_517));
+        assert_eq!(wire.data[0].timestamp_unix_secs, Some(1_785_542_517));
     }
 
     #[test]

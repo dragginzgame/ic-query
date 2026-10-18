@@ -14,8 +14,8 @@ pub use paths::{
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
 };
 pub use refresh::{
-    DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS, refresh_nns_neuron_cache,
-    refresh_nns_neuron_cache_with_progress, refresh_nns_neuron_cache_with_source,
+    refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
+    refresh_nns_neuron_cache_with_source,
 };
 pub use reports::{
     build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,

@@ -303,8 +303,10 @@ fn authority_validation_requires_complete_exact_registry_record_subjects() {
 
     let mut contradictory_shard = complete;
     contradictory_shard.provenance.routing_source = SubnetCatalogRoutingSource::CanisterRanges;
-    let key_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
-    let claimed_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 2, 1, 1]);
+    let key_start =
+        ic_platform::candid::contract::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+    let claimed_start =
+        ic_platform::candid::contract::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 2, 1, 1]);
     let routing = contradictory_shard
         .provenance
         .registry_records

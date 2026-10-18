@@ -14,7 +14,7 @@ impl SnsProposalSource for InvalidSnsProposalSource {
     ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
-            proposal.action = SnsProposalAction::UpgradeSnsControlledCanister;
+            proposal.ballot_count = 2;
             Ok(proposal)
         })
     }
@@ -35,9 +35,8 @@ impl SnsProposalsSource for InvalidSnsProposalsSource {
         _topic: SnsProposalTopicFilter,
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
-            let mut proposal = fixture_proposal_row();
-            proposal.ballots[0].vote_text = SnsProposalVote::No;
-            Ok(vec![proposal])
+            let proposal = fixture_proposal_row();
+            Ok(vec![proposal.clone(), proposal])
         })
     }
 
@@ -67,7 +66,7 @@ async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
         SnsHostError::InvalidSourceData {
             capability: "SNS proposal",
             reason,
-        } if reason.contains("action classification")
+        } if reason.contains("ballot_count")
     ));
 
     let list_error =
@@ -79,7 +78,7 @@ async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
         SnsHostError::InvalidSourceData {
             capability: "SNS proposals",
             reason,
-        } if reason.contains("vote classification")
+        } if reason.contains("duplicate proposal id")
     ));
 }
 
@@ -107,7 +106,7 @@ async fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
 async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     let request = proposal_request("1");
 
-    let report = build_sns_proposal_report_with_source(&request, &FixtureSnsProposalSource)
+    let mut report = build_sns_proposal_report_with_source(&request, &FixtureSnsProposalSource)
         .await
         .expect("sns proposal report");
     let text = sns_proposal_report_text(&report);
@@ -120,13 +119,13 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.proposal_id, 42);
     assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, 42);
-    assert_eq!(report.proposal.action, SnsProposalAction::Motion);
+    assert_eq!(report.proposal.action_id, 1);
     assert_eq!(
         report.proposal.decision_state,
         SnsProposalDecisionState::Open
     );
     assert_eq!(report.proposal.ballot_count, 1);
-    assert_eq!(report.proposal.ballots[0].vote_text, SnsProposalVote::Yes);
+    assert_eq!(report.proposal.ballots[0].vote, 1);
     assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.cache_path, None);
     assert_eq!(report.cache_complete, None);
@@ -140,6 +139,24 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert!(text.contains("1.00"));
     assert!(text.contains("Fixture proposal"));
     assert!(text.contains("reject_cost: 1.00"));
+
+    report.proposal.proposal_creation_timestamp_seconds = 0;
+    report.proposal.decided_timestamp_seconds = None;
+    report.proposal.executed_timestamp_seconds = Some(1_700_000_000);
+    report.proposal.failed_timestamp_seconds = Some(0);
+    report.proposal.ballots[0].cast_timestamp_seconds = 0;
+    let text = sns_proposal_report_text(&report);
+    assert!(text.contains("created_at: 1970-01-01T00:00:00Z"));
+    assert!(text.contains("decided_at: -"));
+    assert!(text.contains("executed_at: 2023-11-14T22:13:20Z"));
+    assert!(text.contains("failed_at: 1970-01-01T00:00:00Z"));
+    let json = serde_json::to_value(&report).expect("raw timestamp report");
+    assert_eq!(json["proposal"]["proposal_creation_timestamp_seconds"], 0);
+    assert_eq!(
+        json["proposal"]["executed_timestamp_seconds"],
+        1_700_000_000
+    );
+    assert_eq!(json["proposal"]["ballots"][0]["cast_timestamp_seconds"], 0);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -167,13 +184,16 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.sort_direction, "none");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
-    assert_eq!(report.proposals[0].action, SnsProposalAction::Motion);
+    assert_eq!(report.proposals[0].action_id, 1);
     assert_eq!(
         report.proposals[0].decision_state,
         SnsProposalDecisionState::Open
     );
     assert_eq!(report.proposals[0].reject_cost_e8s, 100_000_000);
-    assert_eq!(report.proposals[0].created_at, "2026-06-01T00:00:00Z");
+    assert_eq!(
+        report.proposals[0].proposal_creation_timestamp_seconds,
+        1_780_272_000
+    );
     assert_eq!(
         report.proposals[0]
             .latest_tally

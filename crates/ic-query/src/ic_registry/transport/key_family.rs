@@ -12,7 +12,7 @@ use crate::ic_registry::{
         high_capacity_registry_value,
     },
 };
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
 use prost::Message;
 use std::{
     collections::{BTreeMap, BTreeSet, btree_map::Entry},
@@ -25,7 +25,7 @@ const MAX_REGISTRY_KEY_BYTES: usize = 1_024;
 
 pub(in crate::ic_registry) async fn get_registry_key_family_counted(
     agent: &Agent,
-    registry_canister: &candid::Principal,
+    registry_canister: &ic_platform::candid::contract::Principal,
     prefix: &str,
     registry_version: u64,
     counter: &RegistryQueryCounter,
@@ -181,7 +181,7 @@ fn remember_checkpoint(
 
 async fn get_changes_since(
     agent: &Agent,
-    registry_canister: &candid::Principal,
+    registry_canister: &ic_platform::candid::contract::Principal,
     version: u64,
     counter: &RegistryQueryCounter,
 ) -> Result<HighCapacityRegistryGetChangesSinceResponse, RegistryFetchError> {

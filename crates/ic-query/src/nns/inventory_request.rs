@@ -99,7 +99,7 @@ pub struct NnsInventoryRefreshRequest {
     pub cache: NnsInventoryCacheRequest,
     pub source_endpoint: String,
     pub now_unix_secs: u64,
-    pub lock_stale_after_seconds: u64,
+
     pub dry_run: bool,
     pub output_path: Option<PathBuf>,
 }
@@ -111,13 +111,12 @@ impl NnsInventoryRefreshRequest {
         cache: NnsInventoryCacheRequest,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache,
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
-            lock_stale_after_seconds,
+
             dry_run: false,
             output_path: None,
         }

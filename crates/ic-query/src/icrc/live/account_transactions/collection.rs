@@ -156,7 +156,7 @@ impl AccountTransactionCollectionState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candid::Principal;
+    use ic_platform::candid::contract::Principal;
     use serde_json::json;
 
     #[test]

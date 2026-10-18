@@ -7,7 +7,7 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
         cache: cache.clone(),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
-        lock_stale_after_seconds: DEFAULT_NODE_PROVIDER_REFRESH_LOCK_STALE_SECONDS,
+
         dry_run: false,
         output_path: None,
     };

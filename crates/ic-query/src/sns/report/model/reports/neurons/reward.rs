@@ -22,7 +22,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;
 use thiserror::Error as ThisError;
@@ -34,6 +34,7 @@ use thiserror::Error as ThisError;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsRewardProposalId {
     /// Native SNS Governance proposal identifier.
@@ -47,6 +48,7 @@ pub struct SnsRewardProposalId {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsRewardEvent {
     /// Number of reward rounds represented by this event when supplied.
@@ -601,23 +603,35 @@ fn invalid_validation(reason: impl Into<String>) -> SnsRewardCheckpointValidatio
 /// Pure recomputation result derived from raw checkpoint parameters and rows.
 ///
 
-pub(in crate::sns::report) struct SnsRewardCheckpointSummary {
-    pub(in crate::sns::report) aggregate_maturity_e8s_equivalent: u64,
-    pub(in crate::sns::report) aggregate_staked_maturity_e8s_equivalent: u64,
-    pub(in crate::sns::report) aggregate_combined_maturity_e8s_equivalent: u64,
-    pub(in crate::sns::report) permission_entry_count: usize,
-    pub(in crate::sns::report) unassessable_permission_code_count: usize,
-    pub(in crate::sns::report) pending_maturity_disbursement_count: usize,
-    pub(in crate::sns::report) auto_stake_maturity_enabled_count: usize,
-    pub(in crate::sns::report) auto_stake_maturity_disabled_count: usize,
-    pub(in crate::sns::report) auto_stake_maturity_unspecified_count: usize,
-    pub(in crate::sns::report) manage_principals_grantable: Option<bool>,
-    pub(in crate::sns::report) maturity_mint_conversion_observed_disabled:
-        SnsPolicyObservationStatus,
-    pub(in crate::sns::report) manual_maturity_staking_observed_disabled:
-        SnsPolicyObservationStatus,
-    pub(in crate::sns::report) maturity_conversion_policy_observed_status:
-        SnsPolicyObservationStatus,
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnsRewardCheckpointSummary {
+    /// Checked aggregate unstaked maturity across every row.
+    pub aggregate_maturity_e8s_equivalent: u64,
+    /// Checked aggregate staked maturity across every row.
+    pub aggregate_staked_maturity_e8s_equivalent: u64,
+    /// Checked aggregate combined maturity across every row.
+    pub aggregate_combined_maturity_e8s_equivalent: u64,
+    /// Number of principal permission entries observed across every row.
+    pub permission_entry_count: usize,
+    /// Number of raw unknown or anomalous permission codes observed globally and per-neuron.
+    pub unassessable_permission_code_count: usize,
+    /// Number of pending maturity disbursements observed across every row.
+    pub pending_maturity_disbursement_count: usize,
+    /// Number of neurons with automatic maturity staking enabled.
+    pub auto_stake_maturity_enabled_count: usize,
+    /// Number of neurons with automatic maturity staking explicitly disabled.
+    pub auto_stake_maturity_disabled_count: usize,
+    /// Number of neurons without an automatic maturity-staking value.
+    pub auto_stake_maturity_unspecified_count: usize,
+    /// Whether permission 2 is currently grantable, or unknown when the list is missing.
+    pub manage_principals_grantable: Option<bool>,
+    /// Global observation for disabling permissions 7 and 8 and pending disbursements.
+    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
+    /// Global observation for disabling manual maturity-staking permission 9.
+    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
+    /// Combined observed maturity-conversion policy status.
+    pub maturity_conversion_policy_observed_status: SnsPolicyObservationStatus,
 }
 
 pub(in crate::sns::report) fn recompute_reward_checkpoint_summary(

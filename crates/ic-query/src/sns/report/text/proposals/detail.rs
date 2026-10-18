@@ -4,6 +4,9 @@
 //! Does not own: proposal fetching, cache loading, report construction, or JSON output.
 //! Boundary: formats proposal detail lines and ballot tables for proposal text reports.
 
+use crate::sns::report::{sns_proposal_action_label, sns_proposal_vote_label};
+use crate::subnet_catalog::format_utc_timestamp_secs;
+
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -14,7 +17,7 @@ use super::SNS_PROPOSAL_TITLE_TEXT_LIMIT;
 use crate::{
     sns::report::{
         SnsProposalBallotRow, SnsProposalRow,
-        text::common::{neuron_id_text, optional_text},
+        text::common::{neuron_id_text, optional_text, optional_timestamp_text},
     },
     text_value::{truncate_text, yes_no},
     token_amount::e8s_decimal_text,
@@ -32,7 +35,7 @@ pub(super) fn proposal_detail_lines(
     proposal: &SnsProposalRow,
     detail_limit: Option<usize>,
 ) -> Vec<String> {
-    let action = proposal.action.label();
+    let action = sns_proposal_action_label(proposal.action_id);
     let mut lines = vec![
         format!("- proposal_id: {}", proposal.proposal_id),
         format!("  action_id: {}", proposal.action_id),
@@ -52,18 +55,21 @@ pub(super) fn proposal_detail_lines(
             "  reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("  created_at: {}", terminal_text(&proposal.created_at)),
+        format!(
+            "  created_at: {}",
+            format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds)
+        ),
         format!(
             "  decided_at: {}",
-            optional_text(proposal.decided_at.as_ref())
+            optional_timestamp_text(proposal.decided_timestamp_seconds)
         ),
         format!(
             "  executed_at: {}",
-            optional_text(proposal.executed_at.as_ref())
+            optional_timestamp_text(proposal.executed_timestamp_seconds)
         ),
         format!(
             "  failed_at: {}",
-            optional_text(proposal.failed_at.as_ref())
+            optional_timestamp_text(proposal.failed_timestamp_seconds)
         ),
         format!("  reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -117,9 +123,12 @@ pub(super) fn proposal_ballot_table(
             .map(|ballot| {
                 [
                     neuron_id_text(&ballot.neuron_id, verbose),
-                    ballot.vote_text.to_string(),
+                    sns_proposal_vote_label(ballot.vote).into_owned(),
                     e8s_decimal_text(ballot.voting_power),
-                    optional_text(ballot.cast_at.as_ref()),
+                    optional_timestamp_text(
+                        (ballot.cast_timestamp_seconds != 0)
+                            .then_some(ballot.cast_timestamp_seconds),
+                    ),
                 ]
             })
             .collect::<Vec<_>>(),

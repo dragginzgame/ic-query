@@ -18,8 +18,6 @@ use crate::{
     },
 };
 
-pub const DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
 /// Refresh a complete SNS proposal snapshot using the live SNS source.
 pub async fn refresh_sns_proposals_cache(
     request: &SnsSnapshotRefreshRequest,
@@ -57,7 +55,6 @@ pub(in crate::sns::report) async fn refresh_sns_proposals_cache_with_source_and_
     run_resolved_sns_snapshot_refresh::<SnsProposalsCacheCollection, _>(
         request,
         source,
-        DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS,
         async |context| {
             let complete =
                 fetch_complete_sns_proposals(context.refresh_context(), source, progress).await?;

@@ -13,16 +13,16 @@ pub(in crate::sns::report) use model::{
     canonicalize_mainnet_sns_canister_inventory, canonicalize_mainnet_sns_metrics,
     canonicalize_mainnet_sns_swap, canonicalize_mainnet_sns_upgrade, join_mainnet_sns_inventory,
     join_mainnet_sns_lifecycles, sns_neuron_id_from_text, sns_swap_component_method,
-    sns_swap_lifecycle_name, sns_treasury_kind, validate_joined_mainnet_sns_catalog,
-    validate_mainnet_sns_inventory, validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
-    validate_mainnet_sns_neurons, validate_mainnet_sns_proposal,
-    validate_mainnet_sns_proposal_page, validate_mainnet_sns_proposals,
-    validate_mainnet_sns_reward_neuron_page, validate_sns_neuron_rows, validate_sns_proposal_rows,
+    validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
+    validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page, validate_mainnet_sns_neurons,
+    validate_mainnet_sns_proposal, validate_mainnet_sns_proposal_page,
+    validate_mainnet_sns_proposals, validate_mainnet_sns_reward_neuron_page,
+    validate_sns_neuron_rows, validate_sns_proposal_rows,
 };
 pub use model::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
-    MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade, SnsNeuronId, SnsSourceRequest,
+    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsNeuronId, SnsSourceRequest,
 };
 pub use traits::{
     SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronSource,

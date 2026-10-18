@@ -1,10 +1,31 @@
 #!/usr/bin/env perl
+# Shared companions: scripts/ci/StableVersion.pm
 use strict;
 use warnings;
+use FindBin qw($RealBin);
+use lib $RealBin;
+use StableVersion qw(stable);
 use JSON::PP qw(decode_json);
 use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use Encode qw(encode_utf8);
+
+# Recorded identities are lexical absolute paths, not observations of whichever
+# filesystem happens to exist when a saved manifest is projected.
+sub identity_path {
+    my ($path) = @_;
+    defined($path) && !ref($path) && $path =~ m{\A/} && $path !~ /[\x00\r\n]/
+        or die "expected an absolute saved-source identity path\n";
+    my @parts;
+    for my $part (split m{/}, $path) {
+        next if $part eq '' || $part eq '.';
+        if ($part eq '..') {
+            @parts or die "saved-source identity escapes filesystem root\n";
+            pop @parts;
+        } else { push @parts, $part; }
+    }
+    return '/' . join('/', @parts);
+}
 
 # Pure literal rendering, not TOML admission or a release transaction. Callers
 # admit the source and independently validate the candidate before installing it.
@@ -13,7 +34,7 @@ use Encode qw(encode_utf8);
 my ($path, $previous, $candidate, $workspace_input) = @ARGV;
 my $semver = qr/(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)/;
 for ($previous, $candidate) {
-    /\A$semver\z/ or die "expected canonical stable version\n";
+    stable($_) or die "expected canonical stable version\n";
 }
 -f $path && !-l $path or die "manifest must be a regular file\n";
 open my $input, '<', $path or die "$path: $!\n";
@@ -45,7 +66,14 @@ if (defined $workspace_input) {
     open my $source, '<', $workspace_input or die "$workspace_input: $!\n";
     my $input = decode_json(do { local $/; <$source> });
     close $source or die "$workspace_input: $!\n";
-    my %members = map { $_->{name} => $_->{manifest_path} } @{$input->{members}};
+    my $saved = exists $input->{source_root};
+    my $source_root = $saved ? identity_path($input->{source_root}) : undef;
+    my %members;
+    for my $member (@{$input->{members}}) {
+        exists $members{$member->{name}} and die "duplicate workspace member identity\n";
+        $members{$member->{name}} = $saved
+            ? identity_path($member->{manifest_path}) : $member->{manifest_path};
+    }
     my %local;
     my $catalog = $input->{manifest}{workspace}{dependencies} // {};
     for my $name (keys %$catalog) {
@@ -54,9 +82,22 @@ if (defined $workspace_input) {
             && defined $dependency->{version};
         my $package = $dependency->{package} // $name;
         next unless exists $members{$package};
-        # Cargo JSON decodes Unicode; filesystem observations retain byte paths.
-        my $manifest = abs_path(dirname($path) . '/' . encode_utf8($dependency->{path}) . '/Cargo.toml');
-        next unless defined($manifest) && $manifest eq encode_utf8($members{$package});
+        if ($saved) {
+            # The caller admits these paths against the saved source. Do not
+            # resolve them against today's checkout or the scratch file's parent.
+            my $directory = $dependency->{path};
+            defined($directory) && !ref($directory) && length($directory)
+                or die "invalid saved dependency path: $name\n";
+            $directory = "$source_root/$directory" unless $directory =~ m{\A/};
+            my $manifest = identity_path("$directory/Cargo.toml");
+            $manifest eq $members{$package}
+                or die "cannot establish saved dependency ownership: $name\n";
+        } else {
+            # Cargo JSON decodes Unicode; filesystem observations retain byte paths.
+            my $manifest = abs_path(dirname($path) . '/' . encode_utf8($dependency->{path}) . '/Cargo.toml');
+            defined($manifest) or die "cannot establish dependency ownership: $name\n";
+            next unless $manifest eq encode_utf8($members{$package});
+        }
         $name =~ /\A[A-Za-z0-9][A-Za-z0-9_-]*\z/ or die "unsupported local dependency key: $name\n";
         my $requirement = $dependency->{version};
         # Composite ranges remain caller policy; Cargo's prepared graph admits

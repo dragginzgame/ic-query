@@ -15,7 +15,7 @@ mod source;
 mod transport;
 mod wire;
 
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 pub use source::fetch_with_acquisition;
 pub use transport::RegistryAcquisition;
 pub use transport::RegistryHistoryCacheDisposition;
@@ -74,8 +74,6 @@ use crate::subnet_catalog::{
 };
 
 #[cfg(all(test, feature = "nns-host"))]
-use candid::{Decode, Encode};
-
 #[cfg(all(test, feature = "nns-host"))]
 use projection::{
     data_center_list_from_inventory, node_list_from_inventory, node_operator_list_from_inventory,

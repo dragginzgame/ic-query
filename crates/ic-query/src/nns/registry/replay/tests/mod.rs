@@ -18,7 +18,7 @@ use crate::{
         format_utc_timestamp_secs, parse_catalog_json,
     },
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use prost::Message;
 use std::{
     fs,

@@ -32,8 +32,9 @@ fn registry_get_chunk_request_candid_round_trips() {
         content_sha256: Some(vec![1, 2, 3]),
     };
 
-    let bytes = Encode!(&request).expect("encode");
-    let decoded = Decode!(&bytes, RegistryGetChunkRequest).expect("decode");
+    let bytes = ic_platform::candid::contract::encode_args((&request,)).expect("encode");
+    let decoded =
+        crate::candid_decode::decode_reply::<RegistryGetChunkRequest>(&bytes).expect("decode");
 
     assert_eq!(decoded, request);
 }

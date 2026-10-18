@@ -19,12 +19,7 @@ fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
         r#"{"schema_version":1,"network":"ic","fetched_at":"2026-10-01T00:00:00Z","checkpoints":[unread payload"#,
     );
     let lock_path = root.join("nns/ic/subnet-catalog/history.lock");
-    let lock = serde_json::json!({
-        "schema_version": 1, "network": "ic", "pid": 123,
-        "started_at_unix_ms": 1_790_812_800_000u64, "stale_after_seconds": 600,
-        "target_path": history_path.display().to_string(),
-    });
-    write_cache(&root, &lock_path, &lock.to_string());
+    write_cache(&root, &lock_path, "");
     let now = parse_utc_timestamp_secs("2026-10-02T00:00:00Z").unwrap();
     let report =
         build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("history inventory");
@@ -198,66 +193,33 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
 }
 
 #[test]
-fn status_reports_active_stale_and_invalid_refresh_locks_without_removing_them() {
+fn status_reports_active_available_and_invalid_coordination_files() {
     let root = temp_dir("ic-query-refresh-lock-status");
-    let now = parse_utc_timestamp_secs("2026-08-04T00:00:00Z").expect("timestamp");
     let active_lock = root.join("nns/ic/node/refresh.lock");
-    let stale_lock = root.join("sns/ic/root/proposals/full.refresh.lock");
+    let available_lock = root.join("sns/ic/root/proposals/full.refresh.lock");
     let invalid_lock = root.join("nns/ic/subnet-topology/refresh.lock");
-    let future_lock = root.join("nns/ic/node-provider/refresh.lock");
-    write_refresh_lock(
-        &root,
-        &active_lock,
-        &root.join("nns/ic/node/nodes.json"),
-        now.saturating_sub(30),
-        60,
-    );
-    write_refresh_lock(
-        &root,
-        &stale_lock,
-        &root.join("sns/ic/root/proposals/full.json"),
-        now.saturating_sub(61),
-        60,
-    );
-    write_cache(&root, &invalid_lock, "not-json");
-    write_refresh_lock(
-        &root,
-        &future_lock,
-        &root.join("nns/ic/node-provider/providers.json"),
-        now.saturating_add(1),
-        60,
-    );
-
-    let report =
-        build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("cache status");
-
-    assert_eq!(report.cache_count, 0);
-    assert_eq!(report.refresh_lock_count, 4);
+    for path in [&active_lock, &available_lock] {
+        write_cache(&root, path, "");
+    }
+    write_cache(&root, &invalid_lock, "invalid coordination content");
+    let file = ic_host_fs::durable::open_existing_regular_lock_file(&active_lock).unwrap();
+    ic_host_fs::durable::try_lock_exclusive(&file).unwrap();
+    let report = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
+    assert_eq!(report.refresh_lock_count, 3);
     assert_eq!(report.active_refresh_lock_count, 1);
-    assert_eq!(report.stale_refresh_lock_count, 1);
-    assert_eq!(report.invalid_refresh_lock_count, 2);
-    assert!(report.refresh_locks.iter().any(|row| {
-        row.status == CacheRefreshLockStatus::Active && row.age_seconds == Some(30)
-    }));
-    assert!(report.refresh_locks.iter().any(|row| {
-        row.status == CacheRefreshLockStatus::Stale
-            && row.component == "sns/proposals"
-            && row.age_seconds == Some(61)
-    }));
-    assert!(
-        report
-            .refresh_locks
-            .iter()
-            .any(|row| { row.status == CacheRefreshLockStatus::Invalid && row.error.is_some() })
-    );
+    assert_eq!(report.available_refresh_lock_count, 1);
+    assert_eq!(report.invalid_refresh_lock_count, 1);
     let text = crate::cache::cache_status_report_text(&report);
     assert!(text.contains("REFRESH LOCKS"));
-    assert!(text.contains("STALE AFTER"));
+    assert!(text.contains("available"));
+    assert!(text.contains("active"));
     assert!(active_lock.exists());
-    assert!(stale_lock.exists());
-    assert!(invalid_lock.exists());
-    assert!(future_lock.exists());
-    let _ = fs::remove_dir_all(root);
+    ic_host_fs::durable::unlock(&file).unwrap();
+    drop(file);
+    let unlocked = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
+    assert_eq!(unlocked.active_refresh_lock_count, 0);
+    assert_eq!(unlocked.available_refresh_lock_count, 2);
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[cfg(unix)]
@@ -301,26 +263,4 @@ fn status_inventory_rejects_unsafe_managed_file_modes() {
 
 fn write_cache(root: &Path, path: &Path, contents: &str) {
     write_managed_text_atomically(root, path, contents).expect("write cache");
-}
-
-fn write_refresh_lock(
-    root: &Path,
-    lock_path: &Path,
-    target_path: &Path,
-    started_at_unix_secs: u64,
-    stale_after_seconds: u64,
-) {
-    let contents = serde_json::json!({
-        "schema_version": 1,
-        "network": "ic",
-        "pid": 1234,
-        "started_at_unix_ms": started_at_unix_secs.saturating_mul(1_000),
-        "stale_after_seconds": stale_after_seconds,
-        "target_path": target_path.display().to_string(),
-    });
-    write_cache(
-        root,
-        lock_path,
-        &serde_json::to_string(&contents).expect("serialize refresh lock"),
-    );
 }

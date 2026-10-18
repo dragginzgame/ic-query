@@ -69,7 +69,7 @@ impl<Collection> SnsSnapshotRefreshContext<'_, Collection> {
 pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Collection, Report>(
     request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsDiscoverySource,
-    lock_stale_after_seconds: u64,
+
     run_locked: impl AsyncFnOnce(
         &SnsSnapshotRefreshContext<'_, Collection>,
     ) -> Result<Report, SnsHostError>,
@@ -89,9 +89,6 @@ where
             cache_root: &request.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.lookup.network,
-            now_unix_secs: request.lookup.now_unix_secs,
-            lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
         async |refresh_state| {

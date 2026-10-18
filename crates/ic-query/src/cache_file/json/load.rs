@@ -4,10 +4,7 @@
 //! Does not own: missing-cache refresh policy or owner error definitions.
 //! Boundary: checks existence, schema version, and network through shared report traits.
 
-use super::{
-    JsonCacheHeader,
-    model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest},
-};
+use super::model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};
 use crate::cache_file::{
     BoundedManagedFileReadError, CacheFileError, HostCacheError, ManagedReadBudget,
     read_bounded_managed_file,
@@ -15,36 +12,8 @@ use crate::cache_file::{
 use serde::de::DeserializeOwned;
 use std::io;
 
-#[cfg(feature = "nns-topology-host")]
 pub fn load_json_cache<T>(
     request: LoadJsonCacheRequest<'_>,
-) -> Result<CachedJsonReport<T>, HostCacheError>
-where
-    T: DeserializeOwned + JsonCacheReport,
-{
-    load_json_cache_inner(request, None, None)
-}
-
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-host",
-    feature = "sns-host"
-))]
-pub fn load_json_cache_strict<T>(
-    request: LoadJsonCacheRequest<'_>,
-    supported_fields: &'static [&'static str],
-    budget: Option<&mut ManagedReadBudget>,
-) -> Result<CachedJsonReport<T>, HostCacheError>
-where
-    T: DeserializeOwned + JsonCacheReport,
-{
-    load_json_cache_inner(request, Some(supported_fields), budget)
-}
-
-fn load_json_cache_inner<T>(
-    request: LoadJsonCacheRequest<'_>,
-    supported_fields: Option<&'static [&'static str]>,
     budget: Option<&mut ManagedReadBudget>,
 ) -> Result<CachedJsonReport<T>, HostCacheError>
 where
@@ -88,42 +57,6 @@ where
     else {
         return Err(HostCacheError::missing_cache(component, path));
     };
-    let header = serde_json::from_slice::<JsonCacheHeader>(&data)
-        .map_err(|source| HostCacheError::parse_cache(component, path.clone(), source))?;
-    let schema_version = header.schema_version.ok_or_else(|| {
-        HostCacheError::parse_cache(
-            component,
-            path.clone(),
-            <serde_json::Error as serde::de::Error>::missing_field("schema_version"),
-        )
-    })?;
-    if let Some(supported_fields) = supported_fields
-        && let Some(field) = header
-            .keys
-            .iter()
-            .find(|field| !supported_fields.contains(&field.as_str()))
-    {
-        let source = <serde_json::Error as serde::de::Error>::custom(format!(
-            "unknown top-level cache field {field:?}"
-        ));
-        return Err(HostCacheError::parse_cache(component, path, source));
-    }
-    if schema_version != request.expected_schema_version {
-        return Err(HostCacheError::unsupported_cache_schema_version(
-            component,
-            schema_version,
-            request.expected_schema_version,
-        ));
-    }
-    if let Some(network) = header.network
-        && network != request.network
-    {
-        return Err(HostCacheError::network_mismatch(
-            component,
-            request.network.to_string(),
-            network,
-        ));
-    }
     let report = serde_json::from_slice::<T>(&data)
         .map_err(|source| HostCacheError::parse_cache(component, path.clone(), source))?;
     let actual_schema_version = report.schema_version();

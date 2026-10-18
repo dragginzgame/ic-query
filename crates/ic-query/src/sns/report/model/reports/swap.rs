@@ -8,6 +8,34 @@ use super::invocation::SnsCanisterMethod;
 use serde::Serialize;
 
 ///
+/// MainnetSnsSwap
+///
+/// Source-layer result from the three bounded native swap queries for one SNS.
+///
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct MainnetSnsSwap {
+    /// Swap canister identity queried by the source.
+    pub swap_canister_id: String,
+    /// Native lifecycle query method.
+    pub lifecycle_method: SnsCanisterMethod,
+    /// Native sale-parameters query method.
+    pub sale_parameters_method: SnsCanisterMethod,
+    /// Native derived-state query method.
+    pub derived_state_method: SnsCanisterMethod,
+    /// Whether the source can prove one point-in-time snapshot across all queries.
+    pub point_in_time_guaranteed: bool,
+    /// Lifecycle response, absent only when represented by a matching gap.
+    pub lifecycle: Option<SnsSwapLifecycle>,
+    /// Sale parameters, or `None` for either a matching gap or a successful empty response.
+    pub sale_parameters: Option<SnsSwapSaleParameters>,
+    /// Derived-state response, absent only when represented by a matching gap.
+    pub derived_state: Option<SnsSwapDerivedState>,
+    /// Component query failures retained by the source.
+    pub gaps: Vec<SnsSwapQueryGap>,
+}
+
+///
 /// SnsSwapComponent
 ///
 /// Native swap query component represented by a report value or typed gap.
@@ -62,8 +90,6 @@ pub struct SnsSwapQueryGap {
 pub struct SnsSwapLifecycle {
     /// Optional native lifecycle numeric discriminant.
     pub lifecycle: Option<i32>,
-    /// Native lifecycle label, or `unknown` for an unrecognized numeric discriminant.
-    pub lifecycle_name: Option<String>,
     /// Timestamp at which the decentralization sale opened, when returned.
     pub decentralization_sale_open_timestamp_seconds: Option<u64>,
     /// Timestamp at which the decentralization swap terminated, when returned.
@@ -166,28 +192,50 @@ pub struct SnsSwapReport {
     pub name: String,
     /// Root canister identity used to resolve this SNS.
     pub root_canister_id: String,
-    /// Swap canister queried for lifecycle and sale state.
-    pub swap_canister_id: String,
-    /// Native method used for lifecycle state.
-    pub lifecycle_method: SnsCanisterMethod,
-    /// Native method used for sale parameters.
-    pub sale_parameters_method: SnsCanisterMethod,
-    /// Native method used for derived participation state.
-    pub derived_state_method: SnsCanisterMethod,
-    /// Whether all component values represent one authoritative point in time.
-    pub point_in_time_guaranteed: bool,
     /// Fixed number of bounded swap component queries attempted.
     pub component_query_count: usize,
     /// Number of component queries that returned successfully.
     pub successful_component_query_count: usize,
     /// Number of typed component query gaps.
     pub component_gap_count: usize,
-    /// Lifecycle response, absent only when its query failed.
-    pub lifecycle: Option<SnsSwapLifecycle>,
-    /// Sale parameters; `None` can also be a successful response with no configured parameters.
-    pub sale_parameters: Option<SnsSwapSaleParameters>,
-    /// Derived-state response, absent only when its query failed.
-    pub derived_state: Option<SnsSwapDerivedState>,
-    /// Canonically ordered component query failures.
-    pub gaps: Vec<SnsSwapQueryGap>,
+
+    /// Validated source payload shared with native collection.
+    #[serde(flatten)]
+    pub swap: MainnetSnsSwap,
+}
+
+pub(in crate::sns::report) const fn sns_swap_lifecycle_name(
+    lifecycle: Option<i32>,
+) -> Option<&'static str> {
+    match lifecycle {
+        None => None,
+        Some(0) => Some("unspecified"),
+        Some(1) => Some("pending"),
+        Some(2) => Some("open"),
+        Some(3) => Some("committed"),
+        Some(4) => Some("aborted"),
+        Some(5) => Some("adopted"),
+        Some(_) => Some("unknown"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sns_swap_lifecycle_name;
+
+    #[test]
+    fn lifecycle_names_preserve_native_codes_and_unknown_values() {
+        for (code, expected) in [
+            (None, None),
+            (Some(0), Some("unspecified")),
+            (Some(1), Some("pending")),
+            (Some(2), Some("open")),
+            (Some(3), Some("committed")),
+            (Some(4), Some("aborted")),
+            (Some(5), Some("adopted")),
+            (Some(99), Some("unknown")),
+        ] {
+            assert_eq!(sns_swap_lifecycle_name(code), expected);
+        }
+    }
 }

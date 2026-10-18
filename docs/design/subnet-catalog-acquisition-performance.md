@@ -174,7 +174,7 @@ structured progress:
 1. Retain one `LiveSubnetCatalogSource` across acquisitions and immediate retry.
 2. Construct it with `with_progress` and send the events to the existing progress
    observer; retain the independent ten-second heartbeat during slow calls.
-3. Pass it to `load_subnet_catalog_detailed_with_source_async` inside the existing
+3. Pass it to `load_subnet_catalog_detailed_with_source` inside the existing
    shared deadline. Dropping that future releases owned collection work and the
    refresh lock. Do not recreate the source for every retry.
 

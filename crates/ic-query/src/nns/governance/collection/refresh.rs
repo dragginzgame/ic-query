@@ -105,7 +105,7 @@ pub(in crate::nns) async fn run_governance_snapshot_refresh<Error>(
     request: &NnsGovernanceRefreshRequest,
     paths: &SnapshotJsonPaths,
     component: &'static str,
-    lock_stale_after_seconds: u64,
+
     run_locked: impl AsyncFnOnce(
         &GovernanceSnapshotRefreshContext<'_>,
     ) -> Result<NnsGovernanceRefreshReport, Error>,
@@ -118,9 +118,6 @@ where
             cache_root: &request.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds,
         },
         |source| Error::from(HostCacheError::operation(component, source)),
         async |state| {

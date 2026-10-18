@@ -109,7 +109,7 @@ pub fn append_metadata_section(bytes: &mut Vec<u8>, name: &str, contents: &[u8])
 }
 
 pub fn probe_spec(root: &Path, target: &Path) -> WasmBuildSpec {
-    WasmBuildSpec::new(root, target, &["ic-query"])
+    WasmBuildSpec::new(root, target, &["ic-query"], env::vars_os())
         .with_example("governance_probe")
         .with_target("wasm32-unknown-unknown")
         .with_cargo_program("cargo")

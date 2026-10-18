@@ -16,6 +16,8 @@ use crate::{
     token_amount::e8s_decimal_text,
 };
 
+use crate::subnet_catalog::format_utc_timestamp_secs;
+
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
 pub(in crate::sns::report::text) use crate::text_value::optional_text;
@@ -130,4 +132,8 @@ pub(in crate::sns::report::text) fn dissolve_state_text(
             }
         },
     )
+}
+
+pub(in crate::sns::report::text) fn optional_timestamp_text(value: Option<u64>) -> String {
+    value.map_or_else(|| "-".to_string(), format_utc_timestamp_secs)
 }

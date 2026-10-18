@@ -225,7 +225,7 @@ async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
         ),
     ] {
         let mut cache = original.clone();
-        cache["collection_state"][field] = value;
+        cache["data"]["collection_state"][field] = value;
         fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
         assert!(
             matches!(
@@ -659,7 +659,8 @@ async fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot()
     let mut attempt: serde_json::Value =
         serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
             .expect("parse attempt");
-    attempt["governance_canister_id"] = serde_json::Value::String("aaaaa-aa".to_string());
+    attempt["metadata"]["governance_canister_id"] =
+        serde_json::Value::String("aaaaa-aa".to_string());
     let invalid_attempt = serde_json::to_string_pretty(&attempt).expect("serialize attempt");
     crate::cache_file::write_managed_text_atomically(&root, &attempt_path, &invalid_attempt)
         .expect("replace attempt");
@@ -723,10 +724,10 @@ async fn cache_rows_reject_unknown_fields_without_rewriting_evidence() {
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     for mutate in [
         (|cache: &mut serde_json::Value| {
-            cache["neurons"][0]["unexpected_evidence"] = serde_json::json!(true);
+            cache["data"]["neurons"][0]["unexpected_evidence"] = serde_json::json!(true);
         }) as fn(&mut serde_json::Value),
         |cache| {
-            cache["neurons"][0]["recent_ballots"] =
+            cache["data"]["neurons"][0]["recent_ballots"] =
                 serde_json::json!([{ "proposal_id": 7, "vote": 99, "unexpected_evidence": true }]);
         },
     ] {

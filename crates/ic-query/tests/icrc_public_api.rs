@@ -2,16 +2,14 @@
 use ic_query::QueryProgress;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::{
-    CachedIcrcAccountTransactionSnapshot,
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
-    ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCacheStatusReport,
-    IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
-    IcrcAccountTransactionError, IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
-    IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceData,
-    IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceData, IcrcBalanceSource,
-    IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource, IcrcError, IcrcIndexData,
-    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenData, IcrcTokenSource,
-    IcrcTransactionsData, IcrcTransactionsSource,
+    CachedIcrcAccountTransactionSnapshot, ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
+    IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCollectionData,
+    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionError,
+    IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
+    IcrcAccountTransactionPageSource, IcrcAccountTransactionRefreshReport, IcrcAllowanceSource,
+    IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesData,
+    IcrcCapabilitiesSource, IcrcError, IcrcIndexData, IcrcIndexSource, IcrcTipCertificateSource,
+    IcrcTokenData, IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
     build_icrc_account_transaction_page_report,
     build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
@@ -36,17 +34,18 @@ use ic_query::icrc::{
     DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcAccountRow, IcrcAccountTransactionCacheRequest,
     IcrcAccountTransactionListRequest, IcrcAccountTransactionPageReport,
     IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest,
-    IcrcAccountTransactionRow, IcrcAccountTransactionSort, IcrcAllowanceReport,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSort, IcrcAllowanceData, IcrcAllowanceReport,
     IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport,
-    IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
-    IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenMetadataRow,
-    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
-    IcrcTransactionsRequest, icrc_account_transaction_page_report_text, icrc_allowance_report_text,
-    icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
-    icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
-    icrc_token_report_text, icrc_transactions_report_text, normalize_subaccount_hex,
+    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceData,
+    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport,
+    IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcTransactionsReport, IcrcTransactionsRequest, icrc_account_transaction_page_report_text,
+    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
+    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
+    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
+    normalize_subaccount_hex,
 };
 use serde_json::json;
 #[cfg(feature = "icrc-host")]
@@ -273,7 +272,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
     )
     .with_subaccount_hex(SUBACCOUNT_HEX);
     let refresh =
-        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100, 1_800)
+        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100)
             .with_index_canister_id(ARCHIVE_CANISTER_ID)
             .with_max_pages(Some(50));
     let list = IcrcAccountTransactionListRequest::new(cache, 25)
@@ -312,10 +311,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
 #[test]
 fn public_icrc_host_api_exposes_live_builder_entry_points() {
     assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
-    assert_eq!(
-        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
-        1_800
-    );
+
     accepts_public_function::<IcrcTokenBuilder>(|arg0| Box::pin(build_icrc_token_report(arg0)));
     accepts_public_function::<IcrcBalanceBuilder>(|arg0| Box::pin(build_icrc_balance_report(arg0)));
     accepts_public_function::<IcrcAllowanceBuilder>(|arg0| {
@@ -403,8 +399,11 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
         .expect("token report");
 
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.token_symbol, "FIX");
-    assert_eq!(report.supported_standards, vec![standard_row("ICRC-1")]);
+    assert_eq!(report.token.token_symbol, "FIX");
+    assert_eq!(
+        report.token.supported_standards,
+        vec![standard_row("ICRC-1")]
+    );
 
     build_icrc_balance_report_with_source(
         &IcrcBalanceRequest::new(
@@ -459,7 +458,6 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
                 ),
                 FETCHED_AT_UNIX_SECS,
                 100,
-                1_800,
             ),
             &mut progress,
         )
@@ -634,7 +632,7 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
         _request: &'a IcrcLedgerRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
-        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+        Result<Option<ic_platform::icrc_ledger_types::ICRC3DataCertificate>, IcrcError>,
     > {
         Box::pin(async move { Ok(None) })
     }
@@ -716,19 +714,21 @@ fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
         fetched_at: FETCHED_AT.to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
-        token_name: "Internet Computer".to_string(),
-        token_symbol: "ICP".to_string(),
-        decimals: 8,
-        transfer_fee: "10000".to_string(),
-        total_supply: "100000000".to_string(),
-        minting_account_owner: None,
-        minting_account_subaccount_hex: None,
-        supported_standards: vec![standard_row("ICRC-1")],
-        metadata: vec![IcrcTokenMetadataRow {
-            key: "icrc1:symbol".to_string(),
-            value_type: IcrcMetadataValueKind::Text,
-            value: json!("ICP"),
-        }],
+        token: ic_query::icrc::IcrcTokenData {
+            token_name: "Internet Computer".to_string(),
+            token_symbol: "ICP".to_string(),
+            decimals: 8,
+            transfer_fee: "10000".to_string(),
+            total_supply: "100000000".to_string(),
+            minting_account_owner: None,
+            minting_account_subaccount_hex: None,
+            supported_standards: vec![standard_row("ICRC-1")],
+            metadata: vec![IcrcTokenMetadataRow {
+                key: "icrc1:symbol".to_string(),
+                value_type: IcrcMetadataValueKind::Text,
+                value: json!("ICP"),
+            }],
+        },
     };
 
     let text = icrc_token_report_text(&report);
@@ -763,10 +763,29 @@ fn public_icrc_balance_api_is_constructible_and_renderable_without_host() {
         fetched_at: FETCHED_AT.to_string(),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
-        token_symbol: "ICP".to_string(),
-        decimals: 8,
-        balance: "100000000".to_string(),
+        value: IcrcBalanceData {
+            token_symbol: "ICP".to_string(),
+            decimals: 8,
+            balance: "100000000".to_string(),
+        },
     };
+
+    let json = serde_json::to_value(&report).expect("serialize flat report");
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "schema_version": 1,
+            "ledger_canister_id": LEDGER_CANISTER_ID,
+            "account_owner": ACCOUNT_OWNER,
+            "fetched_at": FETCHED_AT,
+            "source_endpoint": SOURCE_ENDPOINT,
+            "fetched_by": FETCHED_BY,
+            "token_symbol": "ICP",
+            "decimals": 8,
+            "subaccount_hex": null,
+            "balance": "100000000",
+        })
+    );
 
     let text = icrc_balance_report_text(&report);
 
@@ -799,11 +818,33 @@ fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
         fetched_at: FETCHED_AT.to_string(),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: FETCHED_BY.to_string(),
-        token_symbol: "ICP".to_string(),
-        decimals: 8,
-        allowance: "50000000".to_string(),
-        expires_at_unix_nanos: Some("1700000000123456789".to_string()),
+        value: IcrcAllowanceData {
+            token_symbol: "ICP".to_string(),
+            decimals: 8,
+            allowance: "50000000".to_string(),
+            expires_at_unix_nanos: Some("1700000000123456789".to_string()),
+        },
     };
+
+    let json = serde_json::to_value(&report).expect("serialize flat report");
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "schema_version": 1,
+            "ledger_canister_id": LEDGER_CANISTER_ID,
+            "account_owner": ACCOUNT_OWNER,
+            "fetched_at": FETCHED_AT,
+            "source_endpoint": SOURCE_ENDPOINT,
+            "fetched_by": FETCHED_BY,
+            "token_symbol": "ICP",
+            "decimals": 8,
+            "account_subaccount_hex": null,
+            "spender_owner": ACCOUNT_OWNER,
+            "spender_subaccount_hex": null,
+            "allowance": "50000000",
+            "expires_at_unix_nanos": "1700000000123456789",
+        })
+    );
 
     let text = icrc_allowance_report_text(&report);
 
@@ -822,38 +863,41 @@ fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
     let report = IcrcAccountTransactionPageReport {
         schema_version: 1,
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
-        index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
         account_owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: Some(SUBACCOUNT_HEX.to_string()),
         requested_start: Some("100".to_string()),
         requested_limit: 25,
-        next_start: Some("75".to_string()),
-        oldest_transaction_id: Some("7".to_string()),
-        balance: "100000000".to_string(),
-        token_symbol: "ICP".to_string(),
-        decimals: 8,
         fetched_at: FETCHED_AT.to_string(),
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         fetched_by: FETCHED_BY.to_string(),
-        transactions: vec![IcrcAccountTransactionRow {
-            id: "75".to_string(),
-            kind: "transfer".to_string(),
-            timestamp_unix_nanos: Some("1700000000123456789".to_string()),
-            amount_base_units: Some("50000000".to_string()),
-            fee_base_units: Some("10000".to_string()),
-            from: Some(account),
-            to: Some(IcrcAccountRow {
-                owner: Some(ARCHIVE_CANISTER_ID.to_string()),
-                subaccount_hex: None,
-                account_identifier: None,
-            }),
-            spender: None,
-            memo_hex: None,
-            created_at_time_unix_nanos: None,
-            expires_at_unix_nanos: None,
-            expected_allowance_base_units: None,
-            raw_transaction: json!({"kind": "transfer"}),
-        }],
+
+        page: ic_query::icrc::IcrcAccountTransactionPageData {
+            index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+            next_start: Some("75".to_string()),
+            oldest_transaction_id: Some("7".to_string()),
+            balance: "100000000".to_string(),
+            token_symbol: "ICP".to_string(),
+            decimals: 8,
+            transactions: vec![IcrcAccountTransactionRow {
+                id: "75".to_string(),
+                kind: "transfer".to_string(),
+                timestamp_unix_nanos: Some("1700000000123456789".to_string()),
+                amount_base_units: Some("50000000".to_string()),
+                fee_base_units: Some("10000".to_string()),
+                from: Some(account),
+                to: Some(IcrcAccountRow {
+                    owner: Some(ARCHIVE_CANISTER_ID.to_string()),
+                    subaccount_hex: None,
+                    account_identifier: None,
+                }),
+                spender: None,
+                memo_hex: None,
+                created_at_time_unix_nanos: None,
+                expires_at_unix_nanos: None,
+                expected_allowance_base_units: None,
+                raw_transaction: json!({"kind": "transfer"}),
+            }],
+        },
     };
 
     let text = icrc_account_transaction_page_report_text(&report);

@@ -118,8 +118,6 @@ fn refresh_parses_defaults_and_export_options() {
             "--json",
             "--source-endpoint",
             "https://icp-api.io",
-            "--lock-stale-after",
-            "5m",
             "--dry-run",
             "--output",
             "catalog.preview.json",
@@ -131,7 +129,7 @@ fn refresh_parses_defaults_and_export_options() {
     assert_eq!(options.network, MAINNET_NETWORK);
     assert_eq!(options.format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
-    assert_eq!(options.lock_stale_after_seconds, 300);
+
     assert!(options.dry_run);
     assert_eq!(
         options.output_path,

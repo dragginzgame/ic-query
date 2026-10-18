@@ -14,9 +14,9 @@ use crate::ic_registry::{
     subnet_record_key,
     transport::{decode_message, get_registry_value},
 };
-use candid::Principal;
 use futures::{StreamExt, TryStreamExt, stream};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(feature = "nns-host")]

@@ -46,8 +46,6 @@ pub struct SnsCatalogRefreshRequest {
     pub source_endpoint: String,
     /// Collection start time supplied by the caller.
     pub now_unix_secs: u64,
-    /// Age after which an abandoned refresh lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
 }
 
 impl SnsCatalogRefreshRequest {
@@ -58,13 +56,11 @@ impl SnsCatalogRefreshRequest {
         network: impl Into<String>,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache: SnsCatalogCacheRequest::new(cache_root, network),
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
-            lock_stale_after_seconds,
         }
     }
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# Shared companions: scripts/ci/read-cargo-workspace-version.sh scripts/ci/render-cargo-workspace-version.pl scripts/ci/rewrite-local-lock-versions.pl scripts/ci/finalize-release-changelog.awk
 use strict;
 use warnings;
 use File::Basename qw(dirname);

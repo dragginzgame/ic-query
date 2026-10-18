@@ -52,8 +52,16 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
         "root_canister_id",
         "governance_canister_id",
     ] {
-        assert_eq!(detail_json[field], cache[field], "detail {field}");
-        assert_eq!(list_json[field], cache[field], "listing {field}");
+        let expected = match field {
+            "sns_wasm_canister_id"
+            | "id"
+            | "name"
+            | "root_canister_id"
+            | "governance_canister_id" => &cache["metadata"][field],
+            _ => &cache[field],
+        };
+        assert_eq!(&detail_json[field], expected, "detail {field}");
+        assert_eq!(&list_json[field], expected, "listing {field}");
     }
 
     let _ = fs::remove_dir_all(root);

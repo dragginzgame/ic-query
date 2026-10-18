@@ -4,6 +4,7 @@
 //! Does not own: report construction, list sorting, lookup ids, or JSON output.
 //! Boundary: formats list DTO rows into compact or verbose human-readable tables.
 
+use crate::sns::report::sns_swap_lifecycle_name;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -71,7 +72,7 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                         principal_for_list(&sns.canisters.swap_canister_id, report.verbose),
                         principal_for_list(&sns.canisters.index_canister_id, report.verbose),
                         lifecycle_status(
-                            sns.lifecycle_name.as_deref(),
+                            sns_swap_lifecycle_name(sns.lifecycle),
                             sns.lifecycle_error.as_deref(),
                         )
                         .to_string(),

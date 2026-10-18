@@ -327,7 +327,7 @@ fn routing_range_failure(
 #[cfg(test)]
 mod detailed_failure_tests {
     use super::*;
-    use candid::Principal;
+    use ic_platform::candid::contract::Principal;
 
     const SUBNET: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 

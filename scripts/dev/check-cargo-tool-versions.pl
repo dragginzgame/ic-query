@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Shared companions: ci/tool-versions.env scripts/ci/StableVersion.pm
+# Shared companions: ci/tool-versions.env scripts/ci/StableVersion.pm scripts/ci/tool-catalog-records.pl
 use strict;
 use warnings;
 use Cwd qw(abs_path);
@@ -58,18 +58,16 @@ my $status = eval {
         !defined($resolved) || $resolved !~ /[\r\n]/ or die "resolved path contains CR/LF\n";
     }
     -d $consumer or die "consumer directory is missing: $consumer\n";
-    # The owning catalog uses literal exported pins. Do not execute shell code
-    # merely to inspect versions; fail if a Cargo pin is not a literal identity.
+    # Reuse the exact same complete literal selection as the common installer.
     my %pins;
-    for my $line (split /\n/, read_file($versions)) {
-        next unless $line =~ /^\s*(?:export\s+)?SHARED_TOOLING_((?:CARGO_[A-Z_]+|CANDID_EXTRACTOR))_VERSION\b/;
-        my $name = lc $1; $name =~ tr/_/-/;
-        $line =~ /^\s*(?:export\s+)?SHARED_TOOLING_(?:CARGO_[A-Z_]+|CANDID_EXTRACTOR)_VERSION=([0-9]+\.[0-9]+\.[0-9]+)\s*(?:#.*)?\z/ && stable($1)
-            or die "Cargo pins must be literal stable versions: $name\n";
-        !exists $pins{$name} or die "duplicate Cargo pin: $name\n";
-        $pins{$name} = $1;
+    open my $catalog, '-|', $^X, "$RealBin/../ci/tool-catalog-records.pl", 'rust', $versions
+        or die "start catalog reader: $!\n";
+    while (my $line = <$catalog>) {
+        my ($name, $version) = split /\t/, $line;
+        $name = lc $name; $name =~ tr/_/-/;
+        $pins{$name} = $version;
     }
-    keys %pins or die "no Cargo tool pins found in $versions\n";
+    close $catalog or die "invalid Cargo tool catalog: $versions\n";
     my $global_path = "$cargo_home/.crates2.json";
     my $global = -e $global_path ? receipt($global_path) : {};
     if (!-e $global_path && -e "$cargo_home/.crates.toml") { die "Cargo JSON receipt missing; cannot establish installed versions\n"; }

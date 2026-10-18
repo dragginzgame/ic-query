@@ -42,26 +42,8 @@ const CACHE_COMPONENT: &str = "IC node status";
 const CACHE_DOMAIN: &str = "ic";
 const CACHE_ENTITY: &str = "nodes";
 const CACHE_COLLECTION: &str = "operational-status";
-const CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "authority",
-    "node_scope",
-    "cloud_engine_nodes_included",
-    "certified",
-    "point_in_time_guaranteed",
-    "completeness",
-    "nodes",
-];
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct NodeStatusCacheMetadata {
     authority: String,
     node_scope: IcNodeStatusScope,
@@ -71,6 +53,7 @@ struct NodeStatusCacheMetadata {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct NodeStatusCacheData {
     nodes: Vec<super::IcNodeStatusRow>,
 }
@@ -190,9 +173,6 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
             cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
         async |state| {
@@ -346,7 +326,6 @@ fn load_node_status_cache(
         },
         None,
         &key,
-        CACHE_FIELDS,
         missing_cache_error,
         |completeness| IcNodeStatusHostError::InvalidCache {
             path: path.clone(),

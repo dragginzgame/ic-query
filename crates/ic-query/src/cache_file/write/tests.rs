@@ -158,9 +158,7 @@ async fn json_refresh_rejects_output_aliases_for_cache_and_lock_including_dry_ru
                     cache_root: &root,
                     cache_path: &cache_path,
                     lock_path: &lock_path,
-                    network: "ic",
-                    now_unix_secs: 0,
-                    lock_stale_after_seconds: 60,
+
                     dry_run,
                     output_path: Some(output),
                     report: &serde_json::json!({"value": "replacement"}),

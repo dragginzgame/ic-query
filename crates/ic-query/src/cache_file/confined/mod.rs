@@ -44,7 +44,7 @@ mod scan;
     feature = "sns-host"
 ))]
 pub use read::ManagedReadBudget;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", test))]
 pub use read::open_managed_file;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
@@ -265,6 +265,7 @@ impl ConfinedCacheRoot {
         Ok(Some(ConfinedManagedPath {
             root: self.display_root.clone(),
             parent,
+            #[cfg(feature = "certified-subnet-catalog-host")]
             display_parent,
             file_name: file_name.to_os_string(),
             display_path: target_path.to_path_buf(),
@@ -281,6 +282,7 @@ impl ConfinedCacheRoot {
 pub(super) struct ConfinedManagedPath {
     root: PathBuf,
     parent: Dir,
+    #[cfg(feature = "certified-subnet-catalog-host")]
     display_parent: PathBuf,
     file_name: OsString,
     display_path: PathBuf,
@@ -373,27 +375,60 @@ impl ConfinedManagedPath {
         }
     }
 
-    pub(super) fn create_new_file(&self) -> Result<cap_std::fs::File, io::Error> {
+    pub(super) fn open_coordination_file(&self) -> Result<std::fs::File, CacheFileError> {
         let mut options = OpenOptions::new();
-        options.write(true).create_new(true);
-        options.follow(FollowSymlinks::No);
+        options
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .follow(FollowSymlinks::No);
         #[cfg(unix)]
         options.mode(MANAGED_FILE_MODE);
-        let file = self.parent.open_with(&self.file_name, &options)?;
-        validate_managed_file_mode(&self.display_path, &file).map_err(io::Error::other)?;
-        Ok(file)
+        let file = match self.parent.open_with(&self.file_name, &options) {
+            Ok(file) => file,
+            Err(source) if source.kind() == io::ErrorKind::AlreadyExists => {
+                #[cfg(unix)]
+                {
+                    use ic_host_fs::read::{OpenedEntry, open_entry_beneath};
+                    match open_entry_beneath(self.parent.as_fd(), Path::new(&self.file_name))
+                        .map_err(|source| CacheFileError::CreateRefreshLock {
+                            path: self.display_path.clone(),
+                            source: io::Error::other(source),
+                        })? {
+                        OpenedEntry::RegularFile(file) => cap_std::fs::File::from_std(file),
+                        OpenedEntry::Directory(_) => {
+                            return Err(confinement_error(
+                                &self.root,
+                                &self.display_path,
+                                "coordination file is not a regular file",
+                            ));
+                        }
+                    }
+                }
+                #[cfg(not(unix))]
+                return Err(CacheFileError::UnsupportedConfinementPlatform {
+                    platform: std::env::consts::OS,
+                });
+            }
+            Err(source) => {
+                return Err(CacheFileError::CreateRefreshLock {
+                    path: self.display_path.clone(),
+                    source,
+                });
+            }
+        };
+        validate_managed_file_mode(&self.display_path, &file)?;
+        Ok(file.into_std())
     }
 
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(super) fn remove_file(&self) -> Result<(), io::Error> {
         self.parent.remove_file(&self.file_name)
     }
 
+    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(super) fn sync_parent(&self) -> Result<(), CacheFileError> {
         sync_directory(&self.parent, &self.display_parent)
-    }
-
-    pub(super) fn display_path(&self) -> &Path {
-        &self.display_path
     }
 
     fn validate_existing_target(&self) -> Result<(), CacheFileError> {

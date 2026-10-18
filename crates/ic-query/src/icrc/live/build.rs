@@ -104,15 +104,7 @@ pub async fn build_icrc_token_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        token_name: token.token_name,
-        token_symbol: token.token_symbol,
-        decimals: token.decimals,
-        transfer_fee: token.transfer_fee,
-        total_supply: token.total_supply,
-        minting_account_owner: token.minting_account_owner,
-        minting_account_subaccount_hex: token.minting_account_subaccount_hex,
-        supported_standards: token.supported_standards,
-        metadata: token.metadata,
+        token,
     })
 }
 
@@ -133,9 +125,7 @@ pub async fn build_icrc_balance_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        token_symbol: balance.token_symbol,
-        decimals: balance.decimals,
-        balance: balance.balance,
+        value: balance,
     })
 }
 
@@ -163,10 +153,7 @@ pub async fn build_icrc_allowance_report_with_source(
         fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        token_symbol: allowance.token_symbol,
-        decimals: allowance.decimals,
-        allowance: allowance.allowance,
-        expires_at_unix_nanos: allowance.expires_at_unix_nanos,
+        value: allowance,
     })
 }
 
@@ -234,20 +221,18 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
     Ok(IcrcAccountTransactionPageReport {
         schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger.ledger_canister_id,
-        index_canister_id: actual_index,
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
         requested_start: request.start,
         requested_limit: request.limit,
-        next_start: transactions.next_start,
-        oldest_transaction_id: transactions.oldest_transaction_id,
-        balance: transactions.balance,
-        token_symbol: transactions.token_symbol,
-        decimals: transactions.decimals,
         fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
         source_endpoint: request.ledger.source_endpoint,
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        transactions: transactions.transactions,
+
+        page: crate::icrc::IcrcAccountTransactionPageData {
+            index_canister_id: actual_index,
+            ..transactions
+        },
     })
 }
 

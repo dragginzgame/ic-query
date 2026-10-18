@@ -240,7 +240,13 @@ async fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger()
         fs::metadata(path).expect("old cache retained").len(),
         128 * 1024 * 1024
     );
-    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -350,7 +356,9 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
             SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
                 kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
                 key: crate::ic_registry::subnet_record_key(SUBNET_A),
-                subnet: Some(candid::Principal::from_text(SUBNET_A).expect("subnet")),
+                subnet: Some(
+                    ic_platform::candid::contract::Principal::from_text(SUBNET_A).expect("subnet"),
+                ),
                 canister_range_start: None,
             }),
             "SubnetRecord",

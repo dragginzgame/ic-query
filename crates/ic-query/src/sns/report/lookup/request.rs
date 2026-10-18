@@ -9,7 +9,7 @@ use crate::sns::report::{
     source::SnsSourceRequest,
 };
 use crate::subnet_catalog::format_utc_timestamp_secs;
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 /// Parse and normalize an SNS root canister principal input.
 pub(in crate::sns::report) fn parse_sns_root_canister_input(

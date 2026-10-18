@@ -4,9 +4,7 @@
 //! Does not own: report fields, JSON serialization, or terminal styling.
 //! Boundary: uses decimal cycle units and binary IEC byte units with bounded precision.
 
-use ic_host_text::escape::terminal_text;
-
-use crate::decimal::{increment_decimal, is_unsigned_decimal};
+use ic_host_text::{decimal::compact_decimal_text, escape::terminal_text};
 use std::fmt::Write;
 
 const CYCLE_UNITS: &[(u128, &str)] = &[
@@ -39,26 +37,27 @@ pub fn decimal_cycle_count_text(value: &str) -> String {
 }
 
 pub fn decimal_cycle_rate_text(value: &str) -> String {
-    let Some((whole, fraction)) = decimal_parts(value) else {
-        return terminal_text(value).into_owned();
-    };
+    let whole = value.split_once('.').map_or(value, |(whole, _)| whole);
+    let whole = whole.trim_start_matches('0');
     let mut unit_index = CYCLE_UNITS
         .iter()
         .position(|(divisor, _)| whole.len() > divisor.ilog10() as usize)
         .unwrap_or(CYCLE_UNITS.len() - 1);
-    let (mut rounded_whole, mut hundredths) =
-        rounded_decimal_parts(whole, fraction, CYCLE_UNITS[unit_index].0.ilog10() as usize);
-    if rounded_whole == "1000" && unit_index > 0 {
+    let Ok(mut number) = compact_decimal_text(value, CYCLE_UNITS[unit_index].0.ilog10() as usize)
+    else {
+        return terminal_text(value).into_owned();
+    };
+    if number == "1000" && unit_index > 0 {
         unit_index -= 1;
-        (rounded_whole, hundredths) =
-            rounded_decimal_parts(whole, fraction, CYCLE_UNITS[unit_index].0.ilog10() as usize);
+        number = compact_decimal_text(value, CYCLE_UNITS[unit_index].0.ilog10() as usize)
+            .expect("cycle rate decimal syntax was admitted before unit promotion");
     }
-
-    quantity_text(
-        rounded_whole,
-        u128::from(hundredths),
-        CYCLE_UNITS[unit_index].1,
-    )
+    let unit = CYCLE_UNITS[unit_index].1;
+    if !unit.is_empty() {
+        number.push(' ');
+        number.push_str(unit);
+    }
+    number
 }
 
 pub fn byte_count_text(value: u128) -> String {
@@ -108,38 +107,6 @@ const fn rounded_parts(value: u128, divisor: u128) -> (u128, u128) {
         hundredths = 0;
     }
     (whole, hundredths)
-}
-
-fn decimal_parts(value: &str) -> Option<(&str, &str)> {
-    let (whole, fraction) = value.split_once('.').unwrap_or((value, ""));
-    if !is_unsigned_decimal(whole) || !fraction.bytes().all(|byte| byte.is_ascii_digit()) {
-        return None;
-    }
-    let whole = whole.trim_start_matches('0');
-    Some((if whole.is_empty() { "0" } else { whole }, fraction))
-}
-
-fn rounded_decimal_parts(whole: &str, fraction: &str, exponent: usize) -> (String, u8) {
-    let (rounded_whole, integer_fraction) = if whole.len() > exponent {
-        let split = whole.len() - exponent;
-        (&whole[..split], &whole[split..])
-    } else {
-        ("0", whole)
-    };
-    let mut digits = std::iter::repeat_n(b'0', exponent.saturating_sub(whole.len()))
-        .chain(integer_fraction.bytes())
-        .chain(fraction.bytes());
-    let tenths = digits.next().unwrap_or(b'0') - b'0';
-    let hundredth = digits.next().unwrap_or(b'0') - b'0';
-    let mut hundredths = tenths * 10 + hundredth;
-    if digits.next().unwrap_or(b'0') >= b'5' {
-        hundredths += 1;
-    }
-    if hundredths == 100 {
-        (increment_decimal(rounded_whole), 0)
-    } else {
-        (rounded_whole.to_string(), hundredths)
-    }
 }
 
 #[cfg(test)]

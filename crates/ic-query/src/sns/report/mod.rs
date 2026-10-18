@@ -83,9 +83,9 @@ pub(in crate::sns::report) use cache_summary::{
 };
 #[cfg(feature = "sns-host")]
 pub use catalog_cache::{
-    DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
-    SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
-    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
+    DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS, SnsCatalogCacheRequest, SnsCatalogRefreshReport,
+    SnsCatalogRefreshRequest, build_sns_list_report_from_cache,
+    build_sns_list_report_from_cache_or_refresh,
     build_sns_list_report_from_cache_or_refresh_with_source, refresh_sns_catalog,
     refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
     sns_catalog_refresh_report_text,
@@ -103,19 +103,19 @@ pub use model::{
     SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
     SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalAction, SnsProposalBallotRow,
-    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalVote,
-    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus,
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointValidationError,
-    SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryKind, SnsTreasuryMetricRow,
-    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics,
-    SnsVotingRewardsParameters, sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
+    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
+    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
+    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
@@ -133,8 +133,7 @@ pub use model::{
     SnsSnapshotRefreshRequest,
 };
 pub(in crate::sns::report) use model::{
-    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
-    validated_reward_checkpoint_summary,
+    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
@@ -143,17 +142,17 @@ pub(in crate::sns::report) use model::{
 };
 #[cfg(feature = "sns-host")]
 pub use neurons_cache::{
-    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, build_sns_neurons_cache_list_report,
-    build_sns_neurons_cache_status_report, refresh_sns_neurons_cache,
-    refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
-    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
+    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_progress,
+    refresh_sns_neurons_cache_with_source, sns_neurons_cache_path,
+    sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
 #[cfg(feature = "sns-host")]
 pub use proposals_cache::{
-    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, refresh_sns_proposals_cache,
-    refresh_sns_proposals_cache_with_progress, refresh_sns_proposals_cache_with_source,
-    sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
+    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
+    refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_progress,
+    refresh_sns_proposals_cache_with_source, sns_proposals_cache_path,
+    sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
 #[cfg(feature = "sns-host")]
 pub use reward_checkpoint_file::{
@@ -163,11 +162,11 @@ pub use reward_diff::build_sns_reward_diff_report;
 #[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
-    MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource,
-    SnsDiscoverySource, SnsMetricsSource, SnsNeuronId, SnsNeuronSource, SnsNeuronsSource,
-    SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsRewardSource, SnsSourceRequest,
-    SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
+    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsSource, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
@@ -233,3 +232,13 @@ pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(
 pub(super) fn short_principal(value: &str) -> String {
     value.chars().take(COMPACT_PRINCIPAL_CHARS).collect()
 }
+
+pub(in crate::sns::report) use model::{sns_proposal_action_label, sns_proposal_vote_label};
+
+pub use model::MainnetSnsMetrics;
+
+pub use model::MainnetSnsSwap;
+
+pub(in crate::sns::report) use model::sns_swap_lifecycle_name;
+
+pub(in crate::sns::report) use model::sns_treasury_kind;

@@ -60,7 +60,7 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
     assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);
     assert_eq!(report.neurons[0].staked_maturity_e8s_equivalent, Some(789));
-    assert_eq!(report.neurons[0].created_at, "2026-06-01T00:00:00Z");
+    assert_eq!(report.neurons[0].created_timestamp_seconds, 1_780_272_000);
     assert_eq!(report.neurons[0].source_nns_neuron_id, Some(42));
     assert_eq!(report.neurons[0].auto_stake_maturity, Some(true));
     assert_eq!(

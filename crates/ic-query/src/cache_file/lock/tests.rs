@@ -6,35 +6,74 @@ use crate::{
     cache_file::{CacheFileError, create_managed_parent_directory, write_managed_text_atomically},
     test_support::temp_dir,
 };
-use serde_json::json;
+#[cfg(unix)]
+use std::os::unix::fs::{PermissionsExt, symlink};
 use std::{
     fs,
     path::{Path, PathBuf},
+    process::{Command, Stdio},
+    time::{Duration, Instant},
 };
 
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
+struct LockFixture {
+    root: PathBuf,
+    path: PathBuf,
+}
 
-const NETWORK: &str = "ic";
-const STALE_AFTER_SECONDS: u64 = 60;
+impl LockFixture {
+    fn new(name: &str) -> Self {
+        let root = temp_dir(name);
+        let path = root.join("nns/ic/refresh.lock");
+        Self { root, path }
+    }
+    fn request(&self) -> RefreshLockRequest<'_> {
+        RefreshLockRequest {
+            cache_root: &self.root,
+            lock_path: &self.path,
+        }
+    }
+}
 
-#[cfg(feature = "host")]
+#[test]
+fn descriptor_exclusion_preserves_persistent_identity_and_releases_on_close() {
+    let fixture = LockFixture::new("ic-query-descriptor-lock");
+    let guard = acquire_refresh_lock(fixture.request()).unwrap();
+    assert!(inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
+    assert!(matches!(
+        acquire_refresh_lock(fixture.request()),
+        Err(CacheFileError::RefreshAlreadyInProgress { .. })
+    ));
+    assert_eq!(fs::read(&fixture.path).unwrap(), Vec::<u8>::new());
+    #[cfg(unix)]
+    assert_eq!(
+        fs::metadata(&fixture.path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    drop(guard);
+    assert!(!inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
+    let next = acquire_refresh_lock(fixture.request()).unwrap();
+    assert!(fixture.path.exists());
+    drop(next);
+    fs::remove_dir_all(fixture.root).unwrap();
+}
+
+#[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn guarded_refresh_releases_after_success_and_preserves_action_failure() {
     let fixture = LockFixture::new("ic-query-guarded-refresh-outcome");
     for outcome in [Ok(7), Err("collection failed")] {
         let result = super::run::with_refresh_lock(
-            fixture.request(120),
-            |_| "cache operation failed",
+            fixture.request(),
+            |_| "cache failure",
             || {
-                assert!(fixture.lock_path.exists());
+                assert!(inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
                 outcome
             },
         );
         assert_eq!(result, outcome);
-        assert!(!fixture.lock_path.exists());
+        assert!(!inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
     }
-    fixture.cleanup();
+    fs::remove_dir_all(fixture.root).unwrap();
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -43,17 +82,17 @@ fn async_refresh_releases_after_success_and_preserves_action_failure() {
     let fixture = LockFixture::new("ic-query-async-refresh-outcome");
     for outcome in [Ok(7), Err("collection failed")] {
         let result = futures::executor::block_on(super::run::with_refresh_lock_async(
-            fixture.request(120),
-            |_| "cache operation failed",
+            fixture.request(),
+            |_| "cache failure",
             async || {
-                assert!(fixture.lock_path.exists());
+                assert!(inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
                 outcome
             },
         ));
         assert_eq!(result, outcome);
-        assert!(!fixture.lock_path.exists());
+        assert!(!inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
     }
-    fixture.cleanup();
+    fs::remove_dir_all(fixture.root).unwrap();
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -61,273 +100,99 @@ fn async_refresh_releases_after_success_and_preserves_action_failure() {
 fn dropping_a_pending_refresh_releases_its_lock() {
     let fixture = LockFixture::new("ic-query-cancelled-refresh");
     let mut refresh = Box::pin(super::run::with_refresh_lock_async(
-        fixture.request(120),
-        |_| "cache operation failed",
+        fixture.request(),
+        |_| "cache failure",
         async || std::future::pending::<Result<(), &str>>().await,
     ));
     let mut context = std::task::Context::from_waker(futures::task::noop_waker_ref());
     assert!(std::future::Future::poll(refresh.as_mut(), &mut context).is_pending());
-    assert!(fixture.lock_path.exists());
+    assert!(inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
     drop(refresh);
-    assert!(!fixture.lock_path.exists());
-    fixture.cleanup();
+    assert!(!inspect_refresh_lock(&fixture.root, &fixture.path).unwrap());
+    fs::remove_dir_all(fixture.root).unwrap();
 }
 
 #[test]
-fn new_refresh_lock_records_its_stale_policy() {
-    let fixture = LockFixture::new("ic-query-recorded-refresh-lock-policy");
-
-    let guard = acquire_refresh_lock(fixture.request(120)).expect("acquire refresh lock");
-    let evidence =
-        inspect_refresh_lock(&fixture.root, &fixture.lock_path).expect("inspect refresh lock");
-
-    assert_eq!(evidence.schema_version, 1);
-    assert_eq!(evidence.stale_after_seconds, STALE_AFTER_SECONDS);
-    assert_eq!(
-        evidence.target_path,
-        fixture.target_path.display().to_string()
-    );
-    drop(guard);
-    assert!(!fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn corrupted_fresh_refresh_lock_requires_manual_cleanup() {
-    let fixture = LockFixture::new("ic-query-corrupted-fresh-refresh-lock");
-    fixture.write_lock(r#"{"schema_version":1,"started_at_unix_ms":"60"}"#);
-
-    let err = acquire_refresh_lock(fixture.request(60)).expect_err("corrupted lock is rejected");
-
-    assert_parse_refresh_lock_error(err, &fixture.lock_path);
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn corrupted_stale_refresh_lock_requires_manual_cleanup() {
-    let fixture = LockFixture::new("ic-query-corrupted-stale-refresh-lock");
-    fixture
-        .write_lock(r#"{"schema_version":1,"network":"ic","pid":999999,"started_at_unix_ms":1,"#);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("corrupted lock is rejected");
-
-    assert_parse_refresh_lock_error(err, &fixture.lock_path);
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn refresh_lock_rejects_unknown_fields() {
-    let fixture = LockFixture::new("ic-query-refresh-lock-unknown-field");
-    let mut lock = fixture.valid_lock_value(100_000);
-    lock["unexpected"] = json!(true);
-    fixture.write_lock_value(&lock);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("unknown field is rejected");
-
-    assert_parse_refresh_lock_error(err, &fixture.lock_path);
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn refresh_lock_rejects_mismatched_identity() {
-    let fixture = LockFixture::new("ic-query-refresh-lock-wrong-network");
-    let mut lock = fixture.valid_lock_value(100_000);
-    lock["network"] = json!("local");
-    fixture.write_lock_value(&lock);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("wrong network is rejected");
-
-    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn oversized_new_refresh_lock_is_not_persisted() {
-    let fixture = LockFixture::new("ic-query-oversized-new-refresh-lock");
-    let bytes = usize::try_from(super::acquire::MAX_REFRESH_LOCK_BYTES)
-        .expect("refresh-lock ceiling fits usize");
-    let network = "x".repeat(bytes);
-    let mut request = fixture.request(120);
-    request.network = &network;
-    let error = acquire_refresh_lock(request).expect_err("lock must fit its reader ceiling");
-    assert!(
-        matches!(error, CacheFileError::WriteLimitExceeded { maximum, .. }
-        if maximum == super::acquire::MAX_REFRESH_LOCK_BYTES)
-    );
-    assert!(!fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn oversized_refresh_lock_is_rejected_as_invalid_local_evidence() {
-    let fixture = LockFixture::new("ic-query-oversized-refresh-lock");
-    let bytes = usize::try_from(super::acquire::MAX_REFRESH_LOCK_BYTES + 1)
-        .expect("refresh-lock fixture byte count fits usize");
-    fixture.write_lock(&"x".repeat(bytes));
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("oversized lock is rejected");
-
-    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn stale_valid_refresh_lock_requires_manual_cleanup() {
-    let fixture = LockFixture::new("ic-query-stale-valid-refresh-lock");
-    fixture.write_valid_lock(1);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("stale lock is rejected");
-
-    assert!(matches!(err, CacheFileError::StaleRefreshLock { .. }));
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn active_valid_refresh_lock_is_rejected() {
-    let fixture = LockFixture::new("ic-query-active-valid-refresh-lock");
-    fixture.write_valid_lock(100_000);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("active lock is rejected");
-
-    match err {
-        CacheFileError::RefreshAlreadyInProgress {
-            path,
-            started_at_unix_ms,
-        } => {
-            assert_eq!(path, fixture.lock_path);
-            assert_eq!(started_at_unix_ms, 100_000);
-        }
-        other => panic!("unexpected error: {other:?}"),
+fn invalid_coordination_content_is_preserved_without_acquisition() {
+    let fixture = LockFixture::new("ic-query-invalid-lock");
+    for contents in ["occupied", "{}", "\0"] {
+        write_managed_text_atomically(&fixture.root, &fixture.path, contents).unwrap();
+        assert!(matches!(
+            acquire_refresh_lock(fixture.request()),
+            Err(CacheFileError::InvalidRefreshLock { .. })
+        ));
+        assert_eq!(fs::read(&fixture.path).unwrap(), contents.as_bytes());
     }
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn future_dated_refresh_lock_requires_manual_cleanup() {
-    let fixture = LockFixture::new("ic-query-future-refresh-lock");
-    fixture.write_valid_lock(121_000);
-
-    let err = acquire_refresh_lock(fixture.request(120)).expect_err("future lock is rejected");
-
-    assert!(matches!(err, CacheFileError::InvalidRefreshLock { .. }));
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
-}
-
-#[test]
-fn existing_refresh_lock_uses_its_recorded_stale_policy() {
-    let fixture = LockFixture::new("ic-query-self-describing-refresh-lock");
-    fixture.write_valid_lock(100_000);
-    let mut request = fixture.request(130);
-    request.lock_stale_after_seconds = 10;
-
-    let err = acquire_refresh_lock(request).expect_err("recorded policy keeps lock active");
-
-    assert!(matches!(
-        err,
-        CacheFileError::RefreshAlreadyInProgress { .. }
-    ));
-    assert!(fixture.lock_path.exists());
-    fixture.cleanup();
+    fs::remove_dir_all(fixture.root).unwrap();
 }
 
 #[cfg(unix)]
 #[test]
-fn existing_refresh_lock_rejects_unsafe_file_mode() {
-    let fixture = LockFixture::new("ic-query-unsafe-refresh-lock-mode");
-    fixture.write_valid_lock(100_000);
-    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o664))
-        .expect("widen lock mode");
-
-    let error = acquire_refresh_lock(fixture.request(120)).expect_err("unsafe lock is rejected");
-
+fn lock_admission_preserves_symlink_targets_and_unsafe_permissions() {
+    let fixture = LockFixture::new("ic-query-lock-admission");
+    create_managed_parent_directory(&fixture.root, &fixture.path).unwrap();
+    let outside = fixture.root.join("outside");
+    fs::write(&outside, "preserve").unwrap();
+    symlink(&outside, &fixture.path).unwrap();
+    assert!(acquire_refresh_lock(fixture.request()).is_err());
+    assert_eq!(fs::read_to_string(&outside).unwrap(), "preserve");
+    fs::remove_file(&fixture.path).unwrap();
+    fs::write(&fixture.path, "").unwrap();
+    fs::set_permissions(&fixture.path, fs::Permissions::from_mode(0o666)).unwrap();
     assert!(matches!(
-        error,
-        CacheFileError::UnsafeManagedPermissions {
-            actual_mode: 0o664,
-            ..
-        }
+        acquire_refresh_lock(fixture.request()),
+        Err(CacheFileError::UnsafeManagedPermissions { .. })
     ));
-    fs::set_permissions(&fixture.lock_path, fs::Permissions::from_mode(0o600))
-        .expect("restore lock mode");
-    fixture.cleanup();
+    fs::remove_dir_all(fixture.root).unwrap();
 }
 
-fn assert_parse_refresh_lock_error(err: CacheFileError, lock_path: &Path) {
-    let message = err.to_string();
-    match err {
-        CacheFileError::ParseRefreshLock { path, .. } => assert_eq!(path, lock_path),
-        other => panic!("unexpected error: {other:?}"),
+#[test]
+fn descriptor_lock_child() {
+    let Some(root) = std::env::var_os("IC_QUERY_LOCK_CHILD_ROOT") else {
+        return;
+    };
+    let root = Path::new(&root);
+    let _guard = acquire_refresh_lock(RefreshLockRequest {
+        cache_root: root,
+        lock_path: &root.join("nns/ic/refresh.lock"),
+    })
+    .unwrap();
+    fs::write(root.join("ready"), "ready").unwrap();
+    let started = Instant::now();
+    while started.elapsed() < Duration::from_secs(15) {
+        std::thread::sleep(Duration::from_millis(5));
     }
-    assert!(message.contains("remove the lock manually"));
 }
 
-struct LockFixture {
-    root: PathBuf,
-    lock_path: PathBuf,
-    target_path: PathBuf,
-}
-
-impl LockFixture {
-    fn new(prefix: &str) -> Self {
-        let root = temp_dir(prefix);
-        let target_path = root.join("test").join("full.json");
-        let lock_path = target_path.with_file_name("full.refresh.lock");
-        create_managed_parent_directory(&root, &lock_path).expect("create lock parent");
-        Self {
-            root,
-            lock_path,
-            target_path,
-        }
+#[test]
+fn process_death_releases_kernel_ownership_without_removing_the_sidecar() {
+    let fixture = LockFixture::new("ic-query-lock-process-death");
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "cache_file::lock::tests::descriptor_lock_child",
+            "--nocapture",
+        ])
+        .env("IC_QUERY_LOCK_CHILD_ROOT", &fixture.root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    let started = Instant::now();
+    while !fixture.root.join("ready").exists() && started.elapsed() < Duration::from_secs(5) {
+        assert!(child.try_wait().unwrap().is_none());
+        std::thread::sleep(Duration::from_millis(5));
     }
-
-    fn request(&self, now_unix_secs: u64) -> RefreshLockRequest<'_> {
-        RefreshLockRequest {
-            cache_root: &self.root,
-            lock_path: &self.lock_path,
-            target_path: &self.target_path,
-            network: NETWORK,
-            now_unix_secs,
-            lock_stale_after_seconds: STALE_AFTER_SECONDS,
-        }
-    }
-
-    fn write_lock(&self, contents: &str) {
-        write_managed_text_atomically(&self.root, &self.lock_path, contents).expect("write lock");
-    }
-
-    fn write_valid_lock(&self, started_at_unix_ms: u64) {
-        self.write_lock_value(&self.valid_lock_value(started_at_unix_ms));
-    }
-
-    fn valid_lock_value(&self, started_at_unix_ms: u64) -> serde_json::Value {
-        json!({
-            "schema_version": 1,
-            "network": NETWORK,
-            "pid": 999_999,
-            "started_at_unix_ms": started_at_unix_ms,
-            "stale_after_seconds": STALE_AFTER_SECONDS,
-            "target_path": self.target_path.display().to_string(),
-        })
-    }
-
-    fn write_lock_value(&self, value: &serde_json::Value) {
-        write_managed_text_atomically(
-            &self.root,
-            &self.lock_path,
-            &serde_json::to_string_pretty(value).expect("serialize lock"),
-        )
-        .expect("write lock");
-    }
-
-    fn cleanup(self) {
-        let _ = fs::remove_dir_all(self.root);
-    }
+    assert!(fixture.root.join("ready").exists());
+    assert!(matches!(
+        acquire_refresh_lock(fixture.request()),
+        Err(CacheFileError::RefreshAlreadyInProgress { .. })
+    ));
+    child.kill().unwrap();
+    child.wait().unwrap();
+    let guard = acquire_refresh_lock(fixture.request()).expect("dead process releases ownership");
+    assert!(fixture.path.exists());
+    drop(guard);
+    fs::remove_dir_all(fixture.root).unwrap();
 }

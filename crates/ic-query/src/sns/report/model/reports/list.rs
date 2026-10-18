@@ -59,8 +59,6 @@ pub struct SnsListRow {
     pub metadata_error: Option<String>,
     /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
     pub lifecycle: Option<i32>,
-    /// Stable native lifecycle label derived from `lifecycle`.
-    pub lifecycle_name: Option<String>,
     /// Bounded lifecycle query failure retained instead of dropping the SNS row.
     pub lifecycle_error: Option<String>,
 }

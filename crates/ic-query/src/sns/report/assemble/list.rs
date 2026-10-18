@@ -42,7 +42,7 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
             canisters: sns.canisters,
             metadata_error: sns.metadata_error,
             lifecycle: sns.lifecycle,
-            lifecycle_name: sns.lifecycle_name,
+
             lifecycle_error: sns.lifecycle_error,
         })
         .collect::<Vec<_>>();

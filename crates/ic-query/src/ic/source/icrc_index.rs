@@ -399,7 +399,7 @@ fn valid_cursor_components(value: &str) -> bool {
 }
 
 fn canonical_source_principal(field: &str, value: &str) -> Result<String, IcHostError> {
-    candid::Principal::from_text(value)
+    ic_platform::candid::contract::Principal::from_text(value)
         .map(|principal| principal.to_text())
         .map_err(|error| IcHostError::InvalidSourceData {
             reason: format!("{field} is not a principal: {error}"),

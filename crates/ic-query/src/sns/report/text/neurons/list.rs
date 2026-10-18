@@ -4,6 +4,7 @@
 //! Does not own: neuron fetching, cache sorting, report construction, or JSON output.
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
+use crate::subnet_catalog::format_utc_timestamp_secs;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -81,7 +82,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
                         dissolve_state_text(neuron.dissolve_state),
                         optional_bool_text(neuron.auto_stake_maturity),
                         neuron.voting_power_percentage_multiplier.to_string(),
-                        neuron.created_at.clone(),
+                        format_utc_timestamp_secs(neuron.created_timestamp_seconds),
                     ]
                 })
                 .collect::<Vec<_>>(),

@@ -30,7 +30,6 @@ use ic_query::ic::{
     icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 use ic_query::icrc::{
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
     IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest, IcrcAllowanceRequest,
     IcrcArchivesRequest, IcrcBalanceRequest, IcrcError, IcrcLedgerRequest, IcrcTransactionsRequest,
@@ -342,7 +341,6 @@ async fn run_icrc_account_transaction_refresh(
         index_canister_id: options.index_canister_id,
         page_size: options.page_size,
         max_pages: options.max_pages,
-        lock_stale_after_seconds: DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     };
     let mut progress = StderrQueryProgress::new();
     let report =

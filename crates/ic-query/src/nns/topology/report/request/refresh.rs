@@ -11,7 +11,6 @@ pub(in crate::nns::topology::report) fn subnet_catalog_refresh_request(
         subnet_catalog_cache_request(&request.read),
         CatalogSourceSelection::uncertified_query(request.read.source_endpoint.as_str()),
         request.read.now_unix_secs,
-        request.lock_stale_after_seconds,
     )
     .with_dry_run(request.dry_run)
 }
@@ -23,7 +22,6 @@ pub(in crate::nns::topology::report) fn inventory_refresh_request(
         inventory_cache_request(&request.read),
         request.read.source_endpoint.as_str(),
         request.read.now_unix_secs,
-        request.lock_stale_after_seconds,
     )
     .with_dry_run(request.dry_run)
 }

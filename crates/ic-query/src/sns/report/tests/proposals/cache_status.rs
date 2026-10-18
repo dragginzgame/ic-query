@@ -109,7 +109,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
 
     assert!(cache_path.is_file());
     assert!(attempt_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     assert!(refresh.complete);
     assert_eq!(refresh.collection, "proposals");
     let refresh_json = serde_json::to_value(&refresh).expect("serialize refresh result");
@@ -126,17 +126,15 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     assert_eq!(cache["entity"], ROOT_A);
     assert_eq!(cache["collection"], "proposals");
     assert_eq!(cache["scope"], "full");
-    assert_eq!(cache["id"], 1);
+    assert_eq!(cache["metadata"]["id"], 1);
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
     assert_eq!(
-        cache["proposals"]
+        cache["data"]["proposals"]
             .as_array()
             .expect("cache proposals")
             .len(),
         1
     );
-    assert!(cache.get("metadata").is_none());
-    assert!(cache.get("data").is_none());
 
     let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -295,21 +293,21 @@ async fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
         (
             "action",
             (|cache: &mut serde_json::Value| {
-                cache["proposals"][0]["action_id"] = serde_json::json!(3);
+                cache["data"]["proposals"][0]["action_id"] = serde_json::json!("invalid");
             }) as fn(&mut serde_json::Value),
-            "action classification motion does not match raw action id 3",
+            "invalid type",
         ),
         (
             "vote",
             |cache: &mut serde_json::Value| {
-                cache["proposals"][0]["ballots"][0]["vote"] = serde_json::json!(2);
+                cache["data"]["proposals"][0]["ballots"][0]["vote"] = serde_json::json!("invalid");
             },
-            "vote classification yes does not match raw vote code 2",
+            "invalid type",
         ),
         (
             "ballot-count",
             |cache: &mut serde_json::Value| {
-                cache["proposals"][0]["ballot_count"] = serde_json::json!(2);
+                cache["data"]["proposals"][0]["ballot_count"] = serde_json::json!(2);
             },
             "ballot_count 2 does not match 1 ballot rows",
         ),
@@ -334,11 +332,7 @@ async fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposals_cache_status_rejects_unknown_fields_and_false_authority() {
     for (field, value, expected_error) in [
-        (
-            "unexpected",
-            serde_json::json!(true),
-            "unknown top-level cache field",
-        ),
+        ("unexpected", serde_json::json!(true), "unknown field"),
         (
             "point_in_time_guaranteed",
             serde_json::json!(true),
@@ -445,17 +439,23 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
 
         assert_eq!(refresh.id, 2);
         assert_eq!(refresh.root_canister_id, ROOT_B);
-        assert!(!std::path::Path::new(&refresh.refresh_lock_path).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                std::path::Path::new(&refresh.refresh_lock_path)
+            )
+            .unwrap()
+        );
         let cache: serde_json::Value =
             serde_json::from_slice(&fs::read(&refresh.cache_path).expect("read cache"))
                 .expect("parse cache");
         let attempt: serde_json::Value =
             serde_json::from_slice(&fs::read(&refresh.refresh_attempt_path).expect("read attempt"))
                 .expect("parse attempt");
-        assert_eq!(cache["id"], refresh.id);
+        assert_eq!(cache["metadata"]["id"], refresh.id);
         assert_eq!(cache["entity"], ROOT_B);
-        assert_eq!(attempt["id"], refresh.id);
-        assert_eq!(attempt["root_canister_id"], ROOT_B);
+        assert_eq!(attempt["metadata"]["id"], refresh.id);
+        assert_eq!(attempt["metadata"]["root_canister_id"], ROOT_B);
         assert_eq!(attempt["status"], "complete");
 
         let mut cached_request = proposals_request(ROOT_B);

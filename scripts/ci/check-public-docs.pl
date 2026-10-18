@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Shared companions: docs/rustdoc-debt.md
+# Query-owned item identities for its temporary public-documentation debt.
 use strict;
 use warnings;
 use JSON::PP qw(decode_json encode_json);

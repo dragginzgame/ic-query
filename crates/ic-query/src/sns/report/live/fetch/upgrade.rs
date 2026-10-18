@@ -16,8 +16,8 @@ use crate::sns::report::{
         },
     },
 };
-use candid::Principal;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
     source: &crate::sns::LiveSnsSource,

@@ -5,8 +5,8 @@ use crate::{
     ic_registry::{MainnetRegistryFetchRequest, RegistryFetchError},
     subnet_catalog::MAINNET_REGISTRY_CANISTER_ID,
 };
-use candid::Principal;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 pub(in crate::ic_registry::source) fn mainnet_agent(
     request: &MainnetRegistryFetchRequest,

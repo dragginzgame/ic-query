@@ -4,6 +4,7 @@
 //! Does not own: live fetching, source validation, or JSON serialization.
 //! Boundary: formats raw neuron, permission, disbursement, and followee evidence.
 
+use crate::subnet_catalog::format_utc_timestamp_secs;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -74,7 +75,10 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
             "voting_power_percentage_multiplier: {}",
             neuron.voting_power_percentage_multiplier
         ),
-        format!("created_at: {}", terminal_text(&neuron.created_at)),
+        format!(
+            "created_at: {}",
+            format_utc_timestamp_secs(neuron.created_timestamp_seconds)
+        ),
         format!(
             "source_nns_neuron_id: {}",
             optional_u64_text(neuron.source_nns_neuron_id)

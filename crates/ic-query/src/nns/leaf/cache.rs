@@ -28,14 +28,17 @@ where
         &cache.network,
         cache_file,
     );
-    load_json_cache(LoadJsonCacheRequest {
-        component: component_dir,
-        cache_root: &cache.cache_root,
-        path: paths.cache_path,
-        network: &cache.network,
-        expected_schema_version,
-        maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
-    })
+    load_json_cache(
+        LoadJsonCacheRequest {
+            component: component_dir,
+            cache_root: &cache.cache_root,
+            path: paths.cache_path,
+            network: &cache.network,
+            expected_schema_version,
+            maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
+        },
+        None,
+    )
 }
 
 /// Write a refreshed generic NNS leaf JSON cache using component-labelled errors.
@@ -64,9 +67,7 @@ where
             cache_root: &cache.cache_root,
             cache_path: &paths.cache_path,
             lock_path: &paths.lock_path,
-            network: &cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
+
             dry_run: request.dry_run,
             output_path: request.output_path.as_deref(),
             report,

@@ -31,16 +31,8 @@ pub(in crate::sns::report) fn sns_token_report_from_parts(
         root_canister_id: sns.canisters.root_canister_id,
         ledger_canister_id: sns.canisters.ledger_canister_id,
         sns_index_canister_id: sns.canisters.index_canister_id,
-        token_name: token.token_name,
-        token_symbol: token.token_symbol,
-        decimals: token.decimals,
-        transfer_fee: token.transfer_fee,
-        total_supply: token.total_supply,
-        minting_account_owner: token.minting_account_owner,
-        minting_account_subaccount_hex: token.minting_account_subaccount_hex,
+        token,
         ledger_index_canister_id,
         ledger_index_error,
-        supported_standards: token.supported_standards,
-        metadata: token.metadata,
     }
 }

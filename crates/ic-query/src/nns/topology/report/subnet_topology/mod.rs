@@ -41,8 +41,5 @@ pub const DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT: &str = "https://icp-api.i
 /// Default age after which a cached topology report is stale.
 pub const DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS: u64 = 24 * 60 * 60;
 #[cfg(feature = "nns-topology-host")]
-/// Default age after which a topology refresh lock is stale.
-pub const DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
 #[cfg(all(test, feature = "nns-topology-host"))]
 mod tests;

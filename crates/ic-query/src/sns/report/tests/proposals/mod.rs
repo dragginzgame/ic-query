@@ -55,25 +55,9 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
 }
 
 #[test]
-fn sns_proposal_rows_reject_derived_fields_that_contradict_raw_evidence() {
+fn sns_proposal_rows_validate_counts_and_uniqueness() {
     let valid = fixture_proposal_row();
     assert!(validate_sns_proposal_rows(std::slice::from_ref(&valid)).is_ok());
-
-    let mut action_mismatch = valid.clone();
-    action_mismatch.action = SnsProposalAction::UpgradeSnsControlledCanister;
-    assert!(
-        validate_sns_proposal_rows(&[action_mismatch])
-            .expect_err("action mismatch")
-            .contains("action classification upgrade_sns_controlled_canister does not match raw action id 1")
-    );
-
-    let mut vote_mismatch = valid.clone();
-    vote_mismatch.ballots[0].vote_text = SnsProposalVote::No;
-    assert!(
-        validate_sns_proposal_rows(&[vote_mismatch])
-            .expect_err("vote mismatch")
-            .contains("vote classification no does not match raw vote code 1")
-    );
 
     let mut ballot_count_mismatch = valid.clone();
     ballot_count_mismatch.ballot_count = 2;
@@ -394,15 +378,11 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         topic: Some(fixture.topic.as_str().to_string()),
         title: fixture.title.to_string(),
         action_id: fixture.action_id,
-        action: SnsProposalAction::from_id(fixture.action_id),
+
         proposal_creation_timestamp_seconds: fixture.created_at_secs,
-        created_at: format_utc_timestamp_secs(fixture.created_at_secs),
         decided_timestamp_seconds: fixture.decided_at_secs,
-        decided_at: fixture.decided_at_secs.map(format_utc_timestamp_secs),
         executed_timestamp_seconds: fixture.executed_at_secs,
-        executed_at: fixture.executed_at_secs.map(format_utc_timestamp_secs),
         failed_timestamp_seconds: fixture.failed_at_secs,
-        failed_at: fixture.failed_at_secs.map(format_utc_timestamp_secs),
         reject_cost_e8s: fixture.reject_cost_e8s,
         ballot_count: fixture.ballot_count,
         ballots: vec![ballot; fixture.ballot_count],

@@ -8,8 +8,7 @@ use crate::sns::report::{
     SnsHostError,
     cache_storage::SnsCacheStorageFamily,
     proposals_cache::{
-        SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
-        model::{SNS_PROPOSALS_CACHE_FIELDS, SnsProposalsCacheRows},
+        SNS_PROPOSALS_CACHE_SCHEMA_VERSION, model::SnsProposalsCacheRows,
         paths::SnsProposalsCacheCollection,
     },
     source::validate_sns_proposal_rows,
@@ -20,7 +19,7 @@ impl SnsCacheStorageFamily for SnsProposalsCacheCollection {
     type Data = SnsProposalsCacheRows;
 
     const CACHE_SCHEMA_VERSION: u32 = SNS_PROPOSALS_CACHE_SCHEMA_VERSION;
-    const CACHE_FIELDS: &'static [&'static str] = SNS_PROPOSALS_CACHE_FIELDS;
+
     const CACHE_ITEM_NAME: &'static str = "proposal";
 
     fn missing_cache_error(path: PathBuf) -> SnsHostError {

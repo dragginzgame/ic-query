@@ -20,9 +20,6 @@ use crate::{
     snapshot_cache::SnapshotRefreshProgress,
 };
 
-/// Default age after which an NNS neuron refresh lock is reported as stale.
-pub const DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
 /// Refresh the complete public neuron index using the built-in live source.
 pub async fn refresh_nns_neuron_cache(
     request: &NnsGovernanceRefreshRequest,
@@ -59,7 +56,6 @@ async fn refresh_with_source_and_progress(
         request,
         &paths,
         NNS_NEURON_CACHE_COMPONENT,
-        DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS,
         async |context| {
             let CompleteNeuronCollection { neurons, state } = fetch_complete_neuron_collection(
                 request,

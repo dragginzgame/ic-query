@@ -247,7 +247,13 @@ fn agreement_rejects_version_and_payload_mismatch_without_publishing() {
             SubnetCatalogHostError::AgreementMismatch { endpoint, .. } if endpoint == beta
         ));
         assert_eq!(cached.catalog.provenance().registry_version, 123_456);
-        assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+            )
+            .unwrap()
+        );
         let _ = fs::remove_dir_all(root);
     }
 }
@@ -306,7 +312,13 @@ fn agreement_endpoint_failure_keeps_exact_endpoint_context() {
         SubnetCatalogHostError::AgreementEndpoint { endpoint, .. } if endpoint == beta
     ));
     assert_eq!(source.call_count(), 2);
-    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -323,7 +335,7 @@ async fn cancelled_async_refresh_drops_its_owned_lock_without_publishing() {
     assert!(lock_path.exists());
     drop(future);
 
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     assert!(!subnet_catalog_path(&root, MAINNET_NETWORK).exists());
     let _ = fs::remove_dir_all(root);
 }
@@ -470,7 +482,13 @@ async fn refresh_rechecks_output_aliases_after_source_collection() {
             fs::read(&catalog_path).expect("preserved catalog"),
             original
         );
-        assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+            )
+            .unwrap()
+        );
         let _ = fs::remove_dir_all(root);
     }
 }
@@ -544,7 +562,7 @@ async fn refresh_failure_preserves_existing_catalog_and_removes_lock() {
         SubnetCatalogHostError::Catalog(CatalogError::EmptySubnets)
     ));
     assert_eq!(cached.catalog.provenance().registry_version, 123_456);
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     let _ = fs::remove_dir_all(root);
 }
 
@@ -553,7 +571,7 @@ async fn refresh_existing_fresh_lock_fails_fast() {
     let root = temp_dir("ic-query-subnet-refresh-locked");
     let request = refresh_request(&root);
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
-    write_refresh_lock_for_test(&lock_path, &request, request.now_unix_secs * 1_000);
+    let _lock_guard = hold_refresh_lock_for_test(&lock_path, &request);
 
     let err = refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
         .await
@@ -570,7 +588,7 @@ async fn refresh_existing_fresh_lock_fails_fast() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn refresh_rejects_stale_lock_without_removing_it() {
+async fn refresh_rejects_invalid_coordination_without_removing_it() {
     let root = temp_dir("ic-query-subnet-refresh-stale-lock");
     let mut catalog = fixture_catalog();
     catalog.provenance.fetched_at = "1970-01-01T00:00:00Z".to_string();
@@ -579,17 +597,21 @@ async fn refresh_rejects_stale_lock_without_removing_it() {
     let source = FixtureRefreshSource::ok(catalog);
     let request = refresh_request(&root);
     let lock_path = subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK);
-    let stale_started_at = (request.now_unix_secs - request.lock_stale_after_seconds - 1) * 1_000;
-    write_refresh_lock_for_test(&lock_path, &request, stale_started_at);
+    crate::cache_file::write_managed_text_atomically(
+        &root,
+        &lock_path,
+        "invalid coordination content",
+    )
+    .unwrap();
 
     let err = refresh_subnet_catalog_with_source(&request, &source)
         .await
-        .expect_err("stale lock requires manual cleanup");
+        .expect_err("invalid coordination file refuses publication");
 
     assert!(matches!(
         err,
         SubnetCatalogHostError::Cache(HostCacheError::Operation {
-            source: CacheFileError::StaleRefreshLock { .. },
+            source: CacheFileError::InvalidRefreshLock { .. },
             ..
         })
     ));
@@ -644,7 +666,13 @@ async fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_r
     drop(future);
     assert_eq!(source.dropped.load(Ordering::SeqCst), 2);
     assert_eq!(fs::read(&path).unwrap(), before);
-    assert!(!subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(subnet_catalog_refresh_lock_path(&root, MAINNET_NETWORK))
+        )
+        .unwrap()
+    );
     let retry = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "https://b.example");
     futures::executor::block_on(refresh_subnet_catalog_with_source(&request, &retry)).unwrap();
     assert_eq!(retry.call_count(), 3);

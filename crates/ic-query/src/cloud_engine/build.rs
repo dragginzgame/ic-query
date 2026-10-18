@@ -13,7 +13,7 @@ use super::{
     MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, enforce_mainnet_network,
 };
 use crate::decimal::{compare_canonical_unsigned_decimal, is_canonical_unsigned_decimal};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::cmp::Ordering;
 
 const MAX_DATA_CENTER_ID_BYTES: usize = 128;
@@ -317,18 +317,18 @@ pub(super) fn canonical_principal(
 pub(super) fn validate_canonical_principal(
     field: &'static str,
     value: &str,
-) -> Result<(), CloudEngineHostError> {
-    crate::principal_text::validate_canonical(
-        value,
-        |reason| CloudEngineHostError::InvalidSourceData {
-            reason: format!("invalid {field} {value:?}: {reason}"),
-        },
-        |canonical| CloudEngineHostError::InvalidSourceData {
-            reason: format!(
-                "{field} {value:?} is not canonical principal text; expected {canonical:?}"
-            ),
-        },
-    )
+) -> Result<Principal, CloudEngineHostError> {
+    let principal =
+        Principal::from_text(value).map_err(|error| CloudEngineHostError::InvalidSourceData {
+            reason: format!("invalid {field} {value:?}: {error}"),
+        })?;
+    let canonical = principal.to_text();
+    if canonical != value {
+        return invalid_source(format!(
+            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
+        ));
+    }
+    Ok(principal)
 }
 
 pub(super) fn validate_principal_match(

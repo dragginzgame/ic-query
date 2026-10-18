@@ -947,7 +947,6 @@ fn bootstrap_fixture_archive(
         cache_root,
         archive_root,
         storage_limits,
-        300,
     );
     fixture_archive_bootstrap(&request, &BootstrapSource::default())
         .expect("fixture archive bootstrap")
@@ -970,7 +969,6 @@ fn archive_refresh_request(
         cache_root,
         archive_root,
         storage_limits,
-        300,
     )
 }
 
@@ -986,7 +984,6 @@ fn archive_cleanup_request(
         extended_replay_limits(),
         extended_archive_storage_limits(),
         cleanup_limits,
-        300,
     )
 }
 
@@ -1043,7 +1040,6 @@ fn certified_archive_bootstrap_streams_one_locked_complete_archive() {
         &root,
         &archive_root,
         archive_storage_limits(),
-        300,
     );
 
     let archive = fixture_archive_bootstrap(&request, &source).expect("bounded archive bootstrap");
@@ -1060,7 +1056,13 @@ fn certified_archive_bootstrap_streams_one_locked_complete_archive() {
         3
     );
     assert!(nns_certified_registry_archive_manifest_path(&archive_root).is_file());
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
 
     let loaded =
         super::super::archive::storage::load_nns_certified_registry_archive_with_authenticator(
@@ -1085,7 +1087,6 @@ fn certified_archive_bootstrap_rejects_non_mainnet_before_filesystem_or_source_w
         &root,
         &archive_root,
         archive_storage_limits(),
-        300,
     );
 
     let error =
@@ -1114,7 +1115,6 @@ fn certified_archive_bootstrap_reauthenticates_custom_source_reports_before_publ
         &root,
         &archive_root,
         archive_storage_limits(),
-        300,
     );
 
     let error = futures::executor::block_on(
@@ -1131,7 +1131,13 @@ fn certified_archive_bootstrap_reauthenticates_custom_source_reports_before_publ
     ));
     assert_eq!(source.requested_versions(), vec![0]);
     assert!(!nns_certified_registry_archive_manifest_path(&archive_root).exists());
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1145,7 +1151,6 @@ fn certified_archive_bootstrap_reserves_before_each_source_call() {
         &root,
         &archive_root,
         archive_storage_limits(),
-        300,
     );
 
     let error = fixture_archive_bootstrap(&request, &source)
@@ -1176,7 +1181,6 @@ fn failed_archive_force_bootstrap_preserves_the_previous_complete_manifest() {
         &root,
         &archive_root,
         archive_storage_limits(),
-        300,
     );
     fixture_archive_bootstrap(&initial_request, &BootstrapSource::default())
         .expect("initial complete archive");
@@ -1192,7 +1196,6 @@ fn failed_archive_force_bootstrap_preserves_the_previous_complete_manifest() {
         &root,
         &archive_root,
         constrained_storage,
-        300,
     );
     let source = BootstrapSource::default();
     let error = fixture_archive_bootstrap(&replacement_request, &source)
@@ -1215,7 +1218,13 @@ fn failed_archive_force_bootstrap_preserves_the_previous_complete_manifest() {
         fs::read(&manifest_path).expect("preserved manifest"),
         before
     );
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1251,7 +1260,13 @@ fn certified_archive_refresh_extends_one_exact_target_under_the_archive_lock() {
     assert_eq!(state.get(b"a").expect("updated a").value(), b"four");
     assert_eq!(state.get(b"b").expect("inserted b").value(), b"five");
     assert!(state.get(b"future").is_none());
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1339,7 +1354,13 @@ fn certified_archive_refresh_reserves_cumulative_capacity_before_source_work() {
     ));
     assert_eq!(source.requested_versions(), Vec::<u64>::new());
     assert_eq!(fs::read(manifest_path).expect("preserved manifest"), before);
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1382,7 +1403,13 @@ fn certified_archive_refresh_authentication_failure_preserves_the_prior_manifest
     ));
     assert_eq!(source.requested_versions(), vec![3]);
     assert_eq!(fs::read(manifest_path).expect("preserved manifest"), before);
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1476,7 +1503,13 @@ async fn certified_archive_cleanup_removes_only_bounded_unreferenced_objects_und
                 .is_file()
         );
     }
-    assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+        )
+        .unwrap()
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -1530,7 +1563,13 @@ async fn certified_archive_cleanup_applies_every_ceiling_before_deleting_an_orph
             } if actual_field == field && actual_maximum == maximum && actual_value == actual
         ));
         assert!(orphan_path.is_file());
-        assert!(!nns_certified_registry_archive_refresh_lock_path(&archive_root).exists());
+        assert!(
+            !crate::cache_file::inspect_refresh_lock(
+                &root,
+                &(nns_certified_registry_archive_refresh_lock_path(&archive_root))
+            )
+            .unwrap()
+        );
     }
     let _ = fs::remove_dir_all(root);
 }

@@ -144,7 +144,7 @@ pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: 42,
         action_id: 1,
-        action: SnsProposalAction::Motion,
+
         title: "Fixture proposal".to_string(),
         summary: "Fixture proposal summary".to_string(),
         url: Some("https://example.com/proposal".to_string()),
@@ -153,13 +153,9 @@ pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
         topic: Some(SnsProposalTopicFilter::Governance.as_str().to_string()),
         reject_cost_e8s: 100_000_000,
         proposal_creation_timestamp_seconds: 1_780_272_000,
-        created_at: "2026-06-01T00:00:00Z".to_string(),
         decided_timestamp_seconds: None,
-        decided_at: None,
         executed_timestamp_seconds: None,
-        executed_at: None,
         failed_timestamp_seconds: None,
-        failed_at: None,
         failure_reason: None,
         reward_event_round: 0,
         reward_event_end_timestamp_seconds: None,
@@ -174,9 +170,8 @@ pub(in crate::sns::report::tests) fn fixture_proposal_row() -> SnsProposalRow {
         ballots: vec![SnsProposalBallotRow {
             neuron_id: "000102030405".to_string(),
             vote: 1,
-            vote_text: SnsProposalVote::Yes,
+
             cast_timestamp_seconds: 1_780_272_050,
-            cast_at: Some("2026-06-01T00:00:50Z".to_string()),
             voting_power: 100_000_000,
         }],
         payload_text_rendering: Some("Rendered payload".to_string()),

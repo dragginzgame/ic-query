@@ -10,7 +10,12 @@ mod tests;
 use prost::Message;
 use thiserror::Error;
 
+///
+/// IcpTransferFields
+///
 /// Transfer fields decoded from one canonical ICP block; not certified evidence.
+///
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IcpTransferFields {
     /// Source account identifier, including its checksum bytes.
@@ -27,7 +32,12 @@ pub struct IcpTransferFields {
     pub created_at_time_ns: u64,
 }
 
+///
+/// IcpBlockError
+///
 /// Structural refusal before a caller interprets decoded transfer fields.
+///
+
 #[derive(Clone, Copy, Debug, Error, Eq, PartialEq)]
 pub enum IcpBlockError {
     /// The supplied bytes exceed the caller's allocation budget.

@@ -1,7 +1,8 @@
 //! Parsed options for public NNS neuron commands.
 
+use crate::cli::clap::required_typed;
 use crate::{
-    cli::clap::{required_typed, typed_option},
+    cli::clap::typed_option,
     nns::{OutputFormat, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;

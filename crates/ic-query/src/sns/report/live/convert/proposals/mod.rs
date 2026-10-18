@@ -5,13 +5,10 @@
 //! Boundary: maps live proposal data into report rows used by text and JSON output.
 
 use super::common::clean_optional_text;
-use crate::{
-    sns::report::{
-        SnsHostError, SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState,
-        SnsProposalFailureReason, SnsProposalRow, SnsProposalTally, SnsProposalVote, hex_bytes,
-        live::types::{SnsGovernanceBallot, SnsGovernanceProposalData, SnsTopic},
-    },
-    subnet_catalog::format_utc_timestamp_secs,
+use crate::sns::report::{
+    SnsHostError, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
+    SnsProposalRow, SnsProposalTally, hex_bytes,
+    live::types::{SnsGovernanceBallot, SnsGovernanceProposalData, SnsTopic},
 };
 
 /// Convert one SNS governance proposal wire row into a report row.
@@ -34,7 +31,7 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
     Ok(SnsProposalRow {
         proposal_id,
         action_id: proposal.action,
-        action: SnsProposalAction::from_id(proposal.action),
+
         title: proposal_fields.title,
         summary: proposal_fields.summary,
         url: clean_optional_text(Some(proposal_fields.url)),
@@ -45,13 +42,9 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
             .map(|topic| sns_topic_text(topic).to_string()),
         reject_cost_e8s: proposal.reject_cost_e8s,
         proposal_creation_timestamp_seconds: proposal.proposal_creation_timestamp_seconds,
-        created_at: format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
         decided_timestamp_seconds: nonzero_timestamp(proposal.decided_timestamp_seconds),
-        decided_at: optional_timestamp_text(proposal.decided_timestamp_seconds),
         executed_timestamp_seconds: nonzero_timestamp(proposal.executed_timestamp_seconds),
-        executed_at: optional_timestamp_text(proposal.executed_timestamp_seconds),
         failed_timestamp_seconds: nonzero_timestamp(proposal.failed_timestamp_seconds),
-        failed_at: optional_timestamp_text(proposal.failed_timestamp_seconds),
         failure_reason: proposal
             .failure_reason
             .map(|reason| SnsProposalFailureReason {
@@ -107,9 +100,8 @@ fn sns_proposal_ballot_row(
     SnsProposalBallotRow {
         neuron_id,
         vote: ballot.vote,
-        vote_text: SnsProposalVote::from_code(ballot.vote),
+
         cast_timestamp_seconds: ballot.cast_timestamp_seconds,
-        cast_at: optional_timestamp_text(ballot.cast_timestamp_seconds),
         voting_power: ballot.voting_power,
     }
 }
@@ -120,8 +112,4 @@ const fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {
     } else {
         None
     }
-}
-
-fn optional_timestamp_text(timestamp_seconds: u64) -> Option<String> {
-    nonzero_timestamp(timestamp_seconds).map(format_utc_timestamp_secs)
 }

@@ -16,8 +16,8 @@ pub use paths::{
     nns_proposal_refresh_lock_path,
 };
 pub use refresh::{
-    DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS, refresh_nns_proposal_cache,
-    refresh_nns_proposal_cache_with_progress, refresh_nns_proposal_cache_with_source,
+    refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_progress,
+    refresh_nns_proposal_cache_with_source,
 };
 pub use reports::{
     build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,

@@ -8,7 +8,7 @@ use super::{
     NnsGovernanceMaturityModulation, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
     NnsGovernanceNeuronSubsetMetrics,
 };
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// GovernanceCachedMetrics
@@ -18,6 +18,7 @@ use candid::{CandidType, Deserialize};
 
 #[cfg_attr(test, derive(Default))]
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GovernanceCachedMetrics {
     pub(super) total_maturity_e8s_equivalent: u64,
     pub(super) not_dissolving_neurons_e8s_buckets: Vec<(u64, f64)>,
@@ -73,6 +74,7 @@ pub(super) struct GovernanceCachedMetrics {
 
 #[cfg_attr(test, derive(Default))]
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct NeuronSubsetMetrics {
     pub(super) count: Option<u64>,
     pub(super) total_staked_e8s: Option<u64>,
@@ -97,6 +99,7 @@ pub(super) struct NeuronSubsetMetrics {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GovernanceError {
     pub(super) error_message: String,
     pub(super) error_type: i32,
@@ -109,6 +112,7 @@ pub(super) struct GovernanceError {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) enum GetMetricsResult {
     Ok(Box<GovernanceCachedMetrics>),
     Err(GovernanceError),
@@ -121,6 +125,7 @@ pub(super) enum GetMetricsResult {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetMaturityModulationRequest {}
 
 ///
@@ -130,6 +135,7 @@ pub(super) struct GetMaturityModulationRequest {}
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetMaturityModulationResponse {
     pub(super) maturity_modulation: Option<NnsGovernanceMaturityModulation>,
 }

@@ -4,6 +4,7 @@
 //! Does not own: swap calls, report construction, source validation, or JSON output.
 //! Boundary: presents native raw fields, query guarantees, and typed gaps without hiding absence.
 
+use crate::sns::report::sns_swap_lifecycle_name;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -13,7 +14,7 @@ use ic_host_text::{
 use crate::{
     sns::report::{
         SnsSwapDerivedState, SnsSwapLifecycle, SnsSwapQueryGap, SnsSwapReport,
-        SnsSwapSaleParameters, text::common::optional_text,
+        SnsSwapSaleParameters,
     },
     text_value::{optional_u64_text, yes_no},
 };
@@ -25,20 +26,24 @@ pub fn sns_swap_report_text(report: &SnsSwapReport) -> String {
     push_component_section(
         &mut lines,
         "lifecycle",
-        report.lifecycle.as_ref().map(lifecycle_text),
+        report.swap.lifecycle.as_ref().map(lifecycle_text),
     );
     push_component_section(
         &mut lines,
         "sale_parameters",
-        report.sale_parameters.as_ref().map(sale_parameters_text),
+        report
+            .swap
+            .sale_parameters
+            .as_ref()
+            .map(sale_parameters_text),
     );
     push_component_section(
         &mut lines,
         "derived_state",
-        report.derived_state.as_ref().map(derived_state_text),
+        report.swap.derived_state.as_ref().map(derived_state_text),
     );
-    if !report.gaps.is_empty() {
-        push_component_section(&mut lines, "gaps", Some(gaps_text(&report.gaps)));
+    if !report.swap.gaps.is_empty() {
+        push_component_section(&mut lines, "gaps", Some(gaps_text(&report.swap.gaps)));
     }
     lines.join("\n")
 }
@@ -49,7 +54,7 @@ fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
         format!("sns_id: {}", report.id),
         format!("name: {}", terminal_text(&report.name)),
         format!("root_canister_id: {}", report.root_canister_id),
-        format!("swap_canister_id: {}", report.swap_canister_id),
+        format!("swap_canister_id: {}", report.swap.swap_canister_id),
         format!("component_query_count: {}", report.component_query_count),
         format!(
             "successful_component_query_count: {}",
@@ -58,16 +63,19 @@ fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
         format!("component_gap_count: {}", report.component_gap_count),
         format!(
             "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+            yes_no(report.swap.point_in_time_guaranteed)
         ),
-        format!("lifecycle_method: {}", report.lifecycle_method.as_str()),
+        format!(
+            "lifecycle_method: {}",
+            report.swap.lifecycle_method.as_str()
+        ),
         format!(
             "sale_parameters_method: {}",
-            report.sale_parameters_method.as_str()
+            report.swap.sale_parameters_method.as_str()
         ),
         format!(
             "derived_state_method: {}",
-            report.derived_state_method.as_str()
+            report.swap.derived_state_method.as_str()
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
@@ -94,7 +102,9 @@ fn lifecycle_text(lifecycle: &SnsSwapLifecycle) -> String {
         ),
         row(
             "lifecycle_name",
-            optional_text(lifecycle.lifecycle_name.as_ref()),
+            sns_swap_lifecycle_name(lifecycle.lifecycle)
+                .unwrap_or("-")
+                .to_string(),
         ),
         row(
             "decentralization_sale_open_timestamp_seconds",

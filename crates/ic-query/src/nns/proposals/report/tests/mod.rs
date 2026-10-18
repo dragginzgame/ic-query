@@ -37,7 +37,7 @@ use crate::{
     },
     subnet_catalog::MAINNET_NETWORK,
 };
-use candid::Reserved;
+use ic_platform::candid::contract::Reserved;
 
 mod detail;
 mod list;

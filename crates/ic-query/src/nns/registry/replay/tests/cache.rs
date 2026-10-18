@@ -12,8 +12,7 @@ async fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archi
     let archive = complete_catalog_archive(&root);
     let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
     let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
-    let publication =
-        NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone(), 300);
+    let publication = NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone());
     let initial = certified_catalog_projection_request(
         NOW,
         0,
@@ -70,7 +69,13 @@ async fn certified_catalog_cache_round_trip_requalifies_freshness_from_the_archi
         published_evidence
     );
     assert!(cache_path.is_file());
-    assert!(!nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_directory).exists());
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            &(nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_directory))
+        )
+        .unwrap()
+    );
 
     let later = certified_catalog_projection_request(
         NOW + 30,
@@ -114,10 +119,9 @@ async fn certified_catalog_cache_recovery_operations_are_explicit_and_observable
     let archive = complete_catalog_archive(&root);
     let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
     let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
-    let publish_missing =
-        NnsCertifiedSubnetCatalogLoadRequest::publish_missing(location.clone(), 300);
+    let publish_missing = NnsCertifiedSubnetCatalogLoadRequest::publish_missing(location.clone());
     let publish_invalid =
-        NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(location.clone(), 300);
+        NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(location.clone());
     let cache_only = NnsCertifiedSubnetCatalogLoadRequest::cache_only(location);
     let projection = certified_catalog_projection_request(
         NOW,
@@ -205,8 +209,7 @@ async fn certified_catalog_cache_rejects_tampering_without_repairing_it() {
     let archive = complete_catalog_archive(&root);
     let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
     let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
-    let publication =
-        NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone(), 300);
+    let publication = NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone());
     let cache_only = NnsCertifiedSubnetCatalogLoadRequest::cache_only(location);
     let projection = certified_catalog_projection_request(
         NOW,
@@ -266,7 +269,7 @@ async fn certified_catalog_cache_failure_preserves_the_previous_atomic_snapshot(
     let archive = complete_catalog_archive(&root);
     let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
     let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
-    let publication = NnsCertifiedSubnetCatalogLoadRequest::force_publication(location, 300);
+    let publication = NnsCertifiedSubnetCatalogLoadRequest::force_publication(location);
     let projection = certified_catalog_projection_request(
         NOW,
         0,
@@ -278,7 +281,7 @@ async fn certified_catalog_cache_failure_preserves_the_previous_atomic_snapshot(
     let cache_path = nns_certified_subnet_catalog_cache_path(&cache_directory);
     let previous = fs::read(&cache_path).expect("read initial cache");
     let limited_location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 1);
-    let limited = NnsCertifiedSubnetCatalogLoadRequest::force_publication(limited_location, 300);
+    let limited = NnsCertifiedSubnetCatalogLoadRequest::force_publication(limited_location);
 
     assert!(matches!(
         load_nns_certified_subnet_catalog(&archive, &projection, &limited).await,
@@ -333,10 +336,9 @@ async fn certified_catalog_cache_publication_qualifies_before_filesystem_mutatio
     let archive = complete_catalog_archive(&root);
     let cache_directory = root.join("nns/ic/registry-certified-catalog-v1");
     let location = NnsCertifiedSubnetCatalogCacheLocation::new(&root, &cache_directory, 100_000);
-    let publication =
-        NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone(), 300);
+    let publication = NnsCertifiedSubnetCatalogLoadRequest::force_publication(location.clone());
     let publish_invalid =
-        NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(location, 300);
+        NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(location);
     let stale_projection = certified_catalog_projection_request(
         NOW + 2,
         1,

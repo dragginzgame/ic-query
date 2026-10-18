@@ -5,12 +5,12 @@
 #[cfg(test)]
 mod tests;
 
-use candid::Principal;
-use ic_agent::{Agent, AgentError};
-use ic_certification::{Certificate, HashTree, LookupResult};
 use ic_host_tools::certificate::{
     DecodeError, DecodeLimits, ParseError, decode_certificate, decode_hash_tree,
 };
+use ic_platform::agent::{Agent, AgentError};
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::{Certificate, HashTree, LookupResult};
 use thiserror::Error;
 
 ///

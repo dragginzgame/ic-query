@@ -61,6 +61,58 @@ fn byte_budget_is_checked_before_decoding() {
 }
 
 #[test]
+fn preserves_present_zero_wrappers() {
+    let send = [
+        message(1, &message(1, &[1; 32])),
+        message(2, &message(1, &[2; 32])),
+        message(3, &[]),
+        message(4, &[]),
+    ]
+    .concat();
+    let transaction = [message(3, &send), message(4, &[]), message(6, &[])].concat();
+    let block = [message(2, &[]), message(3, &transaction)].concat();
+    assert_eq!(
+        decode_transfer(&block, 0, block.len()).unwrap(),
+        IcpTransferFields {
+            from: [1; 32],
+            to: [2; 32],
+            amount_e8s: 0,
+            fee_e8s: 0,
+            memo: 0,
+            created_at_time_ns: 0,
+        }
+    );
+}
+
+#[test]
+fn refuses_approve_transfer_from_and_duplicate_nested_accounts() {
+    let send = [
+        message(1, &message(1, &[1; 32])),
+        message(2, &message(1, &[2; 32])),
+        message(3, &[8, 10]),
+        message(4, &[8, 1]),
+    ]
+    .concat();
+    for extra in [
+        message(5, &[]),
+        message(6, &[]),
+        message(1, &message(1, &[1; 32])),
+    ] {
+        let transaction = [
+            message(3, &[send.clone(), extra].concat()),
+            message(4, &[8, 3]),
+            message(6, &[8, 5]),
+        ]
+        .concat();
+        let block = [message(2, &[8, 6]), message(3, &transaction)].concat();
+        assert_eq!(
+            decode_transfer(&block, 0, block.len()),
+            Err(IcpBlockError::UnsupportedBlock)
+        );
+    }
+}
+
+#[test]
 fn rejects_noncanonical_unknown_duplicate_and_truncated_fields() {
     let bytes = fixture(true);
     for extra in [message(4, &[]), message(2, &[8, 6])] {

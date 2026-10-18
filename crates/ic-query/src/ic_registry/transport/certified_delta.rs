@@ -24,11 +24,10 @@ use crate::{
         },
     },
 };
-use candid::Principal;
-use ic_agent::{
-    Agent,
-    hash_tree::{HashTree, LookupResult, SubtreeLookupResult},
-};
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::SubtreeLookupResult;
+use ic_platform::certification::{HashTree, LookupResult};
 use prost::Message;
 use std::collections::BTreeSet;
 
@@ -204,12 +203,12 @@ struct DeltaCounters {
 }
 
 struct VisibleDeltaTree {
-    tree: HashTree<Vec<u8>>,
+    tree: HashTree,
     labels: Vec<Vec<u8>>,
 }
 
 fn validate_delta_tree(
-    tree: &HashTree<Vec<u8>>,
+    tree: &HashTree,
     requested_version: u64,
     certified_latest_version: u64,
 ) -> Result<ValidatedDeltaTree, RegistryFetchError> {
@@ -286,7 +285,7 @@ fn validate_delta_tree(
 }
 
 fn visible_delta_labels(
-    tree: &HashTree<Vec<u8>>,
+    tree: &HashTree,
     requested_version: u64,
     certified_latest_version: u64,
 ) -> Result<VisibleDeltaTree, RegistryFetchError> {
@@ -300,7 +299,7 @@ fn visible_delta_labels(
         SubtreeLookupResult::Absent | SubtreeLookupResult::Unknown
             if requested_version == certified_latest_version =>
         {
-            ic_agent::hash_tree::empty()
+            ic_platform::certification::empty()
         }
         SubtreeLookupResult::Absent => {
             return Err(invalid_certified_registry(
@@ -555,7 +554,7 @@ mod tests {
     use crate::ic_registry::proto::{
         HighCapacityRegistryMutation, RegistryPrecondition, high_capacity_registry_mutation,
     };
-    use ic_agent::hash_tree::{empty, fork, label, leaf, pruned};
+    use ic_platform::certification::{empty, fork, labeled as label, leaf, pruned};
 
     #[derive(Clone, PartialEq, prost::Message)]
     struct LegacyRegistryMutation {
@@ -829,21 +828,18 @@ mod tests {
         ));
     }
 
-    fn registry_tree(latest: u64, leaves: Vec<HashTree<Vec<u8>>>) -> HashTree<Vec<u8>> {
+    fn registry_tree(latest: u64, leaves: Vec<HashTree>) -> HashTree {
         fork(
             label(CURRENT_VERSION_LABEL, leaf(encode_leb128(latest))),
             label(DELTA_LABEL, fork_all(leaves)),
         )
     }
 
-    fn delta_leaf(
-        version: u64,
-        atomic: HighCapacityRegistryAtomicMutateRequest,
-    ) -> HashTree<Vec<u8>> {
+    fn delta_leaf(version: u64, atomic: HighCapacityRegistryAtomicMutateRequest) -> HashTree {
         label(version.to_be_bytes(), leaf(atomic.encode_to_vec()))
     }
 
-    fn fork_all(mut trees: Vec<HashTree<Vec<u8>>>) -> HashTree<Vec<u8>> {
+    fn fork_all(mut trees: Vec<HashTree>) -> HashTree {
         let first = trees.drain(..1).next().unwrap_or_else(empty);
         trees.into_iter().fold(first, fork)
     }

@@ -35,7 +35,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["host"] }
+ic-query = { version = "0.62", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -56,7 +56,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["canister"] }
+ic-query = { version = "0.62", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -247,7 +247,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -265,7 +265,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -279,7 +279,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -292,7 +292,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -310,15 +310,23 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
+
+CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
+JSON. JSON node classes use `type4_1` through `type4_5`; marketplace keys and human
+text use dotted labels. Each inventory row stores `operator` as
+`Result<Option<ic_platform::candid::contract::Principal>, String>`: a registered principal, successful
+absence, or bounded failure evidence. JSON represents these as `{"Ok":"principal"}`,
+`{"Ok":null}` and `{"Err":"reason"}`. Invalid successful custom-source evidence
+aborts collection; ordinary lookup failures remain per-row results.
 
 For native ICRC ledger/index reports, certified-tip verification, and complete
 account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -335,6 +343,12 @@ and caller collection clock. Pass this scope first to their constructors and
 access shared fields through `request.ledger`. Account-cache requests keep their
 clock-free identity; report JSON keeps its raw flat provenance fields.
 
+Balance and allowance reports compose their existing raw payloads under `value`:
+use `report.value.balance`, `report.value.allowance` and the corresponding token
+metadata or expiry fields. `IcrcBalanceData` and `IcrcAllowanceData` are available
+without host features for portable construction and rendering. Source traits
+return those same payloads; serialized report JSON remains flat.
+
 NNS proposal rows, ballots and activity buckets keep raw numeric topic, status,
 reward-status and vote codes. Use the public classification enums’ `from_code`
 helpers when labels are needed. Preserve old proposal snapshots before an
@@ -342,7 +356,7 @@ explicit refresh; strict row decoding rejects unsupported fields without
 rewriting the original evidence.
 
 ICRC tip-certificate custom sources return the standard optional
-`icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate` byte pair. Complete
+`ic_platform::icrc_ledger_types::ICRC3DataCertificate` byte pair. Complete
 authentication before returning it. The report builder derives its hex strings
 and byte counts from those same bytes.
 
@@ -363,14 +377,15 @@ reward checkpoints, and local checkpoint diffs, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
 builders, confined caches, refresh-attempt evidence, progress events, and
 reward evidence. It enables `ic-agent`, Futures, Tokio, URL, and the
 capability-filesystem dependencies required by those APIs. It also enables
-`icrc-ledger-types` for canonical account and metadata wire records. It shares
+Platform's `icrc-ledger-types` feature for canonical account and metadata wire
+records, without upstream storage integration. It shares
 the ICRC token-metadata query mechanics required by SNS ledger reports; native
 ICRC transaction, archive, certificate, and account-history adapters remain
 disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
@@ -392,11 +407,11 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
-hashing, caller-runtime async APIs, the synchronous Tokio bridge,
+hashing, caller-runtime async APIs,
 capability-rooted cache IO through
 `cap-std`/`cap-fs-ext`, and endpoint validation required by
 `ic_query::subnet_catalog`. It does not enable `ic-query`'s direct optional
@@ -421,7 +436,7 @@ authority without the complete NNS host surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["certified-subnet-catalog-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["certified-subnet-catalog-host"] }
 ```
 
 `certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
@@ -437,7 +452,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -453,7 +468,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.62", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` is a strict superset of `nns-topology-host` and
@@ -481,7 +496,7 @@ To collect and retain the complete evidence sequence in one operation, use
 `bootstrap_nns_certified_registry_archive_async` with an explicit
 `NnsCertifiedRegistryArchiveBootstrapRequest`. The request combines the
 source/time/replay bootstrap request with caller-selected cache and archive
-roots, manifest/object ceilings, and lock staleness. It starts from Registry
+roots and manifest/object ceilings. It starts from Registry
 version zero, reserves worst-case capacity before every call, holds one archive
 refresh lock, locally reauthenticates every report, and publishes the final
 manifest only after exact-target completion. Its custom-source counterpart
@@ -517,7 +532,7 @@ Interrupted publication can leave a durable content-addressed object that no
 manifest references. Remove these only through the explicit local
 `cleanup_nns_certified_registry_archive` operation. Its request supplies the
 archive authentication limits, exact-directory scan ceiling, removal count and
-byte ceilings, confined roots, observation time, and lock policy. Cleanup holds
+byte ceilings, confined roots, observation time, and exclusive coordination. Cleanup holds
 the archive lock, reauthenticates the complete retained archive before
 classification, scans no directory except the flat `objects/` directory, and
 checks every ceiling before its first deletion. Its report returns the
@@ -560,7 +575,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.55", default-features = false }
+ic-query = { version = "0.62", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -1390,8 +1405,7 @@ cache or view:
 use std::path::Path;
 
 use ic_query::subnet_catalog::{
-    CatalogSourceSelection, DEFAULT_REFRESH_LOCK_STALE_SECONDS,
-    SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
+    CatalogSourceSelection, SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogRefreshReport,
     SubnetCatalogRefreshRequest, refresh_subnet_catalog,
 };
 
@@ -1404,7 +1418,6 @@ async fn refresh_agreed_catalog(
         SubnetCatalogCacheRequest::new(cache_root, "ic"),
         CatalogSourceSelection::multi_endpoint_agreement(endpoints),
         now_unix_secs,
-        DEFAULT_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_subnet_catalog(&request).await
 }
@@ -1429,7 +1442,6 @@ feature:
 use std::path::Path;
 
 use ic_query::nns::topology::{
-    DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, CachedNnsSubnetTopologyReport,
     NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
     NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
@@ -1443,7 +1455,6 @@ async fn refresh_subnet_topology(
         NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
         DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
         now_unix_secs,
-        DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_nns_subnet_topology(&request).await
 }
@@ -1465,7 +1476,6 @@ shelling out to `icq`:
 use std::path::Path;
 
 use ic_query::icrc::{
-    DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionRefreshRequest,
     IcrcAccountTransactionRefreshReport, refresh_icrc_account_transaction_cache,
 };
@@ -1486,7 +1496,6 @@ async fn refresh_account_history(
         cache,
         now_unix_secs,
         100,
-        DEFAULT_ICRC_ACCOUNT_TRANSACTION_REFRESH_LOCK_STALE_SECONDS,
     );
     refresh_icrc_account_transaction_cache(&request).await
 }
@@ -1766,3 +1775,53 @@ bindings, as well as their once-only journal admission and reconciliation.
 Typed failures distinguish resource budgets, malformed encoding or tip leaves,
 certificate authentication, witness mismatch, chain mismatch and unsupported
 values. Query report builders retain their report-specific projections.
+
+### Shared token report payload
+
+ICRC and SNS token reports compose `token: icrc::IcrcTokenData`; Rust consumers
+read values such as `report.token.transfer_fee` and `report.token.decimals`.
+Their JSON remains flat and preserves exact base-unit strings and metadata.
+Constructing the canonical payload once avoids copying fields into each report.
+For the nested schema-1 cache hard cut and required explicit refresh, see
+[cache policy](design/cache-policy.md#nested-snapshot-and-attempt-contracts).
+
+### Shared account-page and SNS evidence payloads
+
+`IcrcAccountTransactionPageReport.page` carries the same
+`IcrcAccountTransactionPageData` returned by its source; the payload is available
+without host features. Report JSON remains flat. IC transport continues to use
+published ledger types such as `ic_platform::icrc_ledger_types::Account` and
+Candid `Nat`; the report payload adds display metadata and lossless JSON rows.
+
+SNS proposal rows retain the native `u64` action ID and `i32` ballot vote code.
+Text and view filters derive their labels without a second classification field
+or reverse label parser. Unknown codes remain raw numeric evidence.
+
+SNS neuron, proposal and ballot rows retain their native timestamp fields only.
+Text derives UTC creation/decision/execution/failure times; an absent optional
+time or zero ballot time displays `-`. JSON retains Unix seconds rather than
+stored display strings. Update consumers and preserve needed evidence before
+explicitly refreshing affected complete snapshots; schemas remain 1.
+
+SNS reward checkpoint aggregates and policy observations retain their flat
+Rust and JSON fields. `SnsRewardCheckpointSummary` is recomputed from raw
+parameters and neuron rows, then compared with every stored aggregate and policy
+observation. Historical files remain current evidence; recollection is not a
+substitute for an earlier observation.
+
+`SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
+`MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host
+features. Their report JSON fields remain flat. Native SNS lifecycle and
+treasury codes are retained without stored labels or a second classification
+type; text derives those labels. Lifecycle query failures remain separate from
+absent/raw values. Coordinate catalog consumers and retain needed evidence
+before explicit refresh; schemas stay 1 without migration.
+
+Refresh coordination uses persistent empty regular files and nonblocking Host
+descriptor locks. Requests no longer accept a lock-age policy. Cancellation and
+process death release exclusion; file presence alone does not mean a refresh is
+active. Cache status observes `active`, `available` or invalid coordination
+content. Before adopting this contract, stop every old writer using the root,
+retain required cache/attempt evidence and explicitly retire nonempty lock files.
+Never unlink a coordination file while writers may use that root. Cache freshness
+and recorded refresh-attempt times remain separate product evidence.

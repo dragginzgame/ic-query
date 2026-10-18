@@ -1,7 +1,7 @@
 //! Lossless JSON scalar formatting for the two supported account-history wire contracts.
 
 use crate::hex::hex_bytes;
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 use serde::{Serialize, Serializer};
 use std::fmt::Display;
 
@@ -71,24 +71,25 @@ json_record!(Account<'_>, account, {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use candid::{CandidType, Principal};
+    use ic_platform::candid::contract::{CandidType, Principal};
     use serde_json::json;
 
     #[test]
     fn canonical_accounts_validate_wire_lengths_and_preserve_explicit_subaccounts() {
         #[derive(CandidType)]
+        #[candid_path("ic_platform::candid::contract")]
         struct UncheckedAccount {
             owner: Principal,
             subaccount: Option<Vec<u8>>,
         }
         for length in [0, 31, 32, 33] {
-            let bytes = candid::encode_one(UncheckedAccount {
+            let bytes = ic_platform::candid::contract::encode_one(UncheckedAccount {
                 owner: Principal::anonymous(),
                 subaccount: Some(vec![0; length]),
             })
             .unwrap();
             assert_eq!(
-                candid::decode_one::<LedgerAccount>(&bytes).is_ok(),
+                crate::candid_decode::decode_reply::<LedgerAccount>(&bytes).is_ok(),
                 length == 32
             );
         }

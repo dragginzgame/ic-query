@@ -27,12 +27,10 @@ use super::{
         icrc_token_report_text, icrc_transactions_report_text,
     },
 };
-use candid::{Nat, Principal};
-use icrc_ledger_types::icrc::generic_value::ICRC3Value;
-use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, ICRC3ArchiveInfo, QueryArchiveFn};
-use icrc_ledger_types::icrc3::blocks::{
-    ArchivedBlocks, BlockWithId, GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate,
-    SupportedBlockType,
+use ic_platform::candid::contract::{Nat, Principal};
+use ic_platform::icrc_ledger_types::{
+    ArchivedBlocks, BlockWithId, GetArchivesArgs, GetBlocksRequest, GetBlocksResult,
+    ICRC3ArchiveInfo, ICRC3DataCertificate, ICRC3Value, QueryArchiveFn, SupportedBlockType,
 };
 use serde_json::{Value as JsonValue, json};
 use std::collections::BTreeMap;
@@ -310,18 +308,16 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
         request: &'a IcrcLedgerRequest,
     ) -> crate::report::SourceFuture<
         'a,
-        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+        Result<Option<ic_platform::icrc_ledger_types::ICRC3DataCertificate>, IcrcError>,
     > {
         Box::pin(async move {
             assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-            Ok(Some(
-                icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate {
-                    certificate: vec![1, 2, 3].into(),
-                    hash_tree: vec![170, 187].into(),
-                },
-            ))
+            Ok(Some(ic_platform::icrc_ledger_types::ICRC3DataCertificate {
+                certificate: vec![1, 2, 3].into(),
+                hash_tree: vec![170, 187].into(),
+            }))
         })
     }
 }
@@ -527,8 +523,10 @@ fn icrc3_blocks_result_round_trips_through_candid() {
         }],
     };
 
-    let bytes = candid::encode_one(&result).expect("encode ICRC-3 blocks result");
-    let decoded: GetBlocksResult = candid::decode_one(&bytes).expect("decode ICRC-3 blocks result");
+    let bytes =
+        ic_platform::candid::contract::encode_one(&result).expect("encode ICRC-3 blocks result");
+    let decoded: GetBlocksResult =
+        crate::candid_decode::decode_reply(&bytes).expect("decode ICRC-3 blocks result");
 
     assert_eq!(decoded, result);
 }
@@ -555,7 +553,8 @@ fn icrc3_multiple_archive_callbacks_preserve_principals_methods_and_ranges() {
             .collect(),
     };
 
-    let bytes = candid::encode_one(&result).expect("encode multiple typed callbacks");
+    let bytes = ic_platform::candid::contract::encode_one(&result)
+        .expect("encode multiple typed callbacks");
     let decoded: GetBlocksResult = crate::candid_decode::decode_reply(&bytes)
         .expect("decode every typed callback and its recursive result schema");
 
@@ -579,16 +578,19 @@ fn icrc3_archive_and_block_type_shapes_round_trip_through_candid() {
         url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
     }];
 
-    let archives_args_bytes = candid::encode_one(&archives_args).expect("encode archives args");
-    let archives_bytes = candid::encode_one(&archives).expect("encode archives result");
-    let block_types_bytes = candid::encode_one(&block_types).expect("encode block types result");
+    let archives_args_bytes =
+        ic_platform::candid::contract::encode_one(&archives_args).expect("encode archives args");
+    let archives_bytes =
+        ic_platform::candid::contract::encode_one(&archives).expect("encode archives result");
+    let block_types_bytes =
+        ic_platform::candid::contract::encode_one(&block_types).expect("encode block types result");
 
     let decoded_archives_args: GetArchivesArgs =
-        candid::decode_one(&archives_args_bytes).expect("decode archives args");
+        crate::candid_decode::decode_reply(&archives_args_bytes).expect("decode archives args");
     let decoded_archives: Vec<ICRC3ArchiveInfo> =
-        candid::decode_one(&archives_bytes).expect("decode archives result");
+        crate::candid_decode::decode_reply(&archives_bytes).expect("decode archives result");
     let decoded_block_types: Vec<SupportedBlockType> =
-        candid::decode_one(&block_types_bytes).expect("decode block types result");
+        crate::candid_decode::decode_reply(&block_types_bytes).expect("decode block types result");
 
     assert_eq!(decoded_archives_args, archives_args);
     assert_eq!(decoded_archives, archives);
@@ -604,18 +606,19 @@ fn icrc3_tip_certificate_shape_round_trips_through_candid() {
         hash_tree: vec![0xaa, 0xbb].into(),
     };
 
-    let bytes = candid::encode_one(Some(&certificate)).expect("encode ICRC-3 data certificate");
+    let bytes = ic_platform::candid::contract::encode_one(Some(&certificate))
+        .expect("encode ICRC-3 data certificate");
     let decoded: Option<ICRC3DataCertificate> =
-        candid::decode_one(&bytes).expect("decode ICRC-3 data certificate");
+        crate::candid_decode::decode_reply(&bytes).expect("decode ICRC-3 data certificate");
 
     let decoded = decoded.expect("present certificate");
     assert_eq!(decoded.certificate, certificate.certificate);
     assert_eq!(decoded.hash_tree, certificate.hash_tree);
 
-    let bytes = candid::encode_one(None::<ICRC3DataCertificate>)
+    let bytes = ic_platform::candid::contract::encode_one(None::<ICRC3DataCertificate>)
         .expect("encode absent ICRC-3 data certificate");
     let decoded: Option<ICRC3DataCertificate> =
-        candid::decode_one(&bytes).expect("decode absent ICRC-3 data certificate");
+        crate::candid_decode::decode_reply(&bytes).expect("decode absent ICRC-3 data certificate");
 
     assert!(decoded.is_none());
 }
@@ -634,12 +637,12 @@ async fn token_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.token_name, "Fixture Token");
-    assert_eq!(report.token_symbol, "FIX");
-    assert_eq!(report.transfer_fee, "123456789");
-    assert_eq!(report.total_supply, "100000000000");
+    assert_eq!(report.token.token_name, "Fixture Token");
+    assert_eq!(report.token.token_symbol, "FIX");
+    assert_eq!(report.token.transfer_fee, "123456789");
+    assert_eq!(report.token.total_supply, "100000000000");
     assert_eq!(
-        report.minting_account_subaccount_hex.as_deref(),
+        report.token.minting_account_subaccount_hex.as_deref(),
         Some(LOWER_SUBACCOUNT_HEX)
     );
 
@@ -676,7 +679,7 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
-    assert_eq!(report.balance, "123456789");
+    assert_eq!(report.value.balance, "123456789");
 
     let text = icrc_balance_report_text(&report);
     assert!(text.contains("balance: 1.23 FIX"));
@@ -714,9 +717,9 @@ async fn allowance_report_builds_text_and_json_friendly_fields() {
         report.spender_subaccount_hex.as_deref(),
         Some(LOWER_SUBACCOUNT_HEX)
     );
-    assert_eq!(report.allowance, "123456789");
+    assert_eq!(report.value.allowance, "123456789");
     assert_eq!(
-        report.expires_at_unix_nanos.as_deref(),
+        report.value.expires_at_unix_nanos.as_deref(),
         Some("1700000000123456789")
     );
 
@@ -782,13 +785,16 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.index_canister_id, INDEX_CANISTER_ID);
+    assert_eq!(report.page.index_canister_id, INDEX_CANISTER_ID);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
     assert_eq!(report.requested_start.as_deref(), Some("42"));
-    assert_eq!(report.next_start.as_deref(), Some("40"));
-    assert_eq!(report.oldest_transaction_id.as_deref(), Some("7"));
-    assert_eq!(report.balance, "250000000");
-    assert_eq!(report.transactions[0].memo_hex.as_deref(), Some("aabb"));
+    assert_eq!(report.page.next_start.as_deref(), Some("40"));
+    assert_eq!(report.page.oldest_transaction_id.as_deref(), Some("7"));
+    assert_eq!(report.page.balance, "250000000");
+    assert_eq!(
+        report.page.transactions[0].memo_hex.as_deref(),
+        Some("aabb")
+    );
 
     let text = icrc_account_transaction_page_report_text(&report);
     assert!(text.contains(&format!("index_canister_id: {INDEX_CANISTER_ID}")));

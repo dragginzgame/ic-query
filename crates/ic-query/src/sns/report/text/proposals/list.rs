@@ -4,6 +4,9 @@
 //! Does not own: proposal fetching, cache filtering, report construction, or JSON output.
 //! Boundary: formats live or cache-backed proposal rows for humans.
 
+use crate::sns::report::sns_proposal_action_label;
+use crate::subnet_catalog::format_utc_timestamp_secs;
+
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -72,9 +75,9 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
                 .map(|proposal| {
                     [
                         proposal.proposal_id.to_string(),
-                        proposal.action.to_string(),
+                        sns_proposal_action_label(proposal.action_id).into_owned(),
                         proposal.decision_state.as_str().to_string(),
-                        proposal.created_at.clone(),
+                        format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
                         proposal_title_for_list(proposal, report.verbose),
                     ]
                 })

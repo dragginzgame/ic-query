@@ -171,6 +171,9 @@ case "$1" in
     echo "$tag_sha" > remote-tag
     printf 'refs/tags/v%s\n' "$(cat tag)" > remote-tag-name
     [[ "${FIXTURE_LOST_PUSH_REPLY:-}" != yes ]] || exit 47 ;;
+  archive)
+    selected="$(resolve "${!#}")"
+    tar -cf - -C "commits/$selected/files" . ;;
   show)
     if [[ "$2" == :* ]]; then cat "index/${2#*:}"; exit; fi
     name="$(resolve "${2%%:*}")"
@@ -195,6 +198,7 @@ case "$*" in
     else
       echo rustfmt
     fi ;;
+  'sort --workspace --grouped --check') [[ "${FIXTURE_MANIFEST_ORDER_FAILURE:-}" != yes ]] || exit 79 ;;
   'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
   generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
   *) exit 2 ;;
@@ -243,15 +247,8 @@ new_fixture() {
   local name="$1" kind="$2" candidate minor
   mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/dev" "$work_dir/$name/scripts/release" "$work_dir/$name/ci" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
-  cp "$repo_root/Makefile" Makefile
-  mkdir -p make
-  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk make/
-  cp "$repo_root/scripts/ci/"{run-release.sh,run-validation-targets.sh,verify-file-checksum.sh,check-make-execution.sh,next-release-version.sh,validate-release-inputs.pl,cargo-release-preflight.sh,finalize-release-changelog.awk,rewrite-local-lock-versions.pl,render-cargo-workspace-version.pl,read-cargo-workspace-version.sh,check-release-tag.sh,check-release-source.sh} scripts/ci/
-  cp "$repo_root/scripts/release/"{adapter.sh,metadata.pl} scripts/release/
-  cp "$repo_root/scripts/ci/check-changelog-version.sh" scripts/ci/
-  cp "$repo_root/scripts/ci/check-format-tools.sh" scripts/ci/
-  cp "$repo_root/ci/tool-versions.env" ci/
-  cp "$repo_root/ci/ic-tools.tsv" "$repo_root/ci/ic-tools-query.tsv" ci/
+  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
+    Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"
@@ -419,7 +416,7 @@ for kind in patch minor major; do
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=CHANGELOG.md run_release "$kind" \
     || { cat output; fail "$kind"; }
   check_complete
-  awk '/^cargo metadata / { next } { print }' events > observed
+  awk '/^cargo metadata / || /^cargo sort --workspace --grouped --check$/ { next } { print }' events > observed
   printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'formatter check' \
     'cargo sort --version' 'cargo fmt --version' validate stage commit tag push > expected
   cmp expected observed

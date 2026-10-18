@@ -4,6 +4,8 @@
 //! Does not own: proposal fetching, cache scope/limits, report assembly, or text rendering.
 //! Boundary: projects already-collected proposal rows without changing cache identity.
 
+use crate::sns::report::sns_proposal_action_label;
+
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalSortDirection,
@@ -100,7 +102,7 @@ pub(in crate::sns::report) fn proposal_matches_query(
     let Some(query) = lowercase_query else {
         return true;
     };
-    let action = proposal.action.label();
+    let action = sns_proposal_action_label(proposal.action_id);
     optional_text_contains_lowercase_query(Some(&proposal.title), query)
         || optional_text_contains_lowercase_query(Some(&action), query)
         || optional_text_contains_lowercase_query(Some(&proposal.summary), query)
@@ -181,8 +183,8 @@ fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDi
     let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
         compare_ascii_case_insensitive_text(
-            left.action.label().as_ref(),
-            right.action.label().as_ref(),
+            sns_proposal_action_label(left.action_id).as_ref(),
+            sns_proposal_action_label(right.action_id).as_ref(),
             descending,
         )
         .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))

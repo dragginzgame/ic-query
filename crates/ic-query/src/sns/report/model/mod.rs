@@ -29,21 +29,20 @@ pub use reports::{
     SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
     SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow,
     SnsNeuronTopicFolloweesRow, SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus,
-    SnsProposalAction, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRow, SnsProposalTally, SnsProposalVote, SnsProposalsReport,
-    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
+    SnsProposalRow, SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
     SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
     SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
     SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
     SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
     SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryKind, SnsTreasuryMetricRow,
-    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics,
-    SnsVotingRewardsParameters, sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
+    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 pub(in crate::sns::report) use reports::{
-    SnsRewardCheckpointSummary, recompute_reward_checkpoint_summary,
-    validated_reward_checkpoint_summary,
+    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use reports::{
@@ -78,3 +77,13 @@ pub use sorts::{
     SnsListSort, SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
     SnsProposalTopicFilter, SnsProposalsSort,
 };
+
+pub(in crate::sns::report) use reports::{sns_proposal_action_label, sns_proposal_vote_label};
+
+pub use reports::MainnetSnsMetrics;
+
+pub use reports::MainnetSnsSwap;
+
+pub(in crate::sns::report) use reports::sns_swap_lifecycle_name;
+
+pub(in crate::sns::report) use reports::sns_treasury_kind;

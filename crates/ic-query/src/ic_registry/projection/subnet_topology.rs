@@ -10,7 +10,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn subnet_topology_from_inventory(

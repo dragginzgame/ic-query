@@ -23,16 +23,9 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::Path;
-
-const ATTEMPT_METADATA_FIELDS: &[&str] = &[
-    "ledger_canister_id",
-    "account_owner",
-    "subaccount_hex",
-    "index_canister_id",
-];
 
 type AccountTransactionRefreshAttempt =
     SnapshotRefreshAttempt<AccountTransactionRefreshAttemptMetadata>;
@@ -44,6 +37,7 @@ type AccountTransactionRefreshAttempt =
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct AccountTransactionRefreshAttemptMetadata {
     ledger_canister_id: String,
     account_owner: String,
@@ -58,7 +52,6 @@ pub(super) fn read_refresh_attempt_status(
     read_snapshot_refresh_attempt_strict::<AccountTransactionRefreshAttempt>(
         &request.cache_root,
         path,
-        ATTEMPT_METADATA_FIELDS,
         None,
     )
     .map_err(map_attempt_read_error)?

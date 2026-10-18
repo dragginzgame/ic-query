@@ -82,7 +82,7 @@ fn collect_full_collection_snapshot_paths_lists_sorted_entity_snapshots() {
 }
 
 #[test]
-fn snapshot_envelope_serializes_flat_metadata_and_data() {
+fn snapshot_envelope_serializes_nested_metadata_and_data() {
     #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {
         id: usize,
@@ -115,10 +115,8 @@ fn snapshot_envelope_serializes_flat_metadata_and_data() {
     assert_eq!(value["entity"], "root");
     assert_eq!(value["collection"], "neurons");
     assert_eq!(value["scope"], "full");
-    assert_eq!(value["id"], 7);
-    assert_eq!(value["rows"][0], "row");
-    assert!(value.get("metadata").is_none());
-    assert!(value.get("data").is_none());
+    assert_eq!(value["metadata"]["id"], 7);
+    assert_eq!(value["data"]["rows"][0], "row");
 }
 
 #[test]
@@ -137,7 +135,7 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
             "entity": "wrong-root",
             "collection": "neurons",
             "scope": "full",
-            "id": 7,
+            "metadata": {"id": 7},
             "completeness": {
                 "status": "api_exhausted",
                 "page_size": 100,
@@ -145,7 +143,7 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
                 "row_count": 101,
                 "point_in_time_guaranteed": false
             },
-            "rows": ["row"]
+            "data": {"rows": ["row"]}
         }),
     );
 
@@ -161,7 +159,7 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
 }
 
 #[test]
-fn load_complete_snapshot_rejects_unknown_top_level_fields() {
+fn load_complete_snapshot_rejects_unknown_fields() {
     let root = temp_dir("ic-query-snapshot-unknown-field");
     let path = root.join("full.json");
     write_snapshot_fixture(
@@ -176,7 +174,7 @@ fn load_complete_snapshot_rejects_unknown_top_level_fields() {
             "entity": "root",
             "collection": "neurons",
             "scope": "full",
-            "id": 7,
+            "metadata": {"id": 7},
             "completeness": {
                 "status": "api_exhausted",
                 "page_size": 100,
@@ -184,29 +182,45 @@ fn load_complete_snapshot_rejects_unknown_top_level_fields() {
                 "row_count": 1,
                 "point_in_time_guaranteed": false
             },
-            "rows": ["row"],
-            "unexpected": true
+            "data": {"rows": ["row"]}
         }),
     );
 
     let key = SnapshotKey::full("sns", "ic", "root", "neurons");
-    let error = load_fixture_snapshot(&path, &key).expect_err("unknown field is rejected");
-
-    assert!(
-        matches!(error, SnapshotLoadTestError::Cache(HostCacheError::ParseCache { path: actual, .. }) if actual == path)
-    );
+    load_fixture_snapshot(&path, &key).expect("current nested snapshot is admitted");
+    let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    for object in [None, Some("metadata"), Some("data")] {
+        let mut invalid = original.clone();
+        let target = match object {
+            Some(field) => &mut invalid[field],
+            None => &mut invalid,
+        };
+        target["unexpected"] = serde_json::json!(true);
+        write_snapshot_fixture(&path, invalid);
+        let error = load_fixture_snapshot(&path, &key).expect_err("unknown field is rejected");
+        assert!(
+            matches!(error, SnapshotLoadTestError::Cache(HostCacheError::ParseCache { path: actual, .. }) if actual == path)
+        );
+    }
     let _ = fs::remove_dir_all(root);
 }
 
 #[test]
-fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
+fn load_complete_snapshot_rejects_unsupported_schema() {
     let root = temp_dir("ic-query-snapshot-unsupported-schema-before-rows");
     let path = root.join("full.json");
     write_snapshot_fixture(
         &path,
         serde_json::json!({
             "schema_version": 999,
-            "network": "ic"
+            "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "fetched_at": "2026-06-15T00:00:00Z",
+            "fetched_by": "ic-query",
+            "domain": "sns", "entity": "root", "collection": "neurons", "scope": "full",
+            "metadata": {"id": 7},
+            "completeness": {"status": "api_exhausted", "page_size": 100, "page_count": 1, "row_count": 1, "point_in_time_guaranteed": false},
+            "data": {"rows": ["row"]}
         }),
     );
 
@@ -222,12 +236,11 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
         },
         None,
         &key,
-        FIXTURE_SNAPSHOT_FIELDS,
         |path| HostCacheError::missing_cache("fixture", path).into(),
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
     )
-    .expect_err("schema mismatch rejected before changed row shape");
+    .expect_err("unsupported schema is rejected");
 
     assert!(matches!(
         error,
@@ -241,7 +254,7 @@ fn load_complete_snapshot_rejects_schema_before_deserializing_changed_rows() {
 }
 
 #[test]
-fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
+fn snapshot_refresh_attempt_serializes_nested_metadata_and_validates_lifecycle() {
     #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {
         root_canister_id: String,
@@ -265,10 +278,9 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
     };
 
     let value = serde_json::to_value(&attempt).expect("snapshot attempt serializes");
-    assert_eq!(value["root_canister_id"], "root");
+    assert_eq!(value["metadata"]["root_canister_id"], "root");
     assert_eq!(value["status"], "running");
     assert_eq!(value["rows_fetched"], 25);
-    assert!(value.get("metadata").is_none());
 
     for (status, last_error) in [
         (CacheRefreshAttemptStatus::Running, None),
@@ -312,28 +324,28 @@ fn snapshot_refresh_attempt_serializes_flat_metadata_and_validates_lifecycle() {
 }
 
 #[test]
-fn snapshot_refresh_attempt_admits_flat_metadata_and_refuses_ambiguous_json() {
+fn snapshot_refresh_attempt_admits_nested_metadata_and_refuses_ambiguous_json() {
     let root = temp_dir("ic-query-attempt-json-admission");
     let path = root.join("full.refresh-attempt.json");
     let json = r#"{"schema_version":1,"network":"ic","source_endpoint":"https://icp-api.io",
         "started_at":"2026-06-15T00:00:00Z","updated_at":"2026-06-15T00:00:01Z",
         "status":"running","page_size":100,"pages_fetched":1,"rows_fetched":25,
-        "last_cursor":null,"last_error":null,"root_canister_id":"root"}"#;
+        "last_cursor":null,"last_error":null,"metadata":{"id":7}}"#;
     let read = || {
-        read_snapshot_refresh_attempt_strict::<
-            SnapshotRefreshAttempt<std::collections::BTreeMap<String, String>>,
-        >(&root, &path, &["root_canister_id"], None)
+        read_snapshot_refresh_attempt_strict::<SnapshotRefreshAttempt<FixtureSnapshotMetadata>>(
+            &root, &path, None,
+        )
     };
     crate::cache_file::write_managed_text_atomically(&root, &path, json).unwrap();
     let attempt = read().unwrap().unwrap();
-    assert_eq!(attempt.metadata["root_canister_id"], "root");
+    assert_eq!(attempt.metadata.id, 7);
     assert_eq!(attempt.status, CacheRefreshAttemptStatus::Running);
     assert_eq!(attempt.last_cursor, None);
-    for duplicate in ["network", "root_canister_id", "last_cursor"] {
-        let value = if duplicate == "last_cursor" {
-            "null"
-        } else {
-            "\"ic\""
+    for duplicate in ["network", "metadata", "last_cursor"] {
+        let value = match duplicate {
+            "last_cursor" => "null",
+            "metadata" => "{\"id\":7}",
+            _ => "\"ic\"",
         };
         let invalid = format!("{{\"{duplicate}\":{value},{}", &json[1..]);
         crate::cache_file::write_managed_text_atomically(&root, &path, &invalid).unwrap();
@@ -346,9 +358,15 @@ fn snapshot_refresh_attempt_admits_flat_metadata_and_refuses_ambiguous_json() {
     crate::cache_file::write_managed_text_atomically(&root, &path, &invalid).unwrap();
     assert!(matches!(
         read(),
-        Err(SnapshotRefreshAttemptReadError::Invalid { .. })
+        Err(SnapshotRefreshAttemptReadError::Parse { .. })
     ));
-    for invalid in ["[]", "{", &format!("{json} trailing")] {
+    for invalid in [
+        "[]",
+        "{",
+        &format!("{json} trailing"),
+        &json.replace("\"id\":7", "\"id\":7,\"id\":8"),
+        &json.replace("\"id\":7", "\"id\":7,\"unexpected\":true"),
+    ] {
         crate::cache_file::write_managed_text_atomically(&root, &path, invalid).unwrap();
         assert!(matches!(
             read(),
@@ -357,7 +375,7 @@ fn snapshot_refresh_attempt_admits_flat_metadata_and_refuses_ambiguous_json() {
     }
     assert_eq!(
         fs::read_to_string(&path).unwrap(),
-        format!("{json} trailing")
+        json.replace("\"id\":7", "\"id\":7,\"unexpected\":true")
     );
     let _ = fs::remove_dir_all(root);
 }
@@ -369,7 +387,7 @@ fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
     crate::cache_file::write_managed_text_atomically(&root, &path, &"x".repeat(1024 * 1024 + 1))
         .expect("write oversized attempt fixture");
 
-    let error = read_snapshot_refresh_attempt_strict::<serde_json::Value>(&root, &path, &[], None)
+    let error = read_snapshot_refresh_attempt_strict::<serde_json::Value>(&root, &path, None)
         .expect_err("oversized attempt is rejected");
 
     assert!(matches!(
@@ -577,9 +595,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 1,
-            lock_stale_after_seconds: 60,
         },
         identity_cache_error,
         async |state| {
@@ -589,9 +604,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
                     cache_root: &root,
                     snapshot_path: &snapshot_path,
                     refresh_lock_path: &lock_path,
-                    network: "ic",
-                    now_unix_secs: 1,
-                    lock_stale_after_seconds: 60,
                 },
                 identity_cache_error,
                 async |_| panic!("competing refresh must not run"),
@@ -615,9 +627,6 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 2,
-            lock_stale_after_seconds: 60,
         },
         identity_cache_error,
         async |state| {
@@ -630,7 +639,7 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
 
     assert_eq!(observed.into_inner(), vec![false, true]);
     assert!(snapshot_path.is_file());
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     let _ = fs::remove_dir_all(root);
 }
 
@@ -646,9 +655,6 @@ async fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure()
             cache_root: &root,
             snapshot_path: &snapshot_path,
             refresh_lock_path: &lock_path,
-            network: "ic",
-            now_unix_secs: 1,
-            lock_stale_after_seconds: 60,
         },
         |error| {
             assert!(
@@ -664,7 +670,7 @@ async fn locked_snapshot_refresh_releases_lock_after_target_inspection_failure()
         result,
         Err::<(), _>(CacheFileError::Confinement { .. })
     ));
-    assert!(!lock_path.exists());
+    assert!(!crate::cache_file::inspect_refresh_lock(&root, &(lock_path)).unwrap());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -686,31 +692,18 @@ impl From<HostCacheError> for SnapshotLoadTestError {
 }
 
 #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct FixtureSnapshotMetadata {
     id: usize,
 }
 
 #[derive(Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct FixtureSnapshotRows {
     rows: Vec<String>,
 }
 
 type FixtureSnapshot = SnapshotEnvelope<FixtureSnapshotMetadata, FixtureSnapshotRows>;
-
-const FIXTURE_SNAPSHOT_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "id",
-    "completeness",
-    "rows",
-];
 
 fn load_fixture_snapshot(
     path: &Path,
@@ -727,7 +720,6 @@ fn load_fixture_snapshot(
         },
         None,
         key,
-        FIXTURE_SNAPSHOT_FIELDS,
         |path| HostCacheError::missing_cache("fixture", path).into(),
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,

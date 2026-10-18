@@ -11,7 +11,7 @@ use ic_host_text::{
 };
 
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use super::{CloudEngineListReport, CloudEngineOperatorLookupStatus};
+use super::CloudEngineListReport;
 use super::{CloudEngineOperatorReport, CloudEnginePricesReport, CloudEngineReportContext};
 use crate::{
     human_quantity::decimal_cycle_count_text,
@@ -120,10 +120,20 @@ fn list_table(report: &CloudEngineListReport) -> String {
                 row.subnet_id.clone(),
                 row.node_count
                     .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
-                row.operator_lookup_status.as_str().to_string(),
-                row.operator_canister_id
-                    .clone()
-                    .unwrap_or_else(|| "-".to_string()),
+                match &row.operator {
+                    Ok(Some(_)) => "resolved",
+                    Ok(None) => "absent",
+                    Err(_) => "failed",
+                }
+                .to_string(),
+                row.operator
+                    .as_ref()
+                    .ok()
+                    .and_then(Option::as_ref)
+                    .map_or_else(
+                        || "-".to_string(),
+                        ic_platform::candid::contract::Principal::to_text,
+                    ),
             ]
         })
         .collect::<Vec<_>>();
@@ -135,22 +145,16 @@ fn append_lookup_failures(report: &CloudEngineListReport, lines: &mut Vec<String
     let failures = report
         .cloud_engines
         .iter()
-        .filter(|row| row.operator_lookup_status == CloudEngineOperatorLookupStatus::Failed)
+        .filter_map(|row| row.operator.as_ref().err().map(|error| (row, error)))
         .collect::<Vec<_>>();
     if !failures.is_empty() {
         lines.push(String::new());
         lines.push("Operator lookup failures".to_string());
-        lines.extend(failures.into_iter().map(|row| {
-            format!(
-                "  {}: {}",
-                row.subnet_id,
-                terminal_text(
-                    row.operator_lookup_error
-                        .as_deref()
-                        .unwrap_or("unspecified lookup failure")
-                )
-            )
-        }));
+        lines.extend(
+            failures
+                .into_iter()
+                .map(|(row, error)| format!("  {}: {}", row.subnet_id, terminal_text(error))),
+        );
     }
 }
 

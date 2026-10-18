@@ -145,6 +145,7 @@ fn begins_cache_payload(key: &str) -> bool {
     matches!(
         key,
         "completeness"
+            | "data"
             | "checkpoints"
             | "subnets"
             | "routing_ranges"
@@ -545,6 +546,18 @@ mod tests {
         .expect("header inspection budget is exhausted");
         assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
         assert_eq!(reader.position(), 64);
+
+        let cache = br#"{"schema_version":1,"network":"ic","data":{"rows":[unread payload"#;
+        let mut reader = Cursor::new(cache);
+        let header = read_cache_header(
+            Path::new("sns/ic/root/neurons/full.json"),
+            &mut reader,
+            cache.len() as u64,
+            64,
+        )
+        .expect("nested snapshot payload is not part of generic header inspection");
+        assert_eq!(header.schema_version, 1);
+        assert!(reader.position() < cache.len() as u64);
     }
 
     #[test]

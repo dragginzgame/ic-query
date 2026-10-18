@@ -4,7 +4,7 @@
 //! Does not own: live transport, report projection, lookup, or rendering.
 //! Boundary: mirrors only the Root fields required by the public report.
 
-use candid::{CandidType, Deserialize, Nat, Principal};
+use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
 
 ///
 /// ListSnsCanistersRequest
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListSnsCanistersRequest {}
 
 ///
@@ -22,6 +23,7 @@ pub(in crate::sns::report::live) struct ListSnsCanistersRequest {}
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListSnsCanistersResponse {
     pub(in crate::sns::report::live) root: Option<Principal>,
     pub(in crate::sns::report::live) governance: Option<Principal>,
@@ -40,6 +42,7 @@ pub(in crate::sns::report::live) struct ListSnsCanistersResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsRootExtensions {
     pub(in crate::sns::report::live) extension_canister_ids: Vec<Principal>,
 }
@@ -51,6 +54,7 @@ pub(in crate::sns::report::live) struct SnsRootExtensions {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetSnsCanistersSummaryRequest {
     pub(in crate::sns::report::live) update_canister_list: Option<bool>,
 }
@@ -70,6 +74,7 @@ impl GetSnsCanistersSummaryRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetSnsCanistersSummaryResponse {
     pub(in crate::sns::report::live) root: Option<CanisterSummary>,
     pub(in crate::sns::report::live) governance: Option<CanisterSummary>,
@@ -87,6 +92,7 @@ pub(in crate::sns::report::live) struct GetSnsCanistersSummaryResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct CanisterSummary {
     pub(in crate::sns::report::live) canister_id: Option<Principal>,
     pub(in crate::sns::report::live) status: Option<CanisterStatusResult>,
@@ -99,6 +105,7 @@ pub(in crate::sns::report::live) struct CanisterSummary {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct CanisterStatusResult {
     pub(in crate::sns::report::live) status: CanisterStatusType,
     pub(in crate::sns::report::live) memory_size: Nat,
@@ -115,6 +122,7 @@ pub(in crate::sns::report::live) struct CanisterStatusResult {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct DefiniteCanisterSettings {
     pub(in crate::sns::report::live) controllers: Vec<Principal>,
 }
@@ -126,6 +134,7 @@ pub(in crate::sns::report::live) struct DefiniteCanisterSettings {
 ///
 
 #[derive(CandidType, Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum CanisterStatusType {
     #[serde(rename = "running")]
     Running,

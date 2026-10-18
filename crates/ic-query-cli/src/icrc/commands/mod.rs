@@ -45,8 +45,8 @@ use crate::cli::{
     clap::value_arg,
     common::{json_arg, source_endpoint_arg},
 };
-use candid::Principal;
 use clap::{Command as ClapCommand, builder::ValueParser};
+use ic_platform::candid::contract::Principal;
 use ic_query::icrc::{DEFAULT_ICRC_SOURCE_ENDPOINT, normalize_subaccount_hex};
 
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";

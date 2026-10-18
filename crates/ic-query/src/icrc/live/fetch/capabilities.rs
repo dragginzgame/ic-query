@@ -22,10 +22,9 @@ use crate::icrc::{
         IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcLedgerRequest,
     },
 };
-use candid::{Nat, Principal};
-use ic_agent::{Agent, AgentError, agent::RejectCode};
-use icrc_ledger_types::icrc3::archive::GetArchivesArgs;
-use icrc_ledger_types::icrc3::blocks::GetBlocksRequest;
+use ic_platform::agent::{Agent, AgentError, RejectCode};
+use ic_platform::candid::contract::{Nat, Principal};
+use ic_platform::icrc_ledger_types::{GetArchivesArgs, GetBlocksRequest};
 
 const ICRC1_SUPPORTED_STANDARDS_METHOD: &str = "icrc1_supported_standards";
 
@@ -389,7 +388,7 @@ mod tests {
                     IcrcCapabilityStatus::Error,
                 ),
             ] {
-                let reject = ic_agent::agent::RejectResponse {
+                let reject = ic_platform::agent::RejectResponse {
                     reject_code: code,
                     reject_message: message.to_string(),
                     error_code: error_code.map(str::to_string),

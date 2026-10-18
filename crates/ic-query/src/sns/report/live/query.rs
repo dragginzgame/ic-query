@@ -10,8 +10,8 @@ use crate::{
     candid_call::CandidCallError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
-use candid::{CandidType, Deserialize, Principal};
-use ic_agent::{Agent, AgentError};
+use ic_platform::agent::{Agent, AgentError};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 impl CandidCallError for SnsHostError {
     fn candid_encode(message: &'static str, reason: String) -> Self {
@@ -43,9 +43,11 @@ where
     Arg: CandidType + Sync,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = candid::encode_one(arg).map_err(|err| SnsHostError::CandidEncode {
-        message: request_message,
-        reason: err.to_string(),
+    let arg = ic_platform::candid::contract::encode_one(arg).map_err(|err| {
+        SnsHostError::CandidEncode {
+            message: request_message,
+            reason: err.to_string(),
+        }
     })?;
     let bytes = agent
         .update(canister, method)

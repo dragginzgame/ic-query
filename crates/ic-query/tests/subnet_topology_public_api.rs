@@ -1,4 +1,4 @@
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use ic_query::{
     nns::topology::{
         NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
@@ -89,7 +89,7 @@ mod host {
         .unwrap();
         let cache = NnsSubnetTopologyCacheRequest::new(&root, "ic");
         let request =
-            NnsSubnetTopologyRefreshRequest::new(cache.clone(), "https://mirror.example", 100, 30);
+            NnsSubnetTopologyRefreshRequest::new(cache.clone(), "https://mirror.example", 100);
 
         let refreshed = refresh_nns_subnet_topology_with_source(&request, &FixtureSource)
             .await

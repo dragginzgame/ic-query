@@ -1,9 +1,7 @@
 //! Direct IC protocol calls and bounded admission of original reply evidence.
 
 use crate::{Result, command, invalid};
-use candid::Principal;
 use futures::future::{Either, select};
-use ic_agent::Agent;
 use ic_host_artifacts::{
     artifact::Sha256Digest,
     wasm::{self, InspectionLimits},
@@ -12,7 +10,9 @@ use ic_host_fs::{
     durable::{PublicationMode, WriteOptions, write_bytes},
     read::read_file,
 };
-use ic_testkit_candid::{DecodeError, DecodeLimits, decode_exactly_one};
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
+use ic_platform::candid::{DecodeError, DecodeLimits, decode_exactly_one};
 use std::{future::Future, io, path::Path, time::Duration};
 use url::Url;
 
@@ -208,7 +208,7 @@ impl Probe for AgentProbe {
             Ok(self
                 .agent
                 .update(&self.principal, "report")
-                .with_arg(candid::encode_one(kind)?)
+                .with_arg(ic_platform::candid::contract::encode_one(kind)?)
                 .call_and_wait()
                 .await?)
         })

@@ -15,8 +15,8 @@ pub use paths::{
     sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
 pub use refresh::{
-    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, refresh_sns_neurons_cache,
-    refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
+    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_progress,
+    refresh_sns_neurons_cache_with_source,
 };
 pub(in crate::sns::report) use reports::build_sns_neurons_report_from_cache;
 pub use reports::{build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report};

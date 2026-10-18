@@ -64,10 +64,9 @@ mod host {
             nns_registry_version_report_text,
         },
         nns::topology::{
-            CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
-            DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT, NnsSubnetTopologyCacheRequest,
-            NnsSubnetTopologyHostError, NnsSubnetTopologyRefreshRequest,
-            refresh_nns_subnet_topology,
+            CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
+            NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
+            NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
         },
         nns::{
             NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest,
@@ -251,7 +250,6 @@ mod host {
             NnsSubnetTopologyCacheRequest::new(cache_root, "ic"),
             DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
             now_unix_secs,
-            DEFAULT_NNS_SUBNET_TOPOLOGY_REFRESH_LOCK_STALE_SECONDS,
         );
         refresh_nns_subnet_topology(&request).await
     }
@@ -361,11 +359,18 @@ mod host {
 #[cfg(feature = "certificate-host")]
 #[test]
 fn downstream_certificate_failure_exposes_shared_parse_source() {
-    let agent = ic_agent::Agent::builder()
+    let agent = ic_platform::agent::Agent::builder()
         .with_url("https://icp-api.io")
         .build()
         .unwrap();
-    let error = authenticate(&agent, candid::Principal::anonymous(), &[0xff], 1, 16).unwrap_err();
+    let error = authenticate(
+        &agent,
+        ic_platform::candid::contract::Principal::anonymous(),
+        &[0xff],
+        1,
+        16,
+    )
+    .unwrap_err();
     let CertificateVerificationError::Decode(source) = error else {
         panic!("expected a CBOR parse failure before authentication");
     };

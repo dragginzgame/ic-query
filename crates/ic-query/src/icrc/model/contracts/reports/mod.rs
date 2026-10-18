@@ -8,12 +8,12 @@ mod account;
 mod account_history;
 mod ledger;
 
-pub use account::{IcrcAllowanceReport, IcrcBalanceReport};
+pub use account::{IcrcAllowanceData, IcrcAllowanceReport, IcrcBalanceData, IcrcBalanceReport};
 pub use account_history::{
     IcrcAccountRow, IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCacheSummary,
-    IcrcAccountTransactionListReport, IcrcAccountTransactionPageReport,
-    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
-    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
+    IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
+    IcrcAccountTransactionPageReport, IcrcAccountTransactionRefreshAttemptStatus,
+    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
 };
 pub use ledger::{
     IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,

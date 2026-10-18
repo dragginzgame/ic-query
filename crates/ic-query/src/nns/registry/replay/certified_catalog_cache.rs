@@ -17,9 +17,7 @@ use crate::{
         read_bounded_managed_file, with_refresh_lock, write_managed_file_atomically,
     },
     hex::hex_bytes,
-    subnet_catalog::{
-        CatalogAssurance, CatalogSnapshotAuthorityEvidence, MAINNET_NETWORK, RawSubnetCatalog,
-    },
+    subnet_catalog::{CatalogAssurance, CatalogSnapshotAuthorityEvidence, RawSubnetCatalog},
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -74,20 +72,11 @@ pub enum NnsCertifiedSubnetCatalogReadPolicy {
     /// Load and authenticate existing cache content without mutating it.
     CacheOnly,
     /// Publish from the supplied archive only when cache content is absent.
-    PublishMissing {
-        /// Age after which an abandoned publication lock is reported as stale.
-        lock_stale_after_seconds: u64,
-    },
+    PublishMissing,
     /// Publish from the supplied archive when cache content is absent or recoverably invalid.
-    PublishMissingOrInvalid {
-        /// Age after which an abandoned publication lock is reported as stale.
-        lock_stale_after_seconds: u64,
-    },
+    PublishMissingOrInvalid,
     /// Unconditionally publish from the supplied archive.
-    ForcePublication {
-        /// Age after which an abandoned publication lock is reported as stale.
-        lock_stale_after_seconds: u64,
-    },
+    ForcePublication,
 }
 
 ///
@@ -116,15 +105,10 @@ impl NnsCertifiedSubnetCatalogLoadRequest {
 
     /// Build a request that publishes only when cache content is absent.
     #[must_use]
-    pub const fn publish_missing(
-        location: NnsCertifiedSubnetCatalogCacheLocation,
-        lock_stale_after_seconds: u64,
-    ) -> Self {
+    pub const fn publish_missing(location: NnsCertifiedSubnetCatalogCacheLocation) -> Self {
         Self {
             location,
-            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
-                lock_stale_after_seconds,
-            },
+            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissing,
         }
     }
 
@@ -132,27 +116,19 @@ impl NnsCertifiedSubnetCatalogLoadRequest {
     #[must_use]
     pub const fn publish_missing_or_invalid(
         location: NnsCertifiedSubnetCatalogCacheLocation,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             location,
-            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
-                lock_stale_after_seconds,
-            },
+            policy: NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid,
         }
     }
 
     /// Build a request that unconditionally publishes from the supplied archive.
     #[must_use]
-    pub const fn force_publication(
-        location: NnsCertifiedSubnetCatalogCacheLocation,
-        lock_stale_after_seconds: u64,
-    ) -> Self {
+    pub const fn force_publication(location: NnsCertifiedSubnetCatalogCacheLocation) -> Self {
         Self {
             location,
-            policy: NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
-                lock_stale_after_seconds,
-            },
+            policy: NnsCertifiedSubnetCatalogReadPolicy::ForcePublication,
         }
     }
 
@@ -428,15 +404,11 @@ pub async fn load_nns_certified_subnet_catalog<'a>(
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     request: &NnsCertifiedSubnetCatalogLoadRequest,
 ) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    if let NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
-        lock_stale_after_seconds,
-    } = request.policy
-    {
+    if request.policy == NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
         return publish_cache_with_disposition(
             archive,
             projection_request,
             &request.location,
-            lock_stale_after_seconds,
             NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
         );
     }
@@ -445,25 +417,17 @@ pub async fn load_nns_certified_subnet_catalog<'a>(
         Ok(outcome) => return Ok(outcome),
         Err(error) => error,
     };
-    let Some((lock_stale_after_seconds, disposition)) =
-        publication_after_error(request.policy, &error)
-    else {
+    let Some(disposition) = publication_after_error(request.policy, &error) else {
         return Err(error);
     };
-    publish_cache_with_disposition(
-        archive,
-        projection_request,
-        &request.location,
-        lock_stale_after_seconds,
-        disposition,
-    )
+    publish_cache_with_disposition(archive, projection_request, &request.location, disposition)
 }
 
 fn publish_cache_with_disposition<'a>(
     archive: &'a NnsAuthenticatedRegistryArchive,
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     location: &NnsCertifiedSubnetCatalogCacheLocation,
-    lock_stale_after_seconds: u64,
+
     disposition: NnsCertifiedSubnetCatalogCacheDisposition,
 ) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
     let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
@@ -478,10 +442,6 @@ fn publish_cache_with_disposition<'a>(
         RefreshLockRequest {
             cache_root: &location.cache_root,
             lock_path: &lock_path,
-            target_path: &cache_path,
-            network: MAINNET_NETWORK,
-            now_unix_secs: projection_request.validation.now_unix_secs,
-            lock_stale_after_seconds,
         },
         file_operation,
         || {
@@ -547,33 +507,21 @@ fn load_cached_catalog<'a>(
 const fn publication_after_error(
     policy: NnsCertifiedSubnetCatalogReadPolicy,
     error: &NnsCertifiedSubnetCatalogCacheError,
-) -> Option<(u64, NnsCertifiedSubnetCatalogCacheDisposition)> {
+) -> Option<NnsCertifiedSubnetCatalogCacheDisposition> {
     match (policy, error) {
         (
-            NnsCertifiedSubnetCatalogReadPolicy::PublishMissing {
-                lock_stale_after_seconds,
-            }
-            | NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
-                lock_stale_after_seconds,
-            },
+            NnsCertifiedSubnetCatalogReadPolicy::PublishMissing
+            | NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid,
             NnsCertifiedSubnetCatalogCacheError::MissingCache { .. },
-        ) => Some((
-            lock_stale_after_seconds,
-            NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing,
-        )),
+        ) => Some(NnsCertifiedSubnetCatalogCacheDisposition::PublishedMissing),
         (
-            NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid {
-                lock_stale_after_seconds,
-            },
+            NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid,
             NnsCertifiedSubnetCatalogCacheError::CacheLimitExceeded { .. }
             | NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. }
             | NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. }
             | NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion { .. }
             | NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { .. },
-        ) => Some((
-            lock_stale_after_seconds,
-            NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid,
-        )),
+        ) => Some(NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid),
         _ => None,
     }
 }

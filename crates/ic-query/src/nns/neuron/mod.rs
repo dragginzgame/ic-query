@@ -6,16 +6,6 @@
 
 mod report;
 
-#[cfg(feature = "nns-host")]
-pub use report::{
-    DEFAULT_NNS_NEURON_REFRESH_LOCK_STALE_SECONDS, NnsNeuronHostError,
-    advance_nns_neuron_collection, build_nns_neuron_cache_status_report,
-    build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report,
-    build_nns_neuron_list_report_from_cache, nns_neuron_cache_path,
-    nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path, refresh_nns_neuron_cache,
-    refresh_nns_neuron_cache_with_progress, refresh_nns_neuron_cache_with_source,
-};
 pub use report::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
     NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
@@ -29,4 +19,13 @@ pub use report::{
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
     nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
     validate_nns_neuron_distribution_report,
+};
+#[cfg(feature = "nns-host")]
+pub use report::{
+    NnsNeuronHostError, advance_nns_neuron_collection, build_nns_neuron_cache_status_report,
+    build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report,
+    build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report,
+    build_nns_neuron_list_report_from_cache, nns_neuron_cache_path,
+    nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path, refresh_nns_neuron_cache,
+    refresh_nns_neuron_cache_with_progress, refresh_nns_neuron_cache_with_source,
 };

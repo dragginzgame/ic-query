@@ -19,7 +19,7 @@ use crate::ic::{
     IC_DASHBOARD_AUTHORITY, IC_DASHBOARD_NETWORK, IC_DASHBOARD_REPORT_SCHEMA_VERSION,
     IcDashboardReportProvenance, IcHostError, IcSourceRequest,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;

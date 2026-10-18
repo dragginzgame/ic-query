@@ -21,13 +21,11 @@ use crate::{
         },
     },
 };
-use candid::{CandidType, Nat, Principal};
-use ic_agent::Agent;
-use icrc_ledger_types::icrc::generic_value::ICRC3Value;
-use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, ICRC3ArchiveInfo};
-use icrc_ledger_types::icrc3::blocks::{
-    ArchivedBlocks, BlockWithId, GetBlocksRequest, GetBlocksResult, ICRC3DataCertificate,
-    SupportedBlockType,
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::{CandidType, Nat, Principal};
+use ic_platform::icrc_ledger_types::{
+    ArchivedBlocks, BlockWithId, GetArchivesArgs, GetBlocksRequest, GetBlocksResult,
+    ICRC3ArchiveInfo, ICRC3DataCertificate, ICRC3Value, SupportedBlockType,
 };
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeSet;
@@ -124,9 +122,11 @@ async fn query_archive_blocks(
             "archive reply byte budget exhausted",
         ));
     }
-    let arg = candid::encode_one(&archive.args).map_err(|error| IcrcError::CandidEncode {
-        message: CONTEXT,
-        reason: error.to_string(),
+    let arg = ic_platform::candid::contract::encode_one(&archive.args).map_err(|error| {
+        IcrcError::CandidEncode {
+            message: CONTEXT,
+            reason: error.to_string(),
+        }
     })?;
     let bytes = agent
         .query(&archive.callback.canister_id, &archive.callback.method)
@@ -379,7 +379,7 @@ pub(in crate::icrc::live) async fn fetch_archives_async(
 pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
     source: &crate::icrc::LiveIcrcSource,
     request: &IcrcLedgerRequest,
-) -> Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError> {
+) -> Result<Option<ic_platform::icrc_ledger_types::ICRC3DataCertificate>, IcrcError> {
     let (agent, ledger_canister) = live_query_context(
         source,
         &request.source_endpoint,
@@ -629,7 +629,7 @@ fn icrc3_value_json(value: &ICRC3Value) -> JsonValue {
 mod tests {
     use super::*;
     use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
-    use icrc_ledger_types::icrc3::archive::QueryArchiveFn;
+    use ic_platform::icrc_ledger_types::QueryArchiveFn;
     use serde_cbor::Value;
     use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
@@ -647,7 +647,10 @@ mod tests {
                         ICRC3Value::Nat(large.clone()),
                     )])),
                 ),
-                ("signed".into(), ICRC3Value::Int(candid::Int::from(-1_000))),
+                (
+                    "signed".into(),
+                    ICRC3Value::Int(ic_platform::candid::contract::Int::from(-1_000)),
+                ),
                 ("blob".into(), ICRC3Value::Blob(vec![0, 0xab, 0xff].into())),
                 (
                     "array".into(),
@@ -743,7 +746,7 @@ mod tests {
                 Value::Text("reply".into()),
                 Value::Map(BTreeMap::from([(
                     Value::Text("arg".into()),
-                    Value::Bytes(candid::encode_one(reply).unwrap()),
+                    Value::Bytes(ic_platform::candid::contract::encode_one(reply).unwrap()),
                 )])),
             ),
         ])))
@@ -800,7 +803,7 @@ mod tests {
         let Value::Bytes(args) = &content[&Value::Text("arg".into())] else {
             panic!("Candid arguments")
         };
-        let args: Vec<GetBlocksRequest> = candid::decode_one(args).unwrap();
+        let args: Vec<GetBlocksRequest> = crate::candid_decode::decode_reply(args).unwrap();
         assert_eq!(args[0].start, Nat::from(12u64));
         assert_eq!(args[0].length, Nat::from(2u64));
         followed

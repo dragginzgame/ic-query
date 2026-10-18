@@ -80,22 +80,30 @@ pub struct CloudEngineOperatorReport {
 /// CloudEngine marketplace node class.
 ///
 
+#[cfg_attr(
+    feature = "cloud-engine-host",
+    derive(ic_platform::candid::contract::CandidType)
+)]
+#[cfg_attr(
+    feature = "cloud-engine-host",
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum CloudEngineNodeType {
     /// Type 4.1 node class.
-    #[serde(rename = "type4.1")]
+    #[serde(rename = "type4_1")]
     Type4_1,
     /// Type 4.2 node class.
-    #[serde(rename = "type4.2")]
+    #[serde(rename = "type4_2")]
     Type4_2,
     /// Type 4.3 node class.
-    #[serde(rename = "type4.3")]
+    #[serde(rename = "type4_3")]
     Type4_3,
     /// Type 4.4 node class.
-    #[serde(rename = "type4.4")]
+    #[serde(rename = "type4_4")]
     Type4_4,
     /// Type 4.5 node class.
-    #[serde(rename = "type4.5")]
+    #[serde(rename = "type4_5")]
     Type4_5,
 }
 
@@ -163,37 +171,6 @@ pub struct CloudEnginePricesReport {
 }
 
 ///
-/// CloudEngineOperatorLookupStatus
-///
-/// Outcome of one exact control-plane operator-binding lookup for a Registry Subnet.
-///
-
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CloudEngineOperatorLookupStatus {
-    /// The control plane returned an operator canister principal.
-    Resolved,
-    /// The control plane successfully returned no operator binding.
-    Absent,
-    /// The exact control-plane query failed for this Subnet.
-    Failed,
-}
-
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-impl CloudEngineOperatorLookupStatus {
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Resolved => "resolved",
-            Self::Absent => "absent",
-            Self::Failed => "failed",
-        }
-    }
-}
-
-///
 /// CloudEngineListRow
 ///
 /// One Registry-classified CloudEngine Subnet and its separate operator-binding observation.
@@ -228,12 +205,8 @@ pub struct CloudEngineListRow {
     pub charges_apply_by_default: bool,
     /// Number of routing ranges assigned to the Subnet in the catalog snapshot.
     pub range_count: usize,
-    /// Result of the separate public control-plane lookup.
-    pub operator_lookup_status: CloudEngineOperatorLookupStatus,
-    /// Operator canister returned by the control plane when resolved.
-    pub operator_canister_id: Option<String>,
-    /// Per-row lookup failure, separate from a successful absent result.
-    pub operator_lookup_error: Option<String>,
+    /// Exact control-plane lookup: a registered principal, successful absence, or bounded error.
+    pub operator: Result<Option<ic_platform::candid::contract::Principal>, String>,
 }
 
 ///

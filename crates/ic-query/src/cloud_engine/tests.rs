@@ -64,6 +64,8 @@ struct BindingFixtureSource {
     calls: Mutex<usize>,
     request: CloudEngineSourceRequest,
     query_call_count: usize,
+    operator: String,
+    failure: String,
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -81,13 +83,13 @@ impl CloudEngineOperatorBindingSource for BindingFixtureSource {
             if subnet_id == SUBNET_C {
                 return Err(CloudEngineHostError::AgentCall {
                     method: "getEngineOperatorBySubnet",
-                    reason: "fixture unavailable".to_string(),
+                    reason: self.failure.clone(),
                 });
             }
             Ok(CloudEngineOperatorBindingSourceData {
                 source: self.request.clone(),
                 subnet_id: subnet_id.to_string(),
-                operator_canister_id: (subnet_id == SUBNET_ID).then(|| OPERATOR_ID.to_string()),
+                operator_canister_id: (subnet_id == SUBNET_ID).then(|| self.operator.clone()),
                 query_call_count: self.query_call_count,
             })
         })
@@ -199,6 +201,8 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
         calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 1,
+        operator: OPERATOR_ID.to_string(),
+        failure: "fixture unavailable".to_string(),
     };
     let report = super::list::build_cloud_engine_list_report_from_catalog_with_source(
         &request,
@@ -238,36 +242,30 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
         .find(|row| row.subnet_id == SUBNET_ID)
         .expect("resolved row");
     assert_eq!(
-        resolved.operator_lookup_status,
-        CloudEngineOperatorLookupStatus::Resolved
+        resolved.operator,
+        Ok(Some(
+            ic_platform::candid::contract::Principal::from_text(OPERATOR_ID).unwrap()
+        ))
     );
-    assert_eq!(resolved.operator_canister_id.as_deref(), Some(OPERATOR_ID));
 
     let absent = report
         .cloud_engines
         .iter()
         .find(|row| row.subnet_id == SUBNET_B)
         .expect("absent row");
-    assert_eq!(
-        absent.operator_lookup_status,
-        CloudEngineOperatorLookupStatus::Absent
-    );
-    assert_eq!(absent.operator_lookup_error, None);
+    assert_eq!(absent.operator, Ok(None));
 
     let failed = report
         .cloud_engines
         .iter()
         .find(|row| row.subnet_id == SUBNET_C)
         .expect("failed row");
-    assert_eq!(
-        failed.operator_lookup_status,
-        CloudEngineOperatorLookupStatus::Failed
-    );
     assert!(
         failed
-            .operator_lookup_error
-            .as_deref()
-            .is_some_and(|error| error.contains("fixture unavailable"))
+            .operator
+            .as_ref()
+            .expect_err("failed lookup")
+            .contains("fixture unavailable")
     );
 
     let text = cloud_engine_list_report_text(&report);
@@ -277,8 +275,20 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
     let json = serde_json::to_value(&report).expect("serialize list report");
     assert_eq!(json["registry_cloud_engine_subnet_count"], 3);
     assert_eq!(
-        json["cloud_engines"][0]["operator_lookup_status"],
-        "resolved"
+        json["cloud_engines"][0]["operator"],
+        serde_json::json!({"Ok": OPERATOR_ID})
+    );
+    assert_eq!(
+        json["cloud_engines"][1]["operator"],
+        serde_json::json!({"Err": failed.operator.as_ref().unwrap_err()})
+    );
+    assert_eq!(
+        json["cloud_engines"][2]["operator"],
+        serde_json::json!({"Ok": null})
+    );
+    assert_eq!(
+        serde_json::from_value::<CloudEngineListReport>(json).unwrap(),
+        report
     );
 }
 
@@ -290,6 +300,8 @@ async fn list_report_enforces_fanout_and_successful_source_contracts() {
         calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 1,
+        operator: OPERATOR_ID.to_string(),
+        failure: "fixture unavailable".to_string(),
     };
     let excessive = vec![SUBNET_ID; MAX_CLOUD_ENGINE_LIST_ROWS + 1];
     let error = super::list::build_cloud_engine_list_report_from_catalog_with_source(
@@ -310,6 +322,8 @@ async fn list_report_enforces_fanout_and_successful_source_contracts() {
         calls: Mutex::new(0),
         request: request.clone(),
         query_call_count: 2,
+        operator: OPERATOR_ID.to_string(),
+        failure: "fixture unavailable".to_string(),
     };
     let error = super::list::build_cloud_engine_list_report_from_catalog_with_source(
         &request,
@@ -324,6 +338,54 @@ async fn list_report_enforces_fanout_and_successful_source_contracts() {
             if reason.contains("exactly one query call")
     ));
     assert_eq!((*source.calls.lock().unwrap()), 1);
+
+    for operator in ["invalid".to_string(), OPERATOR_ID.to_ascii_uppercase()] {
+        let source = BindingFixtureSource {
+            calls: Mutex::new(0),
+            request: request.clone(),
+            query_call_count: 1,
+            operator,
+            failure: String::new(),
+        };
+        let error = super::list::build_cloud_engine_list_report_from_catalog_with_source(
+            &request,
+            list_catalog_report(&[SUBNET_ID]),
+            &source,
+        )
+        .await
+        .expect_err("invalid successful source evidence must abort the report");
+        assert!(
+            matches!(error, CloudEngineHostError::InvalidSourceData { reason } if reason.contains("operator_canister_id"))
+        );
+    }
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[tokio::test(flavor = "current_thread")]
+async fn list_report_bounds_lookup_error_evidence_at_utf8_boundaries() {
+    let request = request(MAINNET_NETWORK);
+    let source = BindingFixtureSource {
+        calls: Mutex::new(0),
+        request: request.clone(),
+        query_call_count: 1,
+        operator: OPERATOR_ID.to_string(),
+        failure: "é".repeat(4_096),
+    };
+    let report = super::list::build_cloud_engine_list_report_from_catalog_with_source(
+        &request,
+        list_catalog_report(&[SUBNET_C]),
+        &source,
+    )
+    .await
+    .expect("ordinary failed lookup is row evidence");
+    let error = report.cloud_engines[0]
+        .operator
+        .as_ref()
+        .expect_err("lookup failure");
+    assert!(error.len() <= 4_096 + 3);
+    assert!(error.ends_with("..."));
+    assert!(error.contains('é'));
+    assert_eq!(report.operator_lookup_failure_count, 1);
 }
 
 #[tokio::test(flavor = "current_thread")]

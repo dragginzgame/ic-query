@@ -112,10 +112,9 @@ STUB
 check_release_assertions
 
 copy_makefile() {
-  mkdir -p "$1/make" "$1/scripts/ci"
-  cp "$repo_root/Makefile" "$1/Makefile"
-  cp "$repo_root/make/"{consumer,tools,release,rust-format,execution}.mk "$1/make/"
-  cp "$repo_root/scripts/ci/"{check-release-source,check-make-execution,run-formatting}.sh "$1/scripts/ci/"
+  mkdir -p "$1"
+  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$1" \
+    Makefile scripts/ci/check-release-source.sh
 }
 
 check_clean_worktree() {
@@ -305,6 +304,7 @@ expected_ci_targets=(
   tools-check
   changelog-check
   dependency-pins-check
+  dependency-boundary-check
   package-contents-check
   feature-boundary-check
   library-process-boundary-check
@@ -328,7 +328,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in tools-check changelog-check dependency-pins-check doc-links-check test; do
+for failed_target in tools-check changelog-check dependency-pins-check dependency-boundary-check doc-links-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
@@ -385,11 +385,11 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools-query.tsv; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
-    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools.tsv" \
     DRIFT_INPUT="$drift_case/$input" VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     "$make_bin" --no-print-directory -C "$drift_case" ci > "$drift_case/drift-output" 2>&1; then
     fail "CI accepted changed $input"
@@ -406,7 +406,7 @@ if (
   cd "$drift_case"
   unset VALIDATION_REPOSITORY_ROOT VALIDATION_RUNNER_SNAPSHOT_PATH
   PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" DRIFT_INPUT="$drift_case/Cargo.lock" \
-    IC_TOOL_PINS="$drift_case/ci/ic-tools-query.tsv" \
+    IC_TOOL_PINS="$drift_case/ci/ic-tools.tsv" \
     VALIDATION_FAILURE_LOG_DIR="$drift_case/failures" \
     bash scripts/ci/run-validation-targets.sh --input Cargo.lock ci
 ) > "$drift_case/nested-output" 2>&1; then
@@ -546,8 +546,6 @@ workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/work
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
 bash "$repo_root/scripts/ci/test-ci-workflow.sh"
-bash "$repo_root/scripts/ci/test-collect-tool-evidence.sh"
-bash "$repo_root/scripts/ci/test-cargo-release-preflight.sh"
 
 schema_version_case="${work_dir}/schema-version"
 mkdir -p "${schema_version_case}"
@@ -640,7 +638,7 @@ for family in host ic rust; do
 set -euo pipefail
 family="${0##*/install-}"
 family="${family%-tools.sh}"
-[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/rust/common/bin:"* ]] || exit 71
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/rust/common/bin:"* ]] || exit 71
 printf '%s %s\n' "$family" "$*" >> "$TRACE_FILE"
 if [[ "${!#}" == --preflight ]]; then
   [[ "$family" != "${FAIL_PREFLIGHT:-}" ]] || exit 72
@@ -681,12 +679,11 @@ for mode in install check; do
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$mode.log" 2>&1
   : > "$tools_case/expected"
   if [[ "$mode" == install ]]; then
-    printf '%s\n' "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv --preflight" \
-      "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
+    printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
   fi
   printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
-    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" \
-    "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" >> "$tools_case/expected"
+    "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
+    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" >> "$tools_case/expected"
   if [[ "$mode" == check ]]; then
     printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --check" \
       'cargo sort --version' 'cargo fmt --version' >> "$tools_case/expected"
@@ -711,20 +708,15 @@ for mode in install check; do
   done
 done
 
-for family in ic rust; do
-  : > "$tools_case/trace"
-  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT="$family" \
-    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
-    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
-    "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-$family.log" 2>&1; then
-    fail "tool setup accepted a failed $family preflight"
-  fi
-  printf 'ic --consumer %s --pins %s/ci/ic-tools.tsv --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
-  if [[ "$family" == rust ]]; then
-    printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" >> "$tools_case/expected-preflight"
-  fi
-  cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
-done
+: > "$tools_case/trace"
+if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT=rust \
+  MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+  HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+  "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-rust.log" 2>&1; then
+  fail 'tool setup accepted a failed Rust preflight'
+fi
+printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
+cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
 
 cat > "$tools_case/scripts/ci/check-dependencies.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -769,7 +761,7 @@ done
 cat > "$tools_case/scripts/dev/cloc.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$PATH" == "$EXPECTED_ROOT/.tools/host/bin:$EXPECTED_ROOT/.tools/ic/bin:"* ]] || exit 71
+[[ "$PATH" == "$EXPECTED_ROOT/.tools/ic/bin:$EXPECTED_ROOT/.tools/host/bin:"* ]] || exit 71
 printf 'cloc %s\n' "$*" >> "$TRACE_FILE"
 exit "${CLOC_RESULT:-0}"
 EOF
@@ -833,8 +825,8 @@ for target in fmt fmt-check; do
   if [[ "$target" == fmt ]]; then printf 'Formatting... ok\n' > "$format_case/expected-output";
   else printf 'Checking formatting... ok\n' > "$format_case/expected-output"; fi
   cmp "$format_case/expected-output" "$format_case/success.log" || fail 'formatter success output changed'
-  if [[ "$target" == fmt ]]; then sort_command='sort --workspace'; fmt_command='fmt --all';
-  else sort_command='sort --workspace --check'; fmt_command='fmt --all -- --check'; fi
+  if [[ "$target" == fmt ]]; then sort_command='sort --workspace --grouped'; fmt_command='fmt --all';
+  else sort_command='sort --workspace --grouped --check'; fmt_command='fmt --all -- --check'; fi
   printf '%s\n' 'sort --version' 'fmt --version' "$sort_command" "$fmt_command" > "$format_case/expected"
   cmp "$format_case/expected" "$format_case/trace" \
     || fail "$target changed formatter order, check flags or the selected setup pin"
@@ -900,7 +892,6 @@ fi
 grep -Fq 'fixture common admission failure' "$format_case/shared-admission-failure.log" || exit 1
 
 perl "${repo_root}/scripts/ci/test-public-docs.pl"
-perl "${repo_root}/scripts/ci/test-type-docs.pl"
 bash "${repo_root}/scripts/ci/test-public-docs.sh"
 
 public_docs_case="${work_dir}/public-docs"
@@ -956,10 +947,22 @@ if [[ "${FAIL_FEATURE_COMMAND:-}" == "$1" ]]; then
     exit 51
   fi
 fi
-if [[ "$1" == tree && -n "${FEATURE_TREE_LINE:-}" ]]; then
-  if [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
-    || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* ]]; then
-    printf '%s\n' "$FEATURE_TREE_LINE"
+if [[ "$1" == tree ]]; then
+  package=ic-query
+  [[ "$*" != *"--package ic-query-cli"* ]] || package=ic-query-cli
+  printf '%s v0.0.0\n' "$package"
+  if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
+    [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
+    || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* \
+    || "${FEATURE_TREE_SCOPE:-}" == canister && "$*" == *"--features canister"* \
+    || "${FEATURE_TREE_SCOPE:-}" == cli && "$package" == ic-query-cli ]]; then
+    case "$FEATURE_TREE_LINE" in
+      */*)
+        [[ "$*" != *"normal,build,features"* ]] || \
+          printf '%s feature "%s"\n' "${FEATURE_TREE_LINE%%/*}" "${FEATURE_TREE_LINE#*/}"
+        ;;
+      *) printf '%s v0.0.0\n' "$FEATURE_TREE_LINE" ;;
+    esac
   fi
 fi
 EOF
@@ -998,9 +1001,8 @@ for failed_command in check test tree; do
 done
 
 for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
-  'ic-host-tools feature "ic-interface"' \
-  'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
-  'ic-host-artifacts feature "wasm"'; do
+  ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
+  ic-host-artifacts/wasm; do
   scope=host
   case "$dependency" in
     ic-host-artifacts|ic-host-fs|ic-host-tools|candid_parser) scope=pure ;;
@@ -1012,11 +1014,29 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools can
       >"${feature_boundary_case}/dependency-failure.log" 2>&1; then
     fail "the $scope feature boundary accepted $dependency"
   fi
-  grep -Fq "unexpectedly includes $dependency" "${feature_boundary_case}/dependency-failure.log" \
+  case "$dependency" in
+    */*) diagnostic="forbidden dependency feature edge: $dependency" ;;
+    *) diagnostic="forbidden $dependency:" ;;
+  esac
+  grep -Fq "$diagnostic" "${feature_boundary_case}/dependency-failure.log" \
     || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
 done
 
-for dependency in ic-host-fs candid_parser 'ic-host-tools feature "certificate"'; do
+for scope in canister cli; do
+  for dependency in ic-build ic-host-process ic-testkit wat; do
+    if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+      FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
+      TRACE_FILE="${feature_boundary_case}/trace" \
+      bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+        >"${feature_boundary_case}/tooling-refusal.log" 2>&1; then
+      fail "the $scope production graph accepted $dependency"
+    fi
+    grep -Fq "forbidden $dependency:" "${feature_boundary_case}/tooling-refusal.log" \
+      || fail "the $scope production graph lost the tooling diagnostic"
+  done
+done
+
+for dependency in ic-host-fs candid_parser ic-platform ic-host-tools/certificate; do
   TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \

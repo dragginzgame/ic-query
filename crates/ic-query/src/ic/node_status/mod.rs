@@ -68,9 +68,6 @@ pub const MAX_IC_NODE_STATUS_ROWS: u32 = 10_000;
 /// Age after which an observed node-status cache refreshes automatically.
 pub const DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS: u64 = 60;
 
-/// Age after which an abandoned node-status refresh lock is stale.
-pub const DEFAULT_IC_NODE_STATUS_REFRESH_LOCK_STALE_SECONDS: u64 = 5 * 60;
-
 pub(super) const IC_NODE_STATUS_SCOPE: &str = "dashboard_mainnet_default";
 
 #[cfg(test)]

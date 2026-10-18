@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNodeListReport {
     pub schema_version: u32,
     pub network: String,

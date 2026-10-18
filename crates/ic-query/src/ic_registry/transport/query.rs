@@ -1,10 +1,10 @@
 use super::{RegistryQueryCounter, SubnetCatalogProgressPhase};
-use ic_agent::{Agent, AgentError, agent_error::TransportError};
+use ic_platform::agent::{Agent, AgentError, TransportError};
 use std::{future::Future, time::Duration};
 
 pub(super) async fn query(
     agent: &Agent,
-    canister: &candid::Principal,
+    canister: &ic_platform::candid::contract::Principal,
     method: &'static str,
     arg: Vec<u8>,
     counter: Option<&RegistryQueryCounter>,
@@ -63,7 +63,7 @@ fn transient(error: &AgentError) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_agent::agent_error::HttpErrorPayload;
+    use ic_platform::agent::HttpErrorPayload;
     use std::task::Context;
 
     fn http(status: u16) -> AgentError {

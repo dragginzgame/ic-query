@@ -8,7 +8,6 @@ use crate::{
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 pub(in crate::nns::topology) const DRY_RUN_ARG: &str = "dry-run";
-pub(in crate::nns::topology) const LOCK_STALE_AFTER_ARG: &str = "lock-stale-after";
 
 const TOPOLOGY_REFRESH_HELP_AFTER: &str = "\
 Examples:
@@ -28,7 +27,6 @@ pub(in crate::nns) fn topology_refresh_command() -> clap::Command {
             leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
                 .help(TOPOLOGY_REFRESH_SOURCE_HELP),
         )
-        .arg(leaf::refresh_lock_stale_after_arg())
         .arg(
             flag_arg(DRY_RUN_ARG)
                 .long(DRY_RUN_ARG)

@@ -4,6 +4,8 @@ use ic_query::HostCacheError;
 use ic_query::icrc::IcrcTokenData;
 use ic_query::icrc::{IcrcMetadataValueKind, IcrcTokenMetadataRow, IcrcTokenStandardRow};
 use ic_query::report::ReportDataSource;
+use ic_query::sns::MainnetSnsMetrics;
+use ic_query::sns::MainnetSnsSwap;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
     SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGapKind,
@@ -14,31 +16,28 @@ use ic_query::sns::{
     SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
     SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalAction, SnsProposalBallotRow,
-    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalVote,
-    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus,
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCollectionStatus,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId,
-    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryKind, SnsTreasuryMetricRow,
-    SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics,
-    SnsVotingRewardsParameters, build_sns_reward_diff_report, sns_canister_report_text,
-    sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
-    sns_neuron_detail_report_text, sns_neuron_permission_name, sns_params_report_text,
-    sns_proposal_report_text, sns_proposals_report_text, sns_reward_checkpoint_report_text,
-    sns_reward_diff_report_text, sns_swap_report_text, sns_token_report_text,
-    sns_upgrade_report_text, validate_sns_reward_checkpoint_report,
+    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
+    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
+    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    build_sns_reward_diff_report, sns_canister_report_text, sns_info_report_text,
+    sns_list_report_text, sns_metrics_report_text, sns_neuron_detail_report_text,
+    sns_neuron_permission_name, sns_params_report_text, sns_proposal_report_text,
+    sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
+    sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
+    validate_sns_reward_checkpoint_report,
 };
 #[cfg(feature = "sns-host")]
 use ic_query::sns::{
-    DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS,
-    DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource,
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
+    DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource, MainnetSns, MainnetSnsCanisterInventory,
+    MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
+    MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
     SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
     SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource, SnsDiscoverySource,
     SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
@@ -272,8 +271,20 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
 fn public_sns_reward_checkpoint_models_round_trip_and_render_without_host() {
     let report = sample_sns_reward_checkpoint_report();
     let value = serde_json::to_value(&report).expect("checkpoint JSON");
+    assert_eq!(
+        value["aggregate_combined_maturity_e8s_equivalent"],
+        15_000_000
+    );
     let decoded: SnsRewardCheckpointReport =
-        serde_json::from_value(value).expect("strict checkpoint decode");
+        serde_json::from_value(value.clone()).expect("strict checkpoint decode");
+    let mut invalid = value;
+    invalid["unexpected"] = serde_json::json!(true);
+    assert!(serde_json::from_value::<SnsRewardCheckpointReport>(invalid).is_err());
+    let duplicate = serde_json::to_string(&report).unwrap().replace(
+        "\"permission_entry_count\":",
+        "\"permission_entry_count\":99,\"permission_entry_count\":",
+    );
+    assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
 
     validate_sns_reward_checkpoint_report(&decoded).expect("pure checkpoint validation");
     let mut cached = decoded.clone();
@@ -651,39 +662,42 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        method: SnsCanisterMethod::GetMetrics,
-        call_type: SnsCanisterCallType::CompositeQuery,
-        time_window_seconds: 86_400,
-        point_in_time_guaranteed: false,
-        treasury_metrics_cached: true,
-        num_recently_submitted_proposals: Some(3),
-        num_recently_executed_proposals: Some(2),
-        last_ledger_block_timestamp: Some(1_700_000_010),
-        genesis_timestamp_seconds: Some(1_600_000_000),
         treasury_metric_count: 1,
-        treasury_metrics: vec![SnsTreasuryMetricRow {
-            treasury: 1,
-            treasury_kind: SnsTreasuryKind::Icp,
-            name: Some("ICP treasury".to_string()),
-            ledger_canister_id: None,
-            account_owner: None,
-            account_subaccount_hex: None,
-            amount_e8s: Some(100_000_000),
-            original_amount_e8s: Some(200_000_000),
-            timestamp_seconds: Some(1_700_000_000),
-        }],
-        voting_power_metrics: Some(SnsVotingPowerMetrics {
-            governance_total_potential_voting_power: Some(500_000_000),
-            timestamp_seconds: Some(1_700_000_001),
-        }),
+
+        metrics: MainnetSnsMetrics {
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+            method: SnsCanisterMethod::GetMetrics,
+            call_type: SnsCanisterCallType::CompositeQuery,
+            time_window_seconds: 86_400,
+            point_in_time_guaranteed: false,
+            treasury_metrics_cached: true,
+            num_recently_submitted_proposals: Some(3),
+            num_recently_executed_proposals: Some(2),
+            last_ledger_block_timestamp: Some(1_700_000_010),
+            genesis_timestamp_seconds: Some(1_600_000_000),
+            treasury_metrics: vec![SnsTreasuryMetricRow {
+                treasury: 1,
+
+                name: Some("ICP treasury".to_string()),
+                ledger_canister_id: None,
+                account_owner: None,
+                account_subaccount_hex: None,
+                amount_e8s: Some(100_000_000),
+                original_amount_e8s: Some(200_000_000),
+                timestamp_seconds: Some(1_700_000_000),
+            }],
+            voting_power_metrics: Some(SnsVotingPowerMetrics {
+                governance_total_potential_voting_power: Some(500_000_000),
+                timestamp_seconds: Some(1_700_000_001),
+            }),
+        },
     };
 
     let json = serde_json::to_value(&report).expect("serialize public SNS metrics report");
     let text = sns_metrics_report_text(&report);
 
     assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
-    assert_eq!(json["treasury_metrics"][0]["treasury_kind"], "icp");
+    assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
     assert_eq!(json["method"], "get_metrics");
     assert_eq!(json["call_type"], "composite_query");
     assert!(text.contains("treasury_metrics_cached: yes"));
@@ -789,24 +803,26 @@ fn public_sns_token_api_is_constructible_and_renderable() {
         root_canister_id: request.input,
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         sns_index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
-        token_name: "Example Token".to_string(),
-        token_symbol: "EXT".to_string(),
-        decimals: 8,
-        transfer_fee: "100_000_000".to_string(),
-        total_supply: "1_000_000_000".to_string(),
-        minting_account_owner: Some("aaaaa-aa".to_string()),
-        minting_account_subaccount_hex: None,
         ledger_index_canister_id: None,
         ledger_index_error: Some("not configured".to_string()),
-        supported_standards: vec![IcrcTokenStandardRow {
-            name: "ICRC-1".to_string(),
-            url: "https://github.com/dfinity/ICRC-1".to_string(),
-        }],
-        metadata: vec![IcrcTokenMetadataRow {
-            key: "icrc1:symbol".to_string(),
-            value_type: IcrcMetadataValueKind::Text,
-            value: json!("EXT"),
-        }],
+        token: ic_query::icrc::IcrcTokenData {
+            token_name: "Example Token".to_string(),
+            token_symbol: "EXT".to_string(),
+            decimals: 8,
+            transfer_fee: "100_000_000".to_string(),
+            total_supply: "1_000_000_000".to_string(),
+            minting_account_owner: Some("aaaaa-aa".to_string()),
+            minting_account_subaccount_hex: None,
+            supported_standards: vec![IcrcTokenStandardRow {
+                name: "ICRC-1".to_string(),
+                url: "https://github.com/dfinity/ICRC-1".to_string(),
+            }],
+            metadata: vec![IcrcTokenMetadataRow {
+                key: "icrc1:symbol".to_string(),
+                value_type: IcrcMetadataValueKind::Text,
+                value: json!("EXT"),
+            }],
+        },
     };
 
     let text = sns_token_report_text(&report);
@@ -869,48 +885,51 @@ fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
-        lifecycle_method: SnsCanisterMethod::GetLifecycle,
-        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
-        derived_state_method: SnsCanisterMethod::GetDerivedState,
-        point_in_time_guaranteed: false,
         component_query_count: 3,
         successful_component_query_count: 3,
         component_gap_count: 0,
-        lifecycle: Some(SnsSwapLifecycle {
-            lifecycle: Some(2),
-            lifecycle_name: Some("open".to_string()),
-            decentralization_sale_open_timestamp_seconds: Some(1_700_000_000),
-            decentralization_swap_termination_timestamp_seconds: None,
-        }),
-        sale_parameters: Some(SnsSwapSaleParameters {
-            min_icp_e8s: 100_000_000,
-            max_icp_e8s: 100_000_000_000,
-            min_direct_participation_icp_e8s: Some(1_000_000_000),
-            max_direct_participation_icp_e8s: Some(90_000_000_000),
-            sns_token_e8s: 250_000_000_000,
-            min_participants: 25,
-            min_participant_icp_e8s: 100_000_000,
-            max_participant_icp_e8s: 10_000_000_000,
-            swap_due_timestamp_seconds: 1_700_086_400,
-            sale_delay_seconds: Some(3_600),
-            neuron_basket_construction_parameters: Some(
-                SnsSwapNeuronBasketConstructionParameters {
-                    count: 5,
-                    dissolve_delay_interval_seconds: 2_592_000,
-                },
-            ),
-        }),
-        derived_state: Some(SnsSwapDerivedState {
-            sns_tokens_per_icp: Some(2.5),
-            buyer_total_icp_e8s: Some(1_000_000_000),
-            direct_participation_icp_e8s: Some(900_000_000),
-            neurons_fund_participation_icp_e8s: Some(100_000_000),
-            direct_participant_count: Some(10),
-            cf_participant_count: None,
-            cf_neuron_count: None,
-        }),
-        gaps: Vec::new(),
+
+        swap: MainnetSnsSwap {
+            swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
+            lifecycle_method: SnsCanisterMethod::GetLifecycle,
+            sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
+            derived_state_method: SnsCanisterMethod::GetDerivedState,
+            point_in_time_guaranteed: false,
+            lifecycle: Some(SnsSwapLifecycle {
+                lifecycle: Some(2),
+
+                decentralization_sale_open_timestamp_seconds: Some(1_700_000_000),
+                decentralization_swap_termination_timestamp_seconds: None,
+            }),
+            sale_parameters: Some(SnsSwapSaleParameters {
+                min_icp_e8s: 100_000_000,
+                max_icp_e8s: 100_000_000_000,
+                min_direct_participation_icp_e8s: Some(1_000_000_000),
+                max_direct_participation_icp_e8s: Some(90_000_000_000),
+                sns_token_e8s: 250_000_000_000,
+                min_participants: 25,
+                min_participant_icp_e8s: 100_000_000,
+                max_participant_icp_e8s: 10_000_000_000,
+                swap_due_timestamp_seconds: 1_700_086_400,
+                sale_delay_seconds: Some(3_600),
+                neuron_basket_construction_parameters: Some(
+                    SnsSwapNeuronBasketConstructionParameters {
+                        count: 5,
+                        dissolve_delay_interval_seconds: 2_592_000,
+                    },
+                ),
+            }),
+            derived_state: Some(SnsSwapDerivedState {
+                sns_tokens_per_icp: Some(2.5),
+                buyer_total_icp_e8s: Some(1_000_000_000),
+                direct_participation_icp_e8s: Some(900_000_000),
+                neurons_fund_participation_icp_e8s: Some(100_000_000),
+                direct_participant_count: Some(10),
+                cf_participant_count: None,
+                cf_neuron_count: None,
+            }),
+            gaps: Vec::new(),
+        },
     };
     let gap = SnsSwapQueryGap {
         component: SnsSwapComponent::DerivedState,
@@ -1044,11 +1063,22 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
     assert!(text.contains("topic_filter: governance"));
     assert!(text.contains("proposal_details:"));
     assert!(text.contains("title: Upgrade SNS"));
+    assert_eq!(json["proposals"][0]["action_id"], 7);
+    assert_eq!(json["proposals"][0]["ballots"][0]["vote"], 1);
+}
+
+#[test]
+fn public_sns_proposal_rows_preserve_unknown_native_codes() {
+    let mut row = sample_sns_proposal_row();
+    row.action_id = u64::MAX;
+    row.ballots[0].vote = -7;
+    let value = serde_json::to_value(&row).unwrap();
+    assert_eq!(value["action_id"], u64::MAX);
+    assert_eq!(value["ballots"][0]["vote"], -7);
     assert_eq!(
-        json["proposals"][0]["action"],
-        "upgrade_sns_to_next_version"
+        serde_json::from_value::<SnsProposalRow>(value).unwrap(),
+        row
     );
-    assert_eq!(json["proposals"][0]["ballots"][0]["vote_text"], "yes");
 }
 
 #[test]
@@ -1093,8 +1123,8 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
     assert!(text.contains("show_ballots: yes"));
     assert!(text.contains("ballots:"));
     assert!(text.contains("Upgrade SNS"));
-    assert_eq!(json["proposal"]["action"], "upgrade_sns_to_next_version");
-    assert_eq!(json["proposal"]["ballots"][0]["vote_text"], "yes");
+    assert_eq!(json["proposal"]["action_id"], 7);
+    assert_eq!(json["proposal"]["ballots"][0]["vote"], 1);
 }
 
 #[cfg(feature = "sns-host")]
@@ -1128,8 +1158,6 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsCatalogRefreshBuilder>(|arg0| Box::pin(refresh_sns_catalog(arg0)));
     let live_source = LiveSnsSource::default();
     accepts_public_function(live_source);
-    assert_eq!(DEFAULT_SNS_NEURONS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
-    assert_eq!(DEFAULT_SNS_PROPOSALS_REFRESH_LOCK_STALE_SECONDS, 30 * 60);
 }
 
 #[cfg(feature = "sns-host")]
@@ -1161,7 +1189,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
         "1",
     ));
     let metrics = build_sns_metrics_report_with_source(&metrics_request, &source).await?;
-    assert_eq!(metrics.method, SnsCanisterMethod::GetMetrics);
+    assert_eq!(metrics.metrics.method, SnsCanisterMethod::GetMetrics);
     assert_eq!(metrics.treasury_metric_count, 1);
 
     let canisters = build_sns_canister_report_with_source(&info_request, &source).await?;
@@ -1175,7 +1203,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
         SAMPLE_SNS_ROOT_CANISTER_ID,
     );
     let token = build_sns_token_report_with_source(&token_request, &source).await?;
-    assert_eq!(token.token_symbol, "EXT");
+    assert_eq!(token.token.token_symbol, "EXT");
 
     let params_request =
         SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
@@ -1186,7 +1214,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
     );
 
     let swap = build_sns_swap_report_with_source(&params_request, &source).await?;
-    assert_eq!(swap.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
+    assert_eq!(swap.swap.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
     assert_eq!(swap.successful_component_query_count, 3);
 
     let upgrade = build_sns_upgrade_report_with_source(&params_request, &source).await?;
@@ -1398,13 +1426,8 @@ fn public_sns_host_api_exposes_catalog_cache_contract() {
         Err(SnsHostError::MissingCatalogCache { .. })
     ));
 
-    let refresh_request = SnsCatalogRefreshRequest::new(
-        &cache_root,
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_700_000_000,
-        30 * 60,
-    );
+    let refresh_request =
+        SnsCatalogRefreshRequest::new(&cache_root, "ic", DEFAULT_SNS_SOURCE_ENDPOINT, 30 * 60);
     assert_eq!(refresh_request.cache, catalog_request);
     let refresh_report = SnsCatalogRefreshReport {
         schema_version: 1,
@@ -1648,7 +1671,7 @@ impl SnsCatalogSource for FixtureSnsSource {
                 .map(|target| MainnetSnsLifecycle {
                     root_canister_id: target.root_canister_id.clone(),
                     lifecycle: Some(3),
-                    lifecycle_name: Some("committed".to_string()),
+
                     lifecycle_error: None,
                 })
                 .collect())
@@ -2021,7 +2044,7 @@ fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
         point_in_time_guaranteed: false,
         lifecycle: Some(SnsSwapLifecycle {
             lifecycle: Some(3),
-            lifecycle_name: Some("committed".to_string()),
+
             decentralization_sale_open_timestamp_seconds: Some(1_700_000_000),
             decentralization_swap_termination_timestamp_seconds: Some(1_700_086_400),
         }),
@@ -2054,7 +2077,7 @@ fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
         genesis_timestamp_seconds: Some(1_600_000_000),
         treasury_metrics: vec![SnsTreasuryMetricRow {
             treasury: 1,
-            treasury_kind: SnsTreasuryKind::Icp,
+
             name: Some("ICP treasury".to_string()),
             ledger_canister_id: None,
             account_owner: None,
@@ -2104,7 +2127,7 @@ fn sample_sns_neuron_row() -> SnsNeuronRow {
         maturity_e8s_equivalent: 10_000_000,
         staked_maturity_e8s_equivalent: Some(5_000_000),
         created_timestamp_seconds: 1_700_000_000,
-        created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+
         source_nns_neuron_id: Some(42),
         auto_stake_maturity: Some(true),
         aging_since_timestamp_seconds: 1_700_000_100,
@@ -2179,7 +2202,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
             maturity_e8s_equivalent: 10_000_000,
             staked_maturity_e8s_equivalent: Some(5_000_000),
             created_timestamp_seconds: 1_700_000_000,
-            created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+
             source_nns_neuron_id: Some(42),
             auto_stake_maturity: Some(true),
             aging_since_timestamp_seconds: 1_700_000_100,
@@ -2228,7 +2251,7 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
     SnsProposalRow {
         proposal_id: 42,
         action_id: 7,
-        action: SnsProposalAction::UpgradeSnsToNextVersion,
+
         title: "Upgrade SNS".to_string(),
         summary: "Upgrade the SNS controlled canister.".to_string(),
         url: Some("https://example.com/proposal/42".to_string()),
@@ -2237,13 +2260,13 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
         topic: Some("governance".to_string()),
         reject_cost_e8s: 100_000_000,
         proposal_creation_timestamp_seconds: 1_700_000_000,
-        created_at: "2023-11-14T22:13:20Z".to_string(),
+
         decided_timestamp_seconds: None,
-        decided_at: None,
+
         executed_timestamp_seconds: None,
-        executed_at: None,
+
         failed_timestamp_seconds: None,
-        failed_at: None,
+
         failure_reason: Some(SnsProposalFailureReason {
             error_type: 0,
             error_message: "none".to_string(),
@@ -2261,9 +2284,9 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
         ballots: vec![SnsProposalBallotRow {
             neuron_id: "0102030405060708".to_string(),
             vote: 1,
-            vote_text: SnsProposalVote::Yes,
+
             cast_timestamp_seconds: 1_700_000_200,
-            cast_at: Some("2023-11-14T22:16:40Z".to_string()),
+
             voting_power: 100_000_000,
         }],
         payload_text_rendering: Some("Upgrade payload".to_string()),
@@ -2279,7 +2302,7 @@ fn sample_sns_neuron_detail() -> SnsNeuronDetail {
             maturity_e8s_equivalent: 10_000_000,
             staked_maturity_e8s_equivalent: Some(5_000_000),
             created_timestamp_seconds: 1_700_000_000,
-            created_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+
             source_nns_neuron_id: Some(42),
             auto_stake_maturity: Some(true),
             aging_since_timestamp_seconds: 1_700_000_100,
@@ -2396,6 +2419,7 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
         manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
         maturity_conversion_policy_observed_status: SnsPolicyObservationStatus::ObservedSatisfied,
+
         rows: vec![row],
     }
 }

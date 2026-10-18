@@ -40,14 +40,17 @@ pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
             "subaccount_hex: {}",
             optional_text(report.subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
-        format!("decimals: {}", report.decimals),
+        format!(
+            "token_symbol: {}",
+            terminal_text(&report.value.token_symbol)
+        ),
+        format!("decimals: {}", report.value.decimals),
         format!(
             "balance: {} {}",
-            base_units_decimal_text(&report.balance, report.decimals),
-            terminal_text(&report.token_symbol)
+            base_units_decimal_text(&report.value.balance, report.value.decimals),
+            terminal_text(&report.value.token_symbol)
         ),
-        format!("balance_base_units: {}", report.balance),
+        format!("balance_base_units: {}", report.value.balance),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
@@ -71,17 +74,20 @@ pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
             "spender_subaccount_hex: {}",
             optional_text(report.spender_subaccount_hex.as_ref())
         ),
-        format!("token_symbol: {}", terminal_text(&report.token_symbol)),
-        format!("decimals: {}", report.decimals),
+        format!(
+            "token_symbol: {}",
+            terminal_text(&report.value.token_symbol)
+        ),
+        format!("decimals: {}", report.value.decimals),
         format!(
             "allowance: {} {}",
-            base_units_decimal_text(&report.allowance, report.decimals),
-            terminal_text(&report.token_symbol)
+            base_units_decimal_text(&report.value.allowance, report.value.decimals),
+            terminal_text(&report.value.token_symbol)
         ),
-        format!("allowance_base_units: {}", report.allowance),
+        format!("allowance_base_units: {}", report.value.allowance),
         format!(
             "expires_at_unix_nanos: {}",
-            optional_text(report.expires_at_unix_nanos.as_ref())
+            optional_text(report.value.expires_at_unix_nanos.as_ref())
         ),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
@@ -99,7 +105,7 @@ pub fn icrc_account_transaction_page_report_text(
 ) -> String {
     let mut lines = vec![
         format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("index_canister_id: {}", report.index_canister_id),
+        format!("index_canister_id: {}", report.page.index_canister_id),
         format!("account_owner: {}", report.account_owner),
         format!(
             "subaccount_hex: {}",
@@ -110,29 +116,32 @@ pub fn icrc_account_transaction_page_report_text(
             optional_text(report.requested_start.as_ref())
         ),
         format!("requested_limit: {}", report.requested_limit),
-        format!("next_start: {}", optional_text(report.next_start.as_ref())),
+        format!(
+            "next_start: {}",
+            optional_text(report.page.next_start.as_ref())
+        ),
         format!(
             "oldest_transaction_id: {}",
-            optional_text(report.oldest_transaction_id.as_ref())
+            optional_text(report.page.oldest_transaction_id.as_ref())
         ),
         format!(
             "balance: {} {}",
-            base_units_decimal_text(&report.balance, report.decimals),
-            terminal_text(&report.token_symbol)
+            base_units_decimal_text(&report.page.balance, report.page.decimals),
+            terminal_text(&report.page.token_symbol)
         ),
-        format!("balance_base_units: {}", report.balance),
-        format!("returned_transactions: {}", report.transactions.len()),
+        format!("balance_base_units: {}", report.page.balance),
+        format!("returned_transactions: {}", report.page.transactions.len()),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
             terminal_text(&report.source_endpoint)
         ),
     ];
-    push_table_section(&mut lines, &report.transactions, |transactions| {
+    push_table_section(&mut lines, &report.page.transactions, |transactions| {
         render_account_transactions_table(
             transactions,
-            report.decimals,
-            &terminal_text(&report.token_symbol),
+            report.page.decimals,
+            &terminal_text(&report.page.token_symbol),
         )
     });
     lines.join("\n")

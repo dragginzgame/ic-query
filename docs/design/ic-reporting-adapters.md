@@ -12,6 +12,88 @@ collection architecture rather than duplicating milestone status.
 User-facing command and collection-mode guidance lives in
 [CLI Usage](../cli-usage.md).
 
+## Repository boundary
+
+The `ic-query` library owns read-only IC collection policy, source capability
+traits, provenance and validation, report models and rendering, and managed
+snapshot identity, completeness and refresh policy. Its public entry point is
+`crates/ic-query/src/lib.rs`; optional host features select live adapters, while
+`canister` selects replicated Governance calls on Wasm. Embedders supply their
+runtime, endpoint, clocks and progress sink. The `icq` binary in
+`crates/ic-query-cli/src/main.rs` owns argument parsing, dispatch and process IO.
+
+Dependencies own the reusable mechanisms beneath that policy:
+
+| Capability | Canonical dependency | Query integration that remains |
+| --- | --- | --- |
+| IC transport and standard values | `ic-platform` Agent/Candid/certification/ledger contracts | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
+| Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, protected export paths, family error projection, report layouts and smoke-harness interruption policy |
+| Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
+| Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
+| Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
+| Measurement arithmetic | `ic-metrics` | Report-specific interpretation and display policy |
+| Developer tooling implementation | Reviewed Shared Tooling snapshot | Local Make/CI wiring, selected catalogs, release adapters and product qualification |
+
+The Governance smoke example is contributor tooling, not a library transport or
+a second deployment framework. ICP remains at its managed-runtime/deployment
+boundary; canister calls use `ic-agent` and typed Candid directly.
+
+Local cache confinement is still necessary: the Host writer accepts an admitted
+parent descriptor, but does not select Query's cache root, validate its ancestors
+or define recovery from invalid report content. Likewise, report fixtures test
+Query's use of shared mechanisms rather than duplicating their general regression
+suites. Do not move these policies upstream merely to reduce local source.
+
+Host Text owns canonical UTC conversion and exact fixed/compact decimal
+rounding. Query retains freshness decisions, token input normalization and
+cycle/byte unit selection. Host FS owns non-aliasing in-place export checks,
+writing and synchronization; Query supplies its managed cache/lock paths and
+64-link ceiling and maps Host's stages to its existing errors. Export writes
+remain distinct from atomic managed-cache publication: they preserve existing
+permissions and may leave partial output on write/sync failure. These APIs are
+available in the selected published Host packages; no sibling checkout or local
+copy substitutes for them.
+
+The published Platform 0.1.11 boundary preserves upstream Candid type identities
+and Query's existing decoder quotas and error projection. Query's `canister`
+feature selects Platform's `cdk` facade for canister identity and bounded calls.
+The typed probe uses Platform's maintained entrypoint generator, whose generated
+runtime and Candid paths stay behind that dependency. There are no direct Candid,
+CDK or macro-package declarations. Testkit 0.54 accepts Platform's limits and
+typed decoder errors directly; the compiled Governance fixture needs no separate
+codec dependency.
+Native host features select `ic-platform/agent`; the CLI smoke harness enables
+that feature through its development dependency. Platform exposes the same Agent
+and typed transport/reject errors without choosing endpoints, root keys, HTTP
+budgets, verification or retry policy. Query retains those choices. Direct Agent
+inputs are forbidden by the dependency policy. Native Host Tools selects
+Platform's host-only parser transitively; portable and canister selections
+exclude it.
+No executor implementation or compatibility re-export is introduced. Platform
+pins the existing CDK 0.20.3 runtime, executor 2.0.0 and ic0 1.2.0 identities.
+CDK remains the callback/trap owner; matching versions alone do not qualify IC
+lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
+[Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the
+separate installed-IC and fleet qualification obligations.
+
+Platform also supplies certificate/hash-tree identities and constructors through
+its optional `certification` feature, enabled by `certificate-host` and
+`ic-state-host`. The latter uses Agent-decoded certificates without Host CBOR
+decoding. Host retains strict bounded CBOR decoding and its public parse error
+identity; Agent retains authentication. Query keeps combined evidence budgets, freshness and
+application leaf admission. Subtree lookup results and labeled fixture hashes now
+also come from Platform; there are no remaining Agent hash-tree import exceptions.
+There is no direct `ic-certification` declaration; its transitive presence through
+Platform, Host and Agent is intentional.
+
+Platform's optional ledger surface exports the original `icrc-ledger-types` 0.2.0
+identities. `icrc-host`, `sns-host` and `ledger-evidence-host` select it; Query has
+no direct ledger-types declaration. Account semantics, generic-value hashes,
+wire variants and archive callback types remain upstream. Query retains archive
+admission, bounded calls, certificate verification and transaction interpretation.
+The upstream `storable` feature is disabled; stable-memory storage is outside
+Query's boundary and excluded from supported normal/build graphs.
+
 ## Host execution ownership
 
 Live source capabilities and collectors are async. The caller owns the runtime;
@@ -211,16 +293,17 @@ requires nonempty lowercase even-length hex, while reward evidence requires
 bracketing evidence; shared representation checks do not replace those gates.
 
 Human-facing cycle counts and decimal cycle rates share the unit table in
-`human_quantity`. Integer counts use bounded arithmetic; rates round borrowed
-decimal digits without limiting input to `u128`. Full decimal input validation
-and raw report values remain independent of display rounding. Byte quantities
-retain binary IEC units.
+`human_quantity`. Integer counts use bounded arithmetic; rates use Host Text's
+exact compact decimal renderer without limiting input to `u128`. Query selects
+units and promotes a rounded value at a unit boundary. Full decimal input
+validation and raw report values remain independent of display rounding. Byte
+quantities retain binary IEC units.
 
 Token base-unit display remains owned by `token_amount` across ICRC, SNS, and
-Governance reports. It normalizes ASCII digits in place, keeps scale and
-rounding arithmetic in decimal strings, and rounds from the discarded suffix
-without constructing a padded copy. Its fixed two-decimal display contract is
-distinct from cycle-unit scaling; both preserve raw report amounts.
+Governance reports. It normalizes ASCII digits and passes the explicit decimal
+scale to Host Text's fixed two-place renderer. Query retains whitespace and
+underscore admission and unchanged fallback text for other inputs. Its display
+contract is distinct from cycle-unit selection; both preserve raw report amounts.
 
 ### Candid subtype performance follow-up: 2026-10-03
 

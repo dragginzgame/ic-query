@@ -7,7 +7,7 @@
 use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
 use crate::{
     cache::validate_cache_collection_completeness,
-    cache_file::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache_strict},
+    cache_file::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache},
     freshness::freshness_facts,
     icrc::{
         ledger::principal_from_text,
@@ -21,7 +21,7 @@ use crate::{
     snapshot_cache::{SnapshotJsonPaths, SnapshotKey},
     subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -29,25 +29,6 @@ pub(super) const ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION: u32 = 1;
 
 const ICRC_ACCOUNT_TRANSACTION_CACHE_DOMAIN: &str = "icrc";
 const ICRC_ACCOUNT_TRANSACTION_CACHE_COLLECTION: &str = "transactions";
-const ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "source_endpoint",
-    "collection_started_at",
-    "collection_completed_at",
-    "fetched_by",
-    "ledger_canister_id",
-    "index_canister_id",
-    "account_owner",
-    "subaccount_hex",
-    "balance",
-    "token_symbol",
-    "decimals",
-    "newest_transaction_id",
-    "oldest_transaction_id",
-    "completeness",
-    "transactions",
-];
-
 impl JsonCacheReport for IcrcAccountTransactionSnapshot {
     fn schema_version(&self) -> u32 {
         self.schema_version
@@ -92,7 +73,7 @@ pub(super) fn load_snapshot_at(
     path: &Path,
     request: &IcrcAccountTransactionCacheRequest,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    let cached = load_json_cache_strict(
+    let cached = load_json_cache(
         LoadJsonCacheRequest {
             component: ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
             cache_root: &request.cache_root,
@@ -101,7 +82,6 @@ pub(super) fn load_snapshot_at(
             expected_schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
             maximum_bytes: crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
         },
-        ICRC_ACCOUNT_TRANSACTION_CACHE_FIELDS,
         None,
     )
     .map_err(IcrcAccountTransactionError::from)?;

@@ -95,7 +95,7 @@ pub enum CacheFileError {
         source: io::Error,
     },
 
-    /// Exclusively creating a refresh-lock file failed.
+    /// Opening a confined persistent coordination file failed.
     #[error("failed to create refresh lock at {}: {source}", path.display())]
     CreateRefreshLock {
         /// Refresh-lock path.
@@ -113,21 +113,9 @@ pub enum CacheFileError {
         source: io::Error,
     },
 
-    /// An existing refresh lock did not contain valid JSON.
-    #[error(
-        "failed to parse refresh lock at {}; remove the lock manually after verifying no refresh is running: {source}",
-        path.display()
-    )]
-    ParseRefreshLock {
-        /// Refresh-lock path.
-        path: PathBuf,
-        /// Underlying JSON error.
-        source: serde_json::Error,
-    },
-
     /// An existing refresh lock failed semantic validation.
     #[error(
-        "invalid refresh lock at {}; remove the lock manually after verifying no refresh is running: {reason}",
+        "invalid refresh coordination file at {}: {reason}",
         path.display()
     )]
     InvalidRefreshLock {
@@ -137,30 +125,12 @@ pub enum CacheFileError {
         reason: String,
     },
 
-    /// Serializing a new refresh lock failed.
-    #[error("failed to serialize refresh lock at {}: {source}", path.display())]
-    SerializeRefreshLock {
-        /// Refresh-lock path.
+    /// Acquiring or releasing kernel refresh exclusion failed.
+    #[error("refresh lock operation failed at {}: {source}", path.display())]
+    LockRefreshLock {
+        /// Persistent coordination sidecar.
         path: PathBuf,
-        /// Underlying JSON error.
-        source: serde_json::Error,
-    },
-
-    /// Writing a new refresh-lock file failed.
-    #[error("failed to write refresh lock at {}: {source}", path.display())]
-    WriteRefreshLock {
-        /// Refresh-lock path.
-        path: PathBuf,
-        /// Underlying filesystem error.
-        source: io::Error,
-    },
-
-    /// Removing a refresh-lock file after an operation failed.
-    #[error("failed to remove refresh lock at {}: {source}", path.display())]
-    RemoveRefreshLock {
-        /// Refresh-lock path.
-        path: PathBuf,
-        /// Underlying filesystem error.
+        /// Native lock failure.
         source: io::Error,
     },
 
@@ -174,24 +144,10 @@ pub enum CacheFileError {
     },
 
     /// Another refresh currently owns the cache lock.
-    #[error("refresh already in progress; lock exists at {} since unix_ms={started_at_unix_ms}", path.display())]
+    #[error("refresh already in progress; coordination file is locked at {}", path.display())]
     RefreshAlreadyInProgress {
         /// Refresh-lock path.
         path: PathBuf,
-        /// Recorded lock acquisition time.
-        started_at_unix_ms: u64,
-    },
-
-    /// An existing refresh lock is older than its recorded owner policy.
-    #[error(
-        "stale refresh lock exists at {} since unix_ms={started_at_unix_ms}; remove it manually after verifying no refresh is running",
-        path.display()
-    )]
-    StaleRefreshLock {
-        /// Refresh-lock path.
-        path: PathBuf,
-        /// Recorded lock acquisition time.
-        started_at_unix_ms: u64,
     },
 
     /// Writing the temporary cache file failed.

@@ -9,10 +9,9 @@ use crate::{
     hex::hex_bytes,
     icrc::{IcrcMetadataValueKind, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow},
 };
-use candid::{CandidType, Deserialize, Nat, Principal};
-use ic_agent::Agent;
-use icrc_ledger_types::icrc::generic_metadata_value::MetadataValue;
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
+use ic_platform::icrc_ledger_types::{Account as LedgerAccount, MetadataValue};
 use serde_json::Value as JsonValue;
 
 pub const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principal";
@@ -24,6 +23,7 @@ pub const ICRC106_GET_INDEX_PRINCIPAL_METHOD: &str = "icrc106_get_index_principa
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub enum GetIndexPrincipalError {
     IndexPrincipalNotSet,
     GenericError {
@@ -147,7 +147,7 @@ pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
 #[cfg(all(test, feature = "icrc-host"))]
 mod tests {
     use super::*;
-    use candid::Int;
+    use ic_platform::candid::contract::Int;
 
     #[test]
     fn native_index_and_standard_replies_decode_without_projection() {

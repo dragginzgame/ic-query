@@ -224,10 +224,6 @@ impl RegistryHistoryCache {
             RefreshLockRequest {
                 cache_root: &self.root,
                 lock_path: &self.lock_path,
-                target_path: &self.path,
-                network: MAINNET_NETWORK,
-                now_unix_secs: now,
-                lock_stale_after_seconds: 600,
             },
             operation,
             || self.publish_under_lock(endpoint, prefix, checkpoint.version, pages, now),

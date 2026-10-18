@@ -31,7 +31,7 @@ pub use source::{
 };
 
 use crate::{candid_call::CandidCallError, icrc::model::IcrcError};
-use ic_agent::AgentError;
+use ic_platform::agent::AgentError;
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;

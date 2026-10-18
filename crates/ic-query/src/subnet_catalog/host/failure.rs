@@ -12,7 +12,7 @@ use crate::subnet_catalog::{
     CatalogAssurance, CatalogError, RoutingRange, SubnetCatalogRegistryRecordEvidence,
     SubnetCatalogRegistryRecordSubject,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::{error::Error, fmt, path::PathBuf};
 
 ///

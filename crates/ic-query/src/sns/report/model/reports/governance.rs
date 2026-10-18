@@ -4,7 +4,7 @@
 //! Does not own: live governance fetches, parameter rendering, or defaults.
 //! Boundary: preserves the complete native parameter response in JSON-friendly report fields.
 
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -48,6 +48,7 @@ pub struct SnsGovernanceParameters {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsNeuronPermissionList {
     pub permissions: Vec<i32>,
@@ -88,6 +89,7 @@ pub struct SnsDefaultFolloweesRow {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsVotingRewardsParameters {
     pub final_reward_rate_basis_points: Option<u64>,
@@ -103,6 +105,7 @@ pub struct SnsVotingRewardsParameters {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsCustomProposalCriticality {
     pub additional_critical_native_action_ids: Vec<u64>,

@@ -18,14 +18,12 @@ use crate::sns::report::live::{
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsCanisterMethod, SnsHostError,
     SnsSourceRequest, enforce_mainnet_network,
-    source::{
-        MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata, sns_swap_lifecycle_name,
-    },
+    source::{MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
-use candid::Principal;
 use futures::{StreamExt, stream};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 use crate::sns::report::MainnetSnsCanisters;
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
@@ -171,7 +169,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
     Ok(MainnetSnsLifecycle {
         root_canister_id: sns.root_canister_id,
         lifecycle,
-        lifecycle_name: sns_swap_lifecycle_name(lifecycle).map(str::to_string),
+
         lifecycle_error,
     })
 }

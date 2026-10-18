@@ -9,7 +9,7 @@ use serde_json::Value as JsonValue;
 /// Source-layer token metadata returned by an ICRC ledger.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenData {
     /// Native ledger token name.
     pub token_name: String,
@@ -39,7 +39,11 @@ pub struct IcrcTokenData {
 
 #[cfg_attr(
     any(feature = "icrc-host", feature = "sns-host"),
-    derive(candid::CandidType)
+    derive(ic_platform::candid::contract::CandidType)
+)]
+#[cfg_attr(
+    any(feature = "icrc-host", feature = "sns-host"),
+    candid_path("ic_platform::candid::contract")
 )]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenStandardRow {

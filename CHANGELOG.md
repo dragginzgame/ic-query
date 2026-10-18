@@ -5,11 +5,121 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.61.1]
+## [0.62.3]
 
-- Add bounded ICP protobuf transfer decoding under `ledger-evidence-host`, with
-  exact re-encoding and required-field checks. Callers still authenticate blocks
-  and compare decoded fields with their own expected transfer.
+- Add bounded ICP protobuf transfer decoding under `ledger-evidence-host`.
+  Callers retain block authentication and expected-transfer checks.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
+## [0.62.2] - 2026-10-18
+
+- Explicitly release refresh locks after errors and cancellation, even when a
+  duplicated descriptor remains open. Fix the cache-status release test race.
+
+- Reuse Host's canonical UTC, exact decimal rounding and protected export writers.
+  Preserve report text, cache freshness rules and typed export errors while
+  removing the competing local implementations.
+
+- Reuse Shared Tooling’s committed graph checker (6eb8c41, PR #285) while
+  retaining local roots, feature selections and exclusion policy. This selects
+  unmerged topic source, not a new Shared release.
+  Keep graph-only qualification independently runnable, preserving direct
+  dependency depth and forbidden dependency-feature edges.
+
+- Adopt published IC Platform 0.1.11 for Candid, certification and native Agent
+  APIs, preserving wire types, authentication and caller policies. Remove direct
+  Agent declarations and the remaining Agent hash-tree imports.
+- Route Governance calls and the typed probe entrypoint through Platform's CDK
+  facade and generator, removing the final direct Candid/CDK dependencies.
+  Preserve bounded calls, reply limits, wire types and upstream runtime behavior.
+- Use Testkit 0.54 and Platform's codec in compiled Governance tests, retiring
+  the separate decoder dependency without changing reply limits or call behavior.
+- Route standard ledger account, metadata, allowance, block/archive and certificate
+  types through Platform, preserving upstream identities and wire formats.
+  Keep stable-memory storage integration excluded.
+- Enforce direct dependency ownership with Shared Tooling's boundary checker,
+  including renamed and target-specific dependencies.
+
+- Adopt Shared Tooling 0.24.0 and its two-tool common Rust setup.
+- Label dependency roles and preserve their groups through formatting, hooks
+  and source-bound release manifest checks.
+- Reject testing/tooling packages in the CLI and Governance probe dependency
+  graphs. Document the remaining deployment evidence-binding gap.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
+## [0.62.1] - 2026-10-18
+
+- Fix internal descriptor-lock exports for focused library tests without the
+  aggregate `host` feature.
+
+- Remove the retired test-only certificate decoding path. CMC and ICRC
+  tests exercise shared commitment verification and their own leaf policies;
+  bounded decoding remains covered by the certificate module.
+
+- Use Host's retaining fixture-directory owner in Governance harness tests.
+  Leave failed-test evidence available for diagnosis.
+- Keep generic tooling regression suites with Shared Tooling; retain Query's
+  Make, hook, workflow, release-adapter and product integration checks.
+- Clarify library/tooling ownership and document the adopted bounded Candid
+  codec and Host HTTP fixtures. Align dependency examples with the current
+  0.62 API and remove the obsolete synchronous-runtime bridge claim.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
+## [0.62.0] - 2026-10-17
+
+- Align the compiled Governance fixture with Testkit 0.53’s explicit Candid
+  argument-list helpers, preserving the selected dependency update.
+
+- **Breaking:** Cache refreshes use persistent empty coordination files with
+  Host descriptor locking. Remove lock-age arguments, constants and CLI options;
+  cache status reports `active`, `available` or `invalid` from current exclusion.
+  Before upgrading, stop all writers and explicitly retire incompatible nonempty
+  lock files. Keep cache/attempt evidence; never unlink live coordination files.
+
+- **Breaking:** ICRC balance and allowance reports compose their existing payloads
+  in `value`; Rust callers use `report.value`. Text and flat JSON stay unchanged.
+- **Breaking:** CloudEngine node-class JSON uses the native Candid spelling
+  (`type4_1` through `type4_5`). Marketplace keys and text retain dotted labels.
+- **Breaking:** CloudEngine list rows store `operator` as one lookup result:
+  a native principal, successful absence, or a bounded error. Update Rust/JSON
+  consumers; schema remains 1. Invalid custom-source evidence still fails the report.
+
+- Adopt Shared Tooling 0.23.0 and its common ICP 1.7.0 catalog. Retain Query's
+  IC-tool setup/checks and documentation-debt gate under their local owners.
+
+- **Breaking:** SNS neuron, proposal and ballot rows retain native timestamps
+  without stored UTC strings. Text derives those strings when rendered. Update
+  Rust/JSON consumers, preserve evidence and explicitly refresh affected caches.
+- Share Dashboard token-value response decoding with its existing source row,
+  preserving nullable raw values and validated report timestamps.
+
+- **Breaking:** SNS lifecycle and treasury records retain native numeric codes
+  without stored labels or a parallel treasury enum. Update JSON/Rust consumers
+  and explicitly refresh SNS catalogs after preserving required evidence.
+- **Breaking:** SNS metrics and swap reports compose their existing source
+  payloads in `metrics` and `swap`. Payloads are available without host features;
+  report JSON remains flat apart from the removed derived labels.
+
+- **Breaking:** SNS proposal rows and ballots retain native action IDs and vote
+  codes without duplicated classifications. Labels remain available in text and
+  filtering. Update Rust/JSON consumers and explicitly refresh proposal caches.
+- **Breaking:** ICRC account-page reports compose `page: IcrcAccountTransactionPageData`;
+  existing text and flat JSON fields remain unchanged.
+- Preserve the existing flat SNS reward-checkpoint format for historical
+  before/after reconciliation. Continue validating aggregates against raw evidence.
+
+- **Breaking:** ICRC and SNS token reports compose their shared metadata as
+  `token: IcrcTokenData`. Update Rust field access; text and flat report JSON
+  preserve their existing fields and raw values.
+- **Breaking:** Shared complete snapshots store explicit `metadata` and `data`
+  objects, and refresh-attempt files store explicit `metadata`. Preserve any
+  needed existing evidence, then explicitly refresh the affected caches. Schemas
+  remain 1; readers reject unknown and duplicate fields without migration.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
 
 ## [0.61.0] - 2026-10-17
 

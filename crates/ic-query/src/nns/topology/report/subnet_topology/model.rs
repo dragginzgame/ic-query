@@ -384,8 +384,6 @@ pub struct NnsSubnetTopologyRefreshRequest {
     pub source_endpoint: String,
     /// Current Unix timestamp used for provenance and lock policy.
     pub now_unix_secs: u64,
-    /// Age after which an existing refresh lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
 }
 
 #[cfg(feature = "nns-topology-host")]
@@ -396,13 +394,11 @@ impl NnsSubnetTopologyRefreshRequest {
         cache: NnsSubnetTopologyCacheRequest,
         source_endpoint: impl Into<String>,
         now_unix_secs: u64,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache,
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
-            lock_stale_after_seconds,
         }
     }
 }

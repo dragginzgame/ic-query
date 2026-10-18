@@ -7,8 +7,7 @@
 use crate::{
     cache::CacheRefreshAttemptStatus,
     cache_file::{
-        BoundedManagedFileReadError, CacheFileError, JsonCacheHeader, ManagedReadBudget,
-        read_bounded_managed_file,
+        BoundedManagedFileReadError, CacheFileError, ManagedReadBudget, read_bounded_managed_file,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
@@ -70,13 +69,13 @@ impl SnapshotRefreshProgress {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SnapshotRefreshAttempt<Metadata> {
     pub schema_version: u32,
     pub network: String,
     pub source_endpoint: String,
     pub started_at: String,
     pub updated_at: String,
-    #[serde(flatten)]
     pub metadata: Metadata,
     /// Current lifecycle state, serialized as its stable lowercase label.
     pub status: CacheRefreshAttemptStatus,
@@ -90,7 +89,6 @@ pub struct SnapshotRefreshAttempt<Metadata> {
 pub fn read_snapshot_refresh_attempt_strict<T>(
     cache_root: &Path,
     path: &Path,
-    metadata_fields: &[&str],
     budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Option<T>, SnapshotRefreshAttemptReadError>
 where
@@ -106,21 +104,6 @@ where
     else {
         return Ok(None);
     };
-    let header: JsonCacheHeader =
-        serde_json::from_slice(&data).map_err(|source| SnapshotRefreshAttemptReadError::Parse {
-            path: path.to_path_buf(),
-            source,
-        })?;
-    if let Some(field) = header
-        .keys
-        .iter()
-        .find(|field| !attempt_field_is_supported(field, metadata_fields))
-    {
-        return Err(SnapshotRefreshAttemptReadError::Invalid {
-            path: path.to_path_buf(),
-            reason: format!("unknown field {field}"),
-        });
-    }
     serde_json::from_slice(&data).map(Some).map_err(|source| {
         SnapshotRefreshAttemptReadError::Parse {
             path: path.to_path_buf(),
@@ -159,23 +142,6 @@ fn snapshot_attempt_read_error(
             }
         }
     }
-}
-
-fn attempt_field_is_supported(field: &str, metadata_fields: &[&str]) -> bool {
-    matches!(
-        field,
-        "schema_version"
-            | "network"
-            | "source_endpoint"
-            | "started_at"
-            | "updated_at"
-            | "status"
-            | "page_size"
-            | "pages_fetched"
-            | "rows_fetched"
-            | "last_cursor"
-            | "last_error"
-    ) || metadata_fields.contains(&field)
 }
 
 pub fn current_attempt_timestamp(fallback: &str) -> String {

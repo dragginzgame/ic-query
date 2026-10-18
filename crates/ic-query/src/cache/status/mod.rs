@@ -47,7 +47,7 @@ pub fn build_cache_status_report(
     let refresh_locks = inventory
         .refresh_locks
         .into_iter()
-        .map(|path| refresh_lock_status_row(&request.cache_root, &path, request.now_unix_secs))
+        .map(|path| refresh_lock_status_row(&request.cache_root, &path))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(CacheStatusReport {
         schema_version: CACHE_STATUS_REPORT_SCHEMA_VERSION,
@@ -71,9 +71,9 @@ pub fn build_cache_status_report(
             &refresh_locks,
             CacheRefreshLockStatus::Active,
         ),
-        stale_refresh_lock_count: count_refresh_lock_status(
+        available_refresh_lock_count: count_refresh_lock_status(
             &refresh_locks,
-            CacheRefreshLockStatus::Stale,
+            CacheRefreshLockStatus::Available,
         ),
         invalid_refresh_lock_count: count_refresh_lock_status(
             &refresh_locks,

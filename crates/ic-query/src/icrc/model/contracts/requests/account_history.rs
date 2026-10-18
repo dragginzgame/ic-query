@@ -130,8 +130,6 @@ pub struct IcrcAccountTransactionRefreshRequest {
     pub page_size: u32,
     /// Optional diagnostic bound that fails rather than publishing a partial cache.
     pub max_pages: Option<u32>,
-    /// Age after which an abandoned refresh lock is reported as stale.
-    pub lock_stale_after_seconds: u64,
 }
 
 impl IcrcAccountTransactionRefreshRequest {
@@ -141,7 +139,6 @@ impl IcrcAccountTransactionRefreshRequest {
         cache: IcrcAccountTransactionCacheRequest,
         now_unix_secs: u64,
         page_size: u32,
-        lock_stale_after_seconds: u64,
     ) -> Self {
         Self {
             cache,
@@ -149,7 +146,6 @@ impl IcrcAccountTransactionRefreshRequest {
             index_canister_id: None,
             page_size,
             max_pages: None,
-            lock_stale_after_seconds,
         }
     }
 

@@ -1,9 +1,12 @@
 #!/usr/bin/env perl
-# Shared companions: docs/type-docs.md
+# Shared companions: docs/type-docs.md scripts/ci/RustSource.pm
 use strict;
 use warnings;
 use File::Find qw(find);
-use Encode qw(decode FB_CROAK);
+use Encode qw(decode encode FB_CROAK);
+use FindBin qw($RealBin);
+use lib $RealBin;
+use RustSource qw(code_mask);
 
 @ARGV or die "usage: check-type-docs.pl <source-directory-or-rust-file>...\n";
 my %rust_files;
@@ -21,36 +24,6 @@ for my $root (@ARGV) {
 }
 keys %rust_files or die "error: source selection contains no Rust files\n";
 
-# Preserve offsets/newlines while excluding literals and comments from declaration
-# discovery. Documentation is checked against the original, unmodified source.
-sub code_mask {
-    my ($source) = @_;
-    my $mask = $source;
-    pos($source) = 0;
-    while ($source =~ m{(//[^\n]*|/\*|(?:br|r)(\#*)"|b?"(?:\\.|[^"\\])*"|b?'(?:\\.|[^'\\])')}gcs) {
-        my ($token, $hashes, $start, $end) = ($1, $2, $-[0], $+[0]);
-        if ($token eq '/*') {
-            my $depth = 1;
-            while ($depth) {
-                my $open = index($source, '/*', $end);
-                my $close = index($source, '*/', $end);
-                $close >= 0 or die "error: unterminated Rust block comment\n";
-                if ($open >= 0 && $open < $close) { $depth++; $end = $open + 2; }
-                else { $depth--; $end = $close + 2; }
-            }
-        } elsif (defined $hashes) {
-            my $close = index($source, '"' . $hashes, $end);
-            $close >= 0 or die "error: unterminated Rust raw string\n";
-            $end = $close + 1 + length($hashes);
-        }
-        my $hidden = substr($source, $start, $end - $start);
-        $hidden =~ s/[^\n]/ /g;
-        substr($mask, $start, $end - $start) = $hidden;
-        pos($source) = $end;
-    }
-    return $mask;
-}
-
 my @violations;
 for my $file (sort keys %rust_files) {
     open my $handle, '<:raw', $file or die "error: cannot read $file: $!\n";
@@ -62,6 +35,7 @@ for my $file (sort keys %rust_files) {
     while ($mask =~ /^[ \t]*pub(?:\([^)]*\))?[ \t]+(?:struct|enum|trait)[ \t]+(?:r#)?([_\p{XID_Start}][\p{XID_Continue}]*)/mg) {
         my $name = $1;
         my $offset = $-[0];
+        my $display_name = encode('UTF-8', $name);
         my $prefix = substr($source, 0, $offset);
         # Nested attributes may span several lines. Walk balanced brackets in
         # the masked prefix so strings/comments cannot change attribute depth.
@@ -78,7 +52,7 @@ for my $file (sort keys %rust_files) {
                 $depth-- if $char eq '[';
             }
             $depth == 0 && $cursor > 0 && substr($before, $cursor - 1, 1) eq '#'
-                or die "error: unsupported Rust attribute before $name in $file\n";
+                or die "error: unsupported Rust attribute before $display_name in $file\n";
             $cursor--;
             $prefix = substr($source, 0, $cursor);
             $before = substr($before, 0, $cursor);
@@ -95,7 +69,7 @@ for my $file (sort keys %rust_files) {
         }xms;
         next if $valid;
         my $line = 1 + (substr($source, 0, $offset) =~ tr/\n//);
-        push @violations, "$file:$line: $name";
+        push @violations, "$file:$line: $display_name";
     }
 }
 if (@violations) {

@@ -10,7 +10,7 @@ use crate::{
     sns::report::{
         MainnetSnsMetrics, SnsCanisterMethod, SnsTreasuryMetricRow, SnsVotingPowerMetrics,
         live::types::{MetricsWire, TreasuryMetricsWire, VotingPowerMetricsWire},
-        source::{SNS_METRICS_CALL_TYPE, sns_treasury_kind},
+        source::SNS_METRICS_CALL_TYPE,
     },
 };
 
@@ -51,7 +51,7 @@ fn treasury_metric_row(metric: TreasuryMetricsWire) -> SnsTreasuryMetricRow {
     });
     SnsTreasuryMetricRow {
         treasury: metric.treasury,
-        treasury_kind: sns_treasury_kind(metric.treasury),
+
         name: clean_optional_text(metric.name),
         ledger_canister_id: metric
             .ledger_canister_id

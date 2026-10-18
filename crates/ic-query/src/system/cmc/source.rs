@@ -14,8 +14,8 @@ use crate::{
     hex::hex_bytes,
     subnet_catalog::format_utc_timestamp_secs,
 };
-use candid::Principal;
-use ic_agent::hash_tree::{HashTree, LookupResult};
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::{HashTree, LookupResult};
 
 const GET_ICP_XDR_CONVERSION_RATE_METHOD: &str = "get_icp_xdr_conversion_rate";
 const ICP_XDR_CONVERSION_RATE_LABEL: &[u8] = b"ICP_XDR_CONVERSION_RATE";
@@ -119,9 +119,11 @@ async fn fetch_live_certified_rate(
             reason: error.to_string(),
         }
     })?;
-    let arg = candid::encode_args(()).map_err(|error| CmcHostError::CandidEncode {
-        message: "()",
-        reason: error.to_string(),
+    let arg = ic_platform::candid::contract::encode_args(()).map_err(|error| {
+        CmcHostError::CandidEncode {
+            message: "()",
+            reason: error.to_string(),
+        }
     })?;
     let bytes = agent
         .query(&canister, GET_ICP_XDR_CONVERSION_RATE_METHOD)
@@ -141,7 +143,7 @@ async fn fetch_live_certified_rate(
 }
 
 fn verified_certified_rate(
-    agent: &ic_agent::Agent,
+    agent: &ic_platform::agent::Agent,
     canister: &Principal,
     response: CmcCertifiedRateResponse,
 ) -> Result<CmcCertifiedRate, CmcHostError> {
@@ -168,12 +170,14 @@ fn verified_certified_rate(
 }
 
 fn verify_rate_leaf(
-    hash_tree: &HashTree<Vec<u8>>,
+    hash_tree: &HashTree,
     rate: &CmcIcpXdrConversionRate,
 ) -> Result<(), CmcHostError> {
-    let expected = candid::encode_one(rate).map_err(|error| CmcHostError::CandidEncode {
-        message: "IcpXdrConversionRate",
-        reason: error.to_string(),
+    let expected = ic_platform::candid::contract::encode_one(rate).map_err(|error| {
+        CmcHostError::CandidEncode {
+            message: "IcpXdrConversionRate",
+            reason: error.to_string(),
+        }
     })?;
     let actual = match hash_tree.lookup_path([ICP_XDR_CONVERSION_RATE_LABEL]) {
         LookupResult::Found(value) => value,
@@ -210,18 +214,16 @@ fn map_certified_data_error(error: CertifiedDataError) -> CmcHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::certification::verify_canister_hash_tree;
-    use ic_agent::{
-        Certificate,
-        hash_tree::{label, leaf},
-    };
+    use crate::certification::verify_canister_tree;
+    use ic_platform::certification::{Certificate, labeled as label, leaf};
 
     #[test]
     fn official_candid_shape_round_trips() {
         let response = response(Vec::new(), Vec::new());
-        let bytes = candid::encode_one(&response).expect("encode official CMC response");
+        let bytes = ic_platform::candid::contract::encode_one(&response)
+            .expect("encode official CMC response");
         let decoded: CmcCertifiedRateResponse =
-            candid::decode_one(&bytes).expect("decode official CMC response");
+            crate::candid_decode::decode_reply(&bytes).expect("decode official CMC response");
 
         assert_eq!(decoded, response);
     }
@@ -230,15 +232,13 @@ mod tests {
     fn accepts_a_rate_leaf_committed_by_certified_data() {
         let canister = cmc_canister();
         let rate = rate();
-        let encoded_rate = candid::encode_one(&rate).expect("encode CMC rate");
+        let encoded_rate =
+            ic_platform::candid::contract::encode_one(&rate).expect("encode CMC rate");
         let hash_tree = label(ICP_XDR_CONVERSION_RATE_LABEL.to_vec(), leaf(encoded_rate));
         let certificate = certificate_for_tree(&canister, hash_tree.digest().to_vec());
-        let encoded_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
-
-        let verified_tree =
-            verify_canister_hash_tree(&certificate, &canister, &encoded_tree, "canister")
-                .expect("matching certified-data witness");
-        verify_rate_leaf(&verified_tree, &rate).expect("matching certified CMC rate leaf");
+        verify_canister_tree(&certificate, &canister, &hash_tree, "canister")
+            .expect("matching certified-data witness");
+        verify_rate_leaf(&hash_tree, &rate).expect("matching certified CMC rate leaf");
     }
 
     #[test]
@@ -248,7 +248,8 @@ mod tests {
             timestamp_seconds: rate.timestamp_seconds,
             xdr_permyriad_per_icp: rate.xdr_permyriad_per_icp + 1,
         };
-        let encoded_rate = candid::encode_one(&different_rate).expect("encode CMC rate");
+        let encoded_rate =
+            ic_platform::candid::contract::encode_one(&different_rate).expect("encode CMC rate");
         let hash_tree = label(ICP_XDR_CONVERSION_RATE_LABEL.to_vec(), leaf(encoded_rate));
 
         let error = verify_rate_leaf(&hash_tree, &rate)
@@ -278,14 +279,15 @@ mod tests {
     fn authenticates_the_certificate_before_accepting_the_rate() {
         let canister = cmc_canister();
         let rate = rate();
-        let encoded_rate = candid::encode_one(&rate).expect("encode CMC rate");
+        let encoded_rate =
+            ic_platform::candid::contract::encode_one(&rate).expect("encode CMC rate");
         let hash_tree = label(ICP_XDR_CONVERSION_RATE_LABEL.to_vec(), leaf(encoded_rate));
         let certificate = certificate_for_tree(&canister, hash_tree.digest().to_vec());
         let response = response(
             serde_cbor::to_vec(&hash_tree).expect("encode hash tree"),
             serde_cbor::to_vec(&certificate).expect("encode certificate"),
         );
-        let agent = ic_agent::Agent::builder()
+        let agent = ic_platform::agent::Agent::builder()
             .with_url(super::super::DEFAULT_CMC_SOURCE_ENDPOINT)
             .build()
             .expect("build agent");

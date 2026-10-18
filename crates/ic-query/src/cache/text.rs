@@ -39,7 +39,10 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
         ),
         format!("refresh_locks: {}", report.refresh_lock_count),
         format!("active_refresh_locks: {}", report.active_refresh_lock_count),
-        format!("stale_refresh_locks: {}", report.stale_refresh_lock_count),
+        format!(
+            "available_refresh_locks: {}",
+            report.available_refresh_lock_count
+        ),
         format!(
             "invalid_refresh_locks: {}",
             report.invalid_refresh_lock_count
@@ -118,7 +121,7 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
         lines.push(String::new());
         lines.push("REFRESH LOCKS".to_string());
         lines.push(render(
-            &["STATUS", "COMPONENT", "AGE", "STALE AFTER", "PID", "PATH"],
+            &["STATUS", "COMPONENT", "PATH"],
             &report
                 .refresh_locks
                 .iter()
@@ -126,24 +129,11 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
                     [
                         row.status.as_str().to_string(),
                         row.component.clone(),
-                        row.age_seconds
-                            .map_or_else(|| "-".to_string(), display_duration_seconds),
-                        row.stale_after_seconds
-                            .map_or_else(|| "-".to_string(), display_duration_seconds),
-                        row.pid
-                            .map_or_else(|| "-".to_string(), |pid| pid.to_string()),
                         row.relative_path.clone(),
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[
-                Alignment::Left,
-                Alignment::Left,
-                Alignment::Right,
-                Alignment::Right,
-                Alignment::Right,
-                Alignment::Left,
-            ],
+            &[Alignment::Left, Alignment::Left, Alignment::Left],
             REPORT_TABLE_OPTIONS,
         ));
         for row in report

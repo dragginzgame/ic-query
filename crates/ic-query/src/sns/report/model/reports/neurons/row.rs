@@ -40,8 +40,6 @@ pub struct SnsNeuronRow {
     pub staked_maturity_e8s_equivalent: Option<u64>,
     /// Unix timestamp in seconds at which the neuron was created.
     pub created_timestamp_seconds: u64,
-    /// UTC rendering derived exactly from `created_timestamp_seconds`.
-    pub created_at: String,
     /// Source NNS neuron identifier when the neuron was created from one.
     pub source_nns_neuron_id: Option<u64>,
     /// Whether maturity is automatically staked when governance supplies the setting.

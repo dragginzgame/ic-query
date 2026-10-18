@@ -1,4 +1,3 @@
-use crate::sns::report::source::sns_swap_lifecycle_name;
 use crate::sns::report::tests::*;
 
 pub(in crate::sns::report::tests) const ROOT_A: &str = "be2us-64aaa-aaaaa-qaabq-cai";
@@ -186,7 +185,7 @@ pub(in crate::sns::report::tests) fn fixture_sns_a() -> MainnetSns {
         },
         metadata_error: None,
         lifecycle: None,
-        lifecycle_name: None,
+
         lifecycle_error: None,
     }
 }
@@ -253,7 +252,7 @@ fn fixture_lifecycles(
             MainnetSnsLifecycle {
                 root_canister_id: target.root_canister_id.clone(),
                 lifecycle: Some(lifecycle),
-                lifecycle_name: sns_swap_lifecycle_name(Some(lifecycle)).map(str::to_string),
+
                 lifecycle_error: None,
             }
         })

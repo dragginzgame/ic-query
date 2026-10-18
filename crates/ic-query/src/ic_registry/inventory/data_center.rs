@@ -4,9 +4,9 @@ use crate::ic_registry::{
     proto::{DataCenterRecord, NodeOperatorRecord},
     transport::{decode_message, get_registry_value},
 };
-use candid::Principal;
 use futures::{StreamExt, TryStreamExt, stream};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) async fn fetch_data_center_records_for_inventory(

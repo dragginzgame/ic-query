@@ -7,6 +7,6 @@ pub(in crate::nns) use read::{
     topology_gaps_command, topology_providers_command, topology_regions_command,
     topology_summary_command, topology_versions_command,
 };
+pub(super) use refresh::DRY_RUN_ARG;
 pub(in crate::nns) use refresh::topology_refresh_command;
-pub(super) use refresh::{DRY_RUN_ARG, LOCK_STALE_AFTER_ARG};
 pub(in crate::nns) use root::topology_command;

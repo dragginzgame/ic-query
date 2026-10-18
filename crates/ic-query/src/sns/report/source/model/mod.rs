@@ -26,10 +26,7 @@ pub(in crate::sns::report) use list::{
     validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
 };
 pub use list::{MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata};
-pub use metrics::MainnetSnsMetrics;
-pub(in crate::sns::report) use metrics::{
-    SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics, sns_treasury_kind,
-};
+pub(in crate::sns::report) use metrics::{SNS_METRICS_CALL_TYPE, canonicalize_mainnet_sns_metrics};
 pub use neurons::{MainnetSnsNeuronPage, SnsNeuronId};
 pub(in crate::sns::report) use neurons::{
     sns_neuron_id_from_text, validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
@@ -43,10 +40,8 @@ pub use reward::MainnetSnsRewardNeuronPage;
 pub(in crate::sns::report) use reward::{
     SnsRewardCollectionState, validate_mainnet_sns_reward_neuron_page,
 };
-pub use swap::MainnetSnsSwap;
 pub(in crate::sns::report) use swap::{
     SNS_SWAP_QUERY_COUNT, canonicalize_mainnet_sns_swap, sns_swap_component_method,
-    sns_swap_lifecycle_name,
 };
 pub use token::MainnetSnsToken;
 pub use upgrade::MainnetSnsUpgrade;

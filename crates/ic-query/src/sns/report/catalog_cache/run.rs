@@ -41,34 +41,19 @@ use std::path::{Path, PathBuf};
 
 /// Default age after which `sns list` refreshes its joined catalog.
 pub const DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS: u64 = 60 * 60;
-/// Default age after which a deployed-SNS catalog refresh lock is stale.
-pub const DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
 
 const CACHE_COMPONENT: &str = "SNS catalog";
 const CACHE_DOMAIN: &str = "sns";
 const CACHE_ENTITY: &str = "catalog";
 const CACHE_COLLECTION: &str = "discovery";
-const CACHE_FIELDS: &[&str] = &[
-    "schema_version",
-    "network",
-    "source_endpoint",
-    "fetched_at",
-    "fetched_by",
-    "domain",
-    "entity",
-    "collection",
-    "scope",
-    "sns_wasm_canister_id",
-    "completeness",
-    "sns_instances",
-];
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SnsCatalogMetadata {
     sns_wasm_canister_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 struct SnsCatalogData {
     sns_instances: Vec<MainnetSns>,
 }
@@ -165,9 +150,6 @@ pub async fn refresh_sns_catalog_with_source(
             cache_root: &request.cache.cache_root,
             snapshot_path: &paths.snapshot_path,
             refresh_lock_path: &paths.refresh_lock_path,
-            network: &request.cache.network,
-            now_unix_secs: request.now_unix_secs,
-            lock_stale_after_seconds: request.lock_stale_after_seconds,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
         async |state| {
@@ -238,7 +220,6 @@ fn load_cached_sns_catalog(
         },
         None,
         &key,
-        CACHE_FIELDS,
         missing_catalog_cache_error,
         |completeness| SnsHostError::InvalidCache {
             path: path.clone(),
@@ -361,7 +342,6 @@ fn refresh_request(request: &SnsListRequest, cache_root: &Path) -> SnsCatalogRef
         &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
-        DEFAULT_SNS_CATALOG_REFRESH_LOCK_STALE_SECONDS,
     )
 }
 

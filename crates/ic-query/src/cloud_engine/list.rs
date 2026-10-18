@@ -8,9 +8,8 @@
 use super::{
     CLOUD_ENGINE_AUTHORITY, CLOUD_ENGINE_REPORT_SCHEMA_VERSION, CloudEngineHostError,
     CloudEngineListReport, CloudEngineListRow, CloudEngineOperatorBindingSource,
-    CloudEngineOperatorBindingSourceData, CloudEngineOperatorLookupStatus,
-    CloudEngineSourceRequest, LiveCloudEngineSource, MAINNET_CLOUD_ENGINE_CANISTER_ID,
-    MAX_CLOUD_ENGINE_LIST_ROWS,
+    CloudEngineOperatorBindingSourceData, CloudEngineSourceRequest, LiveCloudEngineSource,
+    MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_LIST_ROWS,
     build::{
         invalid_source, validate_canonical_principal, validate_principal_match,
         validate_source_request,
@@ -23,6 +22,7 @@ use crate::subnet_catalog::{
     SubnetKind, build_subnet_catalog_list_report_with_source_and_progress,
 };
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
+use ic_platform::candid::contract::Principal;
 
 const REGISTRY_AUTHORITY: &str = "nns_registry";
 const MAX_LOOKUP_ERROR_BYTES: usize = 4_096;
@@ -143,28 +143,13 @@ async fn collect_binding_rows(
         let lookup = source
             .fetch_operator_binding(control_plane_request, subnet.subnet_principal.as_str())
             .await;
-        let (operator_lookup_status, operator_canister_id, operator_lookup_error) = match lookup {
-            Ok(source_data) => {
-                validate_binding_source(
-                    control_plane_request,
-                    &subnet.subnet_principal,
-                    &source_data,
-                )?;
-                if source_data.operator_canister_id.is_some() {
-                    (
-                        CloudEngineOperatorLookupStatus::Resolved,
-                        source_data.operator_canister_id,
-                        None,
-                    )
-                } else {
-                    (CloudEngineOperatorLookupStatus::Absent, None, None)
-                }
-            }
-            Err(error) => (
-                CloudEngineOperatorLookupStatus::Failed,
-                None,
-                Some(bounded_error_text(&error.to_string())),
-            ),
+        let operator = match lookup {
+            Ok(source_data) => Ok(validate_binding_source(
+                control_plane_request,
+                &subnet.subnet_principal,
+                &source_data,
+            )?),
+            Err(error) => Err(bounded_error_text(&error.to_string())),
         };
 
         cloud_engines.push(CloudEngineListRow {
@@ -181,9 +166,7 @@ async fn collect_binding_rows(
             node_count: subnet.node_count,
             charges_apply_by_default: subnet.charges_apply_by_default,
             range_count: subnet.range_count,
-            operator_lookup_status,
-            operator_canister_id,
-            operator_lookup_error,
+            operator,
         });
     }
     Ok(cloud_engines)
@@ -194,12 +177,16 @@ fn assemble_report(
     catalog: SubnetCatalogListReport,
     cloud_engines: Vec<CloudEngineListRow>,
 ) -> CloudEngineListReport {
-    let operator_binding_count =
-        count_status(&cloud_engines, CloudEngineOperatorLookupStatus::Resolved);
-    let missing_operator_binding_count =
-        count_status(&cloud_engines, CloudEngineOperatorLookupStatus::Absent);
-    let operator_lookup_failure_count =
-        count_status(&cloud_engines, CloudEngineOperatorLookupStatus::Failed);
+    let mut operator_binding_count = 0;
+    let mut missing_operator_binding_count = 0;
+    let mut operator_lookup_failure_count = 0;
+    for row in &cloud_engines {
+        match &row.operator {
+            Ok(Some(_)) => operator_binding_count += 1,
+            Ok(None) => missing_operator_binding_count += 1,
+            Err(_) => operator_lookup_failure_count += 1,
+        }
+    }
 
     CloudEngineListReport {
         schema_version: CLOUD_ENGINE_REPORT_SCHEMA_VERSION,
@@ -290,7 +277,7 @@ fn validate_binding_source(
     request: &CloudEngineSourceRequest,
     subnet_id: &str,
     source: &CloudEngineOperatorBindingSourceData,
-) -> Result<(), CloudEngineHostError> {
+) -> Result<Option<Principal>, CloudEngineHostError> {
     validate_source_request(request, &source.source)?;
     validate_principal_match("subnet_id", subnet_id, &source.subnet_id)?;
     if source.query_call_count != 1 {
@@ -299,16 +286,11 @@ fn validate_binding_source(
             source.query_call_count
         ));
     }
-    if let Some(operator) = source.operator_canister_id.as_deref() {
-        validate_canonical_principal("operator_canister_id", operator)?;
-    }
-    Ok(())
-}
-
-fn count_status(rows: &[CloudEngineListRow], status: CloudEngineOperatorLookupStatus) -> usize {
-    rows.iter()
-        .filter(|row| row.operator_lookup_status == status)
-        .count()
+    source
+        .operator_canister_id
+        .as_deref()
+        .map(|operator| validate_canonical_principal("operator_canister_id", operator))
+        .transpose()
 }
 
 fn bounded_error_text(error: &str) -> String {

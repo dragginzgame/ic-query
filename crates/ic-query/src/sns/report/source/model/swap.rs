@@ -5,42 +5,11 @@
 //! Boundary: validates target identity, native methods, partial gaps, and raw numeric values.
 
 use super::validation::SnsSourceValidator;
-use crate::sns::report::{
-    SnsCanisterMethod, SnsHostError, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapQueryGap, SnsSwapSaleParameters,
-};
+use crate::sns::report::{MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSwapComponent};
 use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_SWAP_QUERY_COUNT: usize = 3;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS swap");
-
-///
-/// MainnetSnsSwap
-///
-/// Source-layer result from the three bounded native swap queries for one SNS.
-///
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct MainnetSnsSwap {
-    /// Swap canister identity queried by the source.
-    pub swap_canister_id: String,
-    /// Native lifecycle query method.
-    pub lifecycle_method: SnsCanisterMethod,
-    /// Native sale-parameters query method.
-    pub sale_parameters_method: SnsCanisterMethod,
-    /// Native derived-state query method.
-    pub derived_state_method: SnsCanisterMethod,
-    /// Whether the source can prove one point-in-time snapshot across all queries.
-    pub point_in_time_guaranteed: bool,
-    /// Lifecycle response, absent only when represented by a matching gap.
-    pub lifecycle: Option<SnsSwapLifecycle>,
-    /// Sale parameters, or `None` for either a matching gap or a successful empty response.
-    pub sale_parameters: Option<SnsSwapSaleParameters>,
-    /// Derived-state response, absent only when represented by a matching gap.
-    pub derived_state: Option<SnsSwapDerivedState>,
-    /// Component query failures retained by the source.
-    pub gaps: Vec<SnsSwapQueryGap>,
-}
 
 pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     swap: &mut MainnetSnsSwap,
@@ -74,15 +43,6 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
         ));
     }
 
-    if let Some(lifecycle) = &swap.lifecycle {
-        let expected_name = sns_swap_lifecycle_name(lifecycle.lifecycle).map(str::to_string);
-        if lifecycle.lifecycle_name != expected_name {
-            return Err(VALIDATOR.invalid(format!(
-                "lifecycle_name is {:?}, expected {:?} for lifecycle {:?}",
-                lifecycle.lifecycle_name, expected_name, lifecycle.lifecycle
-            )));
-        }
-    }
     if let Some(rate) = swap
         .derived_state
         .as_ref()
@@ -150,21 +110,6 @@ pub(in crate::sns::report) const fn sns_swap_component_method(
     }
 }
 
-pub(in crate::sns::report) const fn sns_swap_lifecycle_name(
-    lifecycle: Option<i32>,
-) -> Option<&'static str> {
-    match lifecycle {
-        None => None,
-        Some(0) => Some("unspecified"),
-        Some(1) => Some("pending"),
-        Some(2) => Some("open"),
-        Some(3) => Some("committed"),
-        Some(4) => Some("aborted"),
-        Some(5) => Some("adopted"),
-        Some(_) => Some("unknown"),
-    }
-}
-
 fn validate_component_result(
     component: SnsSwapComponent,
     has_value: bool,
@@ -184,25 +129,4 @@ fn validate_component_result(
         )));
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::sns_swap_lifecycle_name;
-
-    #[test]
-    fn lifecycle_names_preserve_native_codes_and_unknown_values() {
-        for (code, expected) in [
-            (None, None),
-            (Some(0), Some("unspecified")),
-            (Some(1), Some("pending")),
-            (Some(2), Some("open")),
-            (Some(3), Some("committed")),
-            (Some(4), Some("aborted")),
-            (Some(5), Some("adopted")),
-            (Some(99), Some("unknown")),
-        ] {
-            assert_eq!(sns_swap_lifecycle_name(code), expected);
-        }
-    }
 }

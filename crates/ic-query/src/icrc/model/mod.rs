@@ -14,13 +14,14 @@ mod token_metadata;
 pub use contracts::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
     IcrcAccountTransactionCacheSummary, IcrcAccountTransactionListReport,
-    IcrcAccountTransactionListRequest, IcrcAccountTransactionPageReport,
-    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshAttemptStatus,
-    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRefreshRequest,
-    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort,
+    IcrcAccountTransactionListRequest, IcrcAccountTransactionPageData,
+    IcrcAccountTransactionPageReport, IcrcAccountTransactionPageRequest,
+    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
+    IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionRow,
+    IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort, IcrcAllowanceData,
     IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
-    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
     IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
     IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport,
     IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
@@ -28,8 +29,7 @@ pub use contracts::{
 #[cfg(feature = "icrc-host")]
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcAccountTransactionPageData, IcrcAllowanceData, IcrcBalanceData, IcrcCapabilitiesData,
-    IcrcIndexData, IcrcTransactionsData,
+    IcrcCapabilitiesData, IcrcIndexData, IcrcTransactionsData,
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;

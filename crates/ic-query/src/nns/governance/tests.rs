@@ -178,9 +178,10 @@ fn economics_candid_shape_preserves_nested_native_options() {
             neuron_minimum_dissolve_delay_to_vote_seconds: Some(15_778_800),
         }),
     };
-    let bytes = candid::encode_one(&economics).expect("encode native economics");
+    let bytes =
+        ic_platform::candid::contract::encode_one(&economics).expect("encode native economics");
     let economics: NnsGovernanceEconomics =
-        candid::decode_one(&bytes).expect("decode native economics");
+        crate::candid_decode::decode_reply(&bytes).expect("decode native economics");
 
     let fund = economics
         .neurons_fund_economics
@@ -220,9 +221,10 @@ fn reward_and_maturity_public_types_preserve_native_candid_shapes() {
         distributed_e8s_equivalent: 6,
         settled_proposals: vec![NnsGovernanceProposalId { id: 7 }],
     };
-    let bytes = candid::encode_one(&reward_event).expect("encode reward event");
+    let bytes =
+        ic_platform::candid::contract::encode_one(&reward_event).expect("encode reward event");
     let decoded: NnsGovernanceRewardEvent =
-        candid::decode_one(&bytes).expect("decode reward event");
+        crate::candid_decode::decode_reply(&bytes).expect("decode reward event");
     assert_eq!(decoded, reward_event);
 
     let response = GetMaturityModulationResponse {
@@ -231,9 +233,10 @@ fn reward_and_maturity_public_types_preserve_native_candid_shapes() {
             updated_at_timestamp_seconds: Some(8),
         }),
     };
-    let bytes = candid::encode_one(&response).expect("encode maturity response");
+    let bytes =
+        ic_platform::candid::contract::encode_one(&response).expect("encode maturity response");
     let decoded: GetMaturityModulationResponse =
-        candid::decode_one(&bytes).expect("decode maturity response");
+        crate::candid_decode::decode_reply(&bytes).expect("decode maturity response");
     let modulation = decoded.maturity_modulation.expect("maturity modulation");
     assert_eq!(modulation.current_value_permyriad, Some(-125));
     assert_eq!(modulation.updated_at_timestamp_seconds, Some(8));
@@ -274,8 +277,9 @@ fn boxed_metrics_result_preserves_the_native_candid_variant_shape() {
         total_supply_icp: 42,
         ..GovernanceCachedMetrics::default()
     }));
-    let bytes = candid::encode_one(&result).expect("encode metrics result");
-    let decoded: GetMetricsResult = candid::decode_one(&bytes).expect("decode metrics result");
+    let bytes = ic_platform::candid::contract::encode_one(&result).expect("encode metrics result");
+    let decoded: GetMetricsResult =
+        crate::candid_decode::decode_reply(&bytes).expect("decode metrics result");
 
     let GetMetricsResult::Ok(metrics) = decoded else {
         panic!("expected native Ok metrics variant");

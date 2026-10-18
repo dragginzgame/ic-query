@@ -20,9 +20,6 @@ use crate::{
     snapshot_cache::SnapshotRefreshProgress,
 };
 
-/// Default stale-lock threshold in seconds for proposal refreshes.
-pub const DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS: u64 = 30 * 60;
-
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
 pub async fn refresh_nns_proposal_cache(
     request: &NnsGovernanceRefreshRequest,
@@ -64,7 +61,6 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
         request,
         &paths,
         NNS_PROPOSAL_CACHE_COMPONENT,
-        DEFAULT_NNS_PROPOSAL_REFRESH_LOCK_STALE_SECONDS,
         async |context| {
             let CompleteNnsProposalCollection { proposals, state } =
                 fetch_complete_nns_proposal_collection(

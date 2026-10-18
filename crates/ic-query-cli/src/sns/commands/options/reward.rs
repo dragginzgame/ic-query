@@ -4,9 +4,10 @@
 //! Does not own: strict pagination, source calls, or report output.
 //! Boundary: combines shared lookup options with an optional diagnostic page cap.
 
+use crate::cli::clap::required_typed;
 use crate::{
     cli::{
-        clap::{required_typed, typed_option},
+        clap::typed_option,
         common::{OutputFormat, output_format},
     },
     sns::commands::options::lookup::SnsLookupOptions,

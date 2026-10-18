@@ -24,9 +24,8 @@ This note describes the shared cache behavior expected across `ic-query`.
 - Failed refreshes should not replace a previously complete cache.
 - Failed exclusive staging creation preserves the entry that refused creation;
   cleanup begins only after this attempt has created its temporary file.
-- Operators should be able to inspect every known complete cache and refresh
-  lock, including age, size, and applicable stale policy, without making a
-  network request.
+- Operators should be able to inspect cache age, size and freshness policy,
+  plus current refresh exclusion, without making a network request.
 
 ## Bounded Content And Discovery
 
@@ -85,12 +84,14 @@ counts are invalid content: cache-only reads remain strict, while the owning
 read-through policies visibly recollect them. No fallback reader or migration
 is added, and schemas remain `1`.
 
-Strict shared loads validate top-level duplicates, supported fields, schema,
-and network in one header pass, then deserialize the typed report. An isolated
-local harness over the actual old/new loaders, with shared regular-file IO
-stubs, measured five warmed samples per case: median time fell from 0.299 s to
-0.221 s for 13.7 MB and from 1.827 s to 1.445 s for 68.5 MB. These compare JSON
-loading work, not complete native cache or network performance.
+Strict shared loads deserialize one typed report before validating its schema
+and network. Typed snapshot, metadata and data objects reject unknown and
+duplicate fields without a preliminary header parse or manual field allowlists.
+An earlier isolated local harness over two previous loader versions, with shared
+regular-file IO stubs, measured five warmed samples per case: median time fell
+from 0.299 s to 0.221 s for 13.7 MB and from 1.827 s to 1.445 s for 68.5 MB.
+Those historical JSON-loading measurements predate the current typed-only loader;
+they do not measure its performance or complete native cache/network operations.
 
 Cache-status discovery queues paths rather than live directory handles. It
 caps selected files at the requested scan limit, all visited entries at 16
@@ -98,9 +99,8 @@ times that limit, and directory depth at 32. Reaching any bound reports
 `truncated: true`; paths reopened during traversal retain capability-rooted
 permission and link checks.
 
-Successful refresh-lock removal ends the guard's ownership before directory
-sync. A sync error is returned without attempting to unlink a subsequent
-owner's replacement lock.
+Refresh completion releases descriptor ownership without unlinking or replacing
+the persistent coordination sidecar.
 
 ## Managed Filesystem Authority
 
@@ -181,10 +181,9 @@ Ordinary Subnet Catalog refreshes stream through the bounded JSON writer;
 only explicit exports retain the full pretty-JSON string. Dry-run validation
 without an export uses a serialization sink. Exports that also publish a
 snapshot must fit the reader's ceiling before either file is replaced.
-Refresh-lock reads and writes are capped at 64 KiB and refresh-attempt sidecars
-at 1 MiB;
-oversized metadata fails as invalid local evidence and never authorizes hidden
-network work or automatic deletion.
+Coordination files must be empty; metadata admission rejects nonempty files
+without reading their payload. Refresh-attempt sidecars remain capped at 1 MiB.
+Invalid metadata never authorizes hidden network work or automatic deletion.
 
 Live Subnet Catalog convenience calls also retain bounded Registry history
 transcripts under the same root. These schema-1 files are an endpoint-isolated
@@ -266,22 +265,27 @@ progress events and running-attempt updates before completion.
 
 ## Refresh Locks
 
-Refresh locks record the network, target cache, owner process id, acquisition
-time, and the stale threshold chosen by the refresh that created them. A
-competing refresh honors that recorded threshold, so one caller cannot
-reclassify another caller's active lock by supplying a shorter policy.
+Refreshes hold an exclusive nonblocking Host descriptor lock on a persistent,
+empty regular sidecar opened through the admitted cache-root capability.
+Coordination files use owner-only permissions and remain in place after every
+operation. Completion, cancellation, errors and unwinding explicitly unlock before
+closing the owned descriptor, so duplicated or inherited descriptors cannot
+prolong a completed refresh. Successful actions report unlock failures; other
+paths preserve the original failure and close as a fallback if unlocking fails.
+Process death releases ownership on final descriptor close. Contention is the
+kernel's current observation, not an estimate from file age. An interrupted
+refresh leaves no stale lease to clear.
 
-The refresh guard owns its lock immediately after exclusive creation. Writing
-and syncing the lock file precede syncing the parent directory; failure at
-either stage drops the guard and attempts to remove the newly created lock.
-This does not authorize removal of another refresh's lock.
+Cache status briefly probes an existing coordination file through a separate
+confined descriptor, reporting active or available without writing its content.
+Nonempty coordination content is invalid and is preserved. Cache freshness and
+refresh-attempt timestamps remain independent of exclusion.
 
-Existing refresh locks are never removed automatically. Parsed locks older
-than their recorded stale threshold are reported explicitly as stale; malformed or
-future-dated locks are reported as invalid. Commands show the lock path and
-require the operator to remove it manually after verifying that no refresh is
-still running. This avoids deleting a newly acquired lock during concurrent
-stale-lock recovery.
+Before adoption, stop all older Query/Canic/library writers sharing a cache root
+and explicitly retire incompatible nonempty lock files. Preserve required cache
+and attempt evidence. Never unlink or replace coordination sidecars while any
+consumer may use the root: cooperating processes must lock the same inode.
+There is no older lock reader, automatic cleanup or mixed-writer migration.
 
 ## Cache Discovery
 
@@ -392,7 +396,7 @@ unsupported and require an explicit refresh.
 Complete snapshot loaders also reject unknown top-level fields and authority
 claims that the owning source cannot make, including a true point-in-time
 guarantee for paginated Governance or index histories. Current-shape loading
-therefore cannot silently reinterpret a foreign or newer flattened snapshot.
+therefore cannot silently reinterpret a foreign or newer snapshot.
 Family-specific cache status and cache list commands render malformed,
 unsupported, or identity-mismatched local snapshot files as invalid local
 cache rows instead of silently ignoring them or making live calls. The global
@@ -625,3 +629,39 @@ rejects unsupported fields, so snapshots from the replaced schema-1 shape
 require explicit refresh after preserving any needed evidence. Cache-only
 admission does not rewrite them or invoke a live source. Identity, pagination,
 ordering, aggregate totals and collection provenance checks remain in force.
+
+## Nested snapshot and attempt contracts
+
+The 0.62 hard cut keeps schema 1 and uses explicit `metadata` and `data` objects
+for shared NNS/SNS and observed node-status snapshots. Refresh-attempt sidecars
+use explicit `metadata` as well, including ICRC account-history attempts.
+Family metadata and payloads reject unknown fields through their typed models;
+duplicate declared fields, trailing JSON and invalid types remain parse errors.
+Readers deserialize once before validating schema/network and family identity.
+Malformed payloads can therefore report a parse error before a schema mismatch.
+
+Retain any required existing snapshots or attempt evidence before explicitly
+refreshing the affected collection. Readers never migrate, rewrite or delete
+rejected files, and cache-only operations never fetch replacement data. Family
+validators still enforce row order, completeness, provenance and cache identity;
+view sorts and limits remain outside snapshot keys. ICRC account-history snapshot
+fields remain unchanged; its reader now enforces its declared fields directly.
+
+SNS proposal snapshots retain native action IDs and ballot vote codes without
+stored classifications. Labels are derived for text and views. Before replacing
+older snapshots, preserve required evidence and coordinate raw-code consumers,
+then explicitly refresh; strict rows reject unknown fields and schemas remain 1.
+SNS neuron/proposal rows and ballots likewise retain only native timestamps,
+without stored UTC display strings. Rendering derives text from those values.
+Preserve required snapshots and coordinate timestamp consumers before explicit
+refresh; rejected cache evidence is never rewritten or removed automatically.
+Reward checkpoint files retain flat aggregates and policy observations. Loading
+validates every value against checked recomputation from raw brackets and neuron
+evidence. Historical observations are not discarded or replaced by recollection;
+strict unknown-field and duplicate-field admission remains unchanged.
+
+Joined SNS catalog rows store the native lifecycle value or a bounded query
+error, without a second stored lifecycle label. Unknown fields are rejected
+on restore, including in joined rows with flattened canister identities.
+Preserve required evidence and update consumers before an explicit catalog
+refresh; schema identifiers remain 1 and no fallback reader is retained.
