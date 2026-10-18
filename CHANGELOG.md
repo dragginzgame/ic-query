@@ -5,6 +5,13 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.2]
+
+- Adopt published IC Build 0.17.2 with complete build environments. Reuse admitted
+  compiler facts for provenance instead of probing after compilation.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.1] - 2026-10-18
 
 - Fix internal descriptor-lock exports for focused library tests without the

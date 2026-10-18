@@ -1614,9 +1614,9 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.16.0"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ac679cfe8af31edee5c2f78606af757f17dbff4bcb11a98e5902694dc55e20"
+checksum = "ef3dde17fce06803054e38b62f40e2917b59a80cdc681d9fc91c4dae315b0574"
 dependencies = [
  "cargo_metadata",
  "ic-host-artifacts",
@@ -1627,6 +1627,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "thiserror 2.0.18",
  "toml 1.1.8+spec-1.1.0",
 ]
 
