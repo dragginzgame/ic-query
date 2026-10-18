@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.62.3]
+## [0.62.3] - 2026-10-18
 
 - Refresh the selected dependency graph to IC Build 0.17.6, Host 0.27.6 and
   IC Platform 0.1.13, preserving the existing dependency requirements.
