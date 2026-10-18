@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.3]
+
+- Refresh the selected dependency graph to IC Build 0.17.6, Host 0.27.6 and
+  IC Platform 0.1.13, preserving the existing dependency requirements.
+- Follow the selected IC tool catalog in host setup guidance, removing stale
+  ICP CLI and Binaryen version instructions.
+
+Pending integration: captured Governance compiler provenance ([#84](https://github.com/dragginzgame/ic-query/pull/84)),
+bounded ICP transfer decoding ([#80](https://github.com/dragginzgame/ic-query/pull/80)),
+and Rust 1.99.1 development/CI qualification ([#86](https://github.com/dragginzgame/ic-query/pull/86)).
+These PRs await their required native CI and integration into `main`.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.2] - 2026-10-18
 
 - Explicitly release refresh locks after errors and cancellation, even when a
