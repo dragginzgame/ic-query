@@ -7,6 +7,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.62.2]
 
+- Explicitly release refresh locks after errors and cancellation, even when a
+  duplicated descriptor remains open. Fix the cache-status release test race.
+
 - Reuse Host's canonical UTC, exact decimal rounding and protected export writers.
   Preserve report text, cache freshness rules and typed export errors while
   removing the competing local implementations.
