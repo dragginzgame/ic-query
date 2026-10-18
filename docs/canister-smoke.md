@@ -109,7 +109,7 @@ when a test panics.
 ## Prerequisites
 
 - Linux or macOS; interruption cleanup uses POSIX process groups.
-- Rust 1.99.0, selected by `rust-toolchain.toml`, with
+- Rust 1.99.1, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
 - The verified repository-local IC toolset, including
   ICP CLI **1.7.0**. Prepare it explicitly with `make install-ic-tools`;

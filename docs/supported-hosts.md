@@ -18,7 +18,7 @@ qualified by this matrix.
 
 ## Prerequisites
 
-- Rustup with Rust `1.99.0`, rustfmt, Clippy, and `wasm32-unknown-unknown`, plus
+- Rustup with Rust `1.99.1`, rustfmt, Clippy, and `wasm32-unknown-unknown`, plus
   the declared MSRV `1.91.0` for its separate check. Installation must preserve
   the repository's selected `Cargo.lock`.
 - Bash 3.2 or newer, GNU Make 3.81 or newer, Git, Perl with its core modules,

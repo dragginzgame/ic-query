@@ -5,6 +5,13 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.3]
+
+- Select Rust 1.99.1 for development and native/Wasm CI. Keep the supported
+  consumer minimum at Rust 1.91.0.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.2] - 2026-10-18
 
 - Explicitly release refresh locks after errors and cancellation, even when a
