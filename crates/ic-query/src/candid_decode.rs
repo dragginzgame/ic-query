@@ -1,7 +1,7 @@
 //! Bounded Candid reply decoding shared by native and canister adapters.
 
-use candid::CandidType;
-use ic_testkit_candid::{DecodeError, DecodeLimits, decode_one};
+use ic_platform::candid::contract::CandidType;
+use ic_platform::candid::{DecodeError, DecodeLimits, decode_one};
 use serde::Deserialize;
 
 // Charge proportional wire work with headroom for wide records and callbacks;
@@ -12,7 +12,9 @@ const SKIPPING_QUOTA: usize = 100_000;
 const MAX_TYPE_ENTRIES: usize = 4_096;
 const MAX_HEADER_BYTES: usize = 64 * 1_024;
 
-pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(bytes: &'a [u8]) -> candid::Result<T> {
+pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(
+    bytes: &'a [u8],
+) -> Result<T, ic_platform::candid::contract::Error> {
     let quota = bytes
         .len()
         .saturating_mul(32)
@@ -31,7 +33,9 @@ pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(bytes: &'a [u8]) -> can
     )
     .map_err(|error| match error {
         DecodeError::Candid(source) => source,
-        error @ DecodeError::ReplyTooLarge { .. } => candid::Error::msg(error.to_string()),
+        error @ DecodeError::ReplyTooLarge { .. } => {
+            ic_platform::candid::contract::Error::msg(error.to_string())
+        }
     })
 }
 
@@ -39,10 +43,21 @@ pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(bytes: &'a [u8]) -> can
 mod tests {
     use super::*;
 
-    #[derive(Debug, PartialEq, candid::CandidType, serde::Deserialize)]
+    #[derive(Debug, PartialEq, ic_platform::candid::contract::CandidType, serde::Deserialize)]
+    #[candid_path("ic_platform::candid::contract")]
     enum Tree {
         Leaf(u64),
         Branch(Vec<Self>),
+    }
+
+    #[test]
+    fn external_nat64_wire_vector_is_unchanged() {
+        let bytes = b"DIDL\x00\x01\x78\x2a\x00\x00\x00\x00\x00\x00\x00";
+        assert_eq!(
+            ic_platform::candid::contract::encode_one(42_u64).unwrap(),
+            bytes
+        );
+        assert_eq!(decode_reply::<u64>(bytes).unwrap(), 42);
     }
 
     #[test]
@@ -57,22 +72,22 @@ mod tests {
                 })
                 .collect(),
         );
-        let bytes = candid::encode_one(&value).unwrap();
+        let bytes = ic_platform::candid::contract::encode_one(&value).unwrap();
         assert_eq!(decode_reply::<Tree>(&bytes).unwrap(), value);
     }
 
     #[test]
     fn rejects_amplified_skipping_in_a_small_reply() {
-        let ordinary = candid::encode_args((42u64, "unused")).unwrap();
+        let ordinary = ic_platform::candid::contract::encode_args((42u64, "unused")).unwrap();
         assert_eq!(decode_reply::<u64>(&ordinary).unwrap(), 42);
-        let bytes = candid::encode_args((42u64, vec![(); 100_000])).unwrap();
+        let bytes = ic_platform::candid::contract::encode_args((42u64, vec![(); 100_000])).unwrap();
         assert!(bytes.len() < 32);
         assert!(decode_reply::<u64>(&bytes).is_err());
     }
 
     #[test]
     fn rejects_amplified_decoding_in_a_small_reply() {
-        let bytes = candid::encode_one(vec![(); 1_000_000]).unwrap();
+        let bytes = ic_platform::candid::contract::encode_one(vec![(); 1_000_000]).unwrap();
         assert!(bytes.len() < 32);
         assert!(decode_reply::<Vec<()>>(&bytes).is_err());
     }
@@ -80,7 +95,7 @@ mod tests {
     #[test]
     fn accepts_a_large_byte_vector() {
         let value = vec![7u8; 8 * 1024 * 1024 - 32];
-        let bytes = candid::encode_one(&value).unwrap();
+        let bytes = ic_platform::candid::contract::encode_one(&value).unwrap();
         assert_eq!(decode_reply::<Vec<u8>>(&bytes).unwrap(), value);
     }
 

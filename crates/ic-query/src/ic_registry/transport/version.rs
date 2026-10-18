@@ -1,7 +1,7 @@
 use super::{RegistryQueryCounter, decode_message};
 use crate::ic_registry::{RegistryFetchError, proto::RegistryGetLatestVersionResponse};
-use candid::Principal;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 #[cfg(feature = "nns-topology-host")]
 pub(in crate::ic_registry) async fn get_latest_version(

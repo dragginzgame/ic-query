@@ -34,7 +34,7 @@ qualified by this matrix.
   in [shared executable storage](local-setup.md#shared-executable-storage).
   Use the same `SHARED_TOOLING_STORE` setting for setup, offline checks and
   failure collection. Previous physical checkout-local bundles remain retained.
-  Cargo-sort 2.1.4, cargo-sort-derives and candid-extractor use the shared exact-slot
+  Cargo-sort 2.1.4 and cargo-sort-derives use the shared exact-slot
   installer and `.tools/rust/common/bin`; Cargo Audit and Cargo Machete use the
   same shared build-identity owner through their consumer-pinned binary selections.
   `make install-rust-tools` prepares the common selection and
@@ -54,8 +54,8 @@ qualified by this matrix.
   It then prepares host tools followed by the complete IC set:
   Quill 0.5.4, ICP CLI 1.6.0, didc 0.6.2, ic-wasm 0.11.1 and
   wasm-opt 132 under `.tools/ic/bin`. IC versions and archive digests have one
-  owner in `ci/ic-tools.tsv`, followed by common cargo-sort, cargo-sort-derives
-  and candid-extractor. Query's Audit/Machete owners follow
+  owner in `ci/ic-tools.tsv`, followed by common cargo-sort and cargo-sort-derives.
+  Query does not select candid-extractor. Query's Audit/Machete owners follow
   through the ordered local extension lists. `make tools-check` verifies all
   those selections offline; neither command prepares a Rust toolchain.
   Make selects the local paths; interactive shells use
@@ -2453,9 +2453,9 @@ by explicit development setup. `fmt-check` checks dependency order before Rust
 formatting and preserves source, the Git index, lockfiles and unrelated edits.
 
 The shared Cargo-tool set is required for Query. `make install-rust-tools`
-prepares shared cargo-sort, cargo-sort-derives and candid-extractor selections
+prepares shared cargo-sort and cargo-sort-derives selections
 with references under `.tools/rust`; `make rust-tools-check` verifies the complete
-set offline. The standard aggregates include all three through the same installer and
+set offline. The standard aggregates include both through the same installer and
 activate `.tools/rust/common/bin` after complete admission. Formatter targets
 require this common selection before checking cargo-sort's pin and rustfmt;
 global copies cannot substitute for missing selections. Existing copies remain
@@ -2476,9 +2476,14 @@ Local evidence and outstanding native CI results are reported at handoff.
 
 Testkit and WAT are native development dependencies only. Normal minimal,
 canister and host library consumers retain their dependency boundaries and
-Rust 1.91 floor. The separate `ic-testkit-candid` package supplies bounded
-reply decoding on native and Wasm targets, depending only on Candid and Serde;
-it does not bring the simulator or its native test dependencies into consumers.
+Rust 1.91 floor. Published `ic-platform` 0.1.11 supplies bounded Candid reply
+decoding and qualified contract types on native and Wasm targets without the
+simulator. Testkit 0.54's native fixture calls use Platform's limits and errors
+directly, without a separate decoder package. The `canister` feature selects
+Platform's CDK facade and generator for calls, canister identity and the typed
+probe. Native Agent APIs and the probe's raw clock also use Platform; no direct
+Candid/CDK declarations remain. Native macOS and installed-IC callback/trap
+qualification remain separate from Linux compilation and simulator evidence.
 Query retains transport limits, proportional work quotas and error projection.
 PocketIC's exact `thiserror =2.0.18` requirement selects that
 compatible patch in the workspace lockfile; the previously selected 2.0.21

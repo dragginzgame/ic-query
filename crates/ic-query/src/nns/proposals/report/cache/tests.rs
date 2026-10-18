@@ -39,7 +39,7 @@ use crate::{
     subnet_catalog::MAINNET_NETWORK,
     test_support::temp_dir,
 };
-use candid::Reserved;
+use ic_platform::candid::contract::Reserved;
 use std::fs;
 
 #[cfg(unix)]

@@ -39,7 +39,11 @@ pub struct IcrcTokenData {
 
 #[cfg_attr(
     any(feature = "icrc-host", feature = "sns-host"),
-    derive(candid::CandidType)
+    derive(ic_platform::candid::contract::CandidType)
+)]
+#[cfg_attr(
+    any(feature = "icrc-host", feature = "sns-host"),
+    candid_path("ic_platform::candid::contract")
 )]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenStandardRow {

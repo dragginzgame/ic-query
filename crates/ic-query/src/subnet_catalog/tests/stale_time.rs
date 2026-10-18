@@ -21,6 +21,18 @@ fn future_catalog_timestamp_is_stale() {
 }
 
 #[test]
+fn noncanonical_catalog_timestamp_is_stale() {
+    let mut catalog = fixture_catalog();
+    catalog.provenance.fetched_at = "2026-6-04T00:00:00Z".to_string();
+    let status = catalog_stale_status(&catalog, 1_780_531_300, 200);
+
+    assert!(status.catalog_stale);
+    assert_eq!(status.stale_reason, "fetched_at_unparseable");
+    assert_eq!(status.fetched_at_unix_secs, None);
+    assert_eq!(status.age_seconds, None);
+}
+
+#[test]
 fn utc_timestamp_formatter_is_deterministic() {
     assert_eq!(format_utc_timestamp_secs(0), "1970-01-01T00:00:00Z");
     assert_eq!(

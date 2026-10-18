@@ -1,9 +1,9 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk
+# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
-	dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
+	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check \
@@ -45,20 +45,22 @@ YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
 LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools
 LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check
+FORMAT_WRITE_COMMAND = bash -ec '"$$1" sort --workspace --grouped; "$$1" fmt --all' -- "$(FORMAT_CARGO)"
+FORMAT_CHECK_COMMAND = bash -ec '"$$1" sort --workspace --grouped --check; "$$1" fmt --all -- --check' -- "$(FORMAT_CARGO)"
 include $(REPO_ROOT)make/consumer.mk
-export IC_TOOL_PINS
+export IC_TOOL_PINS FORMAT_CARGO
 export PATH := $(REPO_ROOT).tools/ic/bin:$(PATH)
 
 format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-check package-contents-check \
+CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check clippy test package
 CI_INPUTS := Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml ci/tool-versions.env $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -89,6 +91,7 @@ help:
 	@echo "  doc-links-check  Check local links in current guides and contracts"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
+	@echo "  dependency-boundary-check  Check direct Platform boundary ownership, including aliases and targets"
 	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked/offline dependencies"
@@ -131,6 +134,9 @@ tags:
 
 check:
 	cargo check --workspace --all-targets --all-features --locked --offline
+
+dependency-boundary-check:
+	bash scripts/ci/check-cargo-dependency-boundaries.sh --consumer "$(REPO_ROOT)"
 
 dependency-pins-check:
 	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh --cargo-inheritance

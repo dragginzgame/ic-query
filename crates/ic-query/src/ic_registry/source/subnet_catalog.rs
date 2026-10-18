@@ -20,7 +20,7 @@ use crate::{
         SubnetCatalogRegistryRecordSubject, SubnetCatalogRoutingSource, SubnetCatalogSubject,
     },
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
     request: &MainnetRegistryFetchRequest,
@@ -236,7 +236,7 @@ where
 }
 
 struct AgentCatalogRegistryReader<'a> {
-    agent: &'a ic_agent::Agent,
+    agent: &'a ic_platform::agent::Agent,
     registry_canister: &'a Principal,
     query_counter: &'a RegistryQueryCounter,
 }

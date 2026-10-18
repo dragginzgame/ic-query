@@ -6,7 +6,7 @@
 
 use super::SnsTopic;
 use crate::sns::report::source::SnsNeuronId;
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// GetProposalResult
@@ -15,6 +15,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum GetProposalResult {
     Error(SnsGovernanceError),
     Proposal(Box<SnsGovernanceProposalData>),
@@ -27,6 +28,7 @@ pub(in crate::sns::report::live) enum GetProposalResult {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsProposalId {
     pub(in crate::sns::report::live) id: u64,
 }
@@ -38,6 +40,7 @@ pub(in crate::sns::report::live) struct SnsProposalId {
 ///
 
 #[derive(CandidType, Clone, Debug, Default, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceProposal {
     pub(in crate::sns::report::live) title: String,
     pub(in crate::sns::report::live) summary: String,
@@ -51,6 +54,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposal {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceError {
     pub(in crate::sns::report::live) error_type: i32,
     pub(in crate::sns::report::live) error_message: String,
@@ -63,6 +67,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceError {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceBallot {
     pub(in crate::sns::report::live) vote: i32,
     pub(in crate::sns::report::live) cast_timestamp_seconds: u64,
@@ -76,6 +81,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceBallot {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceProposalTally {
     pub(in crate::sns::report::live) timestamp_seconds: u64,
     pub(in crate::sns::report::live) yes: u64,
@@ -90,6 +96,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceProposalTally {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceProposalData {
     pub(in crate::sns::report::live) id: Option<SnsProposalId>,
     pub(in crate::sns::report::live) payload_text_rendering: Option<String>,

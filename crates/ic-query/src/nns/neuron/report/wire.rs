@@ -4,7 +4,7 @@
 //! Does not own: live transport, report DTOs, or text rendering.
 //! Boundary: models only the fields needed by bounded neuron reports.
 
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// GetNeuronIndexRequestWire
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct GetNeuronIndexRequestWire {
     pub(in crate::nns::neuron::report) exclusive_start_neuron_id: Option<NeuronIdWire>,
     pub(in crate::nns::neuron::report) page_size: Option<u32>,
@@ -25,6 +26,7 @@ pub(in crate::nns::neuron::report) struct GetNeuronIndexRequestWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) enum GetNeuronIndexResultWire {
     Ok(NeuronIndexDataWire),
     Err(GovernanceErrorWire),
@@ -46,6 +48,7 @@ impl GovernanceResult<NeuronIndexDataWire> for GetNeuronIndexResultWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) enum GetNeuronInfoResultWire {
     Ok(Box<NeuronInfoWire>),
     Err(GovernanceErrorWire),
@@ -77,6 +80,7 @@ pub(in crate::nns::neuron::report) trait GovernanceResult<Response> {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct NeuronIndexDataWire {
     pub(in crate::nns::neuron::report) neurons: Vec<NeuronInfoWire>,
 }
@@ -88,6 +92,7 @@ pub(in crate::nns::neuron::report) struct NeuronIndexDataWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct GovernanceErrorWire {
     pub(in crate::nns::neuron::report) error_message: String,
     pub(in crate::nns::neuron::report) error_type: i32,
@@ -100,6 +105,7 @@ pub(in crate::nns::neuron::report) struct GovernanceErrorWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct NeuronInfoWire {
     pub(in crate::nns::neuron::report) id: Option<NeuronIdWire>,
     pub(in crate::nns::neuron::report) dissolve_delay_seconds: u64,
@@ -128,6 +134,7 @@ pub(in crate::nns::neuron::report) struct NeuronInfoWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct NeuronIdWire {
     pub(in crate::nns::neuron::report) id: u64,
 }
@@ -139,6 +146,7 @@ pub(in crate::nns::neuron::report) struct NeuronIdWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct ProposalIdWire {
     pub(in crate::nns::neuron::report) id: u64,
 }
@@ -150,6 +158,7 @@ pub(in crate::nns::neuron::report) struct ProposalIdWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct BallotInfoWire {
     pub(in crate::nns::neuron::report) vote: i32,
     pub(in crate::nns::neuron::report) proposal_id: Option<ProposalIdWire>,
@@ -162,6 +171,7 @@ pub(in crate::nns::neuron::report) struct BallotInfoWire {
 ///
 
 #[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct KnownNeuronDataWire {
     pub(in crate::nns::neuron::report) name: String,
     pub(in crate::nns::neuron::report) description: Option<String>,

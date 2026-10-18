@@ -14,11 +14,9 @@ use crate::{
     leb128::decode_canonical_unsigned_u64,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
-use candid::Principal;
-use ic_agent::{
-    Certificate,
-    hash_tree::{HashTree, LookupResult, SubtreeLookupResult},
-};
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::SubtreeLookupResult;
+use ic_platform::certification::{Certificate, HashTree, LookupResult};
 use std::collections::BTreeSet;
 
 const API_BOUNDARY_NODES_LABEL: &[u8] = b"api_boundary_nodes";
@@ -138,8 +136,8 @@ pub(super) fn source_data_from_certificate(
     request: &IcApiBoundaryNodeSourceRequest,
     certificate: Certificate,
 ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
-    let certificate_time =
-        ic_agent::lookup_value(&certificate, [b"time".as_slice()]).map_err(|error| {
+    let certificate_time = ic_platform::agent::lookup_value(&certificate, [b"time".as_slice()])
+        .map_err(|error| {
             invalid_certified_state(format!("certificate time is invalid: {error}"))
         })?;
     let certificate_time_unix_nanos =
@@ -173,7 +171,7 @@ pub(super) fn source_data_from_certificate(
 }
 
 fn boundary_node_rows(
-    tree: &HashTree<Vec<u8>>,
+    tree: &HashTree,
 ) -> Result<Vec<IcApiBoundaryNodeRow>, IcApiBoundaryNodeHostError> {
     let node_ids = tree
         .list_paths()
@@ -210,7 +208,7 @@ fn boundary_node_rows(
 }
 
 fn required_text_leaf(
-    tree: &HashTree<Vec<u8>>,
+    tree: &HashTree,
     node_id: &[u8],
     label: &[u8],
     field: &str,
@@ -231,7 +229,7 @@ fn required_text_leaf(
 }
 
 fn optional_text_leaf(
-    tree: &HashTree<Vec<u8>>,
+    tree: &HashTree,
     node_id: &[u8],
     label: &[u8],
     field: &str,

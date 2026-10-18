@@ -17,8 +17,8 @@ use crate::nns::{
         wire::{GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult},
     },
 };
-use candid::{CandidType, Deserialize, Principal};
-use ic_cdk::{
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
+use ic_platform::cdk::{
     api::canister_self,
     call::{Call, CallFailed},
 };
@@ -113,9 +113,11 @@ async fn call_no_args<Response>(
 where
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = candid::encode_args(()).map_err(|error| NnsGovernanceError::CandidEncode {
-        message: "()",
-        reason: error.to_string(),
+    let arg = ic_platform::candid::contract::encode_args(()).map_err(|error| {
+        NnsGovernanceError::CandidEncode {
+            message: "()",
+            reason: error.to_string(),
+        }
     })?;
     let bytes = call_bytes(method, arg).await?;
     decode_response(&bytes, response_message)
@@ -135,9 +137,11 @@ where
     Arg: CandidType,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = candid::encode_one(arg).map_err(|error| NnsGovernanceError::CandidEncode {
-        message: request_message,
-        reason: error.to_string(),
+    let arg = ic_platform::candid::contract::encode_one(arg).map_err(|error| {
+        NnsGovernanceError::CandidEncode {
+            message: request_message,
+            reason: error.to_string(),
+        }
     })?;
     let bytes = call_bytes(method, arg).await?;
     decode_response(&bytes, response_message)

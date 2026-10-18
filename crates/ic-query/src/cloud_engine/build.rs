@@ -13,7 +13,7 @@ use super::{
     MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, enforce_mainnet_network,
 };
 use crate::decimal::{compare_canonical_unsigned_decimal, is_canonical_unsigned_decimal};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::cmp::Ordering;
 
 const MAX_DATA_CENTER_ID_BYTES: usize = 128;

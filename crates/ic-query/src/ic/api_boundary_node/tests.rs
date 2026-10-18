@@ -67,11 +67,8 @@ mod host {
         },
         subnet_catalog::format_utc_timestamp_secs,
     };
-    use candid::Principal;
-    use ic_agent::{
-        Certificate,
-        hash_tree::{HashTree, fork, label, leaf},
-    };
+    use ic_platform::candid::contract::Principal;
+    use ic_platform::certification::{Certificate, HashTree, fork, labeled as label, leaf};
     use std::sync::Mutex;
 
     #[tokio::test(flavor = "current_thread")]
@@ -241,7 +238,7 @@ mod host {
         domain: &str,
         ipv4_address: Option<&str>,
         ipv6_address: &str,
-    ) -> HashTree<Vec<u8>> {
+    ) -> HashTree {
         let principal = Principal::from_text(node_id).expect("fixture node id");
         let mut fields = vec![label("domain", leaf(domain.as_bytes().to_vec()))];
         if let Some(ipv4_address) = ipv4_address {
@@ -257,7 +254,7 @@ mod host {
         label(principal.as_slice(), fork_all(fields))
     }
 
-    fn certified_nodes(mut rows: Vec<(&str, &str, Option<&str>, &str)>) -> HashTree<Vec<u8>> {
+    fn certified_nodes(mut rows: Vec<(&str, &str, Option<&str>, &str)>) -> HashTree {
         rows.sort_unstable_by(|left, right| {
             Principal::from_text(left.0)
                 .expect("left fixture node")
@@ -275,7 +272,7 @@ mod host {
         )
     }
 
-    fn fork_all(mut trees: Vec<HashTree<Vec<u8>>>) -> HashTree<Vec<u8>> {
+    fn fork_all(mut trees: Vec<HashTree>) -> HashTree {
         let mut tree = trees.pop().expect("nonempty tree fixture");
         while let Some(left) = trees.pop() {
             tree = fork(left, tree);

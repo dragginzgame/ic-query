@@ -8,7 +8,7 @@
 //! privately held validated catalog by the host authority boundary.
 
 use super::{ClassificationSource, GeographicScope, SubnetKind, SubnetSpecialization};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 

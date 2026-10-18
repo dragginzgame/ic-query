@@ -80,7 +80,14 @@ pub struct CloudEngineOperatorReport {
 /// CloudEngine marketplace node class.
 ///
 
-#[cfg_attr(feature = "cloud-engine-host", derive(candid::CandidType))]
+#[cfg_attr(
+    feature = "cloud-engine-host",
+    derive(ic_platform::candid::contract::CandidType)
+)]
+#[cfg_attr(
+    feature = "cloud-engine-host",
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum CloudEngineNodeType {
     /// Type 4.1 node class.
@@ -199,7 +206,7 @@ pub struct CloudEngineListRow {
     /// Number of routing ranges assigned to the Subnet in the catalog snapshot.
     pub range_count: usize,
     /// Exact control-plane lookup: a registered principal, successful absence, or bounded error.
-    pub operator: Result<Option<candid::Principal>, String>,
+    pub operator: Result<Option<ic_platform::candid::contract::Principal>, String>,
 }
 
 ///

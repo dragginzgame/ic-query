@@ -15,9 +15,9 @@ categories = ["command-line-utilities"]
 
 [features]
 default = []
-ledger-evidence-host = ["certificate-host", "dep:icrc-ledger-types"]
-certificate-host = ["dep:ic-agent", "dep:ic-host-tools", "dep:ic-certification"]
-canister = ["dep:ic-cdk"]
+ledger-evidence-host = ["certificate-host", "ic-platform/icrc-ledger-types"]
+certificate-host = ["ic-platform/agent", "dep:ic-host-tools", "ic-platform/certification"]
+canister = ["ic-platform/cdk"]
 host = [
     "cloud-engine-host",
     "cmc-host",
@@ -27,8 +27,8 @@ host = [
     "nns-host",
     "sns-host",
 ]
-cloud-engine-host = ["dep:ic-agent", "dep:tokio"]
-cmc-host = ["certificate-host", "dep:ic-agent", "dep:tokio"]
+cloud-engine-host = ["ic-platform/agent", "dep:tokio"]
+cmc-host = ["certificate-host", "ic-platform/agent", "dep:tokio"]
 certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "dep:serde_cbor"]
 dashboard-host = [
     "dep:cap-fs-ext",
@@ -38,16 +38,16 @@ dashboard-host = [
     "dep:reqwest",
     "dep:tokio",
 ]
-ic-state-host = ["dep:ic-agent", "dep:tokio"]
+ic-state-host = ["ic-platform/agent", "dep:tokio", "ic-platform/certification"]
 icrc-host = [
     "certificate-host",
     "dep:cap-fs-ext",
     "dep:cap-std",
     "dep:futures",
-    "dep:ic-agent",
+    "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
-    "dep:icrc-ledger-types",
+    "ic-platform/icrc-ledger-types",
     "dep:sha2",
     "dep:tokio",
 ]
@@ -57,17 +57,17 @@ sns-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
     "dep:futures",
-    "dep:ic-agent",
+    "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
-    "dep:icrc-ledger-types",
+    "ic-platform/icrc-ledger-types",
     "dep:tokio",
 ]
 subnet-catalog-host = [
     "dep:cap-fs-ext",
     "dep:cap-std",
     "dep:futures",
-    "dep:ic-agent",
+    "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
     "dep:prost",
@@ -75,23 +75,16 @@ subnet-catalog-host = [
     "dep:tokio",
 ]
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-ic-cdk = { workspace = true, optional = true }
-
 [dependencies]
-candid.workspace = true
 cap-fs-ext = { workspace = true, optional = true }
 cap-std = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
-ic-agent = { workspace = true, optional = true }
-ic-certification = { workspace = true, optional = true }
 ic-host-artifacts = { workspace = true, optional = true }
 ic-host-fs = { workspace = true, optional = true }
 ic-host-text.workspace = true
 ic-host-tools = { workspace = true, optional = true, features = ["certificate"] }
 ic-metrics.workspace = true
-ic-testkit-candid.workspace = true
-icrc-ledger-types = { workspace = true, optional = true }
+ic-platform.workspace = true
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, features = [
     "rustls",

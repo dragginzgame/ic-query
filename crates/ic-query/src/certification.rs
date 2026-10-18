@@ -9,18 +9,24 @@
     feature = "cmc-host",
     feature = "icrc-host"
 ))]
-use candid::Principal;
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    all(test, any(feature = "cmc-host", feature = "icrc-host"))
-))]
-use ic_agent::Certificate;
+use ic_platform::agent::Agent;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
     feature = "icrc-host"
 ))]
-use ic_agent::{Agent, hash_tree::HashTree};
+use ic_platform::candid::contract::Principal;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    all(test, any(feature = "cmc-host", feature = "icrc-host"))
+))]
+use ic_platform::certification::Certificate;
+#[cfg(any(
+    feature = "certified-subnet-catalog-host",
+    feature = "cmc-host",
+    feature = "icrc-host"
+))]
+use ic_platform::certification::HashTree;
 
 /// Nesting budget for CMC and ICRC certificate evidence.
 #[cfg(any(feature = "cmc-host", feature = "icrc-host"))]
@@ -63,7 +69,7 @@ pub fn authenticate_canister_hash_tree(
     encoded_certificate: &[u8],
     encoded_hash_tree: &[u8],
     certified_data_owner: &str,
-) -> Result<HashTree<Vec<u8>>, CertifiedDataError> {
+) -> Result<HashTree, CertifiedDataError> {
     crate::certificate::authenticate_hash_tree(
         agent,
         *canister,
@@ -95,7 +101,7 @@ pub fn authenticate_canister_tree(
     agent: &Agent,
     canister: &Principal,
     certificate: &Certificate,
-    hash_tree: &HashTree<Vec<u8>>,
+    hash_tree: &HashTree,
     certified_data_owner: &str,
 ) -> Result<(), CertifiedDataError> {
     agent
@@ -114,7 +120,7 @@ pub fn authenticate_canister_tree(
 pub fn verify_canister_tree(
     certificate: &Certificate,
     canister: &Principal,
-    hash_tree: &HashTree<Vec<u8>>,
+    hash_tree: &HashTree,
     certified_data_owner: &str,
 ) -> Result<(), CertifiedDataError> {
     crate::certificate::verify_witness(certificate, *canister, hash_tree).map_err(|_| {

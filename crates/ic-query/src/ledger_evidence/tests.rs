@@ -72,7 +72,7 @@ fn all_work_budgets_refuse_before_hashing() {
 fn signed_value_overflow_and_excessive_indexes_refuse_before_hashing() {
     let blocks = [LedgerBlock {
         id: Nat::from(0_u8),
-        block: Value::Int(candid::Int::from(1_u128 << 127)),
+        block: Value::Int(ic_platform::candid::contract::Int::from(1_u128 << 127)),
     }];
     assert!(matches!(
         BoundedLedgerBlocks::admit(&blocks, LIMITS),

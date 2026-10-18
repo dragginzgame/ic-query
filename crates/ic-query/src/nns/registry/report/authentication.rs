@@ -18,7 +18,7 @@ use crate::{
     },
     subnet_catalog::MAINNET_REGISTRY_CANISTER_ID,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::fmt::Debug;
 
 ///

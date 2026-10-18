@@ -4,7 +4,7 @@
 //! Does not own: CLI value parsing, request construction, or rendering.
 //! Boundary: models Candid topic selectors for proposal list calls.
 
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// SnsTopicSelector
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsTopicSelector {
     pub(in crate::sns::report::live) topic: Option<SnsTopic>,
 }
@@ -24,6 +25,7 @@ pub(in crate::sns::report::live) struct SnsTopicSelector {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum SnsTopic {
     DaoCommunitySettings,
     SnsFrameworkManagement,

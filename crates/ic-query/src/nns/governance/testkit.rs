@@ -9,15 +9,22 @@ use super::{
     },
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
-use candid::Principal;
+use ic_platform::candid::{DecodeLimits, contract::Principal};
 use ic_testkit::pic::{
-    CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig,
+    CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig, RejectCode,
     update_candid_args,
 };
 use ic_testkit::pocket_ic::Time;
-use ic_testkit_candid::DecodeLimits;
 use serde_json::Value;
 use std::{env, fmt::Write, fs, time::Duration};
+
+const REPORT_REPLY_LIMITS: DecodeLimits = DecodeLimits {
+    reply_bytes: 2 * 1024 * 1024,
+    decoding_quota: 64_000_000,
+    skipping_quota: 100_000,
+    type_entries: 4_096,
+    header_bytes: 64 * 1024,
+};
 
 #[test]
 #[ignore = "requires explicit Testkit server preparation and compiled probe; run make canister-test"]
@@ -43,28 +50,52 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     pic.install_canister(
         governance,
         governance_wasm(&replies),
-        candid::encode_args(()).unwrap(),
+        ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     );
     let probe = pic
         .try_create_and_install(InstallSpec {
             wasm: probe_wasm,
-            init_bytes: candid::encode_args(()).unwrap(),
+            init_bytes: ic_platform::candid::contract::encode_args(()).unwrap(),
             cycles: 2_000_000_000_000,
             install_sender: None,
             label: Some("Query Governance probe".into()),
         })
         .expect("install compiled Query probe");
+    for args in [
+        b"not candid".to_vec(),
+        ic_platform::candid::contract::encode_args((42_u64,)).unwrap(),
+        ic_platform::candid::contract::encode_args(("economics", vec![(); 100_000])).unwrap(),
+    ] {
+        let rejection = pic
+            .update_call(probe, Principal::anonymous(), "report", args)
+            .expect_err("invalid or over-budget entry arguments must trap");
+        assert_eq!(rejection.reject_code, RejectCode::CanisterError);
+    }
+    let (reply,): (String,) = update_candid_args(
+        pic,
+        probe,
+        Principal::anonymous(),
+        "report",
+        ("economics", 7_u64),
+        REPORT_REPLY_LIMITS,
+    )
+    .expect("entrypoint preserves bounded skipping of unused arguments");
+    assert_eq!(
+        serde_json::from_str::<Value>(&reply).unwrap()["status"],
+        "ok"
+    );
     assert_reports(pic, probe, governance);
-    replies[1].1 = candid::encode_one(GetMetricsResult::Err(GovernanceError {
-        error_type: 7,
-        error_message: "fixture governance failure".into(),
-    }))
-    .unwrap();
+    replies[1].1 =
+        ic_platform::candid::contract::encode_one(GetMetricsResult::Err(GovernanceError {
+            error_type: 7,
+            error_message: "fixture governance failure".into(),
+        }))
+        .unwrap();
     pic.reinstall_canister(
         governance,
         governance_wasm(&replies),
-        candid::encode_args(()).unwrap(),
+        ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
     .unwrap();
@@ -78,7 +109,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     pic.reinstall_canister(
         governance,
         governance_wasm(&replies),
-        candid::encode_args(()).unwrap(),
+        ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
     .unwrap();
@@ -146,13 +177,7 @@ fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
         Principal::anonymous(),
         "report",
         (kind.to_string(),),
-        DecodeLimits {
-            reply_bytes: 2 * 1024 * 1024,
-            decoding_quota: 64_000_000,
-            skipping_quota: 100_000,
-            type_entries: 4_096,
-            header_bytes: 64 * 1024,
-        },
+        REPORT_REPLY_LIMITS,
     )
     .expect("execute compiled report entry point");
     serde_json::from_str(&reply).expect("probe JSON report")
@@ -183,16 +208,19 @@ fn governance_replies() -> Vec<(&'static str, Vec<u8>)> {
     vec![
         (
             "get_network_economics_parameters",
-            candid::encode_one(sample_economics()).unwrap(),
+            ic_platform::candid::contract::encode_one(sample_economics()).unwrap(),
         ),
-        ("get_metrics", candid::encode_one(metrics).unwrap()),
+        (
+            "get_metrics",
+            ic_platform::candid::contract::encode_one(metrics).unwrap(),
+        ),
         (
             "get_latest_reward_event",
-            candid::encode_one(reward).unwrap(),
+            ic_platform::candid::contract::encode_one(reward).unwrap(),
         ),
         (
             "get_maturity_modulation",
-            candid::encode_one(maturity).unwrap(),
+            ic_platform::candid::contract::encode_one(maturity).unwrap(),
         ),
     ]
 }

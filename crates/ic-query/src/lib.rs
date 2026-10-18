@@ -69,6 +69,12 @@ pub mod certificate;
 ))]
 mod certification;
 pub mod cloud_engine;
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "sns-host"
+))]
 mod decimal;
 pub mod duration;
 #[cfg(any(

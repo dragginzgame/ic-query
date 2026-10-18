@@ -23,7 +23,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::Path;
 

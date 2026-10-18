@@ -2,7 +2,7 @@
 //!
 //! Responsibility: run an action while a refresh lock is held.
 //! Does not own: coordination-file admission or cache writes.
-//! Boundary: acquires a lock, runs owner work, and releases on success.
+//! Boundary: acquires a lock, runs owner work, and releases when the action ends.
 
 use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
 use crate::cache_file::CacheFileError;

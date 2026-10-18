@@ -11,8 +11,8 @@ use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
 };
-use candid::{Encode, Principal};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
@@ -263,9 +263,11 @@ async fn get_registry_chunk(
     let request = RegistryGetChunkRequest {
         content_sha256: Some(content_sha256.to_vec()),
     };
-    let arg = Encode!(&request).map_err(|err| RegistryFetchError::CandidEncode {
-        message: "RegistryGetChunkRequest",
-        reason: err.to_string(),
+    let arg = ic_platform::candid::contract::encode_args((&request,)).map_err(|err| {
+        RegistryFetchError::CandidEncode {
+            message: "RegistryGetChunkRequest",
+            reason: err.to_string(),
+        }
     })?;
     let bytes = super::query::query(agent, registry_canister, "get_chunk", arg, counter)
         .await

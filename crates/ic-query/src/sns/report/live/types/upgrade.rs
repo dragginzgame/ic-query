@@ -4,7 +4,7 @@
 //! Does not own: transport, validation, report assembly, or rendering.
 //! Boundary: mirrors only the bounded native version fields consumed by the live adapter.
 
-use candid::{CandidType, Deserialize, Principal};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
 /// GetRunningSnsVersionRequest
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize, Principal};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetRunningSnsVersionRequest {}
 
 ///
@@ -22,6 +23,7 @@ pub(in crate::sns::report::live) struct GetRunningSnsVersionRequest {}
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 #[expect(
     clippy::struct_field_names,
     reason = "fields mirror the official SNS Candid version record"
@@ -42,6 +44,7 @@ pub(in crate::sns::report::live) struct SnsVersionWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct PendingSnsVersion {
     pub(in crate::sns::report::live) mark_failed_at_seconds: u64,
     pub(in crate::sns::report::live) checking_upgrade_lock: u64,
@@ -56,6 +59,7 @@ pub(in crate::sns::report::live) struct PendingSnsVersion {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetRunningSnsVersionResponse {
     pub(in crate::sns::report::live) deployed_version: Option<SnsVersionWire>,
     pub(in crate::sns::report::live) pending_version: Option<PendingSnsVersion>,
@@ -68,6 +72,7 @@ pub(in crate::sns::report::live) struct GetRunningSnsVersionResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNextSnsVersionRequest {
     pub(in crate::sns::report::live) governance_canister_id: Option<Principal>,
     pub(in crate::sns::report::live) current_version: Option<SnsVersionWire>,
@@ -80,6 +85,7 @@ pub(in crate::sns::report::live) struct GetNextSnsVersionRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNextSnsVersionResponse {
     pub(in crate::sns::report::live) next_version: Option<SnsVersionWire>,
 }

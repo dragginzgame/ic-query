@@ -13,21 +13,24 @@ use crate::{
     hex::hex_bytes,
     icrc::model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow},
 };
-use candid::{CandidType, Deserialize, Principal};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 use serde::{Serialize, Serializer};
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 enum IcpIndexTransactionsResult {
     Ok(IcpIndexTransactions),
     Err(IcpIndexTransactionsError),
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactionsError {
     message: String,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactions {
     balance: u64,
     transactions: Vec<IcpIndexTransactionWithId>,
@@ -35,12 +38,14 @@ struct IcpIndexTransactions {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactionWithId {
     id: u64,
     transaction: IcpIndexTransaction,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransaction {
     memo: u64,
     icrc1_memo: Option<Vec<u8>>,
@@ -50,6 +55,7 @@ struct IcpIndexTransaction {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 enum IcpIndexOperation {
     Approve {
         fee: IcpIndexTokens,
@@ -78,11 +84,13 @@ enum IcpIndexOperation {
 }
 
 #[derive(CandidType, Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTimestamp {
     timestamp_nanos: u64,
 }
 
 #[derive(CandidType, Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTokens {
     e8s: u64,
 }
@@ -90,7 +98,10 @@ struct IcpIndexTokens {
 pub(super) fn decode(
     bytes: &[u8],
     index_canister: &Principal,
-) -> Result<Result<AccountTransactionsPage, IcrcAccountTransactionError>, candid::Error> {
+) -> Result<
+    Result<AccountTransactionsPage, IcrcAccountTransactionError>,
+    ic_platform::candid::contract::Error,
+> {
     crate::candid_decode::decode_reply::<IcpIndexTransactionsResult>(bytes)
         .map(|result| account_transactions_page(result, index_canister))
 }
@@ -319,7 +330,7 @@ mod tests {
                 }],
                 oldest_tx_id: None,
             });
-            let bytes = candid::encode_one(&response).unwrap();
+            let bytes = ic_platform::candid::contract::encode_one(&response).unwrap();
             let page = decode(&bytes, &Principal::management_canister())
                 .unwrap()
                 .unwrap();
@@ -361,7 +372,8 @@ mod tests {
             }],
             oldest_tx_id: Some(7),
         });
-        let bytes = candid::encode_one(&response).expect("encode ICP index response");
+        let bytes = ic_platform::candid::contract::encode_one(&response)
+            .expect("encode ICP index response");
 
         let page = decode(&bytes, &Principal::management_canister())
             .expect("decode ICP wire shape")

@@ -42,7 +42,7 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
     let format = lookup.format;
-    let cache_root = candid::Principal::from_text(&lookup.input)
+    let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
         .ok()
         .map(|_| cache_root())
         .transpose()?;

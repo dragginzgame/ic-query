@@ -268,9 +268,13 @@ progress events and running-attempt updates before completion.
 Refreshes hold an exclusive nonblocking Host descriptor lock on a persistent,
 empty regular sidecar opened through the admitted cache-root capability.
 Coordination files use owner-only permissions and remain in place after every
-operation. Completion explicitly unlocks; cancellation, errors and process death
-close the owned descriptor. Contention is the kernel's current observation, not
-an estimate from file age. An interrupted refresh leaves no stale lease to clear.
+operation. Completion, cancellation, errors and unwinding explicitly unlock before
+closing the owned descriptor, so duplicated or inherited descriptors cannot
+prolong a completed refresh. Successful actions report unlock failures; other
+paths preserve the original failure and close as a fallback if unlocking fails.
+Process death releases ownership on final descriptor close. Contention is the
+kernel's current observation, not an estimate from file age. An interrupted
+refresh leaves no stale lease to clear.
 
 Cache status briefly probes an existing coordination file through a separate
 confined descriptor, reporting active or available without writing its content.

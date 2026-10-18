@@ -1,7 +1,7 @@
 //! Shared Candid query mechanics; callers own agents, endpoints and diagnostic labels.
 
-use candid::{CandidType, Deserialize, Principal};
-use ic_agent::{Agent, AgentError};
+use ic_platform::agent::{Agent, AgentError};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
 /// CandidCallError
@@ -23,10 +23,11 @@ pub trait CandidCallError: Sized {
 /// Encode a Candid argument list before admitting a family-owned agent.
 pub fn encode_request<Args, E>(args: Args, message: &'static str) -> Result<Vec<u8>, E>
 where
-    Args: candid::utils::ArgumentEncoder,
+    Args: ic_platform::candid::contract::ArgumentEncoder,
     E: CandidCallError,
 {
-    candid::encode_args(args).map_err(|err| E::candid_encode(message, err.to_string()))
+    ic_platform::candid::contract::encode_args(args)
+        .map_err(|err| E::candid_encode(message, err.to_string()))
 }
 
 /// Query a method accepting an empty Candid argument list.
@@ -144,7 +145,10 @@ mod tests {
             [(Some(7_u64), "FixtureResponse"), (None, "EmptyResponse")]
         {
             for (reply, expected) in [
-                (candid::encode_one(42_u64).unwrap(), Some(42)),
+                (
+                    ic_platform::candid::contract::encode_one(42_u64).unwrap(),
+                    Some(42),
+                ),
                 (vec![0xff], None),
             ] {
                 let listener = TcpListener::bind("127.0.0.1:0").unwrap();

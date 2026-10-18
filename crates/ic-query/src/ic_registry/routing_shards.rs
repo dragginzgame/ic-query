@@ -4,7 +4,7 @@
 
 use super::proto::{CanisterId, RoutingTable};
 use crate::hex::{decode_lowercase_hex, is_canonical_lowercase_hex};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 pub fn canister_range_start_from_key(prefix: &str, key: &str) -> Result<Principal, String> {
     let suffix = key

@@ -304,6 +304,7 @@ expected_ci_targets=(
   tools-check
   changelog-check
   dependency-pins-check
+  dependency-boundary-check
   package-contents-check
   feature-boundary-check
   library-process-boundary-check
@@ -327,7 +328,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in tools-check changelog-check dependency-pins-check doc-links-check test; do
+for failed_target in tools-check changelog-check dependency-pins-check dependency-boundary-check doc-links-check test; do
   : > "${ci_gate_case}/trace"
   if (
     cd "${repo_root}"
@@ -384,7 +385,7 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
@@ -824,8 +825,8 @@ for target in fmt fmt-check; do
   if [[ "$target" == fmt ]]; then printf 'Formatting... ok\n' > "$format_case/expected-output";
   else printf 'Checking formatting... ok\n' > "$format_case/expected-output"; fi
   cmp "$format_case/expected-output" "$format_case/success.log" || fail 'formatter success output changed'
-  if [[ "$target" == fmt ]]; then sort_command='sort --workspace'; fmt_command='fmt --all';
-  else sort_command='sort --workspace --check'; fmt_command='fmt --all -- --check'; fi
+  if [[ "$target" == fmt ]]; then sort_command='sort --workspace --grouped'; fmt_command='fmt --all';
+  else sort_command='sort --workspace --grouped --check'; fmt_command='fmt --all -- --check'; fi
   printf '%s\n' 'sort --version' 'fmt --version' "$sort_command" "$fmt_command" > "$format_case/expected"
   cmp "$format_case/expected" "$format_case/trace" \
     || fail "$target changed formatter order, check flags or the selected setup pin"
@@ -946,10 +947,22 @@ if [[ "${FAIL_FEATURE_COMMAND:-}" == "$1" ]]; then
     exit 51
   fi
 fi
-if [[ "$1" == tree && -n "${FEATURE_TREE_LINE:-}" ]]; then
-  if [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
-    || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* ]]; then
-    printf '%s\n' "$FEATURE_TREE_LINE"
+if [[ "$1" == tree ]]; then
+  package=ic-query
+  [[ "$*" != *"--package ic-query-cli"* ]] || package=ic-query-cli
+  printf '%s v0.0.0\n' "$package"
+  if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
+    [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
+    || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* \
+    || "${FEATURE_TREE_SCOPE:-}" == canister && "$*" == *"--features canister"* \
+    || "${FEATURE_TREE_SCOPE:-}" == cli && "$package" == ic-query-cli ]]; then
+    case "$FEATURE_TREE_LINE" in
+      */*)
+        [[ "$*" != *"normal,build,features"* ]] || \
+          printf '%s feature "%s"\n' "${FEATURE_TREE_LINE%%/*}" "${FEATURE_TREE_LINE#*/}"
+        ;;
+      *) printf '%s v0.0.0\n' "$FEATURE_TREE_LINE" ;;
+    esac
   fi
 fi
 EOF
@@ -988,9 +1001,8 @@ for failed_command in check test tree; do
 done
 
 for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
-  'ic-host-tools feature "ic-interface"' \
-  'ic-host-artifacts feature "archive"' 'ic-host-artifacts feature "gzip"' \
-  'ic-host-artifacts feature "wasm"'; do
+  ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
+  ic-host-artifacts/wasm; do
   scope=host
   case "$dependency" in
     ic-host-artifacts|ic-host-fs|ic-host-tools|candid_parser) scope=pure ;;
@@ -1002,11 +1014,29 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools can
       >"${feature_boundary_case}/dependency-failure.log" 2>&1; then
     fail "the $scope feature boundary accepted $dependency"
   fi
-  grep -Fq "unexpectedly includes $dependency" "${feature_boundary_case}/dependency-failure.log" \
+  case "$dependency" in
+    */*) diagnostic="forbidden dependency feature edge: $dependency" ;;
+    *) diagnostic="forbidden $dependency:" ;;
+  esac
+  grep -Fq "$diagnostic" "${feature_boundary_case}/dependency-failure.log" \
     || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
 done
 
-for dependency in ic-host-fs candid_parser 'ic-host-tools feature "certificate"'; do
+for scope in canister cli; do
+  for dependency in ic-build ic-host-process ic-testkit wat; do
+    if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+      FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
+      TRACE_FILE="${feature_boundary_case}/trace" \
+      bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+        >"${feature_boundary_case}/tooling-refusal.log" 2>&1; then
+      fail "the $scope production graph accepted $dependency"
+    fi
+    grep -Fq "forbidden $dependency:" "${feature_boundary_case}/tooling-refusal.log" \
+      || fail "the $scope production graph lost the tooling diagnostic"
+  done
+done
+
+for dependency in ic-host-fs candid_parser ic-platform ic-host-tools/certificate; do
   TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \

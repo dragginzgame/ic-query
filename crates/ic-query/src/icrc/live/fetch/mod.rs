@@ -19,8 +19,8 @@ pub(super) use history::{
 };
 
 use crate::icrc::{ledger::principal_from_text, model::IcrcError};
-use candid::Principal;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 pub(super) fn live_query_context(
     source: &crate::icrc::LiveIcrcSource,

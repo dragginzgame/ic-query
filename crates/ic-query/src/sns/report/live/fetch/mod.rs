@@ -19,7 +19,7 @@ use super::{
     super::{MainnetSns, SnsHostError},
     query::principal_from_text,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 pub(super) use canisters::fetch_mainnet_sns_canisters;
 pub(super) use list::{

@@ -13,11 +13,9 @@ use crate::icrc::{
         IcrcLedgerRequest, IcrcTokenData, subaccount_bytes_from_hex,
     },
 };
-use candid::{Nat, Principal};
-use ic_agent::Agent;
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
-use icrc_ledger_types::icrc2::allowance::Allowance;
-use icrc_ledger_types::icrc2::allowance::AllowanceArgs;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::{Nat, Principal};
+use ic_platform::icrc_ledger_types::{Account as LedgerAccount, Allowance, AllowanceArgs};
 
 const ICRC1_SYMBOL_METHOD: &str = "icrc1_symbol";
 const ICRC1_DECIMALS_METHOD: &str = "icrc1_decimals";

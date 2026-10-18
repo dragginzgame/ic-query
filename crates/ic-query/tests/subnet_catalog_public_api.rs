@@ -256,8 +256,10 @@ fn public_registry_value_encoding_exposes_stable_labels() {
 
 #[test]
 fn public_registry_evidence_builders_derive_exact_subject_keys() {
-    let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
-    let range_start = candid::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
+    let subnet = ic_platform::candid::contract::Principal::from_text(SUBNET_A)
+        .expect("fixture Subnet principal");
+    let range_start =
+        ic_platform::candid::contract::Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]);
 
     let subnet_list = SubnetCatalogRegistryRecordSubject::subnet_list();
     let legacy_routing = SubnetCatalogRegistryRecordSubject::legacy_routing_table();
@@ -597,7 +599,8 @@ fn fixture_catalog() -> RawSubnetCatalog {
                 SubnetCatalogRegistryValueEncoding::Inline,
             )
         };
-        let subnet = candid::Principal::from_text(SUBNET_A).expect("fixture Subnet principal");
+        let subnet = ic_platform::candid::contract::Principal::from_text(SUBNET_A)
+            .expect("fixture Subnet principal");
         catalog.provenance.registry_records = vec![
             evidence(SubnetCatalogRegistryRecordSubject::subnet_list()),
             evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),

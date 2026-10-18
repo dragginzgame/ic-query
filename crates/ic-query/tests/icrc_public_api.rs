@@ -632,7 +632,7 @@ impl IcrcTipCertificateSource for FixtureIcrcSource {
         _request: &'a IcrcLedgerRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
-        Result<Option<icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate>, IcrcError>,
+        Result<Option<ic_platform::icrc_ledger_types::ICRC3DataCertificate>, IcrcError>,
     > {
         Box::pin(async move { Ok(None) })
     }

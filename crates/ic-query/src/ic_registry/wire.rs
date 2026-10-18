@@ -1,8 +1,8 @@
 use super::proto::LargeValueChunkKeys;
 use crate::ic_registry::RegistryFetchError;
 #[cfg(feature = "nns-host")]
-use candid::Principal;
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::Principal;
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// RegistryValueContent
@@ -61,6 +61,7 @@ pub(super) struct RegistryVersionedValueFailure {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct RegistryGetChunkRequest {
     pub(super) content_sha256: Option<Vec<u8>>,
 }
@@ -72,6 +73,7 @@ pub(super) struct RegistryGetChunkRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct RegistryChunk {
     pub(super) content: Option<Vec<u8>>,
 }
@@ -83,6 +85,7 @@ pub(super) struct RegistryChunk {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 #[cfg(feature = "nns-host")]
 pub(super) struct ListNodeProvidersResponse {
     pub(super) node_providers: Vec<GovernanceNodeProvider>,
@@ -95,6 +98,7 @@ pub(super) struct ListNodeProvidersResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 #[cfg(feature = "nns-host")]
 pub(super) struct GovernanceNodeProvider {
     pub(super) id: Option<Principal>,
@@ -108,6 +112,7 @@ pub(super) struct GovernanceNodeProvider {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 #[cfg(feature = "nns-host")]
 pub(super) struct GovernanceAccountIdentifier {
     pub(super) hash: Vec<u8>,

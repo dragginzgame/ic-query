@@ -316,7 +316,7 @@ ic-query = { version = "0.62", default-features = false, features = ["cloud-engi
 CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
 JSON. JSON node classes use `type4_1` through `type4_5`; marketplace keys and human
 text use dotted labels. Each inventory row stores `operator` as
-`Result<Option<candid::Principal>, String>`: a registered principal, successful
+`Result<Option<ic_platform::candid::contract::Principal>, String>`: a registered principal, successful
 absence, or bounded failure evidence. JSON represents these as `{"Ok":"principal"}`,
 `{"Ok":null}` and `{"Err":"reason"}`. Invalid successful custom-source evidence
 aborts collection; ordinary lookup failures remain per-row results.
@@ -356,7 +356,7 @@ explicit refresh; strict row decoding rejects unsupported fields without
 rewriting the original evidence.
 
 ICRC tip-certificate custom sources return the standard optional
-`icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate` byte pair. Complete
+`ic_platform::icrc_ledger_types::ICRC3DataCertificate` byte pair. Complete
 authentication before returning it. The report builder derives its hex strings
 and byte counts from those same bytes.
 
@@ -384,7 +384,8 @@ ic-query = { version = "0.62", default-features = false, features = ["sns-host"]
 builders, confined caches, refresh-attempt evidence, progress events, and
 reward evidence. It enables `ic-agent`, Futures, Tokio, URL, and the
 capability-filesystem dependencies required by those APIs. It also enables
-`icrc-ledger-types` for canonical account and metadata wire records. It shares
+Platform's `icrc-ledger-types` feature for canonical account and metadata wire
+records, without upstream storage integration. It shares
 the ICRC token-metadata query mechanics required by SNS ledger reports; native
 ICRC transaction, archive, certificate, and account-history adapters remain
 disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
@@ -1789,7 +1790,7 @@ For the nested schema-1 cache hard cut and required explicit refresh, see
 `IcrcAccountTransactionPageReport.page` carries the same
 `IcrcAccountTransactionPageData` returned by its source; the payload is available
 without host features. Report JSON remains flat. IC transport continues to use
-published ledger types such as `icrc_ledger_types::icrc1::account::Account` and
+published ledger types such as `ic_platform::icrc_ledger_types::Account` and
 Candid `Nat`; the report payload adds display metadata and lossless JSON rows.
 
 SNS proposal rows retain the native `u64` action ID and `i32` ballot vote code.

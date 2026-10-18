@@ -25,7 +25,7 @@ use crate::{
         IcrcTransactionsData, IcrcTransactionsRequest,
     },
 };
-use icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate;
+use ic_platform::icrc_ledger_types::ICRC3DataCertificate;
 
 ///
 /// IcrcTokenSource

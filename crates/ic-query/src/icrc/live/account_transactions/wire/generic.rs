@@ -16,16 +16,18 @@ use crate::{
         model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow},
     },
 };
-use candid::{CandidType, Deserialize, Nat, Principal};
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
+use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 enum IcrcIndexTransactionsResult {
     Ok(IcrcIndexTransactions),
     Err(IcrcIndexTransactionsError),
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactions {
     balance: Nat,
     transactions: Vec<IcrcIndexTransactionWithId>,
@@ -33,17 +35,20 @@ struct IcrcIndexTransactions {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactionsError {
     message: String,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactionWithId {
     id: Nat,
     transaction: IcrcIndexTransaction,
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransaction {
     burn: Option<IcrcIndexBurn>,
     kind: String,
@@ -57,6 +62,7 @@ struct IcrcIndexTransaction {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexApprove {
     fee: Option<Nat>,
     from: LedgerAccount,
@@ -69,6 +75,7 @@ struct IcrcIndexApprove {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexBurn {
     from: LedgerAccount,
     memo: Option<Vec<u8>>,
@@ -79,6 +86,7 @@ struct IcrcIndexBurn {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexMint {
     to: LedgerAccount,
     memo: Option<Vec<u8>>,
@@ -88,6 +96,7 @@ struct IcrcIndexMint {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransfer {
     to: LedgerAccount,
     fee: Option<Nat>,
@@ -99,6 +108,7 @@ struct IcrcIndexTransfer {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexFeeCollector {
     caller: Option<Principal>,
     fee_collector: Option<LedgerAccount>,
@@ -107,6 +117,7 @@ struct IcrcIndexFeeCollector {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAuthorizedMint {
     to: LedgerAccount,
     amount: Nat,
@@ -117,6 +128,7 @@ struct IcrcIndexAuthorizedMint {
 }
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAuthorizedBurn {
     from: LedgerAccount,
     amount: Nat,
@@ -129,7 +141,10 @@ struct IcrcIndexAuthorizedBurn {
 pub(super) fn decode(
     bytes: &[u8],
     index_canister: &Principal,
-) -> Result<Result<AccountTransactionsPage, IcrcAccountTransactionError>, candid::Error> {
+) -> Result<
+    Result<AccountTransactionsPage, IcrcAccountTransactionError>,
+    ic_platform::candid::contract::Error,
+> {
     crate::candid_decode::decode_reply::<IcrcIndexTransactionsResult>(bytes)
         .map(|result| account_transactions_page(result, index_canister))
 }
@@ -343,7 +358,7 @@ mod tests {
     #[test]
     fn every_operation_preserves_exact_decimal_blob_and_nullable_json_fields() {
         let response = every_operation_response();
-        let bytes = candid::encode_one(&response).unwrap();
+        let bytes = ic_platform::candid::contract::encode_one(&response).unwrap();
         let page = decode(&bytes, &Principal::management_canister())
             .unwrap()
             .unwrap();
@@ -440,9 +455,10 @@ mod tests {
             oldest_tx_id: Some(Nat::from(7_u64)),
         });
 
-        let bytes = candid::encode_one(&response).expect("encode index response");
+        let bytes =
+            ic_platform::candid::contract::encode_one(&response).expect("encode index response");
         let decoded: IcrcIndexTransactionsResult =
-            candid::decode_one(&bytes).expect("decode index response");
+            crate::candid_decode::decode_reply(&bytes).expect("decode index response");
         assert_eq!(decoded, response);
 
         let IcrcIndexTransactionsResult::Ok(decoded) = decoded else {

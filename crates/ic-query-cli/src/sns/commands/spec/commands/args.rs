@@ -5,7 +5,7 @@
 //! Boundary: centralizes reusable clap argument shapes for SNS commands.
 
 use crate::cli::clap::value_arg;
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 pub(super) fn sns_lookup_input_arg() -> clap::Arg {
     value_arg("input")

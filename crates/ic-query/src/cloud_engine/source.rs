@@ -19,7 +19,7 @@ use crate::{
     candid_call::{CandidCallError, encode_request, query_encoded},
     subnet_catalog::format_utc_timestamp_secs,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 const GET_ENGINE_OPERATOR_BY_SUBNET_METHOD: &str = "getEngineOperatorBySubnet";
 const GET_ENGINE_OWNER_METHOD: &str = "getEngineOwner";
@@ -256,7 +256,7 @@ async fn fetch_live_operator(
 }
 
 async fn resolve_operator(
-    agent: &ic_agent::Agent,
+    agent: &ic_platform::agent::Agent,
     engine_canister: &Principal,
     subnet: Principal,
 ) -> Result<Option<Principal>, CloudEngineHostError> {
@@ -314,7 +314,7 @@ async fn fetch_live_prices(
 fn live_agent_and_canister(
     source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
-) -> Result<(ic_agent::Agent, Principal), CloudEngineHostError> {
+) -> Result<(ic_platform::agent::Agent, Principal), CloudEngineHostError> {
     let agent = source.agent.get(
         &request.endpoint,
         MAX_IC_AGENT_RESPONSE_BODY_BYTES,
@@ -343,7 +343,7 @@ impl CandidCallError for CloudEngineHostError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, error: ic_agent::AgentError) -> Self {
+    fn agent_call(method: &'static str, error: ic_platform::agent::AgentError) -> Self {
         Self::AgentCall {
             method,
             reason: error.to_string(),

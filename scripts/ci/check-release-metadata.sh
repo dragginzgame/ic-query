@@ -29,11 +29,18 @@ cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
+if [[ "$*" == 'sort --workspace --grouped --check' ]]; then
+  printf '%s\n' "$PWD" >> "$ORDER_TRACE"
+  cp Cargo.toml "$ORDER_TRACE.manifest"
+  [[ "${FAIL_MANIFEST_ORDER:-}" != yes ]] || exit 79
+  exit 0
+fi
 [[ "$*" == 'metadata --locked --offline --no-deps --format-version 1' ]] || exit 1
 printf '{}\n'
 STUB
 chmod +x "$work_dir/bin/cargo"
 export PATH="$work_dir/bin:$PATH"
+export ORDER_TRACE="$work_dir/manifest-order-trace"
 export RELEASE_KIND=minor RELEASE_REMOTE=origin RELEASE_BRANCH=main RELEASE_DATE=2026-10-06
 export RELEASE_PREVIOUS RELEASE_VERSION RELEASE_SOURCE
 RELEASE_PREVIOUS="$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)"
@@ -94,6 +101,26 @@ if bash scripts/release/adapter.sh commit-check > "$work_dir/stale-index.log" 2>
 fi
 git add -- Cargo.toml Cargo.lock CHANGELOG.md "$detail"
 bash scripts/release/adapter.sh commit-check
+
+status=0
+FAIL_MANIFEST_ORDER=yes bash scripts/release/adapter.sh prepared-check \
+  > "$work_dir/order-refusal.log" 2>&1 || status=$?
+[[ "$status" == 79 ]] || fail 'prepared check hid manifest-order refusal'
+
+# Committed admission must sort the selected bytes, independently of the worktree.
+export RELEASE_COMMIT
+RELEASE_COMMIT="$(git write-tree)"
+printf '\n# unrelated working manifest evidence\n' >> Cargo.toml
+bash scripts/release/adapter.sh committed-check
+cmp "$work_dir/prepared/Cargo.toml" "$ORDER_TRACE.manifest"
+[[ "$(tail -n 1 "$ORDER_TRACE")" == "$PWD/.git/release-state/$RELEASE_VERSION.manifest-order."*/source ]] \
+  || fail 'committed ordering did not select the retained release source'
+cp "$work_dir/prepared/Cargo.toml" Cargo.toml
+status=0
+FAIL_MANIFEST_ORDER=yes bash scripts/release/adapter.sh committed-check \
+  > "$work_dir/committed-order-refusal.log" 2>&1 || status=$?
+[[ "$status" == 79 ]] || fail 'committed check hid manifest-order refusal'
+unset RELEASE_COMMIT
 
 # A staged replacement with the working file restored hides from HEAD-to-worktree.
 original="$(git rev-parse "$RELEASE_SOURCE:AGENTS.md")"

@@ -214,6 +214,7 @@ fn status_reports_active_available_and_invalid_coordination_files() {
     assert!(text.contains("available"));
     assert!(text.contains("active"));
     assert!(active_lock.exists());
+    ic_host_fs::durable::unlock(&file).unwrap();
     drop(file);
     let unlocked = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
     assert_eq!(unlocked.active_refresh_lock_count, 0);

@@ -12,8 +12,6 @@ use std::path::Path;
 mod json;
 #[cfg(feature = "subnet-catalog-host")]
 mod output;
-#[cfg(feature = "subnet-catalog-host")]
-mod path;
 #[cfg(feature = "nns-host")]
 mod refresh;
 #[cfg(all(test, feature = "subnet-catalog-host"))]

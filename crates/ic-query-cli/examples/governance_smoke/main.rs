@@ -76,7 +76,7 @@ fn parse(args: &[OsString]) -> Result<Action> {
             if text(command)? == "verify-mainnet" && text(flag)? == "--canister" =>
         {
             let principal = text(principal)?;
-            candid::Principal::from_text(principal)?;
+            ic_platform::candid::contract::Principal::from_text(principal)?;
             Ok(Action::VerifyMainnet(principal.to_string()))
         }
         _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),

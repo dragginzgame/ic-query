@@ -221,7 +221,7 @@ fn account_transaction_cursor_value_parser() -> ValueParser {
             return Err("expected unsigned decimal transaction id".to_string());
         }
         value
-            .parse::<candid::Nat>()
+            .parse::<ic_platform::candid::contract::Nat>()
             .map(|cursor| cursor.0.to_str_radix(10))
             .map_err(|error| error.to_string())
     })

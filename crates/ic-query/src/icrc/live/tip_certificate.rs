@@ -8,12 +8,10 @@ use crate::{
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     icrc::model::IcrcError,
 };
-use candid::Principal;
-use ic_agent::{
-    Agent,
-    hash_tree::{HashTree, LookupResult},
-};
-use icrc_ledger_types::icrc3::blocks::ICRC3DataCertificate;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::{HashTree, LookupResult};
+use ic_platform::icrc_ledger_types::ICRC3DataCertificate;
 
 const ICRC3_GET_TIP_CERTIFICATE_METHOD: &str = "icrc3_get_tip_certificate";
 const LAST_BLOCK_HASH_LABEL: &[u8] = b"last_block_hash";
@@ -42,7 +40,7 @@ pub(super) fn verified_tip_certificate_data(
     Ok(Some(wire))
 }
 
-fn verify_tip_leaves(hash_tree: &HashTree<Vec<u8>>) -> Result<(), IcrcError> {
+fn verify_tip_leaves(hash_tree: &HashTree) -> Result<(), IcrcError> {
     let last_block_index = required_leaf(hash_tree, LAST_BLOCK_INDEX_LABEL)?;
     validate_canonical_unsigned_leb128(last_block_index)?;
 
@@ -68,7 +66,7 @@ fn map_certified_data_error(error: CertifiedDataError) -> IcrcError {
 }
 
 fn required_leaf<'tree>(
-    hash_tree: &'tree HashTree<Vec<u8>>,
+    hash_tree: &'tree HashTree,
     label: &'static [u8],
 ) -> Result<&'tree [u8], IcrcError> {
     match hash_tree.lookup_path([label]) {
@@ -116,17 +114,14 @@ fn invalid_tip_certificate(reason: impl Into<String>) -> IcrcError {
 mod tests {
     use super::*;
     use crate::certification::verify_canister_tree;
-    use ic_agent::{
-        Certificate,
-        hash_tree::{fork, label, leaf},
-    };
+    use ic_platform::certification::{Certificate, fork, labeled as label, leaf};
 
     const LEDGER_CANISTER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 
     fn verify_tip_witness(
         certificate: &Certificate,
         ledger_canister: &Principal,
-        hash_tree: &HashTree<Vec<u8>>,
+        hash_tree: &HashTree,
     ) -> Result<(), IcrcError> {
         verify_canister_tree(certificate, ledger_canister, hash_tree, "ledger")
             .map_err(map_certified_data_error)?;
@@ -265,7 +260,7 @@ mod tests {
         }
     }
 
-    fn tip_hash_tree(last_block_index: Vec<u8>, last_block_hash: Vec<u8>) -> HashTree<Vec<u8>> {
+    fn tip_hash_tree(last_block_index: Vec<u8>, last_block_hash: Vec<u8>) -> HashTree {
         fork(
             label(LAST_BLOCK_HASH_LABEL.to_vec(), leaf(last_block_hash)),
             label(LAST_BLOCK_INDEX_LABEL.to_vec(), leaf(last_block_index)),

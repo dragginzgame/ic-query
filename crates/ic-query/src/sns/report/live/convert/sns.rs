@@ -9,7 +9,7 @@ use crate::sns::report::{
     MainnetSnsCanisters, MainnetSnsMetadata, SnsHostError,
     live::types::{DeployedSns, GetMetadataResponse},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 /// Convert one SNS-W deployed SNS entry into required canister id strings.
 pub(in crate::sns::report::live) fn mainnet_sns_canisters_from_deployed_sns(

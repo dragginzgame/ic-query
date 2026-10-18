@@ -22,7 +22,7 @@ use crate::subnet_catalog::{
     SubnetKind, build_subnet_catalog_list_report_with_source_and_progress,
 };
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 const REGISTRY_AUTHORITY: &str = "nns_registry";
 const MAX_LOOKUP_ERROR_BYTES: usize = 4_096;

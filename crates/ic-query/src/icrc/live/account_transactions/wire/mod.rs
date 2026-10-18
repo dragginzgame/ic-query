@@ -4,7 +4,7 @@
 //! Does not own: index discovery, collection state, public reports, caching, or text rendering.
 //! Boundary: shares only the request envelope; generic ICRC and deployed ICP responses remain separate.
 
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 mod generic;
 mod icp;
 mod json;
@@ -12,12 +12,13 @@ mod json;
 use super::collection::AccountTransactionsPage;
 use crate::candid_call::query_bytes;
 use crate::icrc::model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError};
-use candid::{CandidType, Deserialize, Nat, Principal};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
 
 const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAccountTransactionsArgs {
     account: LedgerAccount,
     start: Option<Nat>,

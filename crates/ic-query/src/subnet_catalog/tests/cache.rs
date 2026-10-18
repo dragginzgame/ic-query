@@ -356,7 +356,9 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
             SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
                 kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
                 key: crate::ic_registry::subnet_record_key(SUBNET_A),
-                subnet: Some(candid::Principal::from_text(SUBNET_A).expect("subnet")),
+                subnet: Some(
+                    ic_platform::candid::contract::Principal::from_text(SUBNET_A).expect("subnet"),
+                ),
                 canister_range_start: None,
             }),
             "SubnetRecord",

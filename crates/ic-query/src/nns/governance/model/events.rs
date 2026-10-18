@@ -6,7 +6,7 @@
 
 use super::NnsGovernanceReportContext;
 #[cfg(any(feature = "nns-host", feature = "canister"))]
-use candid::CandidType;
+use ic_platform::candid::contract::CandidType;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -31,6 +31,10 @@ pub struct NnsGovernanceRewardEventReport {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceRewardEvent {
     /// Rounds elapsed since the previous distribution when supplied.
@@ -56,6 +60,10 @@ pub struct NnsGovernanceRewardEvent {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceProposalId {
     /// Governance proposal identifier.
@@ -84,6 +92,10 @@ pub struct NnsGovernanceMaturityModulationReport {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceMaturityModulation {
     /// Current signed modulation in permyriad when supplied.
