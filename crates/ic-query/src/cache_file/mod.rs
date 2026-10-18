@@ -78,7 +78,7 @@ pub use json::CachedJsonReport;
 ))]
 pub use json::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache};
 pub use lock::RefreshLockRequest;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", all(test, feature = "icrc-host")))]
 pub use lock::inspect_refresh_lock;
 #[cfg(feature = "subnet-catalog-host")]
 pub use lock::with_refresh_lock;

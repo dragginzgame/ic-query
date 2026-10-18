@@ -5,30 +5,16 @@ use ic_host_artifacts::{
     artifact::{ArtifactError, Sha256Digest},
     wasm::{CustomSectionEncodingError, InspectionError, InspectionLimits, inspect},
 };
-use ic_host_fs::durable::{NamedWriteError, PublicationMode, WriteOptions, write_with};
+use ic_host_fs::{
+    durable::{NamedWriteError, PublicationMode, WriteOptions, write_with},
+    testing::FixtureDirectory,
+};
 use ic_host_process::tool::{ExecutionFailure, ToolError};
 use protocol::Probe;
 use std::{
     os::unix::fs::{PermissionsExt, symlink},
     time::{Duration, Instant},
 };
-
-struct Directory(PathBuf);
-
-impl Directory {
-    fn new() -> Self {
-        Self(
-            ic_host_fs::testing::create_fixture_directory(&env::temp_dir(), "ic-query-smoke")
-                .unwrap(),
-        )
-    }
-}
-
-impl Drop for Directory {
-    fn drop(&mut self) {
-        fs::remove_dir_all(&self.0).unwrap();
-    }
-}
 
 fn payload(kind: &str) -> Value {
     json!({"status":"ok", "report":{
@@ -67,8 +53,8 @@ fn actions_are_admitted_before_effects_and_help_commands_are_sorted() {
 
 #[test]
 fn source_fingerprint_covers_inventory_independent_of_checkout_location() {
-    let directory = Directory::new();
-    let relocated = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let relocated = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     for path in [
         "tests/canister/probe.did",
         "rust-toolchain.toml",
@@ -79,40 +65,40 @@ fn source_fingerprint_covers_inventory_independent_of_checkout_location() {
         "Cargo.toml",
         "Cargo.lock",
     ] {
-        for root in [&directory.0, &relocated.0] {
+        for root in [directory.path(), relocated.path()] {
             let path = root.join(path);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, b"fixture\n").unwrap();
         }
     }
-    let source = directory.0.join("crates/ic-query/src/large.rs");
+    let source = directory.path().join("crates/ic-query/src/large.rs");
     fs::write(&source, vec![b'x'; 65_537]).unwrap();
     fs::write(
-        relocated.0.join("crates/ic-query/src/large.rs"),
+        relocated.path().join("crates/ic-query/src/large.rs"),
         vec![b'x'; 65_537],
     )
     .unwrap();
-    let expected = build::source_digest(&directory.0).unwrap();
-    assert_eq!(build::source_digest(&relocated.0).unwrap(), expected);
+    let expected = build::source_digest(directory.path()).unwrap();
+    assert_eq!(build::source_digest(relocated.path()).unwrap(), expected);
     fs::write(&source, vec![b'y'; 65_537]).unwrap();
-    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    assert_ne!(build::source_digest(directory.path()).unwrap(), expected);
     fs::write(&source, vec![b'x'; 65_537]).unwrap();
-    let guide = directory.0.join("crates/ic-query/README.md");
+    let guide = directory.path().join("crates/ic-query/README.md");
     fs::write(&guide, b"guide").unwrap();
-    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    assert_ne!(build::source_digest(directory.path()).unwrap(), expected);
     fs::remove_file(guide).unwrap();
-    let empty = directory.0.join("crates/ic-query/empty");
+    let empty = directory.path().join("crates/ic-query/empty");
     fs::create_dir(&empty).unwrap();
-    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    assert_ne!(build::source_digest(directory.path()).unwrap(), expected);
     fs::remove_dir(empty).unwrap();
-    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
+    assert_eq!(build::source_digest(directory.path()).unwrap(), expected);
     fs::rename(&source, source.with_file_name("renamed.rs")).unwrap();
-    assert_ne!(build::source_digest(&directory.0).unwrap(), expected);
+    assert_ne!(build::source_digest(directory.path()).unwrap(), expected);
     fs::rename(source.with_file_name("renamed.rs"), source).unwrap();
-    assert_eq!(build::source_digest(&directory.0).unwrap(), expected);
-    fs::remove_file(directory.0.join("Cargo.lock")).unwrap();
+    assert_eq!(build::source_digest(directory.path()).unwrap(), expected);
+    fs::remove_file(directory.path().join("Cargo.lock")).unwrap();
     assert_eq!(
-        build::source_digest(&directory.0)
+        build::source_digest(directory.path())
             .unwrap_err()
             .downcast_ref::<io::Error>()
             .unwrap()
@@ -121,36 +107,36 @@ fn source_fingerprint_covers_inventory_independent_of_checkout_location() {
     );
 }
 
-fn probe_workspace() -> Directory {
-    let directory = Directory::new();
-    fs::create_dir(directory.0.join(".cargo")).unwrap();
+fn probe_workspace() -> FixtureDirectory {
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    fs::create_dir(directory.path().join(".cargo")).unwrap();
     fs::write(
-        directory.0.join(".cargo/config.toml"),
+        directory.path().join(".cargo/config.toml"),
         "[build]\ntarget-dir = 'configured target'\n",
     )
     .unwrap();
     fs::write(
-        directory.0.join("Cargo.toml"),
+        directory.path().join("Cargo.toml"),
         "[package]\nname = 'ic-query'\nversion = '0.0.0'\nedition = '2024'\n\
          [features]\ncanister = []\n\
          [[example]]\nname = 'governance_probe'\npath = 'probe.rs'\ncrate-type = ['cdylib']\n",
     )
     .unwrap();
     fs::write(
-        directory.0.join("Cargo.lock"),
+        directory.path().join("Cargo.lock"),
         "version = 4\n[[package]]\nname = 'ic-query'\nversion = '0.0.0'\n",
     )
     .unwrap();
-    fs::write(directory.0.join("probe.rs"), "pub fn probe() {}\n").unwrap();
+    fs::write(directory.path().join("probe.rs"), "pub fn probe() {}\n").unwrap();
     directory
 }
 
 #[test]
 fn probe_inputs_bind_configured_output_source_and_cdylib_example() {
     let directory = probe_workspace();
-    let target = build::target_directory(&directory.0).unwrap();
-    assert_eq!(target, directory.0.join("configured target"));
-    let spec = build::probe_spec(&directory.0, &target);
+    let target = build::target_directory(directory.path()).unwrap();
+    assert_eq!(target, directory.path().join("configured target"));
+    let spec = build::probe_spec(directory.path(), &target);
     let resolve = || build::resolve_probe_inputs(&spec, Duration::from_secs(10)).unwrap();
     let before = resolve();
     assert_eq!(
@@ -160,12 +146,12 @@ fn probe_inputs_bind_configured_output_source_and_cdylib_example() {
     let unchanged = resolve();
     assert_eq!(before.fingerprint(), unchanged.fingerprint());
     assert_eq!(before.validation_digest(), unchanged.validation_digest());
-    fs::write(directory.0.join("probe.rs"), "pub fn changed() {}\n").unwrap();
+    fs::write(directory.path().join("probe.rs"), "pub fn changed() {}\n").unwrap();
     let changed = resolve();
     assert_ne!(before.fingerprint(), changed.fingerprint());
     assert_ne!(before.validation_digest(), changed.validation_digest());
 
-    let manifest = directory.0.join("Cargo.toml");
+    let manifest = directory.path().join("Cargo.toml");
     let original = fs::read_to_string(&manifest).unwrap();
     for invalid in [
         original.replace("['cdylib']", "['rlib']"),
@@ -182,15 +168,15 @@ fn probe_inputs_bind_configured_output_source_and_cdylib_example() {
 #[test]
 fn probe_input_deadline_retains_original_process_evidence() {
     let directory = probe_workspace();
-    let program = directory.0.join("stalled-cargo");
+    let program = directory.path().join("stalled-cargo");
     fs::write(
         &program,
         "#!/bin/sh\nprintf 'original probe output'\nexec sleep 5\n",
     )
     .unwrap();
     fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
-    let spec =
-        build::probe_spec(&directory.0, &directory.0.join("target")).with_cargo_program(program);
+    let spec = build::probe_spec(directory.path(), &directory.path().join("target"))
+        .with_cargo_program(program);
     let error = build::resolve_probe_inputs(&spec, Duration::from_secs(1)).unwrap_err();
     let WasmBuildError::Io { source, .. } = error.downcast_ref().unwrap() else {
         panic!("expected retained probe failure: {error}");
@@ -205,8 +191,8 @@ fn probe_input_deadline_retains_original_process_evidence() {
 
 #[test]
 fn persistent_identity_selection_resolves_missing_paths_and_symlinks() {
-    let directory = Directory::new();
-    let root = &directory.0;
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let root = directory.path();
     let project = root.join("tests/canister");
     let target = root.join("configured target");
     symlink(root.join("target"), root.join("output alias")).unwrap();
@@ -239,7 +225,7 @@ fn persistent_identity_selection_resolves_missing_paths_and_symlinks() {
     )
     .unwrap();
     assert_eq!(command.get_program(), root.join(".tools/ic/bin/icp"));
-    assert_eq!(command.get_current_dir(), Some(root.as_path()));
+    assert_eq!(command.get_current_dir(), Some(root));
     let vars: std::collections::BTreeMap<_, _> = command.get_envs().collect();
     assert_eq!(
         vars[std::ffi::OsStr::new("ICP_HOME")],
@@ -302,12 +288,12 @@ fn candid_admission_rejects_wrong_types_extra_values_trailing_bytes_and_large_he
 
 #[test]
 fn rejected_replies_remain_private_and_cannot_be_replaced() {
-    let directory = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     for (name, bytes) in [
         ("invalid", b"not Candid".to_vec()),
         ("oversized", vec![0; 2 * 1024 * 1024 + 1]),
     ] {
-        let path = directory.0.join(name);
+        let path = directory.path().join(name);
         assert!(protocol::publish_reply(&path, &bytes).is_err());
         assert_eq!(fs::read(&path).unwrap(), bytes);
         let error = protocol::publish_reply(&path, &candid::encode_one("{}").unwrap()).unwrap_err();
@@ -407,7 +393,7 @@ impl Probe for FixtureProbe {
 }
 
 fn verify_fixture(
-    directory: &Directory,
+    directory: &FixtureDirectory,
     changed: bool,
     invalid_kind: Option<&'static str>,
     bad_wasm: bool,
@@ -417,7 +403,7 @@ fn verify_fixture(
     } else {
         b"\0asm\x01\0\0\0".as_slice()
     };
-    let wasm = directory.0.join("probe.wasm");
+    let wasm = directory.path().join("probe.wasm");
     fs::write(&wasm, bytes).unwrap();
     let mut probe = FixtureProbe {
         hash: Sha256Digest::compute(bytes).to_string(),
@@ -426,7 +412,7 @@ fn verify_fixture(
         invalid_kind,
     };
     let mut receipt = json!({"status":"running", "environment":"local"});
-    let output = directory.0.join("receipt.json");
+    let output = directory.path().join("receipt.json");
     let result = attempt::verify(
         &mut probe,
         "aaaaa-aa",
@@ -441,19 +427,19 @@ fn verify_fixture(
 
 #[test]
 fn verification_preserves_reports_raw_replies_and_final_module_check() {
-    let directory = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let (result, receipt) = verify_fixture(&directory, false, None, false);
     result.unwrap();
     assert_eq!(receipt["reports"].as_object().unwrap().len(), 4);
     assert_eq!(receipt["module_hash_before"], receipt["module_hash_after"]);
     for kind in KINDS {
-        let bytes = fs::read(directory.0.join(format!("{kind}.candid"))).unwrap();
+        let bytes = fs::read(directory.path().join(format!("{kind}.candid"))).unwrap();
         assert_eq!(
             serde_json::from_str::<Value>(&protocol::decode_reply(&bytes).unwrap()).unwrap(),
             payload(kind)
         );
     }
-    let directory = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let (result, receipt) = verify_fixture(&directory, true, None, false);
     assert!(result.is_err());
     assert_eq!(receipt["reports"].as_object().unwrap().len(), 4);
@@ -461,7 +447,7 @@ fn verification_preserves_reports_raw_replies_and_final_module_check() {
 
 #[test]
 fn invalid_reply_retains_prior_reports_and_a_checkpoint_before_admission() {
-    let directory = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let (result, receipt) = verify_fixture(&directory, false, Some("metrics"), false);
     assert!(result.is_err());
     assert!(receipt["reports"]["economics"].get("report").is_some());
@@ -470,13 +456,13 @@ fn invalid_reply_retains_prior_reports_and_a_checkpoint_before_admission() {
         json!({"reply_file":"metrics.candid"})
     );
     assert_eq!(
-        fs::read(directory.0.join("metrics.candid")).unwrap(),
+        fs::read(directory.path().join("metrics.candid")).unwrap(),
         b"invalid Candid"
     );
     let persisted: Value =
-        serde_json::from_slice(&fs::read(directory.0.join("receipt.json")).unwrap()).unwrap();
+        serde_json::from_slice(&fs::read(directory.path().join("receipt.json")).unwrap()).unwrap();
     assert_eq!(persisted["phase"], "collecting_metrics");
-    let directory = Directory::new();
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let (result, receipt) = verify_fixture(&directory, false, None, true);
     assert!(result.is_err());
     assert!(receipt.get("reports").is_none());
@@ -628,8 +614,8 @@ fn failed_receipts_keep_command_bytes_and_cleanup_errors_separate_from_the_prima
 
 #[test]
 fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
-    let directory = Directory::new();
-    let path = directory.0.join("probe.wasm");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let path = directory.path().join("probe.wasm");
     let mut bytes = b"\0asm\x01\0\0\0".to_vec();
     let contents = vec![b'x'; 16_384];
     build::append_metadata_section(&mut bytes, "candid:service", &contents).unwrap();
@@ -667,8 +653,8 @@ fn metadata_append_refuses_the_aggregate_module_budget_without_changing_input() 
 
 #[test]
 fn wasm_admission_rejects_malformed_and_oversized_files() {
-    let directory = Directory::new();
-    let path = directory.0.join("probe.wasm");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let path = directory.path().join("probe.wasm");
     fs::write(&path, b"not a Wasm module").unwrap();
     let error = protocol::read_wasm(&path).expect_err("malformed artifact rejected");
     assert!(matches!(
@@ -813,8 +799,8 @@ fn storage_failure_cannot_skip_cleanup_or_replace_an_operation_error() {
 
 #[test]
 fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
-    let directory = Directory::new();
-    let path = directory.0.join("receipt.json");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let path = directory.path().join("receipt.json");
     let first = json!({
         "schema_version":1,
         "status":"running",
@@ -835,8 +821,8 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
         fs::read(&path).unwrap(),
         b"{\n  \"status\": \"passed\"\n}\n"
     );
-    let one = receipt_directory(&directory.0).unwrap();
-    let two = receipt_directory(&directory.0).unwrap();
+    let one = receipt_directory(directory.path()).unwrap();
+    let two = receipt_directory(directory.path()).unwrap();
     assert_ne!(one, two);
     assert_eq!(
         fs::metadata(one).unwrap().permissions().mode() & 0o777,
@@ -861,7 +847,7 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
             if source.kind() == io::ErrorKind::BrokenPipe)
     );
     assert_eq!(fs::read(&path).unwrap(), before);
-    let entries = fs::read_dir(&directory.0).unwrap().count();
+    let entries = fs::read_dir(directory.path()).unwrap().count();
     for suffix in ["/", "/.", "//", "/./."] {
         let mut target = path.as_os_str().to_os_string();
         target.push(suffix);
@@ -873,7 +859,7 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
                 if source.kind() == io::ErrorKind::InvalidInput
         ));
         assert_eq!(fs::read(&path).unwrap(), before);
-        assert_eq!(fs::read_dir(&directory.0).unwrap().count(), entries);
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), entries);
     }
 }
 
@@ -977,8 +963,8 @@ fn cancelled_commands_cleanup_and_preserve_their_cancellation() {
 
 #[test]
 fn background_handoff_requires_successful_text_admission() {
-    let directory = Directory::new();
-    let pid = directory.0.join("pid");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let pid = directory.path().join("pid");
     let mut child = Command::new("sh");
     child
         .args([
@@ -1020,8 +1006,8 @@ fn background_handoff_requires_successful_text_admission() {
 
 #[test]
 fn successful_background_start_survives_handoff_until_explicit_stop() {
-    let directory = Directory::new();
-    let pid_file = directory.0.join("pid");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let pid_file = directory.path().join("pid");
     let mut child = Command::new("sh");
     child
         .args([
@@ -1130,13 +1116,13 @@ fn signals_during_startup_publish_failure_and_still_stop_the_network() {
         tool::{OutputLimit, OutputLimits, SuccessfulExit, communicate_child},
     };
     for signal in [libc::SIGINT, libc::SIGTERM] {
-        let directory = Directory::new();
-        let marker = directory.0.join("active-pid");
+        let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+        let marker = directory.path().join("active-pid");
         let mut command = Command::new(env::current_exe().unwrap());
         command
             .args(["--exact", "tests::process_fixture", "--nocapture"])
             .env("ICQ_SMOKE_PROCESS_FIXTURE", "signal")
-            .env("ICQ_SMOKE_FIXTURE_DIRECTORY", &directory.0)
+            .env("ICQ_SMOKE_FIXTURE_DIRECTORY", directory.path())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
         let mut child = OwnedChild::spawn(&mut command, CleanupPolicy::KillAndWait).unwrap();
@@ -1167,24 +1153,25 @@ fn signals_during_startup_publish_failure_and_still_stop_the_network() {
         .unwrap();
         assert!(evidence.status.success());
         let receipt: Value =
-            serde_json::from_slice(&fs::read(directory.0.join("receipt.json")).unwrap()).unwrap();
+            serde_json::from_slice(&fs::read(directory.path().join("receipt.json")).unwrap())
+                .unwrap();
         assert_eq!(receipt["status"], "failed");
         assert_eq!(receipt["failed_phase"], "starting_network");
         assert_eq!(receipt["interrupted_by"], command::signal_name(signal));
         assert_eq!(receipt["network_cleanup"], "stopped");
-        assert!(directory.0.join("stopped").exists());
+        assert!(directory.path().join("stopped").exists());
     }
 }
 
 #[test]
 fn escaped_descendant_output_pipes_do_not_extend_the_deadline() {
-    let directory = Directory::new();
-    let pid_file = directory.0.join("escaped-pid");
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
+    let pid_file = directory.path().join("escaped-pid");
     let mut child = Command::new(env::current_exe().unwrap());
     child
         .args(["--exact", "tests::process_fixture", "--nocapture"])
         .env("ICQ_SMOKE_PROCESS_FIXTURE", "escape")
-        .env("ICQ_SMOKE_FIXTURE_DIRECTORY", &directory.0);
+        .env("ICQ_SMOKE_FIXTURE_DIRECTORY", directory.path());
     let started = Instant::now();
     let error = command::supervise(
         &mut child,

@@ -12,6 +12,38 @@ collection architecture rather than duplicating milestone status.
 User-facing command and collection-mode guidance lives in
 [CLI Usage](../cli-usage.md).
 
+## Repository boundary
+
+The `ic-query` library owns read-only IC collection policy, source capability
+traits, provenance and validation, report models and rendering, and managed
+snapshot identity, completeness and refresh policy. Its public entry point is
+`crates/ic-query/src/lib.rs`; optional host features select live adapters, while
+`canister` selects replicated Governance calls on Wasm. Embedders supply their
+runtime, endpoint, clocks and progress sink. The `icq` binary in
+`crates/ic-query-cli/src/main.rs` owns argument parsing, dispatch and process IO.
+
+Dependencies own the reusable mechanisms beneath that policy:
+
+| Capability | Canonical dependency | Query integration that remains |
+| --- | --- | --- |
+| IC transport and standard values | `ic-agent`, `candid`, `ic-certification`, `icrc-ledger-types` | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
+| Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, family error projection, report layouts and smoke-harness interruption policy |
+| Bounded Candid decoding | `ic-testkit-candid` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
+| Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
+| Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
+| Measurement arithmetic | `ic-metrics` | Report-specific interpretation and display policy |
+| Developer tooling implementation | Reviewed Shared Tooling snapshot | Local Make/CI wiring, selected catalogs, release adapters and product qualification |
+
+The Governance smoke example is contributor tooling, not a library transport or
+a second deployment framework. ICP remains at its managed-runtime/deployment
+boundary; canister calls use `ic-agent` and typed Candid directly.
+
+Local cache confinement is still necessary: the Host writer accepts an admitted
+parent descriptor, but does not select Query's cache root, validate its ancestors
+or define recovery from invalid report content. Likewise, report fixtures test
+Query's use of shared mechanisms rather than duplicating their general regression
+suites. Do not move these policies upstream merely to reduce local source.
+
 ## Host execution ownership
 
 Live source capabilities and collectors are async. The caller owns the runtime;

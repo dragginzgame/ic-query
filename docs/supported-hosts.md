@@ -2467,8 +2467,8 @@ dispatch and failure handling, not native compilation of these executables.
 
 ## Testkit canister qualification
 
-The native development graph adopts `ic-testkit 0.45.0`, its PocketIC 16.1 client
-and the server selected by Testkit's provisioning owner. Native source review
+The native development graph selects Testkit and its PocketIC client through
+`Cargo.lock`, and the server through Testkit's provisioning owner. Native source review
 and compilation do not qualify a server on another host. The configured
 Linux, macOS ARM64 and macOS x86-64 canister lanes explicitly prepare/check
 Testkit, then execute `make canister-test` before local-NNS deployment smoke.
@@ -2476,7 +2476,7 @@ Local evidence and outstanding native CI results are reported at handoff.
 
 Testkit and WAT are native development dependencies only. Normal minimal,
 canister and host library consumers retain their dependency boundaries and
-Rust 1.91 floor. The separate `ic-testkit-candid 0.45` package supplies bounded
+Rust 1.91 floor. The separate `ic-testkit-candid` package supplies bounded
 reply decoding on native and Wasm targets, depending only on Candid and Serde;
 it does not bring the simulator or its native test dependencies into consumers.
 Query retains transport limits, proportional work quotas and error projection.

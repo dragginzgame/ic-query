@@ -178,8 +178,9 @@ remain unnecessary.
 
 ## Acquisition progress and history reuse
 
-`LiveSubnetCatalogSource` supports the existing detailed
-`*_with_source_async` entry points. Keep the source across retries and
+`LiveSubnetCatalogSource` supports
+`load_subnet_catalog_detailed_with_source` on the caller's runtime. Keep the
+source across retries and
 refreshes, and use `with_progress` to observe endpoint-local history and record
 acquisition. For cross-process reuse, configure `with_history_cache(cache_root)`
 with the same private root in each process. Standard live load/refresh APIs

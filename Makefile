@@ -153,10 +153,10 @@ library-process-boundary-check:
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
+# Shared Tooling qualifies generic helper suites. Keep Query's actual Make,
+# hook, workflow, documentation-debt and Governance-harness integration here.
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
-	bash scripts/ci/test-rust-tools.sh
-	bash scripts/ci/test-cargo-tool-versions.sh
 	bash scripts/ci/check-formatting-hook.sh
 	cargo test -p ic-query-cli --example governance_smoke --locked --offline
 

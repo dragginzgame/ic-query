@@ -115,7 +115,7 @@ fn invalid_tip_certificate(reason: impl Into<String>) -> IcrcError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::certification::verify_canister_hash_tree;
+    use crate::certification::verify_canister_tree;
     use ic_agent::{
         Certificate,
         hash_tree::{fork, label, leaf},
@@ -126,12 +126,11 @@ mod tests {
     fn verify_tip_witness(
         certificate: &Certificate,
         ledger_canister: &Principal,
-        encoded_hash_tree: &[u8],
+        hash_tree: &HashTree<Vec<u8>>,
     ) -> Result<(), IcrcError> {
-        let hash_tree =
-            verify_canister_hash_tree(certificate, ledger_canister, encoded_hash_tree, "ledger")
-                .map_err(map_certified_data_error)?;
-        verify_tip_leaves(&hash_tree)
+        verify_canister_tree(certificate, ledger_canister, hash_tree, "ledger")
+            .map_err(map_certified_data_error)?;
+        verify_tip_leaves(hash_tree)
     }
 
     #[test]
@@ -140,9 +139,8 @@ mod tests {
             Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
         let hash_tree = tip_hash_tree(vec![0xac, 0x02], vec![0x5a; SHA_256_BYTES]);
         let certificate = certificate_for_tip(&ledger_canister, hash_tree.digest().to_vec());
-        let encoded_hash_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
 
-        verify_tip_witness(&certificate, &ledger_canister, &encoded_hash_tree)
+        verify_tip_witness(&certificate, &ledger_canister, &hash_tree)
             .expect("valid certified tip witness");
     }
 
@@ -152,9 +150,8 @@ mod tests {
             Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
         let hash_tree = tip_hash_tree(vec![0x01], vec![0x5a; SHA_256_BYTES]);
         let certificate = certificate_for_tip(&ledger_canister, vec![0; SHA_256_BYTES]);
-        let encoded_hash_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
 
-        let error = verify_tip_witness(&certificate, &ledger_canister, &encoded_hash_tree)
+        let error = verify_tip_witness(&certificate, &ledger_canister, &hash_tree)
             .expect_err("uncommitted hash tree must fail");
 
         assert!(matches!(
@@ -173,9 +170,8 @@ mod tests {
             leaf(vec![0x5a; SHA_256_BYTES]),
         );
         let certificate = certificate_for_tip(&ledger_canister, hash_tree.digest().to_vec());
-        let encoded_hash_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
 
-        let error = verify_tip_witness(&certificate, &ledger_canister, &encoded_hash_tree)
+        let error = verify_tip_witness(&certificate, &ledger_canister, &hash_tree)
             .expect_err("missing required leaf must fail");
 
         assert!(matches!(
@@ -206,9 +202,8 @@ mod tests {
                 Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
             let hash_tree = tip_hash_tree(last_block_index, last_block_hash);
             let certificate = certificate_for_tip(&ledger_canister, hash_tree.digest().to_vec());
-            let encoded_hash_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
 
-            let error = verify_tip_witness(&certificate, &ledger_canister, &encoded_hash_tree)
+            let error = verify_tip_witness(&certificate, &ledger_canister, &hash_tree)
                 .expect_err("invalid required leaf must fail");
 
             assert!(matches!(

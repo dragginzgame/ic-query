@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.1]
+
+- Fix internal descriptor-lock exports for focused library tests without the
+  aggregate `host` feature.
+
+- Remove the retired test-only certificate decoding path. CMC and ICRC
+  tests exercise shared commitment verification and their own leaf policies;
+  bounded decoding remains covered by the certificate module.
+
+- Use Host's retaining fixture-directory owner in Governance harness tests.
+  Leave failed-test evidence available for diagnosis.
+- Keep generic tooling regression suites with Shared Tooling; retain Query's
+  Make, hook, workflow, release-adapter and product integration checks.
+- Clarify library/tooling ownership and document the adopted bounded Candid
+  codec and Host HTTP fixtures. Align dependency examples with the current
+  0.62 API and remove the obsolete synchronous-runtime bridge claim.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.0] - 2026-10-17
 
 - Align the compiled Governance fixture with Testkit 0.53’s explicit Candid

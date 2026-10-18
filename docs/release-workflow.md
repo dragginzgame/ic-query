@@ -494,6 +494,17 @@ atomic push scope, retained artifacts/logs, occupied locks, and recovery after
 lost preparation/push replies. `make ci-scripts-check` checks the complete CI
 target sequence; `make publish-guards-check` checks separate publication behavior.
 These focused fixtures perform no real commits, tags, pushes or publication.
+Generic Rust installer, Cargo-version observer, evidence-collector, Cargo
+preflight and type-doc parser regressions run in Shared Tooling's producer
+suite. Query does not vendor or replay those suites. Its snapshot still supplies
+the production helpers and their guides; optional upstream fixture commands
+described in those shared guides belong to the producer checkout.
+Query retains the actual hook/Make/CI callers, installed-tool admission,
+workflow evidence-retention cases, local public-doc debt checker tests, and
+release-cache/preparation/refusal fixtures. The selected shared release-runner
+fixture remains because the local release adapter depends on its simulated
+phase/recovery contract. Revisit the selection when an adopted helper contract
+or consumer call changes; snapshot integrity alone is not caller qualification.
 Agents may run `bash scripts/ci/check-release-guards.sh` for focused qualification;
 full CI and release gates retain their separate authorization requirements.
 Failed CI, publication and release fixture directories retain their inputs and

@@ -210,7 +210,7 @@ fn map_certified_data_error(error: CertifiedDataError) -> CmcHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::certification::verify_canister_hash_tree;
+    use crate::certification::verify_canister_tree;
     use ic_agent::{
         Certificate,
         hash_tree::{label, leaf},
@@ -233,12 +233,9 @@ mod tests {
         let encoded_rate = candid::encode_one(&rate).expect("encode CMC rate");
         let hash_tree = label(ICP_XDR_CONVERSION_RATE_LABEL.to_vec(), leaf(encoded_rate));
         let certificate = certificate_for_tree(&canister, hash_tree.digest().to_vec());
-        let encoded_tree = serde_cbor::to_vec(&hash_tree).expect("encode hash tree");
-
-        let verified_tree =
-            verify_canister_hash_tree(&certificate, &canister, &encoded_tree, "canister")
-                .expect("matching certified-data witness");
-        verify_rate_leaf(&verified_tree, &rate).expect("matching certified CMC rate leaf");
+        verify_canister_tree(&certificate, &canister, &hash_tree, "canister")
+            .expect("matching certified-data witness");
+        verify_rate_leaf(&hash_tree, &rate).expect("matching certified CMC rate leaf");
     }
 
     #[test]

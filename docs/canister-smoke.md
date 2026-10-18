@@ -58,8 +58,9 @@ input resolution; Query retains its build executor and metadata publication.
 
 ## Deterministic Testkit coverage
 
-Native development dependencies select `ic-testkit 0.45`. Its bounded HTTP
-request reader owns the Agent, Dashboard and ICRC socket-fixture framing loops.
+Native development dependencies select `ic-testkit` through the workspace
+manifest and lockfile. Host's bounded HTTP request reader owns the Agent,
+Dashboard and ICRC socket-fixture framing loops.
 Query retains response contents, injected failures and report assertions.
 These ordinary tests need no running simulator.
 
@@ -95,8 +96,12 @@ through Testkit's environment contract and provide the compiled Wasm path as
 The regular native suite compiles this check but leaves execution to the
 explicit target; the three-host canister CI job selects it. ICP local-NNS smoke
 and mainnet deployment verification retain their separate deployment scope.
-The published simulator-independent Candid codec remains pending upstream;
-Query keeps its caller-selected decoder budgets until that package is available.
+The library and smoke harness use the published simulator-independent
+`ic-testkit-candid` codec. Query retains its caller-selected decoding budgets;
+the harness additionally requires exactly one text result and preserves the
+original reply before admission. Harness unit tests use Host's
+`FixtureDirectory`, which removes successful fixtures and retains their evidence
+when a test panics.
 
 ## Prerequisites
 

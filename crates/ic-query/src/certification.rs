@@ -106,26 +106,6 @@ pub fn authenticate_canister_tree(
     verify_canister_tree(certificate, canister, hash_tree, certified_data_owner)
 }
 
-/// Validate that a decoded certificate commits to the supplied hash tree.
-#[cfg(all(test, any(feature = "cmc-host", feature = "icrc-host")))]
-pub fn verify_canister_hash_tree(
-    certificate: &Certificate,
-    canister: &Principal,
-    encoded_hash_tree: &[u8],
-    certified_data_owner: &str,
-) -> Result<HashTree<Vec<u8>>, CertifiedDataError> {
-    let hash_tree = ic_host_tools::certificate::decode_hash_tree(
-        encoded_hash_tree,
-        ic_host_tools::certificate::DecodeLimits {
-            bytes: crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-            depth: MAX_CERTIFIED_DATA_DEPTH,
-        },
-    )
-    .map_err(|error| invalid_certified_data(format!("hash-tree CBOR is invalid: {error}")))?;
-    verify_canister_tree(certificate, canister, &hash_tree, certified_data_owner)?;
-    Ok(hash_tree)
-}
-
 /// Validate that a decoded certificate commits to a decoded hash tree.
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
@@ -170,7 +150,6 @@ fn invalid_certified_data(reason: impl Into<String>) -> CertifiedDataError {
 #[cfg(all(test, any(feature = "cmc-host", feature = "icrc-host")))]
 mod tests {
     use super::*;
-    use ic_agent::hash_tree::{label, leaf};
 
     #[test]
     fn oversized_evidence_refuses_before_authentication() {
@@ -189,36 +168,5 @@ mod tests {
         .unwrap_err();
         assert!(matches!(error, CertifiedDataError::Invalid { reason }
             if reason.contains("byte budget")));
-    }
-
-    #[test]
-    fn witness_decoding_requires_exact_bytes_and_bounded_nesting() {
-        let canister = Principal::anonymous();
-        let mut tree = leaf(vec![1]);
-        let original_digest = tree.digest();
-        let mut trailing = Vec::new();
-        ciborium::ser::into_writer(&tree, &mut trailing).unwrap();
-        trailing.push(0);
-        for _ in 0..MAX_CERTIFIED_DATA_DEPTH {
-            tree = label(b"nested".to_vec(), tree);
-        }
-        let mut nested = Vec::new();
-        ciborium::ser::into_writer(&tree, &mut nested).unwrap();
-        for (encoded, digest) in [(trailing, original_digest), (nested, tree.digest())] {
-            let certificate = Certificate {
-                tree: label(
-                    b"canister".to_vec(),
-                    label(
-                        canister.as_slice().to_vec(),
-                        label(b"certified_data".to_vec(), leaf(digest.to_vec())),
-                    ),
-                ),
-                signature: Vec::new(),
-                delegation: None,
-            };
-            let error = verify_canister_hash_tree(&certificate, &canister, &encoded, "fixture")
-                .unwrap_err();
-            assert!(matches!(error, CertifiedDataError::Invalid { .. }));
-        }
     }
 }

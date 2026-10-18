@@ -44,7 +44,7 @@ mod scan;
     feature = "sns-host"
 ))]
 pub use read::ManagedReadBudget;
-#[cfg(feature = "host")]
+#[cfg(any(feature = "host", test))]
 pub use read::open_managed_file;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",

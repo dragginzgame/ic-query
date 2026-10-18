@@ -1,7 +1,7 @@
 # Subnet Catalog Failure Provenance
 
 - Status: implemented; stable authority/acquisition separation updated for 0.42.0
-- Last reviewed: 2026-08-21
+- Last reviewed: 2026-10-18
 - Scope: `subnet-catalog-host` detailed load failures
 
 ## Contract
@@ -72,9 +72,11 @@ The detailed entry points are:
 
 - `load_cached_subnet_catalog_detailed`;
 - `load_subnet_catalog_detailed`;
-- `load_subnet_catalog_detailed_async`;
 - `load_subnet_catalog_detailed_with_source`; and
-- `load_subnet_catalog_detailed_with_source_async`.
+- `load_subnet_catalog_detailed_with_progress`.
+
+Live-capable entry points are async on the caller's runtime; the explicit cached
+loader is synchronous and performs no network calls.
 
 `SubnetCatalogSource::fetch_catalog_detailed` lets a caller-supplied source
 return `Box<SubnetCatalogSourceFailure>`. Its default delegates to the existing

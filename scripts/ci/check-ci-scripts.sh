@@ -545,8 +545,6 @@ workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/work
 [[ "${workflow_ci_count}" -eq 1 ]] \
   || fail "hosted CI does not delegate to exactly one complete local gate"
 bash "$repo_root/scripts/ci/test-ci-workflow.sh"
-bash "$repo_root/scripts/ci/test-collect-tool-evidence.sh"
-bash "$repo_root/scripts/ci/test-cargo-release-preflight.sh"
 
 schema_version_case="${work_dir}/schema-version"
 mkdir -p "${schema_version_case}"
@@ -893,7 +891,6 @@ fi
 grep -Fq 'fixture common admission failure' "$format_case/shared-admission-failure.log" || exit 1
 
 perl "${repo_root}/scripts/ci/test-public-docs.pl"
-perl "${repo_root}/scripts/ci/test-type-docs.pl"
 bash "${repo_root}/scripts/ci/test-public-docs.sh"
 
 public_docs_case="${work_dir}/public-docs"
