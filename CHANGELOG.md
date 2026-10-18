@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.62.2]
+## [0.62.2] - 2026-10-18
 
 - Explicitly release refresh locks after errors and cancellation, even when a
   duplicated descriptor remains open. Fix the cache-status release test race.
