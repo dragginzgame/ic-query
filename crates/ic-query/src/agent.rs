@@ -5,7 +5,7 @@
 //! Boundary: prevents malformed endpoint text from reaching infallible parser paths in ic-agent.
 
 use crate::http_endpoint::parse_http_endpoint;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "icrc-host",
@@ -143,9 +143,9 @@ fn build_ic_agent_with_options<Error>(
 mod tests {
     use super::*;
 
-    use candid::Principal;
-    use ic_agent::{AgentError, agent_error::TransportError};
     use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
+    use ic_platform::agent::{AgentError, TransportError};
+    use ic_platform::candid::contract::Principal;
     use std::{io::Write, net::TcpListener, thread, time::Duration};
 
     #[test]

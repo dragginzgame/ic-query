@@ -5,7 +5,7 @@
 //! Boundary: changes here follow the official CMC Candid interface exactly.
 
 use super::CmcIcpXdrConversionRate;
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// CmcCertifiedRateResponse
@@ -14,6 +14,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct CmcCertifiedRateResponse {
     /// Latest native ICP/XDR rate.
     pub(super) data: CmcIcpXdrConversionRate,

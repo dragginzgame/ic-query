@@ -15,10 +15,10 @@ use crate::{
     },
     leb128::decode_canonical_unsigned_u64,
 };
-use candid::Principal;
-use ic_agent::{
-    Agent, Certificate,
-    hash_tree::{HashTree, LookupResult, empty, fork, label, leaf, pruned},
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
+use ic_platform::certification::{
+    Certificate, HashTree, LookupResult, empty, fork, labeled as label, leaf, pruned,
 };
 use prost::Message;
 use sha2::{Digest, Sha256};
@@ -59,7 +59,7 @@ pub(in crate::ic_registry) struct CertifiedRegistryVersion {
 ///
 
 pub(super) struct AuthenticatedRegistryResponse {
-    pub(super) hash_tree: HashTree<Vec<u8>>,
+    pub(super) hash_tree: HashTree,
     pub(super) certificate_time_nanos: u64,
     pub(super) root_key_digest: String,
     pub(super) certificate_hex: String,
@@ -142,8 +142,8 @@ pub(super) fn authenticate_registry_response(
     )
     .map_err(map_certified_data_error)?;
 
-    let certificate_time =
-        ic_agent::lookup_value(&certificate, [b"time".as_slice()]).map_err(|error| {
+    let certificate_time = ic_platform::agent::lookup_value(&certificate, [b"time".as_slice()])
+        .map_err(|error| {
             invalid_certified_registry(format!(
                 "certificate does not prove its time value: {error}"
             ))
@@ -162,9 +162,7 @@ pub(super) fn authenticate_registry_response(
     })
 }
 
-fn decode_mixed_hash_tree(
-    raw: RegistryMixedHashTree,
-) -> Result<HashTree<Vec<u8>>, RegistryFetchError> {
+fn decode_mixed_hash_tree(raw: RegistryMixedHashTree) -> Result<HashTree, RegistryFetchError> {
     let mut nodes = 0;
     decode_mixed_hash_tree_node(raw, 0, &mut nodes)
 }
@@ -173,7 +171,7 @@ fn decode_mixed_hash_tree_node(
     raw: RegistryMixedHashTree,
     depth: usize,
     nodes: &mut usize,
-) -> Result<HashTree<Vec<u8>>, RegistryFetchError> {
+) -> Result<HashTree, RegistryFetchError> {
     if depth > MAX_MIXED_HASH_TREE_DEPTH {
         return Err(invalid_certified_registry(format!(
             "mixed hash tree exceeds the maximum depth of {MAX_MIXED_HASH_TREE_DEPTH}"
@@ -218,14 +216,14 @@ fn required_child(
     field: &str,
     depth: usize,
     nodes: &mut usize,
-) -> Result<HashTree<Vec<u8>>, RegistryFetchError> {
+) -> Result<HashTree, RegistryFetchError> {
     let child = child
         .ok_or_else(|| invalid_certified_registry(format!("mixed hash tree {field} is missing")))?;
     decode_mixed_hash_tree_node(*child, depth.saturating_add(1), nodes)
 }
 
 pub(super) fn required_leb128_leaf(
-    hash_tree: &HashTree<Vec<u8>>,
+    hash_tree: &HashTree,
     label: &[u8],
     field: &str,
 ) -> Result<u64, RegistryFetchError> {
@@ -266,7 +264,7 @@ pub(super) fn invalid_certified_registry(reason: impl Into<String>) -> RegistryF
 mod tests {
     use super::*;
     use crate::ic_registry::proto::registry_mixed_hash_tree::{Fork, Labeled};
-    use ic_agent::hash_tree::labeled_hash;
+    use ic_platform::certification::labeled_hash;
 
     #[test]
     fn decodes_the_official_certified_latest_version_tree_shape() {

@@ -12,7 +12,7 @@ use crate::{
         model::{validate_maturity_disbursements, validate_neuron_permissions},
     },
 };
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use std::collections::HashSet;
 
 const SNS_NEURON_ID_HEX_LENGTH: usize = 64;
@@ -37,6 +37,7 @@ pub struct MainnetSnsNeuronPage {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub struct SnsNeuronId {
     pub id: Vec<u8>,
 }

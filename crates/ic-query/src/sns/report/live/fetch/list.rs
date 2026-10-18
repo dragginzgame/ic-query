@@ -21,9 +21,9 @@ use crate::sns::report::{
     source::{MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
-use candid::Principal;
 use futures::{StreamExt, stream};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 use crate::sns::report::MainnetSnsCanisters;
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(

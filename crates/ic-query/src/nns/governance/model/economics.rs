@@ -6,7 +6,7 @@
 
 use super::NnsGovernanceReportContext;
 #[cfg(any(feature = "nns-host", feature = "canister"))]
-use candid::CandidType;
+use ic_platform::candid::contract::CandidType;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -31,6 +31,10 @@ pub struct NnsGovernanceEconomicsReport {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceEconomics {
     /// Minimum neuron stake in e8s.
@@ -62,6 +66,10 @@ pub struct NnsGovernanceEconomics {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronsFundEconomics {
     /// Maximum ICP/XDR rate.
@@ -82,6 +90,10 @@ pub struct NnsNeuronsFundEconomics {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsNeuronsFundMatchedFundingCurveCoefficients {
     /// Contribution threshold in XDR.
@@ -99,6 +111,10 @@ pub struct NnsNeuronsFundMatchedFundingCurveCoefficients {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernancePercentage {
     /// Percentage value in basis points when supplied.
@@ -112,6 +128,10 @@ pub struct NnsGovernancePercentage {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsGovernanceDecimal {
     /// Decimal representation when supplied.
@@ -125,6 +145,10 @@ pub struct NnsGovernanceDecimal {
 ///
 
 #[cfg_attr(any(feature = "nns-host", feature = "canister"), derive(CandidType))]
+#[cfg_attr(
+    any(feature = "nns-host", feature = "canister"),
+    candid_path("ic_platform::candid::contract")
+)]
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 pub struct NnsVotingPowerEconomics {
     /// Inactivity duration before voting power starts decreasing.

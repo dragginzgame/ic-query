@@ -8,7 +8,7 @@ use super::SnsGovernanceFollowees;
 use crate::sns::report::{
     SnsCustomProposalCriticality, SnsNeuronPermissionList, SnsVotingRewardsParameters,
 };
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// SnsDefaultFolloweesWire
@@ -17,6 +17,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsDefaultFolloweesWire {
     pub(in crate::sns::report::live) followees: Vec<(u64, SnsGovernanceFollowees)>,
 }
@@ -28,6 +29,7 @@ pub(in crate::sns::report::live) struct SnsDefaultFolloweesWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceParametersWire {
     pub(in crate::sns::report::live) default_followees: Option<SnsDefaultFolloweesWire>,
     pub(in crate::sns::report::live) max_dissolve_delay_seconds: Option<u64>,

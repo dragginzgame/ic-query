@@ -359,11 +359,18 @@ mod host {
 #[cfg(feature = "certificate-host")]
 #[test]
 fn downstream_certificate_failure_exposes_shared_parse_source() {
-    let agent = ic_agent::Agent::builder()
+    let agent = ic_platform::agent::Agent::builder()
         .with_url("https://icp-api.io")
         .build()
         .unwrap();
-    let error = authenticate(&agent, candid::Principal::anonymous(), &[0xff], 1, 16).unwrap_err();
+    let error = authenticate(
+        &agent,
+        ic_platform::candid::contract::Principal::anonymous(),
+        &[0xff],
+        1,
+        16,
+    )
+    .unwrap_err();
     let CertificateVerificationError::Decode(source) = error else {
         panic!("expected a CBOR parse failure before authentication");
     };

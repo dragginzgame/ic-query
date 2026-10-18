@@ -2476,9 +2476,13 @@ Local evidence and outstanding native CI results are reported at handoff.
 
 Testkit and WAT are native development dependencies only. Normal minimal,
 canister and host library consumers retain their dependency boundaries and
-Rust 1.91 floor. The separate `ic-testkit-candid` package supplies bounded
-reply decoding on native and Wasm targets, depending only on Candid and Serde;
-it does not bring the simulator or its native test dependencies into consumers.
+Rust 1.91 floor. Published `ic-platform` 0.1.9 supplies bounded Candid reply
+decoding and qualified contract types on native and Wasm targets without the
+simulator. Testkit 0.54's native fixture calls use Platform's limits and errors
+directly, without a separate decoder package. CDK calls/system APIs
+and the probe macro remain direct Wasm inputs pending Platform #1. Native
+Agent APIs now use Platform; only the probe selects its raw clock feature through
+a Wasm development input.
 Query retains transport limits, proportional work quotas and error projection.
 PocketIC's exact `thiserror =2.0.18` requirement selects that
 compatible patch in the workspace lockfile; the previously selected 2.0.21

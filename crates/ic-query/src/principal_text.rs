@@ -4,7 +4,7 @@
 //! Does not own: permissive request normalization or report-specific diagnostics.
 //! Boundary: callers retain distinct parse and noncanonical error projections.
 
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 /// Check principal spelling without normalizing the supplied evidence.
 pub fn validate_canonical<E>(

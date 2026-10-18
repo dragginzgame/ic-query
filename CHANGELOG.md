@@ -5,6 +5,34 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.2]
+
+- Reuse Shared Tooling’s committed graph checker (6eb8c41, PR #285) while
+  retaining local roots, feature selections and exclusion policy. This selects
+  unmerged topic source, not a new Shared release.
+  Keep graph-only qualification independently runnable, preserving direct
+  dependency depth and forbidden dependency-feature edges.
+
+- Adopt published IC Platform 0.1.9 for Candid, certification and native Agent
+  APIs, preserving wire types, authentication and caller policies. Remove direct
+  Agent declarations and the remaining Agent hash-tree imports. Retain documented
+  CDK macro/runtime exceptions pending upstream support.
+- Use Testkit 0.54 and Platform's codec in compiled Governance tests, retiring
+  the separate decoder dependency without changing reply limits or call behavior.
+- Route standard ledger account, metadata, allowance, block/archive and certificate
+  types through Platform, preserving upstream identities and wire formats.
+  Keep stable-memory storage integration excluded.
+- Enforce direct dependency ownership with Shared Tooling's boundary checker,
+  including renamed and target-specific dependencies.
+
+- Adopt Shared Tooling 0.24.0 and its two-tool common Rust setup.
+- Label dependency roles and preserve their groups through formatting, hooks
+  and source-bound release manifest checks.
+- Reject testing/tooling packages in the CLI and Governance probe dependency
+  graphs. Document the remaining deployment evidence-binding gap.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.1] - 2026-10-18
 
 - Fix internal descriptor-lock exports for focused library tests without the

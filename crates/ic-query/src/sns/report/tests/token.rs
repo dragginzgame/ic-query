@@ -1,5 +1,5 @@
 use super::{fixtures::*, *};
-use icrc_ledger_types::icrc::generic_metadata_value::MetadataValue;
+use ic_platform::icrc_ledger_types::MetadataValue;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() {

@@ -4,7 +4,7 @@
 //! Does not own: live transport, report DTOs, or text rendering.
 //! Boundary: models only the fields needed by NNS proposal reports.
 
-use candid::{CandidType, Deserialize, Reserved};
+use ic_platform::candid::contract::{CandidType, Reserved, serde::Deserialize};
 
 ///
 /// NnsListProposalInfoRequest
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize, Reserved};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsListProposalInfoRequest {
     pub(in crate::nns::proposals::report) include_reward_status: Vec<i32>,
     pub(in crate::nns::proposals::report) omit_large_fields: Option<bool>,
@@ -31,6 +32,7 @@ pub(in crate::nns::proposals::report) struct NnsListProposalInfoRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsListProposalInfoResponse {
     pub(in crate::nns::proposals::report) proposal_info: Vec<NnsProposalInfo>,
 }
@@ -42,6 +44,7 @@ pub(in crate::nns::proposals::report) struct NnsListProposalInfoResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsProposalId {
     pub(in crate::nns::proposals::report) id: u64,
 }
@@ -53,6 +56,7 @@ pub(in crate::nns::proposals::report) struct NnsProposalId {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsNeuronId {
     pub(in crate::nns::proposals::report) id: u64,
 }
@@ -64,6 +68,7 @@ pub(in crate::nns::proposals::report) struct NnsNeuronId {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsProposal {
     pub(in crate::nns::proposals::report) url: String,
     pub(in crate::nns::proposals::report) title: Option<String>,
@@ -78,6 +83,7 @@ pub(in crate::nns::proposals::report) struct NnsProposal {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) enum NnsProposalAction {
     RegisterKnownNeuron(Reserved),
     DeregisterKnownNeuron(Reserved),
@@ -139,6 +145,7 @@ impl NnsProposalAction {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsGovernanceBallot {
     pub(in crate::nns::proposals::report) vote: i32,
     pub(in crate::nns::proposals::report) voting_power: u64,
@@ -151,6 +158,7 @@ pub(in crate::nns::proposals::report) struct NnsGovernanceBallot {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsProposalTallyWire {
     pub(in crate::nns::proposals::report) no: u64,
     pub(in crate::nns::proposals::report) yes: u64,
@@ -165,6 +173,7 @@ pub(in crate::nns::proposals::report) struct NnsProposalTallyWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::proposals::report) struct NnsProposalInfo {
     pub(in crate::nns::proposals::report) id: Option<NnsProposalId>,
     pub(in crate::nns::proposals::report) status: i32,

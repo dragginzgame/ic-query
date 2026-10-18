@@ -254,7 +254,7 @@ mod tests {
         SnsNeuronId,
         live::types::{SnsMetricsAccount, SnsMetricsSubaccount, SnsTopic},
     };
-    use candid::Principal;
+    use ic_platform::candid::contract::Principal;
 
     #[test]
     fn sns_neuron_conversion_preserves_fixed_size_native_fields() {

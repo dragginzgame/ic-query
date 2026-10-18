@@ -4,16 +4,17 @@ use crate::ic_registry::{
     inventory::fetch_node_provider_node_counts, projection::node_provider_list_from_response,
     transport::get_latest_version, wire::ListNodeProvidersResponse,
 };
-use candid::Encode;
 
 pub(in crate::ic_registry) async fn fetch_mainnet_node_provider_list_async(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
     let governance_canister = mainnet_governance_canister()?;
-    let arg = Encode!().map_err(|err| RegistryFetchError::CandidEncode {
-        message: "list_node_providers",
-        reason: err.to_string(),
+    let arg = ic_platform::candid::contract::encode_args(()).map_err(|err| {
+        RegistryFetchError::CandidEncode {
+            message: "list_node_providers",
+            reason: err.to_string(),
+        }
     })?;
     let bytes = agent
         .query(&governance_canister, "list_node_providers")

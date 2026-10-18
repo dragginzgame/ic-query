@@ -1,0 +1,42 @@
+[
+  {
+    "dependency": "candid",
+    "allowed_packages": [
+      "ic-query"
+    ]
+  },
+  {
+    "dependency": "candid_parser",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic-cdk",
+    "allowed_packages": [
+      "ic-query"
+    ]
+  },
+  {
+    "dependency": "ic-cdk-macros",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic-cdk-executor",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic-certification",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic-agent",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "ic0",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "icrc-ledger-types",
+    "allowed_packages": []
+  }
+]

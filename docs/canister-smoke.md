@@ -97,7 +97,7 @@ The regular native suite compiles this check but leaves execution to the
 explicit target; the three-host canister CI job selects it. ICP local-NNS smoke
 and mainnet deployment verification retain their separate deployment scope.
 The library and smoke harness use the published simulator-independent
-`ic-testkit-candid` codec. Query retains its caller-selected decoding budgets;
+`ic-platform` codec. Query retains its caller-selected decoding budgets;
 the harness additionally requires exactly one text result and preserves the
 original reply before admission. Harness unit tests use Host's
 `FixtureDirectory`, which removes successful fixtures and retains their evidence
@@ -427,3 +427,83 @@ harness's cancellation predicate, five-second TERM grace and five-second bounded
 reaping; original Host process evidence remains in typed Build errors. The build
 command retains its existing 600-second policy. Query owns the selected inventory,
 probe DID, metadata and receipts. No artifact cache, deployment or runtime is created.
+
+## Dependency roles and deployment admission
+
+The workspace catalog labels `Production dependencies` and `Tests and tooling
+only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `wat`.
+`ic-platform` owns production and fixture Candid decoding. Testkit 0.54 accepts
+its limits and typed decoder errors directly.
+`ciborium`, `libc` and `time` have direct fixture uses but also occur transitively
+in the native CLI production graph, so they are not tooling-only exclusions.
+
+The feature-boundary CI gate checks the locked normal/build graph for the native
+CLI and the Governance probe's exact `ic-query --target wasm32-unknown-unknown
+--no-default-features --features canister` selection. Both reject tooling-only
+packages transitively. The exclusion list is explicit; role comments are not
+machine-validated, so adding another tooling-only catalog entry also requires
+updating the gate. These checks establish graph exclusions for those
+selections, not every supported target/feature combination or registry availability.
+
+Deployment admission is incomplete: direct ICP build/deploy does not require a
+successful exclusion check bound to the same source, lockfile, target/features
+and final Wasm digest. The harness compares deployed module/metadata evidence,
+but that does not bind a dependency-graph receipt. A future deployment gate should
+carry that evidence through the existing build/receipt flow before claiming this
+property; catalog comments and source-level dependency checks are not enforcement
+at the deployment boundary. The Governance probe is development tooling, not a
+production canister supplied by Query.
+
+## Platform adoption qualification
+
+The selected published `ic-platform` release is 0.1.9, verified from the crates.io
+sparse registry record and the downloaded archive checksum
+`bdfb66170e95bae421449fbd50e3e2a26196fbd6277ae13556026bf3001974c3`.
+Published source and features were inspected directly; sibling sources are not
+substituted for the registry package.
+
+The optional certification surface preserves the same upstream certificate/tree
+identities as Agent and Host. Query uses it for types and witness constructors;
+Host still owns strict CBOR decoding and its source errors. Subtree results and
+labeled-hash operations now also come from Platform. Certification is not enabled
+by Query's `canister` feature. Platform's ledger DTO feature is likewise selected
+only by ICRC, SNS and ledger-evidence host capabilities, without storage support.
+The portable/canister graphs exclude ledger DTOs and all supported graphs reject
+stable-memory storage dependencies.
+
+Handwritten DTOs use Platform's qualified Candid derive path and upstream type
+identities. Query keeps its byte-dependent work quota, skipping/type/header
+ceilings and original Candid error projection. The harness keeps exactly-one-reply
+admission, raw reply bytes and existing limits. There are no local generated
+Candid bindings or generators; Registry Protobuf declarations are a separate wire
+boundary. CDK-generated probe entrypoints still emit absolute `::candid` paths.
+
+[Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) blocks removal
+of the existing Wasm CDK calls, canister identity API and probe macro. Its generated Candid
+paths require a Wasm-only development declaration. Platform 0.1.9
+documents a zero-argument, hidden, manual-reply CDK subset that avoids those
+paths, but this probe has a typed `String -> String` async entrypoint. Keep the
+typed macro instead of adding manual argument/reply handling solely to hide the
+dependency. The subset still requires CDK and does not replace the Governance
+call adapter. Testkit 0.54's typed calls use Platform's `DecodeLimits` and
+`DecodeError` identities, with the fixture's existing five explicit ceilings.
+The probe reads its clock through Platform's `ic0` feature, selected only by the
+Wasm development dependency. CDK's former time helper delegates to that same
+selected upstream system call. No callback, executor or lifecycle implementation
+is replaced.
+
+Native Agent calls now use Platform's published `agent` surface; the harness
+selects it through a development dependency. Public Agent errors retain their
+upstream identities. Endpoints, root-key admission, query verification, deadlines,
+bounded HTTP clients and raw replies stay with Query. Direct Agent and certification
+declarations are forbidden. Platform's native transport and parser stay out of the
+canister graph; the optional parser is not selected on native hosts either.
+
+`make dependency-boundary-check` uses Shared Tooling's canonical Cargo metadata
+checker, including aliases and normal/build/dev/target-specific declarations.
+The policy permits those two exceptions only in `ic-query`; it cannot restrict
+an allowed package to one dependency kind/target. Review those manifest scopes
+alongside the gate. It does not inspect generated imports, validate role comments,
+prove registry availability, or establish transitive/deployed dependency absence.
+The normal/build graph checks remain separate. Query does not select Platform's
+executor feature; the existing CDK supplies the single selected executor.

@@ -242,7 +242,8 @@ fn candid_admission_preserves_large_text_and_raw_numbers() {
         "{{\"raw_amount\":184467440737095516160,\"padding\":\"{}\"}}",
         "x".repeat(1024 * 1024)
     );
-    let decoded = protocol::decode_reply(&candid::encode_one(&text).unwrap()).unwrap();
+    let decoded =
+        protocol::decode_reply(&ic_platform::candid::contract::encode_one(&text).unwrap()).unwrap();
     assert_eq!(decoded, text);
     let json: Value = serde_json::from_str(&decoded).unwrap();
     assert_eq!(json["raw_amount"].to_string(), "184467440737095516160");
@@ -250,9 +251,9 @@ fn candid_admission_preserves_large_text_and_raw_numbers() {
 
 #[test]
 fn candid_admission_rejects_wrong_types_extra_values_trailing_bytes_and_large_headers() {
-    let mut trailing = candid::encode_one("{}").unwrap();
+    let mut trailing = ic_platform::candid::contract::encode_one("{}").unwrap();
     trailing.push(0);
-    let mut truncated = candid::encode_one("payload").unwrap();
+    let mut truncated = ic_platform::candid::contract::encode_one("payload").unwrap();
     truncated.pop();
     // A record header large enough to exceed admission even though the reply is small.
     fn leb(mut number: u32, bytes: &mut Vec<u8>) {
@@ -270,9 +271,9 @@ fn candid_admission_rejects_wrong_types_extra_values_trailing_bytes_and_large_he
     }
     header.extend([1, 0]);
     for bytes in [
-        candid::encode_one(7_u64).unwrap(),
-        candid::encode_args(("{}", "{}")).unwrap(),
-        candid::encode_args(("{}", vec![(); 100_000])).unwrap(),
+        ic_platform::candid::contract::encode_one(7_u64).unwrap(),
+        ic_platform::candid::contract::encode_args(("{}", "{}")).unwrap(),
+        ic_platform::candid::contract::encode_args(("{}", vec![(); 100_000])).unwrap(),
         trailing,
         truncated,
         b"DIDL\x81\x20".to_vec(),
@@ -296,7 +297,11 @@ fn rejected_replies_remain_private_and_cannot_be_replaced() {
         let path = directory.path().join(name);
         assert!(protocol::publish_reply(&path, &bytes).is_err());
         assert_eq!(fs::read(&path).unwrap(), bytes);
-        let error = protocol::publish_reply(&path, &candid::encode_one("{}").unwrap()).unwrap_err();
+        let error = protocol::publish_reply(
+            &path,
+            &ic_platform::candid::contract::encode_one("{}").unwrap(),
+        )
+        .unwrap_err();
         assert!(matches!(
             error.downcast_ref::<NamedWriteError<io::Error>>(),
             Some(NamedWriteError::BeforePublication { source, cleanup_error: None })
@@ -388,7 +393,9 @@ impl Probe for FixtureProbe {
         if self.invalid_kind == Some(kind) {
             return Ok(b"invalid Candid".to_vec());
         }
-        Ok(candid::encode_one(serde_json::to_string(&payload(kind))?)?)
+        Ok(ic_platform::candid::contract::encode_one(
+            serde_json::to_string(&payload(kind))?,
+        )?)
     }
 }
 

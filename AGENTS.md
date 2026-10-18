@@ -197,6 +197,15 @@ qualification remains distinct from source review or Linux-only evidence.
 
 ## Security And Network
 
+- Consume Candid contract types, derives, encoders, bounded reply decoding,
+  native Agent APIs, certificate/hash-tree types and standard ledger DTOs
+  through the published `ic-platform` dependency. Host owns strict bounded CBOR decoding; Agent owns
+  authentication. Keep endpoint/root-key admission, quotas, retry policy and
+  error projection local. The current `canister` adapter retains CDK calls/system
+  APIs and the Wasm probe retains macro-required Candid until Platform issue #1
+  is resolved. Native Testkit fixtures use Platform's limits and errors directly.
+  Do not hide the remaining exceptions with aliases or replacement runtimes.
+
 - Prefer `ic-agent` for IC protocol calls whenever it supplies the required
   capability, including development and verification tooling. Use typed Candid
   arguments and direct reply bytes; do not route canister calls or certified

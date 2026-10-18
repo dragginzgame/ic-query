@@ -6,7 +6,7 @@
 
 use crate::decimal::{compare_canonical_unsigned_decimal, is_unsigned_decimal};
 use crate::icrc::model::{IcrcAccountTransactionError, IcrcAccountTransactionRow};
-use candid::Nat;
+use ic_platform::candid::contract::Nat;
 use std::str::FromStr;
 
 pub(in crate::icrc) fn normalize_transaction_cursor(

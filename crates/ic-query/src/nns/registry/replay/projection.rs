@@ -29,7 +29,7 @@ use crate::{
         format_utc_timestamp_secs,
     },
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use prost::Message;
 use thiserror::Error as ThisError;
 

@@ -4,7 +4,7 @@
 //! Does not own: transport, source validation, report DTOs, or rendering.
 //! Boundary: mirrors the bounded public swap query fields consumed by the live adapter.
 
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// SnsSwapQueryRequest
@@ -13,6 +13,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsSwapQueryRequest {}
 
 ///
@@ -22,6 +23,7 @@ pub(in crate::sns::report::live) struct SnsSwapQueryRequest {}
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetLifecycleResponse {
     pub(in crate::sns::report::live) lifecycle: Option<i32>,
     pub(in crate::sns::report::live) decentralization_sale_open_timestamp_seconds: Option<u64>,
@@ -36,6 +38,7 @@ pub(in crate::sns::report::live) struct GetLifecycleResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetSaleParametersResponse {
     pub(in crate::sns::report::live) params: Option<SnsSwapParams>,
 }
@@ -47,6 +50,7 @@ pub(in crate::sns::report::live) struct GetSaleParametersResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsSwapParams {
     pub(in crate::sns::report::live) min_participant_icp_e8s: u64,
     pub(in crate::sns::report::live) neuron_basket_construction_parameters:
@@ -69,6 +73,7 @@ pub(in crate::sns::report::live) struct SnsSwapParams {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsSwapNeuronBasketConstructionParameters {
     pub(in crate::sns::report::live) dissolve_delay_interval_seconds: u64,
     pub(in crate::sns::report::live) count: u64,
@@ -81,6 +86,7 @@ pub(in crate::sns::report::live) struct SnsSwapNeuronBasketConstructionParameter
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetDerivedStateResponse {
     pub(in crate::sns::report::live) sns_tokens_per_icp: Option<f64>,
     pub(in crate::sns::report::live) buyer_total_icp_e8s: Option<u64>,

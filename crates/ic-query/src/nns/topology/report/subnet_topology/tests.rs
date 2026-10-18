@@ -7,7 +7,7 @@ use crate::{
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
     test_support::temp_dir,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::{fs, path::PathBuf, sync::Mutex};
 
 const NOW: u64 = 1_700_000_000;

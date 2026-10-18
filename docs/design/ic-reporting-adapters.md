@@ -26,9 +26,9 @@ Dependencies own the reusable mechanisms beneath that policy:
 
 | Capability | Canonical dependency | Query integration that remains |
 | --- | --- | --- |
-| IC transport and standard values | `ic-agent`, `candid`, `ic-certification`, `icrc-ledger-types` | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
+| IC transport and standard values | `ic-platform` Agent/Candid/certification/ledger contracts | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
 | Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, family error projection, report layouts and smoke-harness interruption policy |
-| Bounded Candid decoding | `ic-testkit-candid` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
+| Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
 | Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
 | Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
 | Measurement arithmetic | `ic-metrics` | Report-specific interpretation and display policy |
@@ -43,6 +43,41 @@ parent descriptor, but does not select Query's cache root, validate its ancestor
 or define recovery from invalid report content. Likewise, report fixtures test
 Query's use of shared mechanisms rather than duplicating their general regression
 suites. Do not move these policies upstream merely to reduce local source.
+
+The published Platform 0.1.9 boundary preserves upstream Candid type identities
+and Query's existing decoder quotas and error projection. It supplies no CDK
+call/entrypoint facade or typed canister-identity helper. Query retains `ic-cdk` only for its Wasm canister
+adapter and direct Candid only for the probe's generated CDK macro paths.
+[Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) tracks that
+runtime blocker. Testkit 0.54 accepts Platform's limits and typed decoder errors
+directly; the compiled Governance fixture needs no separate codec dependency.
+Native host features select `ic-platform/agent`; the CLI smoke harness enables
+that feature through its development dependency. Platform exposes the same Agent
+and typed transport/reject errors without choosing endpoints, root keys, HTTP
+budgets, verification or retry policy. Query retains those choices. Direct Agent
+inputs are forbidden by the dependency policy. Platform's optional native parser
+is disabled; Host still selects its existing parser transitively.
+No executor implementation or compatibility re-export is introduced. The existing
+CDK remains the callback/trap owner; matching versions alone do not qualify IC
+lifecycle behavior.
+
+Platform also supplies certificate/hash-tree identities and constructors through
+its optional `certification` feature, enabled by `certificate-host` and
+`ic-state-host`. The latter uses Agent-decoded certificates without Host CBOR
+decoding. Host retains strict bounded CBOR decoding and its public parse error
+identity; Agent retains authentication. Query keeps combined evidence budgets, freshness and
+application leaf admission. Subtree lookup results and labeled fixture hashes now
+also come from Platform; there are no remaining Agent hash-tree import exceptions.
+There is no direct `ic-certification` declaration; its transitive presence through
+Platform, Host and Agent is intentional.
+
+Platform's optional ledger surface exports the original `icrc-ledger-types` 0.2.0
+identities. `icrc-host`, `sns-host` and `ledger-evidence-host` select it; Query has
+no direct ledger-types declaration. Account semantics, generic-value hashes,
+wire variants and archive callback types remain upstream. Query retains archive
+admission, bounded calls, certificate verification and transaction interpretation.
+The upstream `storable` feature is disabled; stable-memory storage is outside
+Query's boundary and excluded from supported normal/build graphs.
 
 ## Host execution ownership
 

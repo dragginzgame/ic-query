@@ -130,7 +130,10 @@ fn list_table(report: &CloudEngineListReport) -> String {
                     .as_ref()
                     .ok()
                     .and_then(Option::as_ref)
-                    .map_or_else(|| "-".to_string(), candid::Principal::to_text),
+                    .map_or_else(
+                        || "-".to_string(),
+                        ic_platform::candid::contract::Principal::to_text,
+                    ),
             ]
         })
         .collect::<Vec<_>>();

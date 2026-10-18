@@ -1,5 +1,5 @@
 use super::*;
-use ic_certification::{empty, fork, labeled, leaf as tree_leaf};
+use ic_platform::certification::{empty, fork, labeled, leaf as tree_leaf};
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
     let mut bytes = Vec::new();

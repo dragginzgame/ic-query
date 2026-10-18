@@ -243,7 +243,9 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
         .expect("resolved row");
     assert_eq!(
         resolved.operator,
-        Ok(Some(candid::Principal::from_text(OPERATOR_ID).unwrap()))
+        Ok(Some(
+            ic_platform::candid::contract::Principal::from_text(OPERATOR_ID).unwrap()
+        ))
     );
 
     let absent = report

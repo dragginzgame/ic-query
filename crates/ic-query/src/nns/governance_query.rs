@@ -8,8 +8,8 @@ use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest,
     governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceError},
 };
-use candid::{CandidType, Deserialize, Principal};
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 pub async fn query_nns_governance<Arg, Response>(
     source: &crate::nns::LiveNnsSource,

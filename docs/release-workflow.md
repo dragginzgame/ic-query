@@ -109,6 +109,15 @@ that evidence and are refused before recipes. Portable exported
 target policies supersede caller defaults without GNU Make 3.81's unsupported
 combined `override export` syntax.
 
+Query selects `cargo sort --workspace --grouped` for writing and the same
+command with `--check` for checking. The root catalog groups `Production
+dependencies` separately from `Tests and tooling only`; role labels describe use,
+not registry publication. The hook and CI use the same formatter pair. Prepared
+release admission checks grouped ordering, and committed/tagged/push admission
+checks an archived copy of the exact selected release source, retaining that copy
+beside its immutable validation attempt. It never formats the real source or executes
+scripts from the archive.
+
 Formatting checks the reviewed cargo-sort pin before sorting and Rust formatting,
 uses prepared tools offline and disables automatic rustup installation.
 The common toolset selects cargo-sort-derives 0.14.1. After adopting this pin,

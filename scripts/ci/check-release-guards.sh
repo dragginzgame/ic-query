@@ -171,6 +171,9 @@ case "$1" in
     echo "$tag_sha" > remote-tag
     printf 'refs/tags/v%s\n' "$(cat tag)" > remote-tag-name
     [[ "${FIXTURE_LOST_PUSH_REPLY:-}" != yes ]] || exit 47 ;;
+  archive)
+    selected="$(resolve "${!#}")"
+    tar -cf - -C "commits/$selected/files" . ;;
   show)
     if [[ "$2" == :* ]]; then cat "index/${2#*:}"; exit; fi
     name="$(resolve "${2%%:*}")"
@@ -195,6 +198,7 @@ case "$*" in
     else
       echo rustfmt
     fi ;;
+  'sort --workspace --grouped --check') [[ "${FIXTURE_MANIFEST_ORDER_FAILURE:-}" != yes ]] || exit 79 ;;
   'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
   generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
   *) exit 2 ;;
@@ -412,7 +416,7 @@ for kind in patch minor major; do
   FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=CHANGELOG.md run_release "$kind" \
     || { cat output; fail "$kind"; }
   check_complete
-  awk '/^cargo metadata / { next } { print }' events > observed
+  awk '/^cargo metadata / || /^cargo sort --workspace --grouped --check$/ { next } { print }' events > observed
   printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'formatter check' \
     'cargo sort --version' 'cargo fmt --version' validate stage commit tag push > expected
   cmp expected observed

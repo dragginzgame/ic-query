@@ -8,7 +8,7 @@
 //! forms and typed catalog errors.
 
 use super::CatalogError;
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 
 /// Parses a textual IC principal into canonical text.
 pub fn canonical_principal_text(value: &str) -> Result<String, CatalogError> {

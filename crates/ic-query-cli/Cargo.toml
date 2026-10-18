@@ -17,9 +17,9 @@ name = "icq"
 path = "src/main.rs"
 
 [dependencies]
-candid.workspace = true
 clap.workspace = true
 ic-host-text.workspace = true
+ic-platform.workspace = true
 ic-query = { workspace = true, features = ["host"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -28,12 +28,11 @@ tokio = { workspace = true, features = ["rt", "time"] }
 
 [dev-dependencies]
 futures.workspace = true
-ic-agent.workspace = true
 ic-build.workspace = true
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }
 ic-host-process.workspace = true
-ic-testkit-candid.workspace = true
+ic-platform = { workspace = true, features = ["agent"] }
 libc.workspace = true
 reqwest.workspace = true
 serde_json = { workspace = true, features = ["arbitrary_precision"] }

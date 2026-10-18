@@ -13,13 +13,13 @@ use crate::ic_registry::{
         RegistryVersionedValueFailure,
     },
 };
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
 use prost::Message;
 
 #[cfg(feature = "nns-topology-host")]
 pub(in crate::ic_registry) async fn get_registry_value(
     agent: &Agent,
-    registry_canister: &candid::Principal,
+    registry_canister: &ic_platform::candid::contract::Principal,
     key: &str,
     version: u64,
 ) -> Result<Vec<u8>, RegistryFetchError> {
@@ -31,7 +31,7 @@ pub(in crate::ic_registry) async fn get_registry_value(
 
 pub(in crate::ic_registry) async fn get_registry_versioned_value_counted(
     agent: &Agent,
-    registry_canister: &candid::Principal,
+    registry_canister: &ic_platform::candid::contract::Principal,
     key: &str,
     version: u64,
     counter: &RegistryQueryCounter,
@@ -56,7 +56,7 @@ pub(in crate::ic_registry) async fn get_registry_versioned_value_counted(
 
 async fn get_registry_versioned_value_inner(
     agent: &Agent,
-    registry_canister: &candid::Principal,
+    registry_canister: &ic_platform::candid::contract::Principal,
     key: &str,
     version: u64,
     counter: Option<&RegistryQueryCounter>,

@@ -21,7 +21,7 @@ use crate::{
     snapshot_cache::{SnapshotJsonPaths, SnapshotKey},
     subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 

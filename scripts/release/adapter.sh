@@ -70,9 +70,22 @@ admit_paths() {
   untracked="$(git ls-files --others --exclude-standard)"
   [[ -z "$untracked" ]] || fail 'untracked source remains'
 }
+check_manifest_order() {
+  local selected_root="$repo_root" observation
+  if [[ -n "${1:-}" ]]; then
+    observation="$(mktemp -d "$state_root/$RELEASE_VERSION.manifest-order.XXXXXX")"
+    selected_root="$observation/source"
+    mkdir "$selected_root"
+    printf '%s\n' "$1" > "$observation/commit"
+    git archive --format=tar "$1" | tar -xf - -C "$selected_root"
+    printf 'Selected release source retained for manifest ordering: %s\n' "$selected_root" >&2
+  fi
+  (cd "$selected_root" && "${FORMAT_CARGO:-cargo}" sort --workspace --grouped --check)
+}
 prepared_check() {
   load_evidence
   metadata check "$evidence"
+  check_manifest_order
   admit_paths "$RELEASE_SOURCE"
   metadata_log="$(mktemp "$evidence/metadata-check.XXXXXX")"
   cargo metadata --locked --offline --no-deps --format-version 1 > "$metadata_log"
@@ -80,6 +93,7 @@ prepared_check() {
 committed_check() {
   load_evidence
   metadata check-commit "$evidence"
+  check_manifest_order "${RELEASE_COMMIT:?}"
   admit_paths "$RELEASE_SOURCE" "${RELEASE_COMMIT:?}"
 }
 case "$operation" in

@@ -1,4 +1,4 @@
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use ic_query::{
     nns::topology::{
         NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,

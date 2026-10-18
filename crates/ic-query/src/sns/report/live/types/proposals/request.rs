@@ -8,7 +8,7 @@ use crate::sns::report::live::types::proposals::data::{
     GetProposalResult, SnsGovernanceProposalData, SnsProposalId,
 };
 use crate::sns::report::live::types::proposals::topic::SnsTopicSelector;
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
 /// GetProposalRequest
@@ -17,6 +17,7 @@ use candid::{CandidType, Deserialize};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetProposalRequest {
     pub(in crate::sns::report::live) proposal_id: Option<SnsProposalId>,
 }
@@ -28,6 +29,7 @@ pub(in crate::sns::report::live) struct GetProposalRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetProposalResponse {
     pub(in crate::sns::report::live) result: Option<GetProposalResult>,
 }
@@ -39,6 +41,7 @@ pub(in crate::sns::report::live) struct GetProposalResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListProposalsRequest {
     pub(in crate::sns::report::live) include_reward_status: Vec<i32>,
     pub(in crate::sns::report::live) before_proposal: Option<SnsProposalId>,
@@ -55,6 +58,7 @@ pub(in crate::sns::report::live) struct ListProposalsRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListProposalsResponse {
     pub(in crate::sns::report::live) proposals: Vec<SnsGovernanceProposalData>,
 }

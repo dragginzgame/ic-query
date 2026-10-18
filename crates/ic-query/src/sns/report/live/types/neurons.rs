@@ -6,7 +6,7 @@
 
 use super::{SnsGovernanceError, SnsMetricsAccount, SnsTopic};
 use crate::sns::report::SnsNeuronId;
-use candid::{CandidType, Deserialize, Principal};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
 /// GetNeuronRequest
@@ -15,6 +15,7 @@ use candid::{CandidType, Deserialize, Principal};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNeuronRequest {
     pub(in crate::sns::report::live) neuron_id: Option<SnsNeuronId>,
 }
@@ -26,6 +27,7 @@ pub(in crate::sns::report::live) struct GetNeuronRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNeuronResponse {
     pub(in crate::sns::report::live) result: Option<GetNeuronResult>,
 }
@@ -37,6 +39,7 @@ pub(in crate::sns::report::live) struct GetNeuronResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum GetNeuronResult {
     Error(SnsGovernanceError),
     Neuron(Box<SnsGovernanceNeuronDetail>),
@@ -49,6 +52,7 @@ pub(in crate::sns::report::live) enum GetNeuronResult {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListNeuronsRequest {
     pub(in crate::sns::report::live) of_principal: Option<Principal>,
     pub(in crate::sns::report::live) limit: u32,
@@ -62,6 +66,7 @@ pub(in crate::sns::report::live) struct ListNeuronsRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListNeuronsResponse {
     pub(in crate::sns::report::live) neurons: Vec<SnsGovernanceNeuron>,
 }
@@ -73,6 +78,7 @@ pub(in crate::sns::report::live) struct ListNeuronsResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListRewardNeuronsResponse {
     pub(in crate::sns::report::live) neurons: Vec<SnsGovernanceRewardNeuron>,
 }
@@ -84,6 +90,7 @@ pub(in crate::sns::report::live) struct ListRewardNeuronsResponse {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuron {
     pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
     pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
@@ -106,6 +113,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuron {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
     pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
     pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
@@ -133,6 +141,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceRewardNeuron {
     pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
     pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
@@ -151,6 +160,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceRewardNeuron {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuronPermission {
     pub(in crate::sns::report::live) principal: Option<Principal>,
     pub(in crate::sns::report::live) permission_type: Vec<i32>,
@@ -163,6 +173,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronPermission {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceMaturityDisbursement {
     pub(in crate::sns::report::live) timestamp_of_disbursement_seconds: u64,
     pub(in crate::sns::report::live) amount_e8s: u64,
@@ -177,6 +188,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceMaturityDisbursement {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceFollowees {
     pub(in crate::sns::report::live) followees: Vec<SnsNeuronId>,
 }
@@ -188,6 +200,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceFollowees {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceFollowee {
     pub(in crate::sns::report::live) neuron_id: Option<SnsNeuronId>,
     pub(in crate::sns::report::live) alias: Option<String>,
@@ -200,6 +213,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceFollowee {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceFolloweesForTopic {
     pub(in crate::sns::report::live) followees: Vec<SnsGovernanceFollowee>,
     pub(in crate::sns::report::live) topic: Option<SnsTopic>,
@@ -212,6 +226,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceFolloweesForTopic {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceTopicFollowees {
     pub(in crate::sns::report::live) topic_id_to_followees:
         Vec<(i32, SnsGovernanceFolloweesForTopic)>,
@@ -224,6 +239,7 @@ pub(in crate::sns::report::live) struct SnsGovernanceTopicFollowees {
 ///
 
 #[derive(CandidType, Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum SnsGovernanceDissolveState {
     DissolveDelaySeconds(u64),
     WhenDissolvedTimestampSeconds(u64),

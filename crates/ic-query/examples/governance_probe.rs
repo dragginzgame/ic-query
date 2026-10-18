@@ -23,7 +23,7 @@ mod probe {
     async fn report(kind: String) -> String {
         let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs(
             "ic",
-            ic_cdk::api::time() / 1_000_000_000,
+            ic_platform::ic0::time() / 1_000_000_000,
         );
         let source = CanisterNnsSource;
         let result = match kind.as_str() {

@@ -4,7 +4,7 @@
 //! Does not own: wire-specific response conversion, collection validation, caching, or rendering.
 //! Boundary: validates ledger/index identity once and delegates each protocol concern explicitly.
 
-use icrc_ledger_types::icrc1::account::Account as LedgerAccount;
+use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 mod collection;
 mod cursor;
 mod wire;
@@ -28,8 +28,8 @@ use crate::{
         },
     },
 };
-use candid::Principal;
-use ic_agent::Agent;
+use ic_platform::agent::Agent;
+use ic_platform::candid::contract::Principal;
 
 const INDEX_LEDGER_ID_METHOD: &str = "ledger_id";
 

@@ -188,8 +188,9 @@ fn attach_complete_registry_evidence(catalog: &mut RawSubnetCatalog, endpoint: &
         evidence(SubnetCatalogRegistryRecordSubject::legacy_routing_table()),
     ];
     registry_records.extend(catalog.subnets.iter().map(|subnet| {
-        let principal = candid::Principal::from_text(&subnet.subnet_principal)
-            .expect("fixture Subnet principal");
+        let principal =
+            ic_platform::candid::contract::Principal::from_text(&subnet.subnet_principal)
+                .expect("fixture Subnet principal");
         evidence(SubnetCatalogRegistryRecordSubject::subnet_record(principal))
     }));
     catalog.provenance.registry_records = registry_records;

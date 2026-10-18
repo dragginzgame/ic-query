@@ -91,7 +91,7 @@ pub fn deployed_canister(deployment: &Value) -> Result<String> {
     let principal = item["canister_id"]
         .as_str()
         .ok_or_else(|| invalid("deployment omitted probe principal"))?;
-    candid::Principal::from_text(principal)?;
+    ic_platform::candid::contract::Principal::from_text(principal)?;
     Ok(principal.to_string())
 }
 

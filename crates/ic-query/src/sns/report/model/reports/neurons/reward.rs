@@ -22,7 +22,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
 };
-use candid::{CandidType, Deserialize};
+use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;
 use thiserror::Error as ThisError;
@@ -34,6 +34,7 @@ use thiserror::Error as ThisError;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsRewardProposalId {
     /// Native SNS Governance proposal identifier.
@@ -47,6 +48,7 @@ pub struct SnsRewardProposalId {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize, Serialize)]
+#[candid_path("ic_platform::candid::contract")]
 #[serde(deny_unknown_fields)]
 pub struct SnsRewardEvent {
     /// Number of reward rounds represented by this event when supplied.

@@ -18,7 +18,7 @@ use crate::{
         source::SNS_CANISTER_HEALTH_CALL_TYPE,
     },
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use std::collections::BTreeMap;
 
 pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
@@ -440,7 +440,7 @@ const fn gap(
 mod tests {
     use super::*;
     use crate::sns::report::live::types::{DefiniteCanisterSettings, SnsRootExtensions};
-    use candid::Nat;
+    use ic_platform::candid::contract::Nat;
 
     #[test]
     fn root_inventory_projection_preserves_native_health_and_canonical_roles() {

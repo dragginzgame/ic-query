@@ -5,7 +5,7 @@
 //! Boundary: changes here follow the ICP CLI 1.3.0 engine-canister contracts exactly.
 
 use super::{CloudEngineNodeType, CloudEnginePriceRow};
-use candid::{CandidType, Deserialize, Nat, Principal};
+use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
 
 ///
 /// GetEngineOperatorBySubnetArgs
@@ -14,6 +14,7 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetEngineOperatorBySubnetArgs {
     pub(super) subnet_id: Option<Principal>,
 }
@@ -25,6 +26,7 @@ pub(super) struct GetEngineOperatorBySubnetArgs {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetEngineOperatorBySubnetResult {
     pub(super) engine_operator_id: Option<Principal>,
 }
@@ -36,6 +38,7 @@ pub(super) struct GetEngineOperatorBySubnetResult {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetEngineOwnerResult {
     pub(super) engine_owner: Option<Principal>,
 }
@@ -47,6 +50,7 @@ pub(super) struct GetEngineOwnerResult {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetPlatformAdminResult {
     pub(super) platform_admin: Option<Principal>,
 }
@@ -58,6 +62,7 @@ pub(super) struct GetPlatformAdminResult {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct CaffeineSettings {
     pub(super) enabled: Option<bool>,
 }
@@ -69,6 +74,7 @@ pub(super) struct CaffeineSettings {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetCaffeineSettingsResult {
     pub(super) settings: Option<CaffeineSettings>,
 }
@@ -80,17 +86,20 @@ pub(super) struct GetCaffeineSettingsResult {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct ListDomainsResult {
     pub(super) domains: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 struct CloudEnginePriceWire {
     gross_cycles: Nat,
     net_cycles: Nat,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 struct CloudEnginePriceEntryWire {
     node_type: CloudEngineNodeType,
     dc: Option<String>,
@@ -106,6 +115,7 @@ struct CloudEnginePriceEntryWire {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
 pub(super) struct CloudEngineMarketplaceEntryWire {
     key: String,
     entry: CloudEnginePriceEntryWire,
@@ -134,17 +144,19 @@ mod tests {
         let args = GetEngineOperatorBySubnetArgs {
             subnet_id: Some(Principal::from_text("aaaaa-aa").unwrap()),
         };
-        let encoded = candid::encode_one(&args).expect("encode operator args");
+        let encoded =
+            ic_platform::candid::contract::encode_one(&args).expect("encode operator args");
         let decoded: GetEngineOperatorBySubnetArgs =
-            candid::decode_one(&encoded).expect("decode operator args");
+            crate::candid_decode::decode_reply(&encoded).expect("decode operator args");
         assert_eq!(decoded, args);
 
         let result = GetEngineOperatorBySubnetResult {
             engine_operator_id: Some(Principal::from_text("wlnge-zyaaa-aaabw-aaaaa-cai").unwrap()),
         };
-        let encoded = candid::encode_one(&result).expect("encode operator result");
+        let encoded =
+            ic_platform::candid::contract::encode_one(&result).expect("encode operator result");
         let decoded: GetEngineOperatorBySubnetResult =
-            candid::decode_one(&encoded).expect("decode operator result");
+            crate::candid_decode::decode_reply(&encoded).expect("decode operator result");
 
         assert_eq!(decoded, result);
     }
@@ -194,12 +206,14 @@ mod tests {
                 ][..],
             ),
         ] {
-            let decoded: CloudEngineNodeType = candid::decode_one(bytes).expect("wire node class");
+            let decoded: CloudEngineNodeType =
+                crate::candid_decode::decode_reply(bytes).expect("wire node class");
             assert_eq!(decoded, expected);
             assert_eq!(serde_json::to_value(decoded).unwrap(), label);
-            let encoded = candid::encode_one(decoded).expect("encode node class");
+            let encoded =
+                ic_platform::candid::contract::encode_one(decoded).expect("encode node class");
             assert_eq!(
-                candid::decode_one::<CloudEngineNodeType>(&encoded).unwrap(),
+                crate::candid_decode::decode_reply::<CloudEngineNodeType>(&encoded).unwrap(),
                 expected
             );
         }
@@ -220,9 +234,10 @@ mod tests {
                 updated_at: 1_785_946_128_242_156_275,
             },
         };
-        let encoded = candid::encode_one(vec![row]).expect("encode marketplace rows");
+        let encoded =
+            ic_platform::candid::contract::encode_one(vec![row]).expect("encode marketplace rows");
         let decoded: Vec<CloudEngineMarketplaceEntryWire> =
-            candid::decode_one(&encoded).expect("decode marketplace rows");
+            crate::candid_decode::decode_reply(&encoded).expect("decode marketplace rows");
         let projected = decoded.into_iter().next().unwrap().into_report_row();
 
         assert_eq!(projected.node_type, CloudEngineNodeType::Type4_1);

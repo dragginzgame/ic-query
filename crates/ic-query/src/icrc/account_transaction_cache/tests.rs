@@ -10,7 +10,7 @@ use crate::{
     },
     test_support::temp_dir,
 };
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use serde_json::json;
 use std::{
     fs,

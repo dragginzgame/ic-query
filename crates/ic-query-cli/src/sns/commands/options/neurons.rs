@@ -8,8 +8,8 @@ use crate::{
     cli::clap::{required_string, required_typed, typed_option},
     sns::commands::{SnsCommandError, options::lookup::SnsLookupOptions, spec::SnsNeuronsSortArg},
 };
-use candid::Principal;
 use clap::ArgMatches;
+use ic_platform::candid::contract::Principal;
 
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
 

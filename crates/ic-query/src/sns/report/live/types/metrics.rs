@@ -5,7 +5,7 @@
 //! Boundary: mirrors only the official bounded metrics response fields.
 
 use super::SnsGovernanceError;
-use candid::{CandidType, Deserialize, Principal};
+use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
 /// GetMetricsRequest
@@ -14,6 +14,7 @@ use candid::{CandidType, Deserialize, Principal};
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetMetricsRequest {
     pub(in crate::sns::report::live) time_window_seconds: Option<u64>,
 }
@@ -25,6 +26,7 @@ pub(in crate::sns::report::live) struct GetMetricsRequest {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsMetricsSubaccount {
     pub(in crate::sns::report::live) subaccount: Vec<u8>,
 }
@@ -36,6 +38,7 @@ pub(in crate::sns::report::live) struct SnsMetricsSubaccount {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsMetricsAccount {
     pub(in crate::sns::report::live) owner: Option<Principal>,
     pub(in crate::sns::report::live) subaccount: Option<SnsMetricsSubaccount>,
@@ -48,6 +51,7 @@ pub(in crate::sns::report::live) struct SnsMetricsAccount {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct TreasuryMetricsWire {
     pub(in crate::sns::report::live) treasury: i32,
     pub(in crate::sns::report::live) name: Option<String>,
@@ -65,6 +69,7 @@ pub(in crate::sns::report::live) struct TreasuryMetricsWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct VotingPowerMetricsWire {
     pub(in crate::sns::report::live) governance_total_potential_voting_power: Option<u64>,
     pub(in crate::sns::report::live) timestamp_seconds: Option<u64>,
@@ -77,6 +82,7 @@ pub(in crate::sns::report::live) struct VotingPowerMetricsWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct MetricsWire {
     pub(in crate::sns::report::live) num_recently_submitted_proposals: Option<u64>,
     pub(in crate::sns::report::live) num_recently_executed_proposals: Option<u64>,
@@ -93,6 +99,7 @@ pub(in crate::sns::report::live) struct MetricsWire {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum GetMetricsResult {
     Ok(MetricsWire),
     Err(SnsGovernanceError),
@@ -105,6 +112,7 @@ pub(in crate::sns::report::live) enum GetMetricsResult {
 ///
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetMetricsResponse {
     pub(in crate::sns::report::live) get_metrics_result: Option<GetMetricsResult>,
 }

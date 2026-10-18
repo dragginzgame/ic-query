@@ -46,7 +46,7 @@ git -C "$fixture" add -- Makefile .shared-tooling.snapshot
 # Explicit fixture preparation must reuse the checkout's verified payloads.
 bash "$fixture/scripts/dev/install-rust-tools.sh" --consumer "$fixture" \
   --versions "$fixture/ci/tool-versions.env" > "$work_dir/preparation.log" 2>&1
-for tool in cargo-sort cargo-sort-derives candid-extractor; do
+for tool in cargo-sort cargo-sort-derives; do
   original="$(perl -MCwd=abs_path -e 'print abs_path(shift) // die "missing prepared tool\n"' "$repo_root/.tools/rust/common/bin/$tool")"
   reused="$(perl -MCwd=abs_path -e 'print abs_path(shift) // die "missing fixture tool\n"' "$fixture/.tools/rust/common/bin/$tool")"
   [[ "$original" == "$reused" ]] || { echo "fixture did not reuse prepared $tool" >&2; exit 1; }

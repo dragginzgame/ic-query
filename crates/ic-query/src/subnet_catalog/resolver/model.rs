@@ -3,7 +3,7 @@
 //! Defines resolver options and outputs for subnet catalog lookups.
 
 use crate::subnet_catalog::{RoutingRange, SubnetCatalogProvenance, SubnetInfo};
-use candid::Principal;
+use ic_platform::candid::contract::Principal;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
