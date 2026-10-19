@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.64.0]
+## [0.64.0] - 2026-10-19
 
 - **Breaking:** use Host Artifacts, FS, Text and Tools 0.30. Certificate decode
   errors now carry Tools' 0.30 `ParseError`; callers naming that type must match it.
