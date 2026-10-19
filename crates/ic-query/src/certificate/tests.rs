@@ -2,9 +2,7 @@ use super::*;
 use ic_platform::certification::{empty, fork, labeled, leaf as tree_leaf};
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    ciborium::ser::into_writer(tree, &mut bytes).unwrap();
-    bytes
+    serde_cbor::to_vec(tree).unwrap()
 }
 
 #[test]
@@ -141,8 +139,7 @@ fn certificate_authentication_precedes_witness_admission() {
         signature: Vec::new(),
         delegation: None,
     };
-    let mut bytes = Vec::new();
-    ciborium::ser::into_writer(&certificate, &mut bytes).unwrap();
+    let bytes = serde_cbor::to_vec(&certificate).unwrap();
     let result = authenticate_hash_tree(
         &agent,
         Principal::anonymous(),

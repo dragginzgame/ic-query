@@ -2415,8 +2415,9 @@ ordering, explicit pin selection, local PATH and failure propagation, verifies
 the immutable snapshot and installed host tools, and requires actual setup
 qualification in the configured native CI jobs.
 
-The native `checks` matrix runs the Rust Governance runner fixtures through
-`ci-scripts-check` and `test`, which selects all targets including examples.
+The native `checks` matrix compiles the Rust Governance runner fixtures with the
+CLI's default feature selection through `ci-scripts-check`, without executing
+them. `test` owns fixture execution, selecting all targets including examples.
 Those fixtures cover receipt admission and process cleanup with the prepared
 locked/offline cache. The separate `canister` matrix owns live local-network
 smoke execution and bundle construction on each declared host.
@@ -2490,3 +2491,13 @@ PocketIC's exact `thiserror =2.0.18` requirement selects that
 compatible patch in the workspace lockfile; the previously selected 2.0.21
 cannot coexist under Cargo's compatible-version unification. Query's direct
 `thiserror =2` requirement and public error types remain unchanged.
+
+## Prepared Host 0.28 parser isolation
+
+Certificate-host and derived host profiles reject `candid_parser` and Host's
+`candid` feature in their normal/build graphs. Host 0.28 supplies independent
+certificate decoding; Query already selects only `certificate`. The dependency
+requirement is prepared, but the checked-in lock must be refreshed after Host
+0.28 publication. Existing registry Host 0.27 does not satisfy this gate.
+Qualification with a disposable source override is separate from registry adoption;
+no permanent patch or sibling path belongs in the Query manifest.

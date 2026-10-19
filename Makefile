@@ -160,11 +160,11 @@ release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
 # Shared Tooling qualifies generic helper suites. Keep Query's actual Make,
-# hook, workflow, documentation-debt and Governance-harness integration here.
+# hook, workflow, documentation-debt and Governance-harness compilation here.
 ci-scripts-check:
 	bash scripts/ci/check-ci-scripts.sh
 	bash scripts/ci/check-formatting-hook.sh
-	cargo test -p ic-query-cli --example governance_smoke --locked --offline
+	cargo test -p ic-query-cli --example governance_smoke --locked --offline --no-run
 
 canister-build canister-bundle canister-smoke:
 	cargo fetch --locked

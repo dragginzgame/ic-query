@@ -5,17 +5,37 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.4]
+
+- Use `serde_cbor` for CBOR test fixtures and remove Query's direct `ciborium`
+  dependency. Host retains production certificate decoding.
+
+- Prepare Host 0.28 certificate-only adoption and reject Candid parser leakage
+  from host profiles. Requires the supplying Host release and subsequent lock
+  refresh; source qualification is separate from published adoption.
+
+- Run Governance runner fixtures once per complete CI gate, preserving the early
+  default-feature compilation check.
+
+### Pending integration
+
+These PRs have passed their complete nine-job CI matrices and remain unmerged:
+
+- [#80](https://github.com/dragginzgame/ic-query/pull/80): bounded ICP transfer
+  decoding; callers retain authentication and expected-transfer checks.
+- [#84](https://github.com/dragginzgame/ic-query/pull/84): use the admitted build's
+  compiler identity in Governance probe provenance.
+- [#86](https://github.com/dragginzgame/ic-query/pull/86): select Rust 1.99.1 for
+  development and CI, retaining consumer MSRV 1.91.0.
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.3] - 2026-10-18
 
 - Refresh the selected dependency graph to IC Build 0.17.6, Host 0.27.6 and
   IC Platform 0.1.13, preserving the existing dependency requirements.
 - Follow the selected IC tool catalog in host setup guidance, removing stale
   ICP CLI and Binaryen version instructions.
-
-Pending integration: captured Governance compiler provenance ([#84](https://github.com/dragginzgame/ic-query/pull/84)),
-bounded ICP transfer decoding ([#80](https://github.com/dragginzgame/ic-query/pull/80)),
-and Rust 1.99.1 development/CI qualification ([#86](https://github.com/dragginzgame/ic-query/pull/86)).
-These PRs await their required native CI and integration into `main`.
 
 Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
 

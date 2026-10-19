@@ -50,9 +50,11 @@ forbidden_canister_dependencies=(
   tokio
 )
 
-# Host Tools includes its Candid parser unconditionally; certificate consumers
-# still exclude interface extraction, process execution and archive decoding.
+# Certificate consumers select Host without Candid service parsing; retain
+# interface, process and archive exclusions alongside parser exclusion.
 forbidden_host_dependencies=(
+  candid_parser
+  ic-host-tools/candid
   clap
   ic-host-process
   ic-host-artifacts/archive

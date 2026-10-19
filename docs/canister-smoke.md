@@ -395,11 +395,12 @@ claiming qualification.
 Retain a reviewed receipt separately if it must outlive that retention window.
 
 The ordinary feature-boundary gate compile-checks the Wasm example. The native
-`checks` matrix runs receipt, interruption, malformed-reply and provenance tests
-through `make ci-scripts-check`. Artifact-helper Rust unit tests run through
+`checks` matrix compiles the runner tests with the CLI's default feature selection
+through `make ci-scripts-check`, without executing them. Receipt, interruption,
+malformed-reply, provenance and artifact-helper Rust unit tests execute through
 `make test`, whose all-target selection includes examples. Each unit suite has
-one owner in the complete CI gate. `make ci` does not start a local network; use
-`make canister-smoke` for the separate runtime gate.
+one execution owner in the complete CI gate. `make ci` does not start a local
+network; use `make canister-smoke` for the separate runtime gate.
 
 Upstream contracts: [ICP 1.7.0 release notes](https://github.com/dfinity/icp-cli/releases/tag/v1.7.0)
 and [configuration reference](https://github.com/dfinity/icp-cli/blob/v1.7.0/docs/reference/configuration.md).

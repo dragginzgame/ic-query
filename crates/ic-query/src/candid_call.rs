@@ -135,9 +135,9 @@ mod tests {
     use crate::nns::governance::NnsGovernanceError as QueryError;
     #[cfg(all(not(feature = "nns-host"), feature = "sns-host"))]
     use crate::sns::SnsHostError as QueryError;
-    use ciborium::value::Value;
     use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
-    use std::{io::Write, net::TcpListener, thread, time::Duration};
+    use serde_cbor::Value;
+    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
 
     #[tokio::test(flavor = "current_thread")]
     async fn query_preserves_argument_lists_reply_bytes_and_family_error_labels() {
@@ -153,15 +153,17 @@ mod tests {
             ] {
                 let listener = TcpListener::bind("127.0.0.1:0").unwrap();
                 let endpoint = format!("http://{}", listener.local_addr().unwrap());
-                let response = Value::Map(vec![
+                let response = Value::Map(BTreeMap::from([
                     (Value::Text("status".into()), Value::Text("replied".into())),
                     (
                         Value::Text("reply".into()),
-                        Value::Map(vec![(Value::Text("arg".into()), Value::Bytes(reply))]),
+                        Value::Map(BTreeMap::from([(
+                            Value::Text("arg".into()),
+                            Value::Bytes(reply),
+                        )])),
                     ),
-                ]);
-                let mut body = Vec::new();
-                ciborium::ser::into_writer(&response, &mut body).unwrap();
+                ]));
+                let body = serde_cbor::to_vec(&response).unwrap();
                 let server = thread::spawn(move || {
                     let (mut stream, _) = listener.accept().unwrap();
                     stream
@@ -181,7 +183,9 @@ mod tests {
                         .position(|bytes| bytes == b"\r\n\r\n")
                         .unwrap()
                         + 4;
-                    let request: Value = ciborium::de::from_reader(&request[body_start..]).unwrap();
+                    let body_bytes = &request[body_start..];
+                    assert!(body_bytes.starts_with(&[0xd9, 0xd9, 0xf7]));
+                    let request: Value = serde_cbor::from_slice(body_bytes).unwrap();
                     write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
                     stream.write_all(&body).unwrap();
                     request
@@ -215,30 +219,20 @@ mod tests {
                         }) if message == response_message
                     )),
                 }
-                let Value::Tag(55_799, request) = server.join().unwrap() else {
-                    panic!("expected self-described CBOR request");
+                let Value::Map(request) = server.join().unwrap() else {
+                    panic!("expected CBOR request envelope");
                 };
-                let content = request
-                    .as_map()
-                    .unwrap()
-                    .iter()
-                    .find(|(key, _)| key.as_text() == Some("content"))
-                    .unwrap()
-                    .1
-                    .as_map()
-                    .unwrap();
-                let captured_argument = &content
-                    .iter()
-                    .find(|(key, _)| key.as_text() == Some("arg"))
-                    .unwrap()
-                    .1;
-                assert_eq!(captured_argument.as_bytes().unwrap(), &encoded_argument);
-                let method = &content
-                    .iter()
-                    .find(|(key, _)| key.as_text() == Some("method_name"))
-                    .unwrap()
-                    .1;
-                assert_eq!(method.as_text(), Some("fixture_query"));
+                let Value::Map(content) = &request[&Value::Text("content".into())] else {
+                    panic!("expected CBOR request content");
+                };
+                assert_eq!(
+                    content[&Value::Text("arg".into())],
+                    Value::Bytes(encoded_argument)
+                );
+                assert_eq!(
+                    content[&Value::Text("method_name".into())],
+                    Value::Text("fixture_query".into())
+                );
             }
         }
     }
