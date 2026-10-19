@@ -39,7 +39,7 @@ tokio = "1.52.3"
 url = "2.5.8"
 
 # Tests and tooling only
-ic-build = "0.18"
+ic-build = "0.19"
 ic-host-process = { version = "0.27", default-features = false }
 ic-testkit = "0.54"
 wat = "1"
