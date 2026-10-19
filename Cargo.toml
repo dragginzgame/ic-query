@@ -14,15 +14,12 @@ repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
 # Production dependencies
-cap-fs-ext = "4.0.2"
-cap-std = "4.0.2"
-ciborium = "0.2"
 clap = { version = "4.6.1", features = ["derive"] }
 futures = "0.3"
-ic-host-artifacts = { version = "0.28", default-features = false }
-ic-host-fs = { version = "0.28", default-features = false }
-ic-host-text = "0.28"
-ic-host-tools = { version = "0.28", default-features = false }
+ic-host-artifacts = { version = "0.29", default-features = false }
+ic-host-fs = { version = "0.29", default-features = false }
+ic-host-text = "0.29"
+ic-host-tools = { version = "0.29", default-features = false }
 ic-metrics = "0.14"
 ic-platform = { version = "0.1.11", default-features = false, features = ["candid"] }
 ic-query = { path = "crates/ic-query", version = "0.62.4", default-features = false }
@@ -39,10 +36,9 @@ tokio = "1.52.3"
 url = "2.5.8"
 
 # Tests and tooling only
-ic-build = "0.20"
-ic-host-process = { version = "0.28", default-features = false }
-ic-testkit = "0.54"
-wat = "1"
+ic-build = "0.21"
+ic-host-process = { version = "0.29", default-features = false }
+ic-testkit = "0.55"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

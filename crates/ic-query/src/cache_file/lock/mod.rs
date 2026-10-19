@@ -11,7 +11,7 @@ mod run;
 #[cfg(test)]
 mod tests;
 
-#[cfg(any(feature = "host", all(test, feature = "icrc-host")))]
+#[cfg(any(feature = "host", test))]
 pub use acquire::inspect_refresh_lock;
 pub use model::RefreshLockRequest;
 #[cfg(feature = "subnet-catalog-host")]

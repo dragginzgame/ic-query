@@ -9,6 +9,10 @@ use super::{
     },
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use ic_host_artifacts::{
+    wasm::{ExportKind, InspectionLimits, inspect},
+    wasm_text::{CompileLimits, compile},
+};
 use ic_platform::candid::{DecodeLimits, contract::Principal};
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig, RejectCode,
@@ -16,7 +20,7 @@ use ic_testkit::pic::{
 };
 use ic_testkit::pocket_ic::Time;
 use serde_json::Value;
-use std::{env, fmt::Write, fs, time::Duration};
+use std::{collections::BTreeSet, env, fmt::Write, fs, time::Duration};
 
 const REPORT_REPLY_LIMITS: DecodeLimits = DecodeLimits {
     reply_bytes: 2 * 1024 * 1024,
@@ -244,5 +248,40 @@ fn governance_wasm(replies: &[(&str, Vec<u8>)]) -> Vec<u8> {
         offset += reply.len();
     }
     module.push(')');
-    wat::parse_str(module).expect("fixture Governance module")
+    compile(
+        &module,
+        CompileLimits {
+            source_bytes: 1024 * 1024,
+            module_bytes: 1024 * 1024,
+        },
+    )
+    .expect("fixture Governance module")
+}
+
+#[test]
+fn governance_fixture_exports_the_configured_update_methods() {
+    let replies = governance_replies();
+    let module = governance_wasm(&replies);
+    let facts = inspect(
+        &module,
+        InspectionLimits {
+            module_bytes: 1024 * 1024,
+            sections: 100,
+            exports: 100,
+            custom_sections: 10,
+        },
+    )
+    .unwrap();
+    assert_eq!(facts.exports["memory"].kind, ExportKind::Memory);
+    let actual: BTreeSet<_> = facts
+        .exports
+        .iter()
+        .filter(|(_, export)| export.kind == ExportKind::Function)
+        .map(|(name, _)| (*name).to_string())
+        .collect();
+    let expected = replies
+        .iter()
+        .map(|(name, _)| format!("canister_update {name}"))
+        .collect();
+    assert_eq!(actual, expected);
 }

@@ -7,9 +7,16 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.62.5]
 
+- Use Host FS capability handles for managed caches, preserving permissions,
+  byte/scan limits and typed errors while removing direct `cap-*` dependencies.
+- Compile Governance fixture WAT through Host Artifacts with explicit limits,
+  and delegate smoke-harness signal registration/restoration to Host Process.
+
+- Remove the unused Ciborium workspace declaration; fixtures already use
+  `serde_cbor`; production certificate decoding remains Host-owned.
 - Adopt Shared Tooling 0.25.0 and its grouped formatting defaults, preserving
   dependency-role sections and the existing tool catalogs.
-- Use published IC Build 0.20.0 for release editing instead of the retired Perl renderers.
+- Use published IC Build 0.21.0 for release editing instead of the retired Perl renderers.
   Release preflight prepares the editor; offline checks require explicit setup:
 
 ```bash

@@ -92,7 +92,7 @@ help:
 	@echo "  doc-links-check  Check local links in current guides and contracts"
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
-	@echo "  dependency-boundary-check  Check direct Platform boundary ownership, including aliases and targets"
+	@echo "  dependency-boundary-check  Check direct Platform and Host dependency ownership, including aliases and targets"
 	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked/offline dependencies"

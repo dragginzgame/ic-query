@@ -1048,6 +1048,24 @@ fn process_fixture() {
         return;
     };
     let directory = PathBuf::from(env::var_os("ICQ_SMOKE_FIXTURE_DIRECTORY").unwrap());
+    if mode == "restore" {
+        // This isolated fixture owns both signals; ignored dispositions make
+        // restoration observable without terminating the fixture process.
+        for signal in [libc::SIGINT, libc::SIGTERM] {
+            assert_ne!(
+                unsafe { libc::signal(signal, libc::SIG_IGN) },
+                libc::SIG_ERR
+            );
+        }
+        {
+            let _signals = command::install_signal_handlers().unwrap();
+        }
+        for signal in [libc::SIGINT, libc::SIGTERM] {
+            assert_eq!(unsafe { libc::raise(signal) }, 0);
+        }
+        assert_eq!(command::interruption(), None);
+        return;
+    }
     if mode == "escape" {
         // The child does only async-signal-safe libc calls after fork. It keeps inherited
         // output pipes open outside the owned group until the fixture parent stops it.
@@ -1064,7 +1082,7 @@ fn process_fixture() {
         return;
     }
     assert_eq!(mode, "signal");
-    let _signals = command::SignalGuard::install().unwrap();
+    let _signals = command::install_signal_handlers().unwrap();
     struct SignalOperations {
         directory: PathBuf,
     }
@@ -1114,6 +1132,24 @@ fn process_fixture() {
             .interrupted
             .is_some()
     );
+}
+
+#[test]
+fn signal_handler_guard_restores_prior_dispositions() {
+    let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-signal-restore").unwrap();
+    let mut child = Command::new(env::current_exe().unwrap());
+    child
+        .args(["--exact", "tests::process_fixture", "--nocapture"])
+        .env("ICQ_SMOKE_PROCESS_FIXTURE", "restore")
+        .env("ICQ_SMOKE_FIXTURE_DIRECTORY", directory.path());
+    command::run(
+        &mut child,
+        &CommandOptions {
+            timeout: Duration::from_secs(10),
+            ..CommandOptions::default()
+        },
+    )
+    .unwrap();
 }
 
 #[test]

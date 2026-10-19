@@ -82,7 +82,7 @@ pub fn managed_file_exists(cache_root: &Path, target_path: &Path) -> Result<bool
 pub fn open_managed_file(
     cache_root: &Path,
     target_path: &Path,
-) -> Result<Option<cap_std::fs::File>, CacheFileError> {
+) -> Result<Option<std::fs::File>, CacheFileError> {
     let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
         return Ok(None);
     };
@@ -158,7 +158,7 @@ fn read_budgeted_stream(
 }
 
 fn read_opened_file_bounded(
-    file: cap_std::fs::File,
+    file: std::fs::File,
     target_path: &Path,
     maximum: u64,
     budget: Option<&mut ManagedReadBudget>,

@@ -38,11 +38,16 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Local cache confinement is still necessary: the Host writer accepts an admitted
-parent descriptor, but does not select Query's cache root, validate its ancestors
-or define recovery from invalid report content. Likewise, report fixtures test
-Query's use of shared mechanisms rather than duplicating their general regression
-suites. Do not move these policies upstream merely to reduce local source.
+Managed cache operations use published Host FS 0.29 `capability::Directory` and
+`FileEntry` handles. Host owns no-follow traversal, directory creation, bounded
+entry observations and descriptor-relative file mechanics. Query supplies root
+and path identity, 0700/0600 creation modes, the forbidden 0022 permission mask,
+file-mode/content admission, aggregate/depth budgets, candidate selection and
+`CacheFileError` projection. It retains the syncable admitted parent for Host's
+durable writer, including after pathname replacement. Query no longer declares
+or imports cap-std/cap-fs-ext; their private Host backend remains transitive.
+Consumer integration tests keep cache and error-policy coverage here; generic
+filesystem race and traversal regression tests belong to Host.
 
 Host Text owns canonical UTC conversion and exact fixed/compact decimal
 rounding. Query retains freshness decisions, token input normalization and

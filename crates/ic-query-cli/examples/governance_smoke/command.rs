@@ -3,6 +3,7 @@
 use crate::{Result, invalid};
 use ic_host_process::{
     child::{CleanupError, CleanupPolicy, OwnedChild},
+    signal::{SignalActionError, SignalActions},
     tool::{
         CompletedExecution, ExecutionEvidence, ExecutionFailure, OutputLimit, OutputLimits,
         SuccessfulExit, ToolError, communicate_child,
@@ -46,47 +47,11 @@ pub const fn signal_name(signal: i32) -> &'static str {
     }
 }
 
-///
-/// SignalGuard
-///
-/// Restores the caller's handlers after the synchronous harness exits.
-///
-
-pub struct SignalGuard([(i32, libc::sighandler_t); 2]);
-
-impl SignalGuard {
-    pub fn install() -> io::Result<Self> {
-        let mut previous = [
-            (libc::SIGINT, libc::SIG_DFL),
-            (libc::SIGTERM, libc::SIG_DFL),
-        ];
-        for index in 0..previous.len() {
-            // The handler only records a lock-free atomic; no allocation or IO.
-            let handler = unsafe {
-                libc::signal(
-                    previous[index].0,
-                    record_signal as *const () as libc::sighandler_t,
-                )
-            };
-            if handler == libc::SIG_ERR {
-                let error = io::Error::last_os_error();
-                for &(signal, old) in &previous[..index] {
-                    unsafe { libc::signal(signal, old) };
-                }
-                return Err(error);
-            }
-            previous[index].1 = handler;
-        }
-        Ok(Self(previous))
-    }
-}
-
-impl Drop for SignalGuard {
-    fn drop(&mut self) {
-        for &(signal, handler) in &self.0 {
-            unsafe { libc::signal(signal, handler) };
-        }
-    }
+/// Install the harness's interruption recorder while retaining prior dispositions.
+pub fn install_signal_handlers() -> std::result::Result<SignalActions, SignalActionError> {
+    // The synchronous harness owns these dispositions until its guard drops.
+    // Its static handler only updates a lock-free atomic on supported hosts.
+    unsafe { SignalActions::install(&[libc::SIGINT, libc::SIGTERM], record_signal) }
 }
 
 ///

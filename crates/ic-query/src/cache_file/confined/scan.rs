@@ -4,12 +4,22 @@
 //! Does not own: cache schemas, path confinement, or atomic publication.
 //! Boundary: traverses capability-rooted directories without following symbolic links.
 
-#[cfg(feature = "sns-host")]
+use super::CacheFileError;
+#[cfg(unix)]
+use super::capability_error;
+#[cfg(all(unix, feature = "host"))]
+use super::directory_options;
+#[cfg(all(unix, any(feature = "host", feature = "certified-subnet-catalog-host")))]
+use super::open_managed_path_error;
+#[cfg(all(unix, feature = "sns-host"))]
 use super::validate_managed_file_mode;
-use super::{CacheFileError, ConfinedCacheRoot, confinement_error, open_managed_path_error};
-#[cfg(feature = "host")]
-use super::{open_directory_component, validate_managed_directory_mode};
-#[cfg(any(feature = "certified-subnet-catalog-host", feature = "host"))]
+#[cfg(unix)]
+use super::{ConfinedCacheRoot, confinement_error};
+#[cfg(all(unix, any(feature = "host", feature = "certified-subnet-catalog-host")))]
+use ic_host_fs::capability::CapabilityError;
+#[cfg(unix)]
+use ic_host_fs::capability::EntryKind;
+#[cfg(all(unix, any(feature = "certified-subnet-catalog-host", feature = "host")))]
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -82,72 +92,79 @@ pub fn scan_managed_directory_files(
     directory_path: &Path,
     maximum_files: u64,
 ) -> Result<ManagedDirectoryScan, CacheFileError> {
-    let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
-        return Ok(ManagedDirectoryScan::default());
-    };
-    let probe_path = directory_path.join(".icq-directory-probe");
-    let Some(directory) = root.resolve_parent(&probe_path, false)? else {
-        return Ok(ManagedDirectoryScan::default());
-    };
-    let entries = directory
-        .parent
-        .entries()
-        .map_err(|source| open_managed_path_error(cache_root, directory_path, source))?;
-    let mut scan = ManagedDirectoryScan::default();
-    for entry in entries {
-        if u64::try_from(scan.files.len()).map_or(true, |count| count == maximum_files) {
-            scan.truncated = true;
-            break;
-        }
-        let entry =
-            entry.map_err(|source| open_managed_path_error(cache_root, directory_path, source))?;
-        let name = entry.file_name();
-        let path = directory_path.join(&name);
-        let file_type = entry
-            .file_type()
-            .map_err(|source| open_managed_path_error(cache_root, &path, source))?;
-        if file_type.is_symlink() {
-            return Err(confinement_error(
-                cache_root,
-                &path,
-                "managed directory entry is a symbolic link",
-            ));
-        }
-        if !file_type.is_file() {
-            return Err(confinement_error(
-                cache_root,
-                &path,
-                "managed directory entry is not a regular file",
-            ));
-        }
-        let managed = root.resolve_parent(&path, false)?.ok_or_else(|| {
-            open_managed_path_error(
-                cache_root,
-                &path,
-                io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "managed directory entry disappeared during discovery",
-                ),
-            )
-        })?;
-        let file = managed.open_regular_file()?.ok_or_else(|| {
-            open_managed_path_error(
-                cache_root,
-                &path,
-                io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "managed directory entry disappeared during discovery",
-                ),
-            )
-        })?;
-        let bytes = file
-            .metadata()
-            .map_err(|source| open_managed_path_error(cache_root, &path, source))?
-            .len();
-        scan.files.push(ManagedDirectoryFile { path, bytes });
+    #[cfg(not(unix))]
+    {
+        let _ = (cache_root, directory_path, maximum_files);
+        Err(super::unsupported_platform())
     }
-    scan.files.sort_by(|left, right| left.path.cmp(&right.path));
-    Ok(scan)
+    #[cfg(unix)]
+    {
+        let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
+            return Ok(ManagedDirectoryScan::default());
+        };
+        let probe_path = directory_path.join(".icq-directory-probe");
+        let Some(directory) = root.resolve_parent(&probe_path, false)? else {
+            return Ok(ManagedDirectoryScan::default());
+        };
+        let entries = directory
+            .entry
+            .parent()
+            .entries(usize::try_from(maximum_files).unwrap_or(usize::MAX))
+            .map_err(|error| capability_error(cache_root, error))?;
+        let mut scan = ManagedDirectoryScan::default();
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(CapabilityError::EntryLimit { .. }) => {
+                    scan.truncated = true;
+                    break;
+                }
+                Err(error) => return Err(capability_error(cache_root, error)),
+            };
+            let path = directory_path.join(&entry.name);
+            if entry.kind == EntryKind::SymbolicLink {
+                return Err(confinement_error(
+                    cache_root,
+                    &path,
+                    "managed directory entry is a symbolic link",
+                ));
+            }
+            if entry.kind != EntryKind::File {
+                return Err(confinement_error(
+                    cache_root,
+                    &path,
+                    "managed directory entry is not a regular file",
+                ));
+            }
+            let managed = root.resolve_parent(&path, false)?.ok_or_else(|| {
+                open_managed_path_error(
+                    cache_root,
+                    &path,
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "managed directory entry disappeared during discovery",
+                    ),
+                )
+            })?;
+            let file = managed.open_regular_file()?.ok_or_else(|| {
+                open_managed_path_error(
+                    cache_root,
+                    &path,
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "managed directory entry disappeared during discovery",
+                    ),
+                )
+            })?;
+            let bytes = file
+                .metadata()
+                .map_err(|source| open_managed_path_error(cache_root, &path, source))?
+                .len();
+            scan.files.push(ManagedDirectoryFile { path, bytes });
+        }
+        scan.files.sort_by(|left, right| left.path.cmp(&right.path));
+        Ok(scan)
+    }
 }
 
 /// Remove one confined regular file and synchronize its parent directory.
@@ -156,37 +173,36 @@ pub fn remove_managed_regular_file(
     cache_root: &Path,
     target_path: &Path,
 ) -> Result<bool, ManagedFileRemovalError> {
-    let Some(root) = ConfinedCacheRoot::open(cache_root, false).map_err(removal_not_completed)?
-    else {
-        return Ok(false);
-    };
-    let Some(target) = root
-        .resolve_parent(target_path, false)
-        .map_err(removal_not_completed)?
-    else {
-        return Ok(false);
-    };
-    let Some(file) = target.open_regular_file().map_err(removal_not_completed)? else {
-        return Ok(false);
-    };
-    drop(file);
-    match target.remove_file() {
-        Ok(()) => {}
-        Err(source) if source.kind() == io::ErrorKind::NotFound => return Ok(false),
-        Err(source) => {
-            return Err(removal_not_completed(CacheFileError::RemoveManagedFile {
-                path: target_path.to_path_buf(),
-                source,
-            }));
-        }
+    #[cfg(not(unix))]
+    {
+        let _ = (cache_root, target_path);
+        Err(removal_not_completed(super::unsupported_platform()))
     }
-    target
-        .sync_parent()
-        .map_err(|source| ManagedFileRemovalError {
-            removed: true,
-            source,
-        })?;
-    Ok(true)
+    #[cfg(unix)]
+    {
+        let Some(root) =
+            ConfinedCacheRoot::open(cache_root, false).map_err(removal_not_completed)?
+        else {
+            return Ok(false);
+        };
+        let Some(target) = root
+            .resolve_parent(target_path, false)
+            .map_err(removal_not_completed)?
+        else {
+            return Ok(false);
+        };
+        let Some(file) = target.open_regular_file().map_err(removal_not_completed)? else {
+            return Ok(false);
+        };
+        drop(file);
+        target
+            .entry
+            .remove_file_and_sync()
+            .map_err(|error| ManagedFileRemovalError {
+                removed: error.removed,
+                source: capability_error(cache_root, error.source),
+            })
+    }
 }
 
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -204,97 +220,104 @@ pub fn collect_managed_files(
     limit: usize,
     include: impl Fn(&Path) -> bool,
 ) -> Result<ManagedFileScan, CacheFileError> {
-    let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
-        return Ok(ManagedFileScan::default());
-    };
-    // Queue paths, not open capabilities: sibling count cannot exhaust descriptors.
-    let mut directories = vec![(root.display_root.clone(), 0usize)];
-    let entry_limit = limit.saturating_mul(16);
-    let mut visited = 0usize;
-    let mut scan = ManagedFileScan {
-        root_found: true,
-        ..ManagedFileScan::default()
-    };
-    while let Some((display_directory, depth)) = directories.pop() {
-        let Some(managed) =
-            root.resolve_parent(&display_directory.join(".icq-directory-probe"), false)?
-        else {
-            continue;
-        };
-        let directory = managed.parent;
-        let entries = directory
-            .entries()
-            .map_err(|source| open_managed_path_error(cache_root, &display_directory, source))?;
-        for entry in entries {
-            if visited == entry_limit {
-                scan.truncated = true;
-                scan.paths.sort();
-                return Ok(scan);
-            }
-            visited += 1;
-            let entry = entry.map_err(|source| {
-                open_managed_path_error(cache_root, &display_directory, source)
-            })?;
-            let name = entry.file_name();
-            let path = display_directory.join(&name);
-            let file_type = entry
-                .file_type()
-                .map_err(|source| open_managed_path_error(cache_root, &path, source))?;
-            if file_type.is_symlink() {
-                return Err(confinement_error(
-                    cache_root,
-                    &path,
-                    "managed cache entry is a symbolic link",
-                ));
-            }
-            if file_type.is_dir() {
-                let child = open_directory_component(&directory, &name, cache_root, &path)?
-                    .ok_or_else(|| {
-                        open_managed_path_error(
-                            cache_root,
-                            &path,
-                            io::Error::new(
-                                io::ErrorKind::NotFound,
-                                "managed directory disappeared during discovery",
-                            ),
-                        )
-                    })?;
-                validate_managed_directory_mode(&path, &child)?;
-                drop(child);
-                if depth == 32 {
-                    scan.truncated = true;
-                } else {
-                    directories.push((path, depth + 1));
-                }
-                continue;
-            }
-            if !file_type.is_file() {
-                return Err(confinement_error(
-                    cache_root,
-                    &path,
-                    "managed cache entry is not a regular file or directory",
-                ));
-            }
-            let Some(managed_path) = root.resolve_parent(&path, false)? else {
-                continue;
-            };
-            let Some(file) = managed_path.open_regular_file()? else {
-                continue;
-            };
-            drop(file);
-            if !include(&path) {
-                continue;
-            }
-            if scan.paths.len() == limit {
-                scan.truncated = true;
-                scan.paths.sort();
-                return Ok(scan);
-            }
-            scan.paths.push(path);
-        }
+    #[cfg(not(unix))]
+    {
+        let _ = (cache_root, limit, include);
+        Err(super::unsupported_platform())
     }
-    scan.paths.sort();
-    Ok(scan)
+    #[cfg(unix)]
+    {
+        let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
+            return Ok(ManagedFileScan::default());
+        };
+        // Queue paths, not open capabilities: sibling count cannot exhaust descriptors.
+        let mut directories = vec![(root.display_root.clone(), 0usize)];
+        let entry_limit = limit.saturating_mul(16);
+        let mut visited = 0usize;
+        let mut scan = ManagedFileScan {
+            root_found: true,
+            ..ManagedFileScan::default()
+        };
+        while let Some((display_directory, depth)) = directories.pop() {
+            let Some(managed) =
+                root.resolve_parent(&display_directory.join(".icq-directory-probe"), false)?
+            else {
+                continue;
+            };
+            let directory = managed.entry.parent();
+            let entries = directory
+                .entries(entry_limit.saturating_sub(visited))
+                .map_err(|error| capability_error(cache_root, error))?;
+            for entry in entries {
+                let entry = match entry {
+                    Ok(entry) => entry,
+                    Err(CapabilityError::EntryLimit { .. }) => {
+                        scan.truncated = true;
+                        scan.paths.sort();
+                        return Ok(scan);
+                    }
+                    Err(error) => return Err(capability_error(cache_root, error)),
+                };
+                visited += 1;
+                let name = entry.name;
+                let path = display_directory.join(&name);
+                if entry.kind == EntryKind::SymbolicLink {
+                    return Err(confinement_error(
+                        cache_root,
+                        &path,
+                        "managed cache entry is a symbolic link",
+                    ));
+                }
+                if entry.kind == EntryKind::Directory {
+                    let child = directory
+                        .open_directory(&name, directory_options(false))
+                        .map_err(|error| capability_error(cache_root, error))?
+                        .ok_or_else(|| {
+                            open_managed_path_error(
+                                cache_root,
+                                &path,
+                                io::Error::new(
+                                    io::ErrorKind::NotFound,
+                                    "managed directory disappeared during discovery",
+                                ),
+                            )
+                        })?;
+                    drop(child);
+                    if depth == 32 {
+                        scan.truncated = true;
+                    } else {
+                        directories.push((path, depth + 1));
+                    }
+                    continue;
+                }
+                if entry.kind != EntryKind::File {
+                    return Err(confinement_error(
+                        cache_root,
+                        &path,
+                        "managed cache entry is not a regular file or directory",
+                    ));
+                }
+                let Some(managed_path) = root.resolve_parent(&path, false)? else {
+                    continue;
+                };
+                let Some(file) = managed_path.open_regular_file()? else {
+                    continue;
+                };
+                drop(file);
+                if !include(&path) {
+                    continue;
+                }
+                if scan.paths.len() == limit {
+                    scan.truncated = true;
+                    scan.paths.sort();
+                    return Ok(scan);
+                }
+                scan.paths.push(path);
+            }
+        }
+        scan.paths.sort();
+        Ok(scan)
+    }
 }
 
 /// Discover canonical collection files beneath one confined network directory.
@@ -306,60 +329,64 @@ pub fn collect_managed_collection_files(
     file_name: &str,
     maximum_files: usize,
 ) -> Result<Vec<PathBuf>, CacheFileError> {
-    let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
-        return Ok(Vec::new());
-    };
-    let probe_path = network_dir.join(".icq-directory-probe");
-    let Some(network) = root.resolve_parent(&probe_path, false)? else {
-        return Ok(Vec::new());
-    };
-    let entries = network
-        .parent
-        .entries()
-        .map_err(|source| open_managed_path_error(cache_root, network_dir, source))?;
-    let mut paths = Vec::new();
-    for (visited, entry) in entries.enumerate() {
-        if visited == maximum_files.saturating_mul(16) {
-            return Err(CacheFileError::ScanLimitExceeded {
-                path: network_dir.to_path_buf(),
-                resource: "directory entries",
-                maximum: maximum_files.saturating_mul(16) as u64,
-            });
-        }
-        let entry =
-            entry.map_err(|source| open_managed_path_error(cache_root, network_dir, source))?;
-        let file_type = entry
-            .file_type()
-            .map_err(|source| open_managed_path_error(cache_root, network_dir, source))?;
-        let entity_path = network_dir.join(entry.file_name());
-        if file_type.is_symlink() {
-            return Err(confinement_error(
-                cache_root,
-                &entity_path,
-                "managed collection entity is a symbolic link",
-            ));
-        }
-        if !file_type.is_dir() {
-            continue;
-        }
-        let candidate = entity_path.join(collection).join(file_name);
-        let Some(candidate_path) = root.resolve_parent(&candidate, false)? else {
-            continue;
-        };
-        if let Some(file) = candidate_path.open_regular_file()? {
-            validate_managed_file_mode(&candidate, &file)?;
-            if paths.len() == maximum_files {
-                return Err(CacheFileError::ScanLimitExceeded {
-                    path: network_dir.to_path_buf(),
-                    resource: "collection candidates",
-                    maximum: maximum_files as u64,
-                });
-            }
-            paths.push(candidate);
-        }
+    #[cfg(not(unix))]
+    {
+        let _ = (
+            cache_root,
+            network_dir,
+            collection,
+            file_name,
+            maximum_files,
+        );
+        Err(super::unsupported_platform())
     }
-    paths.sort();
-    Ok(paths)
+    #[cfg(unix)]
+    {
+        let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
+            return Ok(Vec::new());
+        };
+        let probe_path = network_dir.join(".icq-directory-probe");
+        let Some(network) = root.resolve_parent(&probe_path, false)? else {
+            return Ok(Vec::new());
+        };
+        let entries = network
+            .entry
+            .parent()
+            .entries(maximum_files.saturating_mul(16))
+            .map_err(|error| capability_error(cache_root, error))?;
+        let mut paths = Vec::new();
+        for entry in entries {
+            let entry = entry.map_err(|error| capability_error(cache_root, error))?;
+            let entity_path = network_dir.join(&entry.name);
+            if entry.kind == EntryKind::SymbolicLink {
+                return Err(confinement_error(
+                    cache_root,
+                    &entity_path,
+                    "managed collection entity is a symbolic link",
+                ));
+            }
+            if entry.kind != EntryKind::Directory {
+                continue;
+            }
+            let candidate = entity_path.join(collection).join(file_name);
+            let Some(candidate_path) = root.resolve_parent(&candidate, false)? else {
+                continue;
+            };
+            if let Some(file) = candidate_path.open_regular_file()? {
+                validate_managed_file_mode(&candidate, &file)?;
+                if paths.len() == maximum_files {
+                    return Err(CacheFileError::ScanLimitExceeded {
+                        path: network_dir.to_path_buf(),
+                        resource: "collection candidates",
+                        maximum: maximum_files as u64,
+                    });
+                }
+                paths.push(candidate);
+            }
+        }
+        paths.sort();
+        Ok(paths)
+    }
 }
 
 #[cfg(all(test, feature = "host"))]
@@ -441,6 +468,31 @@ mod tests {
             Err(CacheFileError::Confinement { .. })
         ));
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(all(unix, feature = "certified-subnet-catalog-host", feature = "sns-host"))]
+    #[test]
+    fn zero_budget_scans_project_unadmitted_entries_without_following_them() {
+        let root = temp_dir("ic-query-zero-scan-budget");
+        let outside = temp_dir("ic-query-zero-scan-outside");
+        symlink(&outside, root.join("link")).unwrap();
+        let inventory = collect_managed_files(&root, 0, |_| true).unwrap();
+        assert!(inventory.root_found);
+        assert!(inventory.truncated);
+        assert_eq!(inventory.paths, Vec::<PathBuf>::new());
+        let exact = scan_managed_directory_files(&root, &root, 0).unwrap();
+        assert!(exact.truncated);
+        assert_eq!(exact.files, Vec::<ManagedDirectoryFile>::new());
+        assert!(matches!(
+            collect_managed_collection_files(&root, &root, "proposals", "full.json", 0),
+            Err(CacheFileError::ScanLimitExceeded {
+                resource: "directory entries",
+                maximum: 0,
+                ..
+            })
+        ));
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
     }
 
     #[test]

@@ -435,11 +435,15 @@ probe DID, metadata and receipts. No artifact cache, deployment or runtime is cr
 ## Dependency roles and deployment admission
 
 The workspace catalog labels `Production dependencies` and `Tests and tooling
-only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `wat`.
+only`. The latter contains `ic-build`, `ic-host-process` and `ic-testkit`.
 `ic-platform` owns production and fixture Candid decoding. Testkit 0.54 accepts
 its limits and typed decoder errors directly.
-`ciborium`, `libc` and `time` have direct fixture uses but also occur transitively
-in the native CLI production graph, so they are not tooling-only exclusions.
+`serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
+CLI production graph, so they are not tooling-only exclusions. Query has no
+direct Ciborium declaration or usage. Governance fixture WAT compilation uses
+Host Artifacts' `wasm-text` feature in the native development dependency only;
+Query has no direct `wat` declaration. The underlying WAT parser remains
+transitive and is still excluded from the production normal/build graphs.
 
 The feature-boundary CI gate checks the locked normal/build graph for the native
 CLI and the Governance probe's exact `ic-query --target wasm32-unknown-unknown

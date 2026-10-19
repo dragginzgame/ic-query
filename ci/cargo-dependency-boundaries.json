@@ -38,5 +38,17 @@
   {
     "dependency": "icrc-ledger-types",
     "allowed_packages": []
+  },
+  {
+    "dependency": "cap-fs-ext",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "cap-std",
+    "allowed_packages": []
+  },
+  {
+    "dependency": "wat",
+    "allowed_packages": []
   }
 ]

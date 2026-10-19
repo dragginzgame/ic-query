@@ -263,7 +263,7 @@ fn execute(action: Action) -> Result<()> {
 fn main() {
     let result = (|| {
         let action = parse(&env::args_os().skip(1).collect::<Vec<_>>())?;
-        let _signals = command::SignalGuard::install()?;
+        let _signals = command::install_signal_handlers()?;
         execute(action)?;
         command::check_interruption()
     })();

@@ -5,29 +5,23 @@
 //! Boundary: rejects traversal, symlinks, nonregular files, and unsafe managed modes.
 
 use super::CacheFileError;
-use cap_fs_ext::{DirExt, FollowSymlinks, OpenOptionsFollowExt};
-use cap_std::{
-    ambient_authority,
-    fs::{Dir, DirBuilder, OpenOptions},
-};
 use std::{
-    ffi::{OsStr, OsString},
+    fs::File,
     io,
     path::{Component, Path, PathBuf},
 };
 
 #[cfg(unix)]
-use ic_host_fs::durable::{
-    NamedWriteError, PublicationMode, WriteOptions, write_at_validated_with,
+use ic_host_fs::{
+    capability::{CapabilityError, Directory, DirectoryOptions, FileEntry, Operation, Refusal},
+    durable::{NamedWriteError, PublicationMode, WriteOptions, write_at_validated_with},
+    read::{OpenedEntry, open_entry_beneath},
 };
 #[cfg(unix)]
-use std::os::fd::AsFd;
+use std::os::{fd::AsFd, unix::fs::PermissionsExt};
 
 #[cfg(any(feature = "subnet-catalog-host", test))]
 use std::io::Write;
-
-#[cfg(unix)]
-use cap_std::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 
 mod read;
 #[cfg(any(
@@ -143,7 +137,8 @@ pub(super) fn managed_path_for_create(
 pub(super) struct ConfinedCacheRoot {
     display_root: PathBuf,
     absolute_root: PathBuf,
-    dir: Dir,
+    #[cfg(unix)]
+    dir: Directory,
 }
 
 impl ConfinedCacheRoot {
@@ -151,41 +146,14 @@ impl ConfinedCacheRoot {
         #[cfg(not(unix))]
         {
             let _ = (cache_root, create);
-            return Err(CacheFileError::UnsupportedConfinementPlatform {
-                platform: std::env::consts::OS,
-            });
+            Err(unsupported_platform())
         }
         #[cfg(unix)]
         {
             let absolute_root = absolute_managed_path(cache_root, cache_root)?;
-            let mut dir = Dir::open_ambient_dir(Path::new("/"), ambient_authority())
-                .map_err(|source| open_managed_path_error(cache_root, cache_root, source))?;
-            for component in absolute_root.components() {
-                let Component::Normal(name) = component else {
-                    continue;
-                };
-                dir = match open_directory_component(&dir, name, cache_root, cache_root)? {
-                    Some(next) => next,
-                    None if create => {
-                        create_directory_component(&dir, name, cache_root, cache_root)?;
-                        open_directory_component(&dir, name, cache_root, cache_root)?.ok_or_else(
-                            || {
-                                open_managed_path_error(
-                                    cache_root,
-                                    cache_root,
-                                    io::Error::new(
-                                        io::ErrorKind::NotFound,
-                                        "created cache root component disappeared",
-                                    ),
-                                )
-                            },
-                        )?
-                    }
-                    None => return Ok(None),
-                };
-            }
-            validate_managed_directory_mode(cache_root, &dir)?;
-            Ok(Some(Self {
+            let dir = Directory::open_root(cache_root, directory_options(create))
+                .map_err(|error| capability_error(cache_root, error))?;
+            Ok(dir.map(|dir| Self {
                 display_root: cache_root.to_path_buf(),
                 absolute_root,
                 dir,
@@ -198,107 +166,69 @@ impl ConfinedCacheRoot {
         target_path: &Path,
         create: bool,
     ) -> Result<Option<ConfinedManagedPath>, CacheFileError> {
-        let absolute_target = absolute_managed_path(&self.display_root, target_path)?;
-        let relative = absolute_target
-            .strip_prefix(&self.absolute_root)
-            .map_err(|_| {
-                confinement_error(
-                    &self.display_root,
-                    target_path,
-                    "path is outside the cache root",
-                )
-            })?;
-        let file_name = relative.file_name().ok_or_else(|| {
-            confinement_error(
-                &self.display_root,
-                target_path,
-                "managed path must name a file beneath the cache root",
-            )
-        })?;
-        let relative_parent = relative.parent().unwrap_or_else(|| Path::new(""));
-        let mut parent = self
-            .dir
-            .try_clone()
-            .map_err(|source| open_managed_path_error(&self.display_root, target_path, source))?;
-        let mut display_parent = self.display_root.clone();
-        for component in relative_parent.components() {
-            let Component::Normal(name) = component else {
+        #[cfg(not(unix))]
+        {
+            let _ = (target_path, create);
+            Err(unsupported_platform())
+        }
+        #[cfg(unix)]
+        {
+            let absolute_target = absolute_managed_path(&self.display_root, target_path)?;
+            let relative = absolute_target
+                .strip_prefix(&self.absolute_root)
+                .map_err(|_| {
+                    confinement_error(
+                        &self.display_root,
+                        target_path,
+                        "path is outside the cache root",
+                    )
+                })?;
+            if relative.file_name().is_none() {
                 return Err(confinement_error(
                     &self.display_root,
                     target_path,
-                    "managed relative path contains a non-normal component",
+                    "managed path must name a file beneath the cache root",
                 ));
-            };
-            display_parent.push(name);
-            parent =
-                match open_directory_component(&parent, name, &self.display_root, &display_parent)?
-                {
-                    Some(next) => next,
-                    None if create => {
-                        create_directory_component(
-                            &parent,
-                            name,
-                            &self.display_root,
-                            &display_parent,
-                        )?;
-                        open_directory_component(
-                            &parent,
-                            name,
-                            &self.display_root,
-                            &display_parent,
-                        )?
-                        .ok_or_else(|| {
-                            open_managed_path_error(
-                                &self.display_root,
-                                &display_parent,
-                                io::Error::new(
-                                    io::ErrorKind::NotFound,
-                                    "created managed directory disappeared",
-                                ),
-                            )
-                        })?
-                    }
-                    None => return Ok(None),
-                };
-            validate_managed_directory_mode(&display_parent, &parent)?;
+            }
+            let entry = self
+                .dir
+                .resolve_parent(relative, directory_options(create))
+                .map_err(|error| capability_error(&self.display_root, error))?;
+            Ok(entry.map(|entry| ConfinedManagedPath {
+                root: self.display_root.clone(),
+                entry,
+                display_path: target_path.to_path_buf(),
+            }))
         }
-        Ok(Some(ConfinedManagedPath {
-            root: self.display_root.clone(),
-            parent,
-            #[cfg(feature = "certified-subnet-catalog-host")]
-            display_parent,
-            file_name: file_name.to_os_string(),
-            display_path: target_path.to_path_buf(),
-        }))
     }
 }
 
 ///
 /// ConfinedManagedPath
 ///
-/// Resolved parent capability and final component for one managed file.
+/// Host-held parent and leaf with Query's cache identity and error projection.
 ///
 
 pub(super) struct ConfinedManagedPath {
     root: PathBuf,
-    parent: Dir,
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    display_parent: PathBuf,
-    file_name: OsString,
+    #[cfg(unix)]
+    entry: FileEntry,
     display_path: PathBuf,
 }
 
 impl ConfinedManagedPath {
     fn write_atomically<E: Into<io::Error>>(
         &self,
-        write: impl FnOnce(&mut std::fs::File) -> Result<(), E>,
+        write: impl FnOnce(&mut File) -> Result<(), E>,
     ) -> Result<(), CacheFileError> {
-        self.validate_existing_target()?;
+        drop(self.open_regular_file()?);
         #[cfg(unix)]
         {
-            // cap-std may hold an O_PATH descriptor; publication needs a syncable
-            // handle opened relative to that same admitted directory capability.
-            let parent = self.parent.open(Path::new(".")).map_err(|source| {
+            let parent = self.entry.parent().open_syncable().map_err(|error| {
+                let source = match error {
+                    CapabilityError::Io { source, .. } => source,
+                    error => io::Error::other(error),
+                };
                 managed_publication_error(
                     &self.display_path,
                     NamedWriteError::<io::Error>::BeforePublication {
@@ -309,7 +239,7 @@ impl ConfinedManagedPath {
             })?;
             write_at_validated_with(
                 parent.as_fd(),
-                self.file_name(),
+                self.entry.file_name(),
                 WriteOptions {
                     mode: PublicationMode::Replace,
                     permissions: MANAGED_FILE_MODE,
@@ -322,80 +252,43 @@ impl ConfinedManagedPath {
         #[cfg(not(unix))]
         {
             let _ = write;
-            Err(CacheFileError::UnsupportedConfinementPlatform {
-                platform: std::env::consts::OS,
-            })
+            Err(unsupported_platform())
         }
     }
 
-    pub(super) fn file_name(&self) -> &OsStr {
-        &self.file_name
-    }
-
-    pub(super) fn open_regular_file(&self) -> Result<Option<cap_std::fs::File>, CacheFileError> {
-        match self.parent.symlink_metadata(&self.file_name) {
-            Ok(metadata) if metadata.file_type().is_symlink() => Err(confinement_error(
-                &self.root,
-                &self.display_path,
-                "managed file is a symbolic link",
-            )),
-            Ok(metadata) if !metadata.is_file() => Err(confinement_error(
-                &self.root,
-                &self.display_path,
-                "managed path is not a regular file",
-            )),
-            Ok(_) => {
-                let mut options = OpenOptions::new();
-                options.read(true).follow(FollowSymlinks::No);
-                let file = self
-                    .parent
-                    .open_with(&self.file_name, &options)
-                    .map_err(|source| {
-                        open_managed_path_error(&self.root, &self.display_path, source)
-                    })?;
-                let metadata = file.metadata().map_err(|source| {
-                    open_managed_path_error(&self.root, &self.display_path, source)
-                })?;
-                if !metadata.is_file() {
-                    return Err(confinement_error(
-                        &self.root,
-                        &self.display_path,
-                        "opened managed path is not a regular file",
-                    ));
-                }
-                validate_managed_file_mode(&self.display_path, &file)?;
-                Ok(Some(file))
-            }
-            Err(source) if source.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(source) => Err(open_managed_path_error(
-                &self.root,
-                &self.display_path,
-                source,
-            )),
-        }
-    }
-
-    pub(super) fn open_coordination_file(&self) -> Result<std::fs::File, CacheFileError> {
-        let mut options = OpenOptions::new();
-        options
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .follow(FollowSymlinks::No);
+    pub(super) fn open_regular_file(&self) -> Result<Option<File>, CacheFileError> {
         #[cfg(unix)]
-        options.mode(MANAGED_FILE_MODE);
-        let file = match self.parent.open_with(&self.file_name, &options) {
-            Ok(file) => file,
-            Err(source) if source.kind() == io::ErrorKind::AlreadyExists => {
-                #[cfg(unix)]
+        {
+            let file = self
+                .entry
+                .open_regular_file()
+                .map_err(|error| capability_error(&self.root, error))?;
+            if let Some(file) = &file {
+                validate_managed_file_mode(&self.display_path, file)?;
+            }
+            Ok(file)
+        }
+        #[cfg(not(unix))]
+        Err(unsupported_platform())
+    }
+
+    pub(super) fn open_coordination_file(&self) -> Result<File, CacheFileError> {
+        #[cfg(unix)]
+        {
+            let file = match self.entry.create_new_file(MANAGED_FILE_MODE) {
+                Ok(file) => file,
+                Err(CapabilityError::Io { source, .. })
+                    if source.kind() == io::ErrorKind::AlreadyExists =>
                 {
-                    use ic_host_fs::read::{OpenedEntry, open_entry_beneath};
-                    match open_entry_beneath(self.parent.as_fd(), Path::new(&self.file_name))
-                        .map_err(|source| CacheFileError::CreateRefreshLock {
-                            path: self.display_path.clone(),
-                            source: io::Error::other(source),
-                        })? {
-                        OpenedEntry::RegularFile(file) => cap_std::fs::File::from_std(file),
+                    match open_entry_beneath(
+                        self.entry.parent().as_fd(),
+                        Path::new(self.entry.file_name()),
+                    )
+                    .map_err(|source| CacheFileError::CreateRefreshLock {
+                        path: self.display_path.clone(),
+                        source: io::Error::other(source),
+                    })? {
+                        OpenedEntry::RegularFile(file) => file,
                         OpenedEntry::Directory(_) => {
                             return Err(confinement_error(
                                 &self.root,
@@ -405,91 +298,83 @@ impl ConfinedManagedPath {
                         }
                     }
                 }
-                #[cfg(not(unix))]
-                return Err(CacheFileError::UnsupportedConfinementPlatform {
-                    platform: std::env::consts::OS,
-                });
-            }
-            Err(source) => {
-                return Err(CacheFileError::CreateRefreshLock {
-                    path: self.display_path.clone(),
-                    source,
-                });
-            }
-        };
-        validate_managed_file_mode(&self.display_path, &file)?;
-        Ok(file.into_std())
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(super) fn remove_file(&self) -> Result<(), io::Error> {
-        self.parent.remove_file(&self.file_name)
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(super) fn sync_parent(&self) -> Result<(), CacheFileError> {
-        sync_directory(&self.parent, &self.display_parent)
-    }
-
-    fn validate_existing_target(&self) -> Result<(), CacheFileError> {
-        drop(self.open_regular_file()?);
-        Ok(())
+                Err(CapabilityError::Io { source, .. }) => {
+                    return Err(CacheFileError::CreateRefreshLock {
+                        path: self.display_path.clone(),
+                        source,
+                    });
+                }
+                Err(error) => return Err(capability_error(&self.root, error)),
+            };
+            validate_managed_file_mode(&self.display_path, &file)?;
+            Ok(file)
+        }
+        #[cfg(not(unix))]
+        Err(unsupported_platform())
     }
 }
 
-fn open_directory_component(
-    parent: &Dir,
-    name: &OsStr,
-    root: &Path,
-    display_path: &Path,
-) -> Result<Option<Dir>, CacheFileError> {
-    match parent.open_dir_nofollow(name) {
-        Ok(dir) => Ok(Some(dir)),
-        Err(source) if source.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(source) => match parent.symlink_metadata(name) {
-            Ok(metadata) if metadata.file_type().is_symlink() => Err(confinement_error(
-                root,
-                display_path,
-                "managed directory component is a symbolic link",
-            )),
-            Ok(metadata) if !metadata.is_dir() => Err(confinement_error(
-                root,
-                display_path,
-                "managed directory component is not a directory",
-            )),
-            _ => Err(open_managed_path_error(root, display_path, source)),
+#[cfg(unix)]
+const fn directory_options(create: bool) -> DirectoryOptions {
+    DirectoryOptions {
+        create_permissions: if create {
+            Some(MANAGED_DIRECTORY_MODE)
+        } else {
+            None
+        },
+        forbidden_permissions: 0o022,
+    }
+}
+
+#[cfg(unix)]
+fn capability_error(root: &Path, error: CapabilityError) -> CacheFileError {
+    match error {
+        CapabilityError::Io {
+            operation: Operation::CreateDirectory,
+            path,
+            source,
+        } => CacheFileError::CreateDirectory { path, source },
+        CapabilityError::Io {
+            operation: Operation::SyncDirectory,
+            path,
+            source,
+        } => CacheFileError::SyncDirectory { path, source },
+        CapabilityError::Io {
+            operation: Operation::RemoveFile,
+            path,
+            source,
+        } => CacheFileError::RemoveManagedFile { path, source },
+        CapabilityError::Io { path, source, .. } => open_managed_path_error(root, &path, source),
+        CapabilityError::Permissions { path, actual, .. } => {
+            CacheFileError::UnsafeManagedPermissions {
+                path,
+                actual_mode: actual,
+                required_mode: OWNER_ONLY_WRITE_MODE,
+            }
+        }
+        CapabilityError::Refused { path, reason } => confinement_error(
+            root,
+            &path,
+            match reason {
+                Refusal::InvalidPath => "managed relative path contains a non-normal component",
+                Refusal::SymbolicLink => "managed path is a symbolic link",
+                Refusal::NotDirectory => "managed directory component is not a directory",
+                Refusal::NotRegularFile => "managed path is not a regular file",
+            },
+        ),
+        CapabilityError::EntryLimit { path, maximum } => CacheFileError::ScanLimitExceeded {
+            path,
+            resource: "directory entries",
+            maximum: maximum as u64,
         },
     }
 }
 
-fn create_directory_component(
-    parent: &Dir,
-    name: &OsStr,
-    root: &Path,
-    display_path: &Path,
-) -> Result<(), CacheFileError> {
-    let mut builder = DirBuilder::new();
-    #[cfg(unix)]
-    builder.mode(MANAGED_DIRECTORY_MODE);
-    match parent.create_dir_with(name, &builder) {
-        Ok(()) => {}
-        Err(source) if source.kind() == io::ErrorKind::AlreadyExists => {}
-        Err(source) => {
-            return Err(CacheFileError::CreateDirectory {
-                path: display_path.to_path_buf(),
-                source,
-            });
-        }
+#[cfg(not(unix))]
+const fn unsupported_platform() -> CacheFileError {
+    CacheFileError::UnsupportedConfinementPlatform {
+        platform: std::env::consts::OS,
     }
-    let dir = open_directory_component(parent, name, root, display_path)?.ok_or_else(|| {
-        open_managed_path_error(
-            root,
-            display_path,
-            io::Error::new(io::ErrorKind::NotFound, "created directory disappeared"),
-        )
-    })?;
-    validate_managed_directory_mode(display_path, &dir)?;
-    sync_directory(parent, display_path.parent().unwrap_or(display_path))
 }
 
 fn absolute_managed_path(root: &Path, path: &Path) -> Result<PathBuf, CacheFileError> {
@@ -505,21 +390,7 @@ fn absolute_managed_path(root: &Path, path: &Path) -> Result<PathBuf, CacheFileE
     std::path::absolute(path).map_err(|source| open_managed_path_error(root, path, source))
 }
 
-fn validate_managed_directory_mode(path: &Path, dir: &Dir) -> Result<(), CacheFileError> {
-    #[cfg(unix)]
-    {
-        let mode = dir
-            .dir_metadata()
-            .map_err(|source| open_managed_path_error(path, path, source))?
-            .permissions()
-            .mode()
-            & 0o777;
-        validate_managed_mode(path, mode)?;
-    }
-    Ok(())
-}
-
-fn validate_managed_file_mode(path: &Path, file: &cap_std::fs::File) -> Result<(), CacheFileError> {
+fn validate_managed_file_mode(path: &Path, file: &File) -> Result<(), CacheFileError> {
     #[cfg(unix)]
     {
         let mode = file
@@ -543,15 +414,6 @@ fn validate_managed_mode(path: &Path, mode: u32) -> Result<(), CacheFileError> {
         });
     }
     Ok(())
-}
-
-fn sync_directory(dir: &Dir, display_path: &Path) -> Result<(), CacheFileError> {
-    dir.open(Path::new("."))
-        .and_then(|directory| directory.sync_all())
-        .map_err(|source| CacheFileError::SyncDirectory {
-            path: display_path.to_path_buf(),
-            source,
-        })
 }
 
 #[cfg(unix)]

@@ -28,15 +28,16 @@ pub(super) fn acquire_refresh_lock(
 
 #[cfg(any(feature = "host", test))]
 pub fn inspect_refresh_lock(cache_root: &Path, path: &Path) -> Result<bool, CacheFileError> {
-    let file = crate::cache_file::confined::open_managed_file(cache_root, path)?
-        .ok_or_else(|| CacheFileError::ReadRefreshLock {
-            path: path.to_path_buf(),
-            source: io::Error::new(
-                io::ErrorKind::NotFound,
-                "refresh coordination file disappeared",
-            ),
-        })?
-        .into_std();
+    let file =
+        crate::cache_file::confined::open_managed_file(cache_root, path)?.ok_or_else(|| {
+            CacheFileError::ReadRefreshLock {
+                path: path.to_path_buf(),
+                source: io::Error::new(
+                    io::ErrorKind::NotFound,
+                    "refresh coordination file disappeared",
+                ),
+            }
+        })?;
     validate_refresh_lock(path, &file)?;
     match try_lock_exclusive(&file) {
         Ok(()) => {
