@@ -1586,7 +1586,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.62.4"
+version = "0.63.0"
 dependencies = [
  "futures",
  "ic-host-artifacts",
@@ -1610,7 +1610,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.62.4"
+version = "0.63.0"
 dependencies = [
  "clap",
  "futures",

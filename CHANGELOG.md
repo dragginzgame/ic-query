@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.63.0]
+## [0.63.0] - 2026-10-19
 
 - Fix release-cache fixtures when the parent guard test supplies a metadata editor.
 - **Breaking:** adopt Host Tools 0.29 certificate decoding. Remove the depth
