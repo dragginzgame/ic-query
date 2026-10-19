@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.64.0]
+
+- **Breaking:** use Host Artifacts, FS, Text and Tools 0.30. Certificate decode
+  errors now carry Tools' 0.30 `ParseError`; callers naming that type must match it.
+  Keep the existing decoding, authentication and cache behavior.
+- Complete Host Process 0.30 adoption with published IC Build 0.22, preserving
+  the smoke harness's cleanup policy.
+  See [IC Build #9 — Qualify consumers against the exposed Host boundary](https://github.com/dragginzgame/ic-build/issues/9).
+- **Breaking:** adopt Platform 0.2's maintained runtime and hard-cut the owned
+  Governance probe and runner to Wire. Rebuild the probe with its matching runner;
+  new receipts retain `.wire` evidence. External NNS Candid calls and report JSON
+  remain unchanged.
+- Build Governance reply fixtures through Testkit, removing the WAT parser tree.
+  See [#81 — Adopt Testkit raw reply fixtures](https://github.com/dragginzgame/ic-query/issues/81).
+- Keep the Futures executor test-only; production retains async joins and streams.
+- Use Host's native agent construction and endpoint binding, retaining Query's
+  endpoint admission, response limits and historical certificate policy.
+  See [#82 — Adopt Host native agent construction and endpoint binding](https://github.com/dragginzgame/ic-query/issues/82).
+
+Detailed release notes: [docs/changelog/0.64.md](docs/changelog/0.64.md)
+
 ## [0.63.0] - 2026-10-19
 
 - Fix release-cache fixtures when the parent guard test supplies a metadata editor.

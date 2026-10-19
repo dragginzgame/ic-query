@@ -38,9 +38,11 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Managed cache operations use published Host FS 0.29 `capability::Directory` and
-`FileEntry` handles. Host owns no-follow traversal, directory creation, bounded
-entry observations and descriptor-relative file mechanics. Query supplies root
+Managed cache operations use published Host FS 0.30 `capability::Directory` and
+`FileEntry` handles through its explicit `capability` feature. Query does not
+select the separate `temporary-file` backend. Host owns no-follow traversal,
+directory creation, bounded entry observations and descriptor-relative file
+mechanics. Query supplies root
 and path identity, 0700/0600 creation modes, the forbidden 0022 permission mask,
 file-mode/content admission, aggregate/depth budgets, candidate selection and
 `CacheFileError` projection. It retains the syncable admitted parent for Host's
@@ -59,24 +61,28 @@ permissions and may leave partial output on write/sync failure. These APIs are
 available in the selected published Host packages; no sibling checkout or local
 copy substitutes for them.
 
-The published Platform 0.1.11 boundary preserves upstream Candid type identities
+The published Platform 0.2.1 boundary preserves upstream Candid type identities
 and Query's existing decoder quotas and error projection. Query's `canister`
 feature selects Platform's `cdk` facade for canister identity and bounded calls.
-The typed probe uses Platform's maintained entrypoint generator, whose generated
-runtime and Candid paths stay behind that dependency. There are no direct Candid,
-CDK or macro-package declarations. Testkit 0.54 accepts Platform's limits and
-typed decoder errors directly; the compiled Governance fixture needs no separate
-codec dependency.
+The typed probe uses Platform's explicit-codec entrypoint generator with bounded
+Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
+probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
+CDK or macro-package declarations. Testkit 0.55.2 retains Platform 0.1 in its
+internal graph; the fixture uses raw transport bytes and Wire, without passing
+Platform 0.2 limit/error values across that version boundary.
 Native host features select `ic-platform/agent`; the CLI smoke harness enables
 that feature through its development dependency. Platform exposes the same Agent
 and typed transport/reject errors without choosing endpoints, root keys, HTTP
 budgets, verification or retry policy. Query retains those choices. Direct Agent
-inputs are forbidden by the dependency policy. Native Host Tools selects
-Platform's host-only parser transitively; portable and canister selections
-exclude it.
-No executor implementation or compatibility re-export is introduced. Platform
-pins the existing CDK 0.20.3 runtime, executor 2.0.0 and ic0 1.2.0 identities.
-CDK remains the callback/trap owner; matching versions alone do not qualify IC
+inputs are forbidden by the dependency policy. Native adapters use Host Tools'
+agent builder and endpoint binding while Query admits endpoints, selects response
+ceilings and configures historical verification. Host's agent-only profile
+excludes Candid parsing and independent certificate decoding; portable and
+canister selections exclude Host Tools entirely.
+Platform now owns the imported non-cryptographic runtime and its call/error
+type identities; the full CDK and its macros are absent from Query's production
+graphs. The registry executor 2.0.0 and ic0 1.2.0 identities remain unchanged.
+Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the
 separate installed-IC and fleet qualification obligations.
@@ -254,7 +260,7 @@ responses. Redirects are disabled so source provenance cannot silently name a
 pre-redirect URL. Oversized, body-read, JSON, status, and request failures
 remain distinct typed errors.
 
-Every native agent returned by the shared builder sets an 8 MiB response-body
+Every native agent returned by Query's Host-backed builder sets an 8 MiB response-body
 ceiling through `ic-agent` itself. Registry, NNS, SNS, ICRC, and CMC adapters
 therefore share the same finite per-call transport policy without merging
 their report-specific paging, cache, provenance, or validation contracts.

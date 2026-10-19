@@ -12,7 +12,6 @@ use ic_host_fs::{
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
-use ic_platform::candid::{DecodeError, DecodeLimits, decode_exactly_one};
 use std::{future::Future, io, path::Path, time::Duration};
 use url::Url;
 
@@ -34,28 +33,31 @@ pub fn read_wasm(path: &Path) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
+pub const REPORT_METHOD: u64 = 1;
+pub const REQUEST_LIMITS: ic_wire::Limits = ic_wire::Limits {
+    bytes: 128,
+    allocation: 2048,
+    nodes: 4,
+    depth: 4,
+};
+pub const RESPONSE_LIMITS: ic_wire::Limits = ic_wire::Limits {
+    bytes: REPLY_BYTES,
+    allocation: 24 * 1024 * 1024,
+    nodes: 4,
+    depth: 4,
+};
+
+pub fn encode_request(kind: &str) -> Result<Vec<u8>> {
+    Ok(ic_wire::native::encode_request(
+        REPORT_METHOD,
+        kind,
+        REQUEST_LIMITS,
+    )?)
+}
+
 pub fn decode_reply(bytes: &[u8]) -> Result<String> {
-    let quota = bytes
-        .len()
-        .saturating_mul(32)
-        .saturating_add(1_000_000)
-        .min(256_000_000);
-    decode_exactly_one(
-        bytes,
-        DecodeLimits {
-            reply_bytes: REPLY_BYTES,
-            decoding_quota: quota,
-            skipping_quota: 100_000,
-            type_entries: 4_096,
-            header_bytes: 64 * 1_024,
-        },
-    )
-    .map_err(|error| match error {
-        DecodeError::ReplyTooLarge { .. } => invalid("probe reply exceeds 2 MiB"),
-        DecodeError::Candid(_) => {
-            invalid("probe must return exactly one Candid text value within decoding limits")
-        }
-    })
+    ic_wire::native::decode_response(REPORT_METHOD, bytes, RESPONSE_LIMITS)
+        .map_err(|error| invalid(&format!("invalid probe Wire reply: {error}")))
 }
 
 pub fn publish_reply(path: &Path, bytes: &[u8]) -> Result<String> {
@@ -208,7 +210,7 @@ impl Probe for AgentProbe {
             Ok(self
                 .agent
                 .update(&self.principal, "report")
-                .with_arg(ic_platform::candid::contract::encode_one(kind)?)
+                .with_arg(encode_request(kind)?)
                 .call_and_wait()
                 .await?)
         })

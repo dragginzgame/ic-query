@@ -46,7 +46,8 @@ fn governance_target<'a>(
     source: &'a crate::nns::LiveNnsSource,
     request: &NnsSourceRequest,
 ) -> Result<(&'a Agent, Principal), NnsGovernanceError> {
-    let agent = source.agent.get(
+    let agent = crate::agent::endpoint_agent(
+        &source.agent,
         &request.endpoint,
         MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
         |reason| NnsGovernanceError::AgentBuild {

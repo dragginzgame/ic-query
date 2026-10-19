@@ -5,9 +5,11 @@ native_target="$(rustc -vV | sed -n 's/^host: //p')"
 [[ -n "$native_target" ]] || { echo 'missing compiler host target' >&2; exit 1; }
 
 forbidden_tooling_dependencies=(
+  futures-executor
   ic-build
   ic-host-process
   ic-testkit
+  ic-wire
   wat
 )
 
@@ -53,6 +55,7 @@ forbidden_canister_dependencies=(
 # Certificate consumers select Host without Candid service parsing; retain
 # interface, process and archive exclusions alongside parser exclusion.
 forbidden_host_dependencies=(
+  futures-executor
   candid_parser
   ic-host-tools/candid
   clap
@@ -88,7 +91,6 @@ forbidden_ic_state_host_dependencies=(
   ic-host-artifacts
   ic-host-fs
   ic-host-process
-  ic-host-tools
   prost
 )
 
@@ -126,8 +128,18 @@ forbidden_cloud_engine_host_dependencies=(
   ic-host-artifacts
   ic-host-fs
   ic-host-process
-  ic-host-tools
   prost
+)
+
+forbidden_agent_only_host_dependencies=(
+  candid_parser
+  ic-host-tools/candid
+  ic-host-tools/certificate
+  ic-host-tools/encoding
+  ic-host-tools/ic-interface
+  ic-host-tools/icp-project
+  ic-host-tools/ledger-evidence
+  ic-host-tools/registry
 )
 
 forbidden_direct_cmc_host_dependencies=(
@@ -167,8 +179,8 @@ forbidden_direct_sns_host_dependencies=(
 check_tree_absent() {
   local label="$1"
   shift
-  # Query excludes stable-memory integration for every supported selection.
-  local -a rules=(--forbid ic-stable-structures)
+  # Neither stable-memory integration nor scoped tempfiles belong in Query's runtime graph.
+  local -a rules=(--forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
   while [[ "$#" -gt 0 && "$1" != "--" ]]; do
     if [[ "$1" == */* ]]; then
       rules+=(--forbid-feature "$1")
@@ -250,6 +262,7 @@ check_tree_absent "ic-query --features dashboard-host direct dependencies" \
 
 check_tree_absent "ic-query --features ic-state-host" \
   "${forbidden_ic_state_host_dependencies[@]}" \
+  "${forbidden_agent_only_host_dependencies[@]}" \
   -- \
   --package ic-query \
   --no-default-features \
@@ -257,7 +270,7 @@ check_tree_absent "ic-query --features ic-state-host" \
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
 # Certified IC state collection directly needs only the agent, timers,
-# and endpoint validation; it must not activate cache, Dashboard, Registry, or
+# and Host's agent builder; it must not activate cache, Dashboard, Registry, or
 # independent certificate-decoding dependencies.
 check_tree_absent "ic-query --features ic-state-host direct dependencies" \
   "${forbidden_direct_ic_state_host_dependencies[@]}" \
@@ -321,13 +334,14 @@ check_tree_absent "ic-query --features cmc-host direct dependencies" \
 
 check_tree_absent "ic-query --features cloud-engine-host" \
   "${forbidden_cloud_engine_host_dependencies[@]}" \
+  "${forbidden_agent_only_host_dependencies[@]}" \
   -- \
   --package ic-query \
   --no-default-features \
   --features cloud-engine-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# CloudEngine queries need only the agent, timers, and URL validation;
+# CloudEngine queries need only the agent, timers, and Host's agent binding;
 # cache, Registry, and certification dependencies must remain disabled directly.
 check_tree_absent "ic-query --features cloud-engine-host direct dependencies" \
   "${forbidden_direct_cloud_engine_host_dependencies[@]}" \

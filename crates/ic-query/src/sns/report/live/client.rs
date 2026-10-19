@@ -32,7 +32,7 @@ use crate::sns::report::{
 
 #[derive(Clone, Debug, Default)]
 pub struct LiveSnsSource {
-    pub(crate) agent: crate::agent::EndpointAgent,
+    pub(crate) agent: ic_host_tools::agent::EndpointAgent,
 }
 
 impl SnsDiscoverySource for LiveSnsSource {

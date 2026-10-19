@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "codec": "ic-wire",
+  "method": "report",
+  "method_id": 1,
+  "request": "text",
+  "response": "text",
+  "request_bytes": 128,
+  "response_bytes": 2097152
+}

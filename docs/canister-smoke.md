@@ -49,12 +49,23 @@ This consumer needs its own native smoke qualification; see the
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
 </p>
 
-The probe appends `icp:public candid:service` and `icp:public ic-query:build`
-sections through Host's encoder, preserving exact DID/build payloads and their
-order. Each append checks the remaining 64 MiB whole-artifact allowance before
+The probe appends `icp:public ic-query:protocol` and `icp:public ic-query:build`
+sections through Host's encoder, preserving exact Wire-contract/build payloads
+and their order. Each append checks the remaining 64 MiB whole-artifact allowance before
 changing the module. Encoding refusal leaves the input and publication destinations
 unchanged. IC Build admits the named example and output path through caller-bounded
 input resolution; Query retains its build executor and metadata publication.
+
+The owned `report` endpoint uses IC Wire 0.4.9 with method ID 1, a 128-byte
+request allowance and a 2 MiB reply allowance. `tests/canister/probe-wire.json`
+records the contract; metadata is checked against the certified deployed module.
+The report body remains JSON text. Calls from the probe to the external NNS
+Governance interface retain Candid and their existing decoding quotas.
+
+Rebuild/redeploy the probe and use its matching runner after this hard cut. New
+receipts use `protocol_sha256` and preserve original responses as `.wire` files.
+Existing receipts and reply evidence are retained; no fallback reader or conversion
+is introduced. Native Testkit coverage also sends Wire frames directly.
 
 ## Deterministic Testkit coverage
 
@@ -66,12 +77,11 @@ These ordinary tests need no running simulator.
 
 The separate simulator check installs the actual `governance_probe` Wasm and
 an in-memory Governance fixture at the fixed NNS principal. Testkit owns server
-admission/lifecycle, instance startup, probe installation and typed Candid
-calls. Query checks all four reports, collector provenance, raw metric buckets,
+admission/lifecycle, instance startup and probe installation. Query sends
+raw Wire frames and decodes replies through the published Wire codec. Query checks all four reports, collector provenance, raw metric buckets,
 Governance application errors, malformed replies and inter-canister rejects.
-Entrypoint checks preserve bounded skipping of unused arguments, reject malformed
-or wrong-type arguments and excessive skipping work, then verify subsequent calls
-still succeed after those traps.
+Entrypoint checks reject wrong-direction, malformed, wrong-type, trailing and
+oversized frames, then verify subsequent calls still succeed after those traps.
 The fixture uses the existing private Governance wire contracts rather than
 copying them into a mock application.
 
@@ -195,7 +205,7 @@ the observed ICP version. Direct invocation needs no global ICP selection.
 
 `canister-build` invokes `icp build -e local` against the isolated project in
 `tests/canister/`. It builds the example with only the `canister` feature and
-embeds public `candid:service` and `ic-query:build` metadata. The latter records
+embeds public `ic-query:protocol` and `ic-query:build` metadata. The latter records
 the compiler, lockfile hash, and source-input hash. The final Wasm is retained
 at `target/canister-smoke/governance_probe.wasm`.
 
@@ -204,8 +214,8 @@ The shared host helper admits core Wasm framing under a 64 MiB artifact limit,
 digest again before attaching consumer-owned metadata. Inspection is structural;
 it does not replace the compiler or replica's Wasm validation. Direct agent calls
 bound response bodies to 8 MiB and admit at most 2 MiB of reply bytes. The helper
-saves the original binary reply before requiring exactly one Candid text value
-without trailing arguments/bytes. It returns that text unchanged for report
+saves the original binary reply before admitting one canonical Wire response
+for method 1, with no trailing bytes. It returns the text unchanged for report
 validation, without ICP response wrapping or hex decoding. Each agent operation,
 including local root-key fetching and update polling, has a 590-second deadline;
 the Host command deadline remains 600 seconds. Process-group cleanup
@@ -236,7 +246,7 @@ deploys the probe there, and calls it once for each of economics, metrics,
 latest reward event, and maturity modulation. Each probe request performs
 one bounded replicated call to the fixed Governance principal. The runner
 uses the bounded `inspect-wasm` helper to admit and hash the local module, then
-checks the deployed module hash and Candid metadata before collecting,
+checks the deployed module hash and Wire protocol metadata before collecting,
 validates each report's schema, network identity, Governance principal,
 collector principal, timestamp, and replicated source, and checks the module
 hash again afterward. It attempts network cleanup after success, collection
@@ -259,18 +269,17 @@ parent-directory synchronization. The helper runs with an explicit child-only
 umask of 077 so replacement receipts remain mode 0600. Receipt schema, lifecycle,
 timestamps, paths and retained evidence remain harness-owned.
 Receipts retain the environment, timestamps, tool versions, network details,
-module evidence, build metadata, raw Candid replies, and decoded reports.
+module evidence, build metadata, raw Wire replies, and decoded reports.
 Receipts record the active `phase` and `updated_at`; raw replies are saved
 before validation, and validated report payloads are added afterward.
-Candid admission limits original replies to 2 MiB and requires exactly one
-text value with no extra values or trailing bytes. Decoder work is charged at
-32 times wire size plus 1,000,000 units, capped at 256,000,000; skipped work is
-limited to 100,000, type tables to 4,096 entries and headers to 64 KiB. Original
-private reply files survive every admission failure. JSON report values retain
-arbitrary-precision numeric evidence.
+Wire admission limits original replies to 2 MiB, with a 24 MiB allocation
+allowance, four visited nodes and depth four. Only a canonical method-1 response
+text is accepted, with no trailing bytes. Original private reply files survive
+every admission failure. JSON report values retain arbitrary-precision numeric
+evidence.
 
 Starting with the 0.50 hard cut, schema-1 report entries use `reply_file` for an
-adjacent binary Candid file and `report` for validated JSON. Module hashes are
+adjacent binary Wire file and `report` for validated JSON. Module hashes are
 unprefixed SHA-256 text in `module_hash_before` and `module_hash_after`, with
 one `canister_id` identifying the explicitly selected principal. The agent's
 certified reads bind both hashes to that principal; comparing two copied IDs
@@ -387,7 +396,7 @@ The separate `canister` CI matrix runs on Ubuntu 24.04, macOS 15 Apple Silicon,
 and macOS 15 Intel. It explicitly installs and checks the common local IC set
 from Query’s explicitly selected IC matrix, including ICP CLI 1.7.0 and its
 reviewed archive digests. It selects `.tools/ic/bin`, runs the local smoke, and builds
-the bundle. It uploads receipts and their adjacent binary Candid replies, the probe Wasm,
+the bundle. It uploads receipts and their adjacent binary Wire replies, the probe Wasm,
 and the bundle under `canister-smoke-<host>` for 30 days, including receipts from
 failed runs. Identities and runtime state are excluded from uploads.
 The newly configured macOS runtime jobs require matching native runs before
@@ -430,25 +439,29 @@ or publishes the artifact. Each resolution has a 600-second probe deadline, the
 harness's cancellation predicate, five-second TERM grace and five-second bounded
 reaping; original Host process evidence remains in typed Build errors. The build
 command retains its existing 600-second policy. Query owns the selected inventory,
-probe DID, metadata and receipts. No artifact cache, deployment or runtime is created.
+probe Wire contract, metadata and receipts. No artifact cache, deployment or runtime is created.
 
 ## Dependency roles and deployment admission
 
 The workspace catalog labels `Production dependencies` and `Tests and tooling
-only`. The latter contains `ic-build`, `ic-host-process` and `ic-testkit`.
-`ic-platform` owns production and fixture Candid decoding. Testkit 0.54 accepts
-its limits and typed decoder errors directly.
+only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
+Platform owns required external Candid decoding; the private probe and native
+callers use Wire. Testkit retains its own older Platform dependency; no newer
+Platform limit/error values are passed across that version boundary.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
-direct Ciborium declaration or usage. Governance fixture WAT compilation uses
-Host Artifacts' `wasm-text` feature in the native development dependency only;
-Query has no direct `wat` declaration. The underlying WAT parser remains
-transitive and is still excluded from the production normal/build graphs.
+direct Ciborium declaration or usage. Governance fixtures use Testkit's native
+`reply-fixtures` feature with exact replies and explicit update exports. Host
+owns binary Wasm encoding and inspection; no WAT parser is selected. Futures'
+executor is enabled only for native library tests, while production retains its
+joins and stream combinators without selecting a second executor.
 
 The feature-boundary CI gate checks the locked normal/build graph for the native
-CLI and the Governance probe's exact `ic-query --target wasm32-unknown-unknown
---no-default-features --features canister` selection. Both reject tooling-only
-packages transitively. The exclusion list is explicit; role comments are not
+CLI and reusable canister library's `ic-query --target wasm32-unknown-unknown
+--no-default-features --features canister` selection. Both reject explicitly forbidden
+tooling packages transitively. The development probe intentionally selects Wire
+through a dev dependency; the reusable library has no Wire runtime dependency.
+The exclusion list is explicit; role comments are not
 machine-validated, so adding another tooling-only catalog entry also requires
 updating the gate. These checks establish graph exclusions for those
 selections, not every supported target/feature combination or registry availability.
@@ -464,60 +477,43 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.1.11, verified from the crates.io
-sparse registry record and the downloaded archive checksum
-`8d55106ea1d1ccd65bd67c7d2a681b7d8199f3c0206ae990e24589b3ce502bdf`.
-Published source and features were inspected directly; sibling sources are not
-substituted for the registry package. Compared with 0.1.10, the selected
-release adds CDK cycle and instruction-counter exports that Query does not use;
-the entrypoint generator and Candid/Agent/certification implementations are
-unchanged.
+The selected published `ic-platform` release is 0.2.1. Its source and feature
+contracts were inspected from the downloaded registry package; sibling source
+is not substituted. The runtime and macro bodies are unchanged from 0.2.0;
+0.2.1 clarifies owned Wire endpoint policy and runtime maintenance guidance.
 
-The optional certification surface preserves the same upstream certificate/tree
-identities as Agent and Host. Query uses it for types and witness constructors;
-Host still owns strict CBOR decoding and its source errors. Subtree results and
-labeled-hash operations now also come from Platform. Certification is not enabled
-by Query's `canister` feature. Platform's ledger DTO feature is likewise selected
-only by ICRC, SNS and ledger-evidence host capabilities, without storage support.
-The portable/canister graphs exclude ledger DTOs and all supported graphs reject
-stable-memory storage dependencies.
+Platform supplies the upstream Candid, certification, Principal and native Agent
+identities. Host retains strict bounded CBOR decoding. Query retains external
+Governance Candid arguments, byte-dependent work quotas, skipping/type/header
+ceilings, error projection, trust roots, deadlines and original reply evidence.
+There are no local generated Candid bindings; Registry Protobuf is a separate
+external wire boundary. Portable/canister graphs exclude native parser, Agent
+and ledger DTOs; every supported production graph rejects stable-memory storage.
 
-Handwritten DTOs use Platform's qualified Candid derive path and upstream type
-identities. Query keeps its byte-dependent work quota, skipping/type/header
-ceilings and original Candid error projection. The harness keeps exactly-one-reply
-admission, raw reply bytes and existing limits. There are no local generated
-Candid bindings or generators; Registry Protobuf declarations are a separate wire
-boundary. Platform's maintained entrypoint generator routes generated runtime
-and Candid references through its facade and contract exports.
+Platform now owns the non-cryptographic runtime adapters, call/response and
+error identities. Its `cdk` feature is Candid-free, while Query selects Candid
+separately for required external NNS methods. The full `ic-cdk` and its macros
+are excluded from production graphs. There is one registry executor 2.0.0 and
+ic0 1.2.0 identity; Query does not copy executor or callback implementations.
+The adapter retains explicit Candid unit arguments, bounded waits, raw replies,
+byte limits and replicated provenance. The owned probe's explicit Wire hooks
+admit request length before copying and trap malformed requests before effects.
 
-Query's `canister` feature selects Platform's `cdk` facade. Governance uses its
-original upstream `Call`, `CallFailed` and `canister_self` identities; the probe
-uses `#[ic_platform::cdk::update]` with its existing typed `String -> String`
-entrypoint. The runtime remains CDK 0.20.3 with one executor 2.0.0 and ic0 1.2.0
-identity. Bounded waits, raw replies, reply limits and automatic argument/reply
-handling remain unchanged. The compiled Governance fixture qualifies the
-simulator integration; installed-IC callback/trap and fleet qualification remain
-separate obligations tracked in
+The smoke harness and deterministic Testkit fixture use raw Wire calls to the
+owned probe. External Governance fixture replies remain Candid. The new
+`ic-query:protocol` metadata and `.wire` evidence are a hard cut; existing evidence
+is preserved without fallback readers. Testkit still owns simulator provisioning
+and lifecycle. A compiled probe or native unit tests do not qualify its runtime:
+run `make canister-test` with the selected prepared Testkit server. Installed-IC
+callback/trap and native macOS qualification remain separate obligations under
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1).
-Testkit 0.54's typed calls use Platform's `DecodeLimits` and
-`DecodeError` identities, with the fixture's existing five explicit ceilings.
-The probe reads its clock through Platform's `ic0` feature, selected by the
-CDK integration. CDK's former time helper delegates to that same
-selected upstream system call. No callback, executor or lifecycle implementation
-is replaced.
-
-Native Agent calls now use Platform's published `agent` surface; the harness
-selects it through a development dependency. Public Agent errors retain their
-upstream identities. Endpoints, root-key admission, query verification, deadlines,
-bounded HTTP clients and raw replies stay with Query. Direct Agent and certification
-declarations are forbidden. Platform's native transport and parser stay out of the
-canister graph. Native Host Tools owns its transitive Platform parser selection.
 
 `make dependency-boundary-check` uses Shared Tooling's canonical Cargo metadata
 checker, including aliases and normal/build/dev/target-specific declarations.
-The policy rejects direct Candid, CDK, certification, Agent, ledger DTO and macro
-dependencies throughout the workspace, without package exceptions. It does not
-inspect generated imports, validate role comments,
-prove registry availability, or establish transitive/deployed dependency absence.
-The normal/build graph checks remain separate. Platform's `cdk` feature selects
-its exact-pinned executor; portable and native host selections do not enable CDK.
+It rejects direct upstream Candid, CDK, certification, Agent, ledger DTO and macro
+dependencies without package exceptions. Normal/build graph checks separately
+exclude retired CDK packages and unsupported Host features. They do not validate
+role comments or bind a receipt to the final deployed Wasm. The private probe
+intentionally uses the development-only Wire codec; the reusable library has no
+Wire runtime dependency. Neither graph inspection nor package availability is
+installed-canister qualification.

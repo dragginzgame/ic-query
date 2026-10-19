@@ -201,7 +201,7 @@ pub trait IcrcAccountTransactionCollectionSource: Sync {
 
 #[derive(Clone, Debug, Default)]
 pub struct LiveIcrcSource {
-    pub(crate) agent: crate::agent::EndpointAgent,
+    pub(crate) agent: ic_host_tools::agent::EndpointAgent,
 }
 
 impl IcrcTokenSource for LiveIcrcSource {

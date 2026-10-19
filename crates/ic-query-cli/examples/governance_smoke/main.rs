@@ -147,14 +147,14 @@ impl AttemptOperations for Harness {
             .as_str()
             .ok_or_else(|| invalid("missing api_endpoint"))?;
         let mut probe = protocol::AgentProbe::new(environment, endpoint, canister)?;
-        let candid = fs::read(self.root.join("tests/canister/probe.did"))?;
+        let protocol = fs::read(self.root.join("tests/canister/probe-wire.json"))?;
         attempt::verify(
             &mut probe,
             canister,
             &self
                 .root
                 .join("target/canister-smoke/governance_probe.wasm"),
-            &candid,
+            &protocol,
             &self.output,
             receipt,
             |receipt| attempt::save_receipt(&self.output, receipt),

@@ -56,7 +56,7 @@ fn source_fingerprint_covers_inventory_independent_of_checkout_location() {
     let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let relocated = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     for path in [
-        "tests/canister/probe.did",
+        "tests/canister/probe-wire.json",
         "rust-toolchain.toml",
         "crates/ic-query/src/lib.rs",
         "crates/ic-query/Cargo.toml",
@@ -237,47 +237,65 @@ fn persistent_identity_selection_resolves_missing_paths_and_symlinks() {
 }
 
 #[test]
-fn candid_admission_preserves_large_text_and_raw_numbers() {
+fn protocol_metadata_matches_the_owned_wire_contract() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/canister/probe-wire.json");
+    let metadata: Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    assert_eq!(metadata["schema_version"], 1);
+    assert_eq!(metadata["codec"], "ic-wire");
+    assert_eq!(metadata["method"], "report");
+    assert_eq!(metadata["method_id"], protocol::REPORT_METHOD);
+    assert_eq!(metadata["request_bytes"], protocol::REQUEST_LIMITS.bytes);
+    assert_eq!(metadata["response_bytes"], protocol::RESPONSE_LIMITS.bytes);
+    let request = protocol::encode_request("economics").unwrap();
+    let kind: String =
+        ic_wire::native::decode_request(1, &request, protocol::REQUEST_LIMITS).unwrap();
+    assert_eq!(kind, "economics");
+}
+
+#[test]
+fn wire_admission_preserves_large_text_and_raw_numbers() {
     let text = format!(
         "{{\"raw_amount\":184467440737095516160,\"padding\":\"{}\"}}",
         "x".repeat(1024 * 1024)
     );
-    let decoded =
-        protocol::decode_reply(&ic_platform::candid::contract::encode_one(&text).unwrap()).unwrap();
+    let decoded = protocol::decode_reply(
+        &ic_wire::native::encode_response(
+            protocol::REPORT_METHOD,
+            &text,
+            protocol::RESPONSE_LIMITS,
+        )
+        .unwrap(),
+    )
+    .unwrap();
     assert_eq!(decoded, text);
     let json: Value = serde_json::from_str(&decoded).unwrap();
     assert_eq!(json["raw_amount"].to_string(), "184467440737095516160");
 }
 
 #[test]
-fn candid_admission_rejects_wrong_types_extra_values_trailing_bytes_and_large_headers() {
-    let mut trailing = ic_platform::candid::contract::encode_one("{}").unwrap();
+fn wire_admission_rejects_wrong_identity_types_trailing_and_truncated_frames() {
+    let mut trailing =
+        ic_wire::native::encode_response(1, "{}", protocol::RESPONSE_LIMITS).unwrap();
     trailing.push(0);
-    let mut truncated = ic_platform::candid::contract::encode_one("payload").unwrap();
+    let mut truncated =
+        ic_wire::native::encode_response(1, "payload", protocol::RESPONSE_LIMITS).unwrap();
     truncated.pop();
-    // A record header large enough to exceed admission even though the reply is small.
-    fn leb(mut number: u32, bytes: &mut Vec<u8>) {
-        while number >= 128 {
-            bytes.push((number as u8 & 127) | 128);
-            number >>= 7;
-        }
-        bytes.push(number as u8);
-    }
-    let mut header = b"DIDL\x01\x6c".to_vec();
-    leb(30_000, &mut header);
-    for field in 0..30_000 {
-        leb(field, &mut header);
-        header.push(0x71);
-    }
-    header.extend([1, 0]);
     for bytes in [
-        ic_platform::candid::contract::encode_one(7_u64).unwrap(),
-        ic_platform::candid::contract::encode_args(("{}", "{}")).unwrap(),
-        ic_platform::candid::contract::encode_args(("{}", vec![(); 100_000])).unwrap(),
+        ic_wire::native::encode_response(2, "{}", protocol::RESPONSE_LIMITS).unwrap(),
+        protocol::encode_request("economics").unwrap(),
+        ic_wire::native::encode_response(1, &7_u64, protocol::RESPONSE_LIMITS).unwrap(),
+        ic_wire::native::encode_response(
+            1,
+            &("{}", "{}"),
+            ic_wire::Limits {
+                nodes: 16,
+                ..protocol::RESPONSE_LIMITS
+            },
+        )
+        .unwrap(),
         trailing,
         truncated,
-        b"DIDL\x81\x20".to_vec(),
-        header,
+        b"invalid frame".to_vec(),
     ] {
         let error = protocol::decode_reply(&bytes).unwrap_err();
         assert_eq!(
@@ -291,7 +309,7 @@ fn candid_admission_rejects_wrong_types_extra_values_trailing_bytes_and_large_he
 fn rejected_replies_remain_private_and_cannot_be_replaced() {
     let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     for (name, bytes) in [
-        ("invalid", b"not Candid".to_vec()),
+        ("invalid", b"not Wire".to_vec()),
         ("oversized", vec![0; 2 * 1024 * 1024 + 1]),
     ] {
         let path = directory.path().join(name);
@@ -299,7 +317,12 @@ fn rejected_replies_remain_private_and_cannot_be_replaced() {
         assert_eq!(fs::read(&path).unwrap(), bytes);
         let error = protocol::publish_reply(
             &path,
-            &ic_platform::candid::contract::encode_one("{}").unwrap(),
+            &ic_wire::native::encode_response(
+                protocol::REPORT_METHOD,
+                "{}",
+                protocol::RESPONSE_LIMITS,
+            )
+            .unwrap(),
         )
         .unwrap_err();
         assert!(matches!(
@@ -383,18 +406,20 @@ impl Probe for FixtureProbe {
         })
     }
     fn metadata(&mut self, name: &str) -> Result<Vec<u8>> {
-        Ok(if name == "candid:service" {
-            b"service : {};\n".to_vec()
+        Ok(if name == "ic-query:protocol" {
+            b"{\"schema_version\":1,\"codec\":\"ic-wire\"}\n".to_vec()
         } else {
             b"{\"schema_version\":1}".to_vec()
         })
     }
     fn report(&mut self, kind: &str) -> Result<Vec<u8>> {
         if self.invalid_kind == Some(kind) {
-            return Ok(b"invalid Candid".to_vec());
+            return Ok(b"invalid Wire".to_vec());
         }
-        Ok(ic_platform::candid::contract::encode_one(
-            serde_json::to_string(&payload(kind))?,
+        Ok(ic_wire::native::encode_response(
+            protocol::REPORT_METHOD,
+            &serde_json::to_string(&payload(kind))?,
+            protocol::RESPONSE_LIMITS,
         )?)
     }
 }
@@ -424,7 +449,7 @@ fn verify_fixture(
         &mut probe,
         "aaaaa-aa",
         &wasm,
-        b"service : {};\n",
+        b"{\"schema_version\":1,\"codec\":\"ic-wire\"}\n",
         &output,
         &mut receipt,
         |receipt| attempt::save_receipt(&output, receipt),
@@ -440,7 +465,7 @@ fn verification_preserves_reports_raw_replies_and_final_module_check() {
     assert_eq!(receipt["reports"].as_object().unwrap().len(), 4);
     assert_eq!(receipt["module_hash_before"], receipt["module_hash_after"]);
     for kind in KINDS {
-        let bytes = fs::read(directory.path().join(format!("{kind}.candid"))).unwrap();
+        let bytes = fs::read(directory.path().join(format!("{kind}.wire"))).unwrap();
         assert_eq!(
             serde_json::from_str::<Value>(&protocol::decode_reply(&bytes).unwrap()).unwrap(),
             payload(kind)
@@ -460,11 +485,11 @@ fn invalid_reply_retains_prior_reports_and_a_checkpoint_before_admission() {
     assert!(receipt["reports"]["economics"].get("report").is_some());
     assert_eq!(
         receipt["reports"]["metrics"],
-        json!({"reply_file":"metrics.candid"})
+        json!({"reply_file":"metrics.wire"})
     );
     assert_eq!(
-        fs::read(directory.path().join("metrics.candid")).unwrap(),
-        b"invalid Candid"
+        fs::read(directory.path().join("metrics.wire")).unwrap(),
+        b"invalid Wire"
     );
     let persisted: Value =
         serde_json::from_slice(&fs::read(directory.path().join("receipt.json")).unwrap()).unwrap();
@@ -625,7 +650,7 @@ fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
     let path = directory.path().join("probe.wasm");
     let mut bytes = b"\0asm\x01\0\0\0".to_vec();
     let contents = vec![b'x'; 16_384];
-    build::append_metadata_section(&mut bytes, "candid:service", &contents).unwrap();
+    build::append_metadata_section(&mut bytes, "ic-query:protocol", &contents).unwrap();
     build::append_metadata_section(&mut bytes, "ic-query:build", b"build-evidence").unwrap();
     let facts = inspect(
         &bytes,
@@ -638,7 +663,10 @@ fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
     )
     .unwrap();
     assert_eq!(facts.custom_sections.len(), 2);
-    assert_eq!(facts.custom_sections[0].name, "icp:public candid:service");
+    assert_eq!(
+        facts.custom_sections[0].name,
+        "icp:public ic-query:protocol"
+    );
     assert_eq!(facts.custom_sections[0].data, contents);
     assert_eq!(facts.custom_sections[1].name, "icp:public ic-query:build");
     assert_eq!(facts.custom_sections[1].data, b"build-evidence");
@@ -650,7 +678,8 @@ fn metadata_sections_preserve_exact_contents_and_wasm_framing() {
 fn metadata_append_refuses_the_aggregate_module_budget_without_changing_input() {
     let mut bytes = vec![0; protocol::WASM_BYTES - 1];
     let before = Sha256Digest::compute(&bytes);
-    let error = build::append_metadata_section(&mut bytes, "candid:service", b"did").unwrap_err();
+    let error =
+        build::append_metadata_section(&mut bytes, "ic-query:protocol", b"did").unwrap_err();
     assert!(matches!(
         error.downcast_ref::<CustomSectionEncodingError>(),
         Some(CustomSectionEncodingError::LimitExceeded { limit: 1, .. })

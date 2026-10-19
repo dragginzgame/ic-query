@@ -114,7 +114,7 @@ pub fn verify(
     probe: &mut impl Probe,
     canister: &str,
     wasm: &Path,
-    candid: &[u8],
+    protocol: &[u8],
     output: &Path,
     receipt: &mut Value,
     mut publish: impl FnMut(&Value) -> Result<()>,
@@ -129,12 +129,14 @@ pub fn verify(
             "deployed module hash differs from the locally built probe",
         ));
     }
-    checkpoint(receipt, Some("checking_candid"), &mut publish)?;
-    let metadata = probe.metadata("candid:service")?;
-    if metadata != candid {
-        return Err(invalid("deployed Candid metadata differs from probe.did"));
+    checkpoint(receipt, Some("checking_protocol"), &mut publish)?;
+    let metadata = probe.metadata("ic-query:protocol")?;
+    if metadata != protocol {
+        return Err(invalid(
+            "deployed Wire metadata differs from probe-wire.json",
+        ));
     }
-    receipt["candid_sha256"] = Sha256Digest::compute(&metadata).to_string().into();
+    receipt["protocol_sha256"] = Sha256Digest::compute(&metadata).to_string().into();
     checkpoint(receipt, Some("checking_build_metadata"), &mut publish)?;
     receipt["build"] = serde_json::from_slice(&probe.metadata("ic-query:build")?)?;
     receipt["reports"] = json!({});
@@ -145,7 +147,7 @@ pub fn verify(
             receipt["environment"].as_str().unwrap_or_default()
         );
         checkpoint(receipt, Some(&format!("collecting_{kind}")), &mut publish)?;
-        let reply = format!("{kind}.candid");
+        let reply = format!("{kind}.wire");
         receipt["reports"][kind] = json!({"reply_file":reply});
         checkpoint(receipt, None, &mut publish)?;
         let response =

@@ -5,7 +5,6 @@
 //! Boundary: prevents malformed endpoint text from reaching infallible parser paths in ic-agent.
 
 use crate::http_endpoint::parse_http_endpoint;
-use ic_platform::agent::Agent;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "icrc-host",
@@ -13,20 +12,15 @@ use ic_platform::agent::Agent;
     feature = "sns-host",
     test
 ))]
-use std::sync::OnceLock;
+use ic_host_tools::agent::{EndpointAgent, EndpointAgentError};
+use ic_platform::agent::Agent;
 #[cfg(feature = "certified-subnet-catalog-host")]
 use std::time::Duration;
 
 /// Maximum response-body size configured for every native IC agent call.
 pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 
-///
-/// EndpointAgent
-///
-/// One lazily built, endpoint-bound agent reused by a live source collection.
-///
-
-#[derive(Clone, Default)]
+/// Admit Query's endpoint policy before selecting a Host-owned transport.
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "icrc-host",
@@ -34,59 +28,22 @@ pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
     feature = "sns-host",
     test
 ))]
-pub struct EndpointAgent {
-    transport: OnceLock<(String, usize, Agent)>,
-}
-
-#[cfg(any(
-    feature = "cloud-engine-host",
-    feature = "icrc-host",
-    feature = "nns-host",
-    feature = "sns-host",
-    test
-))]
-impl EndpointAgent {
-    pub(crate) fn get<Error>(
-        &self,
-        endpoint: &str,
-        maximum_response_bytes: usize,
-        map_error: impl Fn(String) -> Error,
-    ) -> Result<&Agent, Error> {
-        if self.transport.get().is_none() {
-            let agent =
-                build_ic_agent_with_options(endpoint, &map_error, maximum_response_bytes, None)?;
-            let _ = self
-                .transport
-                .set((endpoint.to_owned(), maximum_response_bytes, agent));
-        }
-        let (selected_endpoint, selected_limit, agent) =
-            self.transport.get().expect("agent initialized");
-        if selected_endpoint != endpoint || *selected_limit != maximum_response_bytes {
-            return Err(map_error(format!(
-                "live source is bound to {selected_endpoint} with response ceiling {selected_limit}, requested {endpoint} with ceiling {maximum_response_bytes}"
-            )));
-        }
-        Ok(agent)
-    }
-}
-
-#[cfg(any(
-    feature = "cloud-engine-host",
-    feature = "icrc-host",
-    feature = "nns-host",
-    feature = "sns-host",
-    test
-))]
-impl std::fmt::Debug for EndpointAgent {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("EndpointAgent")
-            .field(
-                "endpoint",
-                &self.transport.get().map(|(endpoint, _, _)| endpoint),
-            )
-            .finish()
-    }
+pub fn endpoint_agent<'a, Error>(
+    binding: &'a EndpointAgent,
+    endpoint: &str,
+    maximum_response_bytes: usize,
+    map_error: impl Fn(String) -> Error,
+) -> Result<&'a Agent, Error> {
+    parse_http_endpoint(endpoint).map_err(&map_error)?;
+    binding
+        .get(endpoint, maximum_response_bytes)
+        .map_err(|error| {
+            map_error(match error {
+                EndpointAgentError::Endpoint(source) => source.to_string(),
+                EndpointAgentError::Build(source) => source.to_string(),
+                EndpointAgentError::BindingMismatch => error.to_string(),
+            })
+        })
 }
 
 /// Validate a clean HTTP(S) endpoint and construct one response-bounded IC agent.
@@ -120,17 +77,20 @@ pub fn build_historical_certificate_agent<Error>(
     )
 }
 
+#[cfg(any(
+    feature = "ic-state-host",
+    feature = "cmc-host",
+    feature = "subnet-catalog-host",
+    test
+))]
 fn build_ic_agent_with_options<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
     max_response_body_bytes: usize,
     certificate_age_limit: Option<std::time::Duration>,
 ) -> Result<Agent, Error> {
-    parse_http_endpoint(endpoint).map_err(&map_error)?;
-
-    let mut builder = Agent::builder()
-        .with_url(endpoint)
-        .with_max_response_body_size(max_response_body_bytes);
+    let endpoint = parse_http_endpoint(endpoint).map_err(&map_error)?;
+    let mut builder = ic_host_tools::agent::agent_builder(&endpoint, max_response_body_bytes);
     if let Some(certificate_age_limit) = certificate_age_limit {
         builder = builder.with_ingress_expiry(certificate_age_limit);
     }
@@ -152,37 +112,64 @@ mod tests {
     fn endpoint_agent_reuses_admitted_transport_and_preserves_its_policy() {
         let source = EndpointAgent::default();
         let endpoint = "https://icp-api.io";
-        let first = source.get(endpoint, 64, |reason| reason).unwrap();
-        let second = source.get(endpoint, 64, |reason| reason).unwrap();
+        let first = endpoint_agent(&source, endpoint, 64, |reason| reason).unwrap();
+        let second = endpoint_agent(&source, endpoint, 64, |reason| reason).unwrap();
         assert!(std::ptr::eq(first, second));
-        assert!(
-            source
-                .get("https://other.example", 64, |reason| reason)
-                .is_err()
-        );
-        assert!(source.get(endpoint, 65, |reason| reason).is_err());
+        assert!(endpoint_agent(&source, "https://icp-api.io/", 64, |reason| reason).is_err());
+        assert!(endpoint_agent(&source, "https://other.example", 64, |reason| reason).is_err());
+        assert!(endpoint_agent(&source, endpoint, 65, |reason| reason).is_err());
         assert!(std::ptr::eq(
             first,
-            source.get(endpoint, 64, |reason| reason).unwrap()
+            endpoint_agent(&source, endpoint, 64, |reason| reason).unwrap()
         ));
     }
 
     #[test]
     fn endpoint_agent_failed_admission_leaves_transport_unselected() {
-        let source = EndpointAgent::default();
-        assert!(source.get("invalid endpoint", 64, |reason| reason).is_err());
-        assert!(source.transport.get().is_none());
-        assert!(
-            source
-                .get("https://icp-api.io", 64, |reason| reason)
-                .is_ok()
-        );
+        for endpoint in [
+            "invalid endpoint",
+            "https://reader:secret@icp-api.io",
+            "https://icp-api.io?target=other",
+            "https://icp-api.io#other",
+            "https://icp-api.io/\npath",
+            "ftp://icp-api.io",
+        ] {
+            let source = EndpointAgent::default();
+            assert!(endpoint_agent(&source, endpoint, 64, |reason| reason).is_err());
+            assert!(endpoint_agent(&source, "https://icp-api.io", 64, |reason| reason).is_ok());
+        }
     }
 
     #[test]
     fn constructs_agent_for_valid_endpoint_without_network_io() {
         build_ic_agent("https://icp-api.io", |reason| reason)
             .expect("valid HTTPS endpoint must construct an agent");
+    }
+
+    #[cfg(feature = "certified-subnet-catalog-host")]
+    #[test]
+    fn historical_builder_preserves_retained_verification_expiry() {
+        let before = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let historical =
+            build_historical_certificate_agent("https://icp-api.io", |reason| reason).unwrap();
+        let expiry = historical
+            .query(&Principal::anonymous(), "expiry_policy")
+            .sign()
+            .unwrap()
+            .ingress_expiry
+            / 1_000_000_000;
+        let after = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        // The SDK rounds long expiries down to a minute; signing performs no IO.
+        let allowance = u64::from(u32::MAX);
+        assert!((before + allowance - 60..=after + allowance).contains(&expiry));
+        let live = build_ic_agent("https://icp-api.io", |reason| reason).unwrap();
+        assert_eq!(historical.read_root_key(), live.read_root_key());
     }
 
     #[test]
@@ -218,8 +205,9 @@ mod tests {
                 .expect("write oversized test agent response");
         });
         let endpoint = format!("http://{address}");
-        let agent = build_ic_agent_with_options(&endpoint, |reason| reason, 64, None)
-            .expect("bounded test agent");
+        let binding = EndpointAgent::default();
+        let agent = endpoint_agent(&binding, &endpoint, 64, |reason| reason)
+            .expect("bounded endpoint agent");
 
         // Isolate the body limit from signature verification's concurrent read_state request.
         let error = (agent

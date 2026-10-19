@@ -203,8 +203,9 @@ qualification remains distinct from source review or Linux-only evidence.
   authentication. Keep endpoint/root-key admission, quotas, retry policy and
   error projection local. The `canister` adapter and typed Wasm probe use
   Platform's `cdk` feature and entrypoint generator; do not declare Candid, CDK
-  or either macro package directly. Native Testkit fixtures use Platform's
-  limits and errors directly. Preserve the upstream runtime/executor identities.
+  or either macro package directly. Native Testkit fixtures use Platform for
+  required external Candid protocols and Wire for owned RPCs. Preserve the published
+  runtime semantics and upstream executor/ic0 identities.
 
 - Prefer `ic-agent` for IC protocol calls whenever it supplies the required
   capability, including development and verification tooling. Use typed Candid

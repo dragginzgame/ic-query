@@ -128,7 +128,7 @@ pub trait CloudEngineOperatorBindingSource: Sync {
 
 #[derive(Clone, Debug, Default)]
 pub struct LiveCloudEngineSource {
-    agent: crate::agent::EndpointAgent,
+    agent: ic_host_tools::agent::EndpointAgent,
 }
 
 impl CloudEngineSource for LiveCloudEngineSource {
@@ -315,7 +315,8 @@ fn live_agent_and_canister(
     source: &LiveCloudEngineSource,
     request: &CloudEngineSourceRequest,
 ) -> Result<(ic_platform::agent::Agent, Principal), CloudEngineHostError> {
-    let agent = source.agent.get(
+    let agent = crate::agent::endpoint_agent(
+        &source.agent,
         &request.endpoint,
         MAX_IC_AGENT_RESPONSE_BODY_BYTES,
         |reason| CloudEngineHostError::AgentBuild {

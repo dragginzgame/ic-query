@@ -18,7 +18,7 @@ use crate::{
 #[derive(Clone, Debug, Default)]
 pub struct LiveNnsSource {
     #[cfg(feature = "nns-host")]
-    pub(crate) agent: crate::agent::EndpointAgent,
+    pub(crate) agent: ic_host_tools::agent::EndpointAgent,
 }
 
 ///

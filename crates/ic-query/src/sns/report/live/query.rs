@@ -70,7 +70,8 @@ pub(super) fn sns_agent<'a>(
     request: &SnsSourceRequest,
 ) -> Result<&'a Agent, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    source.agent.get(
+    crate::agent::endpoint_agent(
+        &source.agent,
         &request.endpoint,
         MAX_IC_AGENT_RESPONSE_BODY_BYTES,
         |reason| SnsHostError::AgentBuild {

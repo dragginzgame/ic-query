@@ -28,17 +28,16 @@ pub(super) fn live_query_context(
     ledger_canister_id: &str,
 ) -> Result<(Agent, Principal), IcrcError> {
     Ok((
-        source
-            .agent
-            .get(
-                source_endpoint,
-                crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-                |reason| IcrcError::AgentBuild {
-                    endpoint: source_endpoint.to_owned(),
-                    reason,
-                },
-            )?
-            .clone(),
+        crate::agent::endpoint_agent(
+            &source.agent,
+            source_endpoint,
+            crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+            |reason| IcrcError::AgentBuild {
+                endpoint: source_endpoint.to_owned(),
+                reason,
+            },
+        )?
+        .clone(),
         principal_from_text(ledger_canister_id, "ledger_canister_id")?,
     ))
 }

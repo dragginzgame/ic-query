@@ -64,7 +64,7 @@ pub fn source_digest(root: &Path) -> Result<String> {
         "rust-toolchain.toml",
         "crates/ic-query/Cargo.toml",
         "crates/ic-query-cli/Cargo.toml",
-        "tests/canister/probe.did",
+        "tests/canister/probe-wire.json",
     ]
     .map(|path| root.join(path));
     let roots = [
@@ -174,8 +174,8 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
         "source_sha256":source_digest(root)?});
     append_metadata_section(
         &mut bytes,
-        "candid:service",
-        &fs::read(root.join("tests/canister/probe.did"))?,
+        "ic-query:protocol",
+        &fs::read(root.join("tests/canister/probe-wire.json"))?,
     )?;
     append_metadata_section(&mut bytes, "ic-query:build", &serde_json::to_vec(&build)?)?;
     let artifacts = root.join("target/canister-smoke");

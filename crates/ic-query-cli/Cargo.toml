@@ -33,6 +33,7 @@ ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }
 ic-host-process.workspace = true
 ic-platform = { workspace = true, features = ["agent"] }
+ic-wire.workspace = true
 libc.workspace = true
 reqwest.workspace = true
 serde_json = { workspace = true, features = ["arbitrary_precision"] }

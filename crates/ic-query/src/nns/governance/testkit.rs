@@ -9,25 +9,28 @@ use super::{
     },
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
-use ic_host_artifacts::{
-    wasm::{ExportKind, InspectionLimits, inspect},
-    wasm_text::{CompileLimits, compile},
-};
-use ic_platform::candid::{DecodeLimits, contract::Principal};
+use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
+use ic_platform::candid::contract::Principal;
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig, RejectCode,
-    update_candid_args,
+    fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
 };
 use ic_testkit::pocket_ic::Time;
 use serde_json::Value;
-use std::{collections::BTreeSet, env, fmt::Write, fs, time::Duration};
+use std::{collections::BTreeSet, env, fs, time::Duration};
 
-const REPORT_REPLY_LIMITS: DecodeLimits = DecodeLimits {
-    reply_bytes: 2 * 1024 * 1024,
-    decoding_quota: 64_000_000,
-    skipping_quota: 100_000,
-    type_entries: 4_096,
-    header_bytes: 64 * 1024,
+const REPORT_METHOD: u64 = 1;
+const REQUEST_LIMITS: ic_wire::Limits = ic_wire::Limits {
+    bytes: 128,
+    allocation: 2048,
+    nodes: 4,
+    depth: 4,
+};
+const RESPONSE_LIMITS: ic_wire::Limits = ic_wire::Limits {
+    bytes: 2 * 1024 * 1024,
+    allocation: 24 * 1024 * 1024,
+    nodes: 4,
+    depth: 4,
 };
 
 #[test]
@@ -66,29 +69,21 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
             label: Some("Query Governance probe".into()),
         })
         .expect("install compiled Query probe");
+    let mut trailing =
+        ic_wire::native::encode_request(REPORT_METHOD, "economics", REQUEST_LIMITS).unwrap();
+    trailing.push(0);
     for args in [
-        b"not candid".to_vec(),
-        ic_platform::candid::contract::encode_args((42_u64,)).unwrap(),
-        ic_platform::candid::contract::encode_args(("economics", vec![(); 100_000])).unwrap(),
+        b"invalid Wire".to_vec(),
+        ic_wire::native::encode_request(REPORT_METHOD, &42_u64, REQUEST_LIMITS).unwrap(),
+        ic_wire::native::encode_response(REPORT_METHOD, "economics", REQUEST_LIMITS).unwrap(),
+        vec![0; REQUEST_LIMITS.bytes + 1],
+        trailing,
     ] {
         let rejection = pic
             .update_call(probe, Principal::anonymous(), "report", args)
             .expect_err("invalid or over-budget entry arguments must trap");
         assert_eq!(rejection.reject_code, RejectCode::CanisterError);
     }
-    let (reply,): (String,) = update_candid_args(
-        pic,
-        probe,
-        Principal::anonymous(),
-        "report",
-        ("economics", 7_u64),
-        REPORT_REPLY_LIMITS,
-    )
-    .expect("entrypoint preserves bounded skipping of unused arguments");
-    assert_eq!(
-        serde_json::from_str::<Value>(&reply).unwrap()["status"],
-        "ok"
-    );
     assert_reports(pic, probe, governance);
     replies[1].1 =
         ic_platform::candid::contract::encode_one(GetMetricsResult::Err(GovernanceError {
@@ -175,15 +170,12 @@ fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
 }
 
 fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
-    let (reply,): (String,) = update_candid_args(
-        pic,
-        probe,
-        Principal::anonymous(),
-        "report",
-        (kind.to_string(),),
-        REPORT_REPLY_LIMITS,
-    )
-    .expect("execute compiled report entry point");
+    let args = ic_wire::native::encode_request(REPORT_METHOD, kind, REQUEST_LIMITS).unwrap();
+    let bytes = pic
+        .update_call(probe, Principal::anonymous(), "report", args)
+        .expect("execute compiled report entry point");
+    let reply: String = ic_wire::native::decode_response(REPORT_METHOD, &bytes, RESPONSE_LIMITS)
+        .expect("bounded Wire report reply");
     serde_json::from_str(&reply).expect("probe JSON report")
 }
 
@@ -230,32 +222,28 @@ fn governance_replies() -> Vec<(&'static str, Vec<u8>)> {
 }
 
 fn governance_wasm(replies: &[(&str, Vec<u8>)]) -> Vec<u8> {
-    let bytes = replies.iter().map(|(_, bytes)| bytes.len()).sum::<usize>();
-    let mut module = format!(
-        r#"(module
-        (import "ic0" "msg_reply_data_append" (func $append (param i32 i32)))
-        (import "ic0" "msg_reply" (func $reply))
-        (memory (export "memory") {})"#,
-        bytes.div_ceil(65_536).max(1)
-    );
-    let mut offset = 0;
-    for (method, reply) in replies {
-        write!(module, "(data (i32.const {offset}) \"").unwrap();
-        for byte in reply {
-            write!(module, "\\{byte:02x}").unwrap();
-        }
-        write!(module, "\") (func (export \"canister_update {method}\") i32.const {offset} i32.const {} call $append call $reply)", reply.len()).unwrap();
-        offset += reply.len();
-    }
-    module.push(')');
-    compile(
-        &module,
-        CompileLimits {
-            source_bytes: 1024 * 1024,
-            module_bytes: 1024 * 1024,
+    let methods: Vec<_> = replies
+        .iter()
+        .map(|(name, reply)| RawReplyMethod {
+            name,
+            mode: ReplyMode::Update,
+            reply,
+        })
+        .collect();
+    let module = raw_reply_canister(
+        &methods,
+        RawReplyLimits {
+            methods: 16,
+            reply_bytes: 1024 * 1024,
+            method_name_bytes: 1024,
         },
     )
-    .expect("fixture Governance module")
+    .expect("fixture Governance module");
+    assert!(
+        module.len() <= 1024 * 1024,
+        "fixture Governance module limit"
+    );
+    module
 }
 
 #[test]
