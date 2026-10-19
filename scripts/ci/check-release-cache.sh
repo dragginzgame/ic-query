@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Exercise only consumer cache dispatch, with no real release or network effects.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS IC_QUERY_RELEASE_PREPARE_CACHE CARGO_NET_OFFLINE
+# This fixture owns editor admission through its installer stub, including recovery.
+unset CARGO_RELEASE_METADATA_EDITOR
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 make_bin="$(command -v make)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-cache.XXXXXX")"

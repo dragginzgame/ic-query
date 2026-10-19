@@ -7,6 +7,7 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.63.0]
 
+- Fix release-cache fixtures when the parent guard test supplies a metadata editor.
 - **Breaking:** adopt Host Tools 0.29 certificate decoding. Remove the depth
   argument from `certificate::authenticate` and the `depth` field from
   `CertificateEvidenceLimits`; CBOR recursion now follows the IC Agent codec.
