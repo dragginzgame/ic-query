@@ -84,8 +84,9 @@ separate installed-IC and fleet qualification obligations.
 Platform also supplies certificate/hash-tree identities and constructors through
 its optional `certification` feature, enabled by `certificate-host` and
 `ic-state-host`. The latter uses Agent-decoded certificates without Host CBOR
-decoding. Host retains strict bounded CBOR decoding and its public parse error
-identity; Agent retains authentication. Query keeps combined evidence budgets, freshness and
+decoding. Host retains strict byte-bounded CBOR decoding, codec-owned recursion
+and its public parse error identity; Agent retains authentication. Query keeps
+combined evidence byte allowances, freshness and
 application leaf admission. Subtree lookup results and labeled fixture hashes now
 also come from Platform; there are no remaining Agent hash-tree import exceptions.
 There is no direct `ic-certification` declaration; its transitive presence through

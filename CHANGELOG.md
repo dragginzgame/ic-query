@@ -5,8 +5,12 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.62.5]
+## [0.63.0]
 
+- **Breaking:** adopt Host Tools 0.29 certificate decoding. Remove the depth
+  argument from `certificate::authenticate` and the `depth` field from
+  `CertificateEvidenceLimits`; CBOR recursion now follows the IC Agent codec.
+  Keep explicit byte allowances, authentication and witness checks.
 - Use Host FS capability handles for managed caches, preserving permissions,
   byte/scan limits and typed errors while removing direct `cap-*` dependencies.
 - Compile Governance fixture WAT through Host Artifacts with explicit limits,
@@ -24,7 +28,7 @@ make install-release-tools
 make release-tools-check
 ```
 
-Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+Detailed release notes: [docs/changelog/0.63.md](docs/changelog/0.63.md)
 
 ## [0.62.4] - 2026-10-19
 

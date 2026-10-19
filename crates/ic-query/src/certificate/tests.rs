@@ -16,27 +16,48 @@ fn shared_decoder_failures_keep_query_categories_and_original_cause() {
     ));
     let mut trailing = encoded_tree(&tree_leaf(vec![1]));
     trailing.push(0);
-    for (bytes, depth) in [
-        (trailing, 16),
-        (
-            encoded_tree(&labeled(b"nested".to_vec(), tree_leaf(vec![1]))),
-            1,
-        ),
-    ] {
-        let error = decode_hash_tree(
-            &bytes,
-            DecodeLimits {
-                bytes: bytes.len(),
-                depth,
-            },
-        )
-        .map_err(decode_error)
-        .unwrap_err();
-        if depth == 16 {
+    let mut nested = tree_leaf(vec![1]);
+    for _ in 0..200 {
+        nested = labeled(b"nested".to_vec(), nested);
+    }
+    for (bytes, trailing_data) in [(trailing, true), (encoded_tree(&nested), false)] {
+        let error = decode_hash_tree(&bytes, DecodeLimits { bytes: bytes.len() })
+            .map_err(decode_error)
+            .unwrap_err();
+        if trailing_data {
             assert!(matches!(error, CertificateVerificationError::Malformed));
         } else {
             let CertificateVerificationError::Decode(source) = error else {
                 panic!("expected typed CBOR parse failure");
+            };
+            assert!(std::error::Error::source(&source).is_some());
+        }
+    }
+}
+
+#[test]
+fn certificate_codec_controls_nesting_before_authentication() {
+    let agent = Agent::builder()
+        .with_url("https://icp-api.io")
+        .build()
+        .unwrap();
+    for nesting in [32, 200] {
+        let mut tree = empty();
+        for _ in 0..nesting {
+            tree = labeled(b"nested".to_vec(), tree);
+        }
+        let certificate = Certificate {
+            tree,
+            signature: Vec::new(),
+            delegation: None,
+        };
+        let bytes = serde_cbor::to_vec(&certificate).unwrap();
+        let error = authenticate(&agent, Principal::anonymous(), &bytes, bytes.len()).unwrap_err();
+        if nesting == 32 {
+            assert!(matches!(error, CertificateVerificationError::Invalid(_)));
+        } else {
+            let CertificateVerificationError::Decode(source) = error else {
+                panic!("expected nesting refusal before authentication");
             };
             assert!(std::error::Error::source(&source).is_some());
         }
@@ -54,10 +75,7 @@ fn byte_budget_refuses_before_certificate_authentication() {
         Principal::anonymous(),
         &[0],
         &[0],
-        CertificateEvidenceLimits {
-            bytes: 1,
-            depth: 16,
-        },
+        CertificateEvidenceLimits { bytes: 1 },
     );
     assert!(matches!(
         result,
@@ -147,7 +165,6 @@ fn certificate_authentication_precedes_witness_admission() {
         &[0xff],
         CertificateEvidenceLimits {
             bytes: bytes.len() + 1,
-            depth: 32,
         },
     );
     assert!(matches!(

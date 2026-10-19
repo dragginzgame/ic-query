@@ -1758,8 +1758,9 @@ rendering, a direct frontend query can be simpler and cheaper.
 
 The `certificate-host` feature exposes `certificate::authenticate`,
 `authenticate_hash_tree` and `authenticate_ledger_tip`. Supply a configured
-Agent whose trust root matches the intended network, and explicit combined
-wire-byte and nesting budgets. A witness commitment alone is insufficient:
+Agent whose trust root matches the intended network, and an explicit combined
+wire-byte allowance. Host's IC Agent codec owns CBOR nesting admission through
+its built-in recursion limit; Query exposes no depth override. A witness commitment alone is insufficient:
 authenticate the certificate before trusting its leaves.
 
 The `ledger-evidence-host` feature adds `ledger_evidence::LedgerBlock`,

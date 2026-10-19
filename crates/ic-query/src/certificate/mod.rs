@@ -16,15 +16,14 @@ use thiserror::Error;
 ///
 /// CertificateEvidenceLimits
 ///
-/// Caller-selected total wire-byte and CBOR nesting budgets for one evidence pair.
+/// Caller-selected total wire-byte allowance for one evidence pair.
+/// CBOR nesting follows Host's IC Agent codec and its built-in recursion limit.
 ///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CertificateEvidenceLimits {
     /// Maximum combined wire bytes of the certificate and witness.
     pub bytes: usize,
-    /// Maximum CBOR nesting depth applied to each evidence payload.
-    pub depth: u8,
 }
 
 ///
@@ -56,6 +55,7 @@ pub enum CertificateVerificationError {
 }
 
 /// Authenticate exact bounded bytes using the caller's Agent trust-root policy.
+/// CBOR nesting follows Host's IC Agent codec and its built-in recursion limit.
 ///
 /// # Errors
 /// Refuses oversized/malformed bytes or Agent signature, delegation and time failures.
@@ -64,13 +64,11 @@ pub fn authenticate(
     canister: Principal,
     bytes: &[u8],
     maximum_bytes: usize,
-    depth: u8,
 ) -> Result<Certificate, CertificateVerificationError> {
     let certificate = decode_certificate(
         bytes,
         DecodeLimits {
             bytes: maximum_bytes,
-            depth,
         },
     )
     .map_err(decode_error)?;
@@ -91,7 +89,7 @@ fn decode_error(error: DecodeError) -> CertificateVerificationError {
 /// Authenticate a bounded certificate/witness pair and return its committed tree.
 ///
 /// # Errors
-/// Refuses total-byte/nesting budgets, certificate authentication and witness mismatch.
+/// Refuses total-byte admission, codec nesting, authentication and witness mismatch.
 pub fn authenticate_hash_tree(
     agent: &Agent,
     canister: Principal,
@@ -106,12 +104,11 @@ pub fn authenticate_hash_tree(
     {
         return Err(CertificateVerificationError::BudgetExceeded);
     }
-    let certificate = authenticate(agent, canister, certificate, limits.bytes, limits.depth)?;
+    let certificate = authenticate(agent, canister, certificate, limits.bytes)?;
     let witness = decode_hash_tree(
         witness,
         DecodeLimits {
             bytes: limits.bytes,
-            depth: limits.depth,
         },
     )
     .map_err(decode_error)?;

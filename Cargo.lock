@@ -1633,9 +1633,9 @@ dependencies = [
 
 [[package]]
 name = "ic-testkit"
-version = "0.55.1"
+version = "0.55.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a38bf5d56f130707b9310f72f25783cc28e9a9743c834030ed036415d296b61"
+checksum = "31917cf9efa9b8f975a3f8f41baed5afe8a75fdd750aabde895fcc10bc5fa0f3"
 dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
@@ -1643,7 +1643,6 @@ dependencies = [
  "ic-metrics",
  "ic-platform",
  "libc",
- "tempfile",
  "thiserror 2.0.18",
  "tokio",
 ]

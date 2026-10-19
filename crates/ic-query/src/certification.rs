@@ -28,10 +28,6 @@ use ic_platform::certification::Certificate;
 ))]
 use ic_platform::certification::HashTree;
 
-/// Nesting budget for CMC and ICRC certificate evidence.
-#[cfg(any(feature = "cmc-host", feature = "icrc-host"))]
-const MAX_CERTIFIED_DATA_DEPTH: u8 = 64;
-
 /// Maximum accepted difference between caller observation and certificate time.
 #[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
 pub const MAX_CERTIFICATE_TIME_SKEW_SECONDS: u64 = 5 * 60;
@@ -77,7 +73,6 @@ pub fn authenticate_canister_hash_tree(
         encoded_hash_tree,
         crate::certificate::CertificateEvidenceLimits {
             bytes: crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-            depth: MAX_CERTIFIED_DATA_DEPTH,
         },
     )
     .map_err(|error| match error {

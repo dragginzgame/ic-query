@@ -368,7 +368,6 @@ fn downstream_certificate_failure_exposes_shared_parse_source() {
         ic_platform::candid::contract::Principal::anonymous(),
         &[0xff],
         1,
-        16,
     )
     .unwrap_err();
     let CertificateVerificationError::Decode(source) = error else {
