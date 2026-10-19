@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.63.1]
+
+- Use published Host's owned HTTP fixtures in native Agent, Candid and ICRC
+  tests, replacing four listener/response/worker implementations with bounded
+  accept/read/write and cancellation cleanup. Protocol bytes, request budgets,
+  client policy and assertions remain Query-owned
+  ([#67 — Adopt owned HTTP fixtures](https://github.com/dragginzgame/ic-query/issues/67)).
+
+Detailed release notes: [docs/changelog/0.63.md](docs/changelog/0.63.md)
+
 ## [0.63.0] - 2026-10-19
 
 - Fix release-cache fixtures when the parent guard test supplies a metadata editor.

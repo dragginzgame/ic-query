@@ -135,9 +135,9 @@ mod tests {
     use crate::nns::governance::NnsGovernanceError as QueryError;
     #[cfg(all(not(feature = "nns-host"), feature = "sns-host"))]
     use crate::sns::SnsHostError as QueryError;
-    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
+    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
     use serde_cbor::Value;
-    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
+    use std::{collections::BTreeMap, time::Duration};
 
     #[tokio::test(flavor = "current_thread")]
     async fn query_preserves_argument_lists_reply_bytes_and_family_error_labels() {
@@ -151,8 +151,6 @@ mod tests {
                 ),
                 (vec![0xff], None),
             ] {
-                let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-                let endpoint = format!("http://{}", listener.local_addr().unwrap());
                 let response = Value::Map(BTreeMap::from([
                     (Value::Text("status".into()), Value::Text("replied".into())),
                     (
@@ -164,32 +162,17 @@ mod tests {
                     ),
                 ]));
                 let body = serde_cbor::to_vec(&response).unwrap();
-                let server = thread::spawn(move || {
-                    let (mut stream, _) = listener.accept().unwrap();
-                    stream
-                        .set_write_timeout(Some(Duration::from_secs(10)))
-                        .unwrap();
-                    let request = capture_http_request(
-                        &mut stream,
-                        Duration::from_secs(10),
-                        64 * 1024,
-                        64 * 1024,
-                        HttpContentLength::Optional,
-                    )
-                    .into_result()
-                    .unwrap();
-                    let body_start = request
-                        .windows(4)
-                        .position(|bytes| bytes == b"\r\n\r\n")
-                        .unwrap()
-                        + 4;
-                    let body_bytes = &request[body_start..];
-                    assert!(body_bytes.starts_with(&[0xd9, 0xd9, 0xf7]));
-                    let request: Value = serde_cbor::from_slice(body_bytes).unwrap();
-                    write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
-                    stream.write_all(&body).unwrap();
-                    request
-                });
+                let server = HttpFixture::spawn(
+                    &body,
+                    "application/cbor",
+                    HttpFixtureLimits {
+                        timeout: Duration::from_secs(10),
+                        max_header_bytes: 64 * 1024,
+                        max_body_bytes: 64 * 1024,
+                    },
+                )
+                .unwrap();
+                let endpoint = server.endpoint();
                 let agent = Agent::builder()
                     .with_url(endpoint)
                     .with_verify_query_signatures(false)
@@ -219,7 +202,16 @@ mod tests {
                         }) if message == response_message
                     )),
                 }
-                let Value::Map(request) = server.join().unwrap() else {
+                let raw = server.finish().unwrap();
+                let body_start = raw
+                    .windows(4)
+                    .position(|bytes| bytes == b"\r\n\r\n")
+                    .unwrap()
+                    + 4;
+                assert!(raw[body_start..].starts_with(&[0xd9, 0xd9, 0xf7]));
+                let Value::Map(request) =
+                    serde_cbor::from_slice::<Value>(&raw[body_start..]).unwrap()
+                else {
                     panic!("expected CBOR request envelope");
                 };
                 let Value::Map(content) = &request[&Value::Text("content".into())] else {

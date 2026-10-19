@@ -281,9 +281,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
+    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
     use serde_cbor::Value;
-    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
+    use std::{collections::BTreeMap, time::Duration};
 
     #[tokio::test(flavor = "current_thread")]
     async fn capability_probe_retains_reject_metadata_through_the_ledger_transport() {
@@ -299,8 +299,6 @@ mod tests {
                 IcrcCapabilityStatus::Error,
             ),
         ] {
-            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-            let endpoint = format!("http://{}", listener.local_addr().unwrap());
             let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
                 (Value::Text("status".into()), Value::Text("rejected".into())),
                 (Value::Text("reject_code".into()), Value::Integer(5)),
@@ -314,34 +312,30 @@ mod tests {
                 ),
             ])))
             .unwrap();
-            let server = thread::spawn(move || {
-                let (mut stream, _) = listener.accept().unwrap();
-                let request = capture_http_request(
-                    &mut stream,
-                    Duration::from_secs(10),
-                    64 * 1024,
-                    8 * 1024 * 1024,
-                    HttpContentLength::Optional,
-                )
-                .into_result()
-                .unwrap();
-                let body_start = request
-                    .windows(4)
-                    .position(|bytes| bytes == b"\r\n\r\n")
-                    .unwrap()
-                    + 4;
-                let request = request[body_start..].to_vec();
-                write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
-                stream.write_all(&body).unwrap();
-                request
-            });
+            let server = HttpFixture::spawn(
+                &body,
+                "application/cbor",
+                HttpFixtureLimits {
+                    timeout: Duration::from_secs(10),
+                    max_header_bytes: 64 * 1024,
+                    max_body_bytes: 8 * 1024 * 1024,
+                },
+            )
+            .unwrap();
+            let endpoint = server.endpoint();
             let agent = Agent::builder()
                 .with_url(endpoint)
                 .with_verify_query_signatures(false)
                 .build()
                 .unwrap();
             let row = fetch_index_capability(&agent, &Principal::anonymous()).await;
-            let request: Value = serde_cbor::from_slice(&server.join().unwrap()).unwrap();
+            let raw = server.finish().unwrap();
+            let body_start = raw
+                .windows(4)
+                .position(|bytes| bytes == b"\r\n\r\n")
+                .unwrap()
+                + 4;
+            let request: Value = serde_cbor::from_slice(&raw[body_start..]).unwrap();
             let Value::Map(envelope) = request else {
                 panic!("request envelope")
             };
