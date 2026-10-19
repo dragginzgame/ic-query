@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.62.4]
+## [0.62.4] - 2026-10-19
 
 - Check dependency graphs before feature builds and tests, and identify the
   failing profile when a graph check refuses the selected dependencies.
