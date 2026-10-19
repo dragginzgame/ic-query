@@ -12,6 +12,11 @@ source "$repo_root/scripts/ci/fixture-lifecycle.sh"
 fixture_complete=false
 trap 'fixture_finish "$?" "$work_dir" "Release guard fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
+if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
+  CARGO_RELEASE_METADATA_EDITOR="$(bash "$repo_root/scripts/dev/install-rust-tools.sh" --consumer "$repo_root" \
+    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --check)"
+  export CARGO_RELEASE_METADATA_EDITOR
+fi
 bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
@@ -209,6 +214,18 @@ cat > "$work_dir/install-rust-tools.sh" <<'STUB'
 set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 . ci/tool-versions.env
+editor="--consumer $PWD --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug"
+if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
+  if [[ "$*" == *' --check' ]]; then
+    [[ -f selected-editor && "${FIXTURE_EDITOR_CHECK_FAILURE:-}" != yes ]] || exit 53
+  else
+    echo 'editor setup' >> events
+    [[ "${FIXTURE_EDITOR_SETUP_FAILURE:-}" != yes ]] || exit 52
+    : > selected-editor
+  fi
+  printf '%s\n' "$CARGO_RELEASE_METADATA_EDITOR"
+  exit
+fi
 expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   echo 'formatter check' >> events
@@ -394,7 +411,7 @@ STUB
   [[ ! -e index && ! -e tag && ! -e pushes && ! -e target/retained-output ]] \
     || fail "$observation reached validation or release effects"
   if [[ "$observation" == source-prepared ]]; then
-    printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
+    printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'editor setup' > expected
     cmp expected events || fail 'failed prepared source observation continued to offline admission'
   else
     [[ ! -e events && ! -e selected-formatter ]] || fail "$observation reached preparation"
@@ -417,7 +434,7 @@ for kind in patch minor major; do
     || { cat output; fail "$kind"; }
   check_complete
   awk '/^cargo metadata / || /^cargo sort --workspace --grouped --check$/ { next } { print }' events > observed
-  printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'formatter check' \
+  printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'editor setup' 'formatter check' \
     'cargo sort --version' 'cargo fmt --version' validate stage commit tag push > expected
   cmp expected observed
 done
@@ -621,7 +638,7 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
     formatter-setup|formatter-check)
       [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]] || exit 1
       printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
-      if [[ "$failure" == formatter-check ]]; then echo 'formatter check' >> expected; fi
+      if [[ "$failure" == formatter-check ]]; then printf '%s\n' 'editor setup' 'formatter check' >> expected; fi
       cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
       [[ ! -e events && ! -e .release-state/0.46.6.validation ]] || exit 1

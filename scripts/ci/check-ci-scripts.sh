@@ -646,10 +646,19 @@ if [[ "${!#}" == --preflight ]]; then
 fi
 if [[ "$family" == rust && "${3:-}" == --package ]]; then
   [[ $# == 10 || ( $# == 11 && "${11}" == --check ) ]] || exit 74
-  tool="${4#cargo-}"
-  case "$tool" in audit) version=8.7.6 ;; machete) version=7.6.5 ;; *) exit 74 ;; esac
-  [[ "$5" == --version && "$6" == "$version" && "$7" == --bin &&
-     "$8" == "$4" && "$9" == --profile && "${10}" == release ]] || exit 74
+  if [[ "$4" == ic-build ]]; then
+    tool=editor
+    [[ "$5" == --lockfile && "$6" == Cargo.lock && "$7" == --bin &&
+       "$8" == ic-build-release-metadata && "$9" == --profile && "${10}" == debug ]] || exit 74
+  else
+    tool="${4#cargo-}"
+    case "$tool" in audit) version=8.7.6 ;; machete) version=7.6.5 ;; *) exit 74 ;; esac
+    [[ "$5" == --version && "$6" == "$version" && "$7" == --bin &&
+       "$8" == "$4" && "$9" == --profile && "${10}" == release ]] || exit 74
+  fi
+  if [[ "$tool" == editor && "${!#}" == --check ]]; then
+    [[ "${CARGO_NET_OFFLINE:-}" == true && "${RUSTUP_AUTO_INSTALL:-}" == 0 ]] || exit 74
+  fi
   printf '%s/bin/selected %s\n' "$EXPECTED_ROOT" "$tool"
   [[ "$tool" != "${FAIL_FAMILY:-}" ]] || exit 73
   exit 0
@@ -689,10 +698,11 @@ for mode in install check; do
       'cargo sort --version' 'cargo fmt --version' >> "$tools_case/expected"
   fi
   printf '%s\n' "rust --consumer $tools_case --package cargo-audit --version 8.7.6 --bin cargo-audit --profile release$suffix" \
-    "rust --consumer $tools_case --package cargo-machete --version 7.6.5 --bin cargo-machete --profile release$suffix" >> "$tools_case/expected"
+    "rust --consumer $tools_case --package cargo-machete --version 7.6.5 --bin cargo-machete --profile release$suffix" \
+    "rust --consumer $tools_case --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug$suffix" >> "$tools_case/expected"
   cmp "$tools_case/expected" "$tools_case/trace" || fail 'tool aggregate changed shared selections or ordering'
   if grep -Ei 'jobserver unavailable|jobserver.*forced' "$tools_case/$mode.log"; then fail 'tool aggregate lost the Make jobserver'; fi
-  for family in host ic rust audit machete; do
+  for family in host ic rust audit machete editor; do
     : > "$tools_case/trace"
     if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_FAMILY="$family" \
       MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
@@ -702,7 +712,8 @@ for mode in install check; do
       fail "tool aggregate admitted a failed $family selection"
     fi
     awk -v family="$family" '{ print; if ($NF != "--preflight" &&
-      (($1 == family && $4 != "--package") || ($4 == "--package" && $5 == "cargo-" family))) exit }' \
+      (($1 == family && $4 != "--package") || ($4 == "--package" &&
+       ($5 == "cargo-" family || (family == "editor" && $5 == "ic-build"))))) exit }' \
       "$tools_case/expected" > "$tools_case/expected-failure"
     cmp "$tools_case/expected-failure" "$tools_case/trace" || fail "tool aggregate continued after $family failure"
   done

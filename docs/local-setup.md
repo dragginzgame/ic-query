@@ -298,6 +298,10 @@ the snapshot's `ci/tool-versions.env`, independently of `HOST_TOOL_VERSIONS`.
 Keep qualified version exceptions in that selected catalog,
 and remove duplicate consumer constants when adopting the shared pins.
 
+Use [IC Wire for supported controlled application messages](../DRAGGINZGAME.md#ic-application-encoding).
+Candid extraction serves the Candid interfaces a product still needs; Wire codec
+generation does not require a Candid extractor.
+
 Candid extraction is a product-selected tool. Consumers that extract declarations
 own its pin, explicit installation/check target and PATH selection through the
 [selected Cargo tool interface](#consumer-selected-cargo-tools). Common setup does

@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.62.5]
+
+- Adopt Shared Tooling 0.25.0 and its grouped formatting defaults, preserving
+  dependency-role sections and the existing tool catalogs.
+- Use published IC Build 0.20.0 for release editing instead of the retired Perl renderers.
+  Release preflight prepares the editor; offline checks require explicit setup:
+
+```bash
+make install-release-tools
+make release-tools-check
+```
+
+Detailed release notes: [docs/changelog/0.62.md](docs/changelog/0.62.md)
+
 ## [0.62.4] - 2026-10-19
 
 - Check dependency graphs before feature builds and tests, and identify the

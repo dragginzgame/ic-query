@@ -34,6 +34,9 @@ MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
 TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release
+RELEASE_METADATA_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug
+CARGO_RELEASE_METADATA_MAX_BYTES := 8388608
+export CARGO_RELEASE_METADATA_MAX_BYTES
 AUDIT_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-audit --version "$(CARGO_AUDIT_VERSION)" --bin cargo-audit --profile release
 MACHETE_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-machete --version "$(CARGO_MACHETE_VERSION)" --bin cargo-machete --profile release
 CARGO_HTTP_MULTIPLEXING ?= false
@@ -43,10 +46,8 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
-LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools
-LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check
-FORMAT_WRITE_COMMAND = bash -ec '"$$1" sort --workspace --grouped; "$$1" fmt --all' -- "$(FORMAT_CARGO)"
-FORMAT_CHECK_COMMAND = bash -ec '"$$1" sort --workspace --grouped --check; "$$1" fmt --all -- --check' -- "$(FORMAT_CARGO)"
+LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools install-release-tools
+LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check release-tools-check
 include $(REPO_ROOT)make/consumer.mk
 export IC_TOOL_PINS FORMAT_CARGO
 export PATH := $(REPO_ROOT).tools/ic/bin:$(PATH)
@@ -103,6 +104,8 @@ help:
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dependency-tools  Install pinned Cargo Audit and Cargo Machete"
 	@echo "  dependency-tools-check  Check the selected audit tools offline"
+	@echo "  install-release-tools  Prepare the locked IC Build Cargo metadata editor"
+	@echo "  release-tools-check  Check the selected release editor offline"
 	@echo "  install-tools  Prepare the complete common and Query toolsets in order"
 	@echo "  install-hooks  Activate the reviewed formatting hook in this clone"
 	@echo "  tools-check  Verify the complete common and Query toolsets offline"
@@ -240,6 +243,15 @@ dependency-tools-check: export RUSTUP_AUTO_INSTALL := 0
 dependency-tools-check:
 	+@$(AUDIT_TOOL) --check > /dev/null
 	+@$(MACHETE_TOOL) --check > /dev/null
+
+.PHONY: install-release-tools release-tools-check
+install-release-tools:
+	+@$(RELEASE_METADATA_TOOL) > /dev/null
+
+release-tools-check: export CARGO_NET_OFFLINE := true
+release-tools-check: export RUSTUP_AUTO_INSTALL := 0
+release-tools-check:
+	+@$(RELEASE_METADATA_TOOL) --check > /dev/null
 
 publish: ensure-clean release-tag-check
 	bash scripts/release/publish-workspace.sh

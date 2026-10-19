@@ -16,6 +16,11 @@ source "$repo_root/scripts/ci/fixture-lifecycle.sh"
 fixture_complete=false
 trap 'fixture_finish "$?" "$work_dir" "Release metadata fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
+if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
+  CARGO_RELEASE_METADATA_EDITOR="$(bash "$repo_root/scripts/dev/install-rust-tools.sh" --consumer "$repo_root" \
+    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --check)"
+  export CARGO_RELEASE_METADATA_EDITOR
+fi
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }
 
 # Reuse history and a real index. A synthetic source tree models validated
@@ -79,6 +84,19 @@ if perl scripts/release/metadata.pl prepare "$evidence" > "$work_dir/changed-inp
 fi
 cmp "$work_dir/reviewed-manifest" Cargo.toml
 cp "$work_dir/reviewed-manifest" "$evidence/before/Cargo.toml"
+# Refusal must leave all authenticated inputs intact, including before retries.
+for refusal in editor allowance bound; do
+  status=0
+  case "$refusal" in
+    editor) CARGO_RELEASE_METADATA_EDITOR=/missing/editor perl scripts/release/metadata.pl prepare "$evidence" > "$work_dir/$refusal.log" 2>&1 || status=$? ;;
+    allowance) CARGO_RELEASE_METADATA_MAX_BYTES=0 perl scripts/release/metadata.pl prepare "$evidence" > "$work_dir/$refusal.log" 2>&1 || status=$? ;;
+    bound) CARGO_RELEASE_METADATA_MAX_BYTES=1 perl scripts/release/metadata.pl prepare "$evidence" > "$work_dir/$refusal.log" 2>&1 || status=$? ;;
+  esac
+  [[ "$status" != 0 ]] || fail "invalid editor selection or input bound admitted: $refusal"
+  for payload in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do
+    cmp "$evidence/before/$payload" "$payload"
+  done
+done
 perl scripts/release/metadata.pl prepare "$evidence"
 mkdir -p "$work_dir/prepared/docs/changelog"
 for payload in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do

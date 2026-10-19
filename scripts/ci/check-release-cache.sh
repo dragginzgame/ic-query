@@ -132,6 +132,22 @@ cat > scripts/dev/install-rust-tools.sh <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
+editor_lock=Cargo.lock
+[[ "${6:-}" != .fixture-state/*/before/Cargo.lock ]] || editor_lock="$6"
+editor="--consumer $PWD --package ic-build --lockfile $editor_lock --bin ic-build-release-metadata --profile debug"
+if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
+  if [[ "$*" == *' --check' ]]; then
+    printf 'editor check\n' >> "$TRACE_FILE"
+    printf '%s\n' "$editor_lock" > selected-editor-lock
+    [[ -f selected-editor && "${FIXTURE_EDITOR_CHECK_FAILURE:-}" != yes ]] || exit 53
+    printf '/fixture/editor\n'
+  else
+    printf 'editor setup\n' >> "$TRACE_FILE"
+    [[ "${FIXTURE_EDITOR_SETUP_FAILURE:-}" != yes ]] || exit 52
+    : > selected-editor
+  fi
+  exit
+fi
 expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   printf 'formatter check\n' >> "$TRACE_FILE"
@@ -203,7 +219,7 @@ status=0
 IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_FORMAT_CHANGED_INPUT=yes \
   bash scripts/release/adapter.sh preflight > "$work_dir/tool-changed-input.log" 2>&1 || status=$?
 [[ "$status" == 42 && -f selected-formatter ]] || fail 'changed source was admitted after setup'
-printf '%s\n' 'fetch --locked' 'formatter setup' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter setup' 'editor setup' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 cmp Cargo.lock "$work_dir/original-lock"
 cmp previous-formatter "$work_dir/previous-formatter"
@@ -224,13 +240,13 @@ rm prepared-cache
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight
 [[ -f prepared-cache ]] || fail 'standard release did not prepare cold cache'
-printf '%s\n' 'fetch --locked' 'formatter setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter setup' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 cmp Cargo.lock "$work_dir/original-lock"
 cp selected-formatter "$work_dir/selected-formatter"
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 "$make_bin" --no-print-directory -j4 release-preflight > "$work_dir/tool-reuse.log" 2>&1
-printf '%s\n' 'fetch --locked' 'formatter reuse' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 if grep -Ei 'jobserver unavailable|jobserver.*forced' "$work_dir/tool-reuse.log"; then fail 'tool preparation lost the Make jobserver'; fi
 cmp selected-formatter "$work_dir/selected-formatter"
@@ -240,8 +256,26 @@ status=0
 IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_FORMAT_CHECK_FAILURE=yes \
   bash scripts/release/adapter.sh preflight > "$work_dir/tool-check-failure.log" 2>&1 || status=$?
 [[ "$status" == 2 ]] || fail 'failed formatter admission was discarded'
-printf '%s\n' 'fetch --locked' 'formatter reuse' 'formatter check' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' 'formatter check' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
+
+# A failed editor setup or offline admission cannot reach the validation gate.
+for selection in setup check; do
+  : > "$TRACE_FILE"
+  status=0
+  if [[ "$selection" == setup ]]; then
+    IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_EDITOR_SETUP_FAILURE=yes \
+      bash scripts/release/adapter.sh preflight > "$work_dir/editor-$selection.log" 2>&1 || status=$?
+    printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' > "$work_dir/expected"
+  else
+    FIXTURE_EDITOR_CHECK_FAILURE=yes \
+      bash scripts/release/adapter.sh preflight > "$work_dir/editor-$selection.log" 2>&1 || status=$?
+    printf '%s\n' 'fetch --locked --offline' 'formatter reuse' 'editor check' > "$work_dir/expected"
+  fi
+  [[ "$status" == 2 ]] || fail 'failed release editor was admitted'
+  cmp "$TRACE_FILE" "$work_dir/expected"
+  cmp Cargo.lock "$work_dir/original-lock"
+done
 
 # Saved evidence is admitted before cache preparation against partial metadata.
 mkdir -p .fixture-state/0.50.4.verify.saved
@@ -254,7 +288,9 @@ printf 'interrupted metadata\n' > Cargo.lock
 cp Cargo.lock "$work_dir/interrupted-lock"
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight
-[[ ! -s "$TRACE_FILE" && ! -e prepared-cache ]] || fail 'recovery fetched against interrupted metadata'
+cmp "$TRACE_FILE" <(printf 'editor check\n')
+[[ "$(cat selected-editor-lock)" == .fixture-state/0.50.4.verify.saved/before/Cargo.lock && ! -e prepared-cache ]] \
+  || fail 'recovery selected interrupted metadata or prepared tools/cache'
 cmp Cargo.lock "$work_dir/interrupted-lock"
 echo 'IC Query locked release-cache preparation and recovery fixtures passed'
 fixture_complete=true

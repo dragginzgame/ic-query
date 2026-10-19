@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Shared companions: scripts/ci/read-cargo-workspace-version.sh scripts/ci/render-cargo-workspace-version.pl scripts/ci/rewrite-local-lock-versions.pl scripts/ci/finalize-release-changelog.awk
+# Shared companions: scripts/ci/read-cargo-workspace-version.sh scripts/ci/finalize-release-changelog.awk
 use strict;
 use warnings;
 use File::Basename qw(dirname);
@@ -56,6 +56,11 @@ if ($mode eq 'preflight') {
     exit;
 }
 my $evidence = shift @ARGV // die "missing validation evidence directory\n";
+my ($editor, $max_bytes) = @ENV{qw(CARGO_RELEASE_METADATA_EDITOR CARGO_RELEASE_METADATA_MAX_BYTES)};
+defined($editor) && $editor =~ m{\A/} && -f $editor && -x $editor && !-l $editor
+    or die "select an absolute prepared IC Build release metadata editor\n";
+defined($max_bytes) && $max_bytes =~ /\A[1-9][0-9]*\z/
+    or die "select a positive Cargo release metadata input byte allowance\n";
 my $source = $ENV{RELEASE_SOURCE} // die "missing validated source identity\n";
 $source =~ /\A[0-9a-f]{40,64}\z/ or die "invalid validated source identity\n";
 
@@ -85,16 +90,16 @@ sub expected {
         binmode $manifest or die "cannot select manifest byte mode: $!\n";
         print {$manifest} $text or die "cannot retain manifest input: $!\n";
         close $manifest or die "cannot close manifest input: $!\n";
-        open my $renderer, '-|', $^X, 'scripts/ci/render-cargo-workspace-version.pl',
-            $manifest_path, $previous, $version or die "cannot run shared manifest renderer: $!\n";
+        open my $renderer, '-|', $editor, '--max-input-bytes', $max_bytes,
+            'manifest', $manifest_path, $previous, $version or die "cannot run IC Build manifest editor: $!\n";
         $text = do { local $/; <$renderer> };
         close $renderer or die "workspace version rendering failed\n";
         my $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;
         $count == 1 or die "missing owned workspace dependency version\n";
     } elsif ($path eq 'Cargo.lock') {
-        open my $lock, '-|', $^X, 'scripts/ci/rewrite-local-lock-versions.pl',
-            "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli'
-            or die "cannot run shared lockfile transformer: $!\n";
+        open my $lock, '-|', $editor, '--max-input-bytes', $max_bytes,
+            'lock', "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli'
+            or die "cannot run IC Build lockfile editor: $!\n";
         local $/;
         $text = <$lock>;
         close $lock or die "local lockfile transformation failed\n";

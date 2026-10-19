@@ -8,7 +8,23 @@ cd "$repo_root"
 operation="${1:-}"
 prepare_cache="${IC_QUERY_RELEASE_PREPARE_CACHE:-0}"
 unset IC_QUERY_RELEASE_PREPARE_CACHE
-metadata() { perl scripts/release/metadata.pl "$@"; }
+metadata() {
+  case "$1" in
+    files|preflight|check-paths) ;;
+    *)
+      if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
+        local selected_lockfile=Cargo.lock
+        # Recovery may have a partially prepared live lock; its validated source
+        # still selects the editor, and metadata admits those retained bytes.
+        [[ -z "${evidence:-}" ]] || selected_lockfile="$evidence/before/Cargo.lock"
+        CARGO_RELEASE_METADATA_EDITOR="$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 \
+          bash scripts/dev/install-rust-tools.sh --consumer "$repo_root" \
+          --package ic-build --lockfile "$selected_lockfile" --bin ic-build-release-metadata --profile debug --check)" || return "$?"
+        export CARGO_RELEASE_METADATA_EDITOR
+      fi ;;
+  esac
+  perl scripts/release/metadata.pl "$@"
+}
 fail() { echo "release adapter refused: $*" >&2; exit 1; }
 [[ "${RELEASE_DELIVERY:-direct}" == direct ]] \
   || fail 'IC Query requires direct release delivery; PR delivery is not qualified'
@@ -113,7 +129,8 @@ case "$operation" in
     metadata preflight
     preparation=(bash scripts/ci/cargo-release-preflight.sh "$repo_root" "$prepare_cache"
       --pin ci/tool-versions.env --pin "${IC_TOOL_PINS:-ci/ic-tools.tsv}"
-      --check install-rust-tools --prepare install-rust-tools)
+      --check install-rust-tools --prepare install-rust-tools
+      --check release-tools-check --prepare install-release-tools)
     [[ "$prepare_cache" == 1 ]] || preparation=(env CARGO_NET_OFFLINE=true "${preparation[@]}")
     if "${preparation[@]}"; then
       :

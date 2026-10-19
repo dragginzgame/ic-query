@@ -6,24 +6,40 @@ metadata and notes, stages the explicit release files, commits, creates an
 annotated tag, and atomically pushes the selected branch and tag. Publication
 remains the separate `make publish` command.
 
-The runner and its version/changelog helpers are an immutable Shared Tooling
-snapshot at
-[`031d214ed044705b989d43e2379f30e6a3d44749`](https://github.com/dragginzgame/shared-tooling/tree/031d214ed044705b989d43e2379f30e6a3d44749) (0.11.4),
-recorded in `.shared-tooling.snapshot`. See the reviewed
-[common release contract](https://github.com/dragginzgame/shared-tooling/blob/031d214ed044705b989d43e2379f30e6a3d44749/docs/releases.md).
-`make shared-tooling-check` verifies the selected files' digests and executable
-modes without a network request, reporting the recorded upstream version and
-exact source commit. The version annotation comes from the exporter's committed
-source, stays descriptive, and does not replace commit identity or establish
-publication or host qualification. This snapshot selects read-only workspace
-version checking, pure workspace-version rendering and release mechanics,
-lockfile transformation, publication tag and registry checking, dependency-pin
-and documentation-link checking, isolated RustSec preparation, repository-local
-tool setup, formatter prerequisites, LOC reporting, exact-commit CI inspection
-and the standard virtual-root Rust workspace layout. The same snapshot owns the
-local `DRAGGINZGAME.md` engineering baseline; `AGENTS.md` identifies its explicit
-Query exceptions, including maintainer-only releases and focused-check authority.
-Update shared files through the upstream snapshot exporter, never local patches.
+The runner and shared helpers are a reviewed Shared Tooling 0.25.0 snapshot at
+[`2a79f5f93383f3d2a8a38d65406c7d52c2f77913`](https://github.com/dragginzgame/shared-tooling/tree/2a79f5f93383f3d2a8a38d65406c7d52c2f77913),
+recorded in `.shared-tooling.snapshot`. See the selected
+[common release contract](releases.md). `make shared-tooling-check` verifies the
+selected files' digests and executable modes offline. The version annotation
+comes from the committed source; it does not establish tag publication or native
+host qualification. The same snapshot owns `DRAGGINZGAME.md`; `AGENTS.md` retains
+Query's explicit exceptions, including maintainer-only release execution.
+
+IC Build owns Cargo manifest and lock candidate rendering. Query selects the
+published `ic-build` version in `Cargo.lock` through the shared selected-tool
+installer, using its `ic-build-release-metadata` binary with the debug profile.
+Prepare this executable explicitly before an offline check:
+
+```bash
+make install-release-tools
+make release-tools-check
+```
+
+`make install-tools` also prepares it. A maintainer-operated release preflight
+prepares the locked cache, formatter and editor before validation; ordinary
+checks only admit existing tools. The adapter resolves an absolute prepared
+editor path through `--check`, never PATH or a sibling checkout. Recovery uses
+the retained source lockfile to select that editor even when live metadata is
+partially prepared; metadata admission still authenticates retained source bytes.
+Query selects
+an 8 MiB per-document allowance in Make, retains authenticated source bytes and
+before/after candidates, and owns its exact file set, local dependency projection,
+changelog finalization, source/index admission and interruption reconciliation.
+Direct metadata-fixture callers supply `CARGO_RELEASE_METADATA_EDITOR` and
+`CARGO_RELEASE_METADATA_MAX_BYTES` explicitly. No renderer performs Git effects,
+network access or installation. The retired Perl editors are no longer selected.
+
+Update shared files through the canonical snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
 replacement. For an authorized refresh of an already-staged snapshot, export into
 an isolated checkout, verify the existing snapshot, and reconcile only its known
@@ -36,16 +52,17 @@ before starting validation; changes made while a gate is running invalidate
 its source qualification and require a fresh attempt. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
-The snapshot records 81 entrypoints and derives their 91-file companion closure.
+The manifest records the selected entrypoints and derived companion closure.
 The entrypoints retain all existing operational helpers, selected fixtures and
 offline governance documents. Common Make, consumer-owned callers and optional
 features still require local review; companion declarations do not infer them.
 The common tool catalogs are required companions of their installers rather
 than separate roots. Make, standalone setup, formatting and freshness use that
 reviewed snapshot; host, IC and Rust exception selections are independent. Query
-retains no catalog exception. Complete versions and digests match the previous
-selection; compiler policy, application dependencies and Query's Cargo audit/
-machete extensions remain locally owned.
+retains no catalog exception. Common tool versions and digests are unchanged by
+the 0.25.0 refresh.
+Compiler policy, application dependencies and Query's Cargo audit/machete and
+release-editor selections remain locally owned.
 The sole shared manifest owns these paths, and `docs/supported-hosts.md` remains
 a consumer overlay outside it. Refresh from a clean checkout of the reviewed
 revision, previewing before apply:
