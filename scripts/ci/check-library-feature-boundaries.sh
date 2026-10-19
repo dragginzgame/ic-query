@@ -40,6 +40,8 @@ check_public_api() {
   cargo "${arguments[@]}"
 }
 
+bash "$repo_root/scripts/ci/check-library-dependency-graphs.sh"
+
 cargo check -p ic-query --locked --offline
 cargo check -p ic-query --no-default-features --locked --offline
 cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked --offline
@@ -101,5 +103,4 @@ check_public_api nns-topology-host subnet_topology_public_api
 check_public_api cmc-host system_public_api
 cargo check -p ic-query-cli --locked --offline
 
-bash "$repo_root/scripts/ci/check-library-dependency-graphs.sh"
 fixture_complete=true

@@ -1001,12 +1001,13 @@ for failed_command in check test tree; do
 done
 
 for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
-  ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
+  ic-host-tools/candid ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
   ic-host-artifacts/wasm; do
   scope=host
   case "$dependency" in
-    ic-host-artifacts|ic-host-fs|ic-host-tools|candid_parser) scope=pure ;;
+    ic-host-artifacts|ic-host-fs|ic-host-tools) scope=pure ;;
   esac
+  : > "${feature_boundary_case}/trace"
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \
@@ -1020,6 +1021,11 @@ for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools can
   esac
   grep -Fq "$diagnostic" "${feature_boundary_case}/dependency-failure.log" \
     || fail "the $scope feature boundary lost the forbidden dependency diagnostic"
+  if grep -Eq '^(check|test)$' "${feature_boundary_case}/trace"; then
+    fail "the $scope feature boundary compiled or tested before admitting its dependency graph"
+  fi
+  grep -Fq 'error: dependency graph check failed:' "${feature_boundary_case}/dependency-failure.log" \
+    || fail "the $scope feature boundary lost its failing graph context"
 done
 
 for scope in canister cli; do
@@ -1036,7 +1042,7 @@ for scope in canister cli; do
   done
 done
 
-for dependency in ic-host-fs candid_parser ic-platform ic-host-tools/certificate; do
+for dependency in ic-host-fs ic-platform ic-host-tools/certificate; do
   TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \

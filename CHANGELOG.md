@@ -7,12 +7,14 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.62.4]
 
+- Check dependency graphs before feature builds and tests, and identify the
+  failing profile when a graph check refuses the selected dependencies.
+
 - Use `serde_cbor` for CBOR test fixtures and remove Query's direct `ciborium`
   dependency. Host retains production certificate decoding.
 
-- Prepare Host 0.28 certificate-only adoption and reject Candid parser leakage
-  from host profiles. Requires the supplying Host release and subsequent lock
-  refresh; source qualification is separate from published adoption.
+- Adopt published Host Tools 0.28.0 for certificate-only use, keeping Candid
+  service parsing out of production host profiles.
 
 - Run Governance runner fixtures once per complete CI gate, preserving the early
   default-feature compilation check.

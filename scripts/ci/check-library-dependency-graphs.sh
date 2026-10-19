@@ -179,8 +179,14 @@ check_tree_absent() {
   done
   [[ "$#" -gt 0 ]] || { echo "missing graph arguments: $label" >&2; return 1; }
   shift
-  perl "$repo_root/scripts/ci/check-cargo-graph.pl" --consumer "$repo_root" \
-    --target "$native_target" "${rules[@]}" "$@"
+  if perl "$repo_root/scripts/ci/check-cargo-graph.pl" --consumer "$repo_root" \
+    --target "$native_target" "${rules[@]}" "$@"; then
+    return 0
+  else
+    local status="$?"
+    printf 'error: dependency graph check failed: %s\n' "$label" >&2
+    return "$status"
+  fi
 }
 
 check_tree_absent "ic-query --no-default-features" \
