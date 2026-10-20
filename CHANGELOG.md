@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.65.0]
+## [0.65.0] - 2026-10-20
 
 - Prepare pinned Cargo Audit and Cargo Machete during fresh release preflight,
   avoiding a later tools-check failure after shared build-policy changes.
