@@ -1502,6 +1502,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bad51c281cf5507bde15e6fc71d975f34c96c56438f30112af6c1402c5569cb0"
 
 [[package]]
+name = "ic-metrics"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8bcc41cde9657498086117ef1cfa826ef7b2e3ff06b4245db1b0b2e96c093f"
+
+[[package]]
 name = "ic-platform"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1544,7 +1550,7 @@ dependencies = [
  "ic-host-process",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics",
+ "ic-metrics 0.15.0",
  "ic-platform",
  "ic-testkit",
  "ic-wire",
@@ -1591,7 +1597,7 @@ dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
- "ic-metrics",
+ "ic-metrics 0.14.12",
  "ic-platform",
  "libc",
  "thiserror 2.0.18",
@@ -1632,9 +1638,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30c9f9cc72ed071449eea8b5d92c342b85664c0ae8d26d158ddd602246d607f0"
+checksum = "75ef7e42f183bbea38f32f9c78c8550e807e3354b970539f04ab697330c3379b"
 dependencies = [
  "ic-wire-derive",
  "postcard",
@@ -1643,9 +1649,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire-derive"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "724321a0e489c94637f11e969c0c27851d0dcd65e237627c33be1fc44b7ad3c6"
+checksum = "4adea6bd2866234836bb27fb84be21020fcab3b9a2aad15b3662155abd3eb40c"
 dependencies = [
  "proc-macro2",
  "quote",

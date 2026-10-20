@@ -20,7 +20,7 @@ ic-host-artifacts = { version = "0.62", default-features = false }
 ic-host-fs = { version = "0.62", default-features = false }
 ic-host-text = "0.62"
 ic-host-tools = { version = "0.62", default-features = false }
-ic-metrics = "0.14"
+ic-metrics = "0.15"
 ic-platform = { version = "0.5", default-features = false, features = ["candid"] }
 ic-query = { path = "crates/ic-query", version = "0.65.2", default-features = false }
 prost = "0.14.3"
