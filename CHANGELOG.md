@@ -5,6 +5,12 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.65.3]
+
+- Adopt Shared Tooling 0.25.9: refuse a new release increment past an
+  undelivered committed preparation, preserving its saved plan and evidence.
+  Tool pins, package APIs and dependency selections are unchanged.
+
 ## [0.65.2] - 2026-10-20
 
 - Adopt published Platform 0.5.0, preserving external IC types and call behavior.
