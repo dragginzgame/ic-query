@@ -50,7 +50,7 @@ Host's partial wire projections do not authenticate Registry values or establish
 complete routing coverage; those policies and the report/cache contracts remain
 Query-owned.
 
-Managed cache operations use published Host FS 0.31 `capability::Directory` and
+Managed cache operations use published Host FS 0.32 `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
 select the separate `temporary-file` backend. Host owns no-follow traversal,
 directory creation, bounded entry observations and descriptor-relative file
@@ -80,13 +80,15 @@ feature selects Platform's `cdk` facade for canister identity and bounded calls.
 The typed probe uses Platform's explicit-codec entrypoint generator with bounded
 Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
 probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Host Tools 0.31 and Testkit 0.59 still select
-Platform 0.4 internally; native fixtures use raw transport bytes and Wire.
+CDK or macro-package declarations. Host Tools 0.32 and Testkit 0.60 share
+Platform 0.5 with Query; native fixtures use raw transport bytes and Wire.
 Registry conversions infer Host's owned Principal from its published signatures
-instead of assuming that Query and Host select the same Platform minor.
-External Candid/Agent/certification DTO identities remain shared across those
-versions. Query uses neither service-generation macros nor the retired runtime
-storage/timeout APIs; its explicit Wire hooks and bounded-call defaults remain.
+instead of encoding its package selection in the conversion. Testkit retains
+Host 0.31 FS/process/artifact packages internally; these development-only lifecycle
+types do not cross into Query's Host 0.32 integrations. External Candid, Agent and
+certification DTO identities remain unchanged. Query uses neither service-generation
+macros nor the retired runtime storage/timeout APIs; its explicit Wire hooks and
+bounded-call defaults remain.
 The replicated Governance adapter uses Platform's owned Principal for runtime
 calls. Required Candid DTOs and public APIs retain
 `ic_platform::candid::contract::Principal`, and ledger DTOs retain their external

@@ -16,10 +16,10 @@ repository = "https://github.com/dragginzgame/ic-query"
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
-ic-host-artifacts = { version = "0.31.1", default-features = false }
-ic-host-fs = { version = "0.31.1", default-features = false }
-ic-host-text = "0.31.1"
-ic-host-tools = { version = "0.31.1", default-features = false }
+ic-host-artifacts = { version = "0.62", default-features = false }
+ic-host-fs = { version = "0.62", default-features = false }
+ic-host-text = "0.62"
+ic-host-tools = { version = "0.62", default-features = false }
 ic-metrics = "0.14"
 ic-platform = { version = "0.5", default-features = false, features = ["candid"] }
 ic-query = { path = "crates/ic-query", version = "0.65.2", default-features = false }
@@ -32,9 +32,9 @@ tokio = "1.52.3"
 url = "2.5.8"
 
 # Tests and tooling only
-ic-build = "0.23"
-ic-host-process = { version = "0.31.1", default-features = false }
-ic-testkit = "0.59"
+ic-build = "0.62"
+ic-host-process = { version = "0.62", default-features = false }
+ic-testkit = "0.62"
 ic-wire = "0.5"
 libc = "0.2"
 serde_cbor = "0.11.2"

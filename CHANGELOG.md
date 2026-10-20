@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.66.0]
+
+- **Breaking:** select Host Artifacts, FS, Process, Text and Tools 0.32. Callers
+  naming Host types exposed by Query must select the same minor, including
+  `CertificateVerificationError::Decode`'s error and certified ledger-tip values.
+  Certificate checks, report/cache formats and external IC wire bytes are unchanged.
+- Align Host and Testkit 0.60 on published Platform 0.5.0, removing the older
+  Platform package from the selected dependency graph.
+- Select IC Build 0.24 for the smoke harness's matching Host 0.32 boundary and
+  Wire 0.5.2 for probe fixtures, preserving cleanup policy and protocol bytes.
+
+Detailed release notes: [docs/changelog/0.66.md](docs/changelog/0.66.md)
+
 ## [0.65.2] - 2026-10-20
 
 - Adopt published Platform 0.5.0, preserving external IC types and call behavior.
