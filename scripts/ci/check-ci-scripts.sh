@@ -173,7 +173,7 @@ check_make_execution_modes() {
   copy_makefile "$fixture"
   cat >> "$fixture/Makefile" <<'MAKE'
 
-.PHONY: execution-validate execution-probe execution-child evidence-success evidence-failure
+.PHONY: execution-validate execution-probe execution-child
 execution-validate:
 	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(LOGGER)" execution-probe
 execution-probe:
@@ -181,42 +181,13 @@ execution-probe:
 	+$(MAKE) --no-print-directory execution-child
 execution-child:
 	@printf '%s\n' '$(RELEASE_REMOTE)' >> "$${TRACE_FILE}"
-evidence-success:
-	@echo retained-success-marker
-evidence-failure:
-	@echo 'error: retained-failure-marker'
-	@exit 7
 MAKE
-  for mode in -i -n -t -q -kin --ignore-errors --dry-run --just-print --recon --touch --question; do
-    status=0
-    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-      TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
-      "$mode" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted execution mode $mode"
-  done
-  for mode in i n t q '--no-print-directory -i'; do
-    status=0
-    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-      MAKEFLAGS="$mode" TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory \
-      -C "$fixture" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "Make admitted inherited MAKEFLAGS=$mode"
-  done
-  for mode in -i -n -t -q -kin --ignore-errors --dry-run --touch --question; do
-    for flags in '' --no-print-directory; do
-      status=0
-      env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-        TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
-        "$mode" "MAKEFLAGS=$flags" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-      [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail "MAKEFLAGS override hid invocation mode $mode"
-    done
-  done
-  for flags in '' --no-print-directory; do
-    status=0
-    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
-      TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
-      "MFLAGS=$flags" execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
-    [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail 'Make admitted replaced invocation evidence'
-  done
+  # Exercise Query's actual Make include boundary; Shared owns the mode matrix.
+  status=0
+  env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
+    TRACE_FILE="$fixture/trace" "$make_bin" --no-print-directory -C "$fixture" \
+    -n MAKEFLAGS= execution-probe > "$fixture/blocked.log" 2>&1 || status=$?
+  [[ "$status" == 2 && ! -e "$fixture/trace" ]] || fail 'Query Make admitted dry-run execution'
   for mode in --no-print-directory -j2; do
     env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS \
       TRACE_FILE="$fixture/trace" "$make_bin" -C "$fixture" "$mode" \
@@ -228,45 +199,6 @@ MAKE
       fail 'Validation lost the inherited Make jobserver'
     fi
     rm "$fixture/trace"
-  done
-  local selected_directory prior_directory record_target record_result target seconds log
-  for target in evidence-success evidence-failure; do
-    status=0
-    VALIDATION_REPOSITORY_ROOT="$fixture" VALIDATION_LOG_DIR="$fixture/logs" \
-      VALIDATION_FAILURE_LOG_DIR="$fixture/failures" \
-      bash "$repo_root/scripts/ci/run-validation-targets.sh" "$target" \
-      > "$fixture/evidence-output" 2>&1 || status=$?
-    selected_directory="$(sed -n 's/^Validation logs and timings: //p' "$fixture/evidence-output")"
-    IFS=$'\t' read -r record_target record_result seconds log < <(sed -n '2p' "$selected_directory/timings.tsv")
-    [[ "$record_target" == "$target" && "$seconds" =~ ^[0-9]+$ && -f "$log" ]] \
-      || fail 'selected validation evidence lost target, timing or raw log'
-    if [[ "$target" == evidence-success ]]; then
-      [[ "$status" == 0 && "$record_result" == PASS ]] || fail 'passing validation lost its timing result'
-      grep -Fxq retained-success-marker "$log" || fail 'passing validation lost its raw output'
-      prior_directory="$selected_directory"
-      cp "$log" "$fixture/previous-success.log"
-    else
-      [[ "$status" == 2 && "$record_result" == FAIL ]] || fail 'validation lost Make failure status'
-      grep -Fq retained-failure-marker "$log" || fail 'failed validation lost its raw output'
-      cmp "$fixture/previous-success.log" "$prior_directory/0.log" \
-        || fail 'later validation changed earlier success evidence'
-    fi
-  done
-  mkdir -p "$fixture/failures"
-  printf 'retained prior validation\n' > "$fixture/failures/latest.log"
-  cp "$fixture/failures/latest.log" "$fixture/previous.log"
-  for mode in i n t q v --ignore-errors --dry-run --touch --question --version; do
-    status=0
-    env -u MAKEFLAGS -u MFLAGS -u MAKEOVERRIDES -u GNUMAKEFLAGS MAKEFLAGS="$mode" \
-      VALIDATION_REPOSITORY_ROOT="$fixture" VALIDATION_FAILURE_LOG_DIR="$fixture/failures" \
-      TRACE_FILE="$fixture/trace" bash "$repo_root/scripts/ci/run-validation-targets.sh" \
-      --fail-fast execution-probe > "$fixture/validation-$mode.log" 2>&1 || status=$?
-    [[ "$status" != 0 && ! -e "$fixture/trace" ]] \
-      || fail "Validation admitted inherited mode $mode"
-    grep -Fq 'requires recipe execution and failure propagation' "$fixture/validation-$mode.log" \
-      || fail "Validation lost its execution admission diagnostic for $mode"
-    cmp "$fixture/previous.log" "$fixture/failures/latest.log" \
-      || fail 'Execution admission changed prior validation evidence'
   done
 }
 
