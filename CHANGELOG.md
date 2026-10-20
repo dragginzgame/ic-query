@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.66.0]
+## [0.66.0] - 2026-10-20
 
 - **Breaking:** select Host Artifacts, FS, Process, Text and Tools 0.32. Callers
   naming Host types exposed by Query must select the same minor, including
