@@ -1,6 +1,6 @@
 use super::*;
 use crate::subnet_catalog::SubnetCatalogRoutingSource;
-use proto::{CanisterIdRange, RoutingTableEntry};
+use ic_host_tools::registry::proto::{CanisterIdRange, RoutingTableEntry};
 
 pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
 pub(super) const SUBNET_B: &str = "aaaaa-aa";

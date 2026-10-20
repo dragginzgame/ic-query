@@ -1,5 +1,13 @@
 use super::*;
-use ic_platform::certification::{empty, fork, labeled, leaf as tree_leaf};
+#[cfg(feature = "ledger-evidence-host")]
+use ic_host_tools::ledger_evidence::{BlockEvidenceLimits, BoundedLedgerBlocks, LedgerBlock};
+#[cfg(feature = "ledger-evidence-host")]
+use ic_platform::certification::fork;
+use ic_platform::certification::{empty, labeled, leaf as tree_leaf};
+#[cfg(feature = "ledger-evidence-host")]
+use ic_platform::{candid::contract::Nat, icrc_ledger_types::Value};
+#[cfg(feature = "ledger-evidence-host")]
+use std::collections::BTreeMap;
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
     serde_cbor::to_vec(tree).unwrap()
@@ -113,6 +121,7 @@ fn witness_requires_the_exact_canister_commitment() {
 }
 
 #[test]
+#[cfg(feature = "ledger-evidence-host")]
 fn tip_requires_exact_hash_and_canonical_bounded_index() {
     let tree = fork(
         labeled(b"last_block_hash".to_vec(), tree_leaf(vec![9; 32])),
@@ -120,7 +129,7 @@ fn tip_requires_exact_hash_and_canonical_bounded_index() {
     );
     assert_eq!(
         ledger_tip(&tree).unwrap(),
-        CertifiedLedgerTip {
+        LedgerTip {
             index: 300,
             hash: [9; 32]
         }
@@ -144,6 +153,35 @@ fn tip_requires_exact_hash_and_canonical_bounded_index() {
     let mut maximum = vec![0xff; 18];
     maximum.push(3);
     assert_eq!(decode_index(&maximum).unwrap(), u128::MAX);
+}
+
+#[test]
+#[cfg(feature = "ledger-evidence-host")]
+fn admitted_tip_connects_directly_to_the_host_chain_verifier() {
+    let block = Value::Map(BTreeMap::default());
+    let tree = fork(
+        labeled(
+            b"last_block_hash".to_vec(),
+            tree_leaf(block.hash().to_vec()),
+        ),
+        labeled(b"last_block_index".to_vec(), tree_leaf(vec![0])),
+    );
+    let tip = ledger_tip(&tree).unwrap();
+    let blocks = [LedgerBlock {
+        id: Nat::from(0_u8),
+        block,
+    }];
+    let admitted = BoundedLedgerBlocks::admit(
+        &blocks,
+        BlockEvidenceLimits {
+            blocks: 1,
+            nodes: 1,
+            bytes: 0,
+            depth: 1,
+        },
+    )
+    .unwrap();
+    assert_eq!(admitted.verify_chain(&tip, 0).unwrap(), &blocks[0].block);
 }
 
 #[test]

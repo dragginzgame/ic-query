@@ -5,15 +5,14 @@
 //! Boundary: keeps raw paths and invalid-cache diagnostics visible.
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},
 };
 
 use super::CacheStatusReport;
-use crate::{
-    duration::display_duration_seconds, human_quantity::byte_count_text, text_value::yes_no,
-};
+use crate::{human_quantity::byte_count_text, text_value::yes_no};
 
 /// Render a human-readable cache-status report.
 #[must_use]

@@ -1,5 +1,5 @@
-use super::proto::LargeValueChunkKeys;
 use crate::ic_registry::RegistryFetchError;
+use ic_host_tools::registry::proto::LargeValueChunkKeys;
 #[cfg(feature = "nns-host")]
 use ic_platform::candid::contract::Principal;
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};

@@ -11,9 +11,9 @@ use super::{
 };
 use crate::{
     agent::build_ic_agent,
-    leb128::decode_canonical_unsigned_u64,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
+use ic_host_tools::encoding::decode_canonical_unsigned_u64;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::SubtreeLookupResult;
 use ic_platform::certification::{Certificate, HashTree, LookupResult};
@@ -140,9 +140,8 @@ pub(super) fn source_data_from_certificate(
         .map_err(|error| {
             invalid_certified_state(format!("certificate time is invalid: {error}"))
         })?;
-    let certificate_time_unix_nanos =
-        decode_canonical_unsigned_u64("certificate time", certificate_time)
-            .map_err(invalid_certified_state)?;
+    let certificate_time_unix_nanos = decode_canonical_unsigned_u64(certificate_time)
+        .map_err(|error| invalid_certified_state(format!("certificate time: {error}")))?;
     let path = [API_BOUNDARY_NODES_LABEL];
     let tree = match certificate.tree.lookup_subtree(path.iter()) {
         SubtreeLookupResult::Found(tree) => tree,

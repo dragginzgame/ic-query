@@ -56,7 +56,7 @@ fn data_center_list_aggregates_registry_relations() {
                 id: "dc-a".to_string(),
                 region: "eu-west".to_string(),
                 owner: "example owner".to_string(),
-                gps: Some(proto::Gps {
+                gps: Some(ic_host_tools::registry::proto::Gps {
                     latitude: 48.8566,
                     longitude: 2.3522,
                 }),

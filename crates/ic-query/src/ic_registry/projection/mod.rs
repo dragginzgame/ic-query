@@ -9,9 +9,9 @@ mod node_provider;
 #[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
 
-#[cfg(all(test, feature = "nns-host"))]
-use crate::ic_registry::proto::SubnetType;
 use crate::subnet_catalog::SubnetKind;
+#[cfg(all(test, feature = "nns-host"))]
+use ic_host_tools::registry::proto::SubnetType;
 
 #[cfg(feature = "nns-host")]
 pub(super) use data_center::data_center_list_from_inventory;

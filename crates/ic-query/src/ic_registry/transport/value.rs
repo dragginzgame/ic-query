@@ -5,13 +5,13 @@ use super::{
 };
 use crate::ic_registry::{
     RegistryFetchError,
-    proto::{
-        RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
-    },
     wire::{
         RegistryValueContent, RegistryValueEncoding, RegistryVersionedValue,
         RegistryVersionedValueFailure,
     },
+};
+use ic_host_tools::registry::proto::{
+    RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
 };
 use ic_platform::agent::Agent;
 use prost::Message;

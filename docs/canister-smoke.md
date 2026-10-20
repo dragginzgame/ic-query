@@ -477,12 +477,16 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.2.1. Its source and feature
+The selected published `ic-platform` release is 0.4.0. Its source and feature
 contracts were inspected from the downloaded registry package; sibling source
-is not substituted. The runtime and macro bodies are unchanged from 0.2.0;
-0.2.1 clarifies owned Wire endpoint policy and runtime maintenance guidance.
+is not substituted. Runtime calls and canister identity use Platform's owned
+Principal. Required external Candid DTOs and native Agent inputs retain the
+external Principal type; no blanket replacement changes their wire contracts.
+Platform's raw call API is transport-only; Query already supplies explicit
+external Candid arguments and decodes replies under its own bounded policy.
+Runtime reject-code changes preserve Query's raw numeric error projection.
 
-Platform supplies the upstream Candid, certification, Principal and native Agent
+Platform supplies the upstream Candid, certification, external Principal and native Agent
 identities. Host retains strict bounded CBOR decoding. Query retains external
 Governance Candid arguments, byte-dependent work quotas, skipping/type/header
 ceilings, error projection, trust roots, deadlines and original reply evidence.

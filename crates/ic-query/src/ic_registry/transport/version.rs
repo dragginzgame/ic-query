@@ -1,5 +1,6 @@
 use super::{RegistryQueryCounter, decode_message};
-use crate::ic_registry::{RegistryFetchError, proto::RegistryGetLatestVersionResponse};
+use crate::ic_registry::RegistryFetchError;
+use ic_host_tools::registry::proto::RegistryGetLatestVersionResponse;
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 

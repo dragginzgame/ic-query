@@ -6,7 +6,7 @@ fn get_value_response_reports_large_value_chunk_keys() {
         error: None,
         version: 1,
         content: Some(registry_get_value_response::Content::LargeValueChunkKeys(
-            proto::LargeValueChunkKeys {
+            ic_host_tools::registry::proto::LargeValueChunkKeys {
                 chunk_content_sha256s: vec![vec![1], vec![2]],
             },
         )),
@@ -42,7 +42,7 @@ fn registry_get_chunk_request_candid_round_trips() {
 #[test]
 fn get_value_response_reports_registry_errors() {
     let response = RegistryGetValueResponse {
-        error: Some(proto::RegistryError {
+        error: Some(ic_host_tools::registry::proto::RegistryError {
             code: RegistryErrorCode::KeyNotPresent as i32,
             reason: "missing".to_string(),
             key: b"routing_table".to_vec(),

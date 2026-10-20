@@ -4,16 +4,16 @@ use crate::{
     cache_file::write_managed_text_atomically,
     ic_registry::{
         RegistryAcquisition, RegistryFetchError,
-        proto::{
-            HighCapacityRegistryDelta, HighCapacityRegistryGetChangesSinceResponse,
-            HighCapacityRegistryValue, high_capacity_registry_value,
-        },
         transport::{
             RegistryQueryCounter, SubnetCatalogProgress, SubnetCatalogProgressPhase,
             key_family::collect_key_family,
         },
     },
     test_support::temp_dir,
+};
+use ic_host_tools::registry::proto::{
+    HighCapacityRegistryDelta, HighCapacityRegistryGetChangesSinceResponse,
+    HighCapacityRegistryValue, high_capacity_registry_value,
 };
 use prost::Message;
 #[cfg(unix)]

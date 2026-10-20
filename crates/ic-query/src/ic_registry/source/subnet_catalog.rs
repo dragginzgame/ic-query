@@ -7,8 +7,6 @@ use crate::{
             CatalogRegistryReader, catalog_from_registry_records_detailed, get_catalog_record,
             record_evidence, record_failure,
         },
-        proto::{RoutingTable, SubnetListRecord},
-        routing_shards::{canister_range_start_from_key, validate_routing_table_shard_bounds},
         transport::{
             RegistryQueryCounter, decode_message, get_latest_version_counted,
             get_registry_key_family_counted, get_registry_versioned_value_counted,
@@ -19,6 +17,10 @@ use crate::{
         RawSubnetCatalog, SubnetCatalogField, SubnetCatalogRegistryRecordKind,
         SubnetCatalogRegistryRecordSubject, SubnetCatalogRoutingSource, SubnetCatalogSubject,
     },
+};
+use ic_host_tools::registry::proto::{RoutingTable, SubnetListRecord};
+use ic_host_tools::registry::routing_shards::{
+    canister_range_start_from_key, validate_routing_table_shard_bounds,
 };
 use ic_platform::candid::contract::Principal;
 
@@ -167,7 +169,7 @@ where
                 )
             })?;
         shard_subjects.push(SubnetCatalogRegistryRecordSubject::canister_ranges(
-            range_start,
+            range_start.into(),
         ));
     }
     let mut routing_table = RoutingTable::default();
@@ -199,15 +201,18 @@ where
             })?;
         let next_start = shard_subjects
             .get(index + 1)
-            .and_then(|next| next.canister_range_start.as_ref());
-        validate_routing_table_shard_bounds(
-            &subject.key,
+            .and_then(|next| next.canister_range_start)
+            .map(ic_platform::Principal::from);
+        let lower_bound = ic_platform::Principal::from(
             subject
                 .canister_range_start
-                .as_ref()
                 .expect("canister-ranges subject has a range start"),
+        );
+        validate_routing_table_shard_bounds(
+            &subject.key,
+            &lower_bound,
             &shard,
-            next_start,
+            next_start.as_ref(),
         )
         .map_err(|reason| {
             record_failure(
@@ -288,14 +293,11 @@ fn latest_version_failure(source: RegistryFetchError) -> Box<SubnetCatalogRegist
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::{
-        ROUTING_TABLE_KEY, SUBNET_LIST_KEY,
-        proto::{
-            CanisterId, CanisterIdRange, PrincipalId, RoutingTableEntry, SubnetId, SubnetRecord,
-        },
-        wire::RegistryValueEncoding,
-    };
+    use crate::ic_registry::{ROUTING_TABLE_KEY, SUBNET_LIST_KEY, wire::RegistryValueEncoding};
     use crate::subnet_catalog::{CatalogAssurance, SubnetCatalogRegistryValueEncoding};
+    use ic_host_tools::registry::proto::{
+        CanisterId, CanisterIdRange, PrincipalId, RoutingTableEntry, SubnetId, SubnetRecord,
+    };
     use prost::Message;
     use std::{collections::BTreeMap, sync::Mutex};
 
@@ -523,7 +525,10 @@ mod tests {
             crate::hex::hex_bytes(start.as_slice())
         );
         assert_eq!(
-            canister_range_start_from_key(CANISTER_RANGES_KEY_PREFIX, &key).expect("range start"),
+            Principal::from(
+                canister_range_start_from_key(CANISTER_RANGES_KEY_PREFIX, &key)
+                    .expect("range start")
+            ),
             start
         );
     }
@@ -536,20 +541,30 @@ mod tests {
         let inside = canister_id(2);
         let subject = SubnetCatalogRegistryRecordSubject::canister_ranges(start);
 
-        let lower_bound = subject
-            .canister_range_start
-            .as_ref()
-            .expect("range-start subject");
-        validate_routing_table_shard_bounds(&subject.key, lower_bound, &shard(start), Some(&next))
-            .expect("matching shard");
-        validate_routing_table_shard_bounds(&subject.key, lower_bound, &shard(inside), Some(&next))
-            .expect("range may start above its shard key");
+        let lower_bound = &ic_platform::Principal::from(
+            subject.canister_range_start.expect("range-start subject"),
+        );
+        let next_bound = ic_platform::Principal::from(next);
+        validate_routing_table_shard_bounds(
+            &subject.key,
+            lower_bound,
+            &shard(start),
+            Some(&next_bound),
+        )
+        .expect("matching shard");
+        validate_routing_table_shard_bounds(
+            &subject.key,
+            lower_bound,
+            &shard(inside),
+            Some(&next_bound),
+        )
+        .expect("range may start above its shard key");
         assert!(
             validate_routing_table_shard_bounds(
                 &subject.key,
                 lower_bound,
                 &shard(below),
-                Some(&next)
+                Some(&next_bound)
             )
             .is_err()
         );
@@ -558,7 +573,7 @@ mod tests {
                 &subject.key,
                 lower_bound,
                 &shard(next),
-                Some(&next)
+                Some(&next_bound)
             )
             .is_err()
         );
@@ -567,7 +582,7 @@ mod tests {
                 &subject.key,
                 lower_bound,
                 &RoutingTable::default(),
-                Some(&next)
+                Some(&next_bound)
             )
             .is_err()
         );

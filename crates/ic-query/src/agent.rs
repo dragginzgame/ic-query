@@ -103,10 +103,10 @@ fn build_ic_agent_with_options<Error>(
 mod tests {
     use super::*;
 
-    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
+    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
     use ic_platform::agent::{AgentError, TransportError};
     use ic_platform::candid::contract::Principal;
-    use std::{io::Write, net::TcpListener, thread, time::Duration};
+    use std::time::Duration;
 
     #[test]
     fn endpoint_agent_reuses_admitted_transport_and_preserves_its_policy() {
@@ -185,28 +185,19 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn configured_agent_rejects_a_response_beyond_its_body_limit() {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test replica");
-        let address = listener.local_addr().expect("test replica address");
-        let server = thread::spawn(move || {
-            let (mut stream, _) = listener.accept().expect("accept test agent request");
-            capture_http_request(
-                &mut stream,
-                Duration::from_secs(10),
-                64 * 1024,
-                8 * 1024 * 1024,
-                HttpContentLength::Optional,
-            )
-            .into_result()
-            .expect("read bounded test agent request");
-            stream
-                .write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: 65\r\nConnection: close\r\n\r\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                )
-                .expect("write oversized test agent response");
-        });
-        let endpoint = format!("http://{address}");
+        let server = HttpFixture::spawn(
+            &[b'x'; 65],
+            "application/cbor",
+            HttpFixtureLimits {
+                timeout: Duration::from_secs(10),
+                max_header_bytes: 64 * 1024,
+                max_body_bytes: 8 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let endpoint = server.endpoint();
         let binding = EndpointAgent::default();
-        let agent = endpoint_agent(&binding, &endpoint, 64, |reason| reason)
+        let agent = endpoint_agent(&binding, endpoint, 64, |reason| reason)
             .expect("bounded endpoint agent");
 
         // Isolate the body limit from signature verification's concurrent read_state request.
@@ -215,7 +206,7 @@ mod tests {
             .call_without_verification())
         .await
         .expect_err("oversized native response must fail");
-        server.join().expect("test replica");
+        server.finish().expect("test replica");
 
         assert!(
             matches!(

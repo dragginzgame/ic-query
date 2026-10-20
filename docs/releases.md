@@ -30,6 +30,12 @@ stages them together; neither a version file nor a changelog heading proves
 that a tag was pushed. Pre-release versions require a separately selected release plan;
 these commands must reject ambiguous or unsupported version inputs.
 
+Shared's metadata adapter replaces `VERSION` last. Failed preparation retains
+the original files and rendered candidates under the reported Git-owned scratch
+directory, including after a partial replacement. Retry uses the existing release
+reconciliation; it does not delete earlier evidence or automatically restore files.
+Successful attempts remove only their own scratch directory.
+
 ## Required workflow
 
 The default `RELEASE_DELIVERY=direct` workflow is:
@@ -382,6 +388,16 @@ was bypassed. Enforce sequencing under parallel Make with ordered recipes or rea
 dependency edges; unordered sibling prerequisites do not establish order. Ordinary
 tool checks never install or download tools. A caller adds its own explicit setup
 command to the shared installer's selection diagnostic, preserving the failed status.
+
+The consumer adapter also selects the admitted executable path for its children.
+Standard `make release-*` commands must work without a per-shell tool-path export.
+An installation in one process cannot export a variable into the calling shell;
+adding a setup target alone does not wire its result into the release adapter.
+Capture a successful offline check before dispatching the helper, preserving a
+nonzero status even if the check printed a plausible path. For saved-release
+checks, select against the admitted saved source or retained original lock,
+not partially prepared live metadata. Keep installation in fresh preflight after
+source/recovery admission, never in a rendering or recovery check.
 
 For adoption, prove an installed version N / selected N+1 prepares N+1 before
 builds, reuses it on retry and leaves locks, older installations and server bytes
@@ -762,18 +778,24 @@ creating commits and exercises the actual adapter's failed-log retention.
 
 ## Cargo release candidate rendering
 
-IC Build owns manifest and lockfile candidate rendering. Before release adapter
-startup, explicitly prepare and qualify its released `ic-build-release-metadata`
-executable. Set `CARGO_RELEASE_METADATA_EDITOR` to its absolute executable path
-and `CARGO_RELEASE_METADATA_MAX_BYTES` to a positive per-document byte allowance.
-There is no implicit setup, PATH discovery or sibling fallback.
+IC Build owns manifest and lockfile candidate rendering. The calling consumer
+adapter selects its released `ic-build-release-metadata` executable through the
+consumer's offline admission interface. Before dispatching Shared's low-level
+Cargo helper, it supplies `CARGO_RELEASE_METADATA_EDITOR` as that absolute
+executable path and `CARGO_RELEASE_METADATA_MAX_BYTES` as a positive per-document
+byte allowance. The low-level helper does not install or discover tools through
+PATH or sibling checkouts. Standard release entrypoints perform the consumer's
+admitted preflight setup and path selection themselves; they must not require
+the maintainer to export these variables manually.
 
-For example, explicitly install the pinned published package through the selected
-Cargo tool interface, before running the adapter:
+For direct low-level invocation, explicitly prepare the pinned published package,
+then capture its offline-admitted selection before running the helper:
 
 ```sh
+bash scripts/dev/install-rust-tools.sh --package ic-build --version 0.18.0 \
+  --bin ic-build-release-metadata --profile debug || exit "$?"
 CARGO_RELEASE_METADATA_EDITOR="$(bash scripts/dev/install-rust-tools.sh \
-  --package ic-build --version 0.18.0 --bin ic-build-release-metadata --profile debug)"
+  --package ic-build --version 0.18.0 --bin ic-build-release-metadata --profile debug --check)" || exit "$?"
 export CARGO_RELEASE_METADATA_EDITOR
 export CARGO_RELEASE_METADATA_MAX_BYTES=8388608
 ```
@@ -781,7 +803,8 @@ export CARGO_RELEASE_METADATA_MAX_BYTES=8388608
 The byte allowance above is a fixture example; consumers choose a limit for their
 own documents. Shared's Cargo adapter and saved-source context fixtures require
 these same explicit selections. Common tool setup does not install this optional
-release tool. The published package requires Rust 1.91 or later.
+release tool unless the consumer includes it in its local extensions. The
+published package requires Rust 1.91 or later.
 
 Direct callers of the retired `render-cargo-workspace-version.pl` use the editor's
 `--max-input-bytes LIMIT manifest SOURCE PREVIOUS CANDIDATE [WORKSPACE_INPUT_JSON]`

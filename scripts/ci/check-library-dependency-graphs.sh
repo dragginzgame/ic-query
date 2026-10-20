@@ -135,7 +135,6 @@ forbidden_agent_only_host_dependencies=(
   candid_parser
   ic-host-tools/candid
   ic-host-tools/certificate
-  ic-host-tools/encoding
   ic-host-tools/ic-interface
   ic-host-tools/icp-project
   ic-host-tools/ledger-evidence
@@ -269,8 +268,8 @@ check_tree_absent "ic-query --features ic-state-host" \
   --features ic-state-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# Certified IC state collection directly needs only the agent, timers,
-# and Host's agent builder; it must not activate cache, Dashboard, Registry, or
+# Certified IC state collection needs the agent, timers, pure encoding and
+# Host's agent builder; it must not activate cache, Dashboard, Registry, or
 # independent certificate-decoding dependencies.
 check_tree_absent "ic-query --features ic-state-host direct dependencies" \
   "${forbidden_direct_ic_state_host_dependencies[@]}" \
@@ -301,6 +300,7 @@ check_tree_absent "ic-query --features icrc-host direct dependencies" \
 check_tree_absent "ic-query --features certificate-host" \
   "${forbidden_cmc_host_dependencies[@]}" \
   "${forbidden_host_dependencies[@]}" \
+  ic-host-tools/ledger-evidence \
   -- \
   --package ic-query \
   --no-default-features \
@@ -335,6 +335,7 @@ check_tree_absent "ic-query --features cmc-host direct dependencies" \
 check_tree_absent "ic-query --features cloud-engine-host" \
   "${forbidden_cloud_engine_host_dependencies[@]}" \
   "${forbidden_agent_only_host_dependencies[@]}" \
+  ic-host-tools/encoding \
   -- \
   --package ic-query \
   --no-default-features \

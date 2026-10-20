@@ -43,7 +43,7 @@ pub use acquisition::RegistryAcquisition;
 pub use acquisition::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 pub use history_cache::RegistryHistoryCacheDisposition;
 
-use crate::ic_registry::proto::RegistryErrorCode;
+use ic_host_tools::registry::proto::RegistryErrorCode;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 ///

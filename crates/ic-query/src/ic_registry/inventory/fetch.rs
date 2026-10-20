@@ -6,7 +6,6 @@ use super::{
 };
 use crate::ic_registry::{
     RegistryFetchError, SUBNET_LIST_KEY, principal_text_from_raw,
-    proto::{NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord},
     relations::{
         RegistryRelationInventory, RegistryRelationInventoryScope,
         assigned_node_principals_from_subnets, node_operator_references_from_records,
@@ -15,6 +14,9 @@ use crate::ic_registry::{
     transport::{decode_message, get_registry_value},
 };
 use futures::{StreamExt, TryStreamExt, stream};
+use ic_host_tools::registry::proto::{
+    NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord,
+};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};

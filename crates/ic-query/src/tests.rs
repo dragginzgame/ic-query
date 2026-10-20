@@ -5,10 +5,7 @@ use ic_host_text::{
 };
 
 #[cfg(feature = "host")]
-use crate::{
-    duration::{display_duration_seconds, parse_duration_seconds},
-    token_amount::e8s_decimal_text,
-};
+use crate::token_amount::e8s_decimal_text;
 use crate::{
     text_value::{optional_text, optional_u64_text, truncate_text, yes_no},
     token_amount::base_units_decimal_text,
@@ -185,26 +182,4 @@ fn scalar_text_sanitizing_is_control_free_and_idempotent() {
     for limit in 0..=sanitized.chars().count() {
         assert!(!truncate_text(&ascii, limit).chars().any(char::is_control));
     }
-}
-
-#[test]
-#[cfg(feature = "host")]
-fn duration_display_uses_largest_readable_unit() {
-    assert_eq!(display_duration_seconds(0), "0s");
-    assert_eq!(display_duration_seconds(86_400), "1d");
-    assert_eq!(display_duration_seconds(2_629_800), "30.44d");
-    assert_eq!(display_duration_seconds(5_400), "1.50h");
-    assert_eq!(display_duration_seconds(90), "1.50m");
-    assert_eq!(display_duration_seconds(45), "45s");
-}
-
-#[test]
-#[cfg(feature = "host")]
-fn duration_parser_accepts_integer_units() {
-    assert_eq!(parse_duration_seconds("45").expect("seconds"), 45);
-    assert_eq!(parse_duration_seconds("30m").expect("minutes"), 1_800);
-    assert_eq!(parse_duration_seconds("2h").expect("hours"), 7_200);
-    assert_eq!(parse_duration_seconds("1d").expect("days"), 86_400);
-    assert!(parse_duration_seconds("0").is_err());
-    assert!(parse_duration_seconds("1.5h").is_err());
 }

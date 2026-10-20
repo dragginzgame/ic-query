@@ -628,10 +628,10 @@ fn icrc3_value_json(value: &ICRC3Value) -> JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_host_process::testing::http::{HttpContentLength, capture_http_request};
+    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
     use ic_platform::icrc_ledger_types::QueryArchiveFn;
     use serde_cbor::Value;
-    use std::{collections::BTreeMap, io::Write, net::TcpListener, thread, time::Duration};
+    use std::{collections::BTreeMap, time::Duration};
 
     #[test]
     fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
@@ -727,8 +727,6 @@ mod tests {
     }
 
     async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let endpoint = format!("http://{}", listener.local_addr().unwrap());
         let reply = GetBlocksResult {
             log_length: Nat::from(100u64),
             blocks: block_ids
@@ -751,28 +749,17 @@ mod tests {
             ),
         ])))
         .unwrap();
-        let server = thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            let request = capture_http_request(
-                &mut stream,
-                Duration::from_secs(10),
-                64 * 1024,
-                8 * 1024 * 1024,
-                HttpContentLength::Optional,
-            )
-            .into_result()
-            .unwrap();
-            let body_start = request
-                .windows(4)
-                .position(|bytes| bytes == b"\r\n\r\n")
-                .unwrap()
-                + 4;
-            let request = request[body_start..].to_vec();
-            let request: Value = serde_cbor::from_slice(&request).unwrap();
-            write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/cbor\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).unwrap();
-            stream.write_all(&body).unwrap();
-            request
-        });
+        let server = HttpFixture::spawn(
+            &body,
+            "application/cbor",
+            HttpFixtureLimits {
+                timeout: Duration::from_secs(10),
+                max_header_bytes: 64 * 1024,
+                max_body_bytes: 8 * 1024 * 1024,
+            },
+        )
+        .unwrap();
+        let endpoint = server.endpoint();
         let agent = Agent::builder()
             .with_url(endpoint)
             .with_verify_query_signatures(false)
@@ -786,7 +773,14 @@ mod tests {
             }],
         };
         let followed = fetch_archive_blocks(&agent, &[archive]).await;
-        let Value::Map(envelope) = server.join().unwrap() else {
+        let raw = server.finish().unwrap();
+        let body_start = raw
+            .windows(4)
+            .position(|bytes| bytes == b"\r\n\r\n")
+            .unwrap()
+            + 4;
+        let Value::Map(envelope) = serde_cbor::from_slice::<Value>(&raw[body_start..]).unwrap()
+        else {
             panic!("request envelope")
         };
         let Value::Map(content) = &envelope[&Value::Text("content".into())] else {

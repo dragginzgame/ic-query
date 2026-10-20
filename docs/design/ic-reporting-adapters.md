@@ -28,6 +28,8 @@ Dependencies own the reusable mechanisms beneath that policy:
 | --- | --- | --- |
 | IC transport and standard values | `ic-platform` Agent/Candid/certification/ledger contracts | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
 | Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, protected export paths, family error projection, report layouts and smoke-harness interruption policy |
+| Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification, replay and report projection |
+| Canonical unsigned `u64` LEB128 and bounded ICRC chain evidence | Host Tools' `encoding` and `ledger-evidence` features | Field/error projection, certificate/witness authentication and transaction interpretation |
 | Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
 | Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
 | Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
@@ -38,7 +40,15 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Managed cache operations use published Host FS 0.30 `capability::Directory` and
+The private Registry adapter consumes Host's published protobuf projections and
+routing-shard checks directly. The `subnet-catalog-host` feature enables this
+capability; portable, canister and unrelated host selections do not. Query still
+uses Prost's message traits for bounded transport decoding and evidence encoding.
+Host's partial wire projections do not authenticate Registry values or establish
+complete routing coverage; those policies and the report/cache contracts remain
+Query-owned.
+
+Managed cache operations use published Host FS 0.31 `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
 select the separate `temporary-file` backend. Host owns no-follow traversal,
 directory creation, bounded entry observations and descriptor-relative file
@@ -51,8 +61,9 @@ or imports cap-std/cap-fs-ext; their private Host backend remains transitive.
 Consumer integration tests keep cache and error-policy coverage here; generic
 filesystem race and traversal regression tests belong to Host.
 
-Host Text owns canonical UTC conversion and exact fixed/compact decimal
-rounding. Query retains freshness decisions, token input normalization and
+Host Text owns canonical UTC conversion, positive-second duration parsing,
+rounded duration display and exact fixed/compact decimal rounding.
+Query retains freshness decisions, token input normalization and
 cycle/byte unit selection. Host FS owns non-aliasing in-place export checks,
 writing and synchronization; Query supplies its managed cache/lock paths and
 64-link ceiling and maps Host's stages to its existing errors. Export writes
@@ -61,15 +72,24 @@ permissions and may leave partial output on write/sync failure. These APIs are
 available in the selected published Host packages; no sibling checkout or local
 copy substitutes for them.
 
-The published Platform 0.2.1 boundary preserves upstream Candid type identities
+The published Platform 0.4.0 boundary preserves upstream Candid type identities
 and Query's existing decoder quotas and error projection. Query's `canister`
 feature selects Platform's `cdk` facade for canister identity and bounded calls.
 The typed probe uses Platform's explicit-codec entrypoint generator with bounded
 Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
 probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Testkit 0.55.2 retains Platform 0.1 in its
-internal graph; the fixture uses raw transport bytes and Wire, without passing
-Platform 0.2 limit/error values across that version boundary.
+CDK or macro-package declarations. Host Tools 0.31.1 shares Platform 0.4;
+Testkit 0.57 retains Platform 0.2.2 internally. External Candid, Agent and ledger DTO
+identities match across those versions; the fixture uses raw transport bytes and
+Wire without passing owned runtime or limit/error types across that boundary.
+The replicated Governance adapter uses Platform's owned Principal for runtime
+calls. Required Candid DTOs and public APIs retain
+`ic_platform::candid::contract::Principal`, and ledger DTOs retain their external
+Account identity; substituting owned types would change their Candid contracts.
+Host's Registry shard keys and bounds use owned Principals. Query converts at
+that boundary, preserving the external Principal in public report/evidence DTOs
+and passing owned identities to shard validation. Replay keeps inferred owned
+bounds internally; no wire or persisted identity encoding changes.
 Native host features select `ic-platform/agent`; the CLI smoke harness enables
 that feature through its development dependency. Platform exposes the same Agent
 and typed transport/reject errors without choosing endpoints, root keys, HTTP
@@ -99,12 +119,26 @@ There is no direct `ic-certification` declaration; its transitive presence throu
 Platform, Host and Agent is intentional.
 
 Platform's optional ledger surface exports the original `icrc-ledger-types` 0.2.0
-identities. `icrc-host`, `sns-host` and `ledger-evidence-host` select it; Query has
+identities. `icrc-host` and `sns-host` select it directly; Host's
+`ledger-evidence` feature selects it for `ledger-evidence-host`. Query has
 no direct ledger-types declaration. Account semantics, generic-value hashes,
 wire variants and archive callback types remain upstream. Query retains archive
 admission, bounded calls, certificate verification and transaction interpretation.
 The upstream `storable` feature is disabled; stable-memory storage is outside
 Query's boundary and excluded from supported normal/build graphs.
+
+Host's pure `encoding` feature admits canonical unsigned `u64` LEB128 leaves for
+certified Registry and API-boundary-node state. Query supplies the field context
+and projects failures into its existing authority-specific errors. Only those
+profiles select the codec; unrelated agent-only profiles keep it disabled.
+
+The `ledger-evidence-host` integration retains Query's certificate authentication,
+witness checks and exact ICRC-3 tip-leaf admission, returning Host's `LedgerTip`
+directly. Callers use Host's value admission and immutable borrowed chain verifier;
+Query has no separate ledger-verifier module or compatibility reexports.
+Certificate-only profiles do not activate Host's ledger feature. The `u128`
+ICRC tip-index decoder remains local because Host's shared codec admits `u64`;
+those distinct wire contracts must not be narrowed to unify implementations.
 
 ## Host execution ownership
 

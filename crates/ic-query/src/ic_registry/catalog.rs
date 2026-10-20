@@ -2,7 +2,6 @@ use super::{
     MainnetRegistryFetchRequest, ROUTING_TABLE_KEY, RegistryFetchError,
     SubnetCatalogRegistryFailure, canister_id_text, principal_from_raw,
     projection::subnet_kind_from_registry,
-    proto::{RoutingTable, SubnetListRecord, SubnetRecord},
     subnet_id_text,
     transport::decode_message,
     wire::{RegistryValueEncoding, RegistryVersionedValue, RegistryVersionedValueFailure},
@@ -14,6 +13,7 @@ use crate::subnet_catalog::{
     SubnetCatalogRoutingSource, SubnetCatalogSubject, SubnetInfo, SubnetSpecialization,
     UncertifiedCatalogCollection, subject_from_catalog_error,
 };
+use ic_host_tools::registry::proto::{RoutingTable, SubnetListRecord, SubnetRecord};
 use std::future::Future;
 
 ///

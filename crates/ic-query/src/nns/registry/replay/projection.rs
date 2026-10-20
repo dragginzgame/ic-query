@@ -13,12 +13,7 @@ use super::{
 use crate::{
     hex::hex_bytes,
     ic_registry::{
-        CANISTER_RANGES_KEY_PREFIX, ROUTING_TABLE_KEY, SUBNET_LIST_KEY,
-        proto::RoutingTable,
-        proto::SubnetListRecord,
-        proto::SubnetRecord,
-        routing_ranges_from_table,
-        routing_shards::{canister_range_start_from_key, validate_routing_table_shard_bounds},
+        CANISTER_RANGES_KEY_PREFIX, ROUTING_TABLE_KEY, SUBNET_LIST_KEY, routing_ranges_from_table,
         subnet_info_from_record, subnet_record_key,
     },
     subnet_catalog::{
@@ -28,6 +23,12 @@ use crate::{
         SubnetInfo, ValidatedSubnetCatalog, canonicalize_subnet_catalog_content,
         format_utc_timestamp_secs,
     },
+};
+use ic_host_tools::registry::proto::RoutingTable;
+use ic_host_tools::registry::proto::SubnetListRecord;
+use ic_host_tools::registry::proto::SubnetRecord;
+use ic_host_tools::registry::routing_shards::{
+    canister_range_start_from_key, validate_routing_table_shard_bounds,
 };
 use ic_platform::candid::contract::Principal;
 use prost::Message;

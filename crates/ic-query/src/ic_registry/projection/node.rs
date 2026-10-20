@@ -2,7 +2,6 @@ use crate::{
     ic_registry::{
         MainnetNode, MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
         projection::subnet_kind_from_registry,
-        proto::SubnetRecord,
         relations::{
             RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
             resolved_node_relations_from_records,
@@ -10,6 +9,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_tools::registry::proto::SubnetRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_list_from_inventory(

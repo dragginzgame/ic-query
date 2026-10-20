@@ -2,7 +2,6 @@ use crate::{
     ic_registry::{
         MainnetDataCenter, MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
         normalized_data_center_id,
-        proto::DataCenterRecord,
         relations::{
             RegistryRelationInventory, data_center_node_counts_from_records,
             data_center_operator_counts_from_records, data_center_provider_counts_from_records,
@@ -10,6 +9,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_tools::registry::proto::DataCenterRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn data_center_list_from_inventory(

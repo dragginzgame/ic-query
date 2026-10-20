@@ -18,7 +18,7 @@ qualified by this matrix.
 
 ## Prerequisites
 
-- Rustup with Rust `1.99.0`, rustfmt, Clippy, and `wasm32-unknown-unknown`, plus
+- Rustup with Rust `1.99.1`, rustfmt, Clippy, and `wasm32-unknown-unknown`, plus
   the declared MSRV `1.91.0` for its separate check. Installation must preserve
   the repository's selected `Cargo.lock`.
 - Bash 3.2 or newer, GNU Make 3.81 or newer, Git, Perl with its core modules,
@@ -2476,12 +2476,13 @@ Linux, macOS ARM64 and macOS x86-64 canister lanes explicitly prepare/check
 Testkit, then execute `make canister-test` before local-NNS deployment smoke.
 Local evidence and outstanding native CI results are reported at handoff.
 
-Testkit and WAT are native development dependencies only. Normal minimal,
+Testkit and its raw-reply fixtures are native development dependencies only. Normal minimal,
 canister and host library consumers retain their dependency boundaries and
-Rust 1.91 floor. Published `ic-platform` 0.1.11 supplies bounded Candid reply
+Rust 1.91 floor. Published `ic-platform` 0.4.0 supplies bounded Candid reply
 decoding and qualified contract types on native and Wasm targets without the
-simulator. Testkit 0.54's native fixture calls use Platform's limits and errors
-directly, without a separate decoder package. The `canister` feature selects
+simulator. Testkit 0.57 retains Platform 0.2.2 internally; Query passes raw Wire
+bytes rather than owned runtime or limit/error types across that boundary.
+There is no separate decoder package. The `canister` feature selects
 Platform's CDK facade and generator for calls, canister identity and the typed
 probe. Native Agent APIs and the probe's raw clock also use Platform; no direct
 Candid/CDK declarations remain. Native macOS and installed-IC callback/trap

@@ -7,10 +7,8 @@ mod error;
 mod inventory;
 mod model;
 mod projection;
-pub mod proto;
 #[cfg(feature = "nns-topology-host")]
 mod relations;
-pub mod routing_shards;
 mod source;
 mod transport;
 mod wire;
@@ -37,6 +35,7 @@ pub use client::{
 };
 pub use error::RegistryFetchError;
 pub use error::SubnetCatalogRegistryFailure;
+use ic_host_tools::registry::proto::{CanisterId, SubnetId};
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;
@@ -56,7 +55,6 @@ pub use model::{MainnetRegistryCertification, MainnetRegistryVersion};
 pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
-use proto::{CanisterId, SubnetId};
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use transport::authenticate_certified_registry_delta_witness;
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -81,7 +79,7 @@ use projection::{
 };
 
 #[cfg(all(test, feature = "nns-host"))]
-use proto::{
+use ic_host_tools::registry::proto::{
     DataCenterRecord, NodeOperatorRecord, NodeRecord, RoutingTable, SubnetListRecord, SubnetRecord,
     SubnetType,
 };

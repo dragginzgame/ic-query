@@ -15,7 +15,7 @@ categories = ["command-line-utilities"]
 
 [features]
 default = []
-ledger-evidence-host = ["certificate-host", "ic-platform/icrc-ledger-types"]
+ledger-evidence-host = ["certificate-host", "ic-host-tools/ledger-evidence"]
 certificate-host = ["ic-platform/agent", "ic-host-tools/certificate", "ic-platform/certification"]
 canister = ["ic-platform/cdk"]
 host = [
@@ -29,10 +29,11 @@ host = [
 ]
 cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent", "dep:tokio"]
 cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent", "dep:tokio"]
-certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "dep:serde_cbor"]
+certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding", "dep:serde_cbor"]
 dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:reqwest", "dep:tokio"]
 ic-state-host = [
     "ic-host-tools/agent",
+    "ic-host-tools/encoding",
     "ic-platform/agent",
     "dep:tokio",
     "ic-platform/certification",
@@ -61,6 +62,7 @@ sns-host = [
 ]
 subnet-catalog-host = [
     "ic-host-tools/agent",
+    "ic-host-tools/registry",
     "dep:futures",
     "ic-platform/agent",
     "dep:ic-host-artifacts",

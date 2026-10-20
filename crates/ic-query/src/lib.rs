@@ -76,7 +76,6 @@ pub mod cloud_engine;
     feature = "sns-host"
 ))]
 mod decimal;
-pub mod duration;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
@@ -91,10 +90,6 @@ pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
-#[cfg(any(feature = "certified-subnet-catalog-host", feature = "ic-state-host"))]
-mod leb128;
-#[cfg(feature = "ledger-evidence-host")]
-pub mod ledger_evidence;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "cmc-host",

@@ -2,7 +2,6 @@ use crate::{
     ic_registry::{
         MainnetNodeOperator, MainnetNodeOperatorList, MainnetRegistryFetchRequest,
         RegistryFetchError,
-        proto::NodeOperatorRecord,
         relations::{
             RegistryRelationInventory, node_operator_counts_from_records,
             node_provider_principal_from_record,
@@ -10,6 +9,7 @@ use crate::{
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_tools::registry::proto::NodeOperatorRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_operator_list_from_inventory(

@@ -159,6 +159,36 @@ mod host {
         assert_eq!(data.rows[1].ipv4_address.as_deref(), Some("192.0.2.2"));
     }
 
+    #[test]
+    fn malformed_certificate_times_preserve_the_state_error_and_field_context() {
+        for bytes in [
+            vec![],
+            vec![0x80],
+            vec![0x80, 0],
+            vec![0, 0],
+            vec![0xff; 10],
+        ] {
+            let certificate = Certificate {
+                tree: fork(
+                    label("time", leaf(bytes)),
+                    label(
+                        "api_boundary_nodes",
+                        certified_nodes(vec![(NODE_A, "api1.example.com", None, "2001:db8::1")]),
+                    ),
+                ),
+                signature: Vec::new(),
+                delegation: None,
+            };
+            let error =
+                super::super::host::source_data_from_certificate(&source_request(), certificate)
+                    .unwrap_err();
+            assert!(matches!(
+                error, IcApiBoundaryNodeHostError::InvalidCertifiedState { reason }
+                    if reason.contains("certificate time")
+            ));
+        }
+    }
+
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     enum Mutation {
         WrongSource,

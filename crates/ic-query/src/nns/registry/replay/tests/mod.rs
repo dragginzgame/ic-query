@@ -1,9 +1,5 @@
 use super::*;
 use crate::{
-    ic_registry::proto::{
-        CanisterId, CanisterIdRange, PrincipalId, RoutingTable, RoutingTableEntry, SubnetId,
-        SubnetListRecord, SubnetRecord, SubnetType,
-    },
     nns::registry::{
         NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsAuthenticatedRegistryDeltaBatch,
         NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSource,
@@ -17,6 +13,10 @@ use crate::{
         SubnetSpecialization, ValidatedSubnetCatalog, catalog_to_pretty_json,
         format_utc_timestamp_secs, parse_catalog_json,
     },
+};
+use ic_host_tools::registry::proto::{
+    CanisterId, CanisterIdRange, PrincipalId, RoutingTable, RoutingTableEntry, SubnetId,
+    SubnetListRecord, SubnetRecord, SubnetType,
 };
 use ic_platform::candid::contract::Principal;
 use prost::Message;

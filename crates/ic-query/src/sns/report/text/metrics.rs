@@ -6,13 +6,13 @@
 
 use crate::sns::report::sns_treasury_kind;
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},
 };
 
 use crate::{
-    duration::display_duration_seconds,
     sns::report::{SnsMetricsReport, SnsTreasuryMetricRow},
     text_value::{optional_text, optional_u64_text, yes_no},
 };

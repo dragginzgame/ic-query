@@ -1,6 +1,6 @@
 use super::*;
 use crate::subnet_catalog::{SubnetKind, SubnetSpecialization};
-use proto::{
+use ic_host_tools::registry::proto::{
     PrincipalId, RegistryErrorCode, RegistryGetValueResponse, registry_get_value_response,
 };
 

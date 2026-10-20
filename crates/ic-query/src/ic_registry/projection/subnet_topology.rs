@@ -3,13 +3,13 @@ use crate::{
         MainnetRegistryFetchRequest, MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider,
         MainnetSubnetTopologySubnet, RegistryFetchError,
         projection::subnet_kind_from_registry,
-        proto::SubnetRecord,
         relations::{
             RegistryRelationInventory, ResolvedNodeRelation, resolved_node_relations_from_records,
         },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_tools::registry::proto::SubnetRecord;
 use ic_platform::candid::contract::Principal;
 use std::collections::BTreeMap;
 
@@ -109,8 +109,8 @@ fn subnet_node_providers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::proto::{NodeOperatorRecord, NodeRecord, SubnetType};
     use crate::subnet_catalog::SubnetKind;
+    use ic_host_tools::registry::proto::{NodeOperatorRecord, NodeRecord, SubnetType};
     use std::collections::{BTreeMap, BTreeSet};
 
     #[test]

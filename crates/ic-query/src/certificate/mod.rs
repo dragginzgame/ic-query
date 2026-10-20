@@ -8,6 +8,8 @@ mod tests;
 use ic_host_tools::certificate::{
     DecodeError, DecodeLimits, ParseError, decode_certificate, decode_hash_tree,
 };
+#[cfg(feature = "ledger-evidence-host")]
+use ic_host_tools::ledger_evidence::LedgerTip;
 use ic_platform::agent::{Agent, AgentError};
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{Certificate, HashTree, LookupResult};
@@ -137,43 +139,34 @@ pub fn verify_witness(
     }
 }
 
-///
-/// CertifiedLedgerTip
-///
-/// Authenticated ICRC-3 last-block index/hash; it carries no transaction or payment authority.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CertifiedLedgerTip {
-    /// Authenticated index of the ledger's last block.
-    pub index: u128,
-    /// Authenticated 32-byte hash of that last block.
-    pub hash: [u8; 32],
-}
-
 /// Authenticate bounded ICRC-3 tip bytes and decode their exact index and hash.
+///
+/// Requires `ledger-evidence-host`; the returned Host value is authenticated by this call.
 ///
 /// # Errors
 /// Refuses certificate/witness failures, missing leaves and noncanonical/out-of-range indexes.
+#[cfg(feature = "ledger-evidence-host")]
 pub fn authenticate_ledger_tip(
     agent: &Agent,
     ledger: Principal,
     certificate: &[u8],
     witness: &[u8],
     limits: CertificateEvidenceLimits,
-) -> Result<CertifiedLedgerTip, CertificateVerificationError> {
+) -> Result<LedgerTip, CertificateVerificationError> {
     let tree = authenticate_hash_tree(agent, ledger, certificate, witness, limits)?;
     ledger_tip(&tree)
 }
 
-fn ledger_tip(tree: &HashTree) -> Result<CertifiedLedgerTip, CertificateVerificationError> {
+#[cfg(feature = "ledger-evidence-host")]
+fn ledger_tip(tree: &HashTree) -> Result<LedgerTip, CertificateVerificationError> {
     let hash = required_leaf(tree, b"last_block_hash")?
         .try_into()
         .map_err(|_| CertificateVerificationError::LedgerTipMalformed)?;
     let index = decode_index(required_leaf(tree, b"last_block_index")?)?;
-    Ok(CertifiedLedgerTip { index, hash })
+    Ok(LedgerTip { index, hash })
 }
 
+#[cfg(feature = "ledger-evidence-host")]
 fn required_leaf<'a>(
     tree: &'a HashTree,
     label: &[u8],
@@ -184,6 +177,7 @@ fn required_leaf<'a>(
     }
 }
 
+#[cfg(feature = "ledger-evidence-host")]
 fn decode_index(bytes: &[u8]) -> Result<u128, CertificateVerificationError> {
     let mut value = 0_u128;
     for (offset, byte) in bytes.iter().copied().enumerate() {

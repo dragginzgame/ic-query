@@ -1,10 +1,10 @@
 use super::{INVENTORY_FETCH_CONCURRENCY, keys::data_center_record_key};
 use crate::ic_registry::{
     RegistryFetchError, normalized_data_center_id,
-    proto::{DataCenterRecord, NodeOperatorRecord},
     transport::{decode_message, get_registry_value},
 };
 use futures::{StreamExt, TryStreamExt, stream};
+use ic_host_tools::registry::proto::{DataCenterRecord, NodeOperatorRecord};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};

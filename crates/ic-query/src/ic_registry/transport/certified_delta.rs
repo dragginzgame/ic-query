@@ -17,12 +17,12 @@ use crate::{
         AuthenticatedRegistryDeltaWitness, CertifiedRegistryDeltaBatch,
         CertifiedRegistryDeltaVersion, CertifiedRegistryMutation, CertifiedRegistryPrecondition,
         CertifiedRegistryValueEncoding, RegistryFetchError,
-        proto::{
-            HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
-            RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMixedHashTree,
-            RegistryMutationType, high_capacity_registry_mutation::Content,
-        },
     },
+};
+use ic_host_tools::registry::proto::{
+    HighCapacityRegistryAtomicMutateRequest, HighCapacityRegistryMutation,
+    RegistryCertifiedResponse, RegistryGetChangesSinceRequest, RegistryMixedHashTree,
+    RegistryMutationType, high_capacity_registry_mutation::Content,
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
@@ -551,7 +551,7 @@ fn checked_accumulate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::proto::{
+    use ic_host_tools::registry::proto::{
         HighCapacityRegistryMutation, RegistryPrecondition, high_capacity_registry_mutation,
     };
     use ic_platform::certification::{empty, fork, labeled as label, leaf, pruned};
@@ -740,7 +740,7 @@ mod tests {
             key: b"large".to_vec(),
             content: Some(
                 high_capacity_registry_mutation::Content::LargeValueChunkKeys(
-                    crate::ic_registry::proto::LargeValueChunkKeys {
+                    ic_host_tools::registry::proto::LargeValueChunkKeys {
                         chunk_content_sha256s: chunk_sha256s.clone(),
                     },
                 ),

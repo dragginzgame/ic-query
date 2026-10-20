@@ -1,6 +1,6 @@
 #[cfg(feature = "nns-host")]
-use crate::ic_registry::proto::DataCenterRecord;
-use crate::ic_registry::proto::{NodeOperatorRecord, NodeRecord, SubnetRecord};
+use ic_host_tools::registry::proto::DataCenterRecord;
+use ic_host_tools::registry::proto::{NodeOperatorRecord, NodeRecord, SubnetRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
 ///

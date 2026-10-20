@@ -1,4 +1,5 @@
-use crate::ic_registry::{RegistryFetchError, principal_text_from_raw, proto::SubnetRecord};
+use crate::ic_registry::{RegistryFetchError, principal_text_from_raw};
+use ic_host_tools::registry::proto::SubnetRecord;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(in crate::ic_registry) fn assigned_node_principals_from_subnets(

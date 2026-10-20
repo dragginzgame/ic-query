@@ -168,8 +168,13 @@ pub fn build_wasm(root: &Path, target: &Path) -> Result<()> {
         ));
     }
     let mut bytes = protocol::read_wasm(path)?;
+    let rustc = std::str::from_utf8(&inputs.facts().rustc_identity)?
+        .lines()
+        .next()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| invalid("captured compiler identity is empty"))?;
     let build = json!({"schema_version":1,
-        "rustc":command::run(&mut command(root,"rustc", &["--version"]), &CommandOptions::default())?,
+        "rustc":rustc,
         "cargo_lock_sha256":hash_reader(fs::File::open(root.join("Cargo.lock"))?, u64::MAX)?.sha256.to_string(),
         "source_sha256":source_digest(root)?});
     append_metadata_section(

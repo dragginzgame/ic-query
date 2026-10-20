@@ -5,6 +5,49 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.65.0]
+
+- Adopt published Platform 0.4.0 and Host 0.31.1. Convert Registry shard identities
+  explicitly at Host's owned Principal boundary. Use owned Principals for runtime calls while
+  preserving external Candid, Agent and ledger DTO identities and wire formats.
+- Require IC Build 0.22.1 for Host 0.31's process boundary, preserving the smoke
+  runner's TERM grace and bounded reaping policy.
+- **Breaking:** consume duration helpers directly from Host Text and ledger value/
+  chain evidence directly from Host Tools. Query's ledger-tip authentication now
+  requires `ledger-evidence-host` and returns Host's `LedgerTip`. Update consumer
+  imports; no compatibility reexports remain
+  ([#71](https://github.com/dragginzgame/ic-query/issues/71),
+  [#78](https://github.com/dragginzgame/ic-query/issues/78)).
+- Use Host's canonical unsigned LEB128 decoder for certified Registry and API
+  boundary-node state, preserving field context and Query's typed failures
+  ([#63](https://github.com/dragginzgame/ic-query/issues/63)).
+
+- Select Rust 1.99.1 for development and matching CI checks, retaining existing
+  package MSRVs.
+
+- Adopt Shared Tooling 0.25.4, including explicit Cargo-tool feature selections,
+  actionable admission diagnostics and failure-evidence guidance. Re-run explicit
+  tool setup after adoption; prior tool generations and failure evidence remain retained.
+  Optional selected-tool checks can specify Cargo features; they require matching
+  explicit setup and do not add tools to Query's default catalog:
+
+```bash
+bash scripts/dev/install-rust-tools.sh --consumer "$PWD" \
+  --package ic-host-fs --version 0.31.1 --bin ic-host-file \
+  --profile release --features cli --check
+```
+
+- Bind Governance probe compiler provenance to its captured build observation,
+  avoiding a second compiler probe after compilation
+  ([PR #84](https://github.com/dragginzgame/ic-query/pull/84)).
+- Use Host's bounded HTTP fixtures for native Agent, Candid and ICRC tests
+  ([#67](https://github.com/dragginzgame/ic-query/issues/67)).
+- Consume Host's Registry protobuf projections and routing-shard checks, removing
+  duplicate private implementations while preserving report and cache formats
+  ([#66](https://github.com/dragginzgame/ic-query/issues/66)).
+
+Detailed release notes: [docs/changelog/0.65.md](docs/changelog/0.65.md)
+
 ## [0.64.0] - 2026-10-19
 
 - **Breaking:** use Host Artifacts, FS, Text and Tools 0.30. Certificate decode

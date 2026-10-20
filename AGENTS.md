@@ -121,8 +121,8 @@ Policy adoption does not activate hooks, schedules, installers or release comman
   Report construction, host calls, cache reads, and text rendering belong in
   the relevant report module under `crates/ic-query/src/`; reusable cache
   mechanics belong in its `cache_file/` module; reusable formatting belongs
-  in small shared modules such as `table.rs`, `duration.rs`, and token amount
-  helpers.
+  in Host Text, while report-specific token amount and unit-selection policy
+  stays in local helpers.
 - Process arguments, stdout/stderr, terminal detection, and progress rendering
   belong exclusively to `ic-query-cli`. The reusable library may emit typed
   progress events, but it must never select or write to a process output sink.

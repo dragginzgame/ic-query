@@ -1,9 +1,7 @@
 #[cfg(feature = "nns-host")]
 use crate::ic_registry::normalized_data_center_id;
-use crate::ic_registry::{
-    RegistryFetchError, principal_text_from_required_raw,
-    proto::{NodeOperatorRecord, NodeRecord},
-};
+use crate::ic_registry::{RegistryFetchError, principal_text_from_required_raw};
+use ic_host_tools::registry::proto::{NodeOperatorRecord, NodeRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(in crate::ic_registry) fn node_operator_references_from_records(

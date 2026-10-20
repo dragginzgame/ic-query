@@ -5,12 +5,10 @@ use super::history_cache::{
 use super::{
     RegistryQueryCounter, SubnetCatalogProgressPhase, decode_message, registry_error_code,
 };
-use crate::ic_registry::{
-    RegistryFetchError,
-    proto::{
-        HighCapacityRegistryGetChangesSinceResponse, RegistryGetChangesSinceRequest,
-        high_capacity_registry_value,
-    },
+use crate::ic_registry::RegistryFetchError;
+use ic_host_tools::registry::proto::{
+    HighCapacityRegistryGetChangesSinceResponse, RegistryGetChangesSinceRequest,
+    high_capacity_registry_value,
 };
 use ic_platform::agent::Agent;
 use prost::Message;
@@ -518,7 +516,7 @@ fn key_family_at_version(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::proto::{HighCapacityRegistryDelta, HighCapacityRegistryValue};
+    use ic_host_tools::registry::proto::{HighCapacityRegistryDelta, HighCapacityRegistryValue};
     use std::{
         future::Future,
         sync::{Arc, Mutex},

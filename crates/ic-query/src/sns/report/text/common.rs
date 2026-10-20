@@ -4,12 +4,12 @@
 //! Does not own: report DTOs, tables, cache behavior, or source reads.
 //! Boundary: exposes small formatting helpers used by text report leaves.
 
+use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::escape::terminal_text;
 
 #[cfg(feature = "sns-host")]
 use crate::sns::report::SnsCacheSummary;
 use crate::{
-    duration::display_duration_seconds,
     report::ReportDataSource,
     sns::report::{SnsNeuronDissolveState, SnsNeuronPermissionList},
     text_value::yes_no,

@@ -1,6 +1,4 @@
 [
-  "crates/ic-query/src/duration.rs::enum DurationParseError/variant Invalid::a struct field::value",
-  "crates/ic-query/src/duration.rs::enum DurationParseError::a variant::Invalid",
   "crates/ic-query/src/icrc/live/build.rs::::a function::build_icrc_allowance_report",
   "crates/ic-query/src/icrc/live/build.rs::::a function::build_icrc_allowance_report_with_source",
   "crates/ic-query/src/icrc/live/build.rs::::a function::build_icrc_archives_report",

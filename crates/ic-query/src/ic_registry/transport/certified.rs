@@ -4,16 +4,14 @@
 //! Does not own: catalog delta replay, cache publication, or report rendering.
 //! Boundary: accepts a Registry value only after certificate and witness validation.
 
-#[cfg(test)]
-use crate::leb128::encode_unsigned_u64 as encode_unsigned_leb128;
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_tree},
     hex::hex_bytes,
-    ic_registry::{
-        RegistryFetchError,
-        proto::{RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree::Tree},
-    },
-    leb128::decode_canonical_unsigned_u64,
+    ic_registry::RegistryFetchError,
+};
+use ic_host_tools::encoding::decode_canonical_unsigned_u64;
+use ic_host_tools::registry::proto::{
+    RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree::Tree,
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
@@ -242,7 +240,8 @@ pub(super) fn required_leb128_leaf(
 }
 
 fn decode_canonical_unsigned_leb128(field: &str, bytes: &[u8]) -> Result<u64, RegistryFetchError> {
-    decode_canonical_unsigned_u64(field, bytes).map_err(invalid_certified_registry)
+    decode_canonical_unsigned_u64(bytes)
+        .map_err(|error| invalid_certified_registry(format!("{field}: {error}")))
 }
 
 fn map_certified_data_error(error: CertifiedDataError) -> RegistryFetchError {
@@ -263,7 +262,7 @@ pub(super) fn invalid_certified_registry(reason: impl Into<String>) -> RegistryF
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::proto::registry_mixed_hash_tree::{Fork, Labeled};
+    use ic_host_tools::registry::proto::registry_mixed_hash_tree::{Fork, Labeled};
     use ic_platform::certification::labeled_hash;
 
     #[test]
@@ -272,7 +271,7 @@ mod tests {
             tree: Some(Tree::Fork(Box::new(Fork {
                 left_tree: Some(Box::new(labeled(
                     CURRENT_VERSION_LABEL,
-                    Tree::LeafData(encode_unsigned_leb128(42)),
+                    Tree::LeafData(vec![42]),
                 ))),
                 right_tree: Some(Box::new(labeled(
                     b"delta",
@@ -291,10 +290,7 @@ mod tests {
         assert_eq!(
             decoded.digest(),
             fork(
-                label(
-                    CURRENT_VERSION_LABEL.to_vec(),
-                    leaf(encode_unsigned_leb128(42))
-                ),
+                label(CURRENT_VERSION_LABEL.to_vec(), leaf(vec![42])),
                 pruned(labeled_hash(b"delta", &[7_u8; SHA_256_BYTES])),
             )
             .digest()
@@ -332,16 +328,23 @@ mod tests {
                 if reason.contains("absent")
         ));
 
-        let noncanonical = decode_mixed_hash_tree(labeled(
-            CURRENT_VERSION_LABEL,
-            Tree::LeafData(vec![0x80, 0x00]),
-        ))
-        .expect("structurally valid tree");
-        assert!(matches!(
-            required_leb128_leaf(&noncanonical, CURRENT_VERSION_LABEL, "current_version"),
-            Err(RegistryFetchError::InvalidCertifiedRegistry { reason })
-                if reason.contains("not canonical")
-        ));
+        for bytes in [
+            vec![],
+            vec![0x80],
+            vec![0x80, 0x00],
+            vec![0, 0],
+            vec![0xff; 10],
+            vec![0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2],
+        ] {
+            let invalid =
+                decode_mixed_hash_tree(labeled(CURRENT_VERSION_LABEL, Tree::LeafData(bytes)))
+                    .expect("structurally valid tree");
+            assert!(matches!(
+                required_leb128_leaf(&invalid, CURRENT_VERSION_LABEL, "current_version"),
+                Err(RegistryFetchError::InvalidCertifiedRegistry { reason })
+                    if reason.contains("current_version")
+            ));
+        }
     }
 
     fn labeled(label_value: &[u8], subtree: Tree) -> RegistryMixedHashTree {

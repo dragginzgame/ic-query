@@ -491,12 +491,18 @@ fn validated_registry_record_subject(
                 }
                 false
             } else {
-                let parsed = crate::ic_registry::routing_shards::canister_range_start_from_key(
-                    crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
-                    &evidence.record.key,
-                )
-                .map_err(invalid_registry_record_evidence)?;
-                if evidence.record.canister_range_start.as_ref() != Some(&parsed) {
+                let parsed =
+                    ic_host_tools::registry::routing_shards::canister_range_start_from_key(
+                        crate::ic_registry::CANISTER_RANGES_KEY_PREFIX,
+                        &evidence.record.key,
+                    )
+                    .map_err(invalid_registry_record_evidence)?;
+                if evidence
+                    .record
+                    .canister_range_start
+                    .map(ic_platform::Principal::from)
+                    != Some(parsed)
+                {
                     return Err(invalid_registry_record_evidence(
                         "routing shard subject does not match the lower bound encoded by its key"
                             .to_string(),
