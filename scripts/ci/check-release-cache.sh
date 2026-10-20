@@ -150,6 +150,22 @@ if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
   fi
   exit
 fi
+for package in cargo-audit cargo-machete; do
+  case "$package" in cargo-audit) version=0.22.2 ;; cargo-machete) version=0.9.2 ;; esac
+  selected="--consumer $PWD --package $package --version $version --bin $package --profile release"
+  if [[ "$*" == "$selected" || "$*" == "$selected --check" ]]; then
+    if [[ "$*" == *' --check' ]]; then
+      printf '%s check\n' "$package" >> "$TRACE_FILE"
+      [[ -f "selected-$package" && "${FIXTURE_DEPENDENCY_CHECK_FAILURE:-}" != "$package" ]] || exit 54
+    else
+      printf '%s setup\n' "$package" >> "$TRACE_FILE"
+      [[ "${FIXTURE_DEPENDENCY_SETUP_FAILURE:-}" != "$package" ]] || exit 55
+      printf 'admitted %s\n' "$package" > "selected-$package"
+    fi
+    printf '/fixture/%s\n' "$package"
+    exit
+  fi
+done
 expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   printf 'formatter check\n' >> "$TRACE_FILE"
@@ -221,7 +237,7 @@ status=0
 IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_FORMAT_CHANGED_INPUT=yes \
   bash scripts/release/adapter.sh preflight > "$work_dir/tool-changed-input.log" 2>&1 || status=$?
 [[ "$status" == 42 && -f selected-formatter ]] || fail 'changed source was admitted after setup'
-printf '%s\n' 'fetch --locked' 'formatter setup' 'editor setup' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter setup' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 cmp Cargo.lock "$work_dir/original-lock"
 cmp previous-formatter "$work_dir/previous-formatter"
@@ -242,13 +258,13 @@ rm prepared-cache
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight
 [[ -f prepared-cache ]] || fail 'standard release did not prepare cold cache'
-printf '%s\n' 'fetch --locked' 'formatter setup' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter setup' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 cmp Cargo.lock "$work_dir/original-lock"
 cp selected-formatter "$work_dir/selected-formatter"
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 "$make_bin" --no-print-directory -j4 release-preflight > "$work_dir/tool-reuse.log" 2>&1
-printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter reuse' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 if grep -Ei 'jobserver unavailable|jobserver.*forced' "$work_dir/tool-reuse.log"; then fail 'tool preparation lost the Make jobserver'; fi
 cmp selected-formatter "$work_dir/selected-formatter"
@@ -258,7 +274,7 @@ status=0
 IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_FORMAT_CHECK_FAILURE=yes \
   bash scripts/release/adapter.sh preflight > "$work_dir/tool-check-failure.log" 2>&1 || status=$?
 [[ "$status" == 2 ]] || fail 'failed formatter admission was discarded'
-printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' 'formatter check' > "$work_dir/expected"
+printf '%s\n' 'fetch --locked' 'formatter reuse' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' > "$work_dir/expected"
 cmp "$TRACE_FILE" "$work_dir/expected"
 
 # A failed editor setup or offline admission cannot reach the validation gate.
@@ -268,16 +284,45 @@ for selection in setup check; do
   if [[ "$selection" == setup ]]; then
     IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_EDITOR_SETUP_FAILURE=yes \
       bash scripts/release/adapter.sh preflight > "$work_dir/editor-$selection.log" 2>&1 || status=$?
-    printf '%s\n' 'fetch --locked' 'formatter reuse' 'editor setup' > "$work_dir/expected"
+    printf '%s\n' 'fetch --locked' 'formatter reuse' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' > "$work_dir/expected"
   else
     FIXTURE_EDITOR_CHECK_FAILURE=yes \
       bash scripts/release/adapter.sh preflight > "$work_dir/editor-$selection.log" 2>&1 || status=$?
-    printf '%s\n' 'fetch --locked --offline' 'formatter reuse' 'editor check' > "$work_dir/expected"
+    printf '%s\n' 'fetch --locked --offline' 'formatter check' 'cargo-audit check' 'cargo-machete check' 'editor check' > "$work_dir/expected"
   fi
   [[ "$status" == 2 ]] || fail 'failed release editor was admitted'
   cmp "$TRACE_FILE" "$work_dir/expected"
   cmp Cargo.lock "$work_dir/original-lock"
 done
+
+# Dependency tool setup failures stop before editor preparation. Offline
+# admission must refuse missing tools without invoking their installers.
+for package in cargo-audit cargo-machete; do
+  for selection in setup check; do
+    mv "selected-$package" "$work_dir/$package.previous"
+    : > "$TRACE_FILE"
+    status=0
+    if [[ "$selection" == setup ]]; then
+      IC_QUERY_RELEASE_PREPARE_CACHE=1 FIXTURE_DEPENDENCY_SETUP_FAILURE="$package" \
+        bash scripts/release/adapter.sh preflight > "$work_dir/$package-$selection.log" 2>&1 || status=$?
+      printf '%s\n' 'fetch --locked' 'formatter reuse' 'cargo-audit setup' > "$work_dir/expected"
+      [[ "$package" != cargo-machete ]] || printf '%s\n' 'cargo-machete setup' >> "$work_dir/expected"
+    else
+      bash scripts/release/adapter.sh preflight > "$work_dir/$package-$selection.log" 2>&1 || status=$?
+      printf '%s\n' 'fetch --locked --offline' 'formatter check' 'cargo-audit check' > "$work_dir/expected"
+      [[ "$package" != cargo-machete ]] || printf '%s\n' 'cargo-machete check' >> "$work_dir/expected"
+    fi
+    [[ "$status" == 2 && ! -e "selected-$package" ]] || fail 'failed dependency tool was admitted or repaired'
+    cmp "$TRACE_FILE" "$work_dir/expected"
+    cmp Cargo.lock "$work_dir/original-lock"
+    mv "$work_dir/$package.previous" "selected-$package"
+  done
+done
+: > "$TRACE_FILE"
+bash scripts/release/adapter.sh preflight
+printf '%s\n' 'fetch --locked --offline' 'formatter check' 'cargo-audit check' 'cargo-machete check' \
+  'editor check' 'formatter check' 'sort --version' 'fmt --version' > "$work_dir/expected"
+cmp "$TRACE_FILE" "$work_dir/expected"
 
 # Saved evidence is admitted before cache preparation against partial metadata.
 mkdir -p .fixture-state/0.50.4.verify.saved

@@ -7,6 +7,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.65.0]
 
+- Prepare pinned Cargo Audit and Cargo Machete during fresh release preflight,
+  avoiding a later tools-check failure after shared build-policy changes.
+  Standalone offline preflight checks prepared tools without installing them.
 - Adopt published Platform 0.4.0 and Host 0.31.1. Convert Registry shard identities
   explicitly at Host's owned Principal boundary. Use owned Principals for runtime calls while
   preserving external Candid, Agent and ledger DTO identities and wire formats.

@@ -226,6 +226,22 @@ if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
   printf '%s\n' "$CARGO_RELEASE_METADATA_EDITOR"
   exit
 fi
+for package in cargo-audit cargo-machete; do
+  case "$package" in cargo-audit) version=0.22.2 ;; cargo-machete) version=0.9.2 ;; esac
+  selected="--consumer $PWD --package $package --version $version --bin $package --profile release"
+  if [[ "$*" == "$selected" || "$*" == "$selected --check" ]]; then
+    if [[ "$*" == *' --check' ]]; then
+      printf '%s check\n' "$package" >> events
+      [[ -f "selected-$package" && "${FIXTURE_DEPENDENCY_CHECK_FAILURE:-}" != "$package" ]] || exit 54
+    else
+      printf '%s setup\n' "$package" >> events
+      [[ "${FIXTURE_DEPENDENCY_SETUP_FAILURE:-}" != "$package" ]] || exit 55
+      printf 'admitted %s\n' "$package" > "selected-$package"
+    fi
+    printf '/fixture/%s\n' "$package"
+    exit
+  fi
+done
 expected="--consumer $PWD --versions $PWD/ci/tool-versions.env"
 if [[ "$*" == "$expected --check" ]]; then
   echo 'formatter check' >> events
@@ -249,7 +265,7 @@ for argument in "$@"; do
     printf 'retained build output\n' > target/retained-output
     [[ "${CARGO_NET_OFFLINE:-}" == true && "${CHANGELOG_VERSION:-}" == "$(cat candidate)" ]] || exit 1
     [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
-    [[ -f selected-formatter ]] || exit 1
+    [[ -f selected-formatter && -f selected-cargo-audit && -f selected-cargo-machete ]] || exit 1
     [[ "${FIXTURE_GATE_FAILURE:-}" != yes ]] || exit 43
     exit
   fi
@@ -411,7 +427,7 @@ STUB
   [[ ! -e index && ! -e tag && ! -e pushes && ! -e target/retained-output ]] \
     || fail "$observation reached validation or release effects"
   if [[ "$observation" == source-prepared ]]; then
-    printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'editor setup' > expected
+    printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' > expected
     cmp expected events || fail 'failed prepared source observation continued to offline admission'
   else
     [[ ! -e events && ! -e selected-formatter ]] || fail "$observation reached preparation"
@@ -434,7 +450,7 @@ for kind in patch minor major; do
     || { cat output; fail "$kind"; }
   check_complete
   awk '/^cargo metadata / || /^cargo sort --workspace --grouped --check$/ { next } { print }' events > observed
-  printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'editor setup' 'formatter check' \
+  printf '%s\n' 'cargo fetch --locked' 'formatter setup' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' \
     'cargo sort --version' 'cargo fmt --version' validate stage commit tag push > expected
   cmp expected observed
 done
@@ -638,7 +654,7 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
     formatter-setup|formatter-check)
       [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]] || exit 1
       printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
-      if [[ "$failure" == formatter-check ]]; then printf '%s\n' 'editor setup' 'formatter check' >> expected; fi
+      if [[ "$failure" == formatter-check ]]; then printf '%s\n' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' >> expected; fi
       cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
       [[ ! -e events && ! -e .release-state/0.46.6.validation ]] || exit 1

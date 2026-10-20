@@ -6,9 +6,8 @@ metadata and notes, stages the explicit release files, commits, creates an
 annotated tag, and atomically pushes the selected branch and tag. Publication
 remains the separate `make publish` command.
 
-The runner and shared helpers are a reviewed Shared Tooling 0.25.0 snapshot at
-[`2a79f5f93383f3d2a8a38d65406c7d52c2f77913`](https://github.com/dragginzgame/shared-tooling/tree/2a79f5f93383f3d2a8a38d65406c7d52c2f77913),
-recorded in `.shared-tooling.snapshot`. See the selected
+The runner and shared helpers use the reviewed Shared Tooling revision recorded
+in `.shared-tooling.snapshot`. See the selected
 [common release contract](releases.md). `make shared-tooling-check` verifies the
 selected files' digests and executable modes offline. The version annotation
 comes from the committed source; it does not establish tag publication or native
@@ -26,8 +25,11 @@ make release-tools-check
 ```
 
 `make install-tools` also prepares it. A maintainer-operated release preflight
-prepares the locked cache, formatter and editor before validation; ordinary
-checks only admit existing tools. The adapter resolves an absolute prepared
+prepares the locked cache, formatters, pinned Cargo Audit/Cargo Machete and editor
+before validation. Standalone offline preflight and ordinary tool checks only
+admit existing tools. To prepare just the dependency tools explicitly, run
+`make install-dependency-tools`, then `make dependency-tools-check`.
+The adapter resolves an absolute prepared
 editor path through `--check`, never PATH or a sibling checkout. Recovery uses
 the retained source lockfile to select that editor even when live metadata is
 partially prepared; metadata admission still authenticates retained source bytes.
