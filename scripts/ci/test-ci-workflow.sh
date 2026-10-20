@@ -66,6 +66,12 @@ fixture="${fixture%/.}"
     else error("missing tool evidence owner") end
 ' > "$fixture/collect.sh"
 mkdir -p "$fixture/repository/.tools/rust/slot/installed" "$fixture/temp" "$fixture/outside"
+server_attempt="$fixture/repository/.tools/testkit-server/.setup-v1-fixture"
+mkdir -p "$server_attempt"
+printf 'curl: (28) connection timed out\n' > "$server_attempt/download.stderr"
+printf 'partial archive bytes\n' > "$server_attempt/archive.gz"
+chmod 640 "$server_attempt/download.stderr"
+ln -s "$fixture/outside" "$server_attempt/external-link"
 printf 'retained build\n' > "$fixture/repository/.tools/rust/slot/build.log"
 printf 'retained receipt\n' > "$fixture/repository/.tools/rust/slot/installed/selection.json"
 printf 'private outside bytes\n' > "$fixture/outside/private"
@@ -97,6 +103,11 @@ archives=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#archives[@]}" == 1 && -f "${archives[0]}" ]] || exit 1
 mkdir "$fixture/unpacked"
 tar -xzf "${archives[0]}" -C "$fixture/unpacked"
+for name in download.stderr archive.gz; do
+  cmp "$server_attempt/$name" "$fixture/unpacked/.tools/testkit-server/.setup-v1-fixture/$name" || exit 1
+done
+[[ "$(perl -e 'printf "%o", (stat($ARGV[0]))[2] & 0777' "$fixture/unpacked/.tools/testkit-server/.setup-v1-fixture/download.stderr")" == 640 ]] || exit 1
+[[ -L "$fixture/unpacked/.tools/testkit-server/.setup-v1-fixture/external-link" ]] || exit 1
 cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/unpacked/.tools/rust/slot/build.log" || exit 1
 cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/unpacked/.tools/rust/slot/installed/selection.json" || exit 1
 [[ -L "$fixture/unpacked/.tools/rust/external-link" ]] || exit 1
@@ -142,6 +153,8 @@ for diagnostic in "${diagnostics[@]}"; do
 done
 cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/partial/.tools/rust/slot/build.log" || exit 1
 cmp "$fixture/repository/.tools/rust/slot/installed/selection.json" "$fixture/partial/.tools/rust/slot/installed/selection.json" || exit 1
+cmp "$server_attempt/download.stderr" "$fixture/partial/.tools/testkit-server/.setup-v1-fixture/download.stderr" || exit 1
+cmp "$server_attempt/archive.gz" "$fixture/partial/.tools/testkit-server/.setup-v1-fixture/archive.gz" || exit 1
 [[ ! -e "$fixture/partial/$rust_slot" && ! -e "$fixture/partial/$host_slot" ]] || exit 1
 # A redirected checkout tool root cannot select any outside tree.
 mv "$fixture/repository/.tools" "$fixture/retained-tools"
@@ -154,5 +167,20 @@ remaining=("$fixture/temp/"ic-query-tool-evidence.*/tools.tar.gz)
 [[ "${#remaining[@]}" == 3 ]] || exit 1
 cmp <(printf 'private outside bytes\n') "$fixture/outside/private" || exit 1
 cmp <(printf 'unrelated checkout bytes\n') "$fixture/store/unrelated/private" || exit 1
-echo 'CI retains local Rust/IC evidence and selected shared bundles without traversing unknown links or unrelated storage'
+# Early setup failure may leave no Testkit directory. Its absence must not
+# prevent collecting the common tool evidence selected by this workflow.
+rm "$fixture/repository/.tools"
+mv "$fixture/retained-tools" "$fixture/repository/.tools"
+mv "$fixture/repository/.tools/testkit-server" "$fixture/retained-testkit"
+mkdir "$fixture/early-temp" "$fixture/early-unpacked"
+(
+  cd "$repo_root"
+  GITHUB_WORKSPACE="$fixture/repository" RUNNER_TEMP="$fixture/early-temp" "$BASH" "$fixture/collect.sh"
+)
+early=("$fixture/early-temp/"ic-query-tool-evidence.*/tools.tar.gz)
+[[ "${#early[@]}" == 1 && -f "${early[0]}" ]] || exit 1
+tar -xzf "${early[0]}" -C "$fixture/early-unpacked"
+cmp "$fixture/repository/.tools/rust/slot/build.log" "$fixture/early-unpacked/.tools/rust/slot/build.log" || exit 1
+[[ ! -e "$fixture/early-unpacked/.tools/testkit-server" ]] || exit 1
+echo 'CI retains Testkit setup failures, local Rust/IC evidence and selected shared bundles without traversing unknown links or unrelated storage'
 fixture_complete=true

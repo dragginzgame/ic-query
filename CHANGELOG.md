@@ -7,6 +7,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.64.1]
 
+- Retain Testkit's setup directory in CI failure archives, including download
+  diagnostics and partial payloads. Earlier setup failures still collect common
+  tool evidence when no Testkit directory exists.
+
 - Keep generic validation-runner regression matrices at Shared Tooling. Retain
   Query's actual Make admission, recursive execution, CI order and input-drift
   checks without duplicating runner timing and log-retention fixtures.

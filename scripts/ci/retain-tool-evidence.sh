@@ -11,6 +11,13 @@ root="$(cd -P "${BASH_SOURCE[0]%/*}/../.." && printf '%s/.' "$PWD")"
 root="${root%/.}"
 evidence_dir="$(mktemp -d "$temp_root/ic-query-tool-evidence.XXXXXX")"
 mkdir "$evidence_dir/diagnostics"
+# Query selects Testkit's bundle directory; Testkit owns the retained attempt
+# layout within it. Preserve partial downloads and stderr without parsing them.
+inputs=()
+if [[ -e "$repository/.tools/testkit-server" || -L "$repository/.tools/testkit-server" ]]; then
+  inputs+=("$repository" .tools/testkit-server)
+fi
 bash "$root/scripts/ci/collect-tool-evidence.sh" "$evidence_dir/tools.tar.gz" \
   "$repository" "$evidence_dir/diagnostics" full \
-  "$root/ci/tool-versions.env" "${IC_TOOL_PINS:-$root/ci/ic-tools.tsv}"
+  "$root/ci/tool-versions.env" "${IC_TOOL_PINS:-$root/ci/ic-tools.tsv}" \
+  ${inputs[@]+"${inputs[@]}"}
