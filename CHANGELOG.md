@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.65.1]
+## [0.65.1] - 2026-10-20
 
 - Consolidate SHA-256 hashing on Host Artifacts while preserving cache identities,
   canonical JSON digests and Registry provenance commitments.
