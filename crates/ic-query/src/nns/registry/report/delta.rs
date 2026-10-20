@@ -20,7 +20,7 @@ use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
 };
-use sha2::{Digest, Sha256};
+use ic_host_artifacts::artifact::Sha256Digest;
 use std::collections::{BTreeMap, BTreeSet};
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
@@ -241,7 +241,7 @@ fn validate_chunk_evidence<'a>(
                 report.limits.max_chunk_bytes
             )));
         }
-        let actual_sha256 = crate::hex::hex_bytes(&Sha256::digest(&content));
+        let actual_sha256 = Sha256Digest::compute(&content).to_string();
         if actual_sha256 != row.sha256_hex {
             return Err(invalid_source_data(format!(
                 "chunk evidence content does not match SHA-256 digest {}",

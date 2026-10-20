@@ -953,9 +953,10 @@ Enable the narrower `subnet-catalog-host` feature when a native embedder needs
 only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, capability-filesystem dependencies, and other cache
 dependencies required by that API while leaving `ic-query`'s direct optional
-Dashboard `reqwest` transport and `serde_cbor` certification dependencies
-disabled. Because the feature still includes `ic-agent`, both packages may
-remain in its transitive dependency graph. The full `host` feature remains the
+Dashboard `reqwest` transport disabled. Certified Registry calls additionally
+select Host's bounded certificate decoder; direct `serde_cbor` use is fixture-only.
+Because the feature still includes `ic-agent`, Reqwest and CBOR remain in its
+transitive dependency graph. The full `host` feature remains the
 choice for all reporting adapters and is a strict superset.
 
 Standard live Subnet Catalog load and refresh calls reuse Registry history

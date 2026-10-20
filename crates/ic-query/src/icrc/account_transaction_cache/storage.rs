@@ -21,9 +21,12 @@ use crate::{
     snapshot_cache::{SnapshotJsonPaths, SnapshotKey},
     subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
 };
+use ic_host_artifacts::artifact::HashingWriter;
 use ic_platform::candid::contract::Principal;
-use sha2::{Digest, Sha256};
-use std::path::{Path, PathBuf};
+use std::{
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
 pub(super) const ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION: u32 = 1;
 
@@ -199,18 +202,17 @@ pub(super) fn cache_paths(request: &IcrcAccountTransactionCacheRequest) -> Snaps
 }
 
 pub(super) fn cache_entity(request: &IcrcAccountTransactionCacheRequest) -> String {
-    let mut hasher = Sha256::new();
+    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
     for value in [
         request.source_endpoint.as_str(),
         request.ledger_canister_id.as_str(),
         request.account_owner.as_str(),
         request.subaccount_hex.as_deref().unwrap_or("-"),
     ] {
-        hasher.update(value.len().to_string().as_bytes());
-        hasher.update(b":");
-        hasher.update(value.as_bytes());
+        write!(writer, "{}:{value}", value.len())
+            .expect("in-memory account identity fits the u64 hashing allowance");
     }
-    format!("account-{}", crate::hex::hex_bytes(&hasher.finalize()))
+    format!("account-{}", writer.into_parts().1.sha256)
 }
 
 pub(super) fn snapshot_is_stale(

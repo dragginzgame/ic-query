@@ -7,9 +7,7 @@
 #[cfg(feature = "subnet-catalog-host")]
 use super::{ClassificationSource, GeographicScope, SubnetInfo, SubnetSpecialization};
 #[cfg(feature = "subnet-catalog-host")]
-use crate::hex::hex_bytes;
-#[cfg(feature = "subnet-catalog-host")]
-use sha2::{Digest, Sha256};
+use ic_host_artifacts::artifact::Sha256Digest;
 
 /// Current classification policy schema.
 pub const CLASSIFICATION_SCHEMA_VERSION: u32 = 1;
@@ -41,7 +39,7 @@ const CLASSIFICATION_POLICY: &str = concat!(
 #[cfg(feature = "subnet-catalog-host")]
 #[must_use]
 pub(super) fn classification_policy_digest() -> String {
-    hex_bytes(&Sha256::digest(CLASSIFICATION_POLICY.as_bytes()))
+    Sha256Digest::compute(CLASSIFICATION_POLICY.as_bytes()).to_string()
 }
 
 #[cfg(feature = "subnet-catalog-host")]

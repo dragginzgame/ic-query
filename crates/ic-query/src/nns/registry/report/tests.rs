@@ -12,7 +12,7 @@ use super::{
 };
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
-use sha2::{Digest, Sha256};
+use ic_host_artifacts::artifact::Sha256Digest;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
@@ -126,7 +126,7 @@ fn certified_delta_validator_accepts_bounded_chunk_evidence_and_recomputes_accou
     let request = certified_delta_request();
     let mut report = certified_delta_report(&request);
     let content = b"bc";
-    let hash = crate::hex::hex_bytes(&Sha256::digest(content));
+    let hash = Sha256Digest::compute(content).to_string();
     let mutation = &mut report.versions[0].mutations[0];
     mutation.value_encoding = NnsCertifiedRegistryValueEncoding::Chunked;
     mutation.chunk_sha256_hexes = vec![hash.clone(), hash.clone()];
@@ -174,7 +174,7 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
     let request = certified_delta_request();
     let mut report = certified_delta_report(&request);
     let content = b"chunk";
-    let hash = crate::hex::hex_bytes(&Sha256::digest(content));
+    let hash = Sha256Digest::compute(content).to_string();
     report.versions[0].mutations[0].value_encoding = NnsCertifiedRegistryValueEncoding::Chunked;
     report.versions[0].mutations[0].chunk_sha256_hexes = vec![hash.clone()];
     report.versions[0].mutations[0].value_hex = Some(crate::hex::hex_bytes(content));
@@ -238,7 +238,7 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
 
     let extra_content = b"unreferenced";
     let extra = NnsCertifiedRegistryChunkEvidence {
-        sha256_hex: crate::hex::hex_bytes(&Sha256::digest(extra_content)),
+        sha256_hex: Sha256Digest::compute(extra_content).to_string(),
         content_hex: crate::hex::hex_bytes(extra_content),
     };
     let mut unreferenced = report.clone();

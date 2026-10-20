@@ -365,6 +365,18 @@ fn report_admission_checks_identity_transport_and_canonical_time() {
         attempt::validate_report("economics", good.clone(), "aaaaa-aa").unwrap(),
         good["report"]
     );
+    for timestamp in [
+        "1970-01-01T00:00:00Z",
+        "2000-02-29T23:59:59Z",
+        "9999-12-31T23:59:59Z",
+    ] {
+        let mut report = good.clone();
+        report["report"]["fetched_at"] = timestamp.into();
+        assert_eq!(
+            attempt::validate_report("economics", report.clone(), "aaaaa-aa").unwrap(),
+            report["report"]
+        );
+    }
     for (key, value) in [
         ("schema_version", json!(2)),
         ("network", json!("local")),
@@ -372,6 +384,11 @@ fn report_admission_checks_identity_transport_and_canonical_time() {
         ("source", json!({"source_transport":"replica_query"})),
         ("fetched_at", json!("2026-02-30T12:00:00Z")),
         ("fetched_at", json!("2026-09-15T12:00:00+00:00")),
+        ("fetched_at", json!("2026-09-15T12:00:00.001Z")),
+        ("fetched_at", json!("2026-9-15T12:00:00Z")),
+        ("fetched_at", json!("2026-09-15T12:00:60Z")),
+        ("fetched_at", json!("1969-12-31T23:59:59Z")),
+        ("fetched_at", json!("10000-01-01T00:00:00Z")),
     ] {
         let mut bad = good.clone();
         bad["report"][key] = value;

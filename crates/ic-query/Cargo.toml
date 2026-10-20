@@ -29,7 +29,7 @@ host = [
 ]
 cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent", "dep:tokio"]
 cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent", "dep:tokio"]
-certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding", "dep:serde_cbor"]
+certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding"]
 dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:reqwest", "dep:tokio"]
 ic-state-host = [
     "ic-host-tools/agent",
@@ -46,7 +46,6 @@ icrc-host = [
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
     "ic-platform/icrc-ledger-types",
-    "dep:sha2",
     "dep:tokio",
 ]
 nns-topology-host = ["subnet-catalog-host"]
@@ -68,7 +67,6 @@ subnet-catalog-host = [
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
     "dep:prost",
-    "dep:sha2",
     "dep:tokio",
 ]
 
@@ -85,9 +83,7 @@ reqwest = { workspace = true, features = [
     "rustls",
 ], optional = true }
 serde.workspace = true
-serde_cbor = { workspace = true, optional = true }
 serde_json.workspace = true
-sha2 = { workspace = true, optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time"], optional = true }
 url.workspace = true

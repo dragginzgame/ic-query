@@ -1,7 +1,6 @@
 //! Direct IC protocol calls and bounded admission of original reply evidence.
 
 use crate::{Result, command, invalid};
-use futures::future::{Either, select};
 use ic_host_artifacts::{
     artifact::Sha256Digest,
     wasm::{self, InspectionLimits},
@@ -147,7 +146,7 @@ impl AgentProbe {
 
     fn call<T>(&self, operation: impl Future<Output = Result<T>>) -> Result<T> {
         self.runtime.block_on(async {
-            let cancelled = Box::pin(async {
+            let cancelled = async {
                 loop {
                     if let Some(signal) = command::interruption() {
                         return invalid(&format!(
@@ -157,21 +156,22 @@ impl AgentProbe {
                     }
                     tokio::time::sleep(Duration::from_millis(50)).await;
                 }
-            });
-            let operation = Box::pin(tokio::time::timeout(Duration::from_secs(590), async {
+            };
+            let operation = tokio::time::timeout(Duration::from_secs(590), async {
                 if self.local {
                     self.agent.fetch_root_key().await?;
                 }
                 operation.await
-            }));
-            match select(operation, cancelled).await {
-                Either::Left((result, _)) => result.map_err(|_| {
+            });
+            tokio::select! {
+                biased;
+                result = operation => result.map_err(|_| {
                     io::Error::new(
                         io::ErrorKind::TimedOut,
                         "Governance agent call exceeded its deadline",
                     )
                 })?,
-                Either::Right((error, _)) => Err(error),
+                error = cancelled => Err(error),
             }
         })
     }

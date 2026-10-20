@@ -37,6 +37,10 @@ fn cache_entity_changes_with_collection_identity_and_normalizes_subaccounts() {
     };
 
     assert_eq!(storage::cache_entity(&first), storage::cache_entity(&same));
+    assert_eq!(
+        storage::cache_entity(&first),
+        "account-f68c8fb4502452e7556c134b7e9244a81e9e1e40112982c865d4b705e73d7395"
+    );
     assert_ne!(
         storage::cache_entity(&first),
         storage::cache_entity(&different_endpoint)

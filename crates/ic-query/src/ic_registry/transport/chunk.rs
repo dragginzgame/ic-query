@@ -11,9 +11,9 @@ use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
 };
+use ic_host_artifacts::artifact::Sha256Digest;
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 const REGISTRY_CHUNK_SHA256_BYTES: usize = 32;
@@ -359,7 +359,7 @@ const fn enforce_limit(
 }
 
 pub(in crate::ic_registry) fn sha256_digest(bytes: &[u8]) -> [u8; 32] {
-    Sha256::digest(bytes).into()
+    *Sha256Digest::compute(bytes).as_bytes()
 }
 
 #[cfg(test)]

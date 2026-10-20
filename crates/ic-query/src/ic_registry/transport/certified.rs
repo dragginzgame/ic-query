@@ -9,17 +9,20 @@ use crate::{
     hex::hex_bytes,
     ic_registry::RegistryFetchError,
 };
-use ic_host_tools::encoding::decode_canonical_unsigned_u64;
+use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_tools::registry::proto::{
     RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree::Tree,
+};
+use ic_host_tools::{
+    certificate::{DecodeLimits, decode_certificate},
+    encoding::decode_canonical_unsigned_u64,
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{
-    Certificate, HashTree, LookupResult, empty, fork, labeled as label, leaf, pruned,
+    HashTree, LookupResult, empty, fork, labeled as label, leaf, pruned,
 };
 use prost::Message;
-use sha2::{Digest, Sha256};
 
 const GET_CERTIFIED_LATEST_VERSION_METHOD: &str = "get_certified_latest_version";
 pub(super) const CURRENT_VERSION_LABEL: &[u8] = b"current_version";
@@ -127,10 +130,13 @@ pub(super) fn authenticate_registry_response(
         .ok_or_else(|| invalid_certified_registry(format!("{method} returned no hash_tree")))?;
     let encoded_hash_tree = raw_hash_tree.encode_to_vec();
     let hash_tree = decode_mixed_hash_tree(raw_hash_tree)?;
-    let certificate: Certificate =
-        serde_cbor::from_slice(&response.certificate).map_err(|error| {
-            invalid_certified_registry(format!("certificate CBOR is invalid: {error}"))
-        })?;
+    let certificate = decode_certificate(
+        &response.certificate,
+        DecodeLimits {
+            bytes: crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+        },
+    )
+    .map_err(|error| invalid_certified_registry(format!("certificate CBOR is invalid: {error}")))?;
     authenticate_canister_tree(
         agent,
         registry_canister,
@@ -152,7 +158,7 @@ pub(super) fn authenticate_registry_response(
     Ok(AuthenticatedRegistryResponse {
         hash_tree,
         certificate_time_nanos,
-        root_key_digest: hex_bytes(&Sha256::digest(agent.read_root_key())),
+        root_key_digest: Sha256Digest::compute(&agent.read_root_key()).to_string(),
         certificate_hex: hex_bytes(&response.certificate),
         certificate_bytes: response.certificate.len(),
         hash_tree_hex: hex_bytes(&encoded_hash_tree),
@@ -263,7 +269,100 @@ pub(super) fn invalid_certified_registry(reason: impl Into<String>) -> RegistryF
 mod tests {
     use super::*;
     use ic_host_tools::registry::proto::registry_mixed_hash_tree::{Fork, Labeled};
-    use ic_platform::certification::labeled_hash;
+    use ic_platform::certification::{Certificate, labeled_hash};
+
+    #[test]
+    fn canonical_and_tagged_registry_certificates_require_authentication() {
+        let agent = Agent::builder()
+            .with_url("https://icp-api.io")
+            .build()
+            .unwrap();
+        let canister =
+            Principal::from_text(crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID).unwrap();
+        let certificate = serde_cbor::to_vec(&Certificate {
+            tree: empty(),
+            signature: vec![0; 48],
+            delegation: None,
+        })
+        .unwrap();
+        let tagged = [vec![0xd9, 0xd9, 0xf7], certificate.clone()].concat();
+
+        for certificate in [certificate, tagged] {
+            let result = authenticate_registry_response(
+                &agent,
+                &canister,
+                RegistryCertifiedResponse {
+                    hash_tree: Some(node(Tree::Empty(()))),
+                    certificate,
+                },
+                GET_CERTIFIED_LATEST_VERSION_METHOD,
+            );
+            assert!(matches!(
+                result,
+                Err(RegistryFetchError::CertificateAuthentication { .. })
+            ));
+        }
+    }
+
+    #[test]
+    fn registry_certificate_admission_rejects_malformed_and_oversized_input() {
+        let agent = Agent::builder()
+            .with_url("https://icp-api.io")
+            .build()
+            .unwrap();
+        let canister =
+            Principal::from_text(crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID).unwrap();
+        let certificate = serde_cbor::to_vec(&Certificate {
+            tree: empty(),
+            signature: vec![0; 48],
+            delegation: None,
+        })
+        .unwrap();
+        let mut trailing = certificate.clone();
+        trailing.push(0);
+        let mut unknown = serde_cbor::value::to_value(Certificate {
+            tree: empty(),
+            signature: vec![0; 48],
+            delegation: None,
+        })
+        .unwrap();
+        let serde_cbor::Value::Map(fields) = &mut unknown else {
+            panic!("certificate encodes a map");
+        };
+        fields.insert(
+            serde_cbor::Value::Text("extra".into()),
+            serde_cbor::Value::Null,
+        );
+        // An indefinite map containing the original fields and a duplicate tree.
+        let duplicate = [
+            &[0xbf][..],
+            &certificate[1..],
+            &[0x64, b't', b'r', b'e', b'e', 0x81, 0, 0xff],
+        ]
+        .concat();
+
+        for certificate in [
+            vec![0xff],
+            trailing,
+            serde_cbor::to_vec(&unknown).unwrap(),
+            duplicate,
+            vec![0; crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES + 1],
+        ] {
+            let result = authenticate_registry_response(
+                &agent,
+                &canister,
+                RegistryCertifiedResponse {
+                    hash_tree: Some(node(Tree::Empty(()))),
+                    certificate,
+                },
+                GET_CERTIFIED_LATEST_VERSION_METHOD,
+            );
+            assert!(matches!(
+                result,
+                Err(RegistryFetchError::InvalidCertifiedRegistry { .. })
+            ));
+        }
+    }
 
     #[test]
     fn decodes_the_official_certified_latest_version_tree_shape() {

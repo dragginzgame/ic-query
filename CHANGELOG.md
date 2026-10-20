@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.65.1]
+
+- Consolidate SHA-256 hashing on Host Artifacts while preserving cache identities,
+  canonical JSON digests and Registry provenance commitments.
+- Decode Registry certificates through Host's bounded decoder, preserving
+  authentication and raw evidence while rejecting malformed fields consistently.
+  Direct CBOR use is now limited to fixtures.
+- Simplify Governance smoke cancellation with Tokio and validate report timestamps
+  through Host Text. Keep existing deadlines, signal cleanup and precise receipt
+  timestamps.
+- Select Testkit 0.59, sharing the current Host and Platform dependency families
+  instead of retaining their older package copies.
+
+Detailed release notes: [docs/changelog/0.65.md](docs/changelog/0.65.md)
+
 ## [0.65.0] - 2026-10-20
 
 - Prepare pinned Cargo Audit and Cargo Machete during fresh release preflight,

@@ -1,13 +1,14 @@
 use super::{fixtures::*, *};
-use sha2::{Digest, Sha256};
+use ic_host_artifacts::artifact::Sha256Digest;
 
 #[test]
 fn catalog_digest_hashes_canonical_json_with_an_empty_digest_field() {
     let mut raw = fixture_catalog();
     let actual = raw.catalog_digest.clone();
     raw.catalog_digest.clear();
-    let expected = Sha256::digest(serde_json::to_vec(&raw).expect("canonical catalog bytes"));
-    assert_eq!(actual, crate::hex::hex_bytes(&expected));
+    let expected =
+        Sha256Digest::compute(&serde_json::to_vec(&raw).expect("canonical catalog bytes"));
+    assert_eq!(actual, expected.to_string());
 }
 
 fn validation_context() -> CatalogValidationContext {

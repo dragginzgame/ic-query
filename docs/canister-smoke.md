@@ -253,6 +253,10 @@ hash again afterward. It attempts network cleanup after success, collection
 failure, or an interrupted or timed-out startup attempt. It refuses to take
 ownership of an already running harness network.
 
+Report timestamps use Host Text's canonical unsigned Unix-second UTC parser and
+retain the report's four-digit year spelling. Receipt timestamps separately keep
+their precise RFC3339 clock representation.
+
 This command creates and installs only a **local test canister**. Production
 `icq` remains a read-only reporting CLI. The probe has no stable-memory writes
 and does not invoke Governance mutations.

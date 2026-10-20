@@ -30,6 +30,8 @@ Dependencies own the reusable mechanisms beneath that policy:
 | Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, protected export paths, family error projection, report layouts and smoke-harness interruption policy |
 | Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification, replay and report projection |
 | Canonical unsigned `u64` LEB128 and bounded ICRC chain evidence | Host Tools' `encoding` and `ledger-evidence` features | Field/error projection, certificate/witness authentication and transaction interpretation |
+| SHA-256 identities and streaming hashes | `ic-host-artifacts` | Exact cache-key encodings, canonical JSON and Registry provenance domains |
+| Strict bounded certificate CBOR decoding | `ic-host-tools/certificate` | Registry response ceiling, typed refusal, Agent authentication and original-byte evidence; direct CBOR encoding is fixture-only |
 | Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
 | Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
 | Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
@@ -78,10 +80,9 @@ feature selects Platform's `cdk` facade for canister identity and bounded calls.
 The typed probe uses Platform's explicit-codec entrypoint generator with bounded
 Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
 probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Host Tools 0.31.1 shares Platform 0.4;
-Testkit 0.57 retains Platform 0.2.2 internally. External Candid, Agent and ledger DTO
-identities match across those versions; the fixture uses raw transport bytes and
-Wire without passing owned runtime or limit/error types across that boundary.
+CDK or macro-package declarations. Host Tools 0.31.1 and Testkit 0.59 share
+Platform 0.4; native fixtures use raw transport bytes and Wire. The selected
+Testkit update removes the older Host and Platform package copies from the graph.
 The replicated Governance adapter uses Platform's owned Principal for runtime
 calls. Required Candid DTOs and public APIs retain
 `ic_platform::candid::contract::Principal`, and ledger DTOs retain their external

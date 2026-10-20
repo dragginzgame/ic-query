@@ -27,7 +27,6 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time"] }
 
 [dev-dependencies]
-futures.workspace = true
 ic-build.workspace = true
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }

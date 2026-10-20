@@ -12,8 +12,11 @@ use crate::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
     validate_nns_certified_registry_delta_batch,
 };
-use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use ic_host_artifacts::artifact::HashingWriter;
+use std::{
+    collections::BTreeSet,
+    io::{self, Write},
+};
 
 const EVIDENCE_CHAIN_DOMAIN: &[u8] = b"ic-query:nns-certified-registry-evidence-chain:v1\0";
 const COMPLETE_STATE_DOMAIN: &[u8] = b"ic-query:nns-certified-registry-state:v1\0";
@@ -267,8 +270,11 @@ impl NnsRegistryReplaySession {
         self.minimum_certificate_time_nanos = Some(candidate.minimum_certificate_time_nanos);
         self.maximum_certificate_time_nanos = Some(candidate.maximum_certificate_time_nanos);
         self.evidence_chain_digest = Some(candidate.evidence_chain_digest);
-        self.complete_state_digest = (self.state.through_version() == selected_version)
-            .then(|| replay_state_digest(&self.state));
+        self.complete_state_digest =
+            (self.state.through_version() == selected_version).then(|| {
+                replay_state_digest(&self.state)
+                    .expect("in-memory replay state fits the u64 hashing allowance")
+            });
     }
 
     pub(super) fn ensure_next_source_call_capacity(
@@ -434,41 +440,43 @@ fn chained_evidence_digest(
     previous: Option<[u8; 32]>,
     report: &NnsCertifiedRegistryDeltaBatchReport,
 ) -> Result<[u8; 32], NnsRegistryReplayError> {
-    let mut hasher = Sha256::new();
-    hasher.update(EVIDENCE_CHAIN_DOMAIN);
-    match previous {
-        Some(digest) => {
-            hasher.update([1]);
-            hasher.update(digest);
-        }
-        None => hasher.update([0]),
-    }
-    serde_json::to_writer(&mut hasher, report).map_err(|error| {
+    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
+    writer
+        .write_all(EVIDENCE_CHAIN_DOMAIN)
+        .and_then(|()| match previous {
+            Some(digest) => {
+                writer.write_all(&[1])?;
+                writer.write_all(&digest)
+            }
+            None => writer.write_all(&[0]),
+        })
+        .expect("fixed evidence prefix fits the u64 hashing allowance");
+    serde_json::to_writer(&mut writer, report).map_err(|error| {
         NnsRegistryReplayError::EvidenceEncoding {
             reason: error.to_string(),
         }
     })?;
-    Ok(hasher.finalize().into())
+    Ok(*writer.into_parts().1.sha256.as_bytes())
 }
 
-fn replay_state_digest(state: &NnsRegistryReplayState) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(COMPLETE_STATE_DOMAIN);
-    hasher.update(state.through_version().to_be_bytes());
-    hasher.update(encoded_usize(state.entry_count()));
-    hasher.update(encoded_usize(state.content_bytes()));
+fn replay_state_digest(state: &NnsRegistryReplayState) -> io::Result<[u8; 32]> {
+    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
+    writer.write_all(COMPLETE_STATE_DOMAIN)?;
+    writer.write_all(&state.through_version().to_be_bytes())?;
+    writer.write_all(&encoded_usize(state.entry_count()))?;
+    writer.write_all(&encoded_usize(state.content_bytes()))?;
     for (key, value) in state.entries() {
-        hash_bytes(&mut hasher, key);
-        hash_bytes(&mut hasher, value.value());
-        hasher.update(value.last_mutation_version().to_be_bytes());
-        hasher.update(value.timestamp_nanoseconds().to_be_bytes());
+        hash_bytes(&mut writer, key)?;
+        hash_bytes(&mut writer, value.value())?;
+        writer.write_all(&value.last_mutation_version().to_be_bytes())?;
+        writer.write_all(&value.timestamp_nanoseconds().to_be_bytes())?;
     }
-    hasher.finalize().into()
+    Ok(*writer.into_parts().1.sha256.as_bytes())
 }
 
-fn hash_bytes(hasher: &mut Sha256, bytes: &[u8]) {
-    hasher.update(encoded_usize(bytes.len()));
-    hasher.update(bytes);
+fn hash_bytes(writer: &mut HashingWriter<io::Sink>, bytes: &[u8]) -> io::Result<()> {
+    writer.write_all(&encoded_usize(bytes.len()))?;
+    writer.write_all(bytes)
 }
 
 fn encoded_usize(value: usize) -> [u8; 16] {

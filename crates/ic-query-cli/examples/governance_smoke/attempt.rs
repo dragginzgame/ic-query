@@ -8,16 +8,14 @@ use crate::{
 };
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::durable::{PublicationMode, WriteOptions, write_with};
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use serde_json::{Value, json};
 use std::{
     io::{self, BufWriter, Write},
     path::Path,
     time::Duration,
 };
-use time::{
-    OffsetDateTime, PrimitiveDateTime,
-    format_description::{self, well_known::Rfc3339},
-};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 pub fn utc_now() -> Result<String> {
     Ok(OffsetDateTime::now_utc().format(&Rfc3339)?)
@@ -65,10 +63,7 @@ pub fn validate_report(kind: &str, mut payload: Value, collector: &str) -> Resul
     let timestamp = report["fetched_at"]
         .as_str()
         .ok_or_else(|| invalid("missing fetched_at"))?;
-    let format =
-        format_description::parse_borrowed::<2>("[year]-[month]-[day]T[hour]:[minute]:[second]Z")?;
-    let parsed = PrimitiveDateTime::parse(timestamp, &format)?;
-    if timestamp.len() != 20 || parsed.format(&format)? != timestamp {
+    if timestamp.len() != 20 || parse_utc_timestamp_secs(timestamp).is_none() {
         return Err(invalid(
             "fetched_at must be canonical second-resolution UTC",
         ));

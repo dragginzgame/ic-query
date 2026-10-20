@@ -6,11 +6,11 @@
 
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use ic_host_artifacts::artifact::BoundedWriter;
+#[cfg(feature = "subnet-catalog-host")]
+use ic_host_artifacts::artifact::HashingWriter;
 #[cfg(any(feature = "certified-subnet-catalog-host", test))]
 use ic_host_artifacts::artifact::MatchingWriter;
 use serde::Serialize;
-#[cfg(feature = "subnet-catalog-host")]
-use sha2::{Digest, Sha256};
 use std::{
     io,
     path::{Path, PathBuf},
@@ -40,9 +40,9 @@ pub fn canonical_json_sha256<T>(value: &T) -> Result<[u8; 32], serde_json::Error
 where
     T: Serialize + ?Sized,
 {
-    let mut writer = Sha256::new();
+    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
     serde_json::to_writer(&mut writer, value)?;
-    Ok(writer.finalize().into())
+    Ok(*writer.into_parts().1.sha256.as_bytes())
 }
 
 /// Return whether `bytes` are the exact canonical compact JSON encoding of `value`.
