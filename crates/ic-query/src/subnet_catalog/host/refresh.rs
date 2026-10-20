@@ -9,20 +9,17 @@ use super::{
 use crate::{QueryProgress, QueryProgressEvent, progress::IgnoreQueryProgress};
 use crate::{
     cache_file::{
-        MAX_JSON_SNAPSHOT_BYTES, RefreshLockRequest, create_managed_parent_directory,
-        ensure_managed_write_size, managed_file_exists, validate_output_path,
-        with_refresh_lock_async, write_managed_json_pretty_atomically,
-        write_managed_text_atomically, write_text_output,
+        RefreshCacheWriteRequest, RefreshLockRequest, create_managed_parent_directory,
+        managed_file_exists, validate_output_path, with_refresh_lock_async,
+        write_json_refresh_outputs,
     },
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         MAINNET_REGISTRY_CANISTER_ID, SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
-        SubnetCatalogRefreshReport, ValidatedSubnetCatalog, catalog_to_pretty_json,
-        format_utc_timestamp_secs,
+        SubnetCatalogRefreshReport, ValidatedSubnetCatalog, format_utc_timestamp_secs,
     },
 };
 use std::{
-    io,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -226,46 +223,30 @@ async fn refresh_subnet_catalog_under_lock(
     );
     let catalog = ValidatedSubnetCatalog::try_from_raw(raw, &validation)
         .map_err(|source| catalog_failure(source, registry_version))?;
-    if let Some(output_path) = &request.output_path {
-        let catalog_json = catalog_to_pretty_json(catalog.raw())
-            .map_err(|source| catalog_failure(source, registry_version))?;
-        if !request.dry_run {
-            ensure_managed_write_size(
-                catalog_path,
-                catalog_json.len() as u64,
-                MAX_JSON_SNAPSHOT_BYTES,
-            )
-            .map_err(|error| cache_failure(error, Some(registry_version), catalog_path))?;
-        }
-        let history_path =
-            super::subnet_catalog_history_path(&request.cache.cache_root, &request.cache.network);
-        let history_lock_path = super::subnet_catalog_history_lock_path(
-            &request.cache.cache_root,
-            &request.cache.network,
-        );
-        let mut protected = vec![catalog_path, lock_path, &history_path, &history_lock_path];
+    let history_path =
+        super::subnet_catalog_history_path(&request.cache.cache_root, &request.cache.network);
+    let history_lock_path =
+        super::subnet_catalog_history_lock_path(&request.cache.cache_root, &request.cache.network);
+    let mut protected = Vec::new();
+    if request.output_path.is_some() {
+        protected.extend([history_path.as_path(), history_lock_path.as_path()]);
         if let Some(paths) = source.history_cache_paths() {
             protected.extend(<[&Path; 2]>::from(paths));
         }
-        write_text_output(output_path, &catalog_json, &protected)
-            .map_err(|error| cache_failure(error, Some(registry_version), output_path))?;
-        if !request.dry_run {
-            write_managed_text_atomically(&request.cache.cache_root, catalog_path, &catalog_json)
-                .map_err(|error| cache_failure(error, Some(registry_version), catalog_path))?;
-        }
-    } else if request.dry_run {
-        serde_json::to_writer_pretty(io::sink(), catalog.raw())
-            .map_err(|source| catalog_failure(source.into(), registry_version))?;
-    } else {
-        write_managed_json_pretty_atomically(
-            &request.cache.cache_root,
-            catalog_path,
-            catalog.raw(),
-            MAX_JSON_SNAPSHOT_BYTES,
-            |_, source| catalog_failure(source.into(), registry_version),
-            |error| cache_failure(error, Some(registry_version), catalog_path),
-        )?;
     }
+    write_json_refresh_outputs(
+        &RefreshCacheWriteRequest {
+            cache_root: &request.cache.cache_root,
+            cache_path: catalog_path,
+            lock_path,
+            dry_run: request.dry_run,
+            output_path: request.output_path.as_deref(),
+            report: catalog.raw(),
+        },
+        &protected,
+        |path, error| cache_failure(error, Some(registry_version), path),
+        |_, source| catalog_failure(source.into(), registry_version),
+    )?;
     Ok(SubnetCatalogRefreshReport {
         schema_version: SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
         network: catalog.provenance().network.clone(),

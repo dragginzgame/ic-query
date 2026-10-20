@@ -19,9 +19,6 @@ mod policy;
 mod tests;
 mod write;
 
-#[cfg(feature = "subnet-catalog-host")]
-pub use write::ensure_managed_write_size;
-
 /// Maximum encoded bytes admitted for inventories and bounded report snapshots.
 #[cfg(any(
     feature = "dashboard-host",
@@ -97,7 +94,9 @@ pub use policy::CacheRefreshReason;
     feature = "sns-host"
 ))]
 pub use policy::{host_cache_refresh_reason, load_or_refresh_cache};
-#[cfg(feature = "nns-host")]
-pub use write::{RefreshCacheWriteRequest, RefreshCacheWriteResult, write_json_refresh_cache};
 #[cfg(feature = "subnet-catalog-host")]
-pub use write::{validate_output_path, write_text_output};
+pub use write::validate_output_path;
+#[cfg(feature = "subnet-catalog-host")]
+pub use write::{RefreshCacheWriteRequest, write_json_refresh_outputs};
+#[cfg(feature = "nns-host")]
+pub use write::{RefreshCacheWriteResult, write_json_refresh_cache};

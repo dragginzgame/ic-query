@@ -69,21 +69,7 @@ pub fn create_managed_parent_directory(
     cache_root: &Path,
     target_path: &Path,
 ) -> Result<(), CacheFileError> {
-    let root = ConfinedCacheRoot::open(cache_root, true)?.ok_or_else(|| {
-        open_managed_path_error(
-            cache_root,
-            target_path,
-            io::Error::new(io::ErrorKind::NotFound, "cache root was not created"),
-        )
-    })?;
-    root.resolve_parent(target_path, true)?.ok_or_else(|| {
-        open_managed_path_error(
-            cache_root,
-            target_path,
-            io::Error::new(io::ErrorKind::NotFound, "cache parent was not created"),
-        )
-    })?;
-    Ok(())
+    managed_path_for_create(cache_root, target_path).map(|_| ())
 }
 
 /// Atomically publish UTF-8 text through a confined same-directory temporary file.

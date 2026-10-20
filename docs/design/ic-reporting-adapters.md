@@ -74,15 +74,19 @@ permissions and may leave partial output on write/sync failure. These APIs are
 available in the selected published Host packages; no sibling checkout or local
 copy substitutes for them.
 
-The published Platform 0.4.0 boundary preserves upstream Candid type identities
+The published Platform 0.5.0 boundary preserves upstream Candid type identities
 and Query's existing decoder quotas and error projection. Query's `canister`
 feature selects Platform's `cdk` facade for canister identity and bounded calls.
 The typed probe uses Platform's explicit-codec entrypoint generator with bounded
 Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
 probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Host Tools 0.31.1 and Testkit 0.59 share
-Platform 0.4; native fixtures use raw transport bytes and Wire. The selected
-Testkit update removes the older Host and Platform package copies from the graph.
+CDK or macro-package declarations. Host Tools 0.31 and Testkit 0.59 still select
+Platform 0.4 internally; native fixtures use raw transport bytes and Wire.
+Registry conversions infer Host's owned Principal from its published signatures
+instead of assuming that Query and Host select the same Platform minor.
+External Candid/Agent/certification DTO identities remain shared across those
+versions. Query uses neither service-generation macros nor the retired runtime
+storage/timeout APIs; its explicit Wire hooks and bounded-call defaults remain.
 The replicated Governance adapter uses Platform's owned Principal for runtime
 calls. Required Candid DTOs and public APIs retain
 `ic_platform::candid::contract::Principal`, and ledger DTOs retain their external

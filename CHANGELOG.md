@@ -5,6 +5,25 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.65.2]
+
+- Adopt published Platform 0.5.0, preserving external IC types and call behavior.
+  Infer Host's Registry Principal identity at its API boundary so its Platform
+  selection can differ without changing report or cache formats.
+- Adopt Shared Tooling 0.25.8. Run the existing Clippy gate before expensive
+  CI/release checks and standard canister build, deployment and publication
+  operations, stopping those recipes on lint failures.
+- Consolidate cache preview, export and publication policy for Subnet Catalog
+  and NNS inventories. Preserve export protection, byte ceilings, lock lifecycles
+  and typed failures while reusing the confined path helpers.
+- Retain Testkit setup stderr and partial downloads in CI failure artifacts,
+  preserving file modes and archiving links without following them.
+- Keep generic validation-runner regression matrices at Shared Tooling while
+  retaining Query's Make admission and recursive-execution checks
+  ([PR #90 — Consolidate tooling checks and retain Testkit setup evidence](https://github.com/dragginzgame/ic-query/pull/90)).
+
+Detailed release notes: [docs/changelog/0.65.md](docs/changelog/0.65.md)
+
 ## [0.65.1] - 2026-10-20
 
 - Consolidate SHA-256 hashing on Host Artifacts while preserving cache identities,

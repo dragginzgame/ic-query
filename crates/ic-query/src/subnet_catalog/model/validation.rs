@@ -497,12 +497,7 @@ fn validated_registry_record_subject(
                         &evidence.record.key,
                     )
                     .map_err(invalid_registry_record_evidence)?;
-                if evidence
-                    .record
-                    .canister_range_start
-                    .map(ic_platform::Principal::from)
-                    != Some(parsed)
-                {
+                if evidence.record.canister_range_start != Some(parsed.into()) {
                     return Err(invalid_registry_record_evidence(
                         "routing shard subject does not match the lower bound encoded by its key"
                             .to_string(),

@@ -142,6 +142,57 @@ async fn output_preserves_directory_traversal_errors_before_filesystem_mutation(
 }
 
 #[cfg(feature = "nns-host")]
+#[test]
+fn json_refresh_preserves_preview_and_export_publication_contract() {
+    use super::{RefreshCacheWriteRequest, write_json_refresh_cache};
+    use crate::cache_file::{inspect_refresh_lock, write_managed_text_atomically};
+
+    for dry_run in [true, false] {
+        for export in [true, false] {
+            let root = temp_dir("ic-query-json-refresh-publication");
+            let cache_path = root.join("cache/report.json");
+            let lock_path = root.join("cache/refresh.lock");
+            let output_path = root.join("export/report.json");
+            let report = serde_json::json!({"value": "replacement"});
+            let expected = serde_json::to_vec_pretty(&report).unwrap();
+            write_managed_text_atomically(&root, &cache_path, "original").unwrap();
+
+            let result = write_json_refresh_cache(
+                RefreshCacheWriteRequest {
+                    cache_root: &root,
+                    cache_path: &cache_path,
+                    lock_path: &lock_path,
+                    dry_run,
+                    output_path: export.then_some(output_path.as_path()),
+                    report: &report,
+                },
+                |error| error,
+                |_, _| panic!("fixture must serialize"),
+            )
+            .expect("refresh output");
+
+            assert!(result.replaced_existing_cache);
+            assert_eq!(result.wrote_cache, !dry_run);
+            assert_eq!(
+                fs::read(&cache_path).unwrap(),
+                if dry_run {
+                    b"original".to_vec()
+                } else {
+                    expected.clone()
+                }
+            );
+            if export {
+                assert_eq!(fs::read(&output_path).unwrap(), expected);
+            } else {
+                assert!(!output_path.exists());
+            }
+            assert!(!inspect_refresh_lock(&root, &lock_path).unwrap());
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+}
+
+#[cfg(feature = "nns-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn json_refresh_rejects_output_aliases_for_cache_and_lock_including_dry_runs() {
     use super::{RefreshCacheWriteRequest, write_json_refresh_cache};

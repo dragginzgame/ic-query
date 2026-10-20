@@ -69,13 +69,7 @@ impl ManagedReadBudget {
 
 /// Return whether a confined regular managed file exists.
 pub fn managed_file_exists(cache_root: &Path, target_path: &Path) -> Result<bool, CacheFileError> {
-    let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
-        return Ok(false);
-    };
-    let Some(target) = root.resolve_parent(target_path, false)? else {
-        return Ok(false);
-    };
-    Ok(target.open_regular_file()?.is_some())
+    open_managed_file(cache_root, target_path).map(|file| file.is_some())
 }
 
 /// Open a confined regular managed file without following symbolic links.

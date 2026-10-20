@@ -56,10 +56,10 @@ format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := shared-tooling-check tools-check changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
+CI_TARGETS := shared-tooling-check tools-check clippy changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
-	schema-version-check fmt-check check clippy test package
+	schema-version-check fmt-check check test package
 CI_INPUTS := Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
 	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
@@ -171,6 +171,7 @@ ci-scripts-check:
 
 canister-build canister-bundle canister-smoke:
 	cargo fetch --locked
+	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
 	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- $(if $(filter canister-smoke,$@),local,$(@:canister-%=%))
 
 install-testkit:
@@ -180,6 +181,7 @@ testkit-check:
 	@tool="$$( $(TESTKIT_TOOL) --check )" && "$$tool" check --directory "$(REPO_ROOT).tools/testkit-server"
 
 canister-test: testkit-check
+	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
 	cargo build -p ic-query --example governance_probe --target wasm32-unknown-unknown --target-dir "$(REPO_ROOT)target/testkit" --release --no-default-features --features canister --locked --offline
 	cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit --no-run
 	@tool="$$( $(TESTKIT_TOOL) --check )" && \
@@ -254,6 +256,7 @@ release-tools-check:
 	+@$(RELEASE_METADATA_TOOL) --check > /dev/null
 
 publish: ensure-clean release-tag-check
+	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
 	bash scripts/release/publish-workspace.sh
 
 export RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH

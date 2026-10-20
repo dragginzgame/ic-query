@@ -454,8 +454,15 @@ before-files, complete validation log, and success marker. Failed attempts retai
 their own logs; subsequent validation does not overwrite them. Shared schema-1
 plans retain intent before metadata preparation and record the exact staged tree
 and completed phases. Do not remove plans or evidence to obtain a clean retry.
-CI uses the pinned `run-validation-targets.sh` with fail-fast ordering. Release
-validation uses that same logger around the complete gate and retains unique raw
+CI uses the pinned `run-validation-targets.sh` with fail-fast ordering. After
+snapshot and prepared-tool admission, its unchanged two-pass Clippy gate runs
+before feature builds, tests and packaging. The runner dispatches targets
+sequentially even under parallel Make. Standard `canister-build`,
+`canister-bundle`, `canister-smoke`, `canister-test` and `publish` recipes also
+complete that gate before their product builds or external effects; a lint
+failure stops the recipe. Existing source/tag admission, dependency preparation
+and Testkit admission retain their order ahead of the applicable gate.
+Release validation uses that same logger around the complete gate and retains unique raw
 failure logs under its attempt directory's `validation-failures/`. Ordinary CI
 retains failures in `target/validation-failures/`. Retries preserve earlier raw
 logs; `latest.log` is a convenience copy of the last failed target. Each failing

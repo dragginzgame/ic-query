@@ -369,6 +369,7 @@ fn missing_root_and_file_are_observed_without_creation() {
     let root = temp_dir("ic-query-confined-missing").join("missing");
     let path = root.join("cache.json");
 
+    assert!(!managed_file_exists(&root, &path).expect("missing existence check"));
     assert_eq!(
         read_bounded_managed_file(&root, &path, 1024, None).expect("missing read"),
         None

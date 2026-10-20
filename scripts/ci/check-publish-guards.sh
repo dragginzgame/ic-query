@@ -47,6 +47,9 @@ set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
 printf 'cargo %s\n' "$*" >> "${TRACE_FILE}"
 case "${1:-}" in
+  clippy)
+    [[ "${PUBLISH_LINT_FAIL:-}" != "$2" ]] || exit 61
+    ;;
   info)
     package="${2%@*}"
     if [[ "${package}" == "ic-query" && -n "${HIDE_LIBRARY_INFO:-}" ]]; then
@@ -302,8 +305,35 @@ chmod +x "${make_case}/bin/git"
     make --no-print-directory -f "${repo_root}/Makefile" publish
 ) >/dev/null \
   || fail "make publish rejected a clean tagged release"
-cmp -s "${publish_case}/expected-trace" "${make_case}/trace" \
+printf '%s\n' \
+  'cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings' \
+  'cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings' \
+  > "$make_case/expected-trace"
+cat "$publish_case/expected-trace" >> "$make_case/expected-trace"
+cmp -s "${make_case}/expected-trace" "${make_case}/trace" \
   || fail "make publish did not delegate once to the retry-safe workspace publisher"
+
+for lint_scope in -p --workspace; do
+  : > "$make_case/lint-trace"
+  if (
+    cd "$make_case"
+    PATH="$make_case/bin:$publish_case/bin:$PATH" RELEASE_VERSION="$current_version" \
+      TRACE_FILE="$make_case/lint-trace" STATE_DIR="$publish_case/state" \
+      PUBLISH_LINT_FAIL="$lint_scope" \
+      make --no-print-directory -j4 -f "$repo_root/Makefile" publish
+  ) > "$make_case/lint-output" 2>&1; then
+    fail 'make publish ignored failed Clippy gate'
+  fi
+  printf '%s\n' \
+    'cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings' \
+    > "$make_case/expected-lint-trace"
+  if [[ "$lint_scope" == --workspace ]]; then
+    printf '%s\n' 'cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings' \
+      >> "$make_case/expected-lint-trace"
+  fi
+  cmp "$make_case/lint-trace" "$make_case/expected-lint-trace" \
+    || fail 'failed Clippy reached publication or registry observation'
+done
 
 mkdir "$make_case/upload-state"
 (

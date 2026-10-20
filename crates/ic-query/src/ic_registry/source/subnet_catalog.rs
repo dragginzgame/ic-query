@@ -202,12 +202,11 @@ where
         let next_start = shard_subjects
             .get(index + 1)
             .and_then(|next| next.canister_range_start)
-            .map(ic_platform::Principal::from);
-        let lower_bound = ic_platform::Principal::from(
-            subject
-                .canister_range_start
-                .expect("canister-ranges subject has a range start"),
-        );
+            .map(Into::into);
+        let lower_bound = subject
+            .canister_range_start
+            .expect("canister-ranges subject has a range start")
+            .into();
         validate_routing_table_shard_bounds(
             &subject.key,
             &lower_bound,
@@ -541,10 +540,11 @@ mod tests {
         let inside = canister_id(2);
         let subject = SubnetCatalogRegistryRecordSubject::canister_ranges(start);
 
-        let lower_bound = &ic_platform::Principal::from(
-            subject.canister_range_start.expect("range-start subject"),
-        );
-        let next_bound = ic_platform::Principal::from(next);
+        let lower_bound = &subject
+            .canister_range_start
+            .expect("range-start subject")
+            .into();
+        let next_bound = next.into();
         validate_routing_table_shard_bounds(
             &subject.key,
             lower_bound,
