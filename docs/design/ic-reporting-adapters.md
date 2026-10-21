@@ -28,6 +28,7 @@ Dependencies own the reusable mechanisms beneath that policy:
 | --- | --- | --- |
 | IC transport and standard values | `ic-platform` Agent/Candid/certification/ledger contracts | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
 | Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, protected export paths, family error projection, report layouts and smoke-harness interruption policy |
+| Bounded native HTTP response bodies | `ic-host-http` | Dashboard client, endpoint, status-before-body admission, byte ceiling, JSON decoding and public error projection |
 | Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification, replay and report projection |
 | Canonical unsigned `u64` LEB128 and bounded ICRC chain evidence | Host Tools' `encoding` and `ledger-evidence` features | Field/error projection, certificate/witness authentication and transaction interpretation |
 | SHA-256 identities and streaming hashes | `ic-host-artifacts` | Exact cache-key encodings, canonical JSON and Registry provenance domains |

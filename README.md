@@ -464,8 +464,9 @@ Dashboard count, page, metric, daily-statistics, boundary-node data-center,
 replica-version, CloudEngine node/provider, and ICRC analytics commands always
 make exactly one REST request. The shared live
 transport rejects successful response bodies larger than 8 MiB, checking both
-declared and streamed sizes before JSON decoding. Indexed counts request no
-account, holder, or transaction rows. A page returns at most 100 canister
+declared and streamed sizes through Host HTTP's fallible bounded reader before
+JSON decoding. Query retains request, timeout and status policy. Indexed counts
+request no account, holder, or transaction rows. A page returns at most 100 canister
 summaries and never follows its cursors automatically. A metric query
 defaults to one hour at a five-minute step and is capped at 1,000 observations
 per series. Daily statistics default to seven days and are capped at one year

@@ -5,9 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.3]
+## [0.67.4]
 
 - Read the development compiler from rust-toolchain.toml in native and canister CI, retaining explicit Wasm targets and the independent minimum-Rust gate.
+
+## [0.67.3] - 2026-10-21
+
+- Adopt published IC Tooling 0.63.2 and its bounded HTTP reader for Dashboard
+  responses. Preserve status precedence, byte limits and typed errors while
+  making response-buffer allocation fallible
+  ([#93 — Adopt ic-host-http for bounded native JSON response reads](https://github.com/dragginzgame/ic-query/issues/93)).
+
+Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
 
 ## [0.67.2] - 2026-10-21
 
