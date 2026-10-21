@@ -21,6 +21,7 @@ use crate::{
     http_endpoint::parse_http_endpoint,
     ic::{IcHostError, MAX_IC_DASHBOARD_RESPONSE_BYTES},
 };
+use ic_host_http::{ReadFailure, ReadOptions, read_body};
 use reqwest::{Client, redirect::Policy as RedirectPolicy};
 use serde::de::DeserializeOwned;
 use std::time::Duration;
@@ -76,7 +77,7 @@ where
     T: DeserializeOwned,
 {
     let url_text = url.to_string();
-    let mut response = client
+    let response = client
         .get(url)
         .send()
         .await
@@ -92,40 +93,38 @@ where
         });
     }
 
-    let declared_length = response.content_length();
-    if let Some(length) = declared_length
-        && length > max_response_bytes
-    {
-        return Err(response_too_large(&url_text, max_response_bytes, length));
-    }
-
-    let initial_capacity = declared_length
-        .and_then(|length| usize::try_from(length).ok())
-        .unwrap_or_default();
-    let mut body = Vec::with_capacity(initial_capacity);
-    while let Some(chunk) =
-        response
-            .chunk()
-            .await
-            .map_err(|error| IcHostError::HttpResponseBody {
-                url: url_text.clone(),
-                reason: error.to_string(),
-            })?
-    {
-        let observed_bytes = u64::try_from(body.len())
-            .unwrap_or(u64::MAX)
-            .saturating_add(u64::try_from(chunk.len()).unwrap_or(u64::MAX));
-        if observed_bytes > max_response_bytes {
-            return Err(response_too_large(
-                &url_text,
-                max_response_bytes,
-                observed_bytes,
-            ));
+    let max_bytes =
+        usize::try_from(max_response_bytes).map_err(|error| IcHostError::HttpResponseBody {
+            url: url_text.clone(),
+            reason: format!("response budget cannot be represented: {error}"),
+        })?;
+    let body = read_body(
+        response,
+        ReadOptions {
+            max_bytes,
+            reject_declared_oversize: true,
+            retain_partial_on_error: false,
+        },
+    )
+    .await
+    .map_err(|error| match error.failure {
+        ReadFailure::DeclaredLength { declared, .. } => {
+            response_too_large(&url_text, max_response_bytes, declared)
         }
-        body.extend_from_slice(&chunk);
-    }
+        ReadFailure::Limit { .. } => {
+            response_too_large(&url_text, max_response_bytes, error.received_bytes)
+        }
+        ReadFailure::Transport(source) => IcHostError::HttpResponseBody {
+            url: url_text.clone(),
+            reason: source.to_string(),
+        },
+        ReadFailure::Allocation(source) => IcHostError::HttpResponseBody {
+            url: url_text.clone(),
+            reason: source.to_string(),
+        },
+    })?;
 
-    serde_json::from_slice(&body).map_err(|error| IcHostError::JsonDecode {
+    serde_json::from_slice(&body.bytes).map_err(|error| IcHostError::JsonDecode {
         url: url_text,
         reason: error.to_string(),
     })

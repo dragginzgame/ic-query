@@ -30,7 +30,7 @@ host = [
 cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent"]
 cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent"]
 certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding"]
-dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:reqwest"]
+dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:ic-host-http", "dep:reqwest"]
 ic-state-host = [
     "ic-host-tools/agent",
     "ic-host-tools/encoding",
@@ -71,6 +71,7 @@ subnet-catalog-host = [
 futures-util = { workspace = true, optional = true }
 ic-host-artifacts = { workspace = true, optional = true }
 ic-host-fs = { workspace = true, optional = true, features = ["capability"] }
+ic-host-http = { workspace = true, optional = true }
 ic-host-text.workspace = true
 ic-host-tools = { workspace = true, optional = true }
 ic-metrics.workspace = true

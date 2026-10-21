@@ -22,6 +22,7 @@ forbidden_pure_library_dependencies=(
   icrc-ledger-types
   ic-host-artifacts
   ic-host-fs
+  ic-host-http
   ic-host-process
   ic-host-tools
   reqwest
@@ -45,6 +46,7 @@ forbidden_canister_dependencies=(
   icrc-ledger-types
   ic-host-artifacts
   ic-host-fs
+  ic-host-http
   ic-host-process
   ic-host-tools
   prost
@@ -67,6 +69,7 @@ forbidden_host_dependencies=(
 )
 
 forbidden_direct_registry_host_dependencies=(
+  ic-host-http
   reqwest
   serde_cbor
 )
@@ -91,6 +94,7 @@ forbidden_ic_state_host_dependencies=(
   cap-std
   ic-host-artifacts
   ic-host-fs
+  ic-host-http
   ic-host-process
   prost
 )
@@ -107,6 +111,7 @@ forbidden_direct_ic_state_host_dependencies=(
 )
 
 forbidden_icrc_host_dependencies=(
+  ic-host-http
   prost
 )
 
@@ -121,6 +126,7 @@ forbidden_cmc_host_dependencies=(
   cap-std
   ic-host-artifacts
   ic-host-fs
+  ic-host-http
   ic-host-process
   prost
 )
@@ -130,6 +136,7 @@ forbidden_cloud_engine_host_dependencies=(
   cap-std
   ic-host-artifacts
   ic-host-fs
+  ic-host-http
   ic-host-process
   prost
 )
@@ -166,10 +173,12 @@ forbidden_direct_cloud_engine_host_dependencies=(
 )
 
 forbidden_direct_nns_host_dependencies=(
+  ic-host-http
   reqwest
 )
 
 forbidden_sns_host_dependencies=(
+  ic-host-http
   prost
 )
 
