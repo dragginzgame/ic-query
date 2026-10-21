@@ -1496,15 +1496,15 @@ dependencies = [
 
 [[package]]
 name = "ic-metrics"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d73e4784a14737d07f1c5401936f0e722570f84d43478fe4ccaf56b772cab0"
+checksum = "f3c0b6f72239837fa0acd98540332564f6d2040989a5e578e5aea6637905bedb"
 
 [[package]]
 name = "ic-platform"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe3c6c29dbf9ac6bcae2d27447c9a1e342963c01649b6529a6fbb1e66e9f056"
+checksum = "9ebb7f66c9b68a5cd642229dd0583f21501fe602b293ad931f6c5a144161078e"
 dependencies = [
  "candid",
  "crc32fast",
@@ -1524,9 +1524,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-macros"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1dddc511610090af16d191918adb45a618438696c088daaec111f82ad47f5c4"
+checksum = "cb61949deecb62ac71577ebd6f8c1147c0bf30f9558702c984a64104a91ee799"
 dependencies = [
  "proc-macro2",
  "quote",
