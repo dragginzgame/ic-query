@@ -12,6 +12,7 @@ use super::{
     },
     live_query_context,
 };
+use crate::agent_transport::{QueryCallError, QueryFailure};
 use crate::candid_call::CandidCallError;
 use crate::icrc::{
     ledger::{
@@ -22,7 +23,7 @@ use crate::icrc::{
         IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError, IcrcLedgerRequest,
     },
 };
-use ic_platform::agent::{Agent, AgentError, RejectCode};
+use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{Nat, Principal};
 use ic_platform::icrc_ledger_types::{GetArchivesArgs, GetBlocksRequest};
 
@@ -220,12 +221,16 @@ impl CandidCallError for CapabilityQueryError {
         IcrcError::CandidEncode { message, reason }.into()
     }
 
-    fn agent_call(method: &'static str, error: AgentError) -> Self {
-        let method_not_exported = crate::agent_transport::rejection(&error).is_some_and(|reject| {
-            // IC0536 is CanisterMethodNotFound; free-form reject text is not a code.
-            reject.reject_code == RejectCode::CanisterError
-                && reject.error_code.as_deref() == Some("IC0536")
-        });
+    fn agent_call(method: &'static str, error: QueryCallError) -> Self {
+        // IC reject code 5 is CanisterError; free-form text is not a code.
+        let method_not_exported = matches!(
+            error.failure(),
+            QueryFailure::Rejected {
+                code: 5,
+                error_code: Some("IC0536"),
+                ..
+            }
+        );
         Self {
             error: IcrcError::AgentCall {
                 method,
@@ -278,6 +283,7 @@ where
 mod tests {
     use super::*;
     use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
+    use ic_platform::agent::{AgentError, RejectCode};
     use serde_cbor::Value;
     use std::{collections::BTreeMap, time::Duration};
 
@@ -402,7 +408,7 @@ mod tests {
                 let row = error_capability_row(
                     "ICRC-3 block history",
                     ICRC3_GET_BLOCKS_METHOD,
-                    CapabilityQueryError::agent_call(ICRC3_GET_BLOCKS_METHOD, error),
+                    CapabilityQueryError::agent_call(ICRC3_GET_BLOCKS_METHOD, error.into()),
                 );
                 assert_eq!(row.status, expected);
                 assert_eq!(row.error.as_deref(), Some(original.as_str()));

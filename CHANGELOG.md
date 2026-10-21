@@ -7,6 +7,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.67.5]
 
+- Own private query errors while preserving original causes, diagnostics and
+  consumer retry decisions. Exhaustive upstream mappings require review when
+  Agent adds error variants
+  ([#97 — Own the private query transport error contract](https://github.com/dragginzgame/ic-query/issues/97)).
+
 - Contain ordinary Agent query dispatch and structural error inspection behind a
   private boundary, preserving raw bytes, Registry retries and ledger capability
   decisions ([#95 — Contain Agent query dispatch and error inspection](https://github.com/dragginzgame/ic-query/issues/95)).
