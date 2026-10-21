@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.0]
+## [0.67.0] - 2026-10-21
 
 - **Breaking:** adopt coordinated IC Tooling 0.63.0. Consumers naming Host types
   exposed by Query must select Host Tools 0.63, including certificate decode
