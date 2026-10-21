@@ -43,6 +43,62 @@ async fn bounded_transport_accepts_valid_json_at_the_exact_byte_limit() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_accepts_chunked_json_at_the_exact_byte_limit() {
+    let body = br#"{"value":"ok"}"#;
+    let server = serve_once(chunked_response(&[&body[..8], &body[8..]]));
+
+    let payload: TestPayload = fetch_test_json(&server.url, body.len() as u64)
+        .await
+        .expect("chunked response at exact limit");
+    server.finish();
+
+    assert_eq!(payload.value, "ok");
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_preserves_status_before_body_and_size_failures() {
+    let server = serve_once(
+        b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 65\r\nConnection: close\r\n\r\n{"
+            .to_vec(),
+    );
+
+    let error = fetch_test_json::<TestPayload>(&server.url, 0)
+        .await
+        .expect_err("unsuccessful status precedes size, truncation and JSON errors");
+    server.finish();
+
+    assert!(matches!(error, IcHostError::HttpStatus { status: 503, .. }));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn bounded_transport_zero_limit_admits_empty_bodies_before_json_decoding() {
+    for response in [content_length_response(0, &[]), chunked_response(&[])] {
+        let server = serve_once(response);
+        let error = fetch_test_json::<TestPayload>(&server.url, 0)
+            .await
+            .expect_err("empty JSON remains a decoding error");
+        server.finish();
+        assert!(matches!(error, IcHostError::JsonDecode { .. }));
+    }
+
+    for response in [content_length_response(1, b"x"), chunked_response(&[b"x"])] {
+        let server = serve_once(response);
+        let error = fetch_test_json::<TestPayload>(&server.url, 0)
+            .await
+            .expect_err("a zero-byte budget refuses any response byte");
+        server.finish();
+        assert!(matches!(
+            error,
+            IcHostError::HttpResponseTooLarge {
+                max_bytes: 0,
+                observed_bytes: 1,
+                ..
+            }
+        ));
+    }
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn bounded_transport_rejects_oversized_declared_length_before_reading_body() {
     let server = serve_once(content_length_response(65, &[]));
 
