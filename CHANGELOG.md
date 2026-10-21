@@ -5,6 +5,10 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.67.2]
+
+- Read the development compiler from rust-toolchain.toml in native and canister CI, retaining explicit Wasm targets and the independent minimum-Rust gate.
+
 ## [0.67.1] - 2026-10-21
 
 - Qualify the public authenticated ledger-tip return type against Host Tools
