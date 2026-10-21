@@ -1,9 +1,9 @@
-use super::{
-    acquire::{acquire_refresh_lock, inspect_refresh_lock},
-    model::RefreshLockRequest,
-};
+use super::{acquire::acquire_refresh_lock, model::RefreshLockRequest};
 use crate::{
-    cache_file::{CacheFileError, create_managed_parent_directory, write_managed_text_atomically},
+    cache_file::{
+        CacheFileError, create_managed_parent_directory, inspect_refresh_lock,
+        write_managed_text_atomically,
+    },
     test_support::temp_dir,
 };
 #[cfg(unix)]
