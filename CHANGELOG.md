@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.67.1]
+
+- Qualify the public authenticated ledger-tip return type against Host Tools
+  directly under the isolated ledger-evidence feature, retaining byte-budget
+  refusal before certificate processing or transport
+  ([#92 — Align authenticated LedgerTip with published Host Tools 0.63](https://github.com/dragginzgame/ic-query/issues/92)).
+
+Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
+
 ## [0.67.0] - 2026-10-21
 
 - **Breaking:** adopt coordinated IC Tooling 0.63.0. Consumers naming Host types

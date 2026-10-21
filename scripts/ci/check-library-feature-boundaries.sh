@@ -91,6 +91,7 @@ common_public_api_tests=(
 check_public_api none "${common_public_api_tests[@]}"
 check_public_api host "${common_public_api_tests[@]}"
 check_public_api certificate-host downstream_usage
+check_public_api ledger-evidence-host downstream_usage
 check_public_api icrc-host icrc_public_api
 check_public_api dashboard-host ic_public_api cloud_engine_public_api
 check_public_api ic-state-host ic_public_api

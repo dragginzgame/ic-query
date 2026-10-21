@@ -1,5 +1,9 @@
 #[cfg(feature = "certificate-host")]
 use ic_host_tools::certificate::ParseError;
+#[cfg(feature = "ledger-evidence-host")]
+use ic_host_tools::ledger_evidence::LedgerTip;
+#[cfg(feature = "ledger-evidence-host")]
+use ic_query::certificate::{CertificateEvidenceLimits, authenticate_ledger_tip};
 #[cfg(feature = "certificate-host")]
 use ic_query::certificate::{CertificateVerificationError, authenticate};
 use ic_query::nns::registry::{
@@ -375,4 +379,24 @@ fn downstream_certificate_failure_exposes_shared_parse_source() {
     };
     let source: ParseError = source;
     assert!(std::error::Error::source(&source).is_some());
+}
+
+#[cfg(feature = "ledger-evidence-host")]
+#[test]
+fn downstream_authenticated_ledger_tip_uses_host_type_and_limits() {
+    let agent = ic_platform::agent::Agent::builder()
+        .with_url("https://icp-api.io")
+        .build()
+        .unwrap();
+    let result: Result<LedgerTip, CertificateVerificationError> = authenticate_ledger_tip(
+        &agent,
+        ic_platform::candid::contract::Principal::anonymous(),
+        &[0xff],
+        &[],
+        CertificateEvidenceLimits { bytes: 0 },
+    );
+    assert!(matches!(
+        result,
+        Err(CertificateVerificationError::BudgetExceeded)
+    ));
 }
