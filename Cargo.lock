@@ -1535,7 +1535,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.67.1"
+version = "0.67.2"
 dependencies = [
  "futures",
  "futures-util",
@@ -1560,7 +1560,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.67.1"
+version = "0.67.2"
 dependencies = [
  "clap",
  "ic-build",

@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.2]
+## [0.67.2] - 2026-10-21
 
 - Extend Dashboard HTTP regression coverage for status precedence and empty/exact
   response budgets while preserving the current transport and typed errors
