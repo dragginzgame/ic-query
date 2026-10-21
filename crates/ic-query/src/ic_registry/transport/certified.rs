@@ -73,15 +73,17 @@ pub(in crate::ic_registry) async fn get_certified_latest_version(
     agent: &Agent,
     registry_canister: &Principal,
 ) -> Result<CertifiedRegistryVersion, RegistryFetchError> {
-    let bytes = agent
-        .query(registry_canister, GET_CERTIFIED_LATEST_VERSION_METHOD)
-        .with_arg(Vec::<u8>::new())
-        .call()
-        .await
-        .map_err(|error| RegistryFetchError::AgentCall {
-            method: GET_CERTIFIED_LATEST_VERSION_METHOD,
-            reason: error.to_string(),
-        })?;
+    let bytes = crate::agent_transport::query(
+        agent,
+        registry_canister,
+        GET_CERTIFIED_LATEST_VERSION_METHOD,
+        Vec::new(),
+    )
+    .await
+    .map_err(|error| RegistryFetchError::AgentCall {
+        method: GET_CERTIFIED_LATEST_VERSION_METHOD,
+        reason: error.to_string(),
+    })?;
     let response = RegistryCertifiedResponse::decode(bytes.as_slice()).map_err(|error| {
         RegistryFetchError::ProtobufDecode {
             message: "CertifiedResponse",

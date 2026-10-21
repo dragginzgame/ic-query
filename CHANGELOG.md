@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.67.4]
+
+- Contain ordinary Agent query dispatch and structural error inspection behind a
+  private boundary, preserving raw bytes, Registry retries and ledger capability
+  decisions ([#95 — Contain Agent query dispatch and error inspection](https://github.com/dragginzgame/ic-query/issues/95)).
+  Public APIs and cryptographic verification are unchanged.
+
+Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
+
 ## [0.67.3] - 2026-10-21
 
 - Adopt published IC Tooling 0.63.2 and its bounded HTTP reader for Dashboard

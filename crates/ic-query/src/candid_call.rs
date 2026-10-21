@@ -107,10 +107,7 @@ async fn query_encoded_bytes<E>(
 where
     E: CandidCallError,
 {
-    agent
-        .query(canister, method)
-        .with_arg(arg)
-        .call()
+    crate::agent_transport::query(agent, canister, method, arg)
         .await
         .map_err(|err| E::agent_call(method, err))
 }

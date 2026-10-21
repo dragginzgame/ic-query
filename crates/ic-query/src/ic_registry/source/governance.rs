@@ -16,15 +16,13 @@ pub(in crate::ic_registry) async fn fetch_mainnet_node_provider_list_async(
             reason: err.to_string(),
         }
     })?;
-    let bytes = agent
-        .query(&governance_canister, "list_node_providers")
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|err| RegistryFetchError::AgentCall {
-            method: "list_node_providers",
-            reason: err.to_string(),
-        })?;
+    let bytes =
+        crate::agent_transport::query(&agent, &governance_canister, "list_node_providers", arg)
+            .await
+            .map_err(|err| RegistryFetchError::AgentCall {
+                method: "list_node_providers",
+                reason: err.to_string(),
+            })?;
     let response = crate::candid_decode::decode_reply::<ListNodeProvidersResponse>(&bytes)
         .map_err(|err| RegistryFetchError::CandidDecode {
             message: "ListNodeProvidersResponse",

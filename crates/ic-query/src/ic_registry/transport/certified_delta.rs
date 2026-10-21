@@ -48,15 +48,17 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
     let request = RegistryGetChangesSinceRequest {
         version: requested_version,
     };
-    let bytes = agent
-        .query(registry_canister, GET_CERTIFIED_CHANGES_SINCE_METHOD)
-        .with_arg(request.encode_to_vec())
-        .call()
-        .await
-        .map_err(|error| RegistryFetchError::AgentCall {
-            method: GET_CERTIFIED_CHANGES_SINCE_METHOD,
-            reason: error.to_string(),
-        })?;
+    let bytes = crate::agent_transport::query(
+        agent,
+        registry_canister,
+        GET_CERTIFIED_CHANGES_SINCE_METHOD,
+        request.encode_to_vec(),
+    )
+    .await
+    .map_err(|error| RegistryFetchError::AgentCall {
+        method: GET_CERTIFIED_CHANGES_SINCE_METHOD,
+        reason: error.to_string(),
+    })?;
     let response_bytes = bytes.len();
     let response = RegistryCertifiedResponse::decode(bytes.as_slice()).map_err(|error| {
         RegistryFetchError::ProtobufDecode {

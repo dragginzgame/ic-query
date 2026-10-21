@@ -125,15 +125,13 @@ async fn fetch_live_certified_rate(
             reason: error.to_string(),
         }
     })?;
-    let bytes = agent
-        .query(&canister, GET_ICP_XDR_CONVERSION_RATE_METHOD)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|error| CmcHostError::AgentCall {
-            method: GET_ICP_XDR_CONVERSION_RATE_METHOD,
-            reason: error.to_string(),
-        })?;
+    let bytes =
+        crate::agent_transport::query(&agent, &canister, GET_ICP_XDR_CONVERSION_RATE_METHOD, arg)
+            .await
+            .map_err(|error| CmcHostError::AgentCall {
+                method: GET_ICP_XDR_CONVERSION_RATE_METHOD,
+                reason: error.to_string(),
+            })?;
     let response: CmcCertifiedRateResponse =
         crate::candid_decode::decode_reply(&bytes).map_err(|error| CmcHostError::CandidDecode {
             message: "IcpXdrConversionRateResponse",

@@ -1,5 +1,5 @@
 use super::{RegistryQueryCounter, SubnetCatalogProgressPhase};
-use ic_platform::agent::{Agent, AgentError, TransportError};
+use ic_platform::agent::{Agent, AgentError};
 use std::{future::Future, time::Duration};
 
 pub(super) async fn query(
@@ -10,7 +10,7 @@ pub(super) async fn query(
     counter: Option<&RegistryQueryCounter>,
 ) -> Result<Vec<u8>, AgentError> {
     retry_read(method, counter, || {
-        agent.query(canister, method).with_arg(arg.clone()).call()
+        crate::agent_transport::query(agent, canister, method, arg.clone())
     })
     .await
 }
@@ -51,19 +51,14 @@ where
 }
 
 fn transient(error: &AgentError) -> bool {
-    match error {
-        AgentError::TransportError(TransportError::Reqwest(error)) => {
-            error.is_connect() || error.is_timeout()
-        }
-        AgentError::HttpError(payload) => matches!(payload.status, 502 | 504),
-        _ => false,
-    }
+    crate::agent_transport::is_connect_or_timeout(error)
+        || matches!(crate::agent_transport::http_status(error), Some(502 | 504))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_platform::agent::HttpErrorPayload;
+    use ic_platform::agent::{HttpErrorPayload, TransportError};
     use std::task::Context;
 
     fn http(status: u16) -> AgentError {
