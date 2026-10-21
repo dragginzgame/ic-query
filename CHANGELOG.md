@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.3]
+## [0.67.3] - 2026-10-21
 
 - Adopt published IC Tooling 0.63.2 and its bounded HTTP reader for Dashboard
   responses. Preserve status precedence, byte limits and typed errors while
