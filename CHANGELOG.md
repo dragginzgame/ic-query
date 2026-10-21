@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.4]
+## [0.67.4] - 2026-10-21
 
 - Read the development compiler from rust-toolchain.toml in native and canister CI, retaining explicit Wasm targets and the independent minimum-Rust gate.
 
