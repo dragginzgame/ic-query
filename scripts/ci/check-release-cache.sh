@@ -136,7 +136,7 @@ set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 editor_lock=Cargo.lock
 [[ "${6:-}" != .fixture-state/*/before/Cargo.lock ]] || editor_lock="$6"
-editor="--consumer $PWD --package ic-build --lockfile $editor_lock --bin ic-build-release-metadata --profile debug"
+editor="--consumer $PWD --package ic-build --lockfile $editor_lock --bin ic-build-release-metadata --profile debug --features cli"
 if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
   if [[ "$*" == *' --check' ]]; then
     printf 'editor check\n' >> "$TRACE_FILE"

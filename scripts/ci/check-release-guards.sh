@@ -14,7 +14,7 @@ trap 'fixture_finish "$?" "$work_dir" "Release guard fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
   CARGO_RELEASE_METADATA_EDITOR="$(bash "$repo_root/scripts/dev/install-rust-tools.sh" --consumer "$repo_root" \
-    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --check)"
+    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --features cli --check)"
   export CARGO_RELEASE_METADATA_EDITOR
 fi
 bash "$repo_root/scripts/ci/check-release-cache.sh"
@@ -214,7 +214,7 @@ cat > "$work_dir/install-rust-tools.sh" <<'STUB'
 set -euo pipefail
 [[ -z "${IC_QUERY_RELEASE_PREPARE_CACHE+x}" ]] || exit 1
 . ci/tool-versions.env
-editor="--consumer $PWD --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug"
+editor="--consumer $PWD --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug --features cli"
 if [[ "$*" == "$editor" || "$*" == "$editor --check" ]]; then
   if [[ "$*" == *' --check' ]]; then
     [[ -f selected-editor && "${FIXTURE_EDITOR_CHECK_FAILURE:-}" != yes ]] || exit 53

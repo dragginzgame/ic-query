@@ -3,7 +3,7 @@ use crate::ic_registry::{
     RegistryFetchError, normalized_data_center_id,
     transport::{decode_message, get_registry_value},
 };
-use futures::{StreamExt, TryStreamExt, stream};
+use futures_util::{StreamExt, TryStreamExt, stream};
 use ic_host_tools::registry::proto::{DataCenterRecord, NodeOperatorRecord};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;

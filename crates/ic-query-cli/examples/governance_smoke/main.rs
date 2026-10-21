@@ -10,15 +10,22 @@ mod protocol;
 mod tests;
 
 use attempt::AttemptOperations;
+use clap::{
+    CommandFactory, FromArgMatches,
+    builder::{StringValueParser, TypedValueParser},
+    error::ErrorKind,
+};
 use command::CommandOptions;
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::path::canonicalize_allow_missing;
+use ic_platform::candid::contract::Principal;
 use serde_json::{Value, json};
 use std::{
     env,
     error::Error,
     ffi::OsString,
-    fs, io,
+    fs,
+    io::{self, Write},
     os::unix::fs::DirBuilderExt,
     path::{Path, PathBuf},
     process::Command,
@@ -32,8 +39,6 @@ const KINDS: [&str; 4] = [
     "reward_event",
     "maturity_modulation",
 ];
-const USAGE: &str = "Governance smoke runner\n\nCommands:\n  build\n  build-wasm\n  bundle\n  help\n  inspect-wasm <path>\n  local\n  verify-mainnet --canister <principal>";
-
 fn invalid(message: &str) -> Box<dyn Error> {
     io::Error::new(io::ErrorKind::InvalidData, message).into()
 }
@@ -44,42 +49,53 @@ fn invalid(message: &str) -> Box<dyn Error> {
 /// One supported development operation, admitted before build or network IO.
 ///
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, clap::Parser)]
+#[command(
+    name = "governance-smoke",
+    about = "Governance smoke runner",
+    long_about = None
+)]
 enum Action {
+    /// Build the probe through the local ICP project.
     Build,
+    /// Compile and annotate the probe Wasm for ICP's build step.
     BuildWasm,
+    /// Bundle the probe for the explicit mainnet smoke environment.
     Bundle,
-    Help,
-    InspectWasm(PathBuf),
+    /// Inspect and hash a bounded local probe Wasm.
+    InspectWasm {
+        #[arg(value_name = "path")]
+        path: PathBuf,
+    },
+    /// Run the smoke probe on an ICP-managed local NNS network.
     Local,
-    VerifyMainnet(String),
+    /// Verify an explicitly selected deployed mainnet probe.
+    VerifyMainnet {
+        #[arg(
+            long,
+            value_name = "principal",
+            value_parser = StringValueParser::new()
+                .try_map(|value| Principal::from_text(&value).map(|_| value))
+        )]
+        canister: String,
+    },
 }
 
-fn parse(args: &[OsString]) -> Result<Action> {
-    fn text(value: &OsString) -> io::Result<&str> {
-        value
-            .to_str()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, USAGE))
-    }
-    match args {
-        [] => Ok(Action::Help),
-        [command] => match text(command)? {
-            "build" => Ok(Action::Build),
-            "build-wasm" => Ok(Action::BuildWasm),
-            "bundle" => Ok(Action::Bundle),
-            "help" | "--help" | "-h" => Ok(Action::Help),
-            "local" => Ok(Action::Local),
-            _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
-        },
-        [command, path] if text(command)? == "inspect-wasm" => Ok(Action::InspectWasm(path.into())),
-        [command, flag, principal]
-            if text(command)? == "verify-mainnet" && text(flag)? == "--canister" =>
+fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<Action>> {
+    let command = ic_query_cli::prepare_command_tree(Action::command());
+    let name = OsString::from(command.get_name());
+    match command.try_get_matches_from(std::iter::once(name).chain(args)) {
+        Ok(matches) => Ok(Some(Action::from_arg_matches(&matches)?)),
+        Err(error)
+            if matches!(
+                error.kind(),
+                ErrorKind::DisplayHelp | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            ) =>
         {
-            let principal = text(principal)?;
-            ic_platform::candid::contract::Principal::from_text(principal)?;
-            Ok(Action::VerifyMainnet(principal.to_string()))
+            write!(io::stdout(), "{error}")?;
+            Ok(None)
         }
-        _ => Err(io::Error::new(io::ErrorKind::InvalidInput, USAGE).into()),
+        Err(error) => Err(error.into()),
     }
 }
 
@@ -181,16 +197,9 @@ fn receipt_directory(artifacts: &Path) -> Result<PathBuf> {
 }
 
 fn execute(action: Action) -> Result<()> {
-    match action {
-        Action::Help => {
-            println!("{USAGE}");
-            return Ok(());
-        }
-        Action::InspectWasm(path) => {
-            println!("{}", Sha256Digest::compute(&protocol::read_wasm(&path)?));
-            return Ok(());
-        }
-        _ => {}
+    if let Action::InspectWasm { path } = action {
+        println!("{}", Sha256Digest::compute(&protocol::read_wasm(&path)?));
+        return Ok(());
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -240,10 +249,10 @@ fn execute(action: Action) -> Result<()> {
                 },
             )?;
         }
-        Action::Local | Action::VerifyMainnet(_) => {
+        Action::Local | Action::VerifyMainnet { .. } => {
             let (environment, canister) = match &action {
                 Action::Local => ("local", "governance-probe"),
-                Action::VerifyMainnet(principal) => ("mainnet-smoke", principal.as_str()),
+                Action::VerifyMainnet { canister } => ("mainnet-smoke", canister.as_str()),
                 _ => unreachable!(),
             };
             harness.output = receipt_directory(&artifacts)?.join("receipt.json");
@@ -255,14 +264,16 @@ fn execute(action: Action) -> Result<()> {
             println!("Receipt: {}", harness.output.display());
             attempt::run_attempt(&mut harness, environment, canister, &mut receipt)?;
         }
-        Action::Help | Action::InspectWasm(_) | Action::BuildWasm => unreachable!(),
+        Action::InspectWasm { .. } | Action::BuildWasm => unreachable!(),
     }
     Ok(())
 }
 
 fn main() {
     let result = (|| {
-        let action = parse(&env::args_os().skip(1).collect::<Vec<_>>())?;
+        let Some(action) = parse(env::args_os().skip(1))? else {
+            return Ok(());
+        };
         let _signals = command::install_signal_handlers()?;
         execute(action)?;
         command::check_interruption()

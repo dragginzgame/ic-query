@@ -7,7 +7,7 @@
 //!
 //! This is a host dependency boundary, not a `no_std` promise. No-default
 //! builds are expected to compile for `wasm32-unknown-unknown` without
-//! `ic-agent`, Reqwest, Tokio, or `futures`, but they may still use ordinary
+//! `ic-agent`, Reqwest, Tokio, or `futures-util`, but they may still use ordinary
 //! `std` types such as `String` and `Vec`.
 //!
 //! Enable `dashboard-host` for official Dashboard live/cache APIs,

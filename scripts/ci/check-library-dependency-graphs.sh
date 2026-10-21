@@ -16,7 +16,7 @@ forbidden_tooling_dependencies=(
 forbidden_pure_library_dependencies=(
   candid_parser
   clap
-  futures
+  futures-util
   ic-agent
   ic-certification
   icrc-ledger-types
@@ -39,7 +39,7 @@ forbidden_canister_dependencies=(
   cap-fs-ext
   cap-std
   clap
-  futures
+  futures-util
   ic-agent
   ic-certification
   icrc-ledger-types
@@ -78,11 +78,12 @@ forbidden_dashboard_host_dependencies=(
 )
 
 forbidden_direct_dashboard_host_dependencies=(
-  futures
+  futures-util
   ic-agent
   prost
   serde_cbor
   sha2
+  tokio
 )
 
 forbidden_ic_state_host_dependencies=(
@@ -97,11 +98,12 @@ forbidden_ic_state_host_dependencies=(
 forbidden_direct_ic_state_host_dependencies=(
   cap-fs-ext
   cap-std
-  futures
+  futures-util
   prost
   reqwest
   serde_cbor
   sha2
+  tokio
 )
 
 forbidden_icrc_host_dependencies=(
@@ -111,6 +113,7 @@ forbidden_icrc_host_dependencies=(
 forbidden_direct_icrc_host_dependencies=(
   prost
   reqwest
+  tokio
 )
 
 forbidden_cmc_host_dependencies=(
@@ -144,20 +147,22 @@ forbidden_agent_only_host_dependencies=(
 forbidden_direct_cmc_host_dependencies=(
   cap-fs-ext
   cap-std
-  futures
+  futures-util
   prost
   reqwest
   sha2
+  tokio
 )
 
 forbidden_direct_cloud_engine_host_dependencies=(
   cap-fs-ext
   cap-std
-  futures
+  futures-util
   prost
   reqwest
   serde_cbor
   sha2
+  tokio
 )
 
 forbidden_direct_nns_host_dependencies=(
@@ -173,13 +178,14 @@ forbidden_direct_sns_host_dependencies=(
   reqwest
   serde_cbor
   sha2
+  tokio
 )
 
 check_tree_absent() {
   local label="$1"
   shift
-  # Neither stable-memory integration nor scoped tempfiles belong in Query's runtime graph.
-  local -a rules=(--forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
+  # Exclude the test-only Futures umbrella, stable memory and scoped tempfiles.
+  local -a rules=(--forbid futures --forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
   while [[ "$#" -gt 0 && "$1" != "--" ]]; do
     if [[ "$1" == */* ]]; then
       rules+=(--forbid-feature "$1")
@@ -268,9 +274,9 @@ check_tree_absent "ic-query --features ic-state-host" \
   --features ic-state-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# Certified IC state collection needs the agent, timers, pure encoding and
-# Host's agent builder; it must not activate cache, Dashboard, Registry, or
-# independent certificate-decoding dependencies.
+# Certified IC state collection needs the agent, pure encoding, and Host's agent
+# builder; transport timers remain the agent's dependency. It must not activate
+# cache, Dashboard, Registry, or independent certificate-decoding dependencies.
 check_tree_absent "ic-query --features ic-state-host direct dependencies" \
   "${forbidden_direct_ic_state_host_dependencies[@]}" \
   -- \
@@ -342,7 +348,7 @@ check_tree_absent "ic-query --features cloud-engine-host" \
   --features cloud-engine-host
 
 # `ic-agent` retains Reqwest, CBOR, and cryptographic packages transitively.
-# CloudEngine queries need only the agent, timers, and Host's agent binding;
+# CloudEngine queries need only the agent and Host's agent binding;
 # cache, Registry, and certification dependencies must remain disabled directly.
 check_tree_absent "ic-query --features cloud-engine-host direct dependencies" \
   "${forbidden_direct_cloud_engine_host_dependencies[@]}" \

@@ -33,8 +33,8 @@ endif
 MSRV ?= 1.91.0
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
-TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release
-RELEASE_METADATA_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug
+TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release --features cli
+RELEASE_METADATA_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug --features cli
 CARGO_RELEASE_METADATA_MAX_BYTES := 8388608
 export CARGO_RELEASE_METADATA_MAX_BYTES
 AUDIT_TOOL = bash "$(SHARED_TOOLING_ROOT)/scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package cargo-audit --version "$(CARGO_AUDIT_VERSION)" --bin cargo-audit --profile release

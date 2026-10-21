@@ -13,7 +13,7 @@ use crate::ic_registry::{
     subnet_record_key,
     transport::{decode_message, get_registry_value},
 };
-use futures::{StreamExt, TryStreamExt, stream};
+use futures_util::{StreamExt, TryStreamExt, stream};
 use ic_host_tools::registry::proto::{
     NodeOperatorRecord, NodeRecord, SubnetListRecord, SubnetRecord,
 };

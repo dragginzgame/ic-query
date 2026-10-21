@@ -13,7 +13,7 @@ use crate::{
         RawSubnetCatalog, ValidatedSubnetCatalog, catalog_agreement_digest,
     },
 };
-use futures::{StreamExt, stream};
+use futures_util::{StreamExt, stream};
 use std::{collections::BTreeSet, future::Future, pin::Pin};
 
 ///

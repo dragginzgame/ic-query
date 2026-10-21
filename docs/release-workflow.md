@@ -16,8 +16,10 @@ Query's explicit exceptions, including maintainer-only release execution.
 
 IC Build owns Cargo manifest and lock candidate rendering. Query selects the
 published `ic-build` version in `Cargo.lock` through the shared selected-tool
-installer, using its `ic-build-release-metadata` binary with the debug profile.
-Prepare this executable explicitly before an offline check:
+installer, using its `ic-build-release-metadata` binary with the debug profile
+and explicit `cli` feature. Setup and offline admission use the same feature
+selection; library consumers do not enable it. Prepare this executable explicitly
+before an offline check:
 
 ```bash
 make install-release-tools

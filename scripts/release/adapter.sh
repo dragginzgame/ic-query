@@ -19,7 +19,7 @@ metadata() {
         [[ -z "${evidence:-}" ]] || selected_lockfile="$evidence/before/Cargo.lock"
         CARGO_RELEASE_METADATA_EDITOR="$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 \
           bash scripts/dev/install-rust-tools.sh --consumer "$repo_root" \
-          --package ic-build --lockfile "$selected_lockfile" --bin ic-build-release-metadata --profile debug --check)" || return "$?"
+          --package ic-build --lockfile "$selected_lockfile" --bin ic-build-release-metadata --profile debug --features cli --check)" || return "$?"
         export CARGO_RELEASE_METADATA_EDITOR
       fi ;;
   esac

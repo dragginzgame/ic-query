@@ -10,7 +10,9 @@ mod sns;
 mod storage;
 mod system;
 
-use crate::cli::clap::{parse_matches, prepare_command_tree, string_option};
+pub use crate::cli::clap::prepare_command_tree;
+
+use crate::cli::clap::{parse_matches, string_option};
 use clap::{Arg, Command, error::ErrorKind};
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;

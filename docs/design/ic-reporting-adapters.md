@@ -50,7 +50,11 @@ Host's partial wire projections do not authenticate Registry values or establish
 complete routing coverage; those policies and the report/cache contracts remain
 Query-owned.
 
-Managed cache operations use published Host FS 0.32 `capability::Directory` and
+Host, Build and Testkit are published from the consolidated IC Tooling repository.
+Query selects their coordinated 0.63.0 packages with the existing Rust 1.91 floor;
+these package names remain separate dependency and feature boundaries.
+
+Managed cache operations use published Host FS 0.63.0 `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
 select the separate `temporary-file` backend. Host owns no-follow traversal,
 directory creation, bounded entry observations and descriptor-relative file
@@ -74,18 +78,22 @@ permissions and may leave partial output on write/sync failure. These APIs are
 available in the selected published Host packages; no sibling checkout or local
 copy substitutes for them.
 
-The published Platform 0.5.0 boundary preserves upstream Candid type identities
+The published Platform 0.6.0 boundary preserves upstream Candid type identities
 and Query's existing decoder quotas and error projection. Query's `canister`
 feature selects Platform's `cdk` facade for canister identity and bounded calls.
 The typed probe uses Platform's explicit-codec entrypoint generator with bounded
 Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
 probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Host Tools 0.32 and Testkit 0.60 share
-Platform 0.5 with Query; native fixtures use raw transport bytes and Wire.
+CDK or macro-package declarations. Host Tools 0.63.0 and Testkit 0.63.0 share
+Query's published Platform 0.6.0 selection; the resolved graph no longer retains
+Platform 0.5.1. Required external Candid, Agent, certification and ledger DTO
+identities remain shared. Native fixtures use raw PocketIC transport bytes and
+Wire; external Governance fixtures encode and decode through Platform directly.
+Query's Candid, Agent and runtime features include 0.6's new
+`principal` feature automatically; executor-only profiles remain independent.
 Registry conversions infer Host's owned Principal from its published signatures
-instead of encoding its package selection in the conversion. Testkit retains
-Host 0.31 FS/process/artifact packages internally; these development-only lifecycle
-types do not cross into Query's Host 0.32 integrations. External Candid, Agent and
+instead of encoding its package selection in the conversion. Testkit and Build
+use the same Host 0.63 package identities as Query. External Candid, Agent and
 certification DTO identities remain unchanged. Query uses neither service-generation
 macros nor the retired runtime storage/timeout APIs; its explicit Wire hooks and
 bounded-call defaults remain.
@@ -106,6 +114,15 @@ agent builder and endpoint binding while Query admits endpoints, selects respons
 ceilings and configures historical verification. Host's agent-only profile
 excludes Candid parsing and independent certificate decoding; portable and
 canister selections exclude Host Tools entirely.
+Query selects Tokio directly only for Registry acquisition retry delays under
+`subnet-catalog-host`. Other host adapters consume their transport's runtime
+integration transitively. Runtime construction belongs to the CLI and test
+fixtures; test macros and the library's runtime-builder feature stay in its
+development dependencies.
+Production stream combinators and join macros use `futures-util` directly;
+the `futures` umbrella remains native development-only for fixture executors.
+Agent still enables Reqwest's blocking support and Futures IO transitively;
+these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
 graphs. The registry executor 2.0.0 and ic0 1.2.0 identities remain unchanged.

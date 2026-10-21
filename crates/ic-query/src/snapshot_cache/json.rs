@@ -14,26 +14,6 @@ use crate::{
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 
-pub fn load_complete_snapshot<Metadata, Data, Error>(
-    request: LoadJsonCacheRequest<'_>,
-    budget: Option<&mut ManagedReadBudget>,
-    missing_error: impl FnOnce(PathBuf) -> Error,
-    incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Error,
-) -> Result<SnapshotEnvelope<Metadata, Data>, Error>
-where
-    Metadata: DeserializeOwned,
-    Data: DeserializeOwned,
-    Error: From<HostCacheError>,
-{
-    let cached: CachedJsonReport<SnapshotEnvelope<Metadata, Data>> =
-        load_json_cache(request, budget)
-            .map_err(|error| map_snapshot_cache_error(error, missing_error))?;
-    if !cached.report.completeness.is_api_exhausted() {
-        return Err(incomplete_error(&cached.report.completeness));
-    }
-    Ok(cached.report)
-}
-
 pub fn load_complete_snapshot_for_key<Metadata, Data, Error>(
     request: LoadJsonCacheRequest<'_>,
     budget: Option<&mut ManagedReadBudget>,
@@ -47,21 +27,19 @@ where
     Data: DeserializeOwned,
     Error: From<HostCacheError>,
 {
-    let snapshot = load_complete_snapshot(request, budget, missing_error, incomplete_error)?;
+    let cached: CachedJsonReport<SnapshotEnvelope<Metadata, Data>> =
+        load_json_cache(request, budget).map_err(|error| match error {
+            HostCacheError::MissingCache { path, .. } => missing_error(path),
+            error => error.into(),
+        })?;
+    let snapshot = cached.report;
+    if !snapshot.completeness.is_api_exhausted() {
+        return Err(incomplete_error(&snapshot.completeness));
+    }
     if let Some(mismatch) = snapshot_identity_mismatch(&snapshot, key) {
         return Err(identity_error(mismatch));
     }
     Ok(snapshot)
-}
-
-fn map_snapshot_cache_error<Error: From<HostCacheError>>(
-    error: HostCacheError,
-    missing_error: impl FnOnce(PathBuf) -> Error,
-) -> Error {
-    match error {
-        HostCacheError::MissingCache { path, .. } => missing_error(path),
-        error => error.into(),
-    }
 }
 
 fn snapshot_identity_mismatch<Metadata, Data>(

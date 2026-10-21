@@ -671,7 +671,7 @@ ic-query = { version = "0.62", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
-`ic-agent`, Reqwest, Tokio, or `futures`. This is a host-dependency boundary,
+`ic-agent`, Reqwest, Tokio, or `futures-util`. This is a host-dependency boundary,
 not a `no_std` promise.
 
 Rust canisters can enable the focused IC runtime adapter without pulling in

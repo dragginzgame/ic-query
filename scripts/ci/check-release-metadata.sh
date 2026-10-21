@@ -18,7 +18,7 @@ trap 'fixture_finish "$?" "$work_dir" "Release metadata fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
   CARGO_RELEASE_METADATA_EDITOR="$(bash "$repo_root/scripts/dev/install-rust-tools.sh" --consumer "$repo_root" \
-    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --check)"
+    --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --features cli --check)"
   export CARGO_RELEASE_METADATA_EDITOR
 fi
 fail() { echo "release metadata fixture failed: $*" >&2; exit 1; }

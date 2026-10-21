@@ -93,6 +93,8 @@ make testkit-check canister-test
 ```
 
 The CLI version comes from `Cargo.lock` through the shared Cargo-tool installer.
+The Make targets select its required `cli` feature for both setup and offline
+checks; library-only Testkit consumers leave that feature disabled.
 Testkit owns authenticated server setup, offline admission and managed launch
 under `.tools/testkit-server/`; these are separate from the common tool bundle.
 
@@ -234,7 +236,10 @@ not resolve ICP project aliases. Canister calls and certified state reads use
 the agent directly. Deployment must identify exactly one `governance-probe`
 before verification begins.
 
-The development-only helper can inspect an existing artifact without modifying it:
+The development-only helper uses Clap for argument admission before build or
+network effects. No arguments, `help`, `-h` and `--help` print the same root help;
+use `help <command>` or `<command> --help` for operation-specific help.
+It can inspect an existing artifact without modifying it:
 
 ```bash
 cargo run -p ic-query-cli --example governance_smoke --locked --offline -- \

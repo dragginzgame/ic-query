@@ -14,7 +14,11 @@ use crate::{
     test_support::temp_dir,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
-use std::{cell::RefCell, fs, path::Path};
+use std::{
+    cell::RefCell,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[test]
 fn shared_cache_rejects_oversize_before_json_and_classifies_invalid_bytes_as_content() {
@@ -254,6 +258,64 @@ fn load_complete_snapshot_rejects_unsupported_schema() {
 }
 
 #[test]
+fn snapshot_admission_preserves_missing_errors_and_validation_order() {
+    let root = temp_dir("ic-query-snapshot-admission-order");
+    let path = root.join("full.json");
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    assert!(matches!(
+        load_fixture_snapshot(&path, &key),
+        Err(SnapshotLoadTestError::Missing(actual)) if actual == path
+    ));
+
+    let mut snapshot = serde_json::json!({
+        "schema_version": 1,
+        "network": "other",
+        "source_endpoint": "https://icp-api.io",
+        "fetched_at": "2026-06-15T00:00:00Z",
+        "fetched_by": "ic-query",
+        "domain": "sns", "entity": "wrong-root", "collection": "neurons", "scope": "full",
+        "metadata": {"id": 7},
+        "completeness": {
+            "status": "unknown", "page_size": 1, "page_count": 1,
+            "row_count": 1, "point_in_time_guaranteed": false
+        },
+        "data": {"rows": ["row"]}
+    });
+    write_snapshot_fixture(&path, snapshot.clone());
+    assert!(matches!(
+        load_fixture_snapshot(&path, &key),
+        Err(SnapshotLoadTestError::Cache(
+            HostCacheError::NetworkMismatch { .. }
+        ))
+    ));
+
+    snapshot["network"] = "ic".into();
+    write_snapshot_fixture(&path, snapshot.clone());
+    assert!(matches!(
+        load_fixture_snapshot(&path, &key),
+        Err(SnapshotLoadTestError::Incomplete)
+    ));
+
+    snapshot["completeness"]["status"] = "api_exhausted".into();
+    write_snapshot_fixture(&path, snapshot.clone());
+    assert!(matches!(
+        load_fixture_snapshot(&path, &key),
+        Err(SnapshotLoadTestError::Identity(SnapshotIdentityMismatch {
+            field: "entity",
+            ..
+        }))
+    ));
+
+    snapshot["entity"] = "root".into();
+    write_snapshot_fixture(&path, snapshot);
+    assert_eq!(
+        load_fixture_snapshot(&path, &key).unwrap().data.rows,
+        ["row"]
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn snapshot_refresh_attempt_serializes_nested_metadata_and_validates_lifecycle() {
     #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
     struct Metadata {
@@ -436,6 +498,7 @@ async fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
         pages: vec![(vec!["a"], 2, Some("next")), (vec!["b"], 1, None)],
         max_pages: None,
         attempts: RefCell::new(Vec::new()),
+        attempt_error: None,
         state: PagedCollectionState::new(),
     };
 
@@ -477,6 +540,7 @@ async fn paged_snapshot_refresh_runner_stops_at_max_pages_before_next_fetch() {
         pages: vec![(vec!["a", "b"], 2, Some("next")), (vec!["c"], 1, None)],
         max_pages: Some(1),
         attempts: RefCell::new(Vec::new()),
+        attempt_error: None,
         state: PagedCollectionState::new(),
     };
 
@@ -499,6 +563,7 @@ async fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows()
         ],
         max_pages: None,
         attempts: RefCell::new(Vec::new()),
+        attempt_error: None,
         state: PagedCollectionState::new(),
     };
 
@@ -510,6 +575,52 @@ async fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows()
         err,
         "page returned no new rows while advertising another cursor after 2 pages and 2 rows"
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn paged_refresh_reports_fetch_and_checkpoint_failures_without_completing() {
+    for (pages, attempt_error, expected_error, expected_progress) in [
+        (
+            vec![],
+            None,
+            "no fixture page",
+            "fixture pages=0 rows=0 failed",
+        ),
+        (
+            vec![(vec!["a"], 1, None)],
+            Some("checkpoint failed"),
+            "checkpoint failed",
+            "fixture pages=1 rows=1 failed",
+        ),
+    ] {
+        let refresh = FixturePagedRefresh {
+            pages,
+            max_pages: None,
+            attempts: RefCell::new(Vec::new()),
+            attempt_error,
+            state: PagedCollectionState::new(),
+        };
+        let mut events = Vec::new();
+        let error = run_paged_snapshot_refresh_with_progress(refresh, &mut |event| {
+            events.push(event);
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(error, expected_error);
+        assert_eq!(
+            events,
+            [
+                QueryProgressEvent::PagedRefresh {
+                    text: "fixture pages=0 rows=0".to_string(),
+                    state: QueryProgressState::Running,
+                },
+                QueryProgressEvent::PagedRefresh {
+                    text: expected_progress.to_string(),
+                    state: QueryProgressState::Failed,
+                },
+            ]
+        );
+    }
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -681,6 +792,7 @@ const fn identity_cache_error(err: CacheFileError) -> CacheFileError {
 #[derive(Debug)]
 enum SnapshotLoadTestError {
     Cache(HostCacheError),
+    Missing(PathBuf),
     Incomplete,
     Identity(SnapshotIdentityMismatch),
 }
@@ -720,7 +832,7 @@ fn load_fixture_snapshot(
         },
         None,
         key,
-        |path| HostCacheError::missing_cache("fixture", path).into(),
+        SnapshotLoadTestError::Missing,
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
     )
@@ -740,6 +852,7 @@ struct FixturePagedRefresh {
     pages: Vec<(Vec<&'static str>, usize, Option<&'static str>)>,
     max_pages: Option<u32>,
     attempts: RefCell<Vec<(u32, usize)>>,
+    attempt_error: Option<&'static str>,
     state: PagedCollectionState<&'static str, &'static str>,
 }
 
@@ -792,7 +905,8 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
         self.attempts
             .borrow_mut()
             .push((self.state.page_count(), self.state.row_count()));
-        Ok(())
+        self.attempt_error
+            .map_or(Ok(()), |error| Err(error.to_string()))
     }
 
     fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {

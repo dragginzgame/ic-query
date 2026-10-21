@@ -21,7 +21,7 @@ use crate::sns::report::{
     source::{MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
-use futures::{StreamExt, stream};
+use futures_util::{StreamExt, stream};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 

@@ -27,42 +27,39 @@ host = [
     "nns-host",
     "sns-host",
 ]
-cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent", "dep:tokio"]
-cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent", "dep:tokio"]
+cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent"]
+cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent"]
 certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding"]
-dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:reqwest", "dep:tokio"]
+dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:reqwest"]
 ic-state-host = [
     "ic-host-tools/agent",
     "ic-host-tools/encoding",
     "ic-platform/agent",
-    "dep:tokio",
     "ic-platform/certification",
 ]
 icrc-host = [
     "ic-host-tools/agent",
     "certificate-host",
-    "dep:futures",
+    "dep:futures-util",
     "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
     "ic-platform/icrc-ledger-types",
-    "dep:tokio",
 ]
 nns-topology-host = ["subnet-catalog-host"]
 nns-host = ["nns-topology-host", "certified-subnet-catalog-host"]
 sns-host = [
     "ic-host-tools/agent",
-    "dep:futures",
+    "dep:futures-util",
     "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
     "ic-platform/icrc-ledger-types",
-    "dep:tokio",
 ]
 subnet-catalog-host = [
     "ic-host-tools/agent",
     "ic-host-tools/registry",
-    "dep:futures",
+    "dep:futures-util",
     "ic-platform/agent",
     "dep:ic-host-artifacts",
     "dep:ic-host-fs",
@@ -71,7 +68,7 @@ subnet-catalog-host = [
 ]
 
 [dependencies]
-futures = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
 ic-host-artifacts = { workspace = true, optional = true }
 ic-host-fs = { workspace = true, optional = true, features = ["capability"] }
 ic-host-text.workspace = true
@@ -85,7 +82,7 @@ reqwest = { workspace = true, features = [
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt", "time"], optional = true }
+tokio = { workspace = true, features = ["time"], optional = true }
 url.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]

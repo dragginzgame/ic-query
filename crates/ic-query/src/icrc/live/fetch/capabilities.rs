@@ -37,7 +37,7 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
         &request.source_endpoint,
         &request.ledger_canister_id,
     )?;
-    let (standards_result, index, blocks, block_types, archives, tip_certificate) = futures::join!(
+    let (standards_result, index, blocks, block_types, archives, tip_certificate) = futures_util::join!(
         fetch_icrc_supported_standards::<CapabilityQueryError>(&agent, &ledger_canister),
         fetch_index_capability(&agent, &ledger_canister),
         fetch_blocks_capability(&agent, &ledger_canister),

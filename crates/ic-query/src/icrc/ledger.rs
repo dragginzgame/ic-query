@@ -59,7 +59,7 @@ where
         minting_account,
         supported_standards,
         metadata,
-    ) = futures::try_join!(
+    ) = futures_util::try_join!(
         query_no_args::<String, E>(agent, ledger_canister, "icrc1_name"),
         query_no_args::<String, E>(agent, ledger_canister, "icrc1_symbol"),
         query_no_args::<u8, E>(agent, ledger_canister, "icrc1_decimals"),

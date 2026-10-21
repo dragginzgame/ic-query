@@ -9,6 +9,7 @@ use std::ffi::OsString;
 
 /// Prepare the complete Clap tree with shared namespace-help and alphabetical
 /// subcommand-display policies.
+#[must_use]
 pub fn prepare_command_tree(command: Command) -> Command {
     let mut command = default_namespaces_to_help(command);
     command.build();

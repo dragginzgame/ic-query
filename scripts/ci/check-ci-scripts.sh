@@ -598,12 +598,14 @@ if [[ "${!#}" == --preflight ]]; then
   exit 0
 fi
 if [[ "$family" == rust && "${3:-}" == --package ]]; then
-  [[ $# == 10 || ( $# == 11 && "${11}" == --check ) ]] || exit 74
   if [[ "$4" == ic-build ]]; then
+    [[ $# == 12 || ( $# == 13 && "${13}" == --check ) ]] || exit 74
     tool=editor
     [[ "$5" == --lockfile && "$6" == Cargo.lock && "$7" == --bin &&
-       "$8" == ic-build-release-metadata && "$9" == --profile && "${10}" == debug ]] || exit 74
+       "$8" == ic-build-release-metadata && "$9" == --profile && "${10}" == debug &&
+       "${11}" == --features && "${12}" == cli ]] || exit 74
   else
+    [[ $# == 10 || ( $# == 11 && "${11}" == --check ) ]] || exit 74
     tool="${4#cargo-}"
     case "$tool" in audit) version=8.7.6 ;; machete) version=7.6.5 ;; *) exit 74 ;; esac
     [[ "$5" == --version && "$6" == "$version" && "$7" == --bin &&
@@ -652,7 +654,7 @@ for mode in install check; do
   fi
   printf '%s\n' "rust --consumer $tools_case --package cargo-audit --version 8.7.6 --bin cargo-audit --profile release$suffix" \
     "rust --consumer $tools_case --package cargo-machete --version 7.6.5 --bin cargo-machete --profile release$suffix" \
-    "rust --consumer $tools_case --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug$suffix" >> "$tools_case/expected"
+    "rust --consumer $tools_case --package ic-build --lockfile Cargo.lock --bin ic-build-release-metadata --profile debug --features cli$suffix" >> "$tools_case/expected"
   cmp "$tools_case/expected" "$tools_case/trace" || fail 'tool aggregate changed shared selections or ordering'
   if grep -Ei 'jobserver unavailable|jobserver.*forced' "$tools_case/$mode.log"; then fail 'tool aggregate lost the Make jobserver'; fi
   for family in host ic rust audit machete editor; do

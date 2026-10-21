@@ -5,6 +5,33 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.67.0]
+
+- **Breaking:** adopt coordinated IC Tooling 0.63.0. Consumers naming Host types
+  exposed by Query must select Host Tools 0.63, including certificate decode
+  errors and certified ledger-tip values. Report/cache formats remain unchanged.
+- Prepare Build and Testkit executables with their required `cli` feature,
+  keeping library consumers free of that optional CLI dependency. Re-run
+  `make install-release-tools install-testkit` before their offline checks.
+- Adopt published Platform 0.6.0, preserving IC wire types, decoder limits,
+  native transport and canister runtime behavior.
+- Consolidate complete-snapshot admission and paged refresh failure handling,
+  preserving validation order, original errors, checkpoints and progress.
+- Keep the Futures umbrella in development dependencies for test executors;
+  production collection uses its existing `futures-util` implementation directly.
+- Limit the library's direct Tokio dependency to Registry retry delays. Other
+  host adapters retain their transport runtime without redundant feature edges;
+  runtime construction and test macros remain with CLI and test consumers.
+- Use Clap for Governance smoke commands and per-command help, sharing Query's
+  alphabetical command ordering. Keep argument validation ahead of build and
+  network effects, with successful help and unchanged failure exit status.
+
+```bash
+cargo run -p ic-query-cli --example governance_smoke --locked --offline -- help inspect-wasm
+```
+
+Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
+
 ## [0.66.0] - 2026-10-20
 
 - **Breaking:** select Host Artifacts, FS, Process, Text and Tools 0.32. Callers

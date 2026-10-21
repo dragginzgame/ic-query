@@ -52,7 +52,10 @@ where
             return Err(refresh.incomplete_refresh_error("max pages reached before API exhaustion"));
         }
 
-        let page = match refresh.fetch_next_page().await {
+        let page = match refresh.fetch_next_page().await.and_then(|page| {
+            refresh.write_running_attempt(&page)?;
+            Ok(page)
+        }) {
             Ok(page) => page,
             Err(err) => {
                 report_progress(
@@ -63,14 +66,6 @@ where
                 return Err(err);
             }
         };
-        if let Err(err) = refresh.write_running_attempt(&page) {
-            report_progress(
-                progress,
-                format!("{} failed", refresh.progress_text()),
-                QueryProgressState::Failed,
-            );
-            return Err(err);
-        }
         report_progress(
             progress,
             refresh.progress_text(),

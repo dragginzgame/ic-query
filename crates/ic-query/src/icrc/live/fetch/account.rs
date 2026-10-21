@@ -116,7 +116,7 @@ pub(in crate::icrc::live) async fn query_token_display_fields(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> Result<(String, u8), IcrcError> {
-    let (token_symbol, decimals) = futures::try_join!(
+    let (token_symbol, decimals) = futures_util::try_join!(
         query_no_args::<String, IcrcError>(agent, ledger_canister, ICRC1_SYMBOL_METHOD),
         query_no_args::<u8, IcrcError>(agent, ledger_canister, ICRC1_DECIMALS_METHOD),
     )?;

@@ -12,7 +12,10 @@ use ic_host_fs::{
 use ic_host_process::tool::{ExecutionFailure, ToolError};
 use protocol::Probe;
 use std::{
-    os::unix::fs::{PermissionsExt, symlink},
+    os::unix::{
+        ffi::OsStringExt,
+        fs::{PermissionsExt, symlink},
+    },
     time::{Duration, Instant},
 };
 
@@ -27,28 +30,105 @@ fn payload(kind: &str) -> Value {
 
 #[test]
 fn actions_are_admitted_before_effects_and_help_commands_are_sorted() {
-    assert_eq!(parse(&[]).unwrap(), Action::Help);
-    assert_eq!(parse(&["help".into()]).unwrap(), Action::Help);
-    assert_eq!(
-        parse(&[
-            "verify-mainnet".into(),
-            "--canister".into(),
-            "aaaaa-aa".into()
-        ])
-        .unwrap(),
-        Action::VerifyMainnet("aaaaa-aa".into())
-    );
+    for (args, expected) in [
+        (vec!["build"], Action::Build),
+        (vec!["build-wasm"], Action::BuildWasm),
+        (vec!["bundle"], Action::Bundle),
+        (
+            vec!["inspect-wasm", "probe.wasm"],
+            Action::InspectWasm {
+                path: "probe.wasm".into(),
+            },
+        ),
+        (vec!["local"], Action::Local),
+        (
+            vec!["verify-mainnet", "--canister", "aaaaa-aa"],
+            Action::VerifyMainnet {
+                canister: "aaaaa-aa".into(),
+            },
+        ),
+    ] {
+        assert_eq!(
+            parse(args.into_iter().map(OsString::from)).unwrap(),
+            Some(expected)
+        );
+    }
     for args in [
         vec!["verify-mainnet"],
+        vec!["verify-mainnet", "--canister", "invalid"],
         vec!["local", "--canister", "aaaaa-aa"],
         vec!["build", "extra"],
+        vec!["inspect-wasm"],
     ] {
-        assert!(parse(&args.into_iter().map(OsString::from).collect::<Vec<_>>()).is_err());
+        assert!(parse(args.into_iter().map(OsString::from)).is_err());
     }
-    let commands: Vec<_> = USAGE.lines().skip(3).collect();
-    let mut sorted = commands.clone();
-    sorted.sort_unstable();
-    assert_eq!(commands, sorted);
+    let mut command = ic_query_cli::prepare_command_tree(Action::command());
+    let help = command.render_help().to_string();
+    let commands = help
+        .split_once("Commands:\n")
+        .unwrap()
+        .1
+        .split("\n\n")
+        .next()
+        .unwrap()
+        .lines()
+        .map(|line| line.split_whitespace().next().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        commands,
+        [
+            "build",
+            "build-wasm",
+            "bundle",
+            "help",
+            "inspect-wasm",
+            "local",
+            "verify-mainnet"
+        ]
+    );
+    for args in [vec![], vec!["help"], vec!["--help"], vec!["-h"]] {
+        let error = command
+            .clone()
+            .try_get_matches_from(std::iter::once("governance-smoke").chain(args))
+            .unwrap_err();
+        assert!(matches!(
+            error.kind(),
+            ErrorKind::DisplayHelp | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        ));
+        assert_eq!(error.to_string(), help);
+    }
+    let error = command
+        .try_get_matches_from(["governance-smoke", "help", "inspect-wasm"])
+        .unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::DisplayHelp);
+    assert!(error.to_string().contains("<path>"));
+}
+
+#[test]
+fn canister_argument_preserves_admitted_text() {
+    assert_eq!(
+        parse(["verify-mainnet", "--canister", "AAAAA-AA"].map(OsString::from)).unwrap(),
+        Some(Action::VerifyMainnet {
+            canister: "AAAAA-AA".into()
+        })
+    );
+}
+
+#[test]
+fn wasm_argument_preserves_non_utf8_paths() {
+    let path = OsString::from_vec(b"probe-\xff.wasm".to_vec());
+    assert_eq!(
+        parse([OsString::from("inspect-wasm"), path.clone()]).unwrap(),
+        Some(Action::InspectWasm { path: path.into() })
+    );
+    assert!(
+        parse([
+            OsString::from("verify-mainnet"),
+            OsString::from("--canister"),
+            OsString::from_vec(vec![0xff])
+        ])
+        .is_err()
+    );
 }
 
 #[test]

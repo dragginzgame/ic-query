@@ -136,7 +136,7 @@ async fn resolve_account_transaction_context(
         Some(index_canister_id) => principal_from_text(index_canister_id, "index_canister_id")?,
         None => resolve_index_canister(&agent, &ledger_canister).await?,
     };
-    let (actual_ledger, token_display) = futures::try_join!(
+    let (actual_ledger, token_display) = futures_util::try_join!(
         query_no_args::<Principal, IcrcError>(&agent, &index_canister, INDEX_LEDGER_ID_METHOD),
         query_token_display_fields(&agent, &ledger_canister),
     )?;
