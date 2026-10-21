@@ -32,8 +32,9 @@ Policy adoption does not activate hooks, schedules, installers or release comman
 
 - At session start, read `README.md`, `CHANGELOG.md`, and relevant
   `docs/design/` files. Treat local docs plus the current worktree as the
-  handoff; use old chat only to resolve ambiguity. Read `../canic` only when
-  asked, and never edit outside this repository.
+  handoff; use old chat only to resolve ambiguity. Task-relevant read-only sibling
+  inspection follows the shared baseline and explicit user exclusions; never
+  edit outside this repository.
 
 ## Git And Release Boundaries
 

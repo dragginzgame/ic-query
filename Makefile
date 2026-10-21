@@ -1,11 +1,11 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json
+# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json scripts/ci/read-workspace-msrv.sh
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
-	package-contents-check public-docs-check publish publish-guards-check \
+	package-contents-check public-docs-check publish publish-guards-check msrv-version \
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
@@ -30,7 +30,7 @@ override RUSTUP_AUTO_INSTALL := $(RUSTUP_AUTO_INSTALL)
 export RUSTUP_AUTO_INSTALL
 endif
 
-MSRV ?= 1.91.0
+MSRV ?= $(shell bash "$(REPO_ROOT)scripts/ci/read-workspace-msrv.sh")
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
 TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release --features cli
@@ -45,11 +45,12 @@ CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
+IC_TOOLS := didc ic-wasm icp quill wasm-opt
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
 LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools install-release-tools
 LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check release-tools-check
 include $(REPO_ROOT)make/consumer.mk
-export IC_TOOL_PINS FORMAT_CARGO
+export IC_TOOL_PINS IC_TOOLS FORMAT_CARGO
 export PATH := $(REPO_ROOT).tools/ic/bin:$(PATH)
 
 format-tools-check: format-installation-check
@@ -60,7 +61,7 @@ CI_TARGETS := shared-tooling-check tools-check clippy changelog-check dependency
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check test package
-CI_INPUTS := Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
+CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
 	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
@@ -216,7 +217,12 @@ test:
 	cargo test --workspace --all-targets --all-features --locked --offline
 
 msrv:
-	cargo +$(MSRV) check --workspace --all-targets --all-features --locked --offline
+	+@version="$$( $(MAKE) --no-print-directory -s -f "$(REPO_ROOT)Makefile" msrv-version MSRV="$(MSRV)" )" && \
+		cargo +"$$version" check --workspace --all-targets --all-features --locked --offline
+
+msrv-version:
+	@version="$(MSRV)"; test -n "$$version" || { echo 'error: cannot select the workspace MSRV' >&2; exit 1; }; \
+		printf '%s\n' "$$version"
 
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline
