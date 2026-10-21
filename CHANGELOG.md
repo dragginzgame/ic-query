@@ -5,16 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.4]
+## [0.67.5]
 
 - Contain ordinary Agent query dispatch and structural error inspection behind a
   private boundary, preserving raw bytes, Registry retries and ledger capability
   decisions ([#95 — Contain Agent query dispatch and error inspection](https://github.com/dragginzgame/ic-query/issues/95)).
   Public APIs and cryptographic verification are unchanged.
 
-- Read the development compiler from rust-toolchain.toml in native and canister CI, retaining explicit Wasm targets and the independent minimum-Rust gate.
-
 Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
+
+## [0.67.4] - 2026-10-21
+
+- Read the development compiler from rust-toolchain.toml in native and canister CI, retaining explicit Wasm targets and the independent minimum-Rust gate.
 
 ## [0.67.3] - 2026-10-21
 
