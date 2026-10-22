@@ -208,15 +208,7 @@ fn execute(action: Action) -> Result<()> {
     if action == Action::BuildWasm {
         return build::build_wasm(&root, &target);
     }
-    let pins = env::var_os("IC_TOOL_PINS")
-        .unwrap_or_else(|| root.join("ci/ic-tools.tsv").into_os_string());
-    let mut check = build::command(&root, "bash", &[]);
-    check
-        .arg(root.join("scripts/dev/install-ic-tools.sh"))
-        .arg("--pins")
-        .arg(pins)
-        .arg("--check");
-    command::run(&mut check, &CommandOptions::default())?;
+    build::check_ic_tools(&root)?;
     let mut harness = Harness {
         identity_home: env::var_os("ICP_HOME")
             .map_or_else(|| root.join(".icp-smoke-home"), PathBuf::from),

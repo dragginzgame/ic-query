@@ -7,6 +7,8 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.67.6]
 
+- Fix Governance build, bundle and smoke admission after the Shared Tooling
+  installer interface change by using Query’s selected Make tool check.
 - Contain ordinary Agent query dispatch and structural error inspection behind a
   private boundary, preserving raw bytes, Registry retries and ledger capability
   decisions ([#95 — Contain Agent query dispatch and error inspection](https://github.com/dragginzgame/ic-query/issues/95)).
