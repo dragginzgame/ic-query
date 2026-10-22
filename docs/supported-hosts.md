@@ -44,6 +44,11 @@ retain their separate acceptance gates.
   archive digests belong to [ci/ic-tools.tsv](../ci/ic-tools.tsv). Audit/Machete
   selections belong to Makefile; Build and Testkit binaries follow Cargo.lock.
   There is no second version list in this guide. dfx is not selected.
+- Build and Testkit executable setup and offline admission select the same
+  explicit `cli` feature set. Library-only dependencies omit that feature.
+  Native tests import PocketIC clients and types from `ic_platform::pocket_ic`,
+  enabling Platform's `pocket-ic` feature in native development dependencies.
+  Testkit owns simulator startup, installation extensions and reply fixtures.
 - Make uses the admitted checkout-local paths. Interactive shells can select them
   with `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"`.
   Existing global executables cannot substitute for missing managed selections.

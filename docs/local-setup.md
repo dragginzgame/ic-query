@@ -452,13 +452,9 @@ bash scripts/dev/install-rust-tools.sh --consumer "$PWD" \
   --profile release --features cli --check
 ```
 
-Testkit requires `cli` for the server binary. Setup and offline admission
+Testkit 0.63 requires `cli` for the server binary. Setup and offline admission
 must request the same feature set, which is part of the tool's identity.
 Library-only Testkit dependencies should omit `cli`.
-
-Native tests import PocketIC clients and types from `ic_platform::pocket_ic`
-with Platform's `pocket-ic` feature in native development dependencies. Testkit
-owns simulator startup, installation extensions and reply fixtures.
 
 Relative lockfile paths resolve beneath `--consumer`; absolute paths select an
 explicit independent graph. The prepared host yq/jq tools read TOML without Cargo
