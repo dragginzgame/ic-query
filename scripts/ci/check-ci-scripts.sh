@@ -451,6 +451,14 @@ cat > "$offline_validation_case/bin/cargo" <<'EOF'
 set -euo pipefail
 case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
 case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
+if [[ "$1" == metadata ]]; then
+  [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 54
+  if [[ -n "${MSRV_FIXTURE_METADATA:-}" ]]; then printf '%s\n' "$MSRV_FIXTURE_METADATA"
+  else printf '%s\n' '{"workspace_members":["fixture"],"packages":[{"id":"fixture","rust_version":"1.87.0"}]}'
+  fi
+  [[ "${FAIL_MSRV_METADATA:-}" != yes ]] || exit 53
+  exit 0
+fi
 printf 'cargo %s\n' "$*" >> "$TRACE_FILE"
 [[ "${FAIL_CARGO:-}" != yes ]] || exit 57
 EOF
@@ -473,6 +481,36 @@ for target in build check clippy test msrv package; do
   [[ "$(wc -l < "$offline_validation_case/trace")" -eq 1 ]] \
     || fail "$target continued after failed Cargo validation"
 done
+
+PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/default-msrv-trace" \
+  MAKEFLAGS='' MAKEOVERRIDES='' "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv
+grep -Fxq 'cargo +1.87.0 check --workspace --all-targets --all-features --locked --offline' \
+  "$offline_validation_case/default-msrv-trace" \
+  || fail 'MSRV validation did not use the manifest metadata floor'
+PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/override-trace" \
+  FAIL_MSRV_METADATA=yes MAKEFLAGS='' MAKEOVERRIDES='' \
+  "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv MSRV=1.92.0
+grep -Fxq 'cargo +1.92.0 check --workspace --all-targets --all-features --locked --offline' \
+  "$offline_validation_case/override-trace" || fail 'explicit MSRV override was ignored'
+for metadata in \
+  '{"workspace_members":["fixture"],"packages":[{"id":"fixture"}]}' \
+  '{"workspace_members":["a","b"],"packages":[{"id":"a","rust_version":"1.87"},{"id":"b","rust_version":"1.88"}]}' \
+  'invalid JSON'; do
+  : > "$offline_validation_case/trace"
+  if PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
+    MSRV_FIXTURE_METADATA="$metadata" MAKEFLAGS='' MAKEOVERRIDES='' \
+    "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv > "$offline_validation_case/msrv-refusal.log" 2>&1; then
+    fail 'MSRV validation accepted invalid workspace metadata'
+  fi
+  [[ ! -s "$offline_validation_case/trace" ]] || fail 'invalid MSRV metadata reached compilation'
+done
+: > "$offline_validation_case/trace"
+if PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
+  FAIL_MSRV_METADATA=yes MAKEFLAGS='' MAKEOVERRIDES='' \
+  "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv > "$offline_validation_case/msrv-cargo-refusal.log" 2>&1; then
+  fail 'MSRV validation accepted failed Cargo metadata with valid-looking output'
+fi
+[[ ! -s "$offline_validation_case/trace" ]] || fail 'failed MSRV discovery reached compilation'
 
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
 [[ "${workflow_ci_count}" -eq 1 ]] \
@@ -581,6 +619,7 @@ chmod +x "${install_case}/bin/cargo"
   || fail "make install does not replace an existing local icq binary"
 
 tools_case="${work_dir}/tools"
+ic_arguments='--tool didc --tool ic-wasm --tool icp --tool quill --tool wasm-opt'
 mkdir -p "$tools_case/scripts/dev" "$tools_case/ci" "$tools_case/bin"
 copy_makefile "$tools_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$tools_case/scripts/ci/"
@@ -643,11 +682,12 @@ for mode in install check; do
       CARGO_AUDIT_VERSION=8.7.6 CARGO_MACHETE_VERSION=7.6.5 > "$tools_case/$mode.log" 2>&1
   : > "$tools_case/expected"
   if [[ "$mode" == install ]]; then
-    printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
+    printf '%s\n' "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv $ic_arguments --preflight" \
+      "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" > "$tools_case/expected"
   fi
   printf '%s\n' "host --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
     "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env$suffix" \
-    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv$suffix" >> "$tools_case/expected"
+    "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv $ic_arguments$suffix" >> "$tools_case/expected"
   if [[ "$mode" == check ]]; then
     printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --check" \
       'cargo sort --version' 'cargo fmt --version' >> "$tools_case/expected"
@@ -674,15 +714,20 @@ for mode in install check; do
   done
 done
 
-: > "$tools_case/trace"
-if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT=rust \
-  MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
-  HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
-  "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-rust.log" 2>&1; then
-  fail 'tool setup accepted a failed Rust preflight'
-fi
-printf 'rust --consumer %s --versions %s/ci/tool-versions.env --preflight\n' "$tools_case" "$tools_case" > "$tools_case/expected-preflight"
-cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
+for family in ic rust; do
+  : > "$tools_case/trace"
+  if PATH="$tools_case/bin:$PATH" TRACE_FILE="$tools_case/trace" EXPECTED_ROOT="$tools_case" FAIL_PREFLIGHT="$family" \
+    MAKEFLAGS='' MAKEOVERRIDES='' IC_TOOL_PINS="$tools_case/ci/ic-tools.tsv" \
+    HOST_TOOL_VERSIONS="$tools_case/ci/tool-versions.env" \
+    "$make_bin" --no-print-directory -j4 -C "$tools_case" install-tools > "$tools_case/preflight-$family.log" 2>&1; then
+    fail "tool setup accepted a failed $family preflight"
+  fi
+  printf '%s\n' "ic --consumer $tools_case --pins $tools_case/ci/ic-tools.tsv $ic_arguments --preflight" > "$tools_case/expected-preflight"
+  if [[ "$family" == rust ]]; then
+    printf '%s\n' "rust --consumer $tools_case --versions $tools_case/ci/tool-versions.env --preflight" >> "$tools_case/expected-preflight"
+  fi
+  cmp "$tools_case/expected-preflight" "$tools_case/trace" || fail 'failed preflight reached installation'
+done
 
 cat > "$tools_case/scripts/ci/check-dependencies.sh" <<'EOF'
 #!/usr/bin/env bash

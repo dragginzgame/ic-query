@@ -5,12 +5,23 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.5]
+## [0.67.6]
 
 - Contain ordinary Agent query dispatch and structural error inspection behind a
   private boundary, preserving raw bytes, Registry retries and ledger capability
   decisions ([#95 — Contain Agent query dispatch and error inspection](https://github.com/dragginzgame/ic-query/issues/95)).
   Public APIs and cryptographic verification are unchanged.
+
+Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
+
+## [0.67.5] - 2026-10-21
+
+- Adopt Shared Tooling 0.26.4, explicitly retaining didc, ic-wasm, ICP CLI, Quill
+  and wasm-opt. Preserve failed-run evidence and improve failure-log reporting.
+- Follow the shared asynchronous cadence for ordinary authorized PR merges;
+  preserve enforced checks and separate native/release qualification.
+- Read the minimum Rust version from Cargo's workspace metadata in local and CI
+  checks. Remove superseded host-setup instructions and obsolete adoption blockers.
 
 Detailed release notes: [docs/changelog/0.67.md](docs/changelog/0.67.md)
 
