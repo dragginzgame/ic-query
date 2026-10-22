@@ -1,8 +1,5 @@
 name: CI
 
-env:
-  IC_QUERY_MSRV: 1.91.0
-
 permissions:
   contents: read
 
@@ -87,13 +84,23 @@ jobs:
     steps:
       # actions/checkout v6
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - name: Read the declared minimum Rust version
+        id: msrv
+        shell: bash
+        run: |
+          bootstrap_toolchain="$(rustup default)"
+          bootstrap_toolchain="${bootstrap_toolchain%% *}"
+          version="$(RUSTUP_TOOLCHAIN="$bootstrap_toolchain" RUSTUP_AUTO_INSTALL=0 make --no-print-directory -s msrv-version)"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
       # dtolnay/rust-toolchain v1
       - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
         with:
-          toolchain: ${{ env.IC_QUERY_MSRV }}
+          toolchain: ${{ steps.msrv.outputs.version }}
       - name: Pin cargo/rustc to MSRV
         shell: bash
-        run: echo "RUSTUP_TOOLCHAIN=$IC_QUERY_MSRV" >> "$GITHUB_ENV"
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: echo "RUSTUP_TOOLCHAIN=$MSRV" >> "$GITHUB_ENV"
       # Swatinem/rust-cache v2
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
       - name: Prepare the selected dependency cache

@@ -29,6 +29,23 @@ fn payload(kind: &str) -> Value {
 }
 
 #[test]
+fn ic_tool_admission_uses_consumer_make_selection_and_preserves_refusal() {
+    let fixture = FixtureDirectory::new(&env::temp_dir(), "governance-ic-admission").unwrap();
+    let root = fixture.path().join("consumer with spaces");
+    fs::create_dir(&root).unwrap();
+    fs::write(
+        root.join("Makefile"),
+        ".PHONY: unexpected ic-tools-check\nunexpected:\n\t@exit 73\nic-tools-check:\n\t@printf checked > admitted\n\t@test ! -f refuse\n",
+    )
+    .unwrap();
+    build::check_ic_tools(&root).unwrap();
+    assert_eq!(fs::read(root.join("admitted")).unwrap(), b"checked");
+    fs::write(root.join("refuse"), b"").unwrap();
+    let error = build::check_ic_tools(&root).unwrap_err();
+    assert!(error.downcast_ref::<CommandFailure>().is_some());
+}
+
+#[test]
 fn actions_are_admitted_before_effects_and_help_commands_are_sorted() {
     for (args, expected) in [
         (vec!["build"], Action::Build),
