@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.67.6]
+## [0.67.6] - 2026-10-22
 
 - Own private query errors while preserving original causes, diagnostics and
   consumer retry decisions. Exhaustive upstream mappings require review when
