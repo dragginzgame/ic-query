@@ -10,12 +10,14 @@ use super::{
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
-use ic_platform::candid::contract::Principal;
+use ic_platform::{
+    candid::contract::Principal,
+    pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time},
+};
 use ic_testkit::pic::{
-    CanisterInstallExt, InstallSpec, PocketIc, PocketIcBuilder, PocketIcStartupConfig, RejectCode,
+    CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
     fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
 };
-use ic_testkit::pocket_ic::Time;
 use serde_json::Value;
 use std::{collections::BTreeSet, env, fs, time::Duration};
 

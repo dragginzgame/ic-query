@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.68.0]
+
+- **Breaking:** adopt the published Host, Build and Testkit 0.64 family.
+  Consumers naming Query's public certificate decode errors or authenticated
+  ledger-tip values must also select Host Tools 0.64. Preserve certificate
+  limits, authentication, error categories and report/cache formats.
+- Import native PocketIC clients and types through Platform, retaining Testkit
+  for simulator lifecycle, installation and reply fixtures. Keep simulator
+  dependencies confined to native development builds.
+- Reprepare the selected Build and Testkit executables with
+  `make install-release-tools install-testkit` before offline release or
+  installed-IC checks.
+
+Detailed release notes: [docs/changelog/0.68.md](docs/changelog/0.68.md)
+
 ## [0.67.6] - 2026-10-22
 
 - Own private query errors while preserving original causes, diagnostics and
