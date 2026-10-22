@@ -37,7 +37,7 @@ futures = { version = "0.3", default-features = false }
 ic-build = "0.64"
 ic-host-process = { version = "0.64", default-features = false }
 ic-testkit = "0.64"
-ic-wire = "0.5.4"
+ic-wire = "0.6"
 libc = "0.2"
 serde_cbor = "0.11.2"
 time = { version = "0.3", features = ["formatting"] }

@@ -344,6 +344,11 @@ fn protocol_metadata_matches_the_owned_wire_contract() {
     assert_eq!(metadata["request_bytes"], protocol::REQUEST_LIMITS.bytes);
     assert_eq!(metadata["response_bytes"], protocol::RESPONSE_LIMITS.bytes);
     let request = protocol::encode_request("economics").unwrap();
+    assert_eq!(request, b"IW\x01\0\0\0\0\0\0\0\0\x09economics");
+    assert_eq!(
+        protocol::decode_reply(b"IW\x01\0\0\0\0\0\0\0\x01\x02{}").unwrap(),
+        "{}"
+    );
     let kind: String =
         ic_wire::native::decode_request(1, &request, protocol::REQUEST_LIMITS).unwrap();
     assert_eq!(kind, "economics");

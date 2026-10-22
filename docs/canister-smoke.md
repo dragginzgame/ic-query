@@ -56,8 +56,8 @@ changing the module. Encoding refusal leaves the input and publication destinati
 unchanged. IC Build admits the named example and output path through caller-bounded
 input resolution; Query retains its build executor and metadata publication.
 
-The owned `report` endpoint uses IC Wire 0.4.9 with method ID 1, a 128-byte
-request allowance and a 2 MiB reply allowance. `tests/canister/probe-wire.json`
+The owned `report` endpoint uses IC Wire's native Serde/Postcard framing with
+method ID 1, a 128-byte request allowance and a 2 MiB reply allowance. `tests/canister/probe-wire.json`
 records the contract; metadata is checked against the certified deployed module.
 The report body remains JSON text. Calls from the probe to the external NNS
 Governance interface retain Candid and their existing decoding quotas.
