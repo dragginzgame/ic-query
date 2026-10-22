@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.68.0]
+## [0.68.0] - 2026-10-22
 
 - **Breaking:** adopt the published Host, Build and Testkit 0.64 family.
   Consumers naming Query's public certificate decode errors or authenticated
