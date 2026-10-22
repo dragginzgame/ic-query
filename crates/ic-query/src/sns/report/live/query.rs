@@ -10,7 +10,7 @@ use crate::{
     candid_call::CandidCallError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
-use ic_platform::agent::{Agent, AgentError};
+use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 impl CandidCallError for SnsHostError {
@@ -18,7 +18,7 @@ impl CandidCallError for SnsHostError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, error: AgentError) -> Self {
+    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
         Self::AgentCall {
             method,
             reason: error.to_string(),

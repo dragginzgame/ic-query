@@ -1,6 +1,6 @@
 //! Shared Candid query mechanics; callers own agents, endpoints and diagnostic labels.
 
-use ic_platform::agent::{Agent, AgentError};
+use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
@@ -14,7 +14,7 @@ pub trait CandidCallError: Sized {
     fn candid_encode(message: &'static str, reason: String) -> Self;
 
     /// Preserve the original Agent error for family-specific classification.
-    fn agent_call(method: &'static str, error: AgentError) -> Self;
+    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self;
 
     /// Project a bounded reply decoding failure.
     fn candid_decode(message: &'static str, reason: String) -> Self;

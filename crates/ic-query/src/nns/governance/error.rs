@@ -153,7 +153,7 @@ impl crate::candid_call::CandidCallError for NnsGovernanceError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, error: ic_platform::agent::AgentError) -> Self {
+    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
         Self::AgentCall {
             method,
             reason: error.to_string(),

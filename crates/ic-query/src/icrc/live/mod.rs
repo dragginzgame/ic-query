@@ -31,7 +31,6 @@ pub use source::{
 };
 
 use crate::{candid_call::CandidCallError, icrc::model::IcrcError};
-use ic_platform::agent::AgentError;
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -53,7 +52,7 @@ impl CandidCallError for IcrcError {
         Self::CandidEncode { message, reason }
     }
 
-    fn agent_call(method: &'static str, error: AgentError) -> Self {
+    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
         Self::AgentCall {
             method,
             reason: error.to_string(),
