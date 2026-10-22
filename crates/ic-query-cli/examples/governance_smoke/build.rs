@@ -34,6 +34,14 @@ pub fn command(root: &Path, program: impl AsRef<std::ffi::OsStr>, args: &[&str])
     command
 }
 
+pub fn check_ic_tools(root: &Path) -> Result<()> {
+    command::run(
+        &mut command(root, "make", &["--no-print-directory", "ic-tools-check"]),
+        &CommandOptions::default(),
+    )?;
+    Ok(())
+}
+
 pub fn target_directory(root: &Path) -> Result<PathBuf> {
     let metadata = command::run(
         &mut command(
