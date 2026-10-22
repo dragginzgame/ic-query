@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.68.1]
+## [0.68.1] - 2026-10-22
 
 - Adopt published IC Wire 0.6.0 for the Governance probe and its test tooling,
   retaining native Serde frames, method identity, resource limits and raw reply
