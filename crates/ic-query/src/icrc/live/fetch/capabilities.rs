@@ -221,15 +221,11 @@ impl CandidCallError for CapabilityQueryError {
     }
 
     fn agent_call(method: &'static str, error: AgentError) -> Self {
-        let method_not_exported = match &error {
-            AgentError::CertifiedReject { reject, .. }
-            | AgentError::UncertifiedReject { reject, .. } => {
-                // IC0536 is CanisterMethodNotFound; free-form reject text is not a code.
-                reject.reject_code == RejectCode::CanisterError
-                    && reject.error_code.as_deref() == Some("IC0536")
-            }
-            _ => false,
-        };
+        let method_not_exported = crate::agent_transport::rejection(&error).is_some_and(|reject| {
+            // IC0536 is CanisterMethodNotFound; free-form reject text is not a code.
+            reject.reject_code == RejectCode::CanisterError
+                && reject.error_code.as_deref() == Some("IC0536")
+        });
         Self {
             error: IcrcError::AgentCall {
                 method,

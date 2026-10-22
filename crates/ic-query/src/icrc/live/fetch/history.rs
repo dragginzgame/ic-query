@@ -128,15 +128,17 @@ async fn query_archive_blocks(
             reason: error.to_string(),
         }
     })?;
-    let bytes = agent
-        .query(&archive.callback.canister_id, &archive.callback.method)
-        .with_arg(arg)
-        .call()
-        .await
-        .map_err(|error| IcrcError::AgentCall {
-            method: CONTEXT,
-            reason: error.to_string(),
-        })?;
+    let bytes = crate::agent_transport::query(
+        agent,
+        &archive.callback.canister_id,
+        &archive.callback.method,
+        arg,
+    )
+    .await
+    .map_err(|error| IcrcError::AgentCall {
+        method: CONTEXT,
+        reason: error.to_string(),
+    })?;
     charge_archive_reply(remaining_bytes, bytes.len())?;
     let result: GetBlocksResult =
         crate::candid_decode::decode_reply(&bytes).map_err(|error| IcrcError::CandidDecode {

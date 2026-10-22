@@ -34,6 +34,14 @@
     feature = "subnet-catalog-host"
 ))]
 mod agent;
+#[cfg(any(
+    feature = "cloud-engine-host",
+    feature = "cmc-host",
+    feature = "icrc-host",
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
+))]
+mod agent_transport;
 pub mod cache;
 #[cfg(any(
     feature = "dashboard-host",
