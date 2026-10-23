@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.69.0]
+## [0.69.0] - 2026-10-23
 
 - **Breaking:** remove the implicit `ic-host-tools` Cargo feature. Select
   `certificate-host`, `ledger-evidence-host`, or the relevant reporting feature
