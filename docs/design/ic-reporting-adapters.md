@@ -52,10 +52,11 @@ complete routing coverage; those policies and the report/cache contracts remain
 Query-owned.
 
 Host, Build and Testkit are published from the consolidated IC Tooling repository.
-Query selects their coordinated 0.63.0 packages with the existing Rust 1.91 floor;
-these package names remain separate dependency and feature boundaries.
+Query selects their coordinated published packages through the workspace catalog
+and lockfile with the existing Rust 1.91 floor; these package names remain
+separate dependency and feature boundaries.
 
-Managed cache operations use published Host FS 0.63.0 `capability::Directory` and
+Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
 select the separate `temporary-file` backend. Host owns no-follow traversal,
 directory creation, bounded entry observations and descriptor-relative file

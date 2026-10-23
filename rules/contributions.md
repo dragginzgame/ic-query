@@ -154,13 +154,11 @@ Requesting a policy update does not itself request fleet-wide adoption PRs.
   does not authorize bypassing them. Leave the PR open and report an actual
   unmet requirement. GitHub permissions still determine where a branch can be pushed.
 - Follow the [asynchronous CI cadence](../DRAGGINZGAME.md#validation-and-evidence)
-  for ordinary PR delivery and separately authorized merges. After focused checks
-  and review, do not wait for expensive integration/native matrices solely because
-  they are running when enforced branch requirements permit the authorized merge.
-  Report the exact source and run links as pending; preserve coverage and report
-  failures at their owner. Known failures still require review, and a maintainer's
-  explicit synchronous qualification request still applies. This changes neither
-  merge authority nor separate release/publication/deployment acceptance.
+  and its independent agent-runtime approval boundary for ordinary PR delivery
+  and separately authorized merges. That policy owns pending CI, required versus
+  optional reviews, known failures and runtime rejection handling. Report the
+  concrete enforced blocker; do not add an independent GitHub approval requirement
+  merely because optional hosted qualification is pending.
 - Describe the change, validation and remaining gaps in the PR. Use the existing
   repository template where present. Maintain the numbered changelog draft under
   the [changelog rules](changelogs.md); an ordinary contribution does not bump

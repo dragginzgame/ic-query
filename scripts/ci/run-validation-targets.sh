@@ -96,8 +96,11 @@ retain_all_logs=false
 if [[ -n "${VALIDATION_LOG_DIR:-}" ]]; then
     # One directory per invocation, including nested invocations. Never replace a
     # previous run or delete consumer-selected evidence on success.
-    mkdir -p "$VALIDATION_LOG_DIR"
-    LOG_ROOT="$(cd "$VALIDATION_LOG_DIR" && pwd -P)"
+    LOG_ROOT="$VALIDATION_LOG_DIR"
+    [[ "$LOG_ROOT" == /* ]] || LOG_ROOT="$PWD/$LOG_ROOT"
+    mkdir -p "$LOG_ROOT"
+    LOG_ROOT="$(cd -P "$LOG_ROOT" && printf '%s/.' "$PWD")"
+    LOG_ROOT="${LOG_ROOT%/.}"
     LOG_DIR="$(mktemp -d "$LOG_ROOT/validation.XXXXXX")"
     retain_all_logs=true
     printf 'target\tresult\tseconds\tlog\n' > "$LOG_DIR/timings.tsv"

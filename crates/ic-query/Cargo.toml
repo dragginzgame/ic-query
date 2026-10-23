@@ -16,7 +16,7 @@ categories = ["command-line-utilities"]
 [features]
 default = []
 ledger-evidence-host = ["certificate-host", "ic-host-tools/ledger-evidence"]
-certificate-host = ["ic-platform/agent", "ic-host-tools/certificate", "ic-platform/certification"]
+certificate-host = ["dep:ic-host-tools", "ic-platform/agent", "ic-host-tools/certificate", "ic-platform/certification"]
 canister = ["ic-platform/cdk"]
 host = [
     "cloud-engine-host",

@@ -46,6 +46,9 @@ The focused host choices are `cloud-engine-host`, `cmc-host`,
 `certified-subnet-catalog-host`, `dashboard-host`, `ic-state-host`, `icrc-host`,
 `nns-host`, `nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The
 complete `host` feature is their convenience union.
+For bounded certificate verification, select `certificate-host`; use
+`ledger-evidence-host` when authenticated ledger tips are also needed. Each
+capability selects the Host dependency features it needs.
 Both NNS subsets are nested under `nns-host`, and
 `certified-subnet-catalog-host` and `nns-topology-host` each include
 `subnet-catalog-host`.

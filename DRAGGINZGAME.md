@@ -308,6 +308,17 @@ Consumer choices described in those guides remain subject to this baseline.
   cadence does not excuse a demonstrated defect. Separate release, publication,
   deployment and issue-specific acceptance gates still apply, and this cadence
   grants no merge or release authority.
+  Focused source review and enforced GitHub approval are distinct: do not invent
+  an independent GitHub approval requirement when none is configured or required
+  by the repository's contribution policy.
+- Agent-runtime approval restrictions are an independent execution boundary;
+  repository guidance cannot override them or change runtime configuration. If
+  runtime approval rejects an otherwise authorized action, retain the prepared
+  work and report the exact action and stated rejection reason. Request narrowly
+  scoped additional authorization only when the runtime permits that route.
+  Do not poll optional CI merely to wait out the rejection, or switch APIs,
+  credentials or execution paths to evade it. Continue independent authorized
+  work; an approval rejection does not establish a source defect or CI failure.
 - **Rust release and deployment entrypoints must run Clippy early and stop on
   failure.** After source/recovery admission and required compiler/dependency/tool
   preparation, run the consumer's existing Clippy gate before expensive product

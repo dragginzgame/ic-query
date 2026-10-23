@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.69.0]
+
+- **Breaking:** remove the implicit `ic-host-tools` Cargo feature. Select
+  `certificate-host`, `ledger-evidence-host`, or the relevant reporting feature
+  instead. Supported capabilities retain their existing roles and behavior.
+- **Breaking:** adopt Host, Build and Testkit 0.65.0. Consumers naming Host
+  types exposed by Query must select Host 0.65, including certificate decode
+  errors and authenticated ledger-tip values.
+- Select Platform 0.6.9, Wire 0.6.5 and Metrics 0.15.6, preserving external IC
+  types, probe frames and dependency exclusions.
+- Adopt Shared Tooling 0.26.7, including bounded Cargo-tool setup contention
+  handling and corrected isolated validation companions. Tool pins are unchanged.
+- Reprepare the selected executables with
+  `make install-release-tools install-testkit` before offline release and
+  installed-canister checks.
+
+Detailed release notes: [docs/changelog/0.69.md](docs/changelog/0.69.md)
+
 ## [0.68.1] - 2026-10-22
 
 - Adopt published IC Wire 0.6.0 for the Governance probe and its test tooling,
