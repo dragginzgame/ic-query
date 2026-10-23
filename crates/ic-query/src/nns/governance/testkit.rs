@@ -49,7 +49,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
                 .with_application_subnet(),
         )
         .expect("start Testkit instance");
-    let pic = &owned.instance;
+    let pic = owned.instance();
     pic.set_time(Time::from_nanos_since_unix_epoch(1_780_531_200_000_000_000));
     let governance = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).unwrap();
     pic.create_canister_with_id(None, None, governance)

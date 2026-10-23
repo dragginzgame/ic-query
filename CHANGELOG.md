@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.70.0]
+
+- **Breaking:** adopt Host, Build and Testkit 0.66.0. Consumers naming Host
+  types exposed by Query must select Host 0.66, including certificate decode
+  errors and authenticated ledger-tip values.
+- Use Testkit's borrowing accessor while retaining the simulator owner for
+  the entire Governance fixture, preserving client/server lifetime ordering.
+- Select Wire 0.6.7 for the probe and its callers, retaining native frame bytes
+  and explicit admission budgets.
+- Select Platform 0.6.10 and Metrics 0.15.7 and refresh Shared Tooling to 0.26.8,
+  fixing setup-lock cleanup races while preserving runtime and report contracts.
+- Run `make install-tools install-testkit` once after this snapshot update to
+  admit the selected executables under its changed Cargo build policy.
+
+Detailed release notes: [docs/changelog/0.70.md](docs/changelog/0.70.md)
+
 ## [0.69.0] - 2026-10-23
 
 - **Breaking:** remove the implicit `ic-host-tools` Cargo feature. Select
