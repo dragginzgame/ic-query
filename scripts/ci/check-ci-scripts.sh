@@ -1118,7 +1118,7 @@ case "${1:-}" in
       || exit 62
     [[ -d "${advisory_db}" ]] || exit 63
     [[ "$(cat "${advisory_db}/../revision")" == 1111111111111111111111111111111111111111 ]] || exit 63
-    [[ "$*" == "--deny warnings --ignore RUSTSEC-2021-0127 --ignore RUSTSEC-2024-0436" ]] \
+    [[ "$*" == "--deny warnings --ignore RUSTSEC-2021-0127 --ignore RUSTSEC-2024-0436 --ignore RUSTSEC-2026-0387" ]] \
       || exit 64
     printf 'audit\n' >> "${TRACE_FILE}"
     [[ -z "${FAIL_AUDIT:-}" ]] || exit 52

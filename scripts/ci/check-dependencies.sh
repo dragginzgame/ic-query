@@ -25,9 +25,12 @@ echo "Fetching a fresh RustSec snapshot (shallow clone; Git progress follows)" >
 bash "$repo_root/scripts/ci/prepare-rustsec-db.sh" online \
   https://github.com/RustSec/advisory-db.git "$work_dir/rustsec" > /dev/null
 
+# RUSTSEC-2026-0387: temporary upstream-alignment acceptance; review by
+# 2026-11-07. Scope, residual signing risk and removal: docs/security-advisories.md.
 "$audit" audit --no-fetch --db "${work_dir}/rustsec/db" --deny warnings \
   --ignore RUSTSEC-2021-0127 \
-  --ignore RUSTSEC-2024-0436
+  --ignore RUSTSEC-2024-0436 \
+  --ignore RUSTSEC-2026-0387
 
 # Machete uses CARGO to select Cargo-subcommand argument parsing.
 unset CARGO

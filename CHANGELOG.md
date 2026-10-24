@@ -7,6 +7,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.71.0]
 
+- Temporarily accept RUSTSEC-2026-0387 to retain upstream IC Agent versions;
+  the crypto-bigint vulnerability remains unresolved, including potential risk
+  for caller-supplied signing identities. See [advisory review](docs/security-advisories.md).
+
 - Adopt Shared Tooling 0.26.10 with shared external-IC dependency enforcement,
   literal formatter catalog parsing and improved offline tool diagnostics.
 - **Breaking text output:** SNS metadata failures use the status `error` regardless
