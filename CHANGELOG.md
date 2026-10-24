@@ -21,8 +21,15 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Use one feature-case inventory for compilation and dependency-graph checks.
   Retain Query adapter coverage while relying on Shared Tooling for the generic
   release-recovery matrix and invoke completion assertions without source slicing.
-- Retain the selected Host, Build and Testkit 0.66.3, Platform 0.6.12, Wire 0.6.12
-  and Metrics 0.15.7. Reprepare selected tools explicitly before offline admission.
+- **Breaking:** select Host, Build and Testkit 0.67.0; consumers naming exposed
+  Host types must align to Host 0.67. Retain Platform 0.6.13, Wire 0.6.12 and
+  Metrics 0.15.8. Reprepare selected tools before offline admission.
+- Bound Governance probe configuration discovery to 1 MiB per file, 8 MiB total,
+  128 files and 16 include levels with Build's explicit configuration limits.
+- Repair publication guard fixtures to provide a self-contained Cargo workspace
+  for real manifest validation, avoiding missing-member failures during release CI.
+- Refresh Shared Tooling to commit `4c0f198e` for Cargo setup phase/timing
+  diagnostics on stderr; path-only stdout and offline checks are unchanged.
 
 Detailed release notes: [docs/changelog/0.71.md](docs/changelog/0.71.md)
 

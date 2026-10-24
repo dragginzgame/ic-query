@@ -291,6 +291,30 @@ check_build_inputs() {
     bash "$ROOT/scripts/ci/verify-file-checksum.sh" sha256 "$(jq -r .source_sha256 <<< "$inputs")" "$source_archive"
 }
 
+# Diagnostics only: retain the command's status and stdout, including when the
+# caller captures a selected path. Callbacks already propagate failures without
+# relying on errexit. A compilation log remains caller-selected retained evidence.
+run_setup_phase() {
+    local phase_name="$1" phase_log="$2" phase_started="$SECONDS" phase_status=0 phase_outcome=passed
+    shift 2
+    if [[ "$check_only" == false ]]; then
+        printf 'Cargo tool setup: package=%s version=%s phase=%s outcome=started elapsed=0s\n' \
+            "$package" "$selected_version" "$phase_name" >&2 || :
+    fi
+    if [[ -n "$phase_log" ]]; then
+        "$@" > "$phase_log" 2>&1 || phase_status=$?
+    else
+        "$@" || phase_status=$?
+    fi
+    [[ "$phase_status" == 0 ]] || phase_outcome=failed
+    if [[ "$check_only" == false ]]; then
+        printf 'Cargo tool setup: package=%s version=%s phase=%s outcome=%s elapsed=%ss status=%s\n' \
+            "$package" "$selected_version" "$phase_name" "$phase_outcome" \
+            "$((SECONDS - phase_started))" "$phase_status" >&2 || :
+    fi
+    return "$phase_status"
+}
+
 install_selected() (
     stage=''
     store_lock=''
@@ -314,7 +338,7 @@ install_selected() (
     trap finish_selected EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    cargo_source || { status=$?; rust_setup_hint; exit "$status"; }
+    run_setup_phase source-preparation '' cargo_source || { status=$?; rust_setup_hint; exit "$status"; }
     tool_store_init rust "$inputs" || exit $?
     tool_root="$install_root"
     active="$install_root/selected-$store_id"
@@ -325,7 +349,7 @@ install_selected() (
         reference="${reference%/.}"
         [[ "$reference" =~ ^rust-set\.[[:alnum:]]+$ ]] || { echo 'invalid Cargo tool reference' >&2; exit 1; }
         if destination="$(tool_store_resolve "$install_root/$reference" "$store_slot")" &&
-            tool_store_unlocked && check_selected; then
+            tool_store_unlocked && run_setup_phase selection-reuse '' check_selected; then
             check_locked_selection || exit $?
             printf '%s/bin/%s\n' "$active" "$target" || exit $?
             exit 0
@@ -343,12 +367,12 @@ install_selected() (
     mkdir -p "$install_root" || exit $?
     mkdir "$lock" || exit $?
     lock_owned=true
-    tool_store_acquire "$setup_wait_seconds" || exit $?
+    run_setup_phase lock-wait '' tool_store_acquire "$setup_wait_seconds" || exit $?
     if [[ "$tool_store_waited" == true ]]; then
         check_build_inputs || exit $?
         check_locked_selection || exit $?
     fi
-    if destination="$(tool_store_cached)" && check_selected; then
+    if destination="$(tool_store_cached)" && run_setup_phase cache-reuse '' check_selected; then
         tool_store_reference "$destination" || exit $?
     else
         tool_store_new || exit $?
@@ -358,17 +382,17 @@ install_selected() (
         printf '%s\n' "$native_identity" > "$stage/native-environment.txt" || exit $?
         cp "$source_archive" "$stage/source.crate" || exit $?
         options=(); [[ "$profile" != debug ]] || options=(--debug)
-        cargo_build "$stage" ${options[@]+"${options[@]}"} > "$stage/install.log" 2>&1 || {
+        run_setup_phase compilation "$stage/install.log" cargo_build "$stage" ${options[@]+"${options[@]}"} || {
             status=$?; cat "$stage/install.log" >&2 || :; exit "$status";
         }
         check_install_paths || exit $?
         selected_paths "$stage" || exit $?
-        selected_receipt "$stage" || exit $?
+        run_setup_phase receipt-admission '' selected_receipt "$stage" || exit $?
         # Refuse a changed source/compiler/native environment before publication.
         check_build_inputs || exit $?
         selected_identity "$stage" > "$stage/selection.json" || exit $?
         destination="$stage"
-        check_selected || exit $?
+        run_setup_phase build-admission '' check_selected || exit $?
     fi
     check_locked_selection || exit $?
     tool_store_activate "$destination" || exit $?

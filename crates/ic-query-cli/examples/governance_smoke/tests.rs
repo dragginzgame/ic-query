@@ -263,6 +263,20 @@ fn probe_inputs_bind_configured_output_source_and_cdylib_example() {
 }
 
 #[test]
+fn probe_inputs_refuse_oversized_configuration() {
+    let directory = probe_workspace();
+    let config = directory.path().join(".cargo/config.toml");
+    fs::write(&config, " ".repeat(1024 * 1024 + 1)).unwrap();
+    let spec = build::probe_spec(directory.path(), &directory.path().join("target"));
+    let error = build::resolve_probe_inputs(&spec, Duration::from_secs(1)).unwrap_err();
+    assert!(
+        matches!(error.downcast_ref::<WasmBuildError>(),
+        Some(WasmBuildError::InvalidCargoConfiguration { path, .. }) if path == &config),
+        "{error:?}"
+    );
+}
+
+#[test]
 fn probe_input_deadline_retains_original_process_evidence() {
     let directory = probe_workspace();
     let program = directory.path().join("stalled-cargo");

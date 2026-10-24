@@ -443,6 +443,18 @@ for another reason, its diagnostic/status is preserved without a retry. Timeouts
 are nonzero and retain previous selections and failed evidence. `--check`, `--preflight`,
 checkout locks and Host/IC setup keep their immediate, non-waiting behavior.
 
+Explicit Cargo-tool setup reports package/version, phase, outcome and elapsed
+whole seconds on stderr. Start and completion messages distinguish source
+preparation, selection reuse, shared-slot acquisition/waiting, cache reuse,
+compilation and receipt/build admission when those paths run. Compilation output
+stays in the retained attempt's `install.log`; a failure still replays that log
+and returns its original status. Timings are observations, not a speedup claim or
+another deadline. Diagnostic write failures do not replace command results.
+Stdout remains the selected executable or common-bin path. Successful `--check`
+calls remain quiet on stderr; checks, preflight and descriptions add no setup.
+These diagnostics do not change installed-tool identities or require rebuilding
+an already admitted generation.
+
 Source-cache initialization uses idempotent private directory creation, admitting
 existing paths before creation and checking cache routes/configuration before
 Cargo dispatch. It has no global installation lock; Cargo owns actual source

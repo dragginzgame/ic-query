@@ -11,6 +11,7 @@ use ic_build::{
         ResolvedCargoBuildInputs, WasmBuildSpec, resolve_cargo_build_inputs_with_probe_policy,
     },
     cargo::{
+        environment::ConfigurationLimits,
         observation::schema::Metadata,
         selection::{CargoFeatureSelection, CargoSelection},
     },
@@ -117,20 +118,31 @@ pub fn append_metadata_section(bytes: &mut Vec<u8>, name: &str, contents: &[u8])
 }
 
 pub fn probe_spec(root: &Path, target: &Path) -> WasmBuildSpec {
-    WasmBuildSpec::new(root, target, &["ic-query"], env::vars_os())
-        .with_example("governance_probe")
-        .with_target("wasm32-unknown-unknown")
-        .with_cargo_program("cargo")
-        .with_cargo_selection(CargoSelection {
-            profile: Some("release".into()),
-            features: CargoFeatureSelection {
-                features: ["canister".into()].into(),
-                default_features: false,
-                all_features: false,
-            },
-            locked: true,
-            offline: true,
-        })
+    WasmBuildSpec::new(
+        root,
+        target,
+        &["ic-query"],
+        env::vars_os(),
+        ConfigurationLimits {
+            file_bytes: 1024 * 1024,
+            total_bytes: 8 * 1024 * 1024,
+            files: 128,
+            depth: 16,
+        },
+    )
+    .with_example("governance_probe")
+    .with_target("wasm32-unknown-unknown")
+    .with_cargo_program("cargo")
+    .with_cargo_selection(CargoSelection {
+        profile: Some("release".into()),
+        features: CargoFeatureSelection {
+            features: ["canister".into()].into(),
+            default_features: false,
+            all_features: false,
+        },
+        locked: true,
+        offline: true,
+    })
 }
 
 pub fn resolve_probe_inputs(
