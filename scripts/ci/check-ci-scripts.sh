@@ -68,20 +68,6 @@ check_completion_assertions
 check_release_assertions() {
   local fixture="$work_dir/release-assertions" status=0 release_directories
   mkdir -p "$fixture/bin" "$fixture/attempts"
-  # Reuse actual fixture setup and assertions, without its unrelated test cases.
-  awk '
-    /^for observation in / { found=1; exit }
-    /^repo_root=/ { print "repo_root=\"$RELEASE_ASSERTION_ROOT\""; next }
-    /^bash "\$repo_root\/scripts\/ci\// { next }
-    { print }
-    END { if (!found) exit 1 }
-  ' "$repo_root/scripts/ci/check-release-guards.sh" > "$fixture/probe.sh"
-  cat >> "$fixture/probe.sh" <<'PROBE'
-new_fixture assertion-phase patch
-run_release patch
-check_complete
-fixture_complete=true
-PROBE
   cat > "$fixture/bin/tail" <<'STUB'
 #!/usr/bin/env bash
 if [[ $# == 3 && "$1" == -n && "$2" == 1 && "$3" == .release-state/*.plan ]]; then
@@ -92,9 +78,9 @@ else
 fi
 STUB
   chmod +x "$fixture/bin/tail"
-  RELEASE_ASSERTION_ROOT="$repo_root" RELEASE_ASSERTION_REAL_TAIL="$(command -v tail)" \
+  RELEASE_ASSERTION_REAL_TAIL="$(command -v tail)" \
     RELEASE_ASSERTION_OBSERVATIONS="$fixture/observations" \
-    TMPDIR="$fixture/attempts" PATH="$fixture/bin:$PATH" "$BASH" "$fixture/probe.sh" \
+    TMPDIR="$fixture/attempts" PATH="$fixture/bin:$PATH" "$BASH" "$repo_root/scripts/ci/check-release-guards.sh" --assert-completion \
     > "$fixture/refusal.log" 2>&1 || status=$?
   [[ "$status" == 1 ]] || fail 'release fixture accepted contradictory plan-phase evidence'
   release_directories=("$fixture/attempts/"ic-query-release-guards.*)
@@ -317,7 +303,7 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json; do
+for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
@@ -623,7 +609,8 @@ ic_arguments='--tool didc --tool ic-wasm --tool icp --tool quill --tool wasm-opt
 mkdir -p "$tools_case/scripts/dev" "$tools_case/ci" "$tools_case/bin"
 copy_makefile "$tools_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$tools_case/scripts/ci/"
-printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$tools_case/ci/tool-versions.env"
+sed 's/^export SHARED_TOOLING_CARGO_SORT_VERSION=.*/export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7/' \
+  "$repo_root/ci/tool-versions.env" > "$tools_case/ci/tool-versions.env"
 for family in host ic rust; do
   cat > "$tools_case/scripts/dev/install-$family-tools.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -794,7 +781,8 @@ format_case="$work_dir/format"
 mkdir -p "$format_case/bin" "$format_case/ci" "$format_case/scripts/ci" "$format_case/scripts/dev" "$format_case/logs"
 copy_makefile "$format_case"
 cp "$repo_root/scripts/ci/check-format-tools.sh" "$format_case/scripts/ci/"
-printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7\n' > "$format_case/ci/tool-versions.env"
+sed 's/^export SHARED_TOOLING_CARGO_SORT_VERSION=.*/export SHARED_TOOLING_CARGO_SORT_VERSION=9.8.7/' \
+  "$repo_root/ci/tool-versions.env" > "$format_case/ci/tool-versions.env"
 cat > "$format_case/scripts/dev/install-rust-tools.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail

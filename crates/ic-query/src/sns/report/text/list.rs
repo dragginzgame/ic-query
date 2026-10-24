@@ -105,10 +105,9 @@ const fn lifecycle_status<'a>(name: Option<&'a str>, error: Option<&str>) -> &'a
     }
 }
 
-fn metadata_status(error: Option<&str>) -> &'static str {
+const fn metadata_status(error: Option<&str>) -> &'static str {
     match error {
         None => "ok",
-        Some(error) if error.contains("no Wasm module") => "no_wasm",
         Some(_) => "error",
     }
 }

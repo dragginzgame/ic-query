@@ -10,8 +10,8 @@ use crate::{
         SnsCommandError,
         options::lookup::SnsLookupOptions,
         spec::{
-            SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
-            SnsProposalTopicArg, SnsProposalsSortArg,
+            SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
+            SnsProposalsSortArg,
         },
     },
 };
@@ -97,7 +97,8 @@ fn explicit_proposal_sort_direction(
 ) -> Result<SnsProposalSortDirection, SnsCommandError> {
     if !SnsProposalsSort::from(sort).uses_local_direction() {
         return Err(SnsCommandError::Usage(format!(
-            "{flag} requires --sort {SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME}"
+            "{flag} requires --sort {}",
+            crate::cli::clap::value_names(SnsProposalsSortArg::Api)
         )));
     }
     Ok(direction)

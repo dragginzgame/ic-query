@@ -1,6 +1,35 @@
 # Local developer setup
 <!-- Shared companions: scripts/ci/report-tool-versions.sh -->
 
+## Tool selection and diagnostics
+
+`make tools-report` runs all existing host, common Rust and selected local check
+targets, retaining individual failures through the shared validation logger.
+It returns nonzero if any check fails and never calls install targets. It is an
+optional diagnostic, not release admission: `make tools-check` keeps its existing
+fail-fast behavior. Local check targets must retain their offline/no-install
+contract. The report uses the consumer root even with a nested shared snapshot.
+
+The host, IC and Rust installers accept `--describe` instead of installation,
+`--check` or `--preflight`. They print JSON after parsing the same selection
+used by normal operation, without creating stores, probing installed binaries,
+invoking Cargo/Rustup or downloading. For example:
+
+```bash
+bash scripts/dev/install-rust-tools.sh --consumer "$PWD" --describe
+bash scripts/dev/install-ic-tools.sh --consumer "$PWD" --tool wasm-opt --describe
+```
+
+Catalog selections include absolute consumer/catalog/source paths, the installer
+source fingerprint and selected version/digest records. Explicit Cargo recipes
+instead report package/version, binary or example, profile, features and lockfile.
+Lock-selected recipes still need prepared yq/jq to read the supplied lockfile.
+No output claims installed-tool integrity or registry availability. For catalog
+agreement, capture the JSON as a [caller observation](tool-catalog-bindings.md);
+retain the actual command and its source context. Product pins remain local.
+
+## Common setup
+
 From the checkout root, prepare the common executables explicitly:
 
 ```bash

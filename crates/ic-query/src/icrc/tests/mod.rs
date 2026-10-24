@@ -1305,7 +1305,7 @@ async fn capabilities_report_builds_text_and_json_friendly_fields() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn capability_byte_detail_formats_text_and_preserves_raw_json() {
+async fn capability_detail_preserves_collected_text_and_json() {
     let request = IcrcLedgerRequest {
         source_endpoint: SOURCE_ENDPOINT.to_string(),
         now_unix_secs: FETCHED_AT_UNIX_SECS,
@@ -1325,7 +1325,7 @@ async fn capability_byte_detail_formats_text_and_preserves_raw_json() {
     let text = icrc_capabilities_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize ICRC capabilities report");
 
-    assert!(text.contains("verified certificate 2 KiB, hash tree 1.5 KiB"));
+    assert!(text.contains("verified certificate 2048 bytes, hash tree 1536 bytes"));
     assert_eq!(
         json["capabilities"][0]["details"],
         "verified certificate 2048 bytes, hash tree 1536 bytes"

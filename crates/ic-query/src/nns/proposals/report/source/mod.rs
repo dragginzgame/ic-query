@@ -27,7 +27,7 @@ use super::{
 ))]
 use super::{
     model::{NnsProposalBallotRow, NnsProposalTally},
-    wire::{NnsGovernanceBallot, NnsProposalInfo},
+    wire::{NnsGovernanceBallot, NnsListProposalInfoRequest, NnsProposalId, NnsProposalInfo},
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -291,4 +291,29 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
     (timestamp_seconds > 0)
         .then(|| crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds))
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn proposal_page_request(
+    limit: u32,
+    before_proposal_id: Option<u64>,
+    status: NnsProposalStatusFilter,
+    reward_status: NnsProposalRewardStatusFilter,
+) -> NnsListProposalInfoRequest {
+    NnsListProposalInfoRequest {
+        include_reward_status: reward_status
+            .governance_reward_status_code()
+            .into_iter()
+            .collect(),
+        omit_large_fields: Some(false),
+        before_proposal: before_proposal_id.map(|id| NnsProposalId { id }),
+        limit,
+        exclude_topic: Vec::new(),
+        include_all_manage_neuron_proposals: Some(true),
+        include_status: status.governance_status_code().into_iter().collect(),
+        return_self_describing_action: Some(false),
+    }
 }

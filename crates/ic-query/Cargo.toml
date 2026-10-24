@@ -91,8 +91,6 @@ futures = { workspace = true, features = ["executor"] }
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }
 ic-host-process = { workspace = true, features = ["test-support"] }
-ic-platform = { workspace = true, features = ["pocket-ic"] }
-ic-testkit = { workspace = true, features = ["reply-fixtures"] }
 tokio = { workspace = true, features = ["net"] }
 
 [dev-dependencies]

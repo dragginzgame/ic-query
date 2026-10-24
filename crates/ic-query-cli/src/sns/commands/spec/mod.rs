@@ -20,6 +20,6 @@ pub(super) use commands::{
     sns_reward_diff_command, sns_swap_command, sns_token_command, sns_upgrade_command,
 };
 pub(super) use values::{
-    SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME, SnsListSortArg, SnsNeuronsSortArg,
-    SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg, SnsProposalsSortArg,
+    SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
+    SnsProposalTopicArg, SnsProposalsSortArg,
 };

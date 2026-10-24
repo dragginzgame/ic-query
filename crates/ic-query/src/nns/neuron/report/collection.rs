@@ -241,24 +241,19 @@ pub async fn advance_nns_neuron_collection_with_source(
         });
     }
 
-    let pages_fetched = state
-        .pages_fetched
-        .checked_add(1)
-        .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
-    let page_row_count = u64::try_from(page.returned_neuron_count)
-        .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?;
-    let neurons_fetched = state
-        .neurons_fetched
-        .checked_add(page_row_count)
-        .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
+    let (pages_fetched, neurons_fetched) = crate::nns::governance::advance_collection_counts(
+        state.pages_fetched,
+        state.neurons_fetched,
+        u64::try_from(page.returned_neuron_count)
+            .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?,
+    )
+    .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
     let next_start_neuron_id = page.next_start_neuron_id;
-    let status = if next_start_neuron_id.is_none() {
-        NnsGovernanceCollectionStatus::Complete
-    } else if pages_fetched == state.max_pages {
-        NnsGovernanceCollectionStatus::PageLimitReached
-    } else {
-        NnsGovernanceCollectionStatus::Collecting
-    };
+    let status = crate::nns::governance::collection_status_after_page(
+        next_start_neuron_id.is_some(),
+        pages_fetched,
+        state.max_pages,
+    );
     let next_state = NnsNeuronCollectionState {
         source: Some(page.context.source.clone()),
         pages_fetched,

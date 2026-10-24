@@ -42,66 +42,21 @@ check_public_api() {
 
 bash "$repo_root/scripts/ci/check-library-dependency-graphs.sh"
 
-cargo check -p ic-query --locked --offline
-cargo check -p ic-query --no-default-features --locked --offline
-cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --locked --offline
-run_quiet "ic-query wasm32-unknown-unknown --features canister" \
-  cargo check -p ic-query --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
-run_quiet "ic-query deployable Governance probe" \
-  cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
-run_quiet "ic-query nns canister public API" \
-  cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
-run_quiet "ic-query --features host" \
-  cargo check -p ic-query --no-default-features --features host --locked --offline
-run_quiet "ic-query --features certificate-host" \
-  cargo check -p ic-query --no-default-features --features certificate-host --locked --offline
-run_quiet "ic-query --features ledger-evidence-host" \
-  cargo check -p ic-query --no-default-features --features ledger-evidence-host --locked --offline
-run_quiet "ic-query --features dashboard-host" \
-  cargo check -p ic-query --no-default-features --features dashboard-host --locked --offline
-run_quiet "ic-query --features ic-state-host" \
-  cargo check -p ic-query --no-default-features --features ic-state-host --locked --offline
-run_quiet "ic-query --features icrc-host" \
-  cargo check -p ic-query --no-default-features --features icrc-host --locked --offline
-run_quiet "ic-query --features subnet-catalog-host" \
-  cargo check -p ic-query --no-default-features --features subnet-catalog-host --locked --offline
-run_quiet "ic-query --features certified-subnet-catalog-host" \
-  cargo check -p ic-query --no-default-features --features certified-subnet-catalog-host --locked --offline
-run_quiet "ic-query --features nns-topology-host" \
-  cargo check -p ic-query --no-default-features --features nns-topology-host --locked --offline
-run_quiet "ic-query --features nns-host" \
-  cargo check -p ic-query --no-default-features --features nns-host --locked --offline
-run_quiet "ic-query --features sns-host" \
-  cargo check -p ic-query --no-default-features --features sns-host --locked --offline
-run_quiet "ic-query --features cmc-host" \
-  cargo check -p ic-query --no-default-features --features cmc-host --locked --offline
-run_quiet "ic-query --features cloud-engine-host" \
-  cargo check -p ic-query --no-default-features --features cloud-engine-host --locked --offline
-common_public_api_tests=(
-  downstream_usage
-  icrc_public_api
-  ic_public_api
-  cloud_engine_public_api
-  nns_public_api
-  sns_public_api
-  subnet_catalog_public_api
-  subnet_topology_public_api
-  system_public_api
-)
-check_public_api none "${common_public_api_tests[@]}"
-check_public_api host "${common_public_api_tests[@]}"
-check_public_api certificate-host downstream_usage
-check_public_api ledger-evidence-host downstream_usage
-check_public_api icrc-host icrc_public_api
-check_public_api dashboard-host ic_public_api cloud_engine_public_api
-check_public_api ic-state-host ic_public_api
-check_public_api cloud-engine-host cloud_engine_public_api
-check_public_api certified-subnet-catalog-host certified_subnet_catalog_public_api
-check_public_api nns-host nns_public_api
-check_public_api sns-host sns_public_api
-check_public_api subnet-catalog-host subnet_catalog_public_api subnet_topology_public_api
-check_public_api nns-topology-host subnet_topology_public_api
-check_public_api cmc-host system_public_api
+while IFS=$'	' read -r target feature tests; do
+  [[ -n "$target" && "$target" != \#* ]] || continue
+  arguments=(check -p ic-query --locked --offline)
+  [[ "$target" == native ]] || arguments+=(--target "$target")
+  [[ "$feature" == default ]] || arguments+=(--no-default-features)
+  case "$feature" in default|none) ;; *) arguments+=(--features "$feature") ;; esac
+  run_quiet "ic-query $target $feature" cargo "${arguments[@]}"
+  if [[ "$tests" != - ]]; then
+    read -r -a api_tests <<<"$tests"
+    check_public_api "$feature" "${api_tests[@]}"
+  fi
+done < "$repo_root/ci/library-feature-cases.tsv"
+
+run_quiet "ic-query deployable Governance probe"   cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
+run_quiet "ic-query nns canister public API"   cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
 cargo check -p ic-query-cli --locked --offline
 
 fixture_complete=true

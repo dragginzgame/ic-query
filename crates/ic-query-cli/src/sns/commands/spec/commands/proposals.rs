@@ -16,8 +16,8 @@ use crate::{
     sns::commands::spec::{
         commands::args::{sns_lookup_input_arg, sns_root_input_arg},
         values::{
-            SNS_PROPOSALS_SORT_VALUE_NAME, SnsProposalEligibilityArg, SnsProposalStatusArg,
-            SnsProposalTopicArg, SnsProposalsSortArg,
+            SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
+            SnsProposalsSortArg,
         },
     },
 };
@@ -166,7 +166,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg("status")
                 .long("status")
-                .value_name("any|open|decided|rejected|adopted|executed|failed")
+                .value_name("status")
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalStatusArg))
                 .help("Governance decision status filter"),
@@ -182,7 +182,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg("eligible")
                 .long("eligible")
-                .value_name("any|yes|no")
+                .value_name("eligible")
                 .default_value("any")
                 .value_parser(clap::value_parser!(SnsProposalEligibilityArg))
                 .help("Reward eligibility filter"),
@@ -204,7 +204,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg("sort")
                 .long("sort")
-                .value_name(SNS_PROPOSALS_SORT_VALUE_NAME)
+                .value_name("sort")
                 .default_value("api")
                 .value_parser(clap::value_parser!(SnsProposalsSortArg))
                 .help("Sort proposals locally; status/topic/text sorts default ascending, numeric and timestamp sorts default descending"),

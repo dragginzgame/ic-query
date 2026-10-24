@@ -23,7 +23,10 @@ use super::{
 ))]
 use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
-    wire::{GovernanceResult, NeuronInfoWire},
+    wire::{
+        GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GovernanceResult, NeuronIdWire,
+        NeuronInfoWire,
+    },
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -369,6 +372,42 @@ pub(in crate::nns::neuron::report) fn neuron_row_from_wire(
                 vote: ballot.vote,
             })
             .collect(),
+    })
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn neuron_page_request(
+    exclusive_start_neuron_id: Option<u64>,
+    page_size: u32,
+) -> GetNeuronIndexRequestWire {
+    GetNeuronIndexRequestWire {
+        exclusive_start_neuron_id: exclusive_start_neuron_id.map(|id| NeuronIdWire { id }),
+        page_size: Some(page_size),
+    }
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn neuron_page_from_wire(
+    result: GetNeuronIndexResultWire,
+    page_size: u32,
+) -> Result<NnsNeuronPage, NnsNeuronError> {
+    let neurons = governance_result(result)?
+        .neurons
+        .into_iter()
+        .map(neuron_row_from_wire)
+        .collect::<Result<Vec<_>, _>>()?;
+    let next_start_neuron_id = (neurons.len() == page_size as usize)
+        .then(|| neurons.last().map(|row| row.neuron_id))
+        .flatten();
+    Ok(NnsNeuronPage {
+        neurons,
+        next_start_neuron_id,
     })
 }
 

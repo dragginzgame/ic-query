@@ -13,8 +13,7 @@ use crate::{
         NnsCommandError, OutputFormat,
         leaf::NnsCommonOptions,
         proposals::values::{
-            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG,
-            NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
+            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
             NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_VERBOSE_FLAG,
             NnsProposalListSortArg, NnsProposalRewardStatusArg, NnsProposalStatusArg,
             NnsProposalTopicArg,
@@ -135,7 +134,8 @@ fn explicit_proposal_sort_direction(
 ) -> Result<NnsProposalSortDirection, NnsCommandError> {
     if !sort.uses_local_direction() {
         return Err(NnsCommandError::Usage(format!(
-            "--{flag} requires --sort {NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME}"
+            "--{flag} requires --sort {}",
+            crate::cli::clap::value_names(NnsProposalListSortArg::Api)
         )));
     }
     Ok(direction)

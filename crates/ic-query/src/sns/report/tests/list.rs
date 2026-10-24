@@ -769,7 +769,13 @@ async fn sns_list_surfaces_metadata_fallbacks() {
         Some("get_metadata: Canister has no Wasm module")
     );
     assert!(text.contains("metadata_errors: 1"));
-    assert!(text.contains("no_wasm"));
+    assert!(
+        text.lines()
+            .find(|line| line.contains("unnamed-be2us"))
+            .expect("SNS row")
+            .split_whitespace()
+            .any(|cell| cell == "error")
+    );
     assert!(!text.contains("metadata_error_details:"));
     assert!(!text.contains("get_metadata: Canister has no Wasm module"));
     assert_eq!(

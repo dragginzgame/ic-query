@@ -62,7 +62,7 @@ CI_TARGETS := shared-tooling-check tools-check clippy changelog-check dependency
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check test package
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -140,7 +140,7 @@ check:
 	cargo check --workspace --all-targets --all-features --locked --offline
 
 dependency-boundary-check:
-	bash scripts/ci/check-cargo-dependency-boundaries.sh --consumer "$(REPO_ROOT)"
+	bash scripts/ci/check-cargo-dependency-boundaries.sh --consumer "$(REPO_ROOT)" --external-ic
 
 dependency-pins-check:
 	YQ="$(YQ)" bash scripts/ci/check-dependency-pins.sh --cargo-inheritance
@@ -184,10 +184,10 @@ testkit-check:
 canister-test: testkit-check
 	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
 	cargo build -p ic-query --example governance_probe --target wasm32-unknown-unknown --target-dir "$(REPO_ROOT)target/testkit" --release --no-default-features --features canister --locked --offline
-	cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit --no-run
+	cargo test -p ic-query-testkit --test governance --locked --offline --no-run
 	@tool="$$( $(TESTKIT_TOOL) --check )" && \
 		IC_QUERY_GOVERNANCE_PROBE_WASM="$(REPO_ROOT)target/testkit/wasm32-unknown-unknown/release/examples/governance_probe.wasm" \
-		"$$tool" run --directory "$(REPO_ROOT).tools/testkit-server" --ttl 300 --idle-ttl 300 -- cargo test -p ic-query --lib --no-default-features --features host --locked --offline nns::governance::testkit -- --ignored
+		"$$tool" run --directory "$(REPO_ROOT).tools/testkit-server" --ttl 300 --idle-ttl 300 -- cargo test -p ic-query-testkit --test governance --locked --offline -- --ignored
 
 publish-guards-check:
 	bash scripts/ci/check-publish-guards.sh

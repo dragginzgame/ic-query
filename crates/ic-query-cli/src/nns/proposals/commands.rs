@@ -16,8 +16,8 @@ use crate::{
         leaf,
         proposals::values::{
             NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            NNS_PROPOSAL_LIST_SORT_VALUE_NAME, NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL,
-            NNS_PROPOSAL_SORT_API_LABEL, NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
+            NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
+            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
             NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_VERBOSE_FLAG,
             NnsProposalListSortArg, NnsProposalRewardStatusArg, NnsProposalStatusArg,
             NnsProposalTopicArg,
@@ -155,7 +155,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg("status")
                 .long("status")
-                .value_name("any|open|rejected|adopted|executed|failed")
+                .value_name("status")
                 .default_value(NNS_PROPOSAL_STATUS_ANY_LABEL)
                 .value_parser(clap::value_parser!(NnsProposalStatusArg))
                 .help("NNS governance decision status filter"),
@@ -163,7 +163,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
                 .long(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
-                .value_name("any|accept-votes|ready-to-settle|settled|ineligible")
+                .value_name("reward-status")
                 .default_value(NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL)
                 .value_parser(clap::value_parser!(NnsProposalRewardStatusArg))
                 .help("NNS governance voting reward status filter"),
@@ -193,7 +193,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
         .arg(
             value_arg("sort")
                 .long("sort")
-                .value_name(NNS_PROPOSAL_LIST_SORT_VALUE_NAME)
+                .value_name("sort")
                 .default_value(NNS_PROPOSAL_SORT_API_LABEL)
                 .value_parser(clap::value_parser!(NnsProposalListSortArg))
                 .help("Sort proposals locally; status/reward-status/text sorts default ascending, numeric and timestamp sorts default descending"),

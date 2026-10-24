@@ -285,3 +285,21 @@ pub(super) fn validate_governance_metrics(
     }
     Ok(())
 }
+
+pub fn advance_collection_counts(pages: u32, rows: u64, page_rows: u64) -> Option<(u32, u64)> {
+    Some((pages.checked_add(1)?, rows.checked_add(page_rows)?))
+}
+
+pub const fn collection_status_after_page(
+    has_next: bool,
+    pages: u32,
+    max_pages: u32,
+) -> super::NnsGovernanceCollectionStatus {
+    if !has_next {
+        super::NnsGovernanceCollectionStatus::Complete
+    } else if pages == max_pages {
+        super::NnsGovernanceCollectionStatus::PageLimitReached
+    } else {
+        super::NnsGovernanceCollectionStatus::Collecting
+    }
+}

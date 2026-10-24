@@ -90,3 +90,13 @@ where
 pub fn render_help(mut command: Command) -> String {
     command.render_help().to_string()
 }
+
+pub fn value_names<T: clap::ValueEnum + PartialEq>(excluded: T) -> String {
+    T::value_variants()
+        .iter()
+        .filter(|value| **value != excluded)
+        .filter_map(clap::ValueEnum::to_possible_value)
+        .map(|value| value.get_name().to_string())
+        .collect::<Vec<_>>()
+        .join("|")
+}

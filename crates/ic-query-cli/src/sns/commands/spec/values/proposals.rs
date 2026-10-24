@@ -9,17 +9,6 @@ use ic_query::sns::{
     SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 
-pub(in crate::sns::commands) const SNS_PROPOSALS_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|topic|proposer|title|action|action-id|yes|no|total-votes|",
-    "tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|",
-    "executed|failed"
-);
-pub(in crate::sns::commands) const SNS_PROPOSALS_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|topic|proposer|title|action|action-id|yes|no|total-votes|",
-    "tally-time|ballots|eligible|reject-cost|reward-round|reward-end|created|decided|",
-    "executed|failed"
-);
-
 ///
 /// SnsProposalsSortArg
 ///

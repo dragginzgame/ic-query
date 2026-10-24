@@ -17,9 +17,11 @@ if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
     --package ic-build --lockfile "$repo_root/Cargo.lock" --bin ic-build-release-metadata --profile debug --features cli --check)"
   export CARGO_RELEASE_METADATA_EDITOR
 fi
+if [[ "${1:-}" != --assert-completion ]]; then
 bash "$repo_root/scripts/ci/check-release-cache.sh"
 bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 bash "$repo_root/scripts/ci/test-release-runner.sh"
+fi
 export REAL_MAKE REAL_GIT
 export REAL_CARGO YQ
 REAL_MAKE="$(command -v make)"
@@ -388,6 +390,15 @@ check_old_evidence() {
   [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]] || exit 1
   grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
 }
+# The CI assertion probe invokes this same setup and completion check directly.
+if [[ "${1:-}" == --assert-completion ]]; then
+  new_fixture assertion-phase patch
+  run_release patch
+  check_complete
+  fixture_complete=true
+  exit 0
+fi
+
 for observation in increment-files increment-preflight source-initial source-prepared; do
   new_fixture "observation-$observation" patch
   operation=preflight
@@ -521,108 +532,25 @@ cmp saved-binding "$archived_binding"
 diff -r saved-evidence "$old_evidence"
 cmp failed-revalidation "$failed_log"
 
-for next_kind in patch minor major resume; do
-  for outcome in before-push lost-reply; do
-    new_fixture "descendant-$next_kind-$outcome" minor
-    case "$outcome" in
-      before-push) FIXTURE_BEFORE_PUSH=yes expect_failure minor ;;
-      lost-reply) FIXTURE_LOST_PUSH_REPLY=yes expect_failure minor ;;
-    esac
-    save_old_evidence
-    if [[ "$next_kind" == resume ]]; then commit_fix patch; else commit_fix "$next_kind"; fi
-    cp Cargo.lock original-lock
-    if [[ "$next_kind" == resume ]]; then
-      run_release resume 0.47.0 || { cat output; fail 'descendant exact resume'; }
-      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.47.0 && "$(count_event validate)" == 1 ]] || exit 1
-      [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 ]] || exit 1
-      [[ ! -e .release-state/0.47.1.plan ]] || exit 1
-    else
-      run_release "$next_kind" || { cat output; fail 'descendant ordinary increment'; }
-      [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]] || exit 1
-      [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
-      [[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]] || exit 1
-      sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
-      cmp expected-lock Cargo.lock
-      next_evidence="$(cat ".release-state/$(cat candidate).validation")"
-      [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
-      bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
-    fi
-    check_old_evidence
-    if [[ "$outcome" == before-push ]]; then
-      [[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]] || exit 1
-    elif [[ "$next_kind" == resume ]]; then
-      [[ "$(count_event push)" == 1 ]] || exit 1
-    else
-      [[ "$(count_event push)" == 2 ]] || exit 1
-    fi
-    [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]] || exit 1
-  done
-done
-for target in release-committed-check release-tagged-check; do
-  new_fixture "descendant-late-$target" minor
-  FIXTURE_FAIL_TARGET="$target" expect_failure minor
-  [[ "$(count_event commit)" == 1 && "$(count_event push)" == 0 ]] || exit 1
-  save_old_evidence
-  commit_fix patch
-  run_release patch || { cat output; fail 'historical late callback retry'; }
-  check_old_evidence
-  [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
-  [[ "$(cat tag)" == 0.47.1 && "$(tail -n 1 .release-state/0.47.1.plan)" == complete ]] || exit 1
-done
-new_fixture descendant-gate-retry minor
+# One real Query adapter descendant keeps lockfile/changelog integration coverage.
+# Shared test-release-runner.sh owns the full recovery phase/conflict matrix.
+new_fixture descendant-patch-before-push minor
 FIXTURE_BEFORE_PUSH=yes expect_failure minor
 save_old_evidence
 commit_fix patch
-FIXTURE_GATE_FAILURE=yes expect_failure patch
+cp Cargo.lock original-lock
+run_release patch || { cat output; fail 'descendant ordinary increment'; }
+[[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]] || exit 1
+[[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
+[[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]] || exit 1
+sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
+cmp expected-lock Cargo.lock
+next_evidence="$(cat ".release-state/$(cat candidate).validation")"
+[[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
+bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
 check_old_evidence
-[[ "$(count_event commit)" == 1 && ! -e .release-state/0.47.1.plan ]] || exit 1
-failed_next_evidence=(.release-state/0.47.1.verify.*)
-cp "${failed_next_evidence[0]}/validation.log" failed-next-log
-run_release patch || { cat output; fail 'descendant new gate retry'; }
-cmp failed-next-log "${failed_next_evidence[0]}/validation.log"
-[[ "$(count_event validate)" == 3 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
-check_old_evidence
-new_fixture descendant-remote-tip minor
-FIXTURE_BEFORE_PUSH=yes expect_failure minor
-save_old_evidence
-commit_fix patch
-cp head remote-head
-run_release resume 0.47.0 || { cat output; fail 'confirmed remote descendant'; }
-[[ "$(cat remote-head)" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
-[[ "$(sed -n '2p' pushes)" == 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee 0.47.0' ]] || exit 1
-check_old_evidence
-for output in empty partial; do
-  new_fixture "inventory-$output" patch
-  if [[ "$output" == partial ]]; then
-    FIXTURE_INVENTORY_FAIL=yes FIXTURE_INVENTORY_OUTPUT=caller-owned.txt expect_failure patch
-  else
-    FIXTURE_INVENTORY_FAIL=yes expect_failure patch
-  fi
-  [[ "$(count_event commit)" == 1 && ! -e tag && ! -e remote-head ]] || exit 1
-  [[ "$(tail -n 1 .release-state/0.46.6.plan)" == commit ]] || exit 1
-  run_release patch || { cat output; fail 'inventory recovery'; }
-  check_complete
-done
-for conflict in payload history tag destination remote-unavailable remote-diverged inventory; do
-  new_fixture "descendant-conflict-$conflict" minor
-  FIXTURE_BEFORE_PUSH=yes expect_failure minor
-  commit_fix patch
-  cp .release-state/0.47.0.plan saved-plan
-  case "$conflict" in
-    payload) printf 'conflicting release payload\n' >> commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/files/CHANGELOG.md ;;
-    history) printf 'Unexpected subject\n' > commits/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/subject ;;
-    tag) printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n' > 'tags/v0.47.0^{commit}' ;;
-    destination) export FIXTURE_DESTINATION=https://example.invalid/other ;;
-    remote-unavailable) export FIXTURE_REMOTE_FAIL=yes ;;
-    remote-diverged) printf 'ffffffffffffffffffffffffffffffffffffffff\n' > remote-head ;;
-    inventory) export FIXTURE_INVENTORY_FAIL=yes ;;
-  esac
-  expect_failure patch
-  cmp saved-plan .release-state/0.47.0.plan
-  [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]] || exit 1
-  [[ "$(count_event validate)" == 1 && ! -e .release-state/0.47.1.plan ]] || exit 1
-  unset FIXTURE_DESTINATION FIXTURE_REMOTE_FAIL FIXTURE_INVENTORY_FAIL
-done
+[[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]] || exit 1
+[[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]] || exit 1
 for notes in root detail; do
   new_fixture "candidate-mismatch-$notes" patch
   if [[ "$notes" == root ]]; then notes_path=CHANGELOG.md; else notes_path=docs/changelog/0.46.md; fi

@@ -31,7 +31,6 @@ use std::{
 };
 
 const ANSI_GREEN: &str = "\u{1b}[32m";
-const ANSI_YELLOW: &str = "\u{1b}[33m";
 const ANSI_RED: &str = "\u{1b}[31m";
 const ANSI_RESET: &str = "\u{1b}[0m";
 pub fn command() -> clap::Command {
@@ -92,11 +91,7 @@ fn sns_list_cli_text(report: &SnsListReport) -> String {
 fn color_sns_metadata_statuses(text: &str) -> String {
     text.lines()
         .map(|line| {
-            for (status, color) in [
-                ("ok", ANSI_GREEN),
-                ("no_wasm", ANSI_YELLOW),
-                ("error", ANSI_RED),
-            ] {
+            for (status, color) in [("ok", ANSI_GREEN), ("error", ANSI_RED)] {
                 if let Some(prefix) = line.strip_suffix(status)
                     && prefix.ends_with("   ")
                 {
@@ -136,11 +131,10 @@ mod tests {
 
     #[test]
     fn sns_list_metadata_status_color_preserves_table_alignment() {
-        let text = "ID   NAME      METADATA\n--   -------   --------\n 1   Ready     ok\n 2   Missing   no_wasm\n 3   Failed    error";
+        let text = "ID   NAME      METADATA\n--   -------   --------\n 1   Ready     ok\n 2   Failed    error";
         let colored = color_sns_metadata_statuses(text);
 
         assert!(colored.contains("Ready     \u{1b}[32mok\u{1b}[0m"));
-        assert!(colored.contains("Missing   \u{1b}[33mno_wasm\u{1b}[0m"));
         assert!(colored.contains("Failed    \u{1b}[31merror\u{1b}[0m"));
         assert!(colored.contains("NAME      METADATA"));
     }

@@ -1,19 +1,11 @@
 //! Compiled-canister coverage using Testkit-owned simulator startup and typed calls.
 
-use super::{
-    NnsGovernanceMaturityModulation, NnsGovernanceProposalId, NnsGovernanceRewardEvent,
-    NnsGovernanceSourceProvenance,
-    tests::sample_economics,
-    wire::{
-        GetMaturityModulationResponse, GetMetricsResult, GovernanceCachedMetrics, GovernanceError,
-    },
-};
-use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
 use ic_platform::{
     candid::contract::Principal,
     pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time},
 };
+use ic_query::nns::governance::NnsGovernanceSourceProvenance;
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
     fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
@@ -51,7 +43,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         .expect("start Testkit instance");
     let pic = owned.instance();
     pic.set_time(Time::from_nanos_since_unix_epoch(1_780_531_200_000_000_000));
-    let governance = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).unwrap();
+    let governance = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
     pic.create_canister_with_id(None, None, governance)
         .expect("fixed NNS Governance principal");
     pic.add_cycles(governance, 2_000_000_000_000);
@@ -87,12 +79,9 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         assert_eq!(rejection.reject_code, RejectCode::CanisterError);
     }
     assert_reports(pic, probe, governance);
-    replies[1].1 =
-        ic_platform::candid::contract::encode_one(GetMetricsResult::Err(GovernanceError {
-            error_type: 7,
-            error_message: "fixture governance failure".into(),
-        }))
-        .unwrap();
+    replies[1].1 = candid_fixture(
+        r#"(variant { Err = record { error_type = 7 : int32; error_message = "fixture governance failure" } })"#,
+    );
     pic.reinstall_canister(
         governance,
         governance_wasm(&replies),
@@ -182,44 +171,19 @@ fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
 }
 
 fn governance_replies() -> Vec<(&'static str, Vec<u8>)> {
-    let metrics = GetMetricsResult::Ok(Box::new(GovernanceCachedMetrics {
-        total_supply_icp: 42,
-        not_dissolving_neurons_e8s_buckets: vec![(7, 12.5)],
-        timestamp_seconds: 1_780_531_200,
-        ..Default::default()
-    }));
-    let reward = NnsGovernanceRewardEvent {
-        rounds_since_last_distribution: Some(1),
-        day_after_genesis: 2,
-        actual_timestamp_seconds: 1_780_531_200,
-        total_available_e8s_equivalent: 4,
-        latest_round_available_e8s_equivalent: Some(5),
-        distributed_e8s_equivalent: 6,
-        settled_proposals: vec![NnsGovernanceProposalId { id: 7 }],
-    };
-    let maturity = GetMaturityModulationResponse {
-        maturity_modulation: Some(NnsGovernanceMaturityModulation {
-            current_value_permyriad: Some(-125),
-            updated_at_timestamp_seconds: Some(1_780_531_200),
-        }),
-    };
+    let metrics = candid_fixture(include_str!("fixtures/metrics.did"));
+    let reward = candid_fixture(include_str!("fixtures/reward.did"));
+    let maturity = candid_fixture(
+        "(record { maturity_modulation = opt record { current_value_permyriad = opt (-125 : int32); updated_at_timestamp_seconds = opt (1780531200 : nat64) } })",
+    );
     vec![
         (
             "get_network_economics_parameters",
-            ic_platform::candid::contract::encode_one(sample_economics()).unwrap(),
+            candid_fixture(include_str!("fixtures/economics.did")),
         ),
-        (
-            "get_metrics",
-            ic_platform::candid::contract::encode_one(metrics).unwrap(),
-        ),
-        (
-            "get_latest_reward_event",
-            ic_platform::candid::contract::encode_one(reward).unwrap(),
-        ),
-        (
-            "get_maturity_modulation",
-            ic_platform::candid::contract::encode_one(maturity).unwrap(),
-        ),
+        ("get_metrics", metrics),
+        ("get_latest_reward_event", reward),
+        ("get_maturity_modulation", maturity),
     ]
 }
 
@@ -274,4 +238,11 @@ fn governance_fixture_exports_the_configured_update_methods() {
         .map(|(name, _)| format!("canister_update {name}"))
         .collect();
     assert_eq!(actual, expected);
+}
+
+fn candid_fixture(value: &str) -> Vec<u8> {
+    ic_platform::candid_parser::parse_idl_args(value)
+        .expect("Candid fixture")
+        .to_bytes()
+        .expect("encode fixture")
 }

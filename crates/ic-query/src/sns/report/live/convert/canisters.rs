@@ -25,101 +25,79 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     inventory: ListSnsCanistersResponse,
     health: GetSnsCanistersSummaryResponse,
 ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
-    let mut canisters = Vec::new();
-    let mut gaps = Vec::new();
-
-    push_singleton(
-        SnsCanisterRole::Root,
-        inventory.root,
-        health.root,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_singleton(
-        SnsCanisterRole::Governance,
-        inventory.governance,
-        health.governance,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_singleton(
-        SnsCanisterRole::Ledger,
-        inventory.ledger,
-        health.ledger,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_singleton(
-        SnsCanisterRole::Swap,
-        inventory.swap,
-        health.swap,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_singleton(
-        SnsCanisterRole::Index,
-        inventory.index,
-        health.index,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_many(
-        SnsCanisterRole::Archive,
-        inventory.archives,
-        health.archives,
-        &mut canisters,
-        &mut gaps,
-    );
-    push_many(
-        SnsCanisterRole::Dapp,
-        inventory.dapps,
-        health.dapps,
-        &mut canisters,
-        &mut gaps,
-    );
-
-    push_extensions(
-        inventory
-            .extensions
-            .into_iter()
-            .flat_map(|extensions| extensions.extension_canister_ids)
-            .collect(),
-        &mut canisters,
-        &mut gaps,
-    );
-
-    let mut inventory = MainnetSnsCanisterInventory {
-        inventory_method: SnsCanisterMethod::ListSnsCanisters,
-        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
-        health_call_type: SNS_CANISTER_HEALTH_CALL_TYPE,
-        health_update_canister_list: false,
-        point_in_time_guaranteed: false,
-        canisters,
-        health_query_gap: None,
-        gaps,
-    };
-    crate::sns::report::source::canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
-    Ok(inventory)
+    project_inventory(inventory, Ok(health))
 }
 
 pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory_without_health(
     inventory: ListSnsCanistersResponse,
     reason: String,
 ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
+    project_inventory(inventory, Err(reason))
+}
+
+fn project_inventory(
+    inventory: ListSnsCanistersResponse,
+    health: Result<GetSnsCanistersSummaryResponse, String>,
+) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
     let mut canisters = Vec::new();
     let mut gaps = Vec::new();
-
-    for (role, canister_id) in [
+    let (mut health, health_query_gap) = match health {
+        Ok(health) => (Some(health), None),
+        Err(reason) => (
+            None,
+            Some(SnsCanisterHealthQueryGap {
+                method: SnsCanisterMethod::GetSnsCanistersSummary,
+                reason,
+            }),
+        ),
+    };
+    let singleton_health = health.as_mut().map(|health| {
+        [
+            health.root.take(),
+            health.governance.take(),
+            health.ledger.take(),
+            health.swap.take(),
+            health.index.take(),
+        ]
+    });
+    for ((role, canister_id), summary) in [
         (SnsCanisterRole::Root, inventory.root),
         (SnsCanisterRole::Governance, inventory.governance),
         (SnsCanisterRole::Ledger, inventory.ledger),
         (SnsCanisterRole::Swap, inventory.swap),
         (SnsCanisterRole::Index, inventory.index),
-    ] {
-        push_inventory_only_singleton(role, canister_id, &mut canisters, &mut gaps);
+    ]
+    .into_iter()
+    .zip(singleton_health.unwrap_or_default())
+    {
+        if health.is_some() {
+            push_singleton(role, canister_id, summary, &mut canisters, &mut gaps);
+        } else {
+            push_inventory_only_singleton(role, canister_id, &mut canisters, &mut gaps);
+        }
     }
-    push_inventory_only_many(SnsCanisterRole::Archive, inventory.archives, &mut canisters);
-    push_inventory_only_many(SnsCanisterRole::Dapp, inventory.dapps, &mut canisters);
+    for (role, ids, summaries) in [
+        (
+            SnsCanisterRole::Archive,
+            inventory.archives,
+            health
+                .as_mut()
+                .map(|health| std::mem::take(&mut health.archives)),
+        ),
+        (
+            SnsCanisterRole::Dapp,
+            inventory.dapps,
+            health
+                .as_mut()
+                .map(|health| std::mem::take(&mut health.dapps)),
+        ),
+    ] {
+        if let Some(summaries) = summaries {
+            push_many(role, ids, summaries, &mut canisters, &mut gaps);
+        } else {
+            push_inventory_only_many(role, ids, &mut canisters);
+        }
+    }
     push_extensions(
         inventory
             .extensions
@@ -129,7 +107,6 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory_without_healt
         &mut canisters,
         &mut gaps,
     );
-
     let mut inventory = MainnetSnsCanisterInventory {
         inventory_method: SnsCanisterMethod::ListSnsCanisters,
         health_method: SnsCanisterMethod::GetSnsCanistersSummary,
@@ -137,10 +114,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory_without_healt
         health_update_canister_list: false,
         point_in_time_guaranteed: false,
         canisters,
-        health_query_gap: Some(SnsCanisterHealthQueryGap {
-            method: SnsCanisterMethod::GetSnsCanistersSummary,
-            reason,
-        }),
+        health_query_gap,
         gaps,
     };
     crate::sns::report::source::canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;

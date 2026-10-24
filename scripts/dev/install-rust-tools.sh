@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/verify-file-checksum.sh scripts/ci/tool-catalog-records.pl scripts/dev/tool-store.sh scripts/dev/cargo-tool-build.sh ci/tool-versions.env
+# Shared companions: scripts/ci/verify-file-checksum.sh scripts/ci/tool-catalog-records.pl scripts/dev/tool-store.sh scripts/dev/cargo-tool-build.sh ci/tool-versions.env scripts/ci/describe-tool-selection.pl
 set -euo pipefail
 
 ROOT="$0"
@@ -11,11 +11,12 @@ consumer="$ROOT"
 versions_file="$ROOT/ci/tool-versions.env"
 check_only=false
 preflight=false
+describe=false
 package='' selected_version='' lockfile='' kind='' target='' profile=''
 features_csv='' features_json='[]'
 usage() {
-    echo 'usage: install-rust-tools.sh [--consumer DIR] [--versions FILE] [--check | --preflight]' >&2
-    echo '   or: install-rust-tools.sh [--consumer DIR] --package NAME (--version X.Y.Z | --lockfile FILE) (--bin NAME | --example NAME) --profile (debug | release) [--features NAME[,NAME]...]... [--check]' >&2
+    echo 'usage: install-rust-tools.sh [--consumer DIR] [--versions FILE] [--check | --preflight | --describe]' >&2
+    echo '   or: install-rust-tools.sh [--consumer DIR] --package NAME (--version X.Y.Z | --lockfile FILE) (--bin NAME | --example NAME) --profile (debug | release) [--features NAME[,NAME]...]... [--check | --describe]' >&2
 }
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -25,6 +26,7 @@ while [[ $# -gt 0 ]]; do
             shift 2 ;;
         --check) check_only=true; shift ;;
         --preflight) preflight=true; shift ;;
+        --describe) describe=true; shift ;;
         --features)
             [[ $# -ge 2 && -n "$2" ]] || { usage; exit 2; }
             [[ "$2" != *[[:space:]]* ]] || { usage; exit 2; }
@@ -55,8 +57,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 [[ "$check_only" == false || "$preflight" == false ]] || { usage; exit 2; }
+[[ "$describe" == false || "$check_only:$preflight" == false:false ]] || { usage; exit 2; }
 setup_wait_seconds=0
-if [[ "$check_only" == false && "$preflight" == false ]]; then
+if [[ "$check_only:$preflight:$describe" == false:false:false ]]; then
     setup_wait_seconds="${SHARED_TOOLING_SETUP_WAIT_SECONDS:-60}"
     [[ "$setup_wait_seconds" =~ ^(0|[1-9][0-9]{0,2})$ && "$setup_wait_seconds" -le 300 ]] || {
         echo 'SHARED_TOOLING_SETUP_WAIT_SECONDS must be a canonical integer from 0 to 300' >&2
@@ -136,6 +139,15 @@ else
         tool_versions+=("$version")
     done <<< "$records"
 fi
+if [[ "$describe" == true ]]; then
+    if [[ "$selected" == true ]]; then
+        perl "$ROOT/scripts/ci/describe-tool-selection.pl" rust "$consumer" "$ROOT/scripts/dev/install-rust-tools.sh" '' \
+            "$package" "$selected_version" "$kind" "$target" "$profile" "$features_csv" "$lockfile"
+    else
+        printf '%s\n' "$records" | perl "$ROOT/scripts/ci/describe-tool-selection.pl" rust "$consumer" "$ROOT/scripts/dev/install-rust-tools.sh" "$versions_file"
+    fi
+    exit 0
+fi
 install_root="$selection_consumer/.tools/rust"
 export RUSTUP_AUTO_INSTALL=0
 # shellcheck source=scripts/dev/tool-store.sh
@@ -147,7 +159,7 @@ check_install_paths() {
     local path
     # Admit the whole fixed route before any tool probe or Cargo dispatch. Do
     # not follow even dangling links, or inspect unrelated host/IC bundle links.
-    for path in "$selection_consumer/.tools" "$install_root" "$install_root/build"; do
+    for path in "$selection_consumer/.tools" "$install_root"; do
         if [[ -L "$path" || ( -e "$path" && ! -d "$path" ) ]]; then
             printf 'Rust tool directory must be a physical directory: %s\n' "$path" >&2
             return 1

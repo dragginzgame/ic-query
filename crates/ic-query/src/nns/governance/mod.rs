@@ -67,6 +67,7 @@ pub use text::{
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
 pub(crate) use validation::{
+    advance_collection_counts, collection_status_after_page,
     validate_governance_collection_identity, validate_governance_collection_page_bounds,
     validate_governance_continuation_request, validate_governance_report_source,
     validate_governance_request, validate_governance_time_interval, validate_source_provenance,
@@ -81,6 +82,3 @@ const NNS_GOVERNANCE_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
-
-#[cfg(all(test, feature = "nns-host", not(target_arch = "wasm32")))]
-mod testkit;

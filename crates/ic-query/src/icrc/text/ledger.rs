@@ -10,55 +10,33 @@ use ic_host_text::{
     table::{Alignment, render},
 };
 
-use super::{LEFT_2_ALIGNMENTS, push_table_section};
+use super::push_table_section;
 use crate::{
     human_quantity::byte_count_text,
     icrc::model::{
         IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcIndexReport, IcrcTipCertificateReport,
-        IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow,
+        IcrcTokenReport,
     },
     text_value::{optional_text, truncate_text},
-    token_amount::base_units_decimal_text,
-    token_metadata_text::token_metadata_value_text as metadata_value_text,
+    token_metadata_text::{
+        render_metadata_rows_table, render_standard_rows_table, token_summary_lines,
+    },
 };
 
-const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 const ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT: usize = 160;
 const ICRC_DETAIL_TEXT_LIMIT: usize = 160;
-const STANDARD_TABLE_HEADERS: [&str; 2] = ["STANDARD", "URL"];
 
 #[must_use]
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
-    let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("token_name: {}", terminal_text(&report.token.token_name)),
-        format!(
-            "token_symbol: {}",
-            terminal_text(&report.token.token_symbol)
-        ),
-        format!("decimals: {}", report.token.decimals),
-        format!(
-            "transfer_fee: {}",
-            base_units_decimal_text(&report.token.transfer_fee, report.token.decimals)
-        ),
-        format!(
-            "total_supply: {}",
-            base_units_decimal_text(&report.token.total_supply, report.token.decimals)
-        ),
-        format!(
-            "minting_account_owner: {}",
-            optional_text(report.token.minting_account_owner.as_ref())
-        ),
-        format!(
-            "minting_account_subaccount_hex: {}",
-            optional_text(report.token.minting_account_subaccount_hex.as_ref())
-        ),
+    let mut lines = vec![format!("ledger_canister_id: {}", report.ledger_canister_id)];
+    lines.extend(token_summary_lines(&report.token));
+    lines.extend([
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
             terminal_text(&report.source_endpoint)
         ),
-    ];
+    ]);
     push_table_section(
         &mut lines,
         &report.token.supported_standards,
@@ -151,39 +129,6 @@ pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String 
     lines.join("\n")
 }
 
-fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String {
-    render(
-        &STANDARD_TABLE_HEADERS,
-        &standards
-            .iter()
-            .map(|standard| [standard.name.clone(), standard.url.clone()])
-            .collect::<Vec<_>>(),
-        &LEFT_2_ALIGNMENTS,
-        REPORT_TABLE_OPTIONS,
-    )
-}
-
-fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
-    render(
-        &["METADATA", "TYPE", "VALUE"],
-        &rows
-            .iter()
-            .map(|row| {
-                [
-                    row.key.clone(),
-                    row.value_type.as_str().to_string(),
-                    truncate_text(
-                        &metadata_value_text(&row.key, &row.value, decimals),
-                        ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT,
-                    ),
-                ]
-            })
-            .collect::<Vec<_>>(),
-        &[Alignment::Left, Alignment::Left, Alignment::Left],
-        REPORT_TABLE_OPTIONS,
-    )
-}
-
 fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
     render(
         &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
@@ -217,29 +162,8 @@ fn optional_truncated_text(value: Option<&String>, limit: usize) -> String {
 }
 
 fn capability_detail_text(row: &IcrcCapabilityRow) -> String {
-    let detail = row.details.as_ref().or(row.error.as_ref());
-    detail.map_or_else(
+    row.details.as_ref().or(row.error.as_ref()).map_or_else(
         || "-".to_string(),
-        |detail| {
-            let formatted = if row.method == "icrc3_get_tip_certificate" {
-                formatted_tip_certificate_detail(detail).unwrap_or_else(|| detail.clone())
-            } else {
-                detail.clone()
-            };
-            truncate_text(&formatted, ICRC_DETAIL_TEXT_LIMIT)
-        },
+        |detail| truncate_text(detail, ICRC_DETAIL_TEXT_LIMIT),
     )
-}
-
-fn formatted_tip_certificate_detail(detail: &str) -> Option<String> {
-    let values = detail.strip_prefix("verified certificate ")?;
-    let (certificate, hash_tree) = values.split_once(" bytes, hash tree ")?;
-    let hash_tree = hash_tree.strip_suffix(" bytes")?;
-    let certificate = certificate.parse::<u128>().ok()?;
-    let hash_tree = hash_tree.parse::<u128>().ok()?;
-    Some(format!(
-        "verified certificate {}, hash tree {}",
-        byte_count_text(certificate),
-        byte_count_text(hash_tree)
-    ))
 }

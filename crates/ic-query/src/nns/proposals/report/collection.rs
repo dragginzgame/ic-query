@@ -245,14 +245,12 @@ pub async fn advance_nns_proposal_collection_with_source(
 
     let page_count = u32::try_from(page.proposal_count)
         .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
-    let pages_fetched = state
-        .pages_fetched
-        .checked_add(1)
-        .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
-    let proposals_fetched = state
-        .proposals_fetched
-        .checked_add(u64::from(page_count))
-        .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
+    let (pages_fetched, proposals_fetched) = crate::nns::governance::advance_collection_counts(
+        state.pages_fetched,
+        state.proposals_fetched,
+        u64::from(page_count),
+    )
+    .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let next_before_proposal_id = (page_count == state.page_size)
         .then(|| {
             page.proposals
@@ -262,13 +260,11 @@ pub async fn advance_nns_proposal_collection_with_source(
                 .filter(|proposal_id| *proposal_id > 1)
         })
         .flatten();
-    let status = if next_before_proposal_id.is_none() {
-        NnsGovernanceCollectionStatus::Complete
-    } else if pages_fetched == state.max_pages {
-        NnsGovernanceCollectionStatus::PageLimitReached
-    } else {
-        NnsGovernanceCollectionStatus::Collecting
-    };
+    let status = crate::nns::governance::collection_status_after_page(
+        next_before_proposal_id.is_some(),
+        pages_fetched,
+        state.max_pages,
+    );
     let next_state = NnsProposalCollectionState {
         source: Some(page.context.source.clone()),
         pages_fetched,

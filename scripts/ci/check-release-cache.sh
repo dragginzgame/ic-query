@@ -20,7 +20,7 @@ mkdir -p "$work_dir/repository/"{make,ci,scripts/ci,scripts/dev,scripts/release}
 cd "$work_dir/repository"
 bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
   Makefile scripts/release/adapter.sh
-printf 'export SHARED_TOOLING_CARGO_SORT_VERSION=2.1.4\n' > ci/tool-versions.env
+cp "$repo_root/ci/tool-versions.env" ci/tool-versions.env
 printf 'selected IC pins\n' > ci/ic-tools.tsv
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash

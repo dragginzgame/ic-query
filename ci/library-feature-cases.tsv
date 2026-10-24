@@ -1,0 +1,18 @@
+# Target	Feature	Native public API tests
+native	default	-
+native	none	downstream_usage icrc_public_api ic_public_api cloud_engine_public_api nns_public_api sns_public_api subnet_catalog_public_api subnet_topology_public_api system_public_api
+wasm32-unknown-unknown	none	-
+wasm32-unknown-unknown	canister	-
+native	host	downstream_usage icrc_public_api ic_public_api cloud_engine_public_api nns_public_api sns_public_api subnet_catalog_public_api subnet_topology_public_api system_public_api
+native	certificate-host	downstream_usage
+native	ledger-evidence-host	downstream_usage
+native	icrc-host	icrc_public_api
+native	dashboard-host	ic_public_api cloud_engine_public_api
+native	ic-state-host	ic_public_api
+native	cloud-engine-host	cloud_engine_public_api
+native	certified-subnet-catalog-host	certified_subnet_catalog_public_api
+native	nns-host	nns_public_api
+native	sns-host	sns_public_api
+native	subnet-catalog-host	subnet_catalog_public_api subnet_topology_public_api
+native	nns-topology-host	subnet_topology_public_api
+native	cmc-host	system_public_api

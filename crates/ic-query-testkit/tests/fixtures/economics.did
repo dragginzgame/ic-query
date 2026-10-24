@@ -1,0 +1,12 @@
+(record {
+    neuron_minimum_stake_e8s = 100000000 : nat64;
+    max_proposals_to_keep_per_topic = 100 : nat32;
+    neuron_management_fee_per_proposal_e8s = 10000 : nat64;
+    reject_cost_e8s = 1000000000 : nat64;
+    transaction_fee_e8s = 10000 : nat64;
+    neuron_spawn_dissolve_delay_seconds = 604800 : nat64;
+    minimum_icp_xdr_rate = 100 : nat64;
+    maximum_node_provider_rewards_e8s = 200000000 : nat64;
+    neurons_fund_economics = null;
+    voting_power_economics = null;
+})

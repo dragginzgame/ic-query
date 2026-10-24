@@ -20,16 +20,6 @@ pub(in crate::nns) const NNS_PROPOSAL_SORT_ASC_LABEL: &str = "asc";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_DESC_LABEL: &str = "desc";
 pub(in crate::nns) const NNS_PROPOSAL_STATUS_ANY_LABEL: &str = "any";
 pub(in crate::nns) const NNS_PROPOSAL_TOPIC_ANY_LABEL: &str = "any";
-pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_SORT_VALUE_NAME: &str = concat!(
-    "api|id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
-    "tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
-    "executed|failed"
-);
-pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_LOCAL_SORT_VALUE_NAME: &str = concat!(
-    "id|status|reward-status|topic|proposer|title|action|yes|no|total-votes|",
-    "tally-time|voting-power|ballots|reject-cost|reward-round|proposed|deadline|decided|",
-    "executed|failed"
-);
 
 ///
 /// NnsProposalListSortArg

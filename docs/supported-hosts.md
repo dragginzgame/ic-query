@@ -151,7 +151,9 @@ centralized in Shared Tooling.
 
 ## Testkit canister qualification
 
-Testkit and raw-reply fixtures are native development dependencies. Cargo.lock
+The unpublished `crates/ic-query-testkit` package owns the native compiled-probe
+tests, Testkit and host-only Candid fixture parsing. Ordinary library tests do
+not activate PocketIC. `make canister-test` selects this package explicitly. Cargo.lock
 selects the client; the published Testkit provisioning interface owns its server.
 Run `make install-testkit testkit-check` before deterministic canister tests.
 

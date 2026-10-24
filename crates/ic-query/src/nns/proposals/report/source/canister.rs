@@ -4,7 +4,9 @@
 //! Does not own: scheduling, retries, persistence, report assembly, or view policy.
 //! Boundary: maps shared canister transport responses into proposal source data.
 
-use super::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info};
+use super::{
+    NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info, proposal_page_request,
+};
 use crate::nns::{
     governance::{
         CanisterNnsSource, NnsGovernanceRequest, NnsGovernanceSourceData, call_with_arg,
@@ -13,9 +15,7 @@ use crate::nns::{
     proposals::report::{
         NnsProposalError,
         model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
-        wire::{
-            NnsListProposalInfoRequest, NnsListProposalInfoResponse, NnsProposalId, NnsProposalInfo,
-        },
+        wire::{NnsListProposalInfoResponse, NnsProposalInfo},
     },
 };
 
@@ -34,19 +34,7 @@ impl NnsProposalSource for CanisterNnsSource {
                 "list_proposals",
                 "ListProposalInfoRequest",
                 "ListProposalInfoResponse",
-                &NnsListProposalInfoRequest {
-                    include_reward_status: reward_status
-                        .governance_reward_status_code()
-                        .into_iter()
-                        .collect(),
-                    omit_large_fields: Some(false),
-                    before_proposal: before_proposal_id.map(|id| NnsProposalId { id }),
-                    limit,
-                    exclude_topic: Vec::new(),
-                    include_all_manage_neuron_proposals: Some(true),
-                    include_status: status.governance_status_code().into_iter().collect(),
-                    return_self_describing_action: Some(false),
-                },
+                &proposal_page_request(limit, before_proposal_id, status, reward_status),
             )
             .await?;
             Ok(NnsGovernanceSourceData::new(

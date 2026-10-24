@@ -6,7 +6,7 @@
 
 use super::{
     NnsNeuronPage, NnsNeuronSource, NnsNeuronSourceFuture, governance_result,
-    map_neuron_info_error, neuron_row_from_wire,
+    map_neuron_info_error, neuron_page_from_wire, neuron_page_request, neuron_row_from_wire,
 };
 use crate::nns::{
     governance::{
@@ -15,10 +15,7 @@ use crate::nns::{
     },
     neuron::report::{
         model::NnsNeuronRow,
-        wire::{
-            GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GetNeuronInfoResultWire,
-            NeuronIdWire,
-        },
+        wire::{GetNeuronIndexResultWire, GetNeuronInfoResultWire},
     },
 };
 
@@ -35,26 +32,11 @@ impl NnsNeuronSource for CanisterNnsSource {
                 "get_neuron_index",
                 "GetNeuronIndexRequest",
                 "GetNeuronIndexResult",
-                &GetNeuronIndexRequestWire {
-                    exclusive_start_neuron_id: exclusive_start_neuron_id
-                        .map(|id| NeuronIdWire { id }),
-                    page_size: Some(page_size),
-                },
+                &neuron_page_request(exclusive_start_neuron_id, page_size),
             )
             .await?;
-            let neurons = governance_result(result)?
-                .neurons
-                .into_iter()
-                .map(neuron_row_from_wire)
-                .collect::<Result<Vec<_>, _>>()?;
-            let next_start_neuron_id = (neurons.len() == page_size as usize)
-                .then(|| neurons.last().map(|row| row.neuron_id))
-                .flatten();
             Ok(NnsGovernanceSourceData::new(
-                NnsNeuronPage {
-                    neurons,
-                    next_start_neuron_id,
-                },
+                neuron_page_from_wire(result, page_size)?,
                 provenance,
             ))
         })

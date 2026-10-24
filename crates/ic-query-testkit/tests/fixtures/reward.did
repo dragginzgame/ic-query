@@ -1,0 +1,9 @@
+(record {
+    rounds_since_last_distribution = opt (1 : nat64);
+    day_after_genesis = 2 : nat64;
+    actual_timestamp_seconds = 1780531200 : nat64;
+    total_available_e8s_equivalent = 4 : nat64;
+    latest_round_available_e8s_equivalent = opt (5 : nat64);
+    distributed_e8s_equivalent = 6 : nat64;
+    settled_proposals = vec { record { id = 7 : nat64 } };
+})

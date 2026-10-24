@@ -1,6 +1,12 @@
 [workspace]
-# Production packages
-members = ["crates/ic-query", "crates/ic-query-cli"]
+members = [
+    # Production packages
+    "crates/ic-query",
+    "crates/ic-query-cli",
+    # Tests and tooling only
+    "crates/ic-query-testkit",
+]
+default-members = ["crates/ic-query", "crates/ic-query-cli"]
 resolver = "3"
 
 [workspace.package]
