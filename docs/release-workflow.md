@@ -502,15 +502,15 @@ command. Maintainers do not need to edit plans or reconstruct an old checkout.
 starts no next increment. Source, metadata, destination, index/tree, and tag
 conflicts stop recovery.
 A saved `prepare` plan with its candidate version manually committed is a distinct
-recovery case. Without the runner's staged-tree and release-commit evidence, the
-commit does not establish completed delivery. A missing annotated tag therefore
-stops a normal increment before validation; committing more fixes or rerunning
-`release-resume` does not supply that missing evidence. Preserve the plan and
-inspect its saved source, candidate and phase alongside local/remote branch and
-tag identities. If crates were published separately, their `.cargo_vcs_info.json`
-identifies the uploaded source; the current HEAD may already contain later fixes.
-Reconcile the exact published source and missing Git delivery before selecting
-another increment. Do not delete the plan or automatically tag current HEAD.
+recovery case. If the source is a clean descendant and no staging evidence exists,
+a normal release target archives the earlier plan byte-for-byte and selects the
+requested increment from current metadata. Missing earlier tags or incomplete Git
+delivery do not block that next release. The runner reports the archived delivery
+as unconfirmed, never marks the earlier release complete, and does not recreate
+its tag or publication. Fresh preflight and complete validation qualify the new
+release; actual source/ref, destination and index conflicts still stop recovery.
+Exact-version `release-resume` remains restricted to its saved intent. Maintainers
+need not delete or edit the plan to advance from committed preparation.
 
 An occupied lock is never stolen; inspect its owner before any manual removal.
 An interrupted preparation admits only files equal to their validated before

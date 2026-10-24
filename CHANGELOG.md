@@ -7,9 +7,13 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.71.1]
 
-- Clarify recovery when prepared version metadata was manually committed without
-  a recorded release commit or confirmed Git delivery.
-- Adopt Shared Tooling 0.26.12 with corrected snapshot version metadata.
+- Adopt Build, Testkit and contributor-only Process 0.68.0; retain runtime Host
+  0.67 and its public certificate/ledger evidence types for this patch.
+- Select IC Wire 0.7.2 for the Governance probe and native qualification tools;
+  retain string payloads, framing, explicit resource limits and original reply evidence.
+- Adopt Shared Tooling 0.26.13: normal release retries can advance from clean,
+  manually committed preparation despite missing earlier tags or delivery. Preserve
+  the old plan as unconfirmed and validate the next release afresh.
 - Preserve native filesystem paths when reading SNS refresh attempts, including
   cache roots containing non-UTF-8 bytes; reuse SNS root-identity extraction.
 - Use one SNS cache-family contract for collection paths, snapshot data and schema;
@@ -18,7 +22,7 @@ crate follows [Semantic Versioning](https://semver.org/).
   retaining prefix-only inspection of large history files.
 - Track the Testkit manifest and feature-case inventory during CI input-drift checks.
 - Require explicit review of the temporary RUSTSEC-2026-0387 acceptance from
-  7 November 2026 UTC; upstream IC dependency versions remain unchanged.
+  7 November 2026 UTC; the upstream IC Agent selection remains unchanged.
 
 Detailed release notes: [docs/changelog/0.71.md](docs/changelog/0.71.md)
 

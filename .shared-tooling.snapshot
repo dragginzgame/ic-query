@@ -1,8 +1,8 @@
 # Shared Tooling snapshot v1
-# version	0.26.12
+# version	0.26.13
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	7e05b31e940efd32d1a9648b0dbb5bb4f81414ce
+revision	2f4a95f88743982716f12def87f0a30c197dd07b
 # entrypoint	DRAGGINZGAME.md
 # entrypoint	rules/changelogs.md
 # entrypoint	rules/cargo-dependencies.md
@@ -92,11 +92,11 @@ revision	7e05b31e940efd32d1a9648b0dbb5bb4f81414ce
 # entrypoint	scripts/ci/check-cargo-dependency-boundaries.sh
 # entrypoint	scripts/ci/check-cargo-graph.pl
 # entrypoint	audits/ci-release-integrity.md
-file	a9e1f31e58717a97d921f2d40cdf46cc44767556f6977f7d2ca1e15b11027df8	-	DRAGGINZGAME.md
+file	5025a52965bb2d6133c679e52b78ba579c258e871238154cdbadba29beb656be	-	DRAGGINZGAME.md
 file	802537a464999e936009b5ff4d1d7767b38b0b880043405a8e8fb7840a2f5b35	-	rules/changelogs.md
 file	44d8e696ad84d39714854d42ca01b2005f408e5a3dfca94541da34b361735a1a	-	rules/cargo-dependencies.md
 file	ea61b8d4e501011f73729ed56613c365b14a947c8ca18d66dced4990cbdb40ea	-	rules/git-hooks.md
-file	702cf0f17c981cc655de7d7b535f9a8684f1fd1a6f2c5461cc7dbf97c0c05ebe	-	docs/releases.md
+file	bd842d611c38daa982bdebe6ef612e1da752602595076dabe59307b8942e1017	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	c08e85ebfd986cf549613b3ad2324ea4daff4d6819b3b495ff3b82d317f89ed7	-	docs/principles/reviewable-changes.md
@@ -128,7 +128,7 @@ file	b49655e8878d19e7232197faeebf6dfcdb001acd81b257aea135af629548ca56	-	rules/ru
 file	1063002468575e2f821cfec71524bde06a64634bf30455d64d2d9fed872969d6	-	docs/tag-maintenance.md
 file	affb8ed180886b9c946be6e1a70eee7faaf1fa33beb007d9b75877afe933819d	-	scripts/distribution/governance-files.txt
 file	6eb261f79ff2780422a75e018b091bb119f552a1d155504acacefb7e2e290ba0	x	scripts/dev/gh-ci.sh
-file	a9ebf09e772ee7b0e95b6f9ba8d49a0b11ec2efc137d714ac46e8213919ff15a	x	scripts/ci/test-release-runner.sh
+file	34882c0dfe72ada5853ab9b21a4773e61c2193c73439c22bfafb43a2ef32f399	x	scripts/ci/test-release-runner.sh
 file	fd07cef3f8203d8a1e3fe0667fcb91e00a485b5c123940a649c979a2f5c2fe1d	-	audits/ic-canister-applications.md
 file	a662981d8f9e6da91314d06ba6ae6272f1cd48f7e98b0bbd258abf614367a118	-	rules/contributions.md
 file	ec8948910a221713a967d62b7ae42775929cad5ead4de111cb1cacdb1dedcb56	-	scripts/ci/release-pr.sh
@@ -159,7 +159,7 @@ file	9e32385247296ce95d2b15b1290c64e6b6dff15716c1c139f21ab5e5128f4be3	x	scripts/
 file	040a856599110c89c33e2e2c9e45a8ff330b68069225cd0c4d60f89b1432c624	-	scripts/ci/finalize-release-changelog.awk
 file	918815a81861abd80684fea14f71cb5a298644317afc0f5860a3d1b6506a0a16	x	scripts/ci/next-release-version.sh
 file	4ff0a961d5fb8639edf798d64bbe3abc0fcd83c6f703d7a6875c6f5174e76201	x	scripts/ci/run-formatting.sh
-file	f6fefe35aff870cf38057e4f319b139edab2d2e2ba00f46e505c3b3e1b64583b	x	scripts/ci/run-release.sh
+file	e9fd032d1af0d9d96c6d2f2b94568aad5fef58dc247bfa948ab0abf421c3d4fc	x	scripts/ci/run-release.sh
 file	064ee8ecf5e36d760ae4b0aad1cc80563cac074445677526bc7d1d124ff5b303	x	scripts/ci/select-tool-evidence.sh
 file	36f36552df36ea6e082f1fd1f14661d40b281ea01294ffda2eb6c6ec91bc6907	x	scripts/ci/verify-file-checksum.sh
 file	60f44d8da8f06c3c55d63e08cebdb7fc666702e89d27fc90ed1a0275fa3c8032	x	scripts/dev/install-host-tools.sh
