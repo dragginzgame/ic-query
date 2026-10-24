@@ -7,6 +7,8 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ## [0.71.1]
 
+- Clarify recovery when prepared version metadata was manually committed without
+  a recorded release commit or confirmed Git delivery.
 - Adopt Shared Tooling 0.26.12 with corrected snapshot version metadata.
 - Preserve native filesystem paths when reading SNS refresh attempts, including
   cache roots containing non-UTF-8 bytes; reuse SNS root-identity extraction.

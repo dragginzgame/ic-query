@@ -501,6 +501,17 @@ command. Maintainers do not need to edit plans or reconstruct an old checkout.
 `make release-resume VERSION=X.Y.Z` explicitly selects only retained intent and
 starts no next increment. Source, metadata, destination, index/tree, and tag
 conflicts stop recovery.
+A saved `prepare` plan with its candidate version manually committed is a distinct
+recovery case. Without the runner's staged-tree and release-commit evidence, the
+commit does not establish completed delivery. A missing annotated tag therefore
+stops a normal increment before validation; committing more fixes or rerunning
+`release-resume` does not supply that missing evidence. Preserve the plan and
+inspect its saved source, candidate and phase alongside local/remote branch and
+tag identities. If crates were published separately, their `.cargo_vcs_info.json`
+identifies the uploaded source; the current HEAD may already contain later fixes.
+Reconcile the exact published source and missing Git delivery before selecting
+another increment. Do not delete the plan or automatically tag current HEAD.
+
 An occupied lock is never stolen; inspect its owner before any manual removal.
 An interrupted preparation admits only files equal to their validated before
 or expected after content, then finishes that same preparation. The canonical
