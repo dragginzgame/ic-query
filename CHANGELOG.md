@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.72.0]
+## [0.72.0] - 2026-10-24
 
 - **Breaking:** adopt Host, Build and Testkit 0.68.0 throughout. Consumers naming
   Query's exposed Host certificate errors or ledger-tip values must align to
