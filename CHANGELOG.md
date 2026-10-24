@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.71.0]
+## [0.71.0] - 2026-10-24
 
 - Temporarily accept RUSTSEC-2026-0387 to retain upstream IC Agent versions;
   the crypto-bigint vulnerability remains unresolved, including potential risk
