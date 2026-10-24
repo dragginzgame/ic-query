@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.72.1]
+## [0.72.1] - 2026-10-24
 
 - Adopt IC Metrics 0.16.0 for topology percentage calculations. The arithmetic
   API, rounding, overflow handling and dependency-free runtime are unchanged.
