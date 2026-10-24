@@ -14,7 +14,9 @@ use super::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRefreshLockStatus,
     CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest, CacheStatusRow,
 };
-use crate::{CacheFileError, subnet_catalog::format_utc_timestamp_secs};
+use crate::{
+    CacheFileError, cache_file::ManagedReadBudget, subnet_catalog::format_utc_timestamp_secs,
+};
 use discovery::{CACHE_STATUS_SCAN_LIMIT, collect_inventory_paths};
 use header::cache_status_row;
 use locks::refresh_lock_status_row;
@@ -37,12 +39,20 @@ pub enum CacheStatusError {
 pub fn build_cache_status_report(
     request: &CacheStatusRequest,
 ) -> Result<CacheStatusReport, CacheStatusError> {
+    let mut budget = ManagedReadBudget::new(1024 * 1024 * 1024);
     let inventory = collect_inventory_paths(&request.cache_root)?;
     let cache_root_found = inventory.root_found;
     let caches = inventory
         .caches
         .into_iter()
-        .map(|path| cache_status_row(&request.cache_root, &path, request.now_unix_secs))
+        .map(|path| {
+            cache_status_row(
+                &request.cache_root,
+                &path,
+                request.now_unix_secs,
+                &mut budget,
+            )
+        })
         .collect::<Result<Vec<_>, _>>()?;
     let refresh_locks = inventory
         .refresh_locks

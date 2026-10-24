@@ -15,6 +15,7 @@ use crate::{
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
+        cache_paths::sns_root_from_cache_path,
         source::{MainnetSns, SnsSourceRequest},
     },
 };
@@ -206,10 +207,7 @@ fn validate_sns_refresh_attempt(
     if attempt.metadata.id == 0 {
         return Err(invalid("SNS list id must be greater than zero".to_string()));
     }
-    let expected_root = path
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::file_name)
+    let expected_root = sns_root_from_cache_path(path)
         .and_then(|name| name.to_str())
         .ok_or_else(|| invalid("attempt path does not contain an SNS root identity".to_string()))?;
     if attempt.metadata.root_canister_id != expected_root {

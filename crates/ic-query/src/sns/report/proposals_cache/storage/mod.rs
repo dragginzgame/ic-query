@@ -16,6 +16,8 @@ use crate::sns::report::{
 use std::path::PathBuf;
 
 impl SnsCacheStorageFamily for SnsProposalsCacheCollection {
+    const COLLECTION: &'static str = "proposals";
+
     type Data = SnsProposalsCacheRows;
 
     const CACHE_SCHEMA_VERSION: u32 = SNS_PROPOSALS_CACHE_SCHEMA_VERSION;

@@ -20,13 +20,12 @@ use crate::{
             SnsRefreshContext, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
-        cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths},
-        cache_storage::SnsCacheMetadata,
+        cache_paths::sns_snapshot_cache_paths,
+        cache_storage::{SnsCacheMetadata, SnsCacheStorageFamily},
         lookup::{resolve_sns_lookup, validate_sns_refresh_page_size},
         source::{MainnetSns, SnsDiscoverySource, SnsSourceRequest},
     },
 };
-use serde::Serialize;
 use std::marker::PhantomData;
 
 ///
@@ -75,7 +74,7 @@ pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Collection
     ) -> Result<Report, SnsHostError>,
 ) -> Result<Report, SnsHostError>
 where
-    Collection: SnsCacheCollection,
+    Collection: SnsCacheStorageFamily,
 {
     validate_sns_refresh_page_size(request.page_size)?;
     let lookup = resolve_sns_lookup(&request.lookup, source).await?;
@@ -112,20 +111,18 @@ where
 }
 
 /// Atomically publish a complete SNS family snapshot, then finalize its attempt sidecar.
-pub(in crate::sns::report) fn publish_complete_sns_snapshot<Collection, Data>(
+pub(in crate::sns::report) fn publish_complete_sns_snapshot<Collection>(
     context: &SnsSnapshotRefreshContext<'_, Collection>,
-    cache_schema_version: u32,
     page_count: u32,
-    row_count: usize,
     last_cursor: Option<String>,
-    data: Data,
+    data: Collection::Data,
 ) -> Result<SnsSnapshotRefreshReport, SnsHostError>
 where
-    Collection: SnsCacheCollection,
-    Data: Serialize,
+    Collection: SnsCacheStorageFamily,
 {
+    let row_count = Collection::row_count(&data);
     let cache = SnapshotEnvelope {
-        schema_version: cache_schema_version,
+        schema_version: Collection::CACHE_SCHEMA_VERSION,
         network: context.fetch_request.network.clone(),
         fetched_at: context.fetch_request.fetched_at.clone(),
         source_endpoint: context.fetch_request.endpoint.clone(),

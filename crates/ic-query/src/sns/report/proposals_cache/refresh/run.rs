@@ -60,9 +60,7 @@ pub(in crate::sns::report) async fn refresh_sns_proposals_cache_with_source_and_
                 fetch_complete_sns_proposals(context.refresh_context(), source, progress).await?;
             publish_complete_sns_snapshot(
                 context,
-                crate::sns::report::proposals_cache::SNS_PROPOSALS_CACHE_SCHEMA_VERSION,
                 complete.page_count,
-                complete.rows.len(),
                 complete.last_cursor,
                 crate::sns::report::proposals_cache::model::SnsProposalsCacheRows {
                     proposals: complete.rows,

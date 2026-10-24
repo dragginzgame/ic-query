@@ -57,6 +57,30 @@ pub struct ManagedReadBudget {
 }
 
 impl ManagedReadBudget {
+    /// Charge actual streaming reads, including read-ahead and failed parsing.
+    #[cfg(feature = "host")]
+    pub fn inspect_stream<Reader: Read, Output>(
+        &mut self,
+        reader: Reader,
+        path: &Path,
+        inspect: impl FnOnce(&mut std::io::Take<Reader>) -> Output,
+    ) -> Result<Output, CacheFileError> {
+        let ceiling = self.remaining.saturating_add(1);
+        let mut reader = reader.take(ceiling);
+        let output = inspect(&mut reader);
+        let consumed = ceiling - reader.limit();
+        let exhausted = consumed > self.remaining;
+        self.remaining = self.remaining.saturating_sub(consumed);
+        if exhausted {
+            return Err(CacheFileError::ScanLimitExceeded {
+                path: path.to_path_buf(),
+                resource: "inspection bytes",
+                maximum: self.maximum,
+            });
+        }
+        Ok(output)
+    }
+
     /// Set the total byte allowance for one inspection operation.
     #[cfg(any(feature = "sns-host", test))]
     pub const fn new(maximum: u64) -> Self {

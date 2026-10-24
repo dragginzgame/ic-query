@@ -11,7 +11,10 @@ use crate::{
     sns::report::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status_strict,
-        cache_paths::{sns_attempt_path_for_cache_path, sns_snapshot_network_cache_dir},
+        cache_paths::{
+            sns_attempt_path_for_cache_path, sns_root_from_cache_path,
+            sns_snapshot_network_cache_dir,
+        },
         cache_storage::{
             SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheMetadata, SnsCacheStorageFamily,
             collect_sns_cache_paths, load_sns_cache_at, sns_cache_scan_limit_exceeded,
@@ -51,11 +54,12 @@ where
     paths
         .into_iter()
         .map(|path| {
+            let attempt_path = sns_attempt_path_for_cache_path(&path);
             let mut summary =
                 load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget))?;
             summary.latest_attempt = match read_sns_refresh_attempt_status_strict(
                 cache_root,
-                Path::new(&summary.refresh_attempt_path),
+                &attempt_path,
                 network,
                 Some(budget),
             ) {
@@ -97,7 +101,10 @@ fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCa
     SnsCacheSummary {
         id: 0,
         name: "-".to_string(),
-        root_canister_id: root_from_cache_path(&cache_path),
+        root_canister_id: sns_root_from_cache_path(&cache_path).map_or_else(
+            || "-".to_string(),
+            |name| name.to_string_lossy().into_owned(),
+        ),
         governance_canister_id: "-".to_string(),
         cache_status: CacheValidationStatus::Invalid,
         cache_error: Some(error.to_string()),
@@ -152,18 +159,6 @@ fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
     });
 }
 
-/// Recover an SNS root identity from a complete snapshot cache path.
-fn root_from_cache_path(cache_path: &Path) -> String {
-    cache_path
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::file_name)
-        .map_or_else(
-            || "-".to_string(),
-            |name| name.to_string_lossy().into_owned(),
-        )
-}
-
 #[cfg(test)]
 mod tests {
     use super::load_sns_cache_summaries;
@@ -176,6 +171,51 @@ mod tests {
         },
         test_support::temp_dir,
     };
+
+    #[cfg(unix)]
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+
+    #[cfg(unix)]
+    #[test]
+    fn listing_reads_attempts_under_non_utf8_cache_roots() {
+        let parent = temp_dir("ic-query-sns-non-utf8-root");
+        let root = parent.join(OsString::from_vec(b"cache-\xff".to_vec()));
+        let path = root.join("sns/ic/aaaaa-aa/proposals/full.json");
+        write_managed_text_atomically(&root, &path, "{}").unwrap();
+        let attempt = serde_json::json!({
+            "schema_version": 1,
+            "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "started_at": "2026-10-24T00:00:00Z",
+            "updated_at": "2026-10-24T00:00:00Z",
+            "metadata": {
+                "id": 1,
+                "root_canister_id": "aaaaa-aa",
+                "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+            },
+            "status": "running",
+            "page_size": 10,
+            "pages_fetched": 0,
+            "rows_fetched": 0,
+            "last_cursor": null,
+            "last_error": null
+        });
+        write_managed_text_atomically(
+            &root,
+            &path.with_file_name("full.refresh-attempt.json"),
+            &attempt.to_string(),
+        )
+        .unwrap();
+        let summaries = load_sns_cache_summaries::<SnsProposalsCacheCollection>(
+            &root,
+            [path],
+            "ic",
+            &mut ManagedReadBudget::new(4096),
+        )
+        .unwrap();
+        assert!(summaries[0].latest_attempt.is_some());
+        std::fs::remove_dir_all(parent).unwrap();
+    }
 
     #[test]
     fn listing_budget_errors_are_not_invalid_rows_or_absent_attempts() {

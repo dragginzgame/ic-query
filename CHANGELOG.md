@@ -5,6 +5,21 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.71.1]
+
+- Adopt Shared Tooling 0.26.12 with corrected snapshot version metadata.
+- Preserve native filesystem paths when reading SNS refresh attempts, including
+  cache roots containing non-UTF-8 bytes; reuse SNS root-identity extraction.
+- Use one SNS cache-family contract for collection paths, snapshot data and schema;
+  derive published row counts from that data, preserving stored JSON and report shapes.
+- Bound cache-status content inspection to 1 GiB across the inventory while
+  retaining prefix-only inspection of large history files.
+- Track the Testkit manifest and feature-case inventory during CI input-drift checks.
+- Require explicit review of the temporary RUSTSEC-2026-0387 acceptance from
+  7 November 2026 UTC; upstream IC dependency versions remain unchanged.
+
+Detailed release notes: [docs/changelog/0.71.md](docs/changelog/0.71.md)
+
 ## [0.71.0] - 2026-10-24
 
 - Temporarily accept RUSTSEC-2026-0387 to retain upstream IC Agent versions;

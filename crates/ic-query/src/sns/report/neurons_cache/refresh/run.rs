@@ -52,9 +52,7 @@ async fn refresh_sns_neurons_cache_with_source_and_progress(
                 fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;
             publish_complete_sns_snapshot(
                 context,
-                crate::sns::report::neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION,
                 complete.page_count,
-                complete.rows.len(),
                 complete.last_cursor,
                 crate::sns::report::neurons_cache::model::SnsNeuronsCacheRows {
                     neurons: complete.rows,

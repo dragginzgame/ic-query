@@ -4,7 +4,7 @@
 //! Does not own: cache loading, refresh locking, or status rendering.
 //! Boundary: maps SNS root principals to proposal snapshot file paths.
 
-use crate::sns::report::cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths};
+use crate::sns::report::cache_paths::sns_snapshot_cache_paths;
 use std::path::{Path, PathBuf};
 
 ///
@@ -15,10 +15,6 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::sns::report) enum SnsProposalsCacheCollection {}
-
-impl SnsCacheCollection for SnsProposalsCacheCollection {
-    const COLLECTION: &'static str = "proposals";
-}
 
 #[must_use]
 pub fn sns_proposals_cache_path(

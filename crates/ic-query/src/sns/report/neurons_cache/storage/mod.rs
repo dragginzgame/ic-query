@@ -16,6 +16,8 @@ use crate::sns::report::{
 use std::path::PathBuf;
 
 impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {
+    const COLLECTION: &'static str = "neurons";
+
     type Data = SnsNeuronsCacheRows;
 
     const CACHE_SCHEMA_VERSION: u32 = SNS_NEURONS_CACHE_SCHEMA_VERSION;

@@ -62,7 +62,7 @@ CI_TARGETS := shared-tooling-check tools-check clippy changelog-check dependency
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check test package
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY

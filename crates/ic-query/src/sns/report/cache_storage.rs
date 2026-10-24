@@ -15,7 +15,7 @@ use crate::{
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError,
         cache_paths::{
-            SnsCacheCollection, sns_snapshot_cache_paths, sns_snapshot_key_for_cache_path,
+            sns_snapshot_cache_paths, sns_snapshot_key_for_cache_path,
             sns_snapshot_network_cache_dir,
         },
         enforce_mainnet_network,
@@ -43,10 +43,10 @@ pub(in crate::sns::report) const fn sns_cache_scan_limit_exceeded(error: &SnsHos
 /// Schema and missing-cache contract owned by one SNS snapshot collection.
 ///
 
-pub(in crate::sns::report) trait SnsCacheStorageFamily:
-    SnsCacheCollection
-{
-    type Data: DeserializeOwned;
+pub(in crate::sns::report) trait SnsCacheStorageFamily {
+    const COLLECTION: &'static str;
+
+    type Data: DeserializeOwned + Serialize;
 
     const CACHE_SCHEMA_VERSION: u32;
 

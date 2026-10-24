@@ -11,7 +11,9 @@ use super::super::{
 };
 use crate::{
     CacheFileError,
-    cache_file::{BoundedManagedFileReadError, open_managed_file, read_bounded_stream},
+    cache_file::{
+        BoundedManagedFileReadError, ManagedReadBudget, open_managed_file, read_bounded_stream,
+    },
     ic::DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
@@ -164,6 +166,7 @@ pub(super) fn cache_status_row(
     root: &Path,
     path: &Path,
     now_unix_secs: u64,
+    budget: &mut ManagedReadBudget,
 ) -> Result<CacheStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
     let relative_path = relative.display().to_string();
@@ -184,7 +187,10 @@ pub(super) fn cache_status_row(
             source,
         })?
         .len();
-    let header = read_cache_header(relative, file, size_bytes, MAX_CACHE_INSPECTION_BYTES)
+    let header = budget
+        .inspect_stream(file, path, |reader| {
+            read_cache_header(relative, reader, size_bytes, MAX_CACHE_INSPECTION_BYTES)
+        })?
         .map_err(|error| error.to_string());
     let Ok(header) = header else {
         return Ok(invalid_row(

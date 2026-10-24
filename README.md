@@ -645,7 +645,8 @@ sizes, stale thresholds, and automatic/explicit/missing-only invalid-content
 recovery policy. The bounded inventory explicitly reports that it did not
 perform family-specific semantic validation. It also reports active, available,
 and invalid refresh coordination files without live calls, process probes, full history
-scans, or cache mutation.
+scans, or cache mutation. Cache content inspection shares a 1 GiB byte budget
+across the inventory; exhaustion returns an error rather than a partial success.
 
 Subnet Catalog history transcripts and their writer lock appear as
 `nns/registry-history`. Their unmanaged age is separate from catalog freshness;

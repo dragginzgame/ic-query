@@ -264,3 +264,51 @@ fn status_inventory_rejects_unsafe_managed_file_modes() {
 fn write_cache(root: &Path, path: &Path, contents: &str) {
     write_managed_text_atomically(root, path, contents).expect("write cache");
 }
+
+#[test]
+fn status_header_reads_share_a_budget_even_when_the_first_header_is_invalid() {
+    let root = temp_dir("ic-query-status-aggregate-budget");
+    let first = root.join("sns/ic/catalog/discovery/full.json");
+    let second = root.join("ic/ic/nodes/operational-status/full.json");
+    let valid = r#"{"schema_version":1,"network":"ic","fetched_at":"2026-10-01T00:00:00Z"}"#;
+    write_cache(&root, &second, valid);
+    for contents in [valid, "{invalid"] {
+        write_cache(&root, &first, contents);
+        let mut budget = crate::cache_file::ManagedReadBudget::new(contents.len() as u64);
+        let row = header::cache_status_row(&root, &first, 0, &mut budget).unwrap();
+        assert_eq!(
+            row.header_status,
+            if contents == valid {
+                CacheHeaderStatus::Readable
+            } else {
+                CacheHeaderStatus::Invalid
+            }
+        );
+        let error = header::cache_status_row(&root, &second, 0, &mut budget).unwrap_err();
+        assert!(matches!(
+            error,
+            CacheFileError::ScanLimitExceeded {
+                resource: "inspection bytes",
+                ..
+            }
+        ));
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn status_stream_budget_charges_only_the_inspected_history_prefix() {
+    let root = temp_dir("ic-query-status-prefix-budget");
+    let path = root.join("nns/ic/subnet-catalog/history.json");
+    write_cache(&root, &path, r#"{"schema_version":1,"checkpoints":["#);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_len(128 * 1024 * 1024)
+        .unwrap();
+    let mut budget = crate::cache_file::ManagedReadBudget::new(64 * 1024);
+    let row = header::cache_status_row(&root, &path, 0, &mut budget).unwrap();
+    assert_eq!(row.header_status, CacheHeaderStatus::Readable);
+    fs::remove_dir_all(root).unwrap();
+}

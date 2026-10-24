@@ -303,7 +303,7 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
+for input in Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
@@ -1135,6 +1135,20 @@ set -euo pipefail
 printf 'machete\n' >> "${TRACE_FILE}"
 [[ -z "${FAIL_MACHETE:-}" ]] || exit 57
 EOF
+cat > "${dependency_check_case}/bin/date" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "${FIXTURE_REVIEW_DATE:-2026-11-06}"
+EOF
+chmod +x "${dependency_check_case}/bin/date"
+for review_date in 2026-11-07 2026-11-08 invalid; do
+  status=0
+  PATH="${dependency_check_case}/bin:${PATH}" FIXTURE_REVIEW_DATE="$review_date" \
+    bash "$repo_root/scripts/ci/check-dependencies.sh" /bin/true /bin/true \
+    > "$dependency_check_case/review-output" 2>&1 || status=$?
+  [[ "$status" == 2 ]] || fail 'dependency advisory acceptance outlived its review date'
+  grep -Fq 'acceptance requires review' "$dependency_check_case/review-output" \
+    || fail 'dependency advisory review refusal lost its diagnostic'
+done
 chmod +x "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
 TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \

@@ -8,6 +8,13 @@ set -euo pipefail
 audit="$1"
 machete="$2"
 
+# Keep the temporary upstream-alignment acceptance subject to explicit review.
+review_date="$(date -u +%Y-%m-%d)"
+if [[ ! "$review_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ || "$review_date" > 2026-11-06 ]]; then
+  echo 'RUSTSEC-2026-0387 acceptance requires review by 2026-11-07; see docs/security-advisories.md' >&2
+  exit 2
+fi
+
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-dependency-check.XXXXXX")"
 work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"

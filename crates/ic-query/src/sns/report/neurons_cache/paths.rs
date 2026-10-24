@@ -4,7 +4,7 @@
 //! Does not own: cache reads/writes, refresh policy, report construction, or rendering.
 //! Boundary: maps SNS root principals to generic snapshot-cache file locations.
 
-use crate::sns::report::cache_paths::{SnsCacheCollection, sns_snapshot_cache_paths};
+use crate::sns::report::cache_paths::sns_snapshot_cache_paths;
 use std::path::{Path, PathBuf};
 
 ///
@@ -15,10 +15,6 @@ use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum SnsNeuronsCacheCollection {}
-
-impl SnsCacheCollection for SnsNeuronsCacheCollection {
-    const COLLECTION: &'static str = "neurons";
-}
 
 #[must_use]
 pub fn sns_neurons_cache_path(cache_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
