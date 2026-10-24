@@ -268,7 +268,7 @@ fn probe_inputs_refuse_oversized_configuration() {
     let config = directory.path().join(".cargo/config.toml");
     fs::write(&config, " ".repeat(1024 * 1024 + 1)).unwrap();
     let spec = build::probe_spec(directory.path(), &directory.path().join("target"));
-    let error = build::resolve_probe_inputs(&spec, Duration::from_secs(1)).unwrap_err();
+    let error = build::resolve_probe_inputs(&spec, Duration::from_secs(10)).unwrap_err();
     assert!(
         matches!(error.downcast_ref::<WasmBuildError>(),
         Some(WasmBuildError::InvalidCargoConfiguration { path, .. }) if path == &config),

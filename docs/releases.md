@@ -843,7 +843,8 @@ then capture its offline-admitted selection before running the helper:
 bash scripts/dev/install-rust-tools.sh --package ic-build --version 0.18.0 \
   --bin ic-build-release-metadata --profile debug || exit "$?"
 CARGO_RELEASE_METADATA_EDITOR="$(bash scripts/dev/install-rust-tools.sh \
-  --package ic-build --version 0.18.0 --bin ic-build-release-metadata --profile debug --check)" || exit "$?"
+  --package ic-build --version 0.18.0 --bin ic-build-release-metadata --profile debug \
+  --check --wait-seconds 30)" || exit "$?"
 export CARGO_RELEASE_METADATA_EDITOR
 export CARGO_RELEASE_METADATA_MAX_BYTES=8388608
 ```
@@ -853,6 +854,14 @@ own documents. Shared's Cargo adapter and saved-source context fixtures require
 these same explicit selections. Common tool setup does not install this optional
 release tool unless the consumer includes it in its local extensions. The
 published package requires Rust 1.91 or later.
+
+The explicit 30-second admission budget above is optional. Saved-source recovery
+must select the editor from that saved source's manifest/lock and feature policy,
+then preserve the installer's status: **75** means an admitted shared slot is busy
+or its bounded read-only wait timed out, not that installation is missing. Do not
+convert every failure into setup advice. Other invalid/missing inputs still fail;
+neither waiting nor retrying authorizes installation, metadata changes or a fresh
+validation gate. See [Cargo tool admission](local-setup.md#standard-cargo-tool-build-environment).
 
 Direct callers of the retired `render-cargo-workspace-version.pl` use the editor's
 `--max-input-bytes LIMIT manifest SOURCE PREVIOUS CANDIDATE [WORKSPACE_INPUT_JSON]`

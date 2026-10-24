@@ -5,13 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.71.1]
+## [0.72.0]
 
-- Adopt Build, Testkit and contributor-only Process 0.68.0; retain runtime Host
-  0.67 and its public certificate/ledger evidence types for this patch.
+- **Breaking:** adopt Host, Build and Testkit 0.68.0 throughout. Consumers naming
+  Query's exposed Host certificate errors or ledger-tip values must align to
+  Host 0.68; evidence bytes and report shapes are unchanged.
 - Select IC Wire 0.7.2 for the Governance probe and native qualification tools;
   retain string payloads, framing, explicit resource limits and original reply evidence.
-- Adopt Shared Tooling 0.26.13: normal release retries can advance from clean,
+- Adopt Shared Tooling 0.26.14 with distinct busy-tool admission and optional
+  bounded read-only waits. Normal release retries can advance from clean,
   manually committed preparation despite missing earlier tags or delivery. Preserve
   the old plan as unconfirmed and validate the next release afresh.
 - Preserve native filesystem paths when reading SNS refresh attempts, including
@@ -24,7 +26,7 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Require explicit review of the temporary RUSTSEC-2026-0387 acceptance from
   7 November 2026 UTC; the upstream IC Agent selection remains unchanged.
 
-Detailed release notes: [docs/changelog/0.71.md](docs/changelog/0.71.md)
+Detailed release notes: [docs/changelog/0.72.md](docs/changelog/0.72.md)
 
 ## [0.71.0] - 2026-10-24
 

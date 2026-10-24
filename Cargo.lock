@@ -1569,8 +1569,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e8fcc6e637ed809a55487f657d1edd948d7305d487bb4805191dcc46f9164dd"
 dependencies = [
  "cargo_metadata",
- "ic-host-artifacts 0.68.0",
- "ic-host-fs 0.68.0",
+ "ic-host-artifacts",
+ "ic-host-fs",
  "ic-host-process",
  "rustix",
  "serde",
@@ -1623,37 +1623,15 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.67.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f9c371525974e9a3181b603850090eda68f2a157fcaf1fa13d9cf0fc0d83ca4"
-dependencies = [
- "leb128",
- "sha2 0.10.9",
- "wasmparser",
-]
-
-[[package]]
-name = "ic-host-artifacts"
 version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7add392e7b5f2adde0ab75162216c248143e230bf1c55ffe2401d7e26015bb86"
 dependencies = [
  "flate2",
+ "leb128",
  "sha2 0.10.9",
  "wasm-encoder",
-]
-
-[[package]]
-name = "ic-host-fs"
-version = "0.67.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f0bc735dac933abc28d7b93411400993612b15aa0d9d83ac1e9880d29f8178b"
-dependencies = [
- "cap-fs-ext",
- "cap-std",
- "ic-host-artifacts 0.67.0",
- "rustix",
- "thiserror 2.0.18",
+ "wasmparser",
 ]
 
 [[package]]
@@ -1662,18 +1640,20 @@ version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19457f459cc4878d552c9a893b131a34a61936fe33b4e3d013c9f573afaa6bdf"
 dependencies = [
- "ic-host-artifacts 0.68.0",
+ "cap-fs-ext",
+ "cap-std",
+ "ic-host-artifacts",
  "rustix",
  "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "ic-host-http"
-version = "0.67.0"
+version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecf8fe10e15de068d3ca55934a7c77698df5a5776e37e4e5bb9b01dbcf85afcb"
+checksum = "37990da2cbf7ecce8b1e911a28d46ca2169e57d964340ce0ab588564119f07f2"
 dependencies = [
- "ic-host-artifacts 0.67.0",
+ "ic-host-artifacts",
  "reqwest",
 ]
 
@@ -1684,26 +1664,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9091929849128df4e0366210497346c4a0efe402cee0e42d43d4cc5ff8637e0"
 dependencies = [
  "command-fds",
- "ic-host-artifacts 0.68.0",
- "ic-host-fs 0.68.0",
+ "ic-host-artifacts",
+ "ic-host-fs",
  "libc",
  "rustix",
 ]
 
 [[package]]
 name = "ic-host-text"
-version = "0.67.0"
+version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4e2ff617f0f767f66130fef50eabbef0aba67613f1ade342afadd7e5c5bd6be"
+checksum = "be49576f2d4edd62cf684d2953f119e93a47867ec0b1a7cf20fb2381eb56bede"
 dependencies = [
  "unicode-width 0.2.2",
 ]
 
 [[package]]
 name = "ic-host-tools"
-version = "0.67.0"
+version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bb6866661cf6f52389e5529748b730a313c15265ac2af7e18b35edb968e957b"
+checksum = "a7de22eb9199c206e56bd06fd166a10e4cb065c0e82e06d3f1bc281b36401c42"
 dependencies = [
  "ic-platform",
  "prost",
@@ -1783,8 +1763,8 @@ version = "0.71.0"
 dependencies = [
  "futures",
  "futures-util",
- "ic-host-artifacts 0.67.0",
- "ic-host-fs 0.67.0",
+ "ic-host-artifacts",
+ "ic-host-fs",
  "ic-host-http",
  "ic-host-process",
  "ic-host-text",
@@ -1808,8 +1788,8 @@ version = "0.71.0"
 dependencies = [
  "clap",
  "ic-build",
- "ic-host-artifacts 0.67.0",
- "ic-host-fs 0.67.0",
+ "ic-host-artifacts",
+ "ic-host-fs",
  "ic-host-process",
  "ic-host-text",
  "ic-platform",
@@ -1829,7 +1809,7 @@ dependencies = [
 name = "ic-query-testkit"
 version = "0.71.0"
 dependencies = [
- "ic-host-artifacts 0.67.0",
+ "ic-host-artifacts",
  "ic-platform",
  "ic-query",
  "ic-testkit",
@@ -1843,8 +1823,8 @@ version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b72fedb38d82809424f08f7d61a2e9a774c73ba144ffa569b96ce7883374b84"
 dependencies = [
- "ic-host-artifacts 0.68.0",
- "ic-host-fs 0.68.0",
+ "ic-host-artifacts",
+ "ic-host-fs",
  "ic-host-process",
  "ic-platform",
  "libc",

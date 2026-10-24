@@ -63,7 +63,7 @@ if [[ "$target" == release-verify ]]; then
     printf 'validation source: %s\n' "$RELEASE_SOURCE" > "validation.$attempt.log"
     printf 'build source: %s\n' "$RELEASE_SOURCE" > "build.$attempt.evidence"
 fi
-[[ "${FIXTURE_FAIL_TARGET:-}" != "$target" ]] || exit 7
+[[ "${FIXTURE_FAIL_TARGET:-}" != "$target" ]] || exit "${FIXTURE_FAIL_STATUS:-7}"
 if [[ "${FIXTURE_DRIFT_TARGET:-}" == "$target" ]]; then
     printf '%s\n' "$FIXTURE_DRIFT_URL" > destination
 fi
@@ -354,6 +354,27 @@ for kind in patch minor major; do
     [[ "$(cat 'release file.txt')" == 'retained build artifact' ]] || exit 1
     [[ ! -e .release-state/lock ]] || exit 1
 done
+
+# A typed busy admission after metadata preparation preserves saved validation
+# and the exact candidate. Resume rechecks admission without another full gate.
+new_fixture prepared-tool-busy
+FIXTURE_FAIL_TARGET=release-prepared-check FIXTURE_FAIL_STATUS=75 expect_failure patch origin main
+[[ "$(tail -n 1 .release-state/0.1.1.plan)" == prepare && "$(cat version)" == 0.1.1 ]]
+cp .release-state/0.1.1.plan saved-busy-plan
+cp validation.1.log saved-busy-validation
+cp build.1.evidence saved-busy-build
+cp version saved-busy-version
+[[ "$(count_event release-verify)" == 1 && "$(count_event commit)" == 0 && "$(count_event push)" == 0 ]]
+FIXTURE_FAIL_TARGET=release-prepared-check FIXTURE_FAIL_STATUS=75 expect_failure resume 0.1.1 origin main
+cmp saved-busy-plan .release-state/0.1.1.plan
+cmp saved-busy-validation validation.1.log
+cmp saved-busy-build build.1.evidence
+cmp saved-busy-version version
+bash "$ROOT/scripts/ci/run-release.sh" resume 0.1.1 origin main > resumed-output
+cmp saved-busy-validation validation.1.log
+cmp saved-busy-build build.1.evidence
+cmp saved-busy-version version
+[[ "$(count_event release-verify)" == 1 && "$(count_event commit)" == 1 && "$(count_event push)" == 1 ]]
 
 for kind in patch minor major; do
     for target in release-prepare-version release-prepared-check release-commit-check release-committed-check release-tagged-check release-push-check; do
