@@ -38,7 +38,13 @@ mod scan;
     feature = "sns-host"
 ))]
 pub use read::ManagedReadBudget;
-#[cfg(any(feature = "host", test))]
+#[cfg(any(
+    feature = "host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    test
+))]
 pub use read::open_managed_file;
 #[cfg(feature = "host")]
 pub use read::read_bounded_stream;

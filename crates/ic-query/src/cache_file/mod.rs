@@ -55,6 +55,13 @@ pub use write::write_managed_json_pretty_atomically;
 
 #[cfg(feature = "sns-host")]
 pub use confined::collect_managed_collection_files;
+#[cfg(any(
+    feature = "host",
+    feature = "icrc-host",
+    feature = "nns-host",
+    feature = "sns-host"
+))]
+pub use confined::open_managed_file;
 #[cfg(any(feature = "subnet-catalog-host", test))]
 pub use confined::write_managed_text_atomically;
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -62,7 +69,7 @@ pub use confined::{
     ManagedDirectoryFile, remove_managed_regular_file, scan_managed_directory_files,
 };
 #[cfg(feature = "host")]
-pub use confined::{collect_managed_files, open_managed_file, read_bounded_stream};
+pub use confined::{collect_managed_files, read_bounded_stream};
 pub use confined::{create_managed_parent_directory, managed_file_exists};
 pub use error::{CacheFileError, HostCacheError};
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
