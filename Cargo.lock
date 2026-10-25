@@ -1759,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.72.1"
+version = "0.72.2"
 dependencies = [
  "futures",
  "futures-util",
@@ -1784,7 +1784,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.72.1"
+version = "0.72.2"
 dependencies = [
  "clap",
  "ic-build",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-testkit"
-version = "0.72.1"
+version = "0.72.2"
 dependencies = [
  "ic-host-artifacts",
  "ic-platform",
@@ -1866,9 +1866,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39b42c242f6c4db9724efbc1aa6abb4c700c5dd057c2f047ae8a5661593a9b81"
+checksum = "6510337b39c72063854c2f0a05f17766564e30e568b86e0a69a3e8526c427f5c"
 dependencies = [
  "bytemuck",
  "ic-wire-derive",
@@ -1879,9 +1879,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire-derive"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d655b2e543fb5cda17331e5fc6fec0f006726e6ecc4806eec0fd8a241cc8a70"
+checksum = "fcab936c1d7805d75fb2ee64ee45dda61fb79c81760111b7cd90ea37fc71ba51"
 dependencies = [
  "proc-macro2",
  "quote",

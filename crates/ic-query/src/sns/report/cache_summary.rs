@@ -57,16 +57,12 @@ where
             let attempt_path = sns_attempt_path_for_cache_path(&path);
             let mut summary =
                 load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget))?;
-            summary.latest_attempt = match read_sns_refresh_attempt_status_strict(
+            summary.latest_attempt = read_sns_refresh_attempt_status_strict(
                 cache_root,
                 &attempt_path,
                 network,
                 Some(budget),
-            ) {
-                Ok(attempt) => attempt,
-                Err(error) if sns_cache_scan_limit_exceeded(&error) => return Err(error),
-                Err(_) => None,
-            };
+            )?;
             Ok(summary)
         })
         .collect()
@@ -234,6 +230,18 @@ mod tests {
             &mut ManagedReadBudget::new(3),
         );
         assert!(sns_cache_scan_limit_exceeded(&result.unwrap_err()));
+        let error = load_sns_cache_summaries::<SnsProposalsCacheCollection>(
+            &root,
+            [path.clone()],
+            "ic",
+            &mut ManagedReadBudget::new(32),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            crate::sns::SnsHostError::Cache(crate::HostCacheError::ParseCache { .. })
+        ));
+        std::fs::remove_file(path.with_file_name("full.refresh-attempt.json")).unwrap();
         let summaries = load_sns_cache_summaries::<SnsProposalsCacheCollection>(
             &root,
             [path],
@@ -241,7 +249,6 @@ mod tests {
             &mut ManagedReadBudget::new(32),
         )
         .unwrap();
-        assert_eq!(summaries.len(), 1);
         assert_eq!(summaries[0].cache_status, CacheValidationStatus::Invalid);
         assert!(summaries[0].latest_attempt.is_none());
         std::fs::remove_dir_all(root).unwrap();

@@ -610,6 +610,11 @@ operations use their direct paths and existing per-file limits.
 Numeric reads also verify the loaded snapshot's id after discovery, rejecting
 an atomic replacement that changes it instead of returning another SNS.
 
+SNS neuron/proposal cache lists and direct cache status both return errors for
+malformed or invalid refresh-attempt files. A missing attempt is valid absence.
+Cache lists still show invalid snapshots as invalid rows when their attempt
+evidence is absent or valid; they never refresh or repair files implicitly.
+
 The exact-version joined topology cache uses one refresh lock and atomic
 replacement without a separate attempt sidecar. Collection limits and cursors
 are operation controls; sorts, view limits, verbosity, and output format do

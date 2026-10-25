@@ -71,60 +71,8 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
         "catalog_path: {}",
         terminal_text(&report.catalog_path)
     ));
-    lines.push(format!("assurance: {}", report.assurance.as_str()));
-    lines.push(format!(
-        "cache_disposition: {}",
-        report.cache_disposition.as_str()
-    ));
-    lines.push(format!(
-        "catalog_digest: {}",
-        terminal_text(&report.catalog_digest)
-    ));
-    lines.push(format!(
-        "source_endpoints: {}",
-        report
-            .source_endpoints
-            .iter()
-            .map(|endpoint| terminal_text(endpoint))
-            .collect::<Vec<_>>()
-            .join(",")
-    ));
-    lines.push(format!(
-        "agreement_digest: {}",
-        report.agreement_digest.as_deref().unwrap_or("-")
-    ));
-    lines.push(format!(
-        "registry_query_call_count: {}",
-        report.registry_query_call_count
-    ));
-    lines.push(format!(
-        "routing_source: {}",
-        report.routing_source.as_str()
-    ));
-    lines.push(format!(
-        "registry_record_count: {}",
-        report.registry_records.len()
-    ));
-    lines.push(format!(
-        "collector_version: {}",
-        terminal_text(&report.collector_version)
-    ));
-    lines.push(format!(
-        "classification_schema_version: {}",
-        report.classification_schema_version
-    ));
-    lines.push(format!(
-        "classification_policy_digest: {}",
-        terminal_text(&report.classification_policy_digest)
-    ));
-    lines.push(format!(
-        "resolver_schema_version: {}",
-        report.resolver_schema_version
-    ));
-    lines.push(format!(
-        "resolver_backend: {}",
-        terminal_text(&report.resolver_backend)
-    ));
+    crate::subnet_catalog::text::append_catalog_authority!(lines, report);
+    crate::subnet_catalog::text::append_catalog_policy!(lines, report);
     lines.push(format!(
         "stale_reason: {}",
         terminal_text(&report.stale_reason)

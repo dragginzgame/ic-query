@@ -137,3 +137,25 @@ impl NnsGovernanceCacheStatusReport {
         }
     }
 }
+
+// Both collection families persist the same snapshot identity and accounting contract.
+macro_rules! governance_snapshot_matches {
+    ($cache:expr, $state:expr, $rows:ident) => {{
+        let cache = $cache;
+        let state = $state;
+        let source = $crate::nns::governance::NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: cache.source_endpoint.clone(),
+            fetched_by: cache.fetched_by.clone(),
+        };
+        state.is_complete()
+            && state.network() == cache.network
+            && state.governance_canister_id() == cache.metadata.governance_canister_id
+            && state.source() == Some(&source)
+            && state.updated_at() == cache.fetched_at
+            && state.pages_fetched() == cache.completeness.page_count
+            && state.page_size() == cache.completeness.page_size
+            && state.$rows() == cache.completeness.row_count as u64
+    }};
+}
+
+pub(in crate::nns) use governance_snapshot_matches;

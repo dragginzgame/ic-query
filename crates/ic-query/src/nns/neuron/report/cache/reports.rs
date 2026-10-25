@@ -195,19 +195,11 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
     }
     let state = &cache.data.collection_state;
     validate_collection_state(state).map_err(|error| invalid(error.to_string()))?;
-    let source = NnsGovernanceSourceProvenance::ReplicaQuery {
-        endpoint: cache.source_endpoint.clone(),
-        fetched_by: cache.fetched_by.clone(),
-    };
-    if !state.is_complete()
-        || state.network() != cache.network
-        || state.governance_canister_id() != cache.metadata.governance_canister_id
-        || state.source() != Some(&source)
-        || state.updated_at() != cache.fetched_at
-        || state.pages_fetched() != cache.completeness.page_count
-        || state.page_size() != cache.completeness.page_size
-        || state.neurons_fetched() != cache.completeness.row_count as u64
-    {
+    if !crate::nns::governance::collection::governance_snapshot_matches!(
+        cache,
+        state,
+        neurons_fetched
+    ) {
         return Err(invalid(
             "collection_state disagrees with snapshot identity, provenance, or completeness"
                 .to_string(),

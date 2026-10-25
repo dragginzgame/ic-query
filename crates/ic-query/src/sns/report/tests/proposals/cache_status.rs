@@ -224,7 +224,7 @@ fn sns_proposals_cache_status_surfaces_malformed_attempt_sidecar() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best_effort() {
+async fn sns_cache_list_and_status_reject_malformed_attempts() {
     let root = temp_dir("ic-query-sns-proposals-cached-malformed-attempt");
     refresh_fixture_sns_proposals_cache(&root).await;
     let attempt_path = sns_proposals_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -240,11 +240,18 @@ async fn sns_cache_status_is_strict_about_attempts_while_cache_list_remains_best
             crate::HostCacheError::ParseCache { .. }
         ))
     ));
-    let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
+    let request = SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root.clone(),
-    })
-    .expect("cache list keeps the valid snapshot visible");
+    };
+    assert!(matches!(
+        build_sns_proposals_cache_list_report(&request),
+        Err(SnsHostError::Cache(
+            crate::HostCacheError::ParseCache { .. }
+        ))
+    ));
+    fs::remove_file(attempt_path).unwrap();
+    let list = build_sns_proposals_cache_list_report(&request).unwrap();
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert!(list.caches[0].latest_attempt.is_none());

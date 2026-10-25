@@ -5,6 +5,7 @@
 //! Boundary: centralizes shared DTOs plus attempt construction and validation.
 
 mod cache;
+pub(in crate::nns) use cache::governance_snapshot_matches;
 pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
 
 mod refresh;

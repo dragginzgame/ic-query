@@ -5,7 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.72.2]
+## [0.73.0]
+
+- **Breaking:** SNS neuron/proposal cache listing now returns malformed or invalid
+  refresh-attempt errors, matching direct cache status. Missing attempts remain
+  valid absence; invalid snapshots remain visible as invalid summary rows.
+- Share Governance snapshot consistency checks and identical Subnet catalog
+  evidence-rendering blocks without changing report shapes or text ordering.
+
+Detailed release notes: [docs/changelog/0.73.md](docs/changelog/0.73.md)
+
+## [0.72.2] - 2026-10-25
 
 - Share certified Registry archive collection and Dashboard observation checks,
   preserving authentication, resource limits and family-specific validation.
