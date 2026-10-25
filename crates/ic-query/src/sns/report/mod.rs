@@ -50,10 +50,7 @@ use crate::icrc::{IcrcMetadataValueKind, ledger::metadata_row};
 #[cfg(all(test, feature = "sns-host"))]
 use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
 #[cfg(all(test, feature = "sns-host"))]
-use neurons_cache::{
-    SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_SCHEMA_VERSION,
-    SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-};
+use neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION;
 #[cfg(all(test, feature = "sns-host"))]
 pub(in crate::sns::report) use source::validate_mainnet_sns_reward_neuron_page;
 #[cfg(feature = "sns-host")]

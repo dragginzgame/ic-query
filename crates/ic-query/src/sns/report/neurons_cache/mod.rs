@@ -22,5 +22,3 @@ pub(in crate::sns::report) use reports::build_sns_neurons_report_from_cache;
 pub use reports::{build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report};
 
 pub(super) const SNS_NEURONS_CACHE_SCHEMA_VERSION: u32 = 1;
-pub(super) const SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
-pub(super) const SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION: u32 = 1;

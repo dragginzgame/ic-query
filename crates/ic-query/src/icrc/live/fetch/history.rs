@@ -473,14 +473,16 @@ fn transactions_data_from_blocks(
 }
 
 fn transaction_block_row_from_wire(block: BlockWithId) -> IcrcTransactionBlockRow {
-    let summary = block_summary_from_wire(block);
+    let block_type = icrc3_text_at_path(&block.block, &["btype"]);
     IcrcTransactionBlockRow {
-        index: summary.index,
-        block_type: summary.block_type,
-        transaction_kind: summary.transaction_kind,
-        timestamp_unix_nanos: summary.timestamp_unix_nanos,
-        amount_base_units: summary.amount_base_units,
-        raw_block: summary.raw_block,
+        index: nat_text(&block.id),
+        transaction_kind: block_type
+            .clone()
+            .or_else(|| icrc3_text_at_path(&block.block, &["tx", "op"])),
+        block_type,
+        timestamp_unix_nanos: icrc3_nat_at_path(&block.block, &["ts"]),
+        amount_base_units: icrc3_nat_at_path(&block.block, &["tx", "amt"]),
+        raw_block: icrc3_value_json(&block.block),
     }
 }
 
@@ -498,7 +500,7 @@ fn followed_archive_block_row_from_wire(
     callback_method: &str,
     block: BlockWithId,
 ) -> IcrcFollowedArchiveBlockRow {
-    let summary = block_summary_from_wire(block);
+    let summary = transaction_block_row_from_wire(block);
     IcrcFollowedArchiveBlockRow {
         archive_canister_id: archive_canister_id.to_string(),
         callback_method: callback_method.to_string(),
@@ -508,29 +510,6 @@ fn followed_archive_block_row_from_wire(
         timestamp_unix_nanos: summary.timestamp_unix_nanos,
         amount_base_units: summary.amount_base_units,
         raw_block: summary.raw_block,
-    }
-}
-
-struct Icrc3BlockSummary {
-    index: String,
-    block_type: Option<String>,
-    transaction_kind: Option<String>,
-    timestamp_unix_nanos: Option<String>,
-    amount_base_units: Option<String>,
-    raw_block: JsonValue,
-}
-
-fn block_summary_from_wire(block: BlockWithId) -> Icrc3BlockSummary {
-    let block_type = icrc3_text_at_path(&block.block, &["btype"]);
-    Icrc3BlockSummary {
-        index: nat_text(&block.id),
-        transaction_kind: block_type
-            .clone()
-            .or_else(|| icrc3_text_at_path(&block.block, &["tx", "op"])),
-        block_type,
-        timestamp_unix_nanos: icrc3_nat_at_path(&block.block, &["ts"]),
-        amount_base_units: icrc3_nat_at_path(&block.block, &["tx", "amt"]),
-        raw_block: icrc3_value_json(&block.block),
     }
 }
 

@@ -18,7 +18,7 @@ use std::{collections::BTreeMap, fmt};
 /// One proposal-linked canister upgrade recorded by the Dashboard API.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, serde::Deserialize)]
 pub struct IcCanisterUpgrade {
     /// Proposal execution time as raw Unix seconds.
     pub executed_timestamp_seconds: u64,
@@ -395,7 +395,7 @@ pub struct IcDailyStatsReport {
 /// One raw data-center aggregate returned by the boundary-node API.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, serde::Deserialize)]
 pub struct IcBoundaryNodeDataCenterRow {
     /// Dashboard data-center identifier.
     pub dc_id: String,

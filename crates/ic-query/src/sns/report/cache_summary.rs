@@ -123,7 +123,6 @@ fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCa
 /// Build a deterministic cache-list report for one SNS cache family.
 pub(in crate::sns::report) fn build_sns_cache_list_report<Family>(
     request: &SnsCacheListRequest,
-    schema_version: u32,
 ) -> Result<SnsCacheListReport, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
@@ -142,7 +141,7 @@ where
     )?;
     sort_sns_cache_summaries(&mut caches);
     Ok(SnsCacheListReport {
-        schema_version,
+        schema_version: 1,
         network: request.network.clone(),
         cache_root: network_cache_root,
         cache_count: caches.len(),

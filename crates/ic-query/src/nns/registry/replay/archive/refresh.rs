@@ -17,9 +17,8 @@ use crate::{
     nns::{
         LiveNnsSource,
         registry::{
-            NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaBatchRequest,
-            NnsCertifiedRegistryDeltaSource, NnsRegistryHostError, NnsRegistryReplayError,
-            fetch_nns_certified_registry_delta_batch_with_source_async,
+            NnsCertifiedRegistryBootstrapRequest, NnsCertifiedRegistryDeltaSource,
+            NnsRegistryHostError, NnsRegistryReplayError,
         },
     },
 };
@@ -148,52 +147,24 @@ async fn collect_and_publish_extension(
     source: &dyn NnsCertifiedRegistryDeltaSource,
     authenticator: &dyn ArchiveBatchAuthenticator,
 ) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveRefreshError> {
-    let (maximum_batch_query_calls, maximum_batch_response_bytes) =
-        super::super::bootstrap::batch_reservation()?;
-    let mut publisher = super::storage::resume_archive_publisher_with_authenticator(
+    let publisher = super::storage::resume_archive_publisher_with_authenticator(
         &request.cache_root,
         &request.archive_root,
         request.collection.limits,
         request.storage_limits,
         authenticator,
     )?;
-    loop {
-        publisher.ensure_next_batch_slot()?;
-        let replay = publisher.replay_session();
-        if replay.is_complete() {
-            replay.ensure_next_extension_source_call_capacity(
-                maximum_batch_query_calls,
-                maximum_batch_response_bytes,
-            )?;
-        } else {
-            replay.ensure_next_source_call_capacity(
-                maximum_batch_query_calls,
-                maximum_batch_response_bytes,
-            )?;
-        }
-        let batch_request = NnsCertifiedRegistryDeltaBatchRequest::new(
-            &request.collection.network,
-            &request.collection.source_endpoint,
-            replay.state().through_version(),
-            request.collection.now_unix_secs,
-        );
-        let report =
-            fetch_nns_certified_registry_delta_batch_with_source_async(&batch_request, source)
-                .await
-                .map_err(NnsRegistryReplayError::from)?;
-        let authenticated = authenticator
-            .authenticate(&batch_request, &report)
-            .map_err(
-                |source| NnsCertifiedRegistryArchiveRefreshError::BatchAuthentication {
-                    requested_version: batch_request.requested_version,
-                    source,
-                },
-            )?;
-        publisher.apply_batch(&authenticated)?;
-        if publisher.replay_session().is_complete() {
-            return publisher.finish().map_err(Into::into);
-        }
-    }
+    super::bootstrap::collect_archive(
+        publisher,
+        &request.collection,
+        source,
+        authenticator,
+        |requested_version, source| NnsCertifiedRegistryArchiveRefreshError::BatchAuthentication {
+            requested_version,
+            source,
+        },
+    )
+    .await
 }
 
 const fn archive_filesystem_error(

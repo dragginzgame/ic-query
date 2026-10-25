@@ -9,6 +9,8 @@ use crate::cli::{
     common::{OutputFormat, output_format},
 };
 use clap::ArgMatches;
+use ic_query::sns::{SnsLookupRequest, SnsSnapshotRefreshRequest};
+use std::path::PathBuf;
 
 ///
 /// SnsLookupOptions
@@ -49,6 +51,27 @@ pub(in crate::sns::commands) struct SnsPagedRefreshOptions {
 }
 
 impl SnsPagedRefreshOptions {
+    pub(in crate::sns::commands) fn into_request(
+        self,
+        cache_root: PathBuf,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, SnsSnapshotRefreshRequest) {
+        (
+            self.lookup.format,
+            SnsSnapshotRefreshRequest {
+                lookup: SnsLookupRequest::new(
+                    self.lookup.network,
+                    self.lookup.source_endpoint,
+                    now_unix_secs,
+                    self.lookup.input,
+                ),
+                cache_root,
+                page_size: self.page_size,
+                max_pages: self.max_pages,
+            },
+        )
+    }
+
     pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
             lookup: SnsLookupOptions::from_matches(matches, network),

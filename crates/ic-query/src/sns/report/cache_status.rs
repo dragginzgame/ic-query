@@ -16,7 +16,6 @@ use crate::{
 /// Inspect one SNS cache family by root principal without discovery or live calls.
 pub(in crate::sns::report) fn build_sns_cache_status_report<Family>(
     request: &SnsCacheStatusRequest,
-    schema_version: u32,
 ) -> Result<SnsCacheStatusReport, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
@@ -50,7 +49,7 @@ where
         cache.latest_attempt.clone_from(&latest_attempt);
     }
     Ok(SnsCacheStatusReport {
-        schema_version,
+        schema_version: 1,
         network: request.network.clone(),
         cache_root: sns_snapshot_network_cache_dir(&request.cache_root, &request.network)
             .display()
@@ -100,7 +99,6 @@ mod tests {
         assert!(
             build_sns_cache_status_report::<SnsProposalsCacheCollection>(
                 &SnsCacheStatusRequest::new(&root, "ic", "aaaaa-aa"),
-                1
             )
             .unwrap()
             .cache

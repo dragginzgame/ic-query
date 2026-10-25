@@ -217,3 +217,26 @@ fn invalid_request<T>(field: &'static str, reason: impl Into<String>) -> Result<
         reason: reason.into(),
     })
 }
+
+/// Validate the common ordering and window contract of Dashboard observations.
+fn validate_observation_timestamps(
+    timestamps: impl IntoIterator<Item = u64>,
+    window: std::ops::RangeInclusive<u64>,
+    label: &str,
+) -> Result<(), IcHostError> {
+    let mut previous = None;
+    for timestamp in timestamps {
+        if !window.contains(&timestamp) {
+            return invalid_source(format!(
+                "{label} observation timestamp {timestamp} is outside the requested window"
+            ));
+        }
+        if previous.is_some_and(|previous| previous >= timestamp) {
+            return invalid_source(format!(
+                "{label} observations must be strictly ordered by timestamp"
+            ));
+        }
+        previous = Some(timestamp);
+    }
+    Ok(())
+}

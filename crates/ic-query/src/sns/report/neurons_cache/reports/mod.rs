@@ -6,10 +6,7 @@
 
 mod cached_report;
 
-use super::{
-    SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION, SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    paths::SnsNeuronsCacheCollection,
-};
+use super::paths::SnsNeuronsCacheCollection;
 use crate::sns::report::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
     SnsHostError, build_sns_cache_list_report, cache_status::build_sns_cache_status_report,
@@ -21,18 +18,12 @@ pub(in crate::sns::report) use cached_report::build_sns_neurons_report_from_cach
 pub fn build_sns_neurons_cache_list_report(
     request: &SnsCacheListRequest,
 ) -> Result<SnsCacheListReport, SnsHostError> {
-    build_sns_cache_list_report::<SnsNeuronsCacheCollection>(
-        request,
-        SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION,
-    )
+    build_sns_cache_list_report::<SnsNeuronsCacheCollection>(request)
 }
 
 /// Build an SNS neuron cache status report for one SNS input.
 pub fn build_sns_neurons_cache_status_report(
     request: &SnsCacheStatusRequest,
 ) -> Result<SnsCacheStatusReport, SnsHostError> {
-    build_sns_cache_status_report::<SnsNeuronsCacheCollection>(
-        request,
-        SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    )
+    build_sns_cache_status_report::<SnsNeuronsCacheCollection>(request)
 }

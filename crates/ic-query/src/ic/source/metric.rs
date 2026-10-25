@@ -6,7 +6,7 @@
 
 use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
-    validate_collection_end, validate_provenance,
+    validate_collection_end, validate_observation_timestamps, validate_provenance,
 };
 use crate::ic::{
     IcHostError, IcMetricQuery, IcMetricReport, IcMetricSeries, IcMetricSourceData,
@@ -133,31 +133,21 @@ fn validate_metric_series(
                 series.observations.len()
             ));
         }
-        let mut previous_timestamp = None;
+        validate_observation_timestamps(
+            series
+                .observations
+                .iter()
+                .map(|observation| observation.timestamp_unix_secs),
+            query.start_unix_secs..=query.end_unix_secs,
+            &format!("series {:?}", series.name),
+        )?;
         for observation in &series.observations {
-            if !(query.start_unix_secs..=query.end_unix_secs)
-                .contains(&observation.timestamp_unix_secs)
-            {
-                return invalid_source(format!(
-                    "series {:?} observation timestamp {} is outside the requested window",
-                    series.name, observation.timestamp_unix_secs
-                ));
-            }
-            if previous_timestamp
-                .is_some_and(|previous| previous >= observation.timestamp_unix_secs)
-            {
-                return invalid_source(format!(
-                    "series {:?} observations must be strictly ordered by timestamp",
-                    series.name
-                ));
-            }
             if observation.value.is_empty() {
                 return invalid_source(format!(
                     "series {:?} contains an empty raw value",
                     series.name
                 ));
             }
-            previous_timestamp = Some(observation.timestamp_unix_secs);
         }
     }
     Ok(())

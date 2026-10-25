@@ -7,10 +7,7 @@
 mod cached_detail;
 mod cached_report;
 
-use super::{
-    SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
-    SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION, SnsProposalsCacheCollection,
-};
+use super::SnsProposalsCacheCollection;
 use crate::sns::report::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
     SnsHostError, build_sns_cache_list_report, cache_status::build_sns_cache_status_report,
@@ -23,18 +20,12 @@ pub(in crate::sns::report) use cached_report::build_sns_proposals_report_from_ca
 pub fn build_sns_proposals_cache_list_report(
     request: &SnsCacheListRequest,
 ) -> Result<SnsCacheListReport, SnsHostError> {
-    build_sns_cache_list_report::<SnsProposalsCacheCollection>(
-        request,
-        SNS_PROPOSALS_CACHE_LIST_REPORT_SCHEMA_VERSION,
-    )
+    build_sns_cache_list_report::<SnsProposalsCacheCollection>(request)
 }
 
 /// Build an SNS proposal cache status report for one SNS input.
 pub fn build_sns_proposals_cache_status_report(
     request: &SnsCacheStatusRequest,
 ) -> Result<SnsCacheStatusReport, SnsHostError> {
-    build_sns_cache_status_report::<SnsProposalsCacheCollection>(
-        request,
-        SNS_PROPOSALS_CACHE_STATUS_REPORT_SCHEMA_VERSION,
-    )
+    build_sns_cache_status_report::<SnsProposalsCacheCollection>(request)
 }

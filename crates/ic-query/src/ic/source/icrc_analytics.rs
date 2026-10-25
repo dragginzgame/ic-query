@@ -6,7 +6,8 @@
 
 use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
-    validate_collection_end, validate_principal_match, validate_provenance,
+    validate_collection_end, validate_observation_timestamps, validate_principal_match,
+    validate_provenance,
 };
 use crate::decimal::is_canonical_unsigned_decimal;
 use crate::ic::{
@@ -240,27 +241,21 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         ));
     }
 
-    let mut previous_timestamp = None;
+    validate_observation_timestamps(
+        source
+            .observations
+            .iter()
+            .map(|observation| observation.timestamp_unix_secs),
+        query.start_unix_secs..=query.end_unix_secs,
+        "total-supply",
+    )?;
     for observation in &source.observations {
-        if !(query.start_unix_secs..=query.end_unix_secs).contains(&observation.timestamp_unix_secs)
-        {
-            return invalid_source(format!(
-                "total-supply observation timestamp {} is outside the requested window",
-                observation.timestamp_unix_secs
-            ));
-        }
-        if previous_timestamp.is_some_and(|previous| previous >= observation.timestamp_unix_secs) {
-            return invalid_source(
-                "total-supply observations must be strictly ordered by timestamp",
-            );
-        }
         if !is_canonical_unsigned_decimal(&observation.total_supply_base_units) {
             return invalid_source(format!(
                 "total-supply value {:?} is not canonical unsigned decimal text",
                 observation.total_supply_base_units
             ));
         }
-        previous_timestamp = Some(observation.timestamp_unix_secs);
     }
 
     Ok(IcIcrcTotalSupplyReport {

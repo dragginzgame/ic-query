@@ -103,10 +103,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     .expect("cache list");
     let list_text = sns_neurons_cache_list_report_text(&list);
 
-    assert_eq!(
-        list.schema_version,
-        SNS_NEURONS_CACHE_LIST_REPORT_SCHEMA_VERSION
-    );
+    assert_eq!(list.schema_version, 1);
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].id, 1);
     assert_eq!(list.caches[0].name, "Fixture SNS");
@@ -137,10 +134,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         status.latest_attempt.as_ref()
     );
 
-    assert_eq!(
-        status.schema_version,
-        SNS_NEURONS_CACHE_STATUS_REPORT_SCHEMA_VERSION
-    );
+    assert_eq!(status.schema_version, 1);
     assert!(status.found);
     assert_eq!(
         status.expected_cache_path.as_deref(),

@@ -89,7 +89,7 @@ forbidden_direct_dashboard_host_dependencies=(
   tokio
 )
 
-forbidden_ic_state_host_dependencies=(
+forbidden_stateless_host_dependencies=(
   cap-fs-ext
   cap-std
   ic-host-artifacts
@@ -119,26 +119,6 @@ forbidden_direct_icrc_host_dependencies=(
   prost
   reqwest
   tokio
-)
-
-forbidden_cmc_host_dependencies=(
-  cap-fs-ext
-  cap-std
-  ic-host-artifacts
-  ic-host-fs
-  ic-host-http
-  ic-host-process
-  prost
-)
-
-forbidden_cloud_engine_host_dependencies=(
-  cap-fs-ext
-  cap-std
-  ic-host-artifacts
-  ic-host-fs
-  ic-host-http
-  ic-host-process
-  prost
 )
 
 forbidden_agent_only_host_dependencies=(
@@ -215,8 +195,16 @@ check_tree_absent() {
   fi
 }
 
+check_feature_graph() {
+  local label="$1" feature="$2" depth="$3"
+  shift 3
+  local -a selection=(--package ic-query --no-default-features --features "$feature")
+  [[ "$depth" == all ]] || selection+=(--depth "$depth")
+  check_tree_absent "$label" "$@" -- "${selection[@]}"
+}
+
 # Case selection is shared with compilation; assertions remain graph-specific.
-while IFS=$'	' read -r target feature tests; do
+while IFS=$'	' read -r target feature _tests; do
   [[ -n "$target" && "$target" != \#* ]] || continue
   case "$target:$feature" in
     native:none)
@@ -257,159 +245,73 @@ while IFS=$'	' read -r target feature tests; do
         --features canister
       ;;
     native:host)
-      check_tree_absent "ic-query --features host --no-default-features" \
-        "${forbidden_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features host
+      check_feature_graph "ic-query --features host --no-default-features" host all \
+        "${forbidden_host_dependencies[@]}"
       ;;
     native:dashboard-host)
-      check_tree_absent "ic-query --features dashboard-host" \
-        "${forbidden_dashboard_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features dashboard-host
-      check_tree_absent "ic-query --features dashboard-host direct dependencies" \
-        "${forbidden_direct_dashboard_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features dashboard-host \
-        --depth 1
+      check_feature_graph "ic-query --features dashboard-host" dashboard-host all \
+        "${forbidden_dashboard_host_dependencies[@]}"
+      check_feature_graph "ic-query --features dashboard-host direct dependencies" dashboard-host 1 \
+        "${forbidden_direct_dashboard_host_dependencies[@]}"
       ;;
     native:ic-state-host)
-      check_tree_absent "ic-query --features ic-state-host" \
-        "${forbidden_ic_state_host_dependencies[@]}" \
-        "${forbidden_agent_only_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features ic-state-host
-      check_tree_absent "ic-query --features ic-state-host direct dependencies" \
-        "${forbidden_direct_ic_state_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features ic-state-host \
-        --depth 1
+      check_feature_graph "ic-query --features ic-state-host" ic-state-host all \
+        "${forbidden_stateless_host_dependencies[@]}" \
+        "${forbidden_agent_only_host_dependencies[@]}"
+      check_feature_graph "ic-query --features ic-state-host direct dependencies" ic-state-host 1 \
+        "${forbidden_direct_ic_state_host_dependencies[@]}"
       ;;
     native:icrc-host)
-      check_tree_absent "ic-query --features icrc-host" \
-        "${forbidden_icrc_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features icrc-host
-      check_tree_absent "ic-query --features icrc-host direct dependencies" \
-        "${forbidden_direct_icrc_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features icrc-host \
-        --depth 1
+      check_feature_graph "ic-query --features icrc-host" icrc-host all \
+        "${forbidden_icrc_host_dependencies[@]}"
+      check_feature_graph "ic-query --features icrc-host direct dependencies" icrc-host 1 \
+        "${forbidden_direct_icrc_host_dependencies[@]}"
       ;;
     native:certificate-host)
-      check_tree_absent "ic-query --features certificate-host" \
-        "${forbidden_cmc_host_dependencies[@]}" \
+      check_feature_graph "ic-query --features certificate-host" certificate-host all \
+        "${forbidden_stateless_host_dependencies[@]}" \
         "${forbidden_host_dependencies[@]}" \
-        ic-host-tools/ledger-evidence \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features certificate-host
+        ic-host-tools/ledger-evidence
       ;;
     native:ledger-evidence-host)
-      check_tree_absent "ic-query --features ledger-evidence-host" \
-        "${forbidden_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features ledger-evidence-host
+      check_feature_graph "ic-query --features ledger-evidence-host" ledger-evidence-host all \
+        "${forbidden_host_dependencies[@]}"
       ;;
     native:cmc-host)
-      check_tree_absent "ic-query --features cmc-host" \
-        "${forbidden_cmc_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features cmc-host
-      check_tree_absent "ic-query --features cmc-host direct dependencies" \
-        "${forbidden_direct_cmc_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features cmc-host \
-        --depth 1
+      check_feature_graph "ic-query --features cmc-host" cmc-host all \
+        "${forbidden_stateless_host_dependencies[@]}"
+      check_feature_graph "ic-query --features cmc-host direct dependencies" cmc-host 1 \
+        "${forbidden_direct_cmc_host_dependencies[@]}"
       ;;
     native:cloud-engine-host)
-      check_tree_absent "ic-query --features cloud-engine-host" \
-        "${forbidden_cloud_engine_host_dependencies[@]}" \
+      check_feature_graph "ic-query --features cloud-engine-host" cloud-engine-host all \
+        "${forbidden_stateless_host_dependencies[@]}" \
         "${forbidden_agent_only_host_dependencies[@]}" \
-        ic-host-tools/encoding \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features cloud-engine-host
-      check_tree_absent "ic-query --features cloud-engine-host direct dependencies" \
-        "${forbidden_direct_cloud_engine_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features cloud-engine-host \
-        --depth 1
+        ic-host-tools/encoding
+      check_feature_graph "ic-query --features cloud-engine-host direct dependencies" cloud-engine-host 1 \
+        "${forbidden_direct_cloud_engine_host_dependencies[@]}"
       ;;
     native:nns-host)
-      check_tree_absent "ic-query --features nns-host direct dependencies" \
-        "${forbidden_direct_nns_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features nns-host \
-        --depth 1
+      check_feature_graph "ic-query --features nns-host direct dependencies" nns-host 1 \
+        "${forbidden_direct_nns_host_dependencies[@]}"
       ;;
     native:certified-subnet-catalog-host)
-      check_tree_absent "ic-query --features certified-subnet-catalog-host direct dependencies" \
-        "${forbidden_direct_nns_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features certified-subnet-catalog-host \
-        --depth 1
+      check_feature_graph "ic-query --features certified-subnet-catalog-host direct dependencies" certified-subnet-catalog-host 1 \
+        "${forbidden_direct_nns_host_dependencies[@]}"
       ;;
     native:sns-host)
-      check_tree_absent "ic-query --features sns-host" \
-        "${forbidden_sns_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features sns-host
-      check_tree_absent "ic-query --features sns-host direct dependencies" \
-        "${forbidden_direct_sns_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features sns-host \
-        --depth 1
+      check_feature_graph "ic-query --features sns-host" sns-host all \
+        "${forbidden_sns_host_dependencies[@]}"
+      check_feature_graph "ic-query --features sns-host direct dependencies" sns-host 1 \
+        "${forbidden_direct_sns_host_dependencies[@]}"
       ;;
     native:subnet-catalog-host)
-      check_tree_absent "ic-query --features subnet-catalog-host direct dependencies" \
-        "${forbidden_direct_registry_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features subnet-catalog-host \
-        --depth 1
+      check_feature_graph "ic-query --features subnet-catalog-host direct dependencies" subnet-catalog-host 1 \
+        "${forbidden_direct_registry_host_dependencies[@]}"
       ;;
     native:nns-topology-host)
-      check_tree_absent "ic-query --features nns-topology-host direct dependencies" \
-        "${forbidden_direct_registry_host_dependencies[@]}" \
-        -- \
-        --package ic-query \
-        --no-default-features \
-        --features nns-topology-host \
-        --depth 1
+      check_feature_graph "ic-query --features nns-topology-host direct dependencies" nns-topology-host 1 \
+        "${forbidden_direct_registry_host_dependencies[@]}"
       ;;
     *) echo "error: no dependency policy for $target:$feature" >&2; exit 1 ;;
   esac

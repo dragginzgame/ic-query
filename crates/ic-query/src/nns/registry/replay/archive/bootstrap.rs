@@ -150,26 +150,58 @@ async fn collect_and_publish(
     source: &dyn NnsCertifiedRegistryDeltaSource,
     authenticator: &dyn ArchiveBatchAuthenticator,
 ) -> Result<NnsAuthenticatedRegistryArchive, NnsCertifiedRegistryArchiveBootstrapError> {
-    let (maximum_batch_query_calls, maximum_batch_response_bytes) =
-        super::super::bootstrap::batch_reservation()?;
-    let mut publisher = NnsCertifiedRegistryArchivePublisher::new(
+    let publisher = NnsCertifiedRegistryArchivePublisher::new(
         &request.cache_root,
         &request.archive_root,
         request.bootstrap.limits,
         request.storage_limits,
     );
+    collect_archive(
+        publisher,
+        &request.bootstrap,
+        source,
+        authenticator,
+        |requested_version, source| {
+            NnsCertifiedRegistryArchiveBootstrapError::BatchAuthentication {
+                requested_version,
+                source,
+            }
+        },
+    )
+    .await
+}
+
+pub(super) async fn collect_archive<Error>(
+    mut publisher: NnsCertifiedRegistryArchivePublisher,
+    request: &NnsCertifiedRegistryBootstrapRequest,
+    source: &dyn NnsCertifiedRegistryDeltaSource,
+    authenticator: &dyn ArchiveBatchAuthenticator,
+    authentication_error: impl Fn(u64, NnsRegistryHostError) -> Error,
+) -> Result<NnsAuthenticatedRegistryArchive, Error>
+where
+    Error: From<NnsRegistryReplayError> + From<NnsCertifiedRegistryArchiveStorageError>,
+{
+    let (maximum_batch_query_calls, maximum_batch_response_bytes) =
+        super::super::bootstrap::batch_reservation()?;
     loop {
         publisher.ensure_next_batch_slot()?;
         let replay = publisher.replay_session();
-        replay.ensure_next_source_call_capacity(
-            maximum_batch_query_calls,
-            maximum_batch_response_bytes,
-        )?;
+        if replay.is_complete() {
+            replay.ensure_next_extension_source_call_capacity(
+                maximum_batch_query_calls,
+                maximum_batch_response_bytes,
+            )?;
+        } else {
+            replay.ensure_next_source_call_capacity(
+                maximum_batch_query_calls,
+                maximum_batch_response_bytes,
+            )?;
+        }
         let batch_request = NnsCertifiedRegistryDeltaBatchRequest::new(
-            &request.bootstrap.network,
-            &request.bootstrap.source_endpoint,
+            &request.network,
+            &request.source_endpoint,
             replay.state().through_version(),
-            request.bootstrap.now_unix_secs,
+            request.now_unix_secs,
         );
         let report =
             fetch_nns_certified_registry_delta_batch_with_source_async(&batch_request, source)
@@ -177,12 +209,7 @@ async fn collect_and_publish(
                 .map_err(NnsRegistryReplayError::from)?;
         let authenticated = authenticator
             .authenticate(&batch_request, &report)
-            .map_err(
-                |source| NnsCertifiedRegistryArchiveBootstrapError::BatchAuthentication {
-                    requested_version: batch_request.requested_version,
-                    source,
-                },
-            )?;
+            .map_err(|source| authentication_error(batch_request.requested_version, source))?;
         publisher.apply_batch(&authenticated)?;
         if publisher.replay_session().is_complete() {
             return publisher.finish().map_err(Into::into);

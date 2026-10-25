@@ -6,8 +6,8 @@
 
 use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
-    validate_canonical_principal, validate_collection_end, validate_offset_page,
-    validate_provenance,
+    validate_canonical_principal, validate_collection_end, validate_observation_timestamps,
+    validate_offset_page, validate_provenance,
 };
 use crate::{
     hex::is_lowercase_hex,
@@ -194,22 +194,14 @@ pub(in crate::ic) fn node_provider_reward_history_report_from_source(
             source.observations.len()
         ));
     }
-    let mut previous_timestamp = None;
-    for observation in &source.observations {
-        if !(query.start_unix_secs..=query.end_unix_secs).contains(&observation.timestamp_unix_secs)
-        {
-            return invalid_source(format!(
-                "reward-history observation timestamp {} is outside the requested window",
-                observation.timestamp_unix_secs
-            ));
-        }
-        if previous_timestamp.is_some_and(|previous| previous >= observation.timestamp_unix_secs) {
-            return invalid_source(
-                "reward-history observations must be strictly ordered by timestamp",
-            );
-        }
-        previous_timestamp = Some(observation.timestamp_unix_secs);
-    }
+    validate_observation_timestamps(
+        source
+            .observations
+            .iter()
+            .map(|observation| observation.timestamp_unix_secs),
+        query.start_unix_secs..=query.end_unix_secs,
+        "reward-history",
+    )?;
 
     Ok(IcNodeProviderRewardHistoryReport {
         provenance: report_provenance(source.source),

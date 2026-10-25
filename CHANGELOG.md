@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.72.2]
+
+- Share certified Registry archive collection and Dashboard observation checks,
+  preserving authentication, resource limits and family-specific validation.
+- Remove redundant Dashboard and ICRC conversion types; share SNS refresh request
+  construction and let shared cache reports own their schema identifier.
+- Simplify dependency-boundary checks without changing their effective rules.
+
+Detailed release notes: [docs/changelog/0.72.md](docs/changelog/0.72.md)
+
 ## [0.72.1] - 2026-10-24
 
 - Adopt IC Metrics 0.16.0 for topology percentage calculations. The arithmetic

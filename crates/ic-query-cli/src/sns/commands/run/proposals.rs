@@ -18,7 +18,7 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::sns::{
     SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRequest,
-    SnsSnapshotRefreshRequest, build_sns_proposal_report, build_sns_proposals_cache_list_report,
+    build_sns_proposal_report, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
     refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
@@ -97,21 +97,7 @@ async fn run_sns_proposal_refresh(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsPagedRefreshOptions::from_matches(matches, network);
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let cache_root = cache_root()?;
-    let format = lookup.format;
-    let request = SnsSnapshotRefreshRequest {
-        lookup: ic_query::sns::SnsLookupRequest::new(
-            lookup.network,
-            lookup.source_endpoint,
-            now_unix_secs,
-            lookup.input,
-        ),
-        cache_root,
-        page_size: options.page_size,
-        max_pages: options.max_pages,
-    };
+    let (format, request) = options.into_request(cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress).await?;
     write_text_or_json(format, &report, sns_snapshot_refresh_report_text)

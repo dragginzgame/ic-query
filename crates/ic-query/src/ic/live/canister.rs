@@ -159,7 +159,7 @@ struct DashboardCanister {
     name: String,
     subnet_id: String,
     updated_at: String,
-    upgrades: Option<Vec<DashboardCanisterUpgrade>>,
+    upgrades: Option<Vec<IcCanisterUpgrade>>,
 }
 
 impl DashboardCanister {
@@ -175,12 +175,7 @@ impl DashboardCanister {
             language: self.language,
             module_hash: self.module_hash,
             dashboard_updated_at: self.updated_at,
-            upgrades: self.upgrades.map(|upgrades| {
-                upgrades
-                    .into_iter()
-                    .map(DashboardCanisterUpgrade::into_public)
-                    .collect()
-            }),
+            upgrades: self.upgrades,
         }
     }
 }
@@ -255,23 +250,6 @@ impl DashboardCanisterPageRow {
             language: self.language,
             module_hash: self.module_hash,
             dashboard_updated_at: self.updated_at,
-        }
-    }
-}
-
-#[derive(SerdeDeserialize)]
-struct DashboardCanisterUpgrade {
-    executed_timestamp_seconds: u64,
-    module_hash: String,
-    proposal_id: u64,
-}
-
-impl DashboardCanisterUpgrade {
-    fn into_public(self) -> IcCanisterUpgrade {
-        IcCanisterUpgrade {
-            executed_timestamp_seconds: self.executed_timestamp_seconds,
-            module_hash: self.module_hash,
-            proposal_id: self.proposal_id,
         }
     }
 }

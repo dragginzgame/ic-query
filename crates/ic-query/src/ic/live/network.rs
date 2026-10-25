@@ -23,11 +23,7 @@ impl IcNetworkSource for LiveIcSource {
             let wire: DashboardBoundaryNodeDataCenters = self.fetch_live(url).await?;
             Ok(IcBoundaryNodeDataCentersSourceData {
                 source: request.clone(),
-                rows: wire
-                    .data
-                    .into_iter()
-                    .map(DashboardBoundaryNodeDataCenter::into_public)
-                    .collect(),
+                rows: wire.data,
             })
         })
     }
@@ -74,32 +70,7 @@ fn daily_stats_url(endpoint: &str, query: &IcDailyStatsQuery) -> Result<Url, IcH
 
 #[derive(SerdeDeserialize)]
 struct DashboardBoundaryNodeDataCenters {
-    data: Vec<DashboardBoundaryNodeDataCenter>,
-}
-
-#[derive(SerdeDeserialize)]
-struct DashboardBoundaryNodeDataCenter {
-    dc_id: String,
-    latitude: String,
-    longitude: String,
-    name: String,
-    owner: String,
-    region: String,
-    total_nodes: String,
-}
-
-impl DashboardBoundaryNodeDataCenter {
-    fn into_public(self) -> IcBoundaryNodeDataCenterRow {
-        IcBoundaryNodeDataCenterRow {
-            dc_id: self.dc_id,
-            name: self.name,
-            owner: self.owner,
-            region: self.region,
-            latitude: self.latitude,
-            longitude: self.longitude,
-            total_nodes: self.total_nodes,
-        }
-    }
+    data: Vec<IcBoundaryNodeDataCenterRow>,
 }
 
 #[derive(SerdeDeserialize)]
@@ -219,7 +190,7 @@ mod tests {
         )
         .expect("current boundary-node payload");
 
-        let row = wire.data.into_iter().next().expect("one row").into_public();
+        let row = wire.data.into_iter().next().expect("one row");
         assert_eq!(row.dc_id, "fr1");
         assert_eq!(row.region, "North America,US,Frankfurt");
         assert_eq!(row.total_nodes, "0");
