@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.73.0]
+## [0.73.0] - 2026-10-25
 
 - **Breaking:** SNS neuron/proposal cache listing now returns malformed or invalid
   refresh-attempt errors, matching direct cache status. Missing attempts remain
