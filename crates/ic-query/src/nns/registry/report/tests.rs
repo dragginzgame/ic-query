@@ -13,6 +13,7 @@ use super::{
 use crate::nns::{LiveNnsSource, NnsSourceRequest};
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use ic_host_artifacts::artifact::Sha256Digest;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
@@ -498,7 +499,7 @@ fn certification(timestamp_seconds: u64) -> NnsRegistryCertification {
     NnsRegistryCertification {
         certificate_verified: true,
         certificate_time_nanos: timestamp_seconds * 1_000_000_000,
-        certificate_time: crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds),
+        certificate_time: format_utc_timestamp_secs(timestamp_seconds),
         root_key_digest: "ab".repeat(32),
         certificate_hex: "cd".repeat(8),
         certificate_bytes: 8,

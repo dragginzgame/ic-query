@@ -122,10 +122,6 @@ fn account_transactions_page(
     Ok(AccountTransactionsPage {
         balance: transactions.balance.to_string(),
         oldest_transaction_id: transactions.oldest_tx_id.map(|id| id.to_string()),
-        next_start: transactions
-            .transactions
-            .last()
-            .map(|transaction| transaction.id.to_string()),
         transactions: transactions
             .transactions
             .into_iter()
@@ -382,7 +378,7 @@ mod tests {
 
         assert_eq!(page.balance, "500");
         assert_eq!(page.oldest_transaction_id.as_deref(), Some("7"));
-        assert_eq!(page.next_start.as_deref(), Some("99"));
+        assert_eq!(page.next_start(), Some("99"));
         assert_eq!(row.kind, "transfer");
         assert_eq!(row.amount_base_units.as_deref(), Some("250"));
         assert_eq!(row.fee_base_units.as_deref(), Some("10"));

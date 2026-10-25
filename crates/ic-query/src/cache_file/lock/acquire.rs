@@ -26,7 +26,7 @@ pub(super) fn acquire_refresh_lock(
     Ok(RefreshLockGuard::new(file, request.lock_path.to_path_buf()))
 }
 
-#[cfg(any(feature = "host", test))]
+#[cfg(test)]
 pub fn inspect_refresh_lock(cache_root: &Path, path: &Path) -> Result<bool, CacheFileError> {
     let file =
         crate::cache_file::confined::open_managed_file(cache_root, path)?.ok_or_else(|| {
@@ -38,10 +38,15 @@ pub fn inspect_refresh_lock(cache_root: &Path, path: &Path) -> Result<bool, Cach
                 ),
             }
         })?;
-    validate_refresh_lock(path, &file)?;
-    match try_lock_exclusive(&file) {
+    inspect_open_refresh_lock(path, &file)
+}
+
+#[cfg(any(feature = "host", test))]
+pub fn inspect_open_refresh_lock(path: &Path, file: &File) -> Result<bool, CacheFileError> {
+    validate_refresh_lock(path, file)?;
+    match try_lock_exclusive(file) {
         Ok(()) => {
-            ic_host_fs::durable::unlock(&file).map_err(|source| {
+            ic_host_fs::durable::unlock(file).map_err(|source| {
                 CacheFileError::LockRefreshLock {
                     path: path.to_path_buf(),
                     source,

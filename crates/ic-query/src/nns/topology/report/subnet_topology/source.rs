@@ -5,8 +5,8 @@ use super::{
 use crate::{
     ic_registry::{MainnetSubnetTopology, fetch_mainnet_subnet_topology},
     nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 ///
 /// NnsSubnetTopologySource

@@ -7,11 +7,9 @@ use crate::{
         model::CertifiedRegistryDeltaBatch,
         transport::{get_certified_changes_since, get_certified_latest_version},
     },
-    subnet_catalog::{
-        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs,
-        parse_utc_timestamp_secs,
-    },
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 
 pub(in crate::ic_registry) async fn fetch_mainnet_registry_version_async(
     request: &MainnetRegistryFetchRequest,

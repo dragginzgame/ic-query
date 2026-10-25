@@ -23,8 +23,13 @@ use crate::{
 pub(super) struct AccountTransactionsPage {
     pub(super) balance: String,
     pub(super) oldest_transaction_id: Option<String>,
-    pub(super) next_start: Option<String>,
     pub(super) transactions: Vec<IcrcAccountTransactionRow>,
+}
+
+impl AccountTransactionsPage {
+    pub(super) fn next_start(&self) -> Option<&str> {
+        self.transactions.last().map(|row| row.id.as_str())
+    }
 }
 
 ///
@@ -73,7 +78,7 @@ impl AccountTransactionCollectionState {
             &page.transactions,
             self.next_cursor(),
             page.oldest_transaction_id.as_deref(),
-            page.next_start.as_deref(),
+            page.next_start(),
         )
         .map_err(|error| self.incomplete(error.to_string()))?;
         if self.balance.is_some() && self.oldest_transaction_id != page.oldest_transaction_id {
@@ -85,11 +90,12 @@ impl AccountTransactionCollectionState {
             );
         }
 
+        let next_start = page.next_start().map(str::to_owned);
         if self.balance.is_none() {
             self.balance = Some(page.balance);
             self.oldest_transaction_id = page.oldest_transaction_id;
         }
-        self.pages.ingest(page.transactions, page.next_start);
+        self.pages.ingest(page.transactions, next_start);
         Ok(self.next_cursor().is_none()
             || self.next_cursor() == self.oldest_transaction_id.as_deref())
     }
@@ -163,12 +169,12 @@ mod tests {
     fn empty_first_page_initializes_collection_and_retains_its_balance() {
         let mut state =
             AccountTransactionCollectionState::new(Principal::management_canister().to_text());
-        assert!(state.ingest(page(&[], None, None), 2).unwrap());
-        let mut later_page = page(&[], None, None);
+        assert!(state.ingest(page(&[], None), 2).unwrap());
+        let mut later_page = page(&[], None);
         later_page.balance = "200".to_string();
         assert!(state.ingest(later_page, 2).unwrap());
         let changed_error = state
-            .ingest(page(&[], Some("1"), None), 2)
+            .ingest(page(&[], Some("1")), 2)
             .expect_err("oldest id must stay absent after an empty first page");
         assert!(matches!(
             changed_error,
@@ -190,12 +196,12 @@ mod tests {
 
         assert!(
             !state
-                .ingest(page(&["10", "9"], Some("8"), Some("9")), 3)
+                .ingest(page(&["10", "9"], Some("8")), 3)
                 .expect("short non-exhausting first page")
         );
         assert!(
             state
-                .ingest(page(&["8"], Some("8"), Some("8")), 2)
+                .ingest(page(&["8"], Some("8")), 2)
                 .expect("exhausting page")
         );
         let complete = state
@@ -218,10 +224,10 @@ mod tests {
         let mut duplicate =
             AccountTransactionCollectionState::new(Principal::management_canister().to_text());
         duplicate
-            .ingest(page(&["10", "9"], Some("8"), Some("9")), 2)
+            .ingest(page(&["10", "9"], Some("8")), 2)
             .expect("first page");
         let duplicate_error = duplicate
-            .ingest(page(&["9", "8"], Some("8"), Some("8")), 2)
+            .ingest(page(&["9", "8"], Some("8")), 2)
             .expect_err("overlap violates the exclusive page cursor");
         assert!(matches!(
             duplicate_error,
@@ -236,10 +242,10 @@ mod tests {
         let mut changed_oldest =
             AccountTransactionCollectionState::new(Principal::management_canister().to_text());
         changed_oldest
-            .ingest(page(&["10", "9"], Some("1"), Some("9")), 2)
+            .ingest(page(&["10", "9"], Some("1")), 2)
             .expect("first page");
         let changed_error = changed_oldest
-            .ingest(page(&["8"], Some("2"), Some("8")), 2)
+            .ingest(page(&["8"], Some("2")), 2)
             .expect_err("changed oldest transaction id");
         assert!(matches!(
             changed_error,
@@ -254,7 +260,7 @@ mod tests {
     fn invalid_later_pages_preserve_accepted_progress_and_rows() {
         let mut fresh = AccountTransactionCollectionState::new(Principal::anonymous().to_text());
         let error = fresh
-            .ingest(page(&["10"], Some("1"), Some("9")), 2)
+            .ingest(page(&["10", "11"], Some("1")), 2)
             .expect_err("invalid first page cannot capture a balance or progress");
         assert!(matches!(
             error,
@@ -265,7 +271,7 @@ mod tests {
                 ..
             }
         ));
-        let mut empty = page(&[], None, None);
+        let mut empty = page(&[], None);
         empty.balance = "200".into();
         assert!(fresh.ingest(empty, 2).unwrap());
         assert_eq!(
@@ -274,26 +280,18 @@ mod tests {
         );
 
         for invalid in [
-            page(&["8", "7", "1"], Some("1"), Some("1")),
-            page(&["7", "8"], Some("1"), Some("8")),
-            page(&["9", "8"], Some("1"), Some("8")),
-            page(&["11", "8"], Some("1"), Some("8")),
-            page(&["08"], Some("1"), Some("08")),
-            page(&["8"], Some("1"), Some("7")),
-            page(&["8"], Some("1"), Some("9")),
-            page(&["8"], Some("1"), None),
-            page(&["0"], Some("1"), Some("0")),
-            page(&["8"], None, Some("8")),
-            page(&[], Some("1"), Some("8")),
-            page(&["8", "8"], Some("1"), Some("8")),
+            page(&["8", "7", "1"], Some("1")),
+            page(&["7", "8"], Some("1")),
+            page(&["9", "8"], Some("1")),
+            page(&["11", "8"], Some("1")),
+            page(&["08"], Some("1")),
+            page(&["0"], Some("1")),
+            page(&["8"], None),
+            page(&["8", "8"], Some("1")),
         ] {
             let mut state =
                 AccountTransactionCollectionState::new(Principal::anonymous().to_text());
-            assert!(
-                !state
-                    .ingest(page(&["10", "9"], Some("1"), Some("9")), 2)
-                    .unwrap()
-            );
+            assert!(!state.ingest(page(&["10", "9"], Some("1")), 2).unwrap());
             let error = state.ingest(invalid, 2).expect_err("invalid later page");
             assert!(matches!(
                 error,
@@ -304,11 +302,7 @@ mod tests {
                     ..
                 } if cursor == "9"
             ));
-            assert!(
-                state
-                    .ingest(page(&["8", "1"], Some("1"), Some("1")), 2)
-                    .unwrap()
-            );
+            assert!(state.ingest(page(&["8", "1"], Some("1")), 2).unwrap());
             let complete = state.into_complete("TEST".into(), 8).unwrap();
             assert_eq!(complete.page_count, 2);
             assert_eq!(
@@ -328,20 +322,12 @@ mod tests {
         assert!(
             !state
                 .ingest(
-                    page(
-                        &["18446744073709551617", "18446744073709551616"],
-                        Some("9"),
-                        Some("18446744073709551616")
-                    ),
+                    page(&["18446744073709551617", "18446744073709551616"], Some("9")),
                     2,
                 )
                 .unwrap()
         );
-        assert!(
-            state
-                .ingest(page(&["10", "9"], Some("9"), Some("9")), 2)
-                .unwrap()
-        );
+        assert!(state.ingest(page(&["10", "9"], Some("9")), 2).unwrap());
         let complete = state.into_complete("TEST".into(), 8).unwrap();
         assert_eq!(
             complete
@@ -378,12 +364,10 @@ mod tests {
     fn page(
         transaction_ids: &[&str],
         oldest_transaction_id: Option<&str>,
-        next_start: Option<&str>,
     ) -> AccountTransactionsPage {
         AccountTransactionsPage {
             balance: "100".to_string(),
             oldest_transaction_id: oldest_transaction_id.map(str::to_string),
-            next_start: next_start.map(str::to_string),
             transactions: transaction_ids
                 .iter()
                 .map(|id| IcrcAccountTransactionRow {

@@ -39,7 +39,7 @@ pub use host::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
-pub(crate) use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
+
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]
 pub use model::UncertifiedCatalogCollection;

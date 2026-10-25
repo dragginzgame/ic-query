@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 #[test]
 fn stale_status_is_deterministic() {

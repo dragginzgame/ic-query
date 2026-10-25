@@ -61,12 +61,7 @@ pub(in crate::ic) fn validate_icrc_token_value_request(
 pub(in crate::ic) fn validate_icrc_token_value_query(
     query: &IcIcrcTokenValueQuery,
 ) -> Result<(), IcHostError> {
-    if query.end_unix_secs < query.start_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must be greater than or equal to query.start_unix_secs",
-        );
-    }
+    super::validate_query_time_order(query.start_unix_secs, query.end_unix_secs)?;
     if query.end_unix_secs - query.start_unix_secs > MAX_ICRC_TOKEN_VALUE_WINDOW_SECS {
         return invalid_request(
             "query",
@@ -188,12 +183,7 @@ pub(in crate::ic) fn validate_icrc_total_supply_query(
             format!("must be at least {MIN_ICRC_ANALYTICS_TIMESTAMP}"),
         );
     }
-    if query.end_unix_secs < query.start_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must be greater than or equal to query.start_unix_secs",
-        );
-    }
+    super::validate_query_time_order(query.start_unix_secs, query.end_unix_secs)?;
     if !matches!(query.step_secs, 3_600 | 86_400) {
         return invalid_request("query.step_secs", "must be either 3600 or 86400");
     }

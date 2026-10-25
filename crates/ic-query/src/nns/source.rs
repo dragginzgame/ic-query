@@ -4,10 +4,8 @@
 //! Does not own: source capability traits, report projection, or cache policy.
 //! Boundary: one adapter implements the capability traits owned by each NNS report family.
 
-use crate::{
-    ic_registry::MainnetRegistryFetchRequest, network::enforce_mainnet_network_with,
-    subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::{ic_registry::MainnetRegistryFetchRequest, network::enforce_mainnet_network_with};
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 ///
 /// LiveNnsSource

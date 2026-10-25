@@ -14,7 +14,8 @@ use super::{
     NnsGovernanceSourceSelection,
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
-use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text, parse_utc_timestamp_secs};
+use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 
 pub fn validate_governance_request(
     request: &NnsGovernanceRequest,
@@ -302,4 +303,22 @@ pub const fn collection_status_after_page(
     } else {
         super::NnsGovernanceCollectionStatus::Collecting
     }
+}
+
+pub fn validate_governance_collection_row_bounds<Error>(
+    field: &str,
+    rows: u64,
+    pages: u32,
+    page_size: u32,
+    invalid: impl FnOnce(String) -> Error,
+) -> Result<u64, Error> {
+    // Widen before multiplication: both operands originate as u32.
+    let maximum = u64::from(pages) * u64::from(page_size);
+    let minimum = u64::from(pages.saturating_sub(1)) * u64::from(page_size);
+    if rows < minimum || rows > maximum {
+        return Err(invalid(format!(
+            "{field} {rows} is outside {minimum}..={maximum} for {pages} pages of size {page_size}"
+        )));
+    }
+    Ok(maximum)
 }

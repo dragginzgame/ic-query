@@ -49,11 +49,12 @@ pub(super) async fn fetch_account_transaction_page_async(
     let page =
         query_account_transaction_page(&context, request.start.as_deref(), request.limit).await?;
 
+    let next_start = page.next_start().map(str::to_owned);
     Ok(IcrcAccountTransactionPageData {
         index_canister_id: context.index_canister.to_text(),
         balance: page.balance,
         oldest_transaction_id: page.oldest_transaction_id,
-        next_start: page.next_start,
+        next_start,
         token_symbol: context.token_symbol,
         decimals: context.decimals,
         transactions: page.transactions,

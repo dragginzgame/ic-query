@@ -5,6 +5,7 @@
 //! Boundary: returns formatted strings without selecting or writing to a process output sink.
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},
@@ -19,7 +20,6 @@ use super::model::{
 };
 use crate::{
     nns::governance::{NnsGovernanceVote, governance_context_lines, governance_source_lines},
-    subnet_catalog::format_utc_timestamp_secs,
     text_value::{optional_u64_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };

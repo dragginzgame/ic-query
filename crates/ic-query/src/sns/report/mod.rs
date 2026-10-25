@@ -48,7 +48,7 @@ use crate::hex::hex_bytes;
 #[cfg(all(test, feature = "sns-host"))]
 use crate::icrc::{IcrcMetadataValueKind, ledger::metadata_row};
 #[cfg(all(test, feature = "sns-host"))]
-use crate::subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs};
+use crate::subnet_catalog::MAINNET_NETWORK;
 #[cfg(all(test, feature = "sns-host"))]
 use neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION;
 #[cfg(all(test, feature = "sns-host"))]

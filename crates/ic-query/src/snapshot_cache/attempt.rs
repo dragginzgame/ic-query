@@ -10,6 +10,7 @@ use crate::{
         BoundedManagedFileReadError, CacheFileError, ManagedReadBudget, read_bounded_managed_file,
     },
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
 use std::{
     path::{Path, PathBuf},
@@ -36,6 +37,23 @@ pub enum SnapshotRefreshAttemptReadError {
         path: PathBuf,
         reason: String,
     },
+}
+
+impl SnapshotRefreshAttemptReadError {
+    pub fn into_error<E>(
+        self,
+        component: &'static str,
+        cache: impl FnOnce(crate::HostCacheError) -> E,
+        invalid: impl FnOnce(PathBuf, String) -> E,
+    ) -> E {
+        match self {
+            Self::Operation(source) => cache(crate::HostCacheError::operation(component, source)),
+            Self::Parse { path, source } => {
+                cache(crate::HostCacheError::parse_cache(component, path, source))
+            }
+            Self::Invalid { path, reason } => invalid(path, reason),
+        }
+    }
 }
 
 ///
@@ -84,6 +102,16 @@ pub struct SnapshotRefreshAttempt<Metadata> {
     pub rows_fetched: usize,
     pub last_cursor: Option<String>,
     pub last_error: Option<String>,
+}
+
+impl<Metadata> From<SnapshotRefreshAttempt<Metadata>> for SnapshotRefreshProgress {
+    fn from(attempt: SnapshotRefreshAttempt<Metadata>) -> Self {
+        Self::new(
+            attempt.pages_fetched,
+            attempt.rows_fetched,
+            attempt.last_cursor,
+        )
+    }
 }
 
 pub fn read_snapshot_refresh_attempt_strict<T>(
@@ -147,7 +175,7 @@ fn snapshot_attempt_read_error(
 pub fn current_attempt_timestamp(fallback: &str) -> String {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or_else(
         |_| fallback.to_string(),
-        |duration| crate::subnet_catalog::format_utc_timestamp_secs(duration.as_secs()),
+        |duration| format_utc_timestamp_secs(duration.as_secs()),
     )
 }
 

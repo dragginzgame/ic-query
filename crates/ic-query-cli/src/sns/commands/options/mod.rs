@@ -12,7 +12,9 @@ mod proposals;
 mod reward;
 
 pub(super) use list::SnsListOptions;
-pub(super) use lookup::{SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions};
+pub(super) use lookup::{
+    SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, cache_list_request,
+};
 pub(super) use metrics::SnsMetricsOptions;
 pub(super) use neurons::{SnsNeuronOptions, SnsNeuronsOptions};
 pub(super) use proposals::{SnsProposalOptions, SnsProposalsOptions};

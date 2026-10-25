@@ -19,9 +19,10 @@ use crate::{
         },
     },
     snapshot_cache::{SnapshotJsonPaths, SnapshotKey},
-    subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
+    subnet_catalog::MAINNET_NETWORK,
 };
 use ic_host_artifacts::artifact::HashingWriter;
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use std::{
     io::{self, Write},

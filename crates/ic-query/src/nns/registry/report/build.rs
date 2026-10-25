@@ -10,8 +10,9 @@ use crate::{
     certification::validate_certificate_time,
     hex::{HexEvidenceError, is_lowercase_hex, validate_nonempty_hex_evidence},
     nns::{LiveNnsSource, NnsSourceRequest},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);
 

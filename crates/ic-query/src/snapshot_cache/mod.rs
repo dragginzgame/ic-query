@@ -20,9 +20,9 @@ mod refresh;
 
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub use attempt::{
-    SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-    SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
-    read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+    SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, SnapshotRefreshProgress,
+    current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
+    validate_snapshot_refresh_attempt,
 };
 #[cfg(any(feature = "dashboard-host", feature = "nns-host", feature = "sns-host"))]
 pub use json::load_complete_snapshot_for_key;
@@ -48,3 +48,6 @@ pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress
 
 #[cfg(all(test, feature = "host"))]
 mod tests;
+
+#[cfg(all(test, feature = "host"))]
+pub use attempt::SnapshotRefreshAttemptReadError;

@@ -22,8 +22,9 @@ use crate::{
         fetch_mainnet_certified_registry_delta_batch_async, fetch_mainnet_registry_version,
     },
     nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::{future::Future, pin::Pin};
 
 ///

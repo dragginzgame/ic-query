@@ -16,9 +16,10 @@ use crate::{
     subnet_catalog::{
         CatalogValidationContext, DEFAULT_CATALOG_MAX_FUTURE_SKEW_SECONDS,
         MAINNET_REGISTRY_CANISTER_ID, SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION,
-        SubnetCatalogRefreshReport, ValidatedSubnetCatalog, format_utc_timestamp_secs,
+        SubnetCatalogRefreshReport, ValidatedSubnetCatalog,
     },
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::{
     path::{Path, PathBuf},
     sync::{

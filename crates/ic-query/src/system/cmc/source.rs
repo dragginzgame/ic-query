@@ -12,8 +12,8 @@ use crate::{
     agent::build_ic_agent,
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{HashTree, LookupResult};
 

@@ -12,10 +12,9 @@ use super::{
     MAX_IC_API_BOUNDARY_NODE_ROWS,
 };
 #[cfg(feature = "ic-state-host")]
-use crate::{
-    certification::{CertifiedDataError, validate_certificate_time},
-    subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::certification::{CertifiedDataError, validate_certificate_time};
+#[cfg(feature = "ic-state-host")]
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 #[cfg(feature = "ic-state-host")]
 use std::{
     collections::HashSet,

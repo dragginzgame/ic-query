@@ -2,6 +2,7 @@ use super::{fixtures::*, *};
 use crate::QueryProgressEvent;
 use crate::sns::report::sns_swap_lifecycle_name;
 use crate::test_support::temp_dir;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::{fs, sync::Mutex};
 
 #[tokio::test(flavor = "current_thread")]
@@ -812,7 +813,7 @@ async fn direct_lookup_enriches_only_the_resolved_sns() {
         assert_eq!(report.fetched_by, "ic-query");
         assert_eq!(
             report.fetched_at,
-            crate::subnet_catalog::format_utc_timestamp_secs(request.now_unix_secs)
+            format_utc_timestamp_secs(request.now_unix_secs)
         );
         assert_eq!(
             source.metadata_targets.lock().unwrap().as_slice(),

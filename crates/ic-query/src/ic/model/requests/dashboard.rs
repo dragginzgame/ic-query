@@ -30,7 +30,7 @@ impl IcDashboardRequest {
     pub fn source_request(&self) -> crate::ic::IcSourceRequest {
         crate::ic::IcSourceRequest::new(
             &self.source_endpoint,
-            crate::subnet_catalog::format_utc_timestamp_secs(self.now_unix_secs),
+            ic_host_text::timestamp::format_utc_timestamp_secs(self.now_unix_secs),
             "ic-query",
         )
     }

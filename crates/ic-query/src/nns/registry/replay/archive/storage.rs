@@ -22,9 +22,9 @@ use crate::{
         NnsRegistryHostError, NnsRegistryReplayProgress, NnsRegistryReplaySessionLimits,
         reauthenticate_nns_certified_registry_delta_batch,
     },
-    subnet_catalog::parse_utc_timestamp_secs,
 };
 use ic_host_artifacts::artifact::{BoundedWriter, HashingWriter, Sha256Digest};
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use std::{
     io,
     path::{Path, PathBuf},

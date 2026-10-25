@@ -7,8 +7,9 @@ use crate::{
     HostCacheError,
     ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest},
     progress::IgnoreQueryProgress,
-    subnet_catalog::parse_utc_timestamp_secs,
 };
+#[cfg(feature = "dashboard-host")]
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 #[cfg(feature = "dashboard-host")]
 use std::{fs, sync::Mutex};
 

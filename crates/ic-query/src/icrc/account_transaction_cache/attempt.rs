@@ -17,12 +17,13 @@ use crate::{
         },
     },
     snapshot_cache::{
-        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
-        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, SnapshotRefreshProgress,
+        current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
+        validate_snapshot_refresh_attempt,
     },
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+    subnet_catalog::MAINNET_NETWORK,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::Path;
@@ -54,7 +55,13 @@ pub(super) fn read_refresh_attempt_status(
         path,
         None,
     )
-    .map_err(map_attempt_read_error)?
+    .map_err(|error| {
+        error.into_error(
+            ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
+            IcrcAccountTransactionError::from,
+            |path, reason| IcrcAccountTransactionError::InvalidRefreshAttempt { path, reason },
+        )
+    })?
     .map(|attempt| {
         validate_attempt(path, request, &attempt)?;
         Ok(IcrcAccountTransactionRefreshAttemptStatus {
@@ -213,19 +220,4 @@ fn validate_attempt(
         validate_transaction_cursor_text(cursor).map_err(|error| invalid(error.to_string()))?;
     }
     Ok(())
-}
-
-fn map_attempt_read_error(error: SnapshotRefreshAttemptReadError) -> IcrcAccountTransactionError {
-    match error {
-        SnapshotRefreshAttemptReadError::Operation(source) => {
-            HostCacheError::operation(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, source).into()
-        }
-        SnapshotRefreshAttemptReadError::Parse { path, source } => {
-            HostCacheError::parse_cache(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, path, source)
-                .into()
-        }
-        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
-            IcrcAccountTransactionError::InvalidRefreshAttempt { path, reason }
-        }
-    }
 }

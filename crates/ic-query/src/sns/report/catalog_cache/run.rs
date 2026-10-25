@@ -34,8 +34,8 @@ use crate::{
         },
         view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
     },
-    subnet_catalog::parse_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 

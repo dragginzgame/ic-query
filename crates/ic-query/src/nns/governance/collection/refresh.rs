@@ -14,8 +14,9 @@ use crate::{
         publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
         with_locked_snapshot_refresh,
     },
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+    subnet_catalog::MAINNET_NETWORK,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use serde::Serialize;
 use std::fmt::Display;
 

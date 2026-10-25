@@ -552,7 +552,7 @@ fn validate_collection_time(
         value: raw.provenance.fetched_at.clone(),
     };
     let fetched_at_unix_secs =
-        crate::subnet_catalog::parse_utc_timestamp_secs(&raw.provenance.fetched_at)
+        ic_host_text::timestamp::parse_utc_timestamp_secs(&raw.provenance.fetched_at)
             .ok_or_else(invalid_timestamp)?;
     let latest_allowed = context
         .now_unix_secs
@@ -785,7 +785,7 @@ fn validate_certified_assurance(raw: &RawSubnetCatalog) -> Result<(), CatalogErr
             reason: "minimum certificate time exceeds maximum certificate time".to_string(),
         });
     }
-    let maximum_certificate_time = crate::subnet_catalog::format_utc_timestamp_secs(
+    let maximum_certificate_time = ic_host_text::timestamp::format_utc_timestamp_secs(
         evidence.maximum_certificate_time_nanos / 1_000_000_000,
     );
     if raw.provenance.fetched_at != maximum_certificate_time {

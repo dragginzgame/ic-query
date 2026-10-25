@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     CacheFileError,
-    cache_file::{inspect_refresh_lock, open_managed_file},
+    cache_file::{inspect_open_refresh_lock, open_managed_file},
 };
 use std::path::Path;
 
@@ -15,15 +15,21 @@ pub(super) fn refresh_lock_status_row(
     path: &Path,
 ) -> Result<CacheRefreshLockStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
-    let size_bytes = open_managed_file(root, path)?
-        .map(|file| file.metadata().map(|m| m.len()))
-        .transpose()
+    let file = open_managed_file(root, path)?.ok_or_else(|| CacheFileError::ReadRefreshLock {
+        path: path.to_path_buf(),
+        source: std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "refresh coordination file disappeared",
+        ),
+    })?;
+    let size_bytes = file
+        .metadata()
         .map_err(|source| CacheFileError::ReadRefreshLock {
             path: path.to_path_buf(),
             source,
         })?
-        .unwrap_or(0);
-    let (status, error) = match inspect_refresh_lock(root, path) {
+        .len();
+    let (status, error) = match inspect_open_refresh_lock(path, &file) {
         Ok(true) => (CacheRefreshLockStatus::Active, None),
         Ok(false) => (CacheRefreshLockStatus::Available, None),
         Err(error @ CacheFileError::InvalidRefreshLock { .. }) => {

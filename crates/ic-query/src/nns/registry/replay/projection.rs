@@ -21,9 +21,9 @@ use crate::{
         CertifiedRegistryCatalogEvidence, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
         RawSubnetCatalog, RoutingRange, SubnetCatalogProvenance, SubnetCatalogRoutingSource,
         SubnetInfo, ValidatedSubnetCatalog, canonicalize_subnet_catalog_content,
-        format_utc_timestamp_secs,
     },
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_tools::registry::proto::RoutingTable;
 use ic_host_tools::registry::proto::SubnetListRecord;
 use ic_host_tools::registry::proto::SubnetRecord;

@@ -4,8 +4,8 @@
 //! Does not own: neuron fetching, cache sorting, report construction, or JSON output.
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
-use crate::subnet_catalog::format_utc_timestamp_secs;
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},

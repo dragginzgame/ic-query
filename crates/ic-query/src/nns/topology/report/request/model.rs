@@ -39,7 +39,7 @@ impl NnsTopologyReadRequest {
         crate::nns::NnsSourceRequest::new(
             &self.network,
             &self.source_endpoint,
-            crate::subnet_catalog::format_utc_timestamp_secs(self.now_unix_secs),
+            ic_host_text::timestamp::format_utc_timestamp_secs(self.now_unix_secs),
             "ic-query",
         )
     }

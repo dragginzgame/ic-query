@@ -16,20 +16,18 @@ use super::{
     LiveIcrcSource,
     account_transactions::{normalize_transaction_cursor, validate_account_transaction_page},
 };
-use crate::{
-    icrc::{
-        ledger::principal_from_text,
-        model::{
-            IcrcAccountTransactionError, IcrcAccountTransactionPageReport,
-            IcrcAccountTransactionPageRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
-            IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
-            IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcError, IcrcIndexReport,
-            IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
-            IcrcTransactionsRequest, normalize_optional_subaccount_hex,
-        },
+use crate::icrc::{
+    ledger::principal_from_text,
+    model::{
+        IcrcAccountTransactionError, IcrcAccountTransactionPageReport,
+        IcrcAccountTransactionPageRequest, IcrcAllowanceReport, IcrcAllowanceRequest,
+        IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceReport, IcrcBalanceRequest,
+        IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcError, IcrcIndexReport,
+        IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionsReport,
+        IcrcTransactionsRequest, normalize_optional_subaccount_hex,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 pub async fn build_icrc_token_report(
     request: &IcrcLedgerRequest,

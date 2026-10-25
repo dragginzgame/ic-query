@@ -59,13 +59,10 @@ fn row(
 #[cfg(feature = "ic-state-host")]
 mod host {
     use super::*;
-    use crate::{
-        ic::{
-            DEFAULT_IC_STATE_SOURCE_ENDPOINT, IcApiBoundaryNodeHostError, IcApiBoundaryNodeSource,
-            IcApiBoundaryNodeSourceData, IcApiBoundaryNodeSourceRequest,
-            build_ic_api_boundary_node_report_with_source,
-        },
-        subnet_catalog::format_utc_timestamp_secs,
+    use crate::ic::{
+        DEFAULT_IC_STATE_SOURCE_ENDPOINT, IcApiBoundaryNodeHostError, IcApiBoundaryNodeSource,
+        IcApiBoundaryNodeSourceData, IcApiBoundaryNodeSourceRequest,
+        build_ic_api_boundary_node_report_with_source,
     };
     use ic_platform::candid::contract::Principal;
     use ic_platform::certification::{Certificate, HashTree, fork, labeled as label, leaf};
@@ -258,7 +255,7 @@ mod host {
             endpoint: DEFAULT_IC_STATE_SOURCE_ENDPOINT.to_string(),
             effective_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
             observed_at_unix_seconds: NOW,
-            fetched_at: format_utc_timestamp_secs(NOW),
+            fetched_at: ic_host_text::timestamp::format_utc_timestamp_secs(NOW),
             fetched_by: "ic-query".to_string(),
         }
     }

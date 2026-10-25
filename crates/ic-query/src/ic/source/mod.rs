@@ -240,3 +240,13 @@ fn validate_observation_timestamps(
     }
     Ok(())
 }
+
+fn validate_query_time_order(start: u64, end: u64) -> Result<(), IcHostError> {
+    if end < start {
+        return invalid_request(
+            "query.end_unix_secs",
+            "must be greater than or equal to query.start_unix_secs",
+        );
+    }
+    Ok(())
+}

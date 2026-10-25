@@ -6,6 +6,7 @@
 
 use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::escape::terminal_text;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 #[cfg(feature = "sns-host")]
 use crate::sns::report::SnsCacheSummary;
@@ -15,8 +16,6 @@ use crate::{
     text_value::yes_no,
     token_amount::e8s_decimal_text,
 };
-
-use crate::subnet_catalog::format_utc_timestamp_secs;
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 

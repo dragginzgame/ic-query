@@ -44,12 +44,7 @@ pub(in crate::ic) fn validate_metric_query(query: &IcMetricQuery) -> Result<(), 
             format!("must be at least {MIN_IC_METRIC_TIMESTAMP}"),
         );
     }
-    if query.end_unix_secs < query.start_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must be greater than or equal to query.start_unix_secs",
-        );
-    }
+    super::validate_query_time_order(query.start_unix_secs, query.end_unix_secs)?;
     if !(1..=MAX_IC_METRIC_STEP_SECS).contains(&query.step_secs) {
         return invalid_request(
             "query.step_secs",

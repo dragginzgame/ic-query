@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.73.1]
+
+- Inspect refresh coordination-file size and lock state through one file handle.
+- Consolidate cache-attempt error/progress handling, Governance row bounds and
+  Dashboard request validation while preserving family-specific behavior.
+- Remove redundant private account-history cursors and replica rollout wire rows;
+  simplify SNS cache request mapping and consume Host timestamps directly.
+
+Detailed release notes: [docs/changelog/0.73.md](docs/changelog/0.73.md)
+
 ## [0.73.0] - 2026-10-25
 
 - **Breaking:** SNS neuron/proposal cache listing now returns malformed or invalid

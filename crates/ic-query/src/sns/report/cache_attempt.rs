@@ -10,8 +10,8 @@ use crate::{
     cache::CacheRefreshAttemptStatus,
     snapshot_cache::{
         PagedCollectionPage, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshAttemptReadError, SnapshotRefreshProgress, current_attempt_timestamp,
-        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        SnapshotRefreshProgress, current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
+        validate_snapshot_refresh_attempt,
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
@@ -139,13 +139,10 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     )
     .ok()
     .flatten();
-    let progress = latest.map_or_else(SnapshotRefreshProgress::default, |attempt| {
-        SnapshotRefreshProgress::new(
-            attempt.pages_fetched,
-            attempt.rows_fetched,
-            attempt.last_cursor,
-        )
-    });
+    let progress = latest.map_or_else(
+        SnapshotRefreshProgress::default,
+        SnapshotRefreshProgress::from,
+    );
     let _ = write_sns_refresh_attempt_status(
         context,
         CacheRefreshAttemptStatus::Failed,
@@ -231,16 +228,10 @@ fn read_sns_refresh_attempt(
     budget: Option<&mut ManagedReadBudget>,
 ) -> Result<Option<SnsRefreshAttempt>, SnsHostError> {
     read_snapshot_refresh_attempt_strict::<SnsRefreshAttempt>(cache_root, path, budget)
-        .map_err(|error| match error {
-            SnapshotRefreshAttemptReadError::Operation(source) => {
-                SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source))
-            }
-            SnapshotRefreshAttemptReadError::Parse { path, source } => SnsHostError::from(
-                HostCacheError::parse_cache(SNS_CACHE_COMPONENT, path, source),
-            ),
-            SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
+        .map_err(|error| {
+            error.into_error(SNS_CACHE_COMPONENT, SnsHostError::from, |path, reason| {
                 SnsHostError::InvalidRefreshAttempt { path, reason }
-            }
+            })
         })?
         .map(|attempt| {
             validate_sns_refresh_attempt(path, expected_network, &attempt)?;

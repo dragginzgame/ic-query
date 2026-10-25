@@ -10,10 +10,10 @@ use crate::{
     subnet_catalog::{
         CATALOG_SCHEMA_VERSION, CatalogAssurance, CatalogError, CatalogValidationContext,
         MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogRoutingSource, SubnetKind,
-        SubnetSpecialization, ValidatedSubnetCatalog, catalog_to_pretty_json,
-        format_utc_timestamp_secs, parse_catalog_json,
+        SubnetSpecialization, ValidatedSubnetCatalog, catalog_to_pretty_json, parse_catalog_json,
     },
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_tools::registry::proto::{
     CanisterId, CanisterIdRange, PrincipalId, RoutingTable, RoutingTableEntry, SubnetId,
     SubnetListRecord, SubnetRecord, SubnetType,

@@ -4,6 +4,7 @@
 //! Does not own: cache refresh, family-specific schema validation, or deletion.
 //! Boundary: coordinates local discovery and row projection without network access.
 
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 mod discovery;
 mod header;
 mod locks;
@@ -14,9 +15,7 @@ use super::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRefreshLockStatus,
     CacheRefreshLockStatusRow, CacheStatusReport, CacheStatusRequest, CacheStatusRow,
 };
-use crate::{
-    CacheFileError, cache_file::ManagedReadBudget, subnet_catalog::format_utc_timestamp_secs,
-};
+use crate::{CacheFileError, cache_file::ManagedReadBudget};
 use discovery::{CACHE_STATUS_SCAN_LIMIT, collect_inventory_paths};
 use header::cache_status_row;
 use locks::refresh_lock_status_row;

@@ -17,12 +17,12 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsProposalRequest, SnsProposalsRequest,
-    build_sns_proposal_report, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
-    refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
-    sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
-    sns_proposals_report_text, sns_snapshot_refresh_report_text,
+    SnsProposalRequest, SnsProposalsRequest, build_sns_proposal_report,
+    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
+    build_sns_proposals_report_with_progress, refresh_sns_proposals_cache_with_progress,
+    sns_proposal_report_text, sns_proposals_cache_list_report_text,
+    sns_proposals_cache_status_report_text, sns_proposals_report_text,
+    sns_snapshot_refresh_report_text,
 };
 pub(super) async fn run_sns_proposal(
     matches: &ArgMatches,
@@ -113,17 +113,10 @@ fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Sns
 
 fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let cache_root = cache_root()?;
-    let request = SnsCacheListRequest {
-        network: options.network,
-        cache_root,
-    };
+    let (format, request) =
+        crate::sns::commands::options::cache_list_request(options, cache_root()?);
     let report = build_sns_proposals_cache_list_report(&request)?;
-    write_text_or_json(
-        options.format,
-        &report,
-        sns_proposals_cache_list_report_text,
-    )
+    write_text_or_json(format, &report, sns_proposals_cache_list_report_text)
 }
 
 fn run_sns_proposal_cache_status(
@@ -131,16 +124,7 @@ fn run_sns_proposal_cache_status(
     network: &str,
 ) -> Result<(), SnsCommandError> {
     let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let cache_root = cache_root()?;
-    let request = SnsCacheStatusRequest {
-        network: options.network,
-        cache_root,
-        input: options.input,
-    };
+    let (format, request) = options.into_request(cache_root()?);
     let report = build_sns_proposals_cache_status_report(&request)?;
-    write_text_or_json(
-        options.format,
-        &report,
-        sns_proposals_cache_status_report_text,
-    )
+    write_text_or_json(format, &report, sns_proposals_cache_status_report_text)
 }

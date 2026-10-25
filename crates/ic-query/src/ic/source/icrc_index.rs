@@ -357,10 +357,7 @@ fn validate_opaque_value(field: &'static str, value: &str) -> Result<(), IcHostE
 }
 
 fn validate_source_opaque_value(field: &str, value: &str) -> Result<(), IcHostError> {
-    if value.is_empty()
-        || value.trim() != value
-        || value.chars().count() > MAX_ICRC_INDEX_CURSOR_CHARS
-    {
+    if validate_opaque_value("cursor", value).is_err() {
         return invalid_source(format!(
             "{field} must contain 1 to {MAX_ICRC_INDEX_CURSOR_CHARS} characters without surrounding whitespace"
         ));

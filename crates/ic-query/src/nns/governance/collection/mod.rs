@@ -4,6 +4,7 @@
 //! Does not own: proposal or neuron paging, cache paths, or report rendering.
 //! Boundary: centralizes shared DTOs plus attempt construction and validation.
 
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 mod cache;
 pub(in crate::nns) use cache::governance_snapshot_matches;
 pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
@@ -18,11 +19,9 @@ use crate::{
     nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{
         SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotEnvelope, SnapshotJsonPaths,
-        SnapshotRefreshAttempt, SnapshotRefreshAttemptReadError, SnapshotRefreshProgress,
-        current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
-        validate_snapshot_refresh_attempt,
+        SnapshotRefreshAttempt, SnapshotRefreshProgress, current_attempt_timestamp,
+        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -285,18 +284,6 @@ pub(in crate::nns) fn governance_refresh_attempt_status<Metadata>(
     }
 }
 
-/// Recover collection progress from one stored NNS Governance attempt.
-#[must_use]
-pub(in crate::nns) fn governance_refresh_progress<Metadata>(
-    attempt: SnapshotRefreshAttempt<Metadata>,
-) -> SnapshotRefreshProgress {
-    SnapshotRefreshProgress::new(
-        attempt.pages_fetched,
-        attempt.rows_fetched,
-        attempt.last_cursor,
-    )
-}
-
 /// Strictly read and validate one NNS Governance refresh-attempt sidecar.
 pub(in crate::nns) fn read_governance_refresh_attempt(
     cache_root: &Path,
@@ -308,20 +295,12 @@ pub(in crate::nns) fn read_governance_refresh_attempt(
     let attempt = read_snapshot_refresh_attempt_strict::<
         SnapshotRefreshAttempt<NnsGovernanceCacheMetadata>,
     >(cache_root, path, None)
-    .map_err(|error| match error {
-        SnapshotRefreshAttemptReadError::Operation(source) => {
-            NnsGovernanceAttemptReadError::Cache(HostCacheError::operation(cache_component, source))
-        }
-        SnapshotRefreshAttemptReadError::Parse { path, source } => {
-            NnsGovernanceAttemptReadError::Cache(HostCacheError::parse_cache(
-                cache_component,
-                path,
-                source,
-            ))
-        }
-        SnapshotRefreshAttemptReadError::Invalid { path, reason } => {
-            NnsGovernanceAttemptReadError::Invalid { path, reason }
-        }
+    .map_err(|error| {
+        error.into_error(
+            cache_component,
+            NnsGovernanceAttemptReadError::Cache,
+            |path, reason| NnsGovernanceAttemptReadError::Invalid { path, reason },
+        )
     })?;
     attempt
         .map(|attempt| {
@@ -446,7 +425,7 @@ pub(in crate::nns) fn write_failed_governance_refresh_attempt(
     )
     .ok()
     .flatten()
-    .map(governance_refresh_progress)
+    .map(SnapshotRefreshProgress::from)
     .unwrap_or_default();
     write_governance_refresh_attempt(
         path,

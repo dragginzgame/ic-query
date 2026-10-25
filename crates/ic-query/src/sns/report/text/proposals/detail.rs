@@ -5,7 +5,7 @@
 //! Boundary: formats proposal detail lines and ballot tables for proposal text reports.
 
 use crate::sns::report::{sns_proposal_action_label, sns_proposal_vote_label};
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{

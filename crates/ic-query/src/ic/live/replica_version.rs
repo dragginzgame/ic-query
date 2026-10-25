@@ -109,7 +109,7 @@ struct DashboardReplicaVersionListRow {
     proposal_id: u64,
     replica_version_id: String,
     status: String,
-    subnets: Vec<DashboardReplicaVersionSubnet>,
+    subnets: Vec<IcReplicaVersionSubnetRollout>,
     title: String,
     url: String,
 }
@@ -125,11 +125,7 @@ impl DashboardReplicaVersionListRow {
             title: self.title,
             url: self.url,
             subnet_count,
-            subnets: self
-                .subnets
-                .into_iter()
-                .map(DashboardReplicaVersionSubnet::into_public)
-                .collect(),
+            subnets: self.subnets,
         })
     }
 }
@@ -139,7 +135,7 @@ struct DashboardReplicaVersionInfo {
     executed_timestamp_seconds: u64,
     proposal_id: u64,
     replica_version_id: String,
-    subnets: Vec<DashboardReplicaVersionSubnet>,
+    subnets: Vec<IcReplicaVersionSubnetRollout>,
     summary: String,
     title: String,
     url: String,
@@ -155,28 +151,7 @@ impl DashboardReplicaVersionInfo {
             title: self.title,
             url: self.url,
             summary: self.summary,
-            subnets: self
-                .subnets
-                .into_iter()
-                .map(DashboardReplicaVersionSubnet::into_public)
-                .collect(),
-        }
-    }
-}
-
-#[derive(SerdeDeserialize)]
-struct DashboardReplicaVersionSubnet {
-    executed_timestamp_seconds: u64,
-    proposal_id: u64,
-    subnet_id: String,
-}
-
-impl DashboardReplicaVersionSubnet {
-    fn into_public(self) -> IcReplicaVersionSubnetRollout {
-        IcReplicaVersionSubnetRollout {
-            subnet_id: self.subnet_id,
-            proposal_id: self.proposal_id,
-            executed_timestamp_seconds: self.executed_timestamp_seconds,
+            subnets: self.subnets,
         }
     }
 }
@@ -226,7 +201,12 @@ mod tests {
                     "proposal_id": 143406,
                     "replica_version_id": "{VERSION_ID}",
                     "status": "OPEN",
-                    "subnets": [],
+                    "subnets": [{{
+                        "subnet_id": "aaaaa-aa",
+                        "proposal_id": 143400,
+                        "executed_timestamp_seconds": 100,
+                        "future_field": "ignored"
+                    }}],
                     "summary": "large detail is available through info",
                     "title": "Elect release",
                     "url": "https://forum.dfinity.org/t/release/1"
@@ -246,6 +226,15 @@ mod tests {
         assert_eq!(source.rows[0].status, IcReplicaVersionStatus::Open);
         assert_eq!(source.rows[0].executed_timestamp_seconds, 0);
         assert_eq!(source.resolved_max_proposal_index, 2);
+        assert_eq!(source.rows[0].subnet_count, 1);
+        assert_eq!(
+            source.rows[0].subnets[0],
+            IcReplicaVersionSubnetRollout {
+                subnet_id: "aaaaa-aa".to_string(),
+                proposal_id: 143_400,
+                executed_timestamp_seconds: 100,
+            }
+        );
     }
 
     #[test]

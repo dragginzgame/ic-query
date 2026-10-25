@@ -9,10 +9,9 @@ use super::{
     MAX_IC_NODE_STATUS_ROWS,
 };
 use crate::{
-    http_endpoint::parse_http_endpoint,
-    ic::IC_DASHBOARD_AUTHORITY,
-    subnet_catalog::{MAINNET_NETWORK, parse_utc_timestamp_secs},
+    http_endpoint::parse_http_endpoint, ic::IC_DASHBOARD_AUTHORITY, subnet_catalog::MAINNET_NETWORK,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use std::collections::HashMap;
 #[cfg(feature = "dashboard-host")]
 use std::collections::HashSet;

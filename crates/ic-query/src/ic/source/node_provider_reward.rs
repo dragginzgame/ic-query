@@ -75,12 +75,7 @@ pub(in crate::ic) fn validate_node_provider_reward_history_request(
 pub(in crate::ic) fn validate_node_provider_reward_history_query(
     query: &IcNodeProviderRewardHistoryQuery,
 ) -> Result<(), IcHostError> {
-    if query.end_unix_secs < query.start_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must be greater than or equal to query.start_unix_secs",
-        );
-    }
+    super::validate_query_time_order(query.start_unix_secs, query.end_unix_secs)?;
     if !(MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS
         ..=MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS)
         .contains(&query.step_secs)

@@ -10,6 +10,7 @@ use crate::{
     },
     test_support::temp_dir,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use serde_json::json;
 use std::{
@@ -378,12 +379,9 @@ async fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
             .await
             .expect("refresh stale cache");
     assert_eq!(source.calls.load(Ordering::Relaxed), 2);
-    let completed = crate::subnet_catalog::parse_utc_timestamp_secs(
-        &refreshed.snapshot.collection_completed_at,
-    )
-    .unwrap();
+    let completed = parse_utc_timestamp_secs(&refreshed.snapshot.collection_completed_at).unwrap();
     assert_eq!(
-        crate::subnet_catalog::parse_utc_timestamp_secs(&refreshed.snapshot.collection_started_at),
+        parse_utc_timestamp_secs(&refreshed.snapshot.collection_started_at),
         Some(stale_request.now_unix_secs)
     );
     assert!(completed >= stale_request.now_unix_secs);

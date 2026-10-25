@@ -20,8 +20,9 @@ use crate::{
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         model::reports::{SnsGovernanceParameters, SnsRunningVersionResponse},
     },
-    subnet_catalog::{MAINNET_NETWORK, format_utc_timestamp_secs},
+    subnet_catalog::MAINNET_NETWORK,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;

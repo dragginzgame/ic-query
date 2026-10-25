@@ -12,8 +12,9 @@ use crate::{
     },
     freshness::freshness_facts,
     nns::LiveNnsSource,
-    subnet_catalog::{MAINNET_REGISTRY_CANISTER_ID, parse_utc_timestamp_secs},
+    subnet_catalog::MAINNET_REGISTRY_CANISTER_ID,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use std::path::{Path, PathBuf};
 
 const CACHE_DIR: &str = "subnet-topology";

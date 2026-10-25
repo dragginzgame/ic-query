@@ -165,10 +165,6 @@ fn account_transactions_page(
     Ok(AccountTransactionsPage {
         balance: nat_text(&transactions.balance),
         oldest_transaction_id: transactions.oldest_tx_id.as_ref().map(nat_text),
-        next_start: transactions
-            .transactions
-            .last()
-            .map(|transaction| nat_text(&transaction.id)),
         transactions: transactions
             .transactions
             .into_iter()

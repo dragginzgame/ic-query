@@ -11,11 +11,9 @@ use crate::{
     HostCacheError, QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
     nns::leaf::write_nns_leaf_json_refresh_cache,
-    subnet_catalog::{
-        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text,
-        format_utc_timestamp_secs, parse_utc_timestamp_secs,
-    },
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text},
 };
+use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 use serde::Serialize;
 use std::path::PathBuf;
 

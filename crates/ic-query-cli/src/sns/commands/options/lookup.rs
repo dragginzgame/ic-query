@@ -6,10 +6,12 @@
 
 use crate::cli::{
     clap::{required_string, required_typed, typed_option},
-    common::{OutputFormat, output_format},
+    common::{NetworkOutputOptions, OutputFormat, output_format},
 };
 use clap::ArgMatches;
-use ic_query::sns::{SnsLookupRequest, SnsSnapshotRefreshRequest};
+use ic_query::sns::{
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsLookupRequest, SnsSnapshotRefreshRequest,
+};
 use std::path::PathBuf;
 
 ///
@@ -95,6 +97,20 @@ pub(in crate::sns::commands) struct SnsCacheStatusOptions {
 }
 
 impl SnsCacheStatusOptions {
+    pub(in crate::sns::commands) fn into_request(
+        self,
+        cache_root: PathBuf,
+    ) -> (OutputFormat, SnsCacheStatusRequest) {
+        (
+            self.format,
+            SnsCacheStatusRequest {
+                network: self.network,
+                cache_root,
+                input: self.input,
+            },
+        )
+    }
+
     pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
             input: required_string(matches, "input"),
@@ -102,4 +118,17 @@ impl SnsCacheStatusOptions {
             format: output_format(matches),
         }
     }
+}
+
+pub(in crate::sns::commands) fn cache_list_request(
+    options: NetworkOutputOptions,
+    cache_root: PathBuf,
+) -> (OutputFormat, SnsCacheListRequest) {
+    (
+        options.format,
+        SnsCacheListRequest {
+            network: options.network,
+            cache_root,
+        },
+    )
 }

@@ -8,7 +8,8 @@ use crate::sns::report::{
     SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, enforce_mainnet_network,
     source::SnsSourceRequest,
 };
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
+
 use ic_platform::candid::contract::Principal;
 
 /// Parse and normalize an SNS root canister principal input.

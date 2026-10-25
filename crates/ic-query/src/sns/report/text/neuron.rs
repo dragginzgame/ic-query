@@ -4,8 +4,8 @@
 //! Does not own: live fetching, source validation, or JSON serialization.
 //! Boundary: formats raw neuron, permission, disbursement, and followee evidence.
 
-use crate::subnet_catalog::format_utc_timestamp_secs;
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},

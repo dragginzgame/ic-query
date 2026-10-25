@@ -12,8 +12,8 @@ use crate::{
         SnsRewardCheckpointSummary, SnsRewardCollectionStatus, SnsRewardEvent,
         SnsRunningVersionResponse, SnsSourceRequest,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 ///
 /// SnsRewardCheckpointReportParts

@@ -9,9 +9,8 @@ use crate::sns::commands::options::SnsCacheStatusOptions;
 use crate::{cli::common::write_text_or_json, sns::commands::SnsCommandError, storage::cache_root};
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsCacheListRequest, SnsCacheStatusRequest, build_sns_neurons_cache_list_report,
-    build_sns_neurons_cache_status_report, sns_neurons_cache_list_report_text,
-    sns_neurons_cache_status_report_text,
+    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+    sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
 };
 pub(super) fn run_sns_neuron_cache(
     matches: &ArgMatches,
@@ -26,27 +25,15 @@ pub(super) fn run_sns_neuron_cache(
 
 fn run_sns_neuron_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = NetworkOutputOptions::from_matches(matches, network);
-    let cache_root = cache_root()?;
-    let request = SnsCacheListRequest {
-        network: options.network,
-        cache_root,
-    };
+    let (format, request) =
+        crate::sns::commands::options::cache_list_request(options, cache_root()?);
     let report = build_sns_neurons_cache_list_report(&request)?;
-    write_text_or_json(options.format, &report, sns_neurons_cache_list_report_text)
+    write_text_or_json(format, &report, sns_neurons_cache_list_report_text)
 }
 
 fn run_sns_neuron_cache_status(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let cache_root = cache_root()?;
-    let request = SnsCacheStatusRequest {
-        network: options.network,
-        cache_root,
-        input: options.input,
-    };
+    let (format, request) = options.into_request(cache_root()?);
     let report = build_sns_neurons_cache_status_report(&request)?;
-    write_text_or_json(
-        options.format,
-        &report,
-        sns_neurons_cache_status_report_text,
-    )
+    write_text_or_json(format, &report, sns_neurons_cache_status_report_text)
 }

@@ -13,10 +13,11 @@ use crate::{
     },
     hex::hex_bytes,
     subnet_catalog::{
-        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs,
-        parse_utc_timestamp_secs, subnet_catalog_history_lock_path, subnet_catalog_history_path,
+        MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, subnet_catalog_history_lock_path,
+        subnet_catalog_history_path,
     },
 };
+use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,

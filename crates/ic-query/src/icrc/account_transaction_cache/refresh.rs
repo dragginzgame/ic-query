@@ -35,8 +35,8 @@ use crate::{
         LockedSnapshotRefreshRequest, SnapshotJsonPaths, publish_snapshot_with_attempt,
         run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
     },
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::time::{Duration, Instant};
 
 const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -388,6 +388,7 @@ fn account_transaction_cache_refresh_reason(
 mod tests {
     use super::*;
     use crate::{icrc::IcrcAccountTransactionCacheRequest, test_support::temp_dir};
+    use ic_host_text::timestamp::parse_utc_timestamp_secs;
 
     #[test]
     fn publication_uses_the_callers_clock_and_elapsed_collection_duration() {
@@ -414,11 +415,11 @@ mod tests {
                 .unwrap();
         let cached = load_cached_icrc_account_transactions(&request.cache).unwrap();
         assert_eq!(
-            crate::subnet_catalog::parse_utc_timestamp_secs(&report.collection_started_at),
+            parse_utc_timestamp_secs(&report.collection_started_at),
             Some(2_000_000_000)
         );
         assert_eq!(
-            crate::subnet_catalog::parse_utc_timestamp_secs(&report.collection_completed_at),
+            parse_utc_timestamp_secs(&report.collection_completed_at),
             Some(2_000_000_023)
         );
         assert_eq!(

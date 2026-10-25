@@ -292,18 +292,14 @@ pub(super) fn validate_collection_state(
         validate_source_provenance(&state.requested_source, source)?;
     }
 
-    let page_size = u64::from(state.page_size);
-    let pages_fetched = u64::from(state.pages_fetched);
     let neurons_fetched = state.neurons_fetched;
-    // Both operands originate as u32, so their product fits in u64.
-    let maximum_rows = pages_fetched * page_size;
-    let minimum_rows = pages_fetched.saturating_sub(1) * page_size;
-    if neurons_fetched < minimum_rows || neurons_fetched > maximum_rows {
-        return Err(invalid(format!(
-            "neurons_fetched {} is outside {}..={} for {} pages of size {}",
-            state.neurons_fetched, minimum_rows, maximum_rows, state.pages_fetched, state.page_size
-        )));
-    }
+    let maximum_rows = crate::nns::governance::validate_governance_collection_row_bounds(
+        "neurons_fetched",
+        neurons_fetched,
+        state.pages_fetched,
+        state.page_size,
+        invalid,
+    )?;
 
     let valid_lifecycle = match state.status {
         NnsGovernanceCollectionStatus::Ready => {

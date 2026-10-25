@@ -11,8 +11,9 @@ use super::{
 };
 use crate::{
     agent::build_ic_agent,
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_tools::encoding::decode_canonical_unsigned_u64;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::SubtreeLookupResult;

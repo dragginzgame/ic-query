@@ -603,7 +603,7 @@ impl fmt::Display for IcReplicaVersionStatus {
 /// One Dashboard-recorded proposal assigning a Subnet to a replica version.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, Serialize)]
 pub struct IcReplicaVersionSubnetRollout {
     /// Canonical Subnet principal.
     pub subnet_id: String,

@@ -4,7 +4,7 @@
 //! Does not own: live transport, report assembly, or persistence policy.
 //! Boundary: keeps caller intent separate from source-returned provenance.
 
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use serde::{Deserialize, Serialize};
 
 ///

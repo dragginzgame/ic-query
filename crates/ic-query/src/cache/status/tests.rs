@@ -2,8 +2,8 @@ use super::*;
 use crate::test_support::temp_dir;
 use crate::{
     CacheFileError, cache::CacheRecoveryPolicy, cache_file::write_managed_text_atomically,
-    subnet_catalog::parse_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use std::{fs, path::Path};
 
 #[cfg(unix)]

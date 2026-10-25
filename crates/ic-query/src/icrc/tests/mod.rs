@@ -981,6 +981,18 @@ async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
             Err(IcrcAccountTransactionError::InvalidPage { .. })
         ));
     }
+    for cursor in [None, Some("39"), Some("41")] {
+        let mut page = fixture_account_transaction_page();
+        page.next_start = cursor.map(str::to_owned);
+        assert!(matches!(
+            build_icrc_account_transaction_page_report_with_source(
+                &request,
+                &AccountTransactionsDataSource(page),
+            )
+            .await,
+            Err(IcrcAccountTransactionError::InvalidPage { .. })
+        ));
+    }
     for id in ["41", "7"] {
         let mut page = fixture_account_transaction_page();
         page.transactions[0].id = id.into();

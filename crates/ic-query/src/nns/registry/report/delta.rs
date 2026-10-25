@@ -18,9 +18,10 @@ use super::{
 use crate::{
     hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
     nns::LiveNnsSource,
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, format_utc_timestamp_secs},
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use ic_host_artifacts::artifact::Sha256Digest;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::collections::{BTreeMap, BTreeSet};
 
 impl_nns_mainnet_network_enforcer!(NnsRegistryHostError);

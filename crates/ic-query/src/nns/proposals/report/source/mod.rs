@@ -177,13 +177,13 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
             .map(|action| action.as_str().to_string()),
         reject_cost_e8s: info.reject_cost_e8s,
         proposal_timestamp_seconds: info.proposal_timestamp_seconds,
-        proposed_at: crate::subnet_catalog::format_utc_timestamp_secs(
+        proposed_at: ic_host_text::timestamp::format_utc_timestamp_secs(
             info.proposal_timestamp_seconds,
         ),
         deadline_timestamp_seconds: info.deadline_timestamp_seconds,
         deadline_at: info
             .deadline_timestamp_seconds
-            .map(crate::subnet_catalog::format_utc_timestamp_secs),
+            .map(ic_host_text::timestamp::format_utc_timestamp_secs),
         decided_timestamp_seconds: info.decided_timestamp_seconds,
         decided_at: nonzero_timestamp_text(info.decided_timestamp_seconds),
         executed_timestamp_seconds: info.executed_timestamp_seconds,
@@ -290,7 +290,7 @@ fn nns_proposal_ballot_rows(ballots: Vec<(u64, NnsGovernanceBallot)>) -> Vec<Nns
 ))]
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> Option<String> {
     (timestamp_seconds > 0)
-        .then(|| crate::subnet_catalog::format_utc_timestamp_secs(timestamp_seconds))
+        .then(|| ic_host_text::timestamp::format_utc_timestamp_secs(timestamp_seconds))
 }
 
 #[cfg(any(

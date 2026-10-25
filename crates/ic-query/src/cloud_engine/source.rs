@@ -17,8 +17,8 @@ use super::{
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     candid_call::{CandidCallError, encode_request, query_encoded},
-    subnet_catalog::format_utc_timestamp_secs,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 
 const GET_ENGINE_OPERATOR_BY_SUBNET_METHOD: &str = "getEngineOperatorBySubnet";

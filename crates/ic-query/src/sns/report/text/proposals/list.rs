@@ -5,7 +5,7 @@
 //! Boundary: formats live or cache-backed proposal rows for humans.
 
 use crate::sns::report::sns_proposal_action_label;
-use crate::subnet_catalog::format_utc_timestamp_secs;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{

@@ -17,8 +17,9 @@ use crate::{
     ic::DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
     nns::topology::DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS,
     sns::DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
-    subnet_catalog::{DEFAULT_STALE_AFTER_SECONDS, parse_utc_timestamp_secs},
+    subnet_catalog::DEFAULT_STALE_AFTER_SECONDS,
 };
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use serde::{
     Deserialize,
     de::{Error as DeError, IgnoredAny, MapAccess, Visitor},

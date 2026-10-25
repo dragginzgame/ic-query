@@ -8,16 +8,13 @@ use super::{
     invalid_request, invalid_source, invalid_source_value, report_provenance,
     validate_collection_end, validate_provenance,
 };
-use crate::{
-    ic::{
-        IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
-        IcBoundaryNodeDataCentersSourceData, IcDailyStatsQuery, IcDailyStatsReport,
-        IcDailyStatsRow, IcDailyStatsSourceData, IcHostError, IcSourceRequest,
-        MAX_IC_BOUNDARY_NODE_DATA_CENTERS, MAX_IC_DAILY_STATS_ROWS, MAX_IC_DAILY_STATS_WINDOW_SECS,
-        MIN_IC_DAILY_STATS_TIMESTAMP,
-    },
-    subnet_catalog::format_utc_timestamp_secs,
+use crate::ic::{
+    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport,
+    IcBoundaryNodeDataCentersSourceData, IcDailyStatsQuery, IcDailyStatsReport, IcDailyStatsRow,
+    IcDailyStatsSourceData, IcHostError, IcSourceRequest, MAX_IC_BOUNDARY_NODE_DATA_CENTERS,
+    MAX_IC_DAILY_STATS_ROWS, MAX_IC_DAILY_STATS_WINDOW_SECS, MIN_IC_DAILY_STATS_TIMESTAMP,
 };
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::collections::HashSet;
 
 ///
@@ -58,12 +55,7 @@ pub(in crate::ic) fn validate_daily_stats_query(
             format!("must be at least {MIN_IC_DAILY_STATS_TIMESTAMP}"),
         );
     }
-    if query.end_unix_secs < query.start_unix_secs {
-        return invalid_request(
-            "query.end_unix_secs",
-            "must be greater than or equal to query.start_unix_secs",
-        );
-    }
+    super::validate_query_time_order(query.start_unix_secs, query.end_unix_secs)?;
     let window_secs = query.end_unix_secs - query.start_unix_secs;
     if window_secs > MAX_IC_DAILY_STATS_WINDOW_SECS {
         return invalid_request(

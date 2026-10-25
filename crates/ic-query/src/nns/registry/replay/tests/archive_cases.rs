@@ -5,6 +5,7 @@
 //! Boundary: exercises the corresponding replay subsystem through fixture evidence.
 
 use super::*;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 #[tokio::test(flavor = "current_thread")]
 async fn authenticated_archive_manifest_is_canonical_and_bound_to_reports() {
