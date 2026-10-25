@@ -7,7 +7,7 @@ use crate::nns::{
 
 #[must_use]
 pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) -> String {
-    [
+    let mut lines = vec![
         format!("input: {}", terminal_text(&report.input)),
         format!("resolved_from: {}", terminal_text(&report.resolved_from)),
         format!(
@@ -27,15 +27,14 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
             "data_center_id: {}",
             text_or_dash(Some(&report.data_center_id))
         ),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("network: {}", terminal_text(&report.network)),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
-    ]
-    .join("\n")
+    ];
+    lines.extend(crate::nns::render::registry_provenance_lines(
+        &report.registry_canister_id,
+        report.registry_version,
+        &report.network,
+        &report.fetched_at,
+        &report.source_endpoint,
+        &report.fetched_by,
+    ));
+    lines.join("\n")
 }

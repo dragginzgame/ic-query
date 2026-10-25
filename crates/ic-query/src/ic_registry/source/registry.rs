@@ -11,7 +11,7 @@ use crate::{
 };
 use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 
-pub(in crate::ic_registry) async fn fetch_mainnet_registry_version_async(
+pub async fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetRegistryVersion, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
@@ -40,7 +40,8 @@ pub(in crate::ic_registry) async fn fetch_mainnet_registry_version_async(
     })
 }
 
-pub(in crate::ic_registry) async fn fetch_mainnet_certified_registry_delta_batch_async(
+/// Fetch one authenticated, bounded Registry delta batch on the caller's async runtime.
+pub async fn fetch_mainnet_certified_registry_delta_batch_async(
     request: &MainnetRegistryFetchRequest,
     requested_version: u64,
 ) -> Result<CertifiedRegistryDeltaBatch, RegistryFetchError> {

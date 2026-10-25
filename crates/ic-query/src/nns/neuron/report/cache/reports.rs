@@ -15,7 +15,7 @@ use super::{
 use crate::{
     HostCacheError,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, managed_file_exists},
+    cache_file::{LoadJsonCacheRequest, open_managed_file},
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
@@ -48,7 +48,7 @@ pub fn build_nns_neuron_distribution_report_from_cache(
 ) -> Result<NnsNeuronDistributionReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let path = nns_neuron_cache_path(&request.cache_root, &request.network);
-    let cache = load_cache_at(&request.cache_root, &path, &request.network)?;
+    let cache = load_cache_at(&request.cache_root, &path, &request.network, None)?;
     Ok(build_nns_neuron_distribution_report(
         &cache.data.collection_state,
         &cache.data.neurons,
@@ -63,7 +63,7 @@ pub fn build_nns_neuron_list_report_from_cache(
     validate_page_size(request.limit)?;
     enforce_mainnet_network(&request.governance.network)?;
     let path = nns_neuron_cache_path(cache_root, &request.governance.network);
-    let cache = match load_cache_at(cache_root, &path, &request.governance.network) {
+    let cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -98,7 +98,7 @@ pub fn build_nns_neuron_info_report_from_cache(
 ) -> Result<Option<NnsNeuronInfoReport>, NnsNeuronHostError> {
     enforce_mainnet_network(&request.governance.network)?;
     let path = nns_neuron_cache_path(cache_root, &request.governance.network);
-    let cache = match load_cache_at(cache_root, &path, &request.governance.network) {
+    let cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
@@ -121,11 +121,16 @@ pub fn build_nns_neuron_cache_status_report(
 ) -> Result<NnsGovernanceCacheStatusReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
-    let found = managed_file_exists(&request.cache_root, &paths.snapshot_path)
+    let file = open_managed_file(&request.cache_root, &paths.snapshot_path)
         .map_err(|source| HostCacheError::operation(NNS_NEURON_CACHE_COMPONENT, source))?;
-    let cache = if found {
+    let cache = if let Some(file) = file {
         Some(
-            match load_cache_at(&request.cache_root, &paths.snapshot_path, &request.network) {
+            match load_cache_at(
+                &request.cache_root,
+                &paths.snapshot_path,
+                &request.network,
+                Some(file),
+            ) {
                 Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache),
                 Err(error) => {
                     NnsGovernanceCacheSummary::invalid(&paths.snapshot_path, error.to_string())
@@ -154,6 +159,7 @@ fn load_cache_at(
     cache_root: &Path,
     path: &Path,
     network: &str,
+    opened_file: Option<std::fs::File>,
 ) -> Result<NnsNeuronCache, NnsNeuronHostError> {
     let key = SnapshotKey::full(
         NNS_NEURON_CACHE_DOMAIN,
@@ -175,6 +181,7 @@ fn load_cache_at(
         missing_neuron_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_neuron_identity_mismatch_error(path.to_path_buf(), mismatch),
+        opened_file,
     )?;
     validate_cache(path, &cache)?;
     Ok(cache)

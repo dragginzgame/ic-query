@@ -6,7 +6,7 @@
 
 use super::validation::SnsSourceValidator;
 use crate::{
-    hex::is_lowercase_hex,
+    hex::is_lowercase_hex_32_bytes,
     sns::report::{MainnetSnsMetrics, SnsCanisterCallType, SnsCanisterMethod, SnsHostError},
 };
 use std::collections::BTreeSet;
@@ -70,7 +70,7 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
         validate_optional_principal("ledger_canister_id", row.ledger_canister_id.as_deref())?;
         validate_optional_principal("account_owner", row.account_owner.as_deref())?;
         if let Some(subaccount) = row.account_subaccount_hex.as_deref()
-            && (subaccount.len() != 64 || !is_lowercase_hex(subaccount))
+            && !is_lowercase_hex_32_bytes(subaccount)
         {
             return Err(VALIDATOR.invalid(format!(
                 "treasury code {} account_subaccount_hex is not 32-byte lowercase hexadecimal text",

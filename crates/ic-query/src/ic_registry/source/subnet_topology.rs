@@ -4,7 +4,7 @@ use crate::ic_registry::{
     projection::subnet_topology_from_inventory, relations::RegistryRelationInventoryScope,
 };
 
-pub(in crate::ic_registry) async fn fetch_mainnet_subnet_topology_async(
+pub async fn fetch_mainnet_subnet_topology(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {
     let snapshot = fetch_mainnet_registry_relation_snapshot(

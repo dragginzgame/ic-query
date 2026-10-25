@@ -7,14 +7,11 @@
 use crate::{
     cache::CacheValidationStatus,
     cache_file::ManagedReadBudget,
-    snapshot_cache::SnapshotEnvelope,
+    snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
     sns::report::{
         SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status_strict,
-        cache_paths::{
-            sns_attempt_path_for_cache_path, sns_root_from_cache_path,
-            sns_snapshot_network_cache_dir,
-        },
+        cache_paths::{sns_root_from_cache_path, sns_snapshot_network_cache_dir},
         cache_storage::{
             SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheMetadata, SnsCacheStorageFamily,
             collect_sns_cache_paths, load_sns_cache_at, sns_cache_scan_limit_exceeded,
@@ -30,11 +27,13 @@ pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
     cache_path: PathBuf,
     network: &str,
     budget: Option<&mut ManagedReadBudget>,
+    opened_file: Option<std::fs::File>,
 ) -> Result<SnsCacheSummary, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
-    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network, budget) {
+    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network, budget, opened_file)
+    {
         Ok(cache) => Ok(valid_sns_cache_summary(cache_path, cache)),
         Err(error) if sns_cache_scan_limit_exceeded(&error) => Err(error),
         Err(error) => Ok(invalid_sns_cache_summary(cache_path, &error)),
@@ -54,9 +53,9 @@ where
     paths
         .into_iter()
         .map(|path| {
-            let attempt_path = sns_attempt_path_for_cache_path(&path);
+            let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&path);
             let mut summary =
-                load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget))?;
+                load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget), None)?;
             summary.latest_attempt = read_sns_refresh_attempt_status_strict(
                 cache_root,
                 &attempt_path,
@@ -72,7 +71,7 @@ fn valid_sns_cache_summary<Data>(
     cache_path: PathBuf,
     cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
 ) -> SnsCacheSummary {
-    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
+    let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
         id: cache.metadata.id,
         name: cache.metadata.name,
@@ -93,7 +92,7 @@ fn valid_sns_cache_summary<Data>(
 }
 
 fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCacheSummary {
-    let attempt_path = sns_attempt_path_for_cache_path(&cache_path);
+    let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
         id: 0,
         name: "-".to_string(),

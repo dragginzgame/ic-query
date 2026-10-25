@@ -163,6 +163,55 @@ fn load_complete_snapshot_rejects_identity_mismatch() {
 }
 
 #[test]
+fn admitted_snapshot_handle_survives_path_replacement() {
+    let root = temp_dir("ic-query-snapshot-admitted-handle");
+    let path = root.join("full.json");
+    write_snapshot_fixture(
+        &path,
+        serde_json::json!({
+            "schema_version": 1, "network": "ic",
+            "source_endpoint": "https://icp-api.io",
+            "fetched_at": "2026-06-15T00:00:00Z", "fetched_by": "ic-query",
+            "domain": "sns", "entity": "root", "collection": "neurons", "scope": "full",
+            "metadata": {"id": 7},
+            "completeness": {"status": "api_exhausted", "page_size": 100,
+                "page_count": 1, "row_count": 1, "point_in_time_guaranteed": false},
+            "data": {"rows": ["row"]}
+        }),
+    );
+    let file = crate::cache_file::open_managed_file(&root, &path)
+        .unwrap()
+        .unwrap();
+    write_snapshot_fixture(&path, serde_json::json!({}));
+    let key = SnapshotKey::full("sns", "ic", "root", "neurons");
+    let snapshot: FixtureSnapshot = load_complete_snapshot_for_key(
+        LoadJsonCacheRequest {
+            component: "fixture",
+            cache_root: &root,
+            path: path.clone(),
+            network: "ic",
+            expected_schema_version: 1,
+            maximum_bytes: 4096,
+        },
+        None,
+        &key,
+        SnapshotLoadTestError::Missing,
+        |_| SnapshotLoadTestError::Incomplete,
+        SnapshotLoadTestError::Identity,
+        Some(file),
+    )
+    .unwrap();
+    assert_eq!(snapshot.metadata.id, 7);
+    assert!(matches!(
+        load_fixture_snapshot(&path, &key),
+        Err(SnapshotLoadTestError::Cache(
+            HostCacheError::ParseCache { .. }
+        ))
+    ));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn load_complete_snapshot_rejects_unknown_fields() {
     let root = temp_dir("ic-query-snapshot-unknown-field");
     let path = root.join("full.json");
@@ -243,6 +292,7 @@ fn load_complete_snapshot_rejects_unsupported_schema() {
         |path| HostCacheError::missing_cache("fixture", path).into(),
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
+        None,
     )
     .expect_err("unsupported schema is rejected");
 
@@ -835,6 +885,7 @@ fn load_fixture_snapshot(
         SnapshotLoadTestError::Missing,
         |_| SnapshotLoadTestError::Incomplete,
         SnapshotLoadTestError::Identity,
+        None,
     )
 }
 

@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, managed_file_exists},
+    cache_file::{LoadJsonCacheRequest, open_managed_file},
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
@@ -46,6 +46,7 @@ use crate::{
 };
 use std::{
     collections::HashSet,
+    fs::File,
     path::{Path, PathBuf},
 };
 
@@ -58,7 +59,12 @@ pub fn build_nns_proposal_activity_report_from_cache(
     validate_time_window(request)?;
     let path =
         nns_proposal_cache_paths(&cache_request.cache_root, &cache_request.network).snapshot_path;
-    let cache = load_nns_proposal_cache(&cache_request.cache_root, path, &cache_request.network)?;
+    let cache = load_nns_proposal_cache(
+        &cache_request.cache_root,
+        path,
+        &cache_request.network,
+        None,
+    )?;
     Ok(build_nns_proposal_activity_report(
         request,
         &cache.data.collection_state,
@@ -72,12 +78,14 @@ pub fn build_nns_proposal_cache_list_report(
 ) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    let found = proposal_cache_exists(&request.cache_root, &paths.snapshot_path)?;
-    let caches = if found {
+    let file = open_proposal_cache(&request.cache_root, &paths.snapshot_path)?;
+    let found = file.is_some();
+    let caches = if let Some(file) = file {
         vec![load_nns_proposal_cache_summary(
             &request.cache_root,
             paths.snapshot_path.clone(),
             &request.network,
+            file,
         )]
     } else {
         Vec::new()
@@ -114,11 +122,13 @@ pub fn build_nns_proposal_cache_status_report(
 ) -> Result<NnsGovernanceCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    let cache = if proposal_cache_exists(&request.cache_root, &paths.snapshot_path)? {
+    let cache = if let Some(file) = open_proposal_cache(&request.cache_root, &paths.snapshot_path)?
+    {
         Some(load_nns_proposal_cache_summary(
             &request.cache_root,
             paths.snapshot_path.clone(),
             &request.network,
+            file,
         ))
     } else {
         None
@@ -149,6 +159,7 @@ pub fn build_nns_proposal_list_report_from_cache(
         cache_root,
         paths.snapshot_path.clone(),
         &request.governance.network,
+        None,
     ) {
         Ok(cache) => cache,
         Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
@@ -172,6 +183,7 @@ pub fn build_nns_proposal_report_from_cache(
         cache_root,
         paths.snapshot_path.clone(),
         &request.governance.network,
+        None,
     ) {
         Ok(cache) => cache,
         Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
@@ -184,8 +196,11 @@ pub fn build_nns_proposal_report_from_cache(
     ))
 }
 
-fn proposal_cache_exists(cache_root: &Path, path: &Path) -> Result<bool, NnsProposalHostError> {
-    managed_file_exists(cache_root, path).map_err(|source| {
+fn open_proposal_cache(
+    cache_root: &Path,
+    path: &Path,
+) -> Result<Option<File>, NnsProposalHostError> {
+    open_managed_file(cache_root, path).map_err(|source| {
         NnsProposalHostError::Cache(crate::HostCacheError::operation(
             NNS_PROPOSAL_CACHE_COMPONENT,
             source,
@@ -197,8 +212,9 @@ fn load_nns_proposal_cache_summary(
     cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
+    file: File,
 ) -> NnsGovernanceCacheSummary {
-    match load_nns_proposal_cache(cache_root, cache_path.clone(), network) {
+    match load_nns_proposal_cache(cache_root, cache_path.clone(), network, Some(file)) {
         Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&cache_path, &cache),
         Err(error) => NnsGovernanceCacheSummary::invalid(&cache_path, error.to_string()),
     }
@@ -208,6 +224,7 @@ fn load_nns_proposal_cache(
     cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
+    opened_file: Option<File>,
 ) -> Result<NnsProposalCache, NnsProposalHostError> {
     let key = SnapshotKey::full("nns", network, "governance", "proposals");
     let cache = load_complete_snapshot_for_key(
@@ -224,6 +241,7 @@ fn load_nns_proposal_cache(
         missing_proposal_cache_error,
         incomplete_snapshot_error,
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
+        opened_file,
     )?;
     validate_nns_proposal_cache(&cache_path, &cache)?;
     Ok(cache)

@@ -2,7 +2,7 @@
 
 use crate::{
     HostCacheError,
-    cache_file::managed_file_exists,
+    cache_file::open_managed_file,
     sns::report::{
         SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status_strict,
@@ -27,7 +27,7 @@ where
         &request.network,
         &root_canister_id,
     );
-    let mut cache = if managed_file_exists(&request.cache_root, &paths.snapshot_path)
+    let mut cache = if let Some(file) = open_managed_file(&request.cache_root, &paths.snapshot_path)
         .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?
     {
         Some(load_sns_cache_summary_at::<Family>(
@@ -35,6 +35,7 @@ where
             paths.snapshot_path.clone(),
             &request.network,
             None,
+            Some(file),
         )?)
     } else {
         None

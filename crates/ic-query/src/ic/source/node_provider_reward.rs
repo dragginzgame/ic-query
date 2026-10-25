@@ -10,7 +10,7 @@ use super::{
     validate_offset_page, validate_provenance,
 };
 use crate::{
-    hex::is_lowercase_hex,
+    hex::is_lowercase_hex_32_bytes,
     ic::{
         IcHostError, IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryReport,
         IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoReport,
@@ -239,7 +239,7 @@ fn validate_reward_row(row: &IcNodeProviderRewardRow) -> Result<(), IcHostError>
         let Some(account) = account.as_str() else {
             return invalid_source("reward.details.to_account must be a string when present");
         };
-        if account.len() != 64 || !is_lowercase_hex(account) {
+        if !is_lowercase_hex_32_bytes(account) {
             return invalid_source(
                 "reward.details.to_account must be 64 lowercase hexadecimal characters",
             );

@@ -9,7 +9,7 @@ use crate::ic_registry::{
     relations::RegistryRelationInventoryScope,
 };
 
-pub(in crate::ic_registry) async fn fetch_mainnet_node_operator_list_async(
+pub async fn fetch_mainnet_node_operator_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeOperatorList, RegistryFetchError> {
     let snapshot = fetch_mainnet_registry_relation_snapshot(
@@ -20,7 +20,7 @@ pub(in crate::ic_registry) async fn fetch_mainnet_node_operator_list_async(
     node_operator_list_from_inventory(request, snapshot.inventory, snapshot.registry_version)
 }
 
-pub(in crate::ic_registry) async fn fetch_mainnet_node_list_async(
+pub async fn fetch_mainnet_node_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
     let snapshot = fetch_mainnet_registry_relation_snapshot(
@@ -31,7 +31,7 @@ pub(in crate::ic_registry) async fn fetch_mainnet_node_list_async(
     node_list_from_inventory(request, snapshot.inventory, snapshot.registry_version)
 }
 
-pub(in crate::ic_registry) async fn fetch_mainnet_data_center_list_async(
+pub async fn fetch_mainnet_data_center_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {
     let snapshot = fetch_mainnet_registry_relation_snapshot(

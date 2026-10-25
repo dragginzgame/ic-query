@@ -122,9 +122,11 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
     match sort {
         SnsProposalsSort::Api => {}
         SnsProposalsSort::Id => proposals.sort_by(by_id),
-        SnsProposalsSort::Status => sort_by_status(proposals, direction),
+        SnsProposalsSort::Status => {
+            sort_by_key(proposals, direction, |proposal| proposal.decision_state);
+        }
         SnsProposalsSort::Action => sort_by_action(proposals, direction),
-        SnsProposalsSort::Eligible => sort_by_bool(proposals, direction, |proposal| {
+        SnsProposalsSort::Eligible => sort_by_key(proposals, direction, |proposal| {
             proposal.is_eligible_for_rewards
         }),
         SnsProposalsSort::Title => sort_by_text(
@@ -191,22 +193,14 @@ fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDi
     });
 }
 
-fn sort_by_bool(
+fn sort_by_key<Key: Ord>(
     proposals: &mut [SnsProposalRow],
     direction: SnsProposalSortDirection,
-    key: impl Fn(&SnsProposalRow) -> bool,
+    key: impl Fn(&SnsProposalRow) -> Key,
 ) {
     let descending = matches!(direction, SnsProposalSortDirection::Desc);
     proposals.sort_by(|left, right| {
         compare_ord(key(left), key(right), descending)
-            .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
-    });
-}
-
-fn sort_by_status(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
-    proposals.sort_by(|left, right| {
-        compare_ord(left.decision_state, right.decision_state, descending)
             .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))
     });
 }

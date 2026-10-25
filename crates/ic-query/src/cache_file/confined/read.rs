@@ -175,7 +175,7 @@ fn read_budgeted_stream(
     result
 }
 
-fn read_opened_file_bounded(
+pub fn read_opened_file_bounded(
     file: std::fs::File,
     target_path: &Path,
     maximum: u64,

@@ -32,14 +32,6 @@ pub(in crate::sns::report) fn sns_snapshot_network_cache_dir(
     snapshot_network_dir(cache_root, "sns", network)
 }
 
-/// Return the refresh-attempt path paired with a complete cache file.
-pub(in crate::sns::report) fn sns_attempt_path_for_cache_path(cache_path: &Path) -> PathBuf {
-    cache_path.with_file_name(format!(
-        "{}.refresh-attempt.json",
-        SnapshotKey::scope_file_stem()
-    ))
-}
-
 /// Return the logical key expected for a complete SNS cache path.
 pub(in crate::sns::report) fn sns_snapshot_key_for_cache_path<Collection>(
     network: &str,

@@ -1,7 +1,6 @@
 //! Live mainnet IC NNS registry adapter for IC query tools.
 
 mod catalog;
-mod client;
 mod error;
 #[cfg(feature = "nns-topology-host")]
 mod inventory;
@@ -21,18 +20,6 @@ pub use transport::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use catalog::{routing_ranges_from_table, subnet_info_from_record};
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use client::fetch_mainnet_certified_registry_delta_batch_async;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use client::fetch_mainnet_registry_version;
-pub use client::fetch_mainnet_subnet_catalog_async;
-#[cfg(feature = "nns-topology-host")]
-pub use client::fetch_mainnet_subnet_topology;
-#[cfg(feature = "nns-host")]
-pub use client::{
-    fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
-    fetch_mainnet_node_provider_list,
-};
 pub use error::RegistryFetchError;
 pub use error::SubnetCatalogRegistryFailure;
 use ic_host_tools::registry::proto::{CanisterId, SubnetId};
@@ -56,6 +43,18 @@ pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
+pub use source::fetch_mainnet_certified_registry_delta_batch_async;
+#[cfg(feature = "certified-subnet-catalog-host")]
+pub use source::fetch_mainnet_registry_version;
+pub use source::fetch_mainnet_subnet_catalog_async;
+#[cfg(feature = "nns-topology-host")]
+pub use source::fetch_mainnet_subnet_topology;
+#[cfg(feature = "nns-host")]
+pub use source::{
+    fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
+    fetch_mainnet_node_provider_list,
+};
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use transport::authenticate_certified_registry_delta_witness;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use transport::{
@@ -71,7 +70,6 @@ use crate::subnet_catalog::{
     MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RawSubnetCatalog, UncertifiedCatalogCollection,
 };
 
-#[cfg(all(test, feature = "nns-host"))]
 #[cfg(all(test, feature = "nns-host"))]
 use projection::{
     data_center_list_from_inventory, node_list_from_inventory, node_operator_list_from_inventory,

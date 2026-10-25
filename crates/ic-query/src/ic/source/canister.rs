@@ -9,7 +9,7 @@ use super::{
     validate_canonical_principal, validate_principal_match, validate_provenance,
 };
 use crate::{
-    hex::is_lowercase_hex,
+    hex::is_lowercase_hex_32_bytes,
     ic::{
         IcCanisterCountReport, IcCanisterCountSourceData, IcCanisterFilters, IcCanisterPageReport,
         IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterReport, IcCanisterSourceData,
@@ -366,7 +366,7 @@ fn validate_optional_module_hash(field: &'static str, value: &str) -> Result<(),
 }
 
 fn validate_module_hash(field: &'static str, value: &str) -> Result<(), IcHostError> {
-    if value.len() == 64 && is_lowercase_hex(value) {
+    if is_lowercase_hex_32_bytes(value) {
         return Ok(());
     }
     invalid_source(format!(

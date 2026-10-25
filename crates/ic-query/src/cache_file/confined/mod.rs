@@ -40,6 +40,9 @@ mod scan;
 pub use read::ManagedReadBudget;
 #[cfg(any(feature = "host", test))]
 pub use read::open_managed_file;
+#[cfg(feature = "host")]
+pub use read::read_bounded_stream;
+pub use read::{BoundedManagedFileReadError, managed_file_exists};
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
@@ -49,10 +52,7 @@ pub use read::open_managed_file;
     feature = "sns-host",
     test
 ))]
-pub use read::read_bounded_managed_file;
-#[cfg(feature = "host")]
-pub use read::read_bounded_stream;
-pub use read::{BoundedManagedFileReadError, managed_file_exists};
+pub use read::{read_bounded_managed_file, read_opened_file_bounded};
 #[cfg(feature = "sns-host")]
 pub use scan::collect_managed_collection_files;
 #[cfg(feature = "host")]

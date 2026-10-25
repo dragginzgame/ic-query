@@ -13,7 +13,7 @@ use super::{
     },
 };
 use crate::{
-    hex::{is_canonical_lowercase_hex, is_lowercase_hex},
+    hex::is_lowercase_hex_32_bytes,
     report::ReportDataSource,
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SNS_REWARD_CHECKPOINT_MAX_NEURONS,
@@ -442,7 +442,7 @@ fn validate_checkpoint_rows(
 ) -> Result<(), SnsRewardCheckpointValidationError> {
     let mut previous_id: Option<&str> = None;
     for row in rows {
-        if row.neuron_id.len() != 64 || !is_canonical_lowercase_hex(&row.neuron_id) {
+        if !is_lowercase_hex_32_bytes(&row.neuron_id) {
             return Err(invalid_validation(format!(
                 "neuron id {} is not 32-byte lowercase hexadecimal text",
                 row.neuron_id
@@ -538,7 +538,7 @@ fn validate_default_followees(parameters: &SnsGovernanceParameters) -> Result<()
         }
         let mut neuron_ids = HashSet::new();
         for id in &row.followee_neuron_ids {
-            if id.len() != 64 || !is_lowercase_hex(id) {
+            if !is_lowercase_hex_32_bytes(id) {
                 return Err("default followees contain a non-canonical neuron id".to_string());
             }
             if !neuron_ids.insert(id) {

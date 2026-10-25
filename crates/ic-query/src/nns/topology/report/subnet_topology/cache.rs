@@ -52,6 +52,7 @@ pub fn load_cached_nns_subnet_topology(
             maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
         },
         None,
+        None,
     )
     .map_err(NnsSubnetTopologyHostError::from)?;
     validate_report_identity(&cached.report, &request.network, None)?;
@@ -128,18 +129,7 @@ pub async fn load_or_refresh_missing_nns_subnet_topology_with_source(
     request: &NnsSubnetTopologyRefreshRequest,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    let expected_path =
-        nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
-    load_or_refresh_cache(
-        || load_cached_nns_subnet_topology(&request.cache),
-        |_| false,
-        |error| subnet_topology_cache_refresh_reason(error, &expected_path),
-        async |_| {
-            refresh_nns_subnet_topology_with_source(request, source).await?;
-            Ok(())
-        },
-    )
-    .await
+    load_or_refresh_subnet_topology_with_source(request, source, |_| false).await
 }
 
 /// Load the joined cache, refreshing when it is missing, invalid, or stale.
@@ -161,18 +151,23 @@ pub async fn load_or_refresh_stale_nns_subnet_topology_with_source(
     stale_after_seconds: u64,
     source: &dyn NnsSubnetTopologySource,
 ) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
+    load_or_refresh_subnet_topology_with_source(request, source, |cached| {
+        nns_subnet_topology_freshness(&cached.report, request.now_unix_secs, stale_after_seconds)
+            .stale
+    })
+    .await
+}
+
+async fn load_or_refresh_subnet_topology_with_source(
+    request: &NnsSubnetTopologyRefreshRequest,
+    source: &dyn NnsSubnetTopologySource,
+    is_stale: impl Fn(&CachedNnsSubnetTopologyReport) -> bool,
+) -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
     let expected_path =
         nns_subnet_topology_cache_path(&request.cache.cache_root, &request.cache.network);
     load_or_refresh_cache(
         || load_cached_nns_subnet_topology(&request.cache),
-        |cached| {
-            nns_subnet_topology_freshness(
-                &cached.report,
-                request.now_unix_secs,
-                stale_after_seconds,
-            )
-            .stale
-        },
+        is_stale,
         |error| subnet_topology_cache_refresh_reason(error, &expected_path),
         async |_| {
             refresh_nns_subnet_topology_with_source(request, source).await?;

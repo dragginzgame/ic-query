@@ -117,7 +117,7 @@ where
     let root_canister_id = parse_sns_root_canister_input(root_canister_id)?;
     let path =
         sns_snapshot_cache_paths::<Family>(cache_root, network, &root_canister_id).snapshot_path;
-    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None)?;
+    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None, None)?;
     Ok((path, cache))
 }
 
@@ -127,6 +127,7 @@ pub(in crate::sns::report) fn load_sns_cache_at<Family>(
     path: PathBuf,
     network: &str,
     budget: Option<&mut ManagedReadBudget>,
+    opened_file: Option<std::fs::File>,
 ) -> Result<SnsStoredCache<Family>, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
@@ -150,6 +151,7 @@ where
             reason: format!("cached SNS {} snapshot is not complete", Family::COLLECTION),
         },
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
+        opened_file,
     )?;
     validate_sns_cache::<Family>(&path, &cache)?;
     Ok(cache)

@@ -66,3 +66,22 @@ pub fn nns_inventory_refresh_report_text(report: &crate::nns::NnsInventoryRefres
     ]);
     lines.join("\n")
 }
+
+#[must_use]
+pub(super) fn registry_provenance_lines(
+    registry_canister_id: &str,
+    registry_version: u64,
+    network: &str,
+    fetched_at: &str,
+    source_endpoint: &str,
+    fetched_by: &str,
+) -> [String; 6] {
+    [
+        format!("registry_canister_id: {registry_canister_id}"),
+        format!("registry_version: {registry_version}"),
+        format!("network: {}", terminal_text(network)),
+        format!("fetched_at: {}", terminal_text(fetched_at)),
+        format!("source_endpoint: {}", terminal_text(source_endpoint)),
+        format!("fetched_by: {}", terminal_text(fetched_by)),
+    ]
+}

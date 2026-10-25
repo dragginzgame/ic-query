@@ -38,6 +38,7 @@ where
             maximum_bytes: crate::cache_file::MAX_JSON_SNAPSHOT_BYTES,
         },
         None,
+        None,
     )
 }
 

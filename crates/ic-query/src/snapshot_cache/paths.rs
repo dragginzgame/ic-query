@@ -30,15 +30,24 @@ pub struct SnapshotJsonPaths {
 }
 
 impl SnapshotJsonPaths {
+    /// Return the refresh-attempt path paired with a complete snapshot file.
+    pub fn refresh_attempt_for_snapshot(snapshot_path: &Path) -> PathBuf {
+        snapshot_path.with_file_name(format!(
+            "{}.refresh-attempt.json",
+            SnapshotKey::scope_file_stem()
+        ))
+    }
+
     /// Build every snapshot path for one logical cache key.
     #[must_use]
     pub fn for_key(cache_root: &Path, key: &SnapshotKey) -> Self {
         let collection_dir = snapshot_collection_dir(cache_root, key);
         let file_stem = SnapshotKey::scope_file_stem();
+        let snapshot_path = collection_dir.join(format!("{file_stem}.json"));
         Self {
-            snapshot_path: collection_dir.join(format!("{file_stem}.json")),
+            refresh_attempt_path: Self::refresh_attempt_for_snapshot(&snapshot_path),
+            snapshot_path,
             refresh_lock_path: collection_dir.join(format!("{file_stem}.refresh.lock")),
-            refresh_attempt_path: collection_dir.join(format!("{file_stem}.refresh-attempt.json")),
         }
     }
 }

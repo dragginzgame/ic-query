@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.73.2]
+
+- Reuse admitted snapshot handles in SNS, NNS neuron/proposal and ICRC cache
+  inspection, avoiding repeated opens while preserving missing and invalid-cache reporting.
+- Remove redundant Registry and SNS proposal forwarding layers without changing
+  public entry points.
+- Consolidate topology refresh orchestration, proposal sorting, Dashboard time-window
+  requests, Registry text provenance and snapshot sidecar paths.
+- Reuse Dashboard daily-stat rows and shared hexadecimal validation while preserving
+  wire fields, report JSON and text output.
+
+Detailed release notes: [docs/changelog/0.73.md](docs/changelog/0.73.md)
+
 ## [0.73.1] - 2026-10-25
 
 - Inspect refresh coordination-file size and lock state through one file handle.

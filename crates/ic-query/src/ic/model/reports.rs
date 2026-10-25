@@ -347,11 +347,12 @@ pub struct IcIcrcTokenValueReport {
 /// Selected raw daily network-activity values returned by the Dashboard API.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, Serialize)]
 pub struct IcDailyStatsRow {
     /// Raw UTC calendar day returned by the Dashboard.
     pub day: String,
     /// Observation timestamp as Unix seconds.
+    #[serde(rename(deserialize = "timestamp"))]
     pub timestamp_unix_secs: u64,
     /// Raw average query-transaction rate.
     pub average_query_transactions_per_second: String,

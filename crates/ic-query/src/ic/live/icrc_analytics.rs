@@ -105,8 +105,7 @@ fn token_value_url(
     let mut url = ledger_resource_url(endpoint, ledger_canister_id, &["token-values"])?;
     {
         let mut pairs = url.query_pairs_mut();
-        pairs.append_pair("start", &query.start_unix_secs.to_string());
-        pairs.append_pair("end", &query.end_unix_secs.to_string());
+        super::append_time_window(&mut pairs, query.start_unix_secs, query.end_unix_secs);
         pairs.append_pair("limit", &query.limit.to_string());
     }
     Ok(url)
@@ -120,8 +119,7 @@ fn total_supply_url(
     let mut url = ledger_resource_url(endpoint, ledger_canister_id, &["total-supply"])?;
     {
         let mut pairs = url.query_pairs_mut();
-        pairs.append_pair("start", &query.start_unix_secs.to_string());
-        pairs.append_pair("end", &query.end_unix_secs.to_string());
+        super::append_time_window(&mut pairs, query.start_unix_secs, query.end_unix_secs);
         pairs.append_pair("step", &query.step_secs.to_string());
     }
     Ok(url)

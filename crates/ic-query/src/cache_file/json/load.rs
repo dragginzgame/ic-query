@@ -7,53 +7,60 @@
 use super::model::{CachedJsonReport, JsonCacheReport, LoadJsonCacheRequest};
 use crate::cache_file::{
     BoundedManagedFileReadError, CacheFileError, HostCacheError, ManagedReadBudget,
-    read_bounded_managed_file,
+    read_bounded_managed_file, read_opened_file_bounded,
 };
 use serde::de::DeserializeOwned;
 use std::io;
 
+/// An opened file must come from managed-path admission for this request.
+/// Reuse that handle so status inspection never reopens its admitted path.
 pub fn load_json_cache<T>(
     request: LoadJsonCacheRequest<'_>,
     budget: Option<&mut ManagedReadBudget>,
+    opened_file: Option<std::fs::File>,
 ) -> Result<CachedJsonReport<T>, HostCacheError>
 where
     T: DeserializeOwned + JsonCacheReport,
 {
     let path = request.path;
     let component = request.component;
-    let Some(data) =
-        read_bounded_managed_file(request.cache_root, &path, request.maximum_bytes, budget)
-            .map_err(|source| match source {
-                BoundedManagedFileReadError::Operation(source) => {
-                    HostCacheError::operation(component, source)
-                }
-                BoundedManagedFileReadError::LimitExceeded {
-                    path,
-                    actual,
-                    maximum,
-                } => HostCacheError::CacheTooLarge {
-                    component,
-                    path,
-                    actual,
-                    maximum,
-                },
-                BoundedManagedFileReadError::Read { path, source } => HostCacheError::operation(
-                    component,
-                    CacheFileError::OpenManagedPath {
-                        root: request.cache_root.to_path_buf(),
-                        path,
-                        source,
-                    },
-                ),
-                BoundedManagedFileReadError::Accounting { path } => HostCacheError::operation(
-                    component,
-                    CacheFileError::OpenManagedPath {
-                        root: request.cache_root.to_path_buf(),
-                        path,
-                        source: io::Error::other("cache byte count exceeds platform accounting"),
-                    },
-                ),
-            })?
+    let read = match opened_file {
+        Some(file) => {
+            read_opened_file_bounded(file, &path, request.maximum_bytes, budget).map(Some)
+        }
+        None => read_bounded_managed_file(request.cache_root, &path, request.maximum_bytes, budget),
+    };
+    let Some(data) = read.map_err(|source| match source {
+        BoundedManagedFileReadError::Operation(source) => {
+            HostCacheError::operation(component, source)
+        }
+        BoundedManagedFileReadError::LimitExceeded {
+            path,
+            actual,
+            maximum,
+        } => HostCacheError::CacheTooLarge {
+            component,
+            path,
+            actual,
+            maximum,
+        },
+        BoundedManagedFileReadError::Read { path, source } => HostCacheError::operation(
+            component,
+            CacheFileError::OpenManagedPath {
+                root: request.cache_root.to_path_buf(),
+                path,
+                source,
+            },
+        ),
+        BoundedManagedFileReadError::Accounting { path } => HostCacheError::operation(
+            component,
+            CacheFileError::OpenManagedPath {
+                root: request.cache_root.to_path_buf(),
+                path,
+                source: io::Error::other("cache byte count exceeds platform accounting"),
+            },
+        ),
+    })?
     else {
         return Err(HostCacheError::missing_cache(component, path));
     };

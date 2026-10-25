@@ -70,12 +70,13 @@ pub fn load_cached_icrc_account_transactions(
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let request = normalize_cache_request(request)?;
     let paths = cache_paths(&request);
-    load_snapshot_at(&paths.snapshot_path, &request)
+    load_snapshot_at(&paths.snapshot_path, &request, None)
 }
 
 pub(super) fn load_snapshot_at(
     path: &Path,
     request: &IcrcAccountTransactionCacheRequest,
+    opened_file: Option<std::fs::File>,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let cached = load_json_cache(
         LoadJsonCacheRequest {
@@ -87,6 +88,7 @@ pub(super) fn load_snapshot_at(
             maximum_bytes: crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
         },
         None,
+        opened_file,
     )
     .map_err(IcrcAccountTransactionError::from)?;
     validate_snapshot(path, &cached.report, request)?;

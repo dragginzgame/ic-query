@@ -120,8 +120,7 @@ fn node_provider_reward_history_url(
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("format", "json");
-        pairs.append_pair("start", &query.start_unix_secs.to_string());
-        pairs.append_pair("end", &query.end_unix_secs.to_string());
+        super::append_time_window(&mut pairs, query.start_unix_secs, query.end_unix_secs);
         pairs.append_pair("step", &query.step_secs.to_string());
     }
     Ok(url)

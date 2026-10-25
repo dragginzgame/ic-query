@@ -21,6 +21,7 @@ pub fn load_complete_snapshot_for_key<Metadata, Data, Error>(
     missing_error: impl FnOnce(PathBuf) -> Error,
     incomplete_error: impl FnOnce(&CacheCollectionCompleteness) -> Error,
     identity_error: impl FnOnce(SnapshotIdentityMismatch) -> Error,
+    opened_file: Option<std::fs::File>,
 ) -> Result<SnapshotEnvelope<Metadata, Data>, Error>
 where
     Metadata: DeserializeOwned,
@@ -28,7 +29,7 @@ where
     Error: From<HostCacheError>,
 {
     let cached: CachedJsonReport<SnapshotEnvelope<Metadata, Data>> =
-        load_json_cache(request, budget).map_err(|error| match error {
+        load_json_cache(request, budget, opened_file).map_err(|error| match error {
             HostCacheError::MissingCache { path, .. } => missing_error(path),
             error => error.into(),
         })?;

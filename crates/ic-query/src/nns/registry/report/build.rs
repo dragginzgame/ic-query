@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     certification::validate_certificate_time,
-    hex::{HexEvidenceError, is_lowercase_hex, validate_nonempty_hex_evidence},
+    hex::{HexEvidenceError, is_lowercase_hex_32_bytes, validate_nonempty_hex_evidence},
     nns::{LiveNnsSource, NnsSourceRequest},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -101,9 +101,7 @@ pub(super) fn validate_certification(
         &certification.hash_tree_hex,
         certification.hash_tree_bytes,
     )?;
-    if certification.root_key_digest.len() != 64
-        || !is_lowercase_hex(&certification.root_key_digest)
-    {
+    if !is_lowercase_hex_32_bytes(&certification.root_key_digest) {
         return Err(invalid_source_data(
             "root_key_digest must be exactly 32 bytes of lowercase hexadecimal",
         ));

@@ -335,6 +335,7 @@ fn load_node_status_cache(
             ),
         },
         |mismatch| identity_error(path.clone(), mismatch),
+        None,
     )?;
     snapshot_from_cache(path, cache, now_unix_secs)
 }

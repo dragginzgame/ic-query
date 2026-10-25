@@ -168,3 +168,12 @@ fn invalid_endpoint(endpoint: &str, reason: impl Into<String>) -> IcHostError {
         reason: reason.into(),
     }
 }
+
+fn append_time_window(
+    pairs: &mut url::form_urlencoded::Serializer<'_, url::UrlQuery<'_>>,
+    start: u64,
+    end: u64,
+) {
+    pairs.append_pair("start", &start.to_string());
+    pairs.append_pair("end", &end.to_string());
+}

@@ -229,6 +229,7 @@ fn load_cached_sns_catalog(
             ),
         },
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
+        None,
     )?;
     validate_catalog_cache(&path, &cache)?;
     Ok(CachedSnsCatalog { path, cache })

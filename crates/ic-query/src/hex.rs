@@ -17,6 +17,11 @@ pub fn is_lowercase_hex(value: &str) -> bool {
 }
 
 #[must_use]
+pub fn is_lowercase_hex_32_bytes(value: &str) -> bool {
+    value.len() == 64 && is_lowercase_hex(value)
+}
+
+#[must_use]
 pub fn is_canonical_lowercase_hex(value: &str) -> bool {
     !value.is_empty() && value.len().is_multiple_of(2) && is_lowercase_hex(value)
 }
@@ -122,6 +127,20 @@ mod tests {
         ] {
             assert_eq!(is_lowercase_hex(value), lowercase, "{value:?}");
             assert_eq!(is_canonical_lowercase_hex(value), canonical, "{value:?}");
+        }
+    }
+
+    #[test]
+    fn fixed_width_hex_requires_exactly_32_lowercase_bytes() {
+        assert!(is_lowercase_hex_32_bytes(&"0a".repeat(32)));
+        for value in [
+            String::new(),
+            "a".repeat(63),
+            "a".repeat(65),
+            "AA".repeat(32),
+            "é".repeat(32),
+        ] {
+            assert!(!is_lowercase_hex_32_bytes(&value));
         }
     }
 

@@ -16,7 +16,10 @@ use super::{
     source::{NnsCertifiedRegistryDeltaSource, nns_certified_registry_delta_limits},
 };
 use crate::{
-    hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
+    hex::{
+        decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex,
+        is_lowercase_hex_32_bytes,
+    },
     nns::LiveNnsSource,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -216,7 +219,7 @@ fn validate_chunk_evidence<'a>(
     let mut evidence_bytes = 0_usize;
     let mut previous_sha256 = None;
     for row in &report.chunk_evidence {
-        if row.sha256_hex.len() != 64 || !is_canonical_lowercase_hex(&row.sha256_hex) {
+        if !is_lowercase_hex_32_bytes(&row.sha256_hex) {
             return Err(invalid_source_data(
                 "chunk evidence SHA-256 digests must be exactly 64 lowercase hexadecimal characters",
             ));
@@ -531,7 +534,7 @@ fn validate_mutation_value(
                 )));
             }
             for hash in &mutation.chunk_sha256_hexes {
-                if hash.len() != 64 || !is_canonical_lowercase_hex(hash) {
+                if !is_lowercase_hex_32_bytes(hash) {
                     return Err(invalid_source_data(
                         "chunk SHA-256 digests must be exactly 64 lowercase hexadecimal characters",
                     ));

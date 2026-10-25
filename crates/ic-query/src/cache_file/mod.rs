@@ -43,8 +43,8 @@ pub use confined::BoundedManagedFileReadError;
     feature = "sns-host"
 ))]
 pub use confined::ManagedReadBudget;
-pub use confined::read_bounded_managed_file;
 pub use confined::write_managed_file_atomically;
+pub use confined::{read_bounded_managed_file, read_opened_file_bounded};
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]

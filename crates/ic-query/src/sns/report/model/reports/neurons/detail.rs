@@ -5,7 +5,7 @@
 //! Boundary: preserves variable-size native neuron evidence outside fixed-size list caches.
 
 use super::SnsNeuronRow;
-use crate::{hex::is_lowercase_hex, report::ReportDataSource};
+use crate::{hex::is_lowercase_hex_32_bytes, report::ReportDataSource};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::collections::HashSet;
 
@@ -365,7 +365,7 @@ pub(in crate::sns::report) fn validate_maturity_disbursements(
                 validate_canonical_principal(owner, "pending disbursement account owner")?;
             }
             if let Some(subaccount) = account.subaccount_hex.as_deref()
-                && (subaccount.len() != 64 || !is_lowercase_hex(subaccount))
+                && !is_lowercase_hex_32_bytes(subaccount)
             {
                 return Err(
                     "pending disbursement subaccount is not 32-byte lowercase hexadecimal text"

@@ -20,7 +20,7 @@ use crate::sns::report::{
 };
 
 /// Fetch a bounded SNS governance proposal listing from one resolved SNS.
-pub(super) async fn fetch_mainnet_sns_proposals_async(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposals(
     source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
@@ -55,14 +55,14 @@ pub(super) async fn fetch_mainnet_sns_proposals_async(
 }
 
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
-pub(super) async fn fetch_mainnet_sns_proposal_page_async(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal_page(
     source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
 ) -> Result<Vec<SnsProposalRow>, SnsHostError> {
-    fetch_mainnet_sns_proposals_async(
+    fetch_mainnet_sns_proposals(
         source,
         request,
         sns,

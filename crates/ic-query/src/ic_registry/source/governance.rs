@@ -5,7 +5,7 @@ use crate::ic_registry::{
     transport::get_latest_version, wire::ListNodeProvidersResponse,
 };
 
-pub(in crate::ic_registry) async fn fetch_mainnet_node_provider_list_async(
+pub async fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
     let agent = mainnet_agent(request)?;

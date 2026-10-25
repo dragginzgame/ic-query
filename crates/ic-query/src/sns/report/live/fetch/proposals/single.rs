@@ -18,7 +18,7 @@ use crate::sns::report::{
 };
 
 /// Fetch one SNS governance proposal by id from a resolved governance canister.
-pub(super) async fn fetch_mainnet_sns_proposal_async(
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal(
     source: &crate::sns::LiveSnsSource,
     request: &SnsSourceRequest,
     sns: &MainnetSns,

@@ -24,7 +24,8 @@ use ic_host_tools::registry::routing_shards::{
 };
 use ic_platform::candid::contract::Principal;
 
-pub(in crate::ic_registry) async fn fetch_mainnet_subnet_catalog_async(
+/// Fetch one exact-version mainnet Subnet Catalog on the caller's async runtime.
+pub async fn fetch_mainnet_subnet_catalog_async(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<RawSubnetCatalog, RegistryFetchError> {
     fetch_mainnet_subnet_catalog_detailed_async(request)
