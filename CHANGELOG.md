@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.73.1]
+## [0.73.1] - 2026-10-25
 
 - Inspect refresh coordination-file size and lock state through one file handle.
 - Consolidate cache-attempt error/progress handling, Governance row bounds and
