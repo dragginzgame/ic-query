@@ -4,11 +4,9 @@
 //! Does not own: component refresh, text rendering, or command parsing.
 //! Boundary: combines component report counts, relations, and versions.
 
-mod join;
-
 use super::{
     NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport,
-    registry_versions::topology_registry_versions,
+    coverage::topology_coverage_report_from_reports, registry_versions::topology_registry_versions,
 };
 use crate::{
     nns::{
@@ -17,7 +15,6 @@ use crate::{
     },
     subnet_catalog::{SubnetCatalogListReport, SubnetKind},
 };
-use join::topology_summary_join_coverage_counts;
 
 pub(super) fn topology_summary_report_from_reports(
     network: String,
@@ -54,7 +51,9 @@ pub(super) fn topology_summary_report_from_reports(
             SubnetKind::Unknown => unknown_node_count += 1,
         }
     }
-    let join_coverage = topology_summary_join_coverage_counts(
+    let coverage = topology_coverage_report_from_reports(
+        network,
+        source_endpoint,
         &node_report,
         &node_provider_report,
         &node_operator_report,
@@ -70,8 +69,8 @@ pub(super) fn topology_summary_report_from_reports(
 
     NnsTopologySummaryReport {
         schema_version: NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION,
-        network,
-        source_endpoint,
+        network: coverage.network,
+        source_endpoint: coverage.source_endpoint,
         subnet_count: subnet_report.subnets.len(),
         application_subnet_count,
         cloud_engine_subnet_count,
@@ -86,28 +85,20 @@ pub(super) fn topology_summary_report_from_reports(
         node_provider_count: node_provider_report.node_provider_count,
         node_operator_count: node_operator_report.node_operator_count,
         data_center_count: data_center_report.data_center_count,
-        nodes_with_known_node_provider_count: join_coverage.nodes_with_known_node_provider_count,
-        nodes_with_unknown_node_provider_count: node_report
-            .node_count
-            .saturating_sub(join_coverage.nodes_with_known_node_provider_count),
-        nodes_with_known_node_operator_count: join_coverage.nodes_with_known_node_operator_count,
-        nodes_with_unknown_node_operator_count: node_report
-            .node_count
-            .saturating_sub(join_coverage.nodes_with_known_node_operator_count),
-        nodes_with_known_data_center_count: join_coverage.nodes_with_known_data_center_count,
-        nodes_with_unknown_data_center_count: node_report
-            .node_count
-            .saturating_sub(join_coverage.nodes_with_known_data_center_count),
-        node_operators_with_known_node_provider_count: join_coverage
+        nodes_with_known_node_provider_count: coverage.nodes_with_known_node_provider_count,
+        nodes_with_unknown_node_provider_count: coverage.nodes_with_unknown_node_provider_count,
+        nodes_with_known_node_operator_count: coverage.nodes_with_known_node_operator_count,
+        nodes_with_unknown_node_operator_count: coverage.nodes_with_unknown_node_operator_count,
+        nodes_with_known_data_center_count: coverage.nodes_with_known_data_center_count,
+        nodes_with_unknown_data_center_count: coverage.nodes_with_unknown_data_center_count,
+        node_operators_with_known_node_provider_count: coverage
             .node_operators_with_known_node_provider_count,
-        node_operators_with_unknown_node_provider_count: node_operator_report
-            .node_operator_count
-            .saturating_sub(join_coverage.node_operators_with_known_node_provider_count),
-        node_operators_with_known_data_center_count: join_coverage
+        node_operators_with_unknown_node_provider_count: coverage
+            .node_operators_with_unknown_node_provider_count,
+        node_operators_with_known_data_center_count: coverage
             .node_operators_with_known_data_center_count,
-        node_operators_with_unknown_data_center_count: node_operator_report
-            .node_operator_count
-            .saturating_sub(join_coverage.node_operators_with_known_data_center_count),
+        node_operators_with_unknown_data_center_count: coverage
+            .node_operators_with_unknown_data_center_count,
         subnet_catalog_stale: subnet_report.catalog_stale,
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         registry_versions,

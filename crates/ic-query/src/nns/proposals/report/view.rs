@@ -11,9 +11,7 @@ use super::model::{
 #[cfg(feature = "nns-host")]
 use super::model::{NnsProposalRewardStatusFilter, NnsProposalStatusFilter};
 use crate::{
-    report_sort::{
-        compare_optional_ord, sort_by_optional_text, sort_by_optional_u64, sort_by_text,
-    },
+    report_sort::{ReportSortKey, compare_optional_ord},
     text_search::optional_text_contains_lowercase_query,
 };
 
@@ -100,76 +98,73 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
     direction: NnsProposalSortDirection,
 ) {
     let descending = matches!(direction, NnsProposalSortDirection::Desc);
-    let by_id = |left: &NnsProposalRow, right: &NnsProposalRow| {
-        compare_optional_ord(left.proposal_id, right.proposal_id, descending)
+    let key: ReportSortKey<NnsProposalRow> = match sort {
+        NnsProposalListSort::Api => return,
+        NnsProposalListSort::Status => ReportSortKey::Text(|proposal: &NnsProposalRow| {
+            NnsProposalStatus::from_code(proposal.status).as_str()
+        }),
+        NnsProposalListSort::RewardStatus => ReportSortKey::Text(|proposal| {
+            NnsProposalRewardStatus::from_code(proposal.reward_status).as_str()
+        }),
+        NnsProposalListSort::Topic => {
+            ReportSortKey::Text(|proposal| NnsProposalTopic::from_code(proposal.topic).as_str())
+        }
+        NnsProposalListSort::Title => {
+            ReportSortKey::OptionalText(|proposal| proposal.title.as_deref())
+        }
+        NnsProposalListSort::Action => {
+            ReportSortKey::OptionalText(|proposal| proposal.action_text.as_deref())
+        }
+        NnsProposalListSort::Id => ReportSortKey::OptionalU64(|proposal| proposal.proposal_id),
+        NnsProposalListSort::Proposer => {
+            ReportSortKey::OptionalU64(|proposal| proposal.proposer_neuron_id)
+        }
+        NnsProposalListSort::Yes => ReportSortKey::OptionalU64(|proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.yes)
+        }),
+        NnsProposalListSort::No => ReportSortKey::OptionalU64(|proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.no)
+        }),
+        NnsProposalListSort::TotalVotes => ReportSortKey::OptionalU64(|proposal| {
+            proposal.latest_tally.as_ref().map(|tally| tally.total)
+        }),
+        NnsProposalListSort::TallyTime => ReportSortKey::OptionalU64(|proposal| {
+            proposal
+                .latest_tally
+                .as_ref()
+                .map(|tally| tally.timestamp_seconds)
+        }),
+        NnsProposalListSort::VotingPower => {
+            ReportSortKey::OptionalU64(|proposal| proposal.total_potential_voting_power)
+        }
+        NnsProposalListSort::Ballots => {
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.ballot_count as u64))
+        }
+        NnsProposalListSort::RejectCost => {
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.reject_cost_e8s))
+        }
+        NnsProposalListSort::RewardRound => {
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.reward_event_round))
+        }
+        NnsProposalListSort::Proposed => {
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.proposal_timestamp_seconds))
+        }
+        NnsProposalListSort::Deadline => {
+            ReportSortKey::OptionalU64(|proposal| proposal.deadline_timestamp_seconds)
+        }
+        NnsProposalListSort::Decided => ReportSortKey::OptionalU64(|proposal| {
+            nonzero_timestamp(proposal.decided_timestamp_seconds)
+        }),
+        NnsProposalListSort::Executed => ReportSortKey::OptionalU64(|proposal| {
+            nonzero_timestamp(proposal.executed_timestamp_seconds)
+        }),
+        NnsProposalListSort::Failed => ReportSortKey::OptionalU64(|proposal| {
+            nonzero_timestamp(proposal.failed_timestamp_seconds)
+        }),
     };
-    match sort {
-        NnsProposalListSort::Api => {}
-        NnsProposalListSort::Status
-        | NnsProposalListSort::RewardStatus
-        | NnsProposalListSort::Topic => sort_by_text(
-            proposals,
-            descending,
-            |proposal| match sort {
-                NnsProposalListSort::Status => {
-                    NnsProposalStatus::from_code(proposal.status).as_str()
-                }
-                NnsProposalListSort::RewardStatus => {
-                    NnsProposalRewardStatus::from_code(proposal.reward_status).as_str()
-                }
-                NnsProposalListSort::Topic => NnsProposalTopic::from_code(proposal.topic).as_str(),
-                _ => unreachable!("sort key is selected by the outer match"),
-            },
-            by_id,
-        ),
-        NnsProposalListSort::Title | NnsProposalListSort::Action => sort_by_optional_text(
-            proposals,
-            descending,
-            |proposal| match sort {
-                NnsProposalListSort::Title => proposal.title.as_deref(),
-                NnsProposalListSort::Action => proposal.action_text.as_deref(),
-                _ => unreachable!("sort key is selected by the outer match"),
-            },
-            by_id,
-        ),
-        _ => sort_by_optional_u64(
-            proposals,
-            descending,
-            |proposal| match sort {
-                NnsProposalListSort::Id => proposal.proposal_id,
-                NnsProposalListSort::Proposer => proposal.proposer_neuron_id,
-                NnsProposalListSort::Yes => proposal.latest_tally.as_ref().map(|tally| tally.yes),
-                NnsProposalListSort::No => proposal.latest_tally.as_ref().map(|tally| tally.no),
-                NnsProposalListSort::TotalVotes => {
-                    proposal.latest_tally.as_ref().map(|tally| tally.total)
-                }
-                NnsProposalListSort::TallyTime => proposal
-                    .latest_tally
-                    .as_ref()
-                    .map(|tally| tally.timestamp_seconds),
-                NnsProposalListSort::VotingPower => proposal.total_potential_voting_power,
-                NnsProposalListSort::Ballots => Some(proposal.ballot_count as u64),
-                NnsProposalListSort::RejectCost => Some(proposal.reject_cost_e8s),
-                NnsProposalListSort::RewardRound => Some(proposal.reward_event_round),
-                NnsProposalListSort::Proposed => Some(proposal.proposal_timestamp_seconds),
-                NnsProposalListSort::Deadline => proposal.deadline_timestamp_seconds,
-                NnsProposalListSort::Decided => {
-                    nonzero_timestamp(proposal.decided_timestamp_seconds)
-                }
-                NnsProposalListSort::Executed => {
-                    nonzero_timestamp(proposal.executed_timestamp_seconds)
-                }
-                NnsProposalListSort::Failed => nonzero_timestamp(proposal.failed_timestamp_seconds),
-                NnsProposalListSort::Api
-                | NnsProposalListSort::Status
-                | NnsProposalListSort::RewardStatus
-                | NnsProposalListSort::Topic
-                | NnsProposalListSort::Title
-                | NnsProposalListSort::Action => unreachable!("nonnumeric sorts are handled above"),
-            },
-            by_id,
-        ),
-    }
+    key.sort(proposals, descending, |left, right| {
+        compare_optional_ord(left.proposal_id, right.proposal_id, descending)
+    });
 }
 
 const fn nonzero_timestamp(timestamp_seconds: u64) -> Option<u64> {

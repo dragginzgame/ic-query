@@ -10,8 +10,8 @@
 ))]
 use super::MAX_NNS_GOVERNANCE_RESPONSE_BYTES;
 use super::{
-    NnsGovernanceError, NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
-    NnsGovernanceSourceSelection,
+    NnsGovernanceCollectionStatus, NnsGovernanceError, NnsGovernanceMetrics, NnsGovernanceRequest,
+    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
@@ -316,6 +316,29 @@ pub(super) fn validate_governance_metrics(
 
 pub fn advance_collection_counts(pages: u32, rows: u64, page_rows: u64) -> Option<(u32, u64)> {
     Some((pages.checked_add(1)?, rows.checked_add(page_rows)?))
+}
+
+pub const fn collection_lifecycle_matches(
+    status: NnsGovernanceCollectionStatus,
+    pages: u32,
+    max_pages: u32,
+    rows: u64,
+    maximum_rows: u64,
+    has_cursor: bool,
+    has_source: bool,
+) -> bool {
+    match status {
+        NnsGovernanceCollectionStatus::Ready => {
+            pages == 0 && rows == 0 && !has_cursor && !has_source
+        }
+        NnsGovernanceCollectionStatus::Collecting => {
+            pages > 0 && pages < max_pages && rows == maximum_rows && has_cursor && has_source
+        }
+        NnsGovernanceCollectionStatus::Complete => pages > 0 && !has_cursor && has_source,
+        NnsGovernanceCollectionStatus::PageLimitReached => {
+            pages == max_pages && rows == maximum_rows && has_cursor && has_source
+        }
+    }
 }
 
 pub const fn collection_status_after_page(

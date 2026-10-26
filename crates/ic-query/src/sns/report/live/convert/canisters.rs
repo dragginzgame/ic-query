@@ -190,38 +190,28 @@ fn push_singleton(
         return;
     };
 
-    let Some(summary) = summary else {
-        canisters.push(canister_row(role, inventory_canister_id.clone(), None));
-        gaps.push(gap(
-            SnsCanisterGapKind::SummaryMissing,
-            role,
-            Some(inventory_canister_id),
-            None,
-        ));
-        return;
+    let matched = match summary {
+        None => Err((SnsCanisterGapKind::SummaryMissing, None)),
+        Some(summary) => match summary_canister_id(Some(&summary)) {
+            None => Err((SnsCanisterGapKind::SummaryCanisterIdMissing, None)),
+            Some(id) if id != inventory_canister_id => {
+                Err((SnsCanisterGapKind::SummaryCanisterIdMismatch, Some(id)))
+            }
+            Some(_) => Ok(summary.status),
+        },
     };
-    let Some(summary_canister_id) = summary.canister_id.map(|value| value.to_text()) else {
-        canisters.push(canister_row(role, inventory_canister_id.clone(), None));
-        gaps.push(gap(
-            SnsCanisterGapKind::SummaryCanisterIdMissing,
-            role,
-            Some(inventory_canister_id),
-            None,
-        ));
-        return;
-    };
-    if summary_canister_id != inventory_canister_id {
-        canisters.push(canister_row(role, inventory_canister_id.clone(), None));
-        gaps.push(gap(
-            SnsCanisterGapKind::SummaryCanisterIdMismatch,
-            role,
-            Some(inventory_canister_id),
-            Some(summary_canister_id),
-        ));
-        return;
+    match matched {
+        Ok(status) => push_matched_summary(role, inventory_canister_id, status, canisters, gaps),
+        Err((kind, summary_id)) => {
+            gaps.push(gap(
+                kind,
+                role,
+                Some(inventory_canister_id.clone()),
+                summary_id,
+            ));
+            canisters.push(canister_row(role, inventory_canister_id, None));
+        }
     }
-
-    push_matched_summary(role, inventory_canister_id, summary.status, canisters, gaps);
 }
 
 fn push_many(

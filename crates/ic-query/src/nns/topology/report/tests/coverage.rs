@@ -1,18 +1,15 @@
 use super::{fixtures::*, *};
 
 #[test]
-fn topology_coverage_report_projects_summary_join_coverage() {
-    let summary = topology_summary_report_from_reports(
+fn topology_coverage_report_counts_inventory_relations() {
+    let report = topology_coverage_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &node_report_fixture(),
+        &node_provider_report_fixture(),
+        &node_operator_report_fixture(),
+        &data_center_report_fixture(),
     );
-
-    let report = topology_coverage_report_from_summary(summary);
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.network, MAINNET_NETWORK);
@@ -28,17 +25,14 @@ fn topology_coverage_report_projects_summary_join_coverage() {
 
 #[test]
 fn topology_coverage_text_renders_join_coverage_table() {
-    let summary = topology_summary_report_from_reports(
+    let report = topology_coverage_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &node_report_fixture(),
+        &node_provider_report_fixture(),
+        &node_operator_report_fixture(),
+        &data_center_report_fixture(),
     );
-    let report = topology_coverage_report_from_summary(summary);
-
     let text = nns_topology_coverage_report_text(&report);
 
     assert!(text.contains("FIELD"));

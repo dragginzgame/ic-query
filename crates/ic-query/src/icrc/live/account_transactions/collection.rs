@@ -40,17 +40,20 @@ impl AccountTransactionsPage {
 
 pub(super) struct AccountTransactionCollectionState {
     index_canister_id: String,
-    balance: Option<String>,
-    oldest_transaction_id: Option<String>,
+    first_page: Option<FirstPageEvidence>,
     pages: PagedCollectionState<IcrcAccountTransactionRow, String>,
+}
+
+struct FirstPageEvidence {
+    balance: String,
+    oldest_transaction_id: Option<String>,
 }
 
 impl AccountTransactionCollectionState {
     pub(super) const fn new(index_canister_id: String) -> Self {
         Self {
             index_canister_id,
-            balance: None,
-            oldest_transaction_id: None,
+            first_page: None,
             pages: PagedCollectionState::new(),
         }
     }
@@ -81,7 +84,11 @@ impl AccountTransactionCollectionState {
             page.next_start(),
         )
         .map_err(|error| self.incomplete(error.to_string()))?;
-        if self.balance.is_some() && self.oldest_transaction_id != page.oldest_transaction_id {
+        if self
+            .first_page
+            .as_ref()
+            .is_some_and(|first| first.oldest_transaction_id != page.oldest_transaction_id)
+        {
             return Err(self.incomplete("index oldest transaction id changed during collection"));
         }
         if page_len > 0 && page.oldest_transaction_id.is_none() {
@@ -91,13 +98,17 @@ impl AccountTransactionCollectionState {
         }
 
         let next_start = page.next_start().map(str::to_owned);
-        if self.balance.is_none() {
-            self.balance = Some(page.balance);
-            self.oldest_transaction_id = page.oldest_transaction_id;
-        }
+        self.first_page.get_or_insert(FirstPageEvidence {
+            balance: page.balance,
+            oldest_transaction_id: page.oldest_transaction_id,
+        });
         self.pages.ingest(page.transactions, next_start);
         Ok(self.next_cursor().is_none()
-            || self.next_cursor() == self.oldest_transaction_id.as_deref())
+            || self.next_cursor()
+                == self
+                    .first_page
+                    .as_ref()
+                    .and_then(|first| first.oldest_transaction_id.as_deref()))
     }
 
     pub(super) fn incomplete(&self, reason: impl Into<String>) -> IcrcAccountTransactionError {
@@ -143,13 +154,13 @@ impl AccountTransactionCollectionState {
         token_symbol: String,
         decimals: u8,
     ) -> Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError> {
-        let Some(balance) = self.balance.take() else {
+        let Some(first_page) = self.first_page.take() else {
             return Err(self.incomplete("index collection has no accepted page"));
         };
         let pages = self.pages.into_complete(Clone::clone);
         Ok(IcrcAccountTransactionCollectionData {
             index_canister_id: self.index_canister_id,
-            balance,
+            balance: first_page.balance,
             token_symbol,
             decimals,
             transactions: pages.rows,

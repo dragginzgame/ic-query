@@ -6,6 +6,33 @@
 
 use std::cmp::Ordering;
 
+///
+/// ReportSortKey
+///
+/// A selected scalar key whose value and missing-value ordering use shared report rules.
+///
+
+pub enum ReportSortKey<Row> {
+    OptionalU64(fn(&Row) -> Option<u64>),
+    Text(fn(&Row) -> &str),
+    OptionalText(fn(&Row) -> Option<&str>),
+}
+
+impl<Row> ReportSortKey<Row> {
+    pub fn sort(
+        self,
+        rows: &mut [Row],
+        descending: bool,
+        tiebreak: impl Fn(&Row, &Row) -> Ordering,
+    ) {
+        match self {
+            Self::OptionalU64(key) => sort_by_optional_u64(rows, descending, key, tiebreak),
+            Self::Text(key) => sort_by_text(rows, descending, key, tiebreak),
+            Self::OptionalText(key) => sort_by_optional_text(rows, descending, key, tiebreak),
+        }
+    }
+}
+
 pub fn sort_by_optional_u64<Row>(
     rows: &mut [Row],
     descending: bool,

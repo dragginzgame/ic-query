@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.3]
+
+### 🧹 Cleanup
+
+- Consolidate cache inspection and Registry decoding while preserving read
+  budgets, recovery policies and failure evidence.
+- Simplify Governance collection validation, proposal sorting and SNS canister
+  matching without changing public reports, ordering or diagnostics.
+- Share ICRC capability handling and first-page evidence; derive topology
+  coverage directly from inventories while preserving source-call order.
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.74.2] - 2026-10-26
 
 ### 🔧 Changed

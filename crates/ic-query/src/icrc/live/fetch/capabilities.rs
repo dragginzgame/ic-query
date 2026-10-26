@@ -76,23 +76,16 @@ pub(in crate::icrc::live) async fn fetch_capabilities_async(
 }
 
 async fn fetch_index_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
-    match query_index_principal::<CapabilityQueryError>(agent, ledger_canister).await {
-        Ok(Ok(principal)) => available_capability_row(
-            "ICRC-106 index discovery",
-            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-            format!("index canister {}", principal.to_text()),
-        ),
-        Ok(Err(error)) => available_capability_row(
-            "ICRC-106 index discovery",
-            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-            index_principal_error_text(error),
-        ),
-        Err(err) => error_capability_row(
-            "ICRC-106 index discovery",
-            ICRC106_GET_INDEX_PRINCIPAL_METHOD,
-            err,
-        ),
-    }
+    capability_result(
+        "ICRC-106 index discovery",
+        ICRC106_GET_INDEX_PRINCIPAL_METHOD,
+        query_index_principal::<CapabilityQueryError>(agent, ledger_canister).await,
+        |result| {
+            result.map_or_else(index_principal_error_text, |principal| {
+                format!("index canister {}", principal.to_text())
+            })
+        },
+    )
 }
 
 async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> IcrcCapabilityRow {
@@ -100,42 +93,38 @@ async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> 
         start: Nat::from(0_u64),
         length: Nat::from(1_u64),
     }];
-    match query_blocks::<_, CapabilityQueryError>(agent, ledger_canister, &block_args).await {
-        Ok(result) => available_capability_row(
-            "ICRC-3 block history",
-            ICRC3_GET_BLOCKS_METHOD,
+    capability_result(
+        "ICRC-3 block history",
+        ICRC3_GET_BLOCKS_METHOD,
+        query_blocks::<_, CapabilityQueryError>(agent, ledger_canister, &block_args).await,
+        |result| {
             format!(
                 "log_length {}, returned_blocks {}, archive_callbacks {}",
                 result.log_length,
                 result.blocks.len(),
                 result.archived_blocks.len()
-            ),
-        ),
-        Err(err) => error_capability_row("ICRC-3 block history", ICRC3_GET_BLOCKS_METHOD, err),
-    }
+            )
+        },
+    )
 }
 
 async fn fetch_block_types_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_block_types::<CapabilityQueryError>(agent, ledger_canister).await {
-        Ok(block_types) => available_capability_row(
-            "ICRC-3 supported block types",
-            ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+    capability_result(
+        "ICRC-3 supported block types",
+        ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
+        query_block_types::<CapabilityQueryError>(agent, ledger_canister).await,
+        |block_types| {
             named_count_detail(
                 "block type",
                 block_types
                     .iter()
                     .map(|block_type| block_type.block_type.as_str()),
-            ),
-        ),
-        Err(err) => error_capability_row(
-            "ICRC-3 supported block types",
-            ICRC3_SUPPORTED_BLOCK_TYPES_METHOD,
-            err,
-        ),
-    }
+            )
+        },
+    )
 }
 
 async fn fetch_archives_capability(
@@ -143,42 +132,44 @@ async fn fetch_archives_capability(
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
     let args = GetArchivesArgs { from: None };
-    match query_archives::<CapabilityQueryError>(agent, ledger_canister, &args).await {
-        Ok(archives) => available_capability_row(
-            "ICRC-3 archive discovery",
-            ICRC3_GET_ARCHIVES_METHOD,
-            format!("{} archive range(s)", archives.len()),
-        ),
-        Err(err) => {
-            error_capability_row("ICRC-3 archive discovery", ICRC3_GET_ARCHIVES_METHOD, err)
-        }
-    }
+    capability_result(
+        "ICRC-3 archive discovery",
+        ICRC3_GET_ARCHIVES_METHOD,
+        query_archives::<CapabilityQueryError>(agent, ledger_canister, &args).await,
+        |archives| format!("{} archive range(s)", archives.len()),
+    )
 }
 
 async fn fetch_tip_certificate_capability(
     agent: &Agent,
     ledger_canister: &Principal,
 ) -> IcrcCapabilityRow {
-    match query_tip_certificate::<CapabilityQueryError>(agent, ledger_canister).await {
-        Ok(Some(certificate)) => available_capability_row(
-            "ICRC-3 tip certificate",
-            ICRC3_GET_TIP_CERTIFICATE_METHOD,
-            format!(
-                "verified certificate {} bytes, hash tree {} bytes",
-                certificate.certificate.len(),
-                certificate.hash_tree.len()
-            ),
-        ),
-        Ok(_) => available_capability_row(
-            "ICRC-3 tip certificate",
-            ICRC3_GET_TIP_CERTIFICATE_METHOD,
-            "certificate absent",
-        ),
-        Err(err) => error_capability_row(
-            "ICRC-3 tip certificate",
-            ICRC3_GET_TIP_CERTIFICATE_METHOD,
-            err,
-        ),
+    capability_result(
+        "ICRC-3 tip certificate",
+        ICRC3_GET_TIP_CERTIFICATE_METHOD,
+        query_tip_certificate::<CapabilityQueryError>(agent, ledger_canister).await,
+        |result| match result {
+            Some(certificate) => {
+                format!(
+                    "verified certificate {} bytes, hash tree {} bytes",
+                    certificate.certificate.len(),
+                    certificate.hash_tree.len()
+                )
+            }
+            None => "certificate absent".to_string(),
+        },
+    )
+}
+
+fn capability_result<T>(
+    capability: &str,
+    method: &'static str,
+    result: Result<T, CapabilityQueryError>,
+    describe: impl FnOnce(T) -> String,
+) -> IcrcCapabilityRow {
+    match result {
+        Ok(value) => available_capability_row(capability, method, describe(value)),
+        Err(error) => error_capability_row(capability, method, error),
     }
 }
 

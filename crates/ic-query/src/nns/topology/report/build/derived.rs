@@ -7,7 +7,7 @@ use crate::nns::{
         NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION, NnsTopologyCheckReport,
         NnsTopologyCoverageReport, NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
         NnsTopologyVersionsReport, check::topology_check_report_from_summary,
-        coverage::topology_coverage_report_from_summary, enforce_mainnet_network,
+        coverage::topology_coverage_report_from_reports, enforce_mainnet_network,
         registry_versions::topology_registry_versions,
     },
 };
@@ -53,9 +53,20 @@ pub async fn build_nns_topology_coverage_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
-    let summary = build_nns_topology_summary_report_with_source(request, source).await?;
+    enforce_mainnet_network(&request.network)?;
 
-    Ok(topology_coverage_report_from_summary(summary))
+    // Preserve the acquisition and failure order shared by topology reads.
+    source.fetch_subnet_catalog_list_report(request).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
+
+    Ok(topology_coverage_report_from_reports(
+        request.network.clone(),
+        request.source_endpoint.clone(),
+        &reports.node,
+        &reports.node_provider,
+        &reports.node_operator,
+        &reports.data_center,
+    ))
 }
 
 pub async fn build_nns_topology_check_report(

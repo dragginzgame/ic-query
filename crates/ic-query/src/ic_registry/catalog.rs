@@ -14,6 +14,7 @@ use crate::subnet_catalog::{
     UncertifiedCatalogCollection, subject_from_catalog_error,
 };
 use ic_host_tools::registry::proto::{RoutingTable, SubnetListRecord, SubnetRecord};
+use prost::Message;
 use std::future::Future;
 
 ///
@@ -95,31 +96,14 @@ where
         })?;
         let subnet_principal = subnet.to_text();
         let subject = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
-        let value = get_catalog_record(
+        let (record, _) = get_catalog_record::<_, SubnetRecord>(
             reader,
             &subject,
             registry_version,
             request,
-            &registry_records,
+            &mut registry_records,
         )
         .await?;
-        registry_records.push(record_evidence(
-            request,
-            registry_version,
-            subject.clone(),
-            &value,
-        ));
-        let record = decode_message::<SubnetRecord>(subject.kind.protobuf_schema(), &value.value)
-            .map_err(|source| {
-            record_failure(
-                request,
-                registry_version,
-                subject,
-                Some(value.version),
-                registry_records.clone(),
-                source,
-            )
-        })?;
         subnets.push(subnet_info_from_record(&subnet_principal, &record));
     }
 
@@ -233,15 +217,16 @@ fn routing_ranges_from_table_inner(
         .collect()
 }
 
-pub(super) async fn get_catalog_record<R>(
+pub(super) async fn get_catalog_record<R, Record>(
     reader: &R,
     subject: &SubnetCatalogRegistryRecordSubject,
     registry_version: u64,
     request: &MainnetRegistryFetchRequest,
-    registry_records: &[SubnetCatalogRegistryRecordEvidence],
-) -> Result<RegistryVersionedValue, Box<SubnetCatalogRegistryFailure>>
+    registry_records: &mut Vec<SubnetCatalogRegistryRecordEvidence>,
+) -> Result<(Record, u64), Box<SubnetCatalogRegistryFailure>>
 where
     R: CatalogRegistryReader,
+    Record: Message + Default,
 {
     let value = reader
         .value(&subject.key, registry_version)
@@ -252,7 +237,7 @@ where
                 registry_version,
                 subject.clone(),
                 failure.returned_version,
-                registry_records.to_vec(),
+                registry_records.clone(),
                 failure.source,
             )
         })?;
@@ -262,7 +247,7 @@ where
             registry_version,
             subject.clone(),
             Some(value.version),
-            registry_records.to_vec(),
+            registry_records.clone(),
             RegistryFetchError::InvalidRegistryValueVersion {
                 key: subject.key.clone(),
                 requested_version: registry_version,
@@ -270,10 +255,27 @@ where
             },
         ));
     }
-    Ok(value)
+    registry_records.push(record_evidence(
+        request,
+        registry_version,
+        subject.clone(),
+        &value,
+    ));
+    let record =
+        decode_message(subject.kind.protobuf_schema(), &value.value).map_err(|source| {
+            record_failure(
+                request,
+                registry_version,
+                subject.clone(),
+                Some(value.version),
+                registry_records.clone(),
+                source,
+            )
+        })?;
+    Ok((record, value.version))
 }
 
-pub(super) fn record_evidence(
+fn record_evidence(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
     record: SubnetCatalogRegistryRecordSubject,

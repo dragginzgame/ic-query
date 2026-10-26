@@ -321,32 +321,15 @@ pub(super) fn validate_collection_state(
         ));
     }
 
-    let valid_lifecycle = match state.status {
-        NnsGovernanceCollectionStatus::Ready => {
-            state.pages_fetched == 0
-                && state.proposals_fetched == 0
-                && state.next_before_proposal_id.is_none()
-                && state.source.is_none()
-        }
-        NnsGovernanceCollectionStatus::Collecting => {
-            state.pages_fetched > 0
-                && state.pages_fetched < state.max_pages
-                && proposals_fetched == maximum_rows
-                && state.next_before_proposal_id.is_some()
-                && state.source.is_some()
-        }
-        NnsGovernanceCollectionStatus::Complete => {
-            state.pages_fetched > 0
-                && state.next_before_proposal_id.is_none()
-                && state.source.is_some()
-        }
-        NnsGovernanceCollectionStatus::PageLimitReached => {
-            state.pages_fetched == state.max_pages
-                && proposals_fetched == maximum_rows
-                && state.next_before_proposal_id.is_some()
-                && state.source.is_some()
-        }
-    };
+    let valid_lifecycle = crate::nns::governance::collection_lifecycle_matches(
+        state.status,
+        state.pages_fetched,
+        state.max_pages,
+        state.proposals_fetched,
+        maximum_rows,
+        state.next_before_proposal_id.is_some(),
+        state.source.is_some(),
+    );
     if !valid_lifecycle {
         return Err(invalid(format!(
             "status {} disagrees with cursor, provenance, or counters",

@@ -5,11 +5,11 @@ use crate::{
         SubnetCatalogRegistryFailure,
         catalog::{
             CatalogRegistryReader, catalog_from_registry_records_detailed, get_catalog_record,
-            record_evidence, record_failure,
+            record_failure,
         },
         transport::{
-            RegistryQueryCounter, decode_message, get_latest_version_counted,
-            get_registry_key_family_counted, get_registry_versioned_value_counted,
+            RegistryQueryCounter, get_latest_version_counted, get_registry_key_family_counted,
+            get_registry_versioned_value_counted,
         },
         wire::{RegistryVersionedValue, RegistryVersionedValueFailure},
     },
@@ -89,34 +89,14 @@ where
     let mut registry_records = Vec::new();
 
     let subnet_list_subject = SubnetCatalogRegistryRecordSubject::subnet_list();
-    let subnet_list_value = get_catalog_record(
+    let (subnet_list, _) = get_catalog_record::<_, SubnetListRecord>(
         reader,
         &subnet_list_subject,
         registry_version,
         request,
-        &registry_records,
+        &mut registry_records,
     )
     .await?;
-    registry_records.push(record_evidence(
-        request,
-        registry_version,
-        subnet_list_subject.clone(),
-        &subnet_list_value,
-    ));
-    let subnet_list = decode_message::<SubnetListRecord>(
-        subnet_list_subject.kind.protobuf_schema(),
-        &subnet_list_value.value,
-    )
-    .map_err(|source| {
-        record_failure(
-            request,
-            registry_version,
-            subnet_list_subject,
-            Some(subnet_list_value.version),
-            registry_records.clone(),
-            source,
-        )
-    })?;
 
     let shard_keys = reader
         .key_family(CANISTER_RANGES_KEY_PREFIX, registry_version)
@@ -175,31 +155,14 @@ where
     }
     let mut routing_table = RoutingTable::default();
     for (index, subject) in shard_subjects.iter().enumerate() {
-        let value = get_catalog_record(
+        let (shard, returned_version) = get_catalog_record::<_, RoutingTable>(
             reader,
             subject,
             registry_version,
             request,
-            &registry_records,
+            &mut registry_records,
         )
         .await?;
-        registry_records.push(record_evidence(
-            request,
-            registry_version,
-            subject.clone(),
-            &value,
-        ));
-        let shard = decode_message::<RoutingTable>(subject.kind.protobuf_schema(), &value.value)
-            .map_err(|source| {
-                record_failure(
-                    request,
-                    registry_version,
-                    subject.clone(),
-                    Some(value.version),
-                    registry_records.clone(),
-                    source,
-                )
-            })?;
         let next_start = shard_subjects
             .get(index + 1)
             .and_then(|next| next.canister_range_start)
@@ -219,7 +182,7 @@ where
                 request,
                 registry_version,
                 subject.clone(),
-                Some(value.version),
+                Some(returned_version),
                 registry_records.clone(),
                 RegistryFetchError::InvalidRegistryKeyFamily { reason },
             )

@@ -6,6 +6,43 @@
 
 use serde::{Deserialize, Serialize};
 
+macro_rules! governance_code_enum {
+    (
+        $(#[$enum_attr:meta])*
+        pub enum $name:ident {
+            $($(#[$variant_attr:meta])* $variant:ident = $code:literal => $label:literal,)*
+        }
+    ) => {
+        $(#[$enum_attr])*
+        pub enum $name {
+            $($(#[$variant_attr])* #[serde(rename = $label)] $variant,)*
+        }
+
+        impl $name {
+            /// Classify a native code, retaining the unspecified classification for unknown codes.
+            #[must_use]
+            pub const fn from_code(code: i32) -> Self {
+                match code {
+                    $($code => Self::$variant,)*
+                    _ => Self::Unspecified,
+                }
+            }
+
+            /// Return the canonical native code for this classification.
+            #[must_use]
+            pub const fn code(self) -> i32 {
+                match self { $(Self::$variant => $code,)* }
+            }
+
+            /// Return the stable JSON and text label.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self { $(Self::$variant => $label,)* }
+            }
+        }
+    };
+}
+
 pub(in crate::nns) const NNS_PROPOSAL_SORT_API_LABEL: &str = "api";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_ID_LABEL: &str = "id";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_STATUS_LABEL: &str = "status";
@@ -31,250 +68,97 @@ pub(in crate::nns) const NNS_PROPOSAL_SORT_ASC_LABEL: &str = "asc";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_DESC_LABEL: &str = "desc";
 pub(in crate::nns) const NNS_PROPOSAL_SORT_NONE_LABEL: &str = "none";
 
-///
-/// NnsProposalStatus
-///
-/// Native NNS Governance proposal decision status.
-///
+governance_code_enum! {
+    ///
+    /// NnsProposalStatus
+    ///
+    /// Native NNS Governance proposal decision status.
+    ///
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum NnsProposalStatus {
-    /// Unspecified or unrecognized native status code.
-    Unspecified,
-    /// Proposal remains open for voting.
-    Open,
-    /// Proposal was rejected.
-    Rejected,
-    /// Proposal was adopted but has not completed execution.
-    Adopted,
-    /// Proposal executed successfully.
-    Executed,
-    /// Proposal execution failed.
-    Failed,
-}
-
-impl NnsProposalStatus {
-    /// Classify one raw native status code.
-    #[must_use]
-    pub const fn from_code(code: i32) -> Self {
-        match code {
-            1 => Self::Open,
-            2 => Self::Rejected,
-            3 => Self::Adopted,
-            4 => Self::Executed,
-            5 => Self::Failed,
-            _ => Self::Unspecified,
-        }
-    }
-
-    /// Return the canonical native code for this classification.
-    #[must_use]
-    pub const fn code(self) -> i32 {
-        match self {
-            Self::Unspecified => 0,
-            Self::Open => 1,
-            Self::Rejected => 2,
-            Self::Adopted => 3,
-            Self::Executed => 4,
-            Self::Failed => 5,
-        }
-    }
-
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Unspecified => "unspecified",
-            Self::Open => "open",
-            Self::Rejected => "rejected",
-            Self::Adopted => "adopted",
-            Self::Executed => "executed",
-            Self::Failed => "failed",
-        }
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+    pub enum NnsProposalStatus {
+        /// Unspecified or unrecognized native status code.
+        Unspecified = 0 => "unspecified",
+        /// Proposal remains open for voting.
+        Open = 1 => "open",
+        /// Proposal was rejected.
+        Rejected = 2 => "rejected",
+        /// Proposal was adopted but has not completed execution.
+        Adopted = 3 => "adopted",
+        /// Proposal executed successfully.
+        Executed = 4 => "executed",
+        /// Proposal execution failed.
+        Failed = 5 => "failed",
     }
 }
 
-///
-/// NnsProposalRewardStatus
-///
-/// Native NNS Governance proposal reward-settlement status.
-///
+governance_code_enum! {
+    ///
+    /// NnsProposalRewardStatus
+    ///
+    /// Native NNS Governance proposal reward-settlement status.
+    ///
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum NnsProposalRewardStatus {
-    /// Unspecified or unrecognized native reward-status code.
-    Unspecified,
-    /// Proposal still accepts votes for reward purposes.
-    AcceptVotes,
-    /// Proposal is ready for reward settlement.
-    ReadyToSettle,
-    /// Proposal rewards have settled.
-    Settled,
-    /// Proposal is not eligible for voting rewards.
-    Ineligible,
-}
-
-impl NnsProposalRewardStatus {
-    /// Classify one raw native reward-status code.
-    #[must_use]
-    pub const fn from_code(code: i32) -> Self {
-        match code {
-            1 => Self::AcceptVotes,
-            2 => Self::ReadyToSettle,
-            3 => Self::Settled,
-            4 => Self::Ineligible,
-            _ => Self::Unspecified,
-        }
-    }
-
-    /// Return the canonical native code for this classification.
-    #[must_use]
-    pub const fn code(self) -> i32 {
-        match self {
-            Self::Unspecified => 0,
-            Self::AcceptVotes => 1,
-            Self::ReadyToSettle => 2,
-            Self::Settled => 3,
-            Self::Ineligible => 4,
-        }
-    }
-
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Unspecified => "unspecified",
-            Self::AcceptVotes => "accept-votes",
-            Self::ReadyToSettle => "ready-to-settle",
-            Self::Settled => "settled",
-            Self::Ineligible => "ineligible",
-        }
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+    pub enum NnsProposalRewardStatus {
+        /// Unspecified or unrecognized native reward-status code.
+        Unspecified = 0 => "unspecified",
+        /// Proposal still accepts votes for reward purposes.
+        AcceptVotes = 1 => "accept-votes",
+        /// Proposal is ready for reward settlement.
+        ReadyToSettle = 2 => "ready-to-settle",
+        /// Proposal rewards have settled.
+        Settled = 3 => "settled",
+        /// Proposal is not eligible for voting rewards.
+        Ineligible = 4 => "ineligible",
     }
 }
 
-///
-/// NnsProposalTopic
-///
-/// Native NNS Governance proposal topic.
-///
+governance_code_enum! {
+    ///
+    /// NnsProposalTopic
+    ///
+    /// Native NNS Governance proposal topic.
+    ///
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum NnsProposalTopic {
-    /// Unspecified or unrecognized native topic code.
-    Unspecified,
-    /// Neuron management.
-    NeuronManagement,
-    /// Exchange-rate management.
-    ExchangeRate,
-    /// Network economics.
-    NetworkEconomics,
-    /// Governance policy.
-    Governance,
-    /// Node administration.
-    NodeAdmin,
-    /// Participant management.
-    ParticipantManagement,
-    /// Subnet management.
-    SubnetManagement,
-    /// Network-canister management.
-    NetworkCanisterManagement,
-    /// Know-your-customer policy.
-    Kyc,
-    /// Node-provider rewards.
-    NodeProviderRewards,
-    /// IC OS version deployment.
-    IcOsVersionDeployment,
-    /// IC OS version election.
-    IcOsVersionElection,
-    /// SNS and Community Fund policy.
-    SnsAndCommunityFund,
-    /// API boundary-node management.
-    ApiBoundaryNodeManagement,
-    /// Subnet rental.
-    SubnetRental,
-    /// Application-canister management.
-    ApplicationCanisterManagement,
-    /// Protocol-canister management.
-    ProtocolCanisterManagement,
-}
-
-impl NnsProposalTopic {
-    /// Classify one raw native topic code.
-    #[must_use]
-    pub const fn from_code(code: i32) -> Self {
-        match code {
-            1 => Self::NeuronManagement,
-            2 => Self::ExchangeRate,
-            3 => Self::NetworkEconomics,
-            4 => Self::Governance,
-            5 => Self::NodeAdmin,
-            6 => Self::ParticipantManagement,
-            7 => Self::SubnetManagement,
-            8 => Self::NetworkCanisterManagement,
-            9 => Self::Kyc,
-            10 => Self::NodeProviderRewards,
-            12 => Self::IcOsVersionDeployment,
-            13 => Self::IcOsVersionElection,
-            14 => Self::SnsAndCommunityFund,
-            15 => Self::ApiBoundaryNodeManagement,
-            16 => Self::SubnetRental,
-            17 => Self::ApplicationCanisterManagement,
-            18 => Self::ProtocolCanisterManagement,
-            _ => Self::Unspecified,
-        }
-    }
-
-    /// Return the canonical native code for this classification.
-    #[must_use]
-    pub const fn code(self) -> i32 {
-        match self {
-            Self::Unspecified => 0,
-            Self::NeuronManagement => 1,
-            Self::ExchangeRate => 2,
-            Self::NetworkEconomics => 3,
-            Self::Governance => 4,
-            Self::NodeAdmin => 5,
-            Self::ParticipantManagement => 6,
-            Self::SubnetManagement => 7,
-            Self::NetworkCanisterManagement => 8,
-            Self::Kyc => 9,
-            Self::NodeProviderRewards => 10,
-            Self::IcOsVersionDeployment => 12,
-            Self::IcOsVersionElection => 13,
-            Self::SnsAndCommunityFund => 14,
-            Self::ApiBoundaryNodeManagement => 15,
-            Self::SubnetRental => 16,
-            Self::ApplicationCanisterManagement => 17,
-            Self::ProtocolCanisterManagement => 18,
-        }
-    }
-
-    /// Return the stable JSON and text label.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Unspecified => "unspecified",
-            Self::NeuronManagement => "neuron-management",
-            Self::ExchangeRate => "exchange-rate",
-            Self::NetworkEconomics => "network-economics",
-            Self::Governance => "governance",
-            Self::NodeAdmin => "node-admin",
-            Self::ParticipantManagement => "participant-management",
-            Self::SubnetManagement => "subnet-management",
-            Self::NetworkCanisterManagement => "network-canister-management",
-            Self::Kyc => "kyc",
-            Self::NodeProviderRewards => "node-provider-rewards",
-            Self::IcOsVersionDeployment => "ic-os-version-deployment",
-            Self::IcOsVersionElection => "ic-os-version-election",
-            Self::SnsAndCommunityFund => "sns-and-community-fund",
-            Self::ApiBoundaryNodeManagement => "api-boundary-node-management",
-            Self::SubnetRental => "subnet-rental",
-            Self::ApplicationCanisterManagement => "application-canister-management",
-            Self::ProtocolCanisterManagement => "protocol-canister-management",
-        }
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+    pub enum NnsProposalTopic {
+        /// Unspecified or unrecognized native topic code.
+        Unspecified = 0 => "unspecified",
+        /// Neuron management.
+        NeuronManagement = 1 => "neuron-management",
+        /// Exchange-rate management.
+        ExchangeRate = 2 => "exchange-rate",
+        /// Network economics.
+        NetworkEconomics = 3 => "network-economics",
+        /// Governance policy.
+        Governance = 4 => "governance",
+        /// Node administration.
+        NodeAdmin = 5 => "node-admin",
+        /// Participant management.
+        ParticipantManagement = 6 => "participant-management",
+        /// Subnet management.
+        SubnetManagement = 7 => "subnet-management",
+        /// Network-canister management.
+        NetworkCanisterManagement = 8 => "network-canister-management",
+        /// Know-your-customer policy.
+        Kyc = 9 => "kyc",
+        /// Node-provider rewards.
+        NodeProviderRewards = 10 => "node-provider-rewards",
+        /// IC OS version deployment.
+        IcOsVersionDeployment = 12 => "ic-os-version-deployment",
+        /// IC OS version election.
+        IcOsVersionElection = 13 => "ic-os-version-election",
+        /// SNS and Community Fund policy.
+        SnsAndCommunityFund = 14 => "sns-and-community-fund",
+        /// API boundary-node management.
+        ApiBoundaryNodeManagement = 15 => "api-boundary-node-management",
+        /// Subnet rental.
+        SubnetRental = 16 => "subnet-rental",
+        /// Application-canister management.
+        ApplicationCanisterManagement = 17 => "application-canister-management",
+        /// Protocol-canister management.
+        ProtocolCanisterManagement = 18 => "protocol-canister-management",
     }
 }
 
@@ -464,12 +348,9 @@ impl NnsProposalRewardStatusFilter {
     /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Any => "any",
-            Self::AcceptVotes => NnsProposalRewardStatus::AcceptVotes.as_str(),
-            Self::ReadyToSettle => NnsProposalRewardStatus::ReadyToSettle.as_str(),
-            Self::Settled => NnsProposalRewardStatus::Settled.as_str(),
-            Self::Ineligible => NnsProposalRewardStatus::Ineligible.as_str(),
+        match self.classification() {
+            None => "any",
+            Some(value) => value.as_str(),
         }
     }
 
@@ -478,12 +359,19 @@ impl NnsProposalRewardStatusFilter {
         all(feature = "canister", target_arch = "wasm32")
     ))]
     pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
+        match self.classification() {
+            None => None,
+            Some(value) => Some(value.code()),
+        }
+    }
+
+    const fn classification(self) -> Option<NnsProposalRewardStatus> {
         match self {
             Self::Any => None,
-            Self::AcceptVotes => Some(NnsProposalRewardStatus::AcceptVotes.code()),
-            Self::ReadyToSettle => Some(NnsProposalRewardStatus::ReadyToSettle.code()),
-            Self::Settled => Some(NnsProposalRewardStatus::Settled.code()),
-            Self::Ineligible => Some(NnsProposalRewardStatus::Ineligible.code()),
+            Self::AcceptVotes => Some(NnsProposalRewardStatus::AcceptVotes),
+            Self::ReadyToSettle => Some(NnsProposalRewardStatus::ReadyToSettle),
+            Self::Settled => Some(NnsProposalRewardStatus::Settled),
+            Self::Ineligible => Some(NnsProposalRewardStatus::Ineligible),
         }
     }
 }
@@ -492,13 +380,9 @@ impl NnsProposalStatusFilter {
     /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Any => "any",
-            Self::Open => NnsProposalStatus::Open.as_str(),
-            Self::Rejected => NnsProposalStatus::Rejected.as_str(),
-            Self::Adopted => NnsProposalStatus::Adopted.as_str(),
-            Self::Executed => NnsProposalStatus::Executed.as_str(),
-            Self::Failed => NnsProposalStatus::Failed.as_str(),
+        match self.classification() {
+            None => "any",
+            Some(value) => value.as_str(),
         }
     }
 
@@ -507,13 +391,20 @@ impl NnsProposalStatusFilter {
         all(feature = "canister", target_arch = "wasm32")
     ))]
     pub(in crate::nns) const fn governance_status_code(self) -> Option<i32> {
+        match self.classification() {
+            None => None,
+            Some(value) => Some(value.code()),
+        }
+    }
+
+    const fn classification(self) -> Option<NnsProposalStatus> {
         match self {
             Self::Any => None,
-            Self::Open => Some(NnsProposalStatus::Open.code()),
-            Self::Rejected => Some(NnsProposalStatus::Rejected.code()),
-            Self::Adopted => Some(NnsProposalStatus::Adopted.code()),
-            Self::Executed => Some(NnsProposalStatus::Executed.code()),
-            Self::Failed => Some(NnsProposalStatus::Failed.code()),
+            Self::Open => Some(NnsProposalStatus::Open),
+            Self::Rejected => Some(NnsProposalStatus::Rejected),
+            Self::Adopted => Some(NnsProposalStatus::Adopted),
+            Self::Executed => Some(NnsProposalStatus::Executed),
+            Self::Failed => Some(NnsProposalStatus::Failed),
         }
     }
 }
@@ -569,60 +460,41 @@ impl NnsProposalTopicFilter {
     /// Return the canonical filter or sort label used in reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Any => "any",
-            Self::NeuronManagement => NnsProposalTopic::NeuronManagement.as_str(),
-            Self::ExchangeRate => NnsProposalTopic::ExchangeRate.as_str(),
-            Self::NetworkEconomics => NnsProposalTopic::NetworkEconomics.as_str(),
-            Self::Governance => NnsProposalTopic::Governance.as_str(),
-            Self::NodeAdmin => NnsProposalTopic::NodeAdmin.as_str(),
-            Self::ParticipantManagement => NnsProposalTopic::ParticipantManagement.as_str(),
-            Self::SubnetManagement => NnsProposalTopic::SubnetManagement.as_str(),
-            Self::NetworkCanisterManagement => NnsProposalTopic::NetworkCanisterManagement.as_str(),
-            Self::Kyc => NnsProposalTopic::Kyc.as_str(),
-            Self::NodeProviderRewards => NnsProposalTopic::NodeProviderRewards.as_str(),
-            Self::IcOsVersionDeployment => NnsProposalTopic::IcOsVersionDeployment.as_str(),
-            Self::IcOsVersionElection => NnsProposalTopic::IcOsVersionElection.as_str(),
-            Self::SnsAndCommunityFund => NnsProposalTopic::SnsAndCommunityFund.as_str(),
-            Self::ApiBoundaryNodeManagement => NnsProposalTopic::ApiBoundaryNodeManagement.as_str(),
-            Self::SubnetRental => NnsProposalTopic::SubnetRental.as_str(),
-            Self::ApplicationCanisterManagement => {
-                NnsProposalTopic::ApplicationCanisterManagement.as_str()
-            }
-            Self::ProtocolCanisterManagement => {
-                NnsProposalTopic::ProtocolCanisterManagement.as_str()
-            }
+        match self.classification() {
+            None => "any",
+            Some(value) => value.as_str(),
         }
     }
 
     pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
+        match self.classification() {
+            None => None,
+            Some(value) => Some(value.code()),
+        }
+    }
+
+    const fn classification(self) -> Option<NnsProposalTopic> {
         match self {
             Self::Any => None,
-            Self::NeuronManagement => Some(NnsProposalTopic::NeuronManagement.code()),
-            Self::ExchangeRate => Some(NnsProposalTopic::ExchangeRate.code()),
-            Self::NetworkEconomics => Some(NnsProposalTopic::NetworkEconomics.code()),
-            Self::Governance => Some(NnsProposalTopic::Governance.code()),
-            Self::NodeAdmin => Some(NnsProposalTopic::NodeAdmin.code()),
-            Self::ParticipantManagement => Some(NnsProposalTopic::ParticipantManagement.code()),
-            Self::SubnetManagement => Some(NnsProposalTopic::SubnetManagement.code()),
-            Self::NetworkCanisterManagement => {
-                Some(NnsProposalTopic::NetworkCanisterManagement.code())
-            }
-            Self::Kyc => Some(NnsProposalTopic::Kyc.code()),
-            Self::NodeProviderRewards => Some(NnsProposalTopic::NodeProviderRewards.code()),
-            Self::IcOsVersionDeployment => Some(NnsProposalTopic::IcOsVersionDeployment.code()),
-            Self::IcOsVersionElection => Some(NnsProposalTopic::IcOsVersionElection.code()),
-            Self::SnsAndCommunityFund => Some(NnsProposalTopic::SnsAndCommunityFund.code()),
-            Self::ApiBoundaryNodeManagement => {
-                Some(NnsProposalTopic::ApiBoundaryNodeManagement.code())
-            }
-            Self::SubnetRental => Some(NnsProposalTopic::SubnetRental.code()),
+            Self::NeuronManagement => Some(NnsProposalTopic::NeuronManagement),
+            Self::ExchangeRate => Some(NnsProposalTopic::ExchangeRate),
+            Self::NetworkEconomics => Some(NnsProposalTopic::NetworkEconomics),
+            Self::Governance => Some(NnsProposalTopic::Governance),
+            Self::NodeAdmin => Some(NnsProposalTopic::NodeAdmin),
+            Self::ParticipantManagement => Some(NnsProposalTopic::ParticipantManagement),
+            Self::SubnetManagement => Some(NnsProposalTopic::SubnetManagement),
+            Self::NetworkCanisterManagement => Some(NnsProposalTopic::NetworkCanisterManagement),
+            Self::Kyc => Some(NnsProposalTopic::Kyc),
+            Self::NodeProviderRewards => Some(NnsProposalTopic::NodeProviderRewards),
+            Self::IcOsVersionDeployment => Some(NnsProposalTopic::IcOsVersionDeployment),
+            Self::IcOsVersionElection => Some(NnsProposalTopic::IcOsVersionElection),
+            Self::SnsAndCommunityFund => Some(NnsProposalTopic::SnsAndCommunityFund),
+            Self::ApiBoundaryNodeManagement => Some(NnsProposalTopic::ApiBoundaryNodeManagement),
+            Self::SubnetRental => Some(NnsProposalTopic::SubnetRental),
             Self::ApplicationCanisterManagement => {
-                Some(NnsProposalTopic::ApplicationCanisterManagement.code())
+                Some(NnsProposalTopic::ApplicationCanisterManagement)
             }
-            Self::ProtocolCanisterManagement => {
-                Some(NnsProposalTopic::ProtocolCanisterManagement.code())
-            }
+            Self::ProtocolCanisterManagement => Some(NnsProposalTopic::ProtocolCanisterManagement),
         }
     }
 }

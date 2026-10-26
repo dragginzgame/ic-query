@@ -67,7 +67,7 @@ pub use text::{
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
 pub(crate) use validation::{
-    advance_collection_counts, collection_status_after_page,
+    advance_collection_counts, collection_lifecycle_matches, collection_status_after_page,
     validate_governance_collection_identity, validate_governance_collection_page_bounds,
     validate_governance_collection_row_bounds, validate_governance_collection_source,
     validate_governance_continuation_request, validate_governance_report_identity,

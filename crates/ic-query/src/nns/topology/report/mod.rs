@@ -44,7 +44,7 @@ use capacity::topology_capacity_report_from_report;
 #[cfg(all(test, feature = "nns-host"))]
 use check::topology_check_report_from_summary;
 #[cfg(all(test, feature = "nns-host"))]
-use coverage::topology_coverage_report_from_summary;
+use coverage::topology_coverage_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]
 use gaps::topology_gaps_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]

@@ -32,6 +32,20 @@ use std::{
 
 const MAX_CACHE_INSPECTION_BYTES: u64 = 64 * 1024 * 1024;
 
+#[derive(Clone, Copy)]
+enum CacheInspection {
+    HeaderPrefix,
+    WholeDocument,
+}
+
+struct CachePathInfo<'path> {
+    relative: &'path Path,
+    component: String,
+    recovery_policy: CacheRecoveryPolicy,
+    stale_after_seconds: Option<u64>,
+    inspection: CacheInspection,
+}
+
 struct GenericCacheHeader {
     schema_version: u32,
     network: Option<String>,
@@ -170,10 +184,11 @@ pub(super) fn cache_status_row(
     budget: &mut ManagedReadBudget,
 ) -> Result<CacheStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
+    let info = classify_cache_path(relative);
     let relative_path = relative.display().to_string();
     let Some(file) = open_managed_file(root, path)? else {
         return Ok(invalid_row(
-            relative,
+            &info,
             path,
             relative_path,
             0,
@@ -190,12 +205,12 @@ pub(super) fn cache_status_row(
         .len();
     let header = budget
         .inspect_stream(file, path, |reader| {
-            read_cache_header(relative, reader, size_bytes, MAX_CACHE_INSPECTION_BYTES)
+            read_cache_header(&info, reader, size_bytes, MAX_CACHE_INSPECTION_BYTES)
         })?
         .map_err(|error| error.to_string());
     let Ok(header) = header else {
         return Ok(invalid_row(
-            relative,
+            &info,
             path,
             relative_path,
             size_bytes,
@@ -208,7 +223,7 @@ pub(super) fn cache_status_row(
         .or_else(|| header.collection_completed_at.clone());
     let Some(fetched_at_text) = fetched_at else {
         return Ok(unknown_age_row(
-            relative,
+            &info,
             path,
             relative_path,
             size_bytes,
@@ -219,7 +234,7 @@ pub(super) fn cache_status_row(
     };
     let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&fetched_at_text) else {
         return Ok(unknown_age_row(
-            relative,
+            &info,
             path,
             relative_path,
             size_bytes,
@@ -230,7 +245,7 @@ pub(super) fn cache_status_row(
     };
     let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
         return Ok(unknown_age_row(
-            relative,
+            &info,
             path,
             relative_path,
             size_bytes,
@@ -239,40 +254,41 @@ pub(super) fn cache_status_row(
             "cache timestamp is in the future".to_string(),
         ));
     };
-    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
-    let age_status = stale_after_seconds.map_or(CacheAgeStatus::Unmanaged, |threshold| {
-        if age_seconds > threshold {
-            CacheAgeStatus::Stale
-        } else {
-            CacheAgeStatus::Fresh
-        }
-    });
+    let age_status = info
+        .stale_after_seconds
+        .map_or(CacheAgeStatus::Unmanaged, |threshold| {
+            if age_seconds > threshold {
+                CacheAgeStatus::Stale
+            } else {
+                CacheAgeStatus::Fresh
+            }
+        });
     Ok(CacheStatusRow {
-        component: component(relative, &header),
+        component: component(&info, &header),
         cache_path: path.display().to_string(),
         relative_path,
         header_status: CacheHeaderStatus::Readable,
         age_status,
-        recovery_policy,
+        recovery_policy: info.recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at: Some(fetched_at_text),
         age_seconds: Some(age_seconds),
-        stale_after_seconds,
+        stale_after_seconds: info.stale_after_seconds,
         size_bytes,
         inspection_error: None,
     })
 }
 
 fn read_cache_header(
-    relative: &Path,
+    info: &CachePathInfo<'_>,
     reader: impl Read,
     size_bytes: u64,
     maximum_bytes: u64,
 ) -> Result<GenericCacheHeader, serde_json::Error> {
-    if cache_policy(relative).1.is_some() {
-        let data =
-            read_bounded_stream(reader, size_bytes, relative, maximum_bytes).map_err(|error| {
+    if matches!(info.inspection, CacheInspection::WholeDocument) {
+        let data = read_bounded_stream(reader, size_bytes, info.relative, maximum_bytes).map_err(
+            |error| {
                 let source = match error {
                     BoundedManagedFileReadError::LimitExceeded {
                         actual, maximum, ..
@@ -287,7 +303,8 @@ fn read_cache_header(
                     BoundedManagedFileReadError::Operation(source) => std::io::Error::other(source),
                 };
                 serde_json::Error::io(source)
-            })?;
+            },
+        )?;
         return serde_json::from_slice::<FullGenericCacheHeader>(&data)
             .and_then(FullGenericCacheHeader::into_generic);
     }
@@ -369,26 +386,38 @@ fn root_component(parts: &[&str]) -> String {
     parts.first().copied().unwrap_or("unknown").to_string()
 }
 
-fn cache_policy(relative: &Path) -> (CacheRecoveryPolicy, Option<u64>) {
-    match path_parts(relative).as_slice() {
-        ["nns", "ic", "subnet-catalog", "catalog.json"] => {
-            (Automatic, Some(DEFAULT_STALE_AFTER_SECONDS))
-        }
+fn classify_cache_path(relative: &Path) -> CachePathInfo<'_> {
+    let parts = path_parts(relative);
+    let (recovery_policy, stale_after_seconds, inspection) = match parts.as_slice() {
+        ["nns", "ic", "subnet-catalog", "catalog.json"] => (
+            Automatic,
+            Some(DEFAULT_STALE_AFTER_SECONDS),
+            CacheInspection::WholeDocument,
+        ),
         ["nns", "ic", "subnet-topology", "report.json"] => (
             Explicit,
             Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS),
+            CacheInspection::WholeDocument,
         ),
-        ["ic", "ic", "nodes", "operational-status", "full.json"] => {
-            (Automatic, Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS))
-        }
-        ["sns", "ic", "catalog", "discovery", "full.json"] => {
-            (Automatic, Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS))
-        }
+        ["ic", "ic", "nodes", "operational-status", "full.json"] => (
+            Automatic,
+            Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS),
+            CacheInspection::WholeDocument,
+        ),
+        ["sns", "ic", "catalog", "discovery", "full.json"] => (
+            Automatic,
+            Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS),
+            CacheInspection::WholeDocument,
+        ),
         ["nns", "ic", "node", "nodes.json"]
         | ["nns", "ic", "node-provider", "providers.json"]
         | ["nns", "ic", "node-operator", "operators.json"]
-        | ["nns", "ic", "data-center", "data-centers.json"] => (Automatic, None),
-        ["sns", "ic", _, "proposals", "full.json"] => (MissingOnly, None),
+        | ["nns", "ic", "data-center", "data-centers.json"] => {
+            (Automatic, None, CacheInspection::HeaderPrefix)
+        }
+        ["sns", "ic", _, "proposals", "full.json"] => {
+            (MissingOnly, None, CacheInspection::HeaderPrefix)
+        }
         ["nns", "ic", "subnet-catalog", "history.json"]
         | [
             "nns",
@@ -398,38 +427,49 @@ fn cache_policy(relative: &Path) -> (CacheRecoveryPolicy, Option<u64>) {
             "full.json",
         ]
         | ["sns", "ic", _, "neurons", "full.json"]
-        | ["icrc", "ic", _, "transactions", "full.json"] => (Explicit, None),
-        _ => (Unknown, None),
+        | ["icrc", "ic", _, "transactions", "full.json"] => {
+            (Explicit, None, CacheInspection::HeaderPrefix)
+        }
+        _ => (Unknown, None, CacheInspection::HeaderPrefix),
+    };
+    let component = nns_path_component(&parts)
+        .or_else(|| snapshot_component(&parts))
+        .unwrap_or_else(|| root_component(&parts));
+    CachePathInfo {
+        relative,
+        component,
+        recovery_policy,
+        stale_after_seconds,
+        inspection,
     }
 }
 
 fn invalid_row(
-    relative: &Path,
+    info: &CachePathInfo<'_>,
     path: &Path,
     relative_path: String,
     size_bytes: u64,
     error: Option<String>,
 ) -> CacheStatusRow {
-    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
     CacheStatusRow {
-        component: component_from_path(relative),
+        component: info.component.clone(),
         cache_path: path.display().to_string(),
         relative_path,
         header_status: CacheHeaderStatus::Invalid,
         age_status: CacheAgeStatus::Unknown,
-        recovery_policy,
+        recovery_policy: info.recovery_policy,
         schema_version: None,
         network: None,
         fetched_at: None,
         age_seconds: None,
-        stale_after_seconds,
+        stale_after_seconds: info.stale_after_seconds,
         size_bytes,
         inspection_error: error,
     }
 }
 
 fn unknown_age_row(
-    relative: &Path,
+    info: &CachePathInfo<'_>,
     path: &Path,
     relative_path: String,
     size_bytes: u64,
@@ -437,25 +477,24 @@ fn unknown_age_row(
     fetched_at: Option<String>,
     error: String,
 ) -> CacheStatusRow {
-    let (recovery_policy, stale_after_seconds) = cache_policy(relative);
     CacheStatusRow {
-        component: component(relative, &header),
+        component: component(info, &header),
         cache_path: path.display().to_string(),
         relative_path,
         header_status: CacheHeaderStatus::Readable,
         age_status: CacheAgeStatus::Unknown,
-        recovery_policy,
+        recovery_policy: info.recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at,
         age_seconds: None,
-        stale_after_seconds,
+        stale_after_seconds: info.stale_after_seconds,
         size_bytes,
         inspection_error: Some(error),
     }
 }
 
-fn component(relative: &Path, header: &GenericCacheHeader) -> String {
+fn component(info: &CachePathInfo<'_>, header: &GenericCacheHeader) -> String {
     match (
         header.domain.as_deref(),
         header.entity.as_deref(),
@@ -464,15 +503,12 @@ fn component(relative: &Path, header: &GenericCacheHeader) -> String {
         (Some(domain), Some(entity), Some(collection)) => {
             format!("{domain}/{entity}/{collection}")
         }
-        _ => component_from_path(relative),
+        _ => info.component.clone(),
     }
 }
 
 pub(super) fn component_from_path(relative: &Path) -> String {
-    let parts = path_parts(relative);
-    nns_path_component(&parts)
-        .or_else(|| snapshot_component(&parts))
-        .unwrap_or_else(|| root_component(&parts))
+    classify_cache_path(relative).component
 }
 
 #[cfg(test)]
@@ -489,7 +525,9 @@ mod tests {
         let mut reader = BufReader::with_capacity(64, Cursor::new(cache.as_bytes()));
 
         let header = read_cache_header(
-            Path::new("icrc/endpoint/ledger/account/transactions/full.json"),
+            &classify_cache_path(Path::new(
+                "icrc/endpoint/ledger/account/transactions/full.json",
+            )),
             &mut reader,
             u64::try_from(cache.len()).unwrap(),
             1_024,
@@ -508,7 +546,7 @@ mod tests {
     #[test]
     fn registered_cache_rejects_ambiguous_schema_version_fields() {
         let error = read_cache_header(
-            Path::new("nns/ic/subnet-catalog/catalog.json"),
+            &classify_cache_path(Path::new("nns/ic/subnet-catalog/catalog.json")),
             Cursor::new(br#"{"schema_version":1,"catalog_schema_version":1,"network":"ic"}"#),
             0,
             1_024,
@@ -523,13 +561,13 @@ mod tests {
     fn registered_cache_inspection_bounds_metadata_and_stream_growth() {
         let path = Path::new("nns/ic/subnet-catalog/catalog.json");
         let mut reader = Cursor::new(br#"{"schema_version":1}             "#);
-        let error = read_cache_header(path, &mut reader, 32, 20)
+        let error = read_cache_header(&classify_cache_path(path), &mut reader, 32, 20)
             .err()
             .expect("oversized metadata");
         assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
         assert_eq!(reader.position(), 0);
 
-        let error = read_cache_header(path, &mut reader, 19, 20)
+        let error = read_cache_header(&classify_cache_path(path), &mut reader, 19, 20)
             .err()
             .expect("growth after metadata admission");
         assert_eq!(error.io_error_kind(), Some(std::io::ErrorKind::InvalidData));
@@ -544,7 +582,7 @@ mod tests {
         );
         let mut reader = Cursor::new(cache.as_bytes());
         let error = read_cache_header(
-            Path::new("icrc/ic/account/transactions/full.json"),
+            &classify_cache_path(Path::new("icrc/ic/account/transactions/full.json")),
             &mut reader,
             u64::try_from(cache.len()).unwrap(),
             64,
@@ -557,7 +595,7 @@ mod tests {
         let cache = br#"{"schema_version":1,"network":"ic","data":{"rows":[unread payload"#;
         let mut reader = Cursor::new(cache);
         let header = read_cache_header(
-            Path::new("sns/ic/root/neurons/full.json"),
+            &classify_cache_path(Path::new("sns/ic/root/neurons/full.json")),
             &mut reader,
             cache.len() as u64,
             64,
@@ -572,7 +610,7 @@ mod tests {
         let cache = br#"{"schema_version":1,"subnets":[invalid]}"#;
         assert!(
             read_cache_header(
-                Path::new("nns/ic/subnet-catalog/catalog.json"),
+                &classify_cache_path(Path::new("nns/ic/subnet-catalog/catalog.json")),
                 Cursor::new(cache),
                 u64::try_from(cache.len()).unwrap(),
                 1_024,
@@ -662,7 +700,11 @@ mod tests {
             ("nns/local/node/nodes.json", CacheRecoveryPolicy::Unknown),
             ("unmanaged/ic/full.json", CacheRecoveryPolicy::Unknown),
         ] {
-            assert_eq!(cache_policy(Path::new(path)).0, expected, "{path}");
+            assert_eq!(
+                classify_cache_path(Path::new(path)).recovery_policy,
+                expected,
+                "{path}"
+            );
         }
     }
 
@@ -688,7 +730,11 @@ mod tests {
             ("nns/local/subnet-catalog/catalog.json", None),
             ("unmanaged/ic/full.json", None),
         ] {
-            assert_eq!(cache_policy(Path::new(path)).1, expected, "{path}");
+            assert_eq!(
+                classify_cache_path(Path::new(path)).stale_after_seconds,
+                expected,
+                "{path}"
+            );
         }
     }
 }

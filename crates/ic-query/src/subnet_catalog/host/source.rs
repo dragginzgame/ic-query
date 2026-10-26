@@ -347,10 +347,6 @@ pub(super) async fn collect_subnet_catalog_detailed(
     finish_agreement(snapshots, endpoints, &validation)
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "agreement failures retain completed per-endpoint evidence in one auditable sequence"
-)]
 fn finish_agreement(
     mut snapshots: Vec<RawSubnetCatalog>,
     endpoints: Vec<String>,
@@ -360,47 +356,40 @@ fn finish_agreement(
         .iter()
         .flat_map(|snapshot| snapshot.provenance.registry_records.iter().cloned())
         .collect::<Vec<_>>();
+    let failure = |version, subject, source| {
+        SubnetCatalogSourceFailure::new(Some(version), subject, source).with_registry_evidence(
+            None,
+            None,
+            None,
+            completed_registry_records.clone(),
+        )
+    };
+    let catalog_failure = |version, source| {
+        failure(
+            version,
+            subject_from_catalog_error(&source),
+            SubnetCatalogHostError::Catalog(source),
+        )
+    };
     let mut first = snapshots.remove(0);
     let reference_endpoint = endpoints[0].clone();
     let reference_registry_version = first.provenance.registry_version;
-    let reference_agreement_digest =
-        hex_bytes(&catalog_agreement_digest(&first).map_err(|source| {
-            let subject = subject_from_catalog_error(&source);
-            SubnetCatalogSourceFailure::new(
-                Some(reference_registry_version),
-                subject,
-                SubnetCatalogHostError::Catalog(source),
-            )
-            .with_registry_evidence(
-                None,
-                None,
-                None,
-                completed_registry_records.clone(),
-            )
-        })?);
+    let reference_agreement_digest = hex_bytes(
+        &catalog_agreement_digest(&first)
+            .map_err(|source| catalog_failure(reference_registry_version, source))?,
+    );
     let mut registry_query_call_count = first.provenance.registry_query_call_count;
     for (endpoint, snapshot) in endpoints.iter().skip(1).zip(&snapshots) {
         let registry_version = snapshot.provenance.registry_version;
-        let agreement_digest =
-            hex_bytes(&catalog_agreement_digest(snapshot).map_err(|source| {
-                let subject = subject_from_catalog_error(&source);
-                SubnetCatalogSourceFailure::new(
-                    Some(registry_version),
-                    subject,
-                    SubnetCatalogHostError::Catalog(source),
-                )
-                .with_registry_evidence(
-                    None,
-                    None,
-                    None,
-                    completed_registry_records.clone(),
-                )
-            })?);
+        let agreement_digest = hex_bytes(
+            &catalog_agreement_digest(snapshot)
+                .map_err(|source| catalog_failure(registry_version, source))?,
+        );
         if registry_version != reference_registry_version
             || agreement_digest != reference_agreement_digest
         {
-            return Err(SubnetCatalogSourceFailure::new(
-                Some(registry_version),
+            return Err(failure(
+                registry_version,
                 Some(SubnetCatalogSubject::Endpoint(endpoint.clone())),
                 SubnetCatalogHostError::AgreementMismatch {
                     reference_endpoint,
@@ -410,22 +399,15 @@ fn finish_agreement(
                     registry_version,
                     agreement_digest,
                 },
-            )
-            .with_registry_evidence(None, None, None, completed_registry_records));
+            ));
         }
         registry_query_call_count = registry_query_call_count
             .checked_add(snapshot.provenance.registry_query_call_count)
             .ok_or_else(|| {
-                SubnetCatalogSourceFailure::new(
-                    Some(reference_registry_version),
+                failure(
+                    reference_registry_version,
                     None,
                     SubnetCatalogHostError::RegistryQueryCallCountOverflow,
-                )
-                .with_registry_evidence(
-                    None,
-                    None,
-                    None,
-                    completed_registry_records.clone(),
                 )
             })?;
     }
@@ -435,29 +417,9 @@ fn finish_agreement(
         .clone_from(&completed_registry_records);
     first
         .promote_to_multi_endpoint_agreement(endpoints, registry_query_call_count)
-        .map_err(|source| {
-            let subject = subject_from_catalog_error(&source);
-            SubnetCatalogSourceFailure::new(
-                Some(reference_registry_version),
-                subject,
-                SubnetCatalogHostError::Catalog(source),
-            )
-            .with_registry_evidence(
-                None,
-                None,
-                None,
-                completed_registry_records.clone(),
-            )
-        })?;
-    ValidatedSubnetCatalog::try_from_raw(first.clone(), validation).map_err(|source| {
-        let subject = subject_from_catalog_error(&source);
-        SubnetCatalogSourceFailure::new(
-            Some(reference_registry_version),
-            subject,
-            SubnetCatalogHostError::Catalog(source),
-        )
-        .with_registry_evidence(None, None, None, completed_registry_records)
-    })?;
+        .map_err(|source| catalog_failure(reference_registry_version, source))?;
+    ValidatedSubnetCatalog::try_from_raw(first.clone(), validation)
+        .map_err(|source| catalog_failure(reference_registry_version, source))?;
     Ok(first)
 }
 
