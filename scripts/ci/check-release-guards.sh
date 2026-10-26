@@ -95,7 +95,12 @@ case "$1" in
   diff)
     case "$2" in
       --binary) cat Cargo.toml Cargo.lock CHANGELOG.md ;;
-      --cached) [[ -z "${FIXTURE_CHANGED_PATH:-}" ]] || printf '%s\0' "$FIXTURE_CHANGED_PATH" ;;
+      --cached)
+        if [[ "${3:-}" == --quiet ]]; then
+          [[ "${FIXTURE_STAGED:-}" != yes ]]
+        else
+          [[ -z "${FIXTURE_CHANGED_PATH:-}" ]] || printf '%s\0' "$FIXTURE_CHANGED_PATH"
+        fi ;;
       --name-only)
         [[ -z "${FIXTURE_CHANGED_PATH:-}" ]] || printf '%s\0' "$FIXTURE_CHANGED_PATH"
         if [[ "$#" == 5 && "$4" == "$source_sha" && -f descendant ]]; then
@@ -375,20 +380,18 @@ commit_fix() {
   : > descendant
 }
 save_old_evidence() {
-  head -n 10 .release-state/0.47.0.plan > original-plan
+  cp .release-state/0.47.0.plan original-plan
   cp .release-state/0.47.0.validation original-binding
   cp -R .release-state/0.47.0.verify.* original-evidence
   if [[ -f 'tags/v0.47.0^{commit}' ]]; then cp 'tags/v0.47.0^{commit}' original-tag; fi
 }
 check_old_evidence() {
-  head -n 10 .release-state/0.47.0.plan > reconciled-plan
-  cmp original-plan reconciled-plan
+  cmp original-plan .release-state/0.47.0.plan
   cmp original-binding .release-state/0.47.0.validation
   if [[ -f original-tag ]]; then cmp original-tag 'tags/v0.47.0^{commit}'; fi
   [[ "$(cat 'tags/v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]] || exit 1
   diff -r original-evidence .release-state/0.47.0.verify.*
-  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == complete ]] || exit 1
-  grep -Fxq 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb Cargo.lock' reads
+  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == push ]] || exit 1
 }
 # The CI assertion probe invokes this same setup and completion check directly.
 if [[ "${1:-}" == --assert-completion ]]; then
@@ -468,7 +471,7 @@ done
 new_fixture prepared-payload-retry patch
 FIXTURE_LOST_PREPARE_REPLY=yes expect_failure patch
 cp Cargo.lock saved-lock
-run_release patch || { cat output; fail 'prepared Query payload retry'; }
+run_release resume "$(cat candidate)" || { cat output; fail 'prepared Query payload resume'; }
 check_complete
 cmp saved-lock Cargo.lock
 [[ "$(count_event validate)" == 1 ]] || fail 'prepared Query payload required new validation'
@@ -479,7 +482,6 @@ FIXTURE_FAIL_TARGET=release-prepare-version expect_failure patch
 old_candidate="$(cat candidate)"
 old_evidence="$(cat ".release-state/$old_candidate.validation")"
 cp ".release-state/$old_candidate.validation" saved-binding
-cp ".release-state/$old_candidate.plan" saved-plan
 cp -R "$old_evidence" saved-evidence
 printf 'Reviewed preparation fix\n' >> README.md
 fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
@@ -510,9 +512,6 @@ set -- .release-state/"$old_candidate".validation-attempt.*/"$old_candidate".val
 [[ $# == 1 && -f "$1" ]] || fail 'superseded validation pointer not retained'
 archived_binding="$1"
 cmp saved-binding "$archived_binding"
-set -- .release-state/"$old_candidate".attempt.*/"$old_candidate".plan
-[[ $# == 1 && -f "$1" ]] || fail 'superseded preparation intent not retained'
-cmp saved-plan "$1"
 diff -r saved-evidence "$old_evidence"
 [[ ! -e ".release-state/$old_candidate.validation" && "$(count_event stage)" == 0 ]] \
   || fail 'failed revalidation admitted old evidence or staged metadata'
@@ -549,7 +548,7 @@ next_evidence="$(cat ".release-state/$(cat candidate).validation")"
 [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
 bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
 check_old_evidence
-[[ "$(sed -n '2p' pushes)" == 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0.47.0' ]] || exit 1
+[[ "$(count_event push)" == 2 && "$(sed -n '2p' pushes)" == "$(cat head) $(cat candidate)" ]] || exit 1
 [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]] || exit 1
 for notes in root detail; do
   new_fixture "candidate-mismatch-$notes" patch
@@ -586,14 +585,10 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
       cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
       [[ ! -e events && ! -e .release-state/0.46.6.validation ]] || exit 1
-      grep -Fq 'this attempt has not started validation or version preparation' output
       case "$failure" in
-        dirty) grep -Fq 'unstaged: Cargo.lock' output ;;
-        staged) grep -Fq 'staged: README.md' output; grep -Fq 'unstaged: README.md' output ;;
-        untracked) grep -Fq 'untracked: caller-owned.txt' output ;;
-        unusual)
-          printf '  untracked: %q\n' $'caller-owned\nfile.txt' > expected-diagnostic
-          grep -Fx -f expected-diagnostic output > /dev/null ;;
+        dirty) grep -Fq 'commit or restore worktree changes before starting a release' output ;;
+        staged) grep -Fq 'commit or restore staged changes before starting a release' output ;;
+        untracked|unusual) grep -Fq 'commit or remove untracked source before starting a release' output ;;
         observation)
           grep -Fq 'fixture Git status observation failed' output
           grep -Fq 'cannot inspect release-source status' output
@@ -618,7 +613,7 @@ for conflict in payload dependency identity retained-inputs unrelated; do
     retained-inputs) echo 'changed evidence' >> .release-state/0.46.6.verify.*/before/Cargo.lock ;;
     unrelated) export FIXTURE_CHANGED_PATH=src/unrelated.rs ;;
   esac
-  expect_failure patch
+  expect_failure resume "$(cat candidate)"
   [[ ! -e tag && ! -e remote-head && -f target/retained-output ]] || exit 1
   unset FIXTURE_CHANGED_PATH
 done

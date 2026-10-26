@@ -1,8 +1,8 @@
 # Shared Tooling snapshot v1
-# version	0.26.16
+# version	0.26.18
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	2077c934efb82b181bea58fe50078dbad289c1aa
+revision	37652c087fff16f55f83d18d27ba17c83f34021c
 # entrypoint	DRAGGINZGAME.md
 # entrypoint	rules/changelogs.md
 # entrypoint	rules/cargo-dependencies.md
@@ -92,11 +92,11 @@ revision	2077c934efb82b181bea58fe50078dbad289c1aa
 # entrypoint	scripts/ci/check-cargo-dependency-boundaries.sh
 # entrypoint	scripts/ci/check-cargo-graph.pl
 # entrypoint	audits/ci-release-integrity.md
-file	f558a68a81b3109dfd656a72b2d3cbdf0107d143e6c1e241495d00c7a806c64a	-	DRAGGINZGAME.md
+file	4a1ba791945d797e007f7a06048d8a64a8d0ad7b5d7be3c02270d57d81703f7f	-	DRAGGINZGAME.md
 file	2ec7b772514ff1d437beb51a314e337266553ff925c67e2489fe6e3e7a2484cf	-	rules/changelogs.md
 file	44d8e696ad84d39714854d42ca01b2005f408e5a3dfca94541da34b361735a1a	-	rules/cargo-dependencies.md
 file	ea61b8d4e501011f73729ed56613c365b14a947c8ca18d66dced4990cbdb40ea	-	rules/git-hooks.md
-file	90aa72c25372edbffb14dd2f8780003d1cbfeb0f31325ad7849378bff561e253	-	docs/releases.md
+file	9e4877c1f11d613c753c2c784f719a79a78f1f2e0b45cf1b5aa9d0ec2a241a18	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	c08e85ebfd986cf549613b3ad2324ea4daff4d6819b3b495ff3b82d317f89ed7	-	docs/principles/reviewable-changes.md
@@ -119,7 +119,7 @@ file	1b64cf2ba0393ab329ec29eb05a696d47ef5933f5ab9bff6e1fe4a7e7b294075	-	audits/m
 file	d68abbb5f4a7d03e89b4e5969a545f541c9a122dd2bd6429fc4a99e046f7871a	x	scripts/dev/cloc.sh
 file	d7b179f9ceaec6e11c690c975b61f91bedc80526415f71571615064db14f0c9c	x	scripts/ci/check-release-tag.sh
 file	41e6d60c7110e0d554d49c4aa98d9f2703e45212049992064207950c6d00a037	x	scripts/ci/check-crates-io-version.sh
-file	19da8031c61fbd1d8b84c99753ebc885b4f66c8982e50977ba0d2074b07d224a	-	docs/verification-helpers.md
+file	678819017c3669d1a25bdcb975267119f2f0bd8a13106ca7540d0c3e2c944ec9	-	docs/verification-helpers.md
 file	a04ef3105e7851b83bb682120873e29a6c3c604183c275bc53051dd9e4b300a7	x	scripts/ci/check-documentation-links.pl
 file	771cc142805d6200caddd32a2f10783516fe297e4424c051ac92a40884607e5f	x	scripts/ci/prepare-rustsec-db.sh
 file	dcf4585f8794b2158259054f550dbabea64fadd7d4f07161388ea49a0dfa3d80	x	scripts/ci/check-release-commands.sh
@@ -128,10 +128,10 @@ file	3208b97cc151df9e098abfbf6b1f8d4cf63b51ee5dfa4d940377ccf2b7170498	-	rules/ru
 file	1063002468575e2f821cfec71524bde06a64634bf30455d64d2d9fed872969d6	-	docs/tag-maintenance.md
 file	79215ee25985ba692ad3b8158660d82089918b03b22c345b378976cde9e54908	-	scripts/distribution/governance-files.txt
 file	6eb261f79ff2780422a75e018b091bb119f552a1d155504acacefb7e2e290ba0	x	scripts/dev/gh-ci.sh
-file	d1088da040cefef4598d3e7a4f5125b6fae549b7aca79447b7fcede0918ca883	x	scripts/ci/test-release-runner.sh
+file	e06e168a3324dc0cac64da6b5fd75682414dcded792b799d90728e3e221aeb77	x	scripts/ci/test-release-runner.sh
 file	fd07cef3f8203d8a1e3fe0667fcb91e00a485b5c123940a649c979a2f5c2fe1d	-	audits/ic-canister-applications.md
 file	a662981d8f9e6da91314d06ba6ae6272f1cd48f7e98b0bbd258abf614367a118	-	rules/contributions.md
-file	ec8948910a221713a967d62b7ae42775929cad5ead4de111cb1cacdb1dedcb56	-	scripts/ci/release-pr.sh
+file	823e05ad80aa7ac159140e9b187af943c5da20462013bfe63a3fb48f91081b5e	-	scripts/ci/release-pr.sh
 file	eb2419a5762a3cb02f25811d93becb6b18ca520df0bc3448ea35dfa187a034b4	-	tasks/cargo-machete.md
 file	b20211ec1c39ef262c8ab266b207db43c44cd1474acde18297586590c7885810	-	tasks/msrv.md
 file	ed8d04d20a6e5bd77aece468a5f44f7d9e1c8a52411431d24e052e20c39038f3	-	tasks/rust-toolchain.md
@@ -159,7 +159,7 @@ file	9e32385247296ce95d2b15b1290c64e6b6dff15716c1c139f21ab5e5128f4be3	x	scripts/
 file	040a856599110c89c33e2e2c9e45a8ff330b68069225cd0c4d60f89b1432c624	-	scripts/ci/finalize-release-changelog.awk
 file	918815a81861abd80684fea14f71cb5a298644317afc0f5860a3d1b6506a0a16	x	scripts/ci/next-release-version.sh
 file	4ff0a961d5fb8639edf798d64bbe3abc0fcd83c6f703d7a6875c6f5174e76201	x	scripts/ci/run-formatting.sh
-file	e9fd032d1af0d9d96c6d2f2b94568aad5fef58dc247bfa948ab0abf421c3d4fc	x	scripts/ci/run-release.sh
+file	8e72d1bf484eee8c8ec079ab65be7c5718f46117952a41fe9cbcf6ad3abf4bd3	x	scripts/ci/run-release.sh
 file	064ee8ecf5e36d760ae4b0aad1cc80563cac074445677526bc7d1d124ff5b303	x	scripts/ci/select-tool-evidence.sh
 file	36f36552df36ea6e082f1fd1f14661d40b281ea01294ffda2eb6c6ec91bc6907	x	scripts/ci/verify-file-checksum.sh
 file	60f44d8da8f06c3c55d63e08cebdb7fc666702e89d27fc90ed1a0275fa3c8032	x	scripts/dev/install-host-tools.sh

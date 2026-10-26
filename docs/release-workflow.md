@@ -6,6 +6,18 @@ metadata and notes, stages the explicit release files, commits, creates an
 annotated tag, and atomically pushes the selected branch and tag. Publication
 remains the separate `make publish` command.
 
+Normal release commands select the next version from current clean, committed
+metadata and run fresh validation. They do not scan historical plans, reuse old
+validation, or finish an older push. Only stale state for the newly selected
+candidate is discarded; other versions' plans and build/validation evidence stay
+intact. For example, committed metadata at `0.73.2` selects `0.73.3` even if an
+older `0.73.2.plan` stopped at `stage`. Use `make release-resume VERSION=X.Y.Z`
+only to recover that exact saved attempt against its recorded source and effects.
+
+Commit reviewed snapshot, source and note changes before starting a normal
+release. Current dirty source, occupied execution locks and conflicting candidate
+tags or destinations remain errors.
+
 The runner and shared helpers use the reviewed Shared Tooling revision recorded
 in `.shared-tooling.snapshot`. See the selected
 [common release contract](releases.md). `make shared-tooling-check` verifies the

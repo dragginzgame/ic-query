@@ -425,27 +425,23 @@ Consumer choices described in those guides remain subject to this baseline.
 - Use standard semantic-version increments: patch increments the patch; minor
   increments the minor and resets the patch; major increments the major and
   resets both lower components. Apply the pre-1.0 compatibility rule above.
-- Stop on failure and preserve build and evidence artifacts. Preflight or
-  validation-only failures restart through the normal target against current
-  source with fresh preflight and complete validation; retain earlier evidence.
-  Persist exact release intent before preparation may begin, then reconcile an
-  interrupted release automatically when a normal target is rerun, at its saved
-  version and commit. In direct delivery, if its runner-recorded release commit exists and HEAD
-  has newer fixes or a different increment is requested, reconcile it first,
-  then run fresh preflight and complete validation for the requested increment
-  from the actual local version. PR delivery finishes only the saved release; an open PR returns
-  a pending, nonzero result so chained publication cannot start before merge.
-  Squash/rebase merges require fresh complete validation of the exact merged
-  commit with the unchanged prepared tree. Late evidence checks use
-  `RELEASE_COMMIT`, which may precede HEAD. Select unfinished intent before
-  computing another increment. A newer clean descendant commit can supersede
-  direct preparation before staging: archive its local-metadata-only intent,
-  select the requested increment from current metadata, and repeat preflight and
-  complete validation. A manually committed candidate can be that base even when
-  earlier tags or Git delivery are missing; preserve its original plan and
-  uncertainty without marking it complete or replaying its effects. Registry
-  publication and Git delivery need not agree. Stop for actual source/ref,
-  payload, destination or concurrency conflicts.
+- Stop on failure and preserve build and evidence artifacts. **Normal
+  `release-patch`, `release-minor` and `release-major` always start fresh from
+  current clean, committed source and canonical metadata, with full preflight
+  and validation. Never scan historical plans, reuse their validation or replay
+  their commit/tag/push effects as part of a normal release.** A prior plan's
+  phase, source, destination or malformed contents cannot block a fresh release.
+  The new candidate's stale local plan/staging/PR receipts may be discarded;
+  old plans are not a required historical archive. Keep build and validation
+  evidence attributable to its original attempt.
+  Persist exact intent before preparation may begin. Recovery of that specific
+  attempt is explicit through `release-resume VERSION=X.Y.Z`, bound to its saved
+  source, version, payload and destination. PR recovery remains pending/nonzero
+  until merge and fresh complete validation of the admitted merged commit; late
+  evidence checks use `RELEASE_COMMIT`, which may precede HEAD. Current dirty
+  source/index, occupied locks, candidate ref/payload, destination and branch
+  protection conflicts still stop the new release. Missing older tags or
+  registry/Git delivery disagreement do not establish such a conflict.
   Do not force-push, overwrite tags, silently bump again or add implicit package
   publication, deployment or post-release cleanup.
 
