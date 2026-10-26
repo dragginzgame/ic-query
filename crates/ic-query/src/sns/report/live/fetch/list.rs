@@ -75,18 +75,16 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata(
         return Ok(Vec::new());
     }
     let agent = sns_agent(source, request)?;
+    // Index tasks to keep borrowed-target lifetime inference compatible with the Send source future.
     collect_enrichment_rows(
-        targets
-            .iter()
-            .cloned()
-            .map(|sns| fetch_mainnet_sns_metadata_row(agent, sns)),
+        (0..targets.len()).map(|index| fetch_mainnet_sns_metadata_row(agent, &targets[index])),
     )
     .await
 }
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
     agent: &Agent,
-    sns: MainnetSnsCanisters,
+    sns: &MainnetSnsCanisters,
 ) -> Result<MainnetSnsMetadata, SnsHostError> {
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
@@ -99,7 +97,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
             },
         };
     Ok(mainnet_sns_metadata_from_response(
-        sns.root_canister_id,
+        sns.root_canister_id.clone(),
         metadata,
         metadata_error,
     ))
@@ -115,18 +113,16 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycles(
         return Ok(Vec::new());
     }
     let agent = sns_agent(source, request)?;
+    // Index tasks to keep borrowed-target lifetime inference compatible with the Send source future.
     collect_enrichment_rows(
-        targets
-            .iter()
-            .cloned()
-            .map(|sns| fetch_mainnet_sns_lifecycle_row(agent, sns)),
+        (0..targets.len()).map(|index| fetch_mainnet_sns_lifecycle_row(agent, &targets[index])),
     )
     .await
 }
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
     agent: &Agent,
-    sns: MainnetSnsCanisters,
+    sns: &MainnetSnsCanisters,
 ) -> Result<MainnetSnsLifecycle, SnsHostError> {
     let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
     let result = query_canister::<_, GetLifecycleResponse, SnsHostError>(
@@ -154,7 +150,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
         },
     };
     Ok(MainnetSnsLifecycle {
-        root_canister_id: sns.root_canister_id,
+        root_canister_id: sns.root_canister_id.clone(),
         lifecycle,
 
         lifecycle_error,

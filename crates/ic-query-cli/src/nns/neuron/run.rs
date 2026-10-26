@@ -46,8 +46,8 @@ fn run_distribution(matches: &ArgMatches, network: &str) -> Result<(), NnsComman
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsNeuronListOptions::from_matches(matches, network);
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.network,
-        options.source_endpoint,
+        options.common.network,
+        options.common.source_endpoint,
         current_unix_secs()?,
         "ic-query",
     );
@@ -61,14 +61,14 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
         Some(report) => report,
         None => build_nns_neuron_list_report(&request).await?,
     };
-    write_text_or_json(options.format, &report, nns_neuron_list_report_text)
+    write_text_or_json(options.common.format, &report, nns_neuron_list_report_text)
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsNeuronInfoOptions::from_matches(matches, network);
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.network,
-        options.source_endpoint,
+        options.common.network,
+        options.common.source_endpoint,
         current_unix_secs()?,
         "ic-query",
     );
@@ -78,12 +78,12 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
         Some(report) => report,
         None => build_nns_neuron_info_report(&request).await?,
     };
-    write_text_or_json(options.format, &report, nns_neuron_info_report_text)
+    write_text_or_json(options.common.format, &report, nns_neuron_info_report_text)
 }
 
 async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.common.format;
     let request = options.into_request(cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report = refresh_nns_neuron_cache_with_progress(&request, &mut progress).await?;

@@ -298,11 +298,15 @@ fn sns_name_sort_preserves_stable_id_tiebreaker() {
         mainnet_sns(3, "beta"),
         mainnet_sns(1, "Alpha"),
         mainnet_sns(2, "alpha"),
+        mainnet_sns(5, "äther"),
+        mainnet_sns(4, "ÄTHER"),
+        mainnet_sns(7, "İstanbul"),
+        mainnet_sns(6, "i\u{307}STANBUL"),
     ];
 
     sort_mainnet_sns_instances(&mut instances, SnsListSort::Name);
 
-    assert_eq!(sns_instance_ids(&instances), vec![1, 2, 3]);
+    assert_eq!(sns_instance_ids(&instances), vec![1, 2, 3, 6, 7, 4, 5]);
 }
 
 #[test]

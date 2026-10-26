@@ -11,9 +11,12 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
         NnsNeuronListOptions::from_matches,
     )
     .expect("list defaults");
-    assert_eq!(list.network, MAINNET_NETWORK);
-    assert_eq!(list.format, OutputFormat::Text);
-    assert_eq!(list.source_endpoint, DEFAULT_NNS_NEURON_SOURCE_ENDPOINT);
+    assert_eq!(list.common.network, MAINNET_NETWORK);
+    assert_eq!(list.common.format, OutputFormat::Text);
+    assert_eq!(
+        list.common.source_endpoint,
+        DEFAULT_NNS_NEURON_SOURCE_ENDPOINT
+    );
     assert_eq!(list.limit, 25);
     assert_eq!(list.start_neuron_id, None);
     assert!(!list.verbose);
@@ -35,7 +38,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     assert_eq!(list.limit, NNS_NEURON_MAX_PAGE_SIZE);
     assert_eq!(list.start_neuron_id, Some(123));
     assert!(list.verbose);
-    assert_eq!(list.format, OutputFormat::Json);
+    assert_eq!(list.common.format, OutputFormat::Json);
 
     let info = parse_test_options(
         neuron_info_command(),

@@ -40,7 +40,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
                 method: SnsCanisterMethod::GetRunningSnsVersion.as_str(),
                 governance_canister_id: sns.canisters.governance_canister_id.clone(),
             })?;
-    let deployed_version = sns_version(deployed_wire.clone());
+    let deployed_version = sns_version(&deployed_wire);
     let pending_upgrade = running.pending_version.map(sns_pending_upgrade);
 
     let next_request = GetNextSnsVersionRequest {
@@ -58,7 +58,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
         )
         .await
         {
-            Ok(response) => (response.next_version.map(sns_version), None),
+            Ok(response) => (response.next_version.as_ref().map(sns_version), None),
             Err(error) => {
                 let reason = error.to_string();
                 (

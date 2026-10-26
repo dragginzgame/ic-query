@@ -12,14 +12,14 @@ pub(super) async fn run_node_info(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
-    let cache = cache_request(&options.network)?;
+    let cache = cache_request(&options.common.network)?;
     let request = NnsInventoryInfoRequest::new(
         cache,
-        options.source_endpoint,
+        options.common.source_endpoint,
         options.input,
         current_unix_secs()?,
     );
     let report =
         build_nns_node_info_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;
-    write_text_or_json(options.format, &report, nns_node_info_report_text)
+    write_text_or_json(options.common.format, &report, nns_node_info_report_text)
 }

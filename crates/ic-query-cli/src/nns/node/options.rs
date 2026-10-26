@@ -2,10 +2,7 @@ use super::commands::{
     DATA_CENTER_FILTER_ARG, NODE_OPERATOR_FILTER_ARG, NODE_PROVIDER_FILTER_ARG, SUBNET_FILTER_ARG,
     SUBNET_KIND_FILTER_ARG,
 };
-use crate::{
-    cli::clap::typed_option,
-    nns::{OutputFormat, leaf::NnsCommonOptions},
-};
+use crate::{cli::clap::typed_option, nns::leaf::NnsCommonOptions};
 use clap::ArgMatches;
 use ic_query::nns::node::NnsNodeListFilters;
 use ic_query::subnet_catalog::SubnetKind;
@@ -18,9 +15,7 @@ use ic_query::subnet_catalog::SubnetKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsNodeListOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
     pub(in crate::nns) verbose: bool,
     pub(in crate::nns) filters: NnsNodeListFilters,
 }
@@ -31,9 +26,7 @@ pub(in crate::nns) fn node_list_options_from_matches(
 ) -> NnsNodeListOptions {
     let common = NnsCommonOptions::from_matches(matches, network);
     NnsNodeListOptions {
-        network: common.network,
-        format: common.format,
-        source_endpoint: common.source_endpoint,
+        common,
         verbose: matches.get_flag("verbose"),
         filters: NnsNodeListFilters {
             subnet: typed_option(matches, SUBNET_FILTER_ARG),

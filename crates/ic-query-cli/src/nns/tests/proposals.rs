@@ -38,10 +38,10 @@ fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsComman
 fn nns_proposal_list_parses_defaults_and_json_format() {
     let defaults = parse_list_options(&[]).expect("parse defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT
     );
     assert_eq!(defaults.limit, 25);
@@ -88,8 +88,8 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     ])
     .expect("parse nns proposal list");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert_eq!(options.limit, 50);
     assert_eq!(options.before_proposal_id, Some(132_000));
     assert_eq!(options.status, NnsProposalStatusFilter::Executed);
@@ -172,9 +172,9 @@ fn nns_proposal_parses_id_and_json_format() {
     )
     .expect("parse nns proposal info");
 
-    assert_eq!(options.network, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.network, MAINNET_NETWORK);
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert_eq!(options.proposal_id, 132_411);
     assert!(options.show_ballots);
     assert!(options.verbose);
@@ -200,10 +200,10 @@ fn nns_proposal_refresh_parses_cache_options() {
     )
     .expect("parse refresh defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT
     );
     assert_eq!(defaults.page_size, 100);
@@ -224,8 +224,8 @@ fn nns_proposal_refresh_parses_cache_options() {
     )
     .expect("parse refresh options");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert_eq!(options.page_size, 25);
     assert_eq!(options.max_pages, Some(2));
 }

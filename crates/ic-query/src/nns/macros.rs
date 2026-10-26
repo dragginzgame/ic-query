@@ -42,6 +42,16 @@ macro_rules! impl_nns_inventory_report {
         $(, $validate_family:expr)?
         $(,)?
     ) => {
+        impl $crate::cache_file::JsonCacheReport for $report {
+            fn schema_version(&self) -> u32 {
+                self.schema_version
+            }
+
+            fn network(&self) -> &str {
+                &self.network
+            }
+        }
+
         impl $crate::nns::inventory::NnsInventoryReport for $report {
             const SCHEMA_VERSION: u32 = $schema_version;
             const ITEM_NAME: &'static str = $item_name;

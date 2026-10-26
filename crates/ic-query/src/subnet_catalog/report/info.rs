@@ -1,14 +1,12 @@
 use super::{
-    SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
+    SubnetCatalogInfoReport, SubnetCatalogInfoRequest, load_catalog_for_report,
     rate::{FORMULA_VERSION, catalog_cycles_per_billion, charge_applicability},
 };
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
-        SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
-        SubnetCatalogLoadRequest, SubnetCatalogSource, catalog_stale_status,
-        load_subnet_catalog_detailed_with_progress,
+        SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION, SubnetCatalogHostError, SubnetCatalogSource,
     },
 };
 
@@ -51,17 +49,15 @@ pub async fn build_subnet_catalog_info_report_with_source_and_progress(
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
-    let load_request =
-        SubnetCatalogLoadRequest::cache_only(request.cache.clone(), request.now_unix_secs)
-            .with_policy(request.read_policy.clone());
-    let cached = load_subnet_catalog_detailed_with_progress(&load_request, source, progress)
-        .await
-        .map_err(crate::subnet_catalog::SubnetCatalogLoadFailure::into_source)?;
-    let stale = catalog_stale_status(
-        cached.catalog.raw(),
+    let (cached, stale) = load_catalog_for_report(
+        &request.cache,
+        &request.read_policy,
         request.now_unix_secs,
         request.stale_after_seconds,
-    );
+        source,
+        progress,
+    )
+    .await?;
     let resolved = cached
         .catalog
         .raw()

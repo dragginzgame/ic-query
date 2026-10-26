@@ -10,13 +10,13 @@ pub(super) async fn run_topology_refresh(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = TopologyRefreshOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.common.format;
     let cache_root = cache_root()?;
     let request =
         NnsTopologyRefreshRequest::new(ic_query::nns::topology::NnsTopologyReadRequest::new(
             cache_root,
-            options.network,
-            options.source_endpoint,
+            options.common.network,
+            options.common.source_endpoint,
             current_unix_secs()?,
         ))
         .with_dry_run(options.dry_run);

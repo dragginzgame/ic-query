@@ -139,6 +139,42 @@ async fn list_report_loads_cached_catalog_and_caps_ranges() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn list_range_views_preserve_totals_and_per_subnet_pagination() {
+    let root = temp_dir("ic-query-subnet-range-views");
+    write_catalog(&root, fixture_catalog());
+    for (show, offset, limit, shown_a, shown_b) in [
+        (true, 0, 1, 1, 1),
+        (true, 1, 1, 1, 0),
+        (false, 0, 1, 0, 0),
+        (true, 0, 0, 0, 0),
+        (true, usize::MAX, usize::MAX, 0, 0),
+    ] {
+        let mut request = list_request(&root);
+        request.show_ranges = show;
+        request.range_offset = offset;
+        request.range_limit = limit;
+        let report = build_subnet_catalog_list_report(&request).await.unwrap();
+        let [a, b] = report.subnets.as_slice() else {
+            panic!("both catalog Subnets are retained");
+        };
+        assert_eq!(a.subnet_principal, SUBNET_A);
+        assert_eq!(b.subnet_principal, SUBNET_B);
+        assert_eq!((a.range_count, b.range_count), (2, 1));
+        assert_eq!((a.ranges_shown, b.ranges_shown), (shown_a, shown_b));
+        assert_eq!((a.ranges.len(), b.ranges.len()), (shown_a, shown_b));
+        if offset == 1 {
+            assert_eq!(a.ranges[0].start_canister_id, CANISTER_A);
+        }
+    }
+    let request = list_request(&root).with_kind(SubnetKind::Application);
+    let report = build_subnet_catalog_list_report(&request).await.unwrap();
+    assert_eq!(report.subnets.len(), 1);
+    assert_eq!(report.subnets[0].subnet_principal, SUBNET_A);
+    assert_eq!(report.subnets[0].range_count, 2);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn list_report_refreshes_missing_catalog() {
     let root = temp_dir("ic-query-subnet-list-refresh");
     let mut catalog = fixture_catalog();

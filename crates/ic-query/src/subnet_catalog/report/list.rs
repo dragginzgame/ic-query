@@ -1,15 +1,16 @@
 use super::{
-    SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSubnetRow,
+    SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest,
+    SubnetCatalogSubnetRow, load_catalog_for_report,
 };
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
-        SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
-        SubnetCatalogLoadRequest, SubnetCatalogSource, SubnetInfo, ValidatedSubnetCatalog,
-        catalog_stale_status, load_subnet_catalog_detailed_with_progress,
+        RoutingRange, SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION, SubnetCatalogHostError,
+        SubnetCatalogSource, SubnetInfo,
     },
 };
+use std::collections::BTreeMap;
 
 /// Load the catalog under the request's cache policy and project its filtered Subnet rows.
 pub async fn build_subnet_catalog_list_report(
@@ -50,24 +51,45 @@ pub async fn build_subnet_catalog_list_report_with_source_and_progress(
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    let load_request =
-        SubnetCatalogLoadRequest::cache_only(request.cache.clone(), request.now_unix_secs)
-            .with_policy(request.read_policy.clone());
-    let cached = load_subnet_catalog_detailed_with_progress(&load_request, source, progress)
-        .await
-        .map_err(crate::subnet_catalog::SubnetCatalogLoadFailure::into_source)?;
-    let stale = catalog_stale_status(
-        cached.catalog.raw(),
+    let (cached, stale) = load_catalog_for_report(
+        &request.cache,
+        &request.read_policy,
         request.now_unix_secs,
         request.stale_after_seconds,
-    );
+        source,
+        progress,
+    )
+    .await?;
     let subnets = cached
         .catalog
         .subnets()
         .iter()
         .filter(|subnet| subnet_matches_filters(subnet, request.filters))
-        .map(|subnet| subnet_row(&cached.catalog, subnet, request))
         .collect::<Vec<_>>();
+    let mut ranges_by_subnet = subnets
+        .iter()
+        .map(|subnet| (subnet.subnet_principal.as_str(), (0_usize, Vec::new())))
+        .collect::<BTreeMap<_, _>>();
+    for range in &cached.catalog.raw().routing_ranges {
+        if let Some((count, shown)) = ranges_by_subnet.get_mut(range.subnet_principal.as_str()) {
+            if request.show_ranges
+                && *count >= request.range_offset
+                && shown.len() < request.range_limit
+            {
+                shown.push(range.clone());
+            }
+            *count += 1;
+        }
+    }
+    let subnets = subnets
+        .into_iter()
+        .map(|subnet| {
+            let (count, ranges) = ranges_by_subnet
+                .remove(subnet.subnet_principal.as_str())
+                .unwrap_or_default();
+            subnet_row(subnet, request, count, ranges)
+        })
+        .collect();
 
     Ok(SubnetCatalogListReport {
         schema_version: SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION,
@@ -111,22 +133,11 @@ fn subnet_matches_filters(subnet: &SubnetInfo, filters: SubnetCatalogFilters) ->
 }
 
 fn subnet_row(
-    catalog: &ValidatedSubnetCatalog,
     subnet: &SubnetInfo,
     request: &SubnetCatalogListRequest,
+    range_count: usize,
+    shown_ranges: Vec<RoutingRange>,
 ) -> SubnetCatalogSubnetRow {
-    let ranges = catalog.routing_ranges_for_subnet(&subnet.subnet_principal);
-    let range_count = ranges.len();
-    let shown_ranges = if request.show_ranges {
-        ranges
-            .into_iter()
-            .skip(request.range_offset)
-            .take(request.range_limit)
-            .cloned()
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
     SubnetCatalogSubnetRow {
         subnet_principal: subnet.subnet_principal.clone(),
         registry_subnet_type: subnet.registry_subnet_type,

@@ -60,9 +60,7 @@ impl NnsProposalActivityOptions {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsProposalListOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
     pub(in crate::nns) limit: u32,
     pub(in crate::nns) before_proposal_id: Option<u64>,
     pub(in crate::nns) status: NnsProposalStatusFilter,
@@ -84,9 +82,7 @@ impl NnsProposalListOptions {
         let sort = required_typed::<NnsProposalListSortArg>(matches, "sort");
         let sort_direction = proposal_sort_direction(matches, sort)?;
         Ok(Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
+            common,
             limit: required_typed(matches, "limit"),
             before_proposal_id: typed_option(matches, "before"),
             status: required_typed::<NnsProposalStatusArg>(matches, "status").into(),
@@ -149,9 +145,7 @@ fn explicit_proposal_sort_direction(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsProposalOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
     pub(in crate::nns) proposal_id: u64,
     pub(in crate::nns) show_ballots: bool,
     pub(in crate::nns) verbose: bool,
@@ -161,9 +155,7 @@ impl NnsProposalOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         let common = NnsCommonOptions::from_matches(matches, network);
         Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
+            common,
             proposal_id: required_typed(matches, NNS_PROPOSAL_ID_ARG),
             show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),

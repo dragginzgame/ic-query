@@ -88,9 +88,12 @@ fn topology_refresh_parses_defaults_and_dry_run() {
     )
     .expect("parse defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.source_endpoint, DEFAULT_NNS_NODE_SOURCE_ENDPOINT);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(
+        defaults.common.source_endpoint,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT
+    );
 
     assert!(!defaults.dry_run);
 
@@ -106,7 +109,7 @@ fn topology_refresh_parses_defaults_and_dry_run() {
     )
     .expect("parse topology refresh");
 
-    assert_topology_json_source(options.format, &options.source_endpoint);
+    assert_topology_json_source(options.common.format, &options.common.source_endpoint);
 
     assert!(options.dry_run);
 }

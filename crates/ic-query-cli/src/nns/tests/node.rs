@@ -7,9 +7,12 @@ fn node_list_parses_defaults_and_json_format() {
     let defaults = parse_test_options(node_list_command(), &[], node_list_options_from_matches)
         .expect("parse defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.source_endpoint, DEFAULT_NNS_NODE_SOURCE_ENDPOINT);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(
+        defaults.common.source_endpoint,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT
+    );
     assert!(!defaults.verbose);
 
     let options = parse_test_options(
@@ -34,8 +37,8 @@ fn node_list_parses_defaults_and_json_format() {
     )
     .expect("parse node list");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert!(options.verbose);
     assert_eq!(options.filters.data_center.as_deref(), Some("zh2"));
     assert_eq!(options.filters.node_provider.as_deref(), Some("7at4h"));
@@ -54,9 +57,9 @@ fn node_info_parses_input_and_json_format() {
     .expect("parse node info");
 
     assert_eq!(options.input, "ryjl");
-    assert_eq!(options.network, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.network, MAINNET_NETWORK);
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 }
 
 #[test]
@@ -96,9 +99,12 @@ fn node_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse refresh defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.source_endpoint, DEFAULT_NNS_NODE_SOURCE_ENDPOINT);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(
+        defaults.common.source_endpoint,
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT
+    );
 
     assert!(!defaults.dry_run);
     assert_eq!(defaults.output_path, None);
@@ -117,8 +123,8 @@ fn node_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse node refresh");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 
     assert!(options.dry_run);
     assert_eq!(

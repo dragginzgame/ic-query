@@ -13,10 +13,10 @@ fn node_operator_list_parses_defaults_and_json_format() {
     )
     .expect("parse defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT
     );
     assert!(!defaults.verbose);
@@ -36,8 +36,8 @@ fn node_operator_list_parses_defaults_and_json_format() {
     )
     .expect("parse node-operator list");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert!(options.verbose);
 }
 
@@ -54,9 +54,9 @@ fn node_operator_info_parses_input_and_json_format() {
     .expect("parse node-operator info");
 
     assert_eq!(options.input, "ryjl");
-    assert_eq!(options.network, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.network, MAINNET_NETWORK);
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 }
 
 #[test]
@@ -71,10 +71,10 @@ fn node_operator_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse refresh defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT
     );
 
@@ -98,8 +98,8 @@ fn node_operator_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse node-operator refresh");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 
     assert!(options.dry_run);
     assert_eq!(

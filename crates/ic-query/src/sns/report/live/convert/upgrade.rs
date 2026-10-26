@@ -16,12 +16,12 @@ pub(in crate::sns::report::live) fn sns_running_version_response(
     response: GetRunningSnsVersionResponse,
 ) -> SnsRunningVersionResponse {
     SnsRunningVersionResponse {
-        deployed_version: response.deployed_version.map(sns_version),
+        deployed_version: response.deployed_version.as_ref().map(sns_version),
         pending_version: response.pending_version.map(sns_pending_upgrade),
     }
 }
 
-pub(in crate::sns::report::live) fn sns_version(version: SnsVersionWire) -> SnsVersion {
+pub(in crate::sns::report::live) fn sns_version(version: &SnsVersionWire) -> SnsVersion {
     SnsVersion {
         archive_wasm_hash_hex: hex_bytes(&version.archive_wasm_hash),
         root_wasm_hash_hex: hex_bytes(&version.root_wasm_hash),
@@ -39,6 +39,6 @@ pub(in crate::sns::report::live) fn sns_pending_upgrade(
         mark_failed_at_seconds: pending.mark_failed_at_seconds,
         checking_upgrade_lock: pending.checking_upgrade_lock,
         proposal_id: pending.proposal_id,
-        target_version: pending.target_version.map(sns_version),
+        target_version: pending.target_version.as_ref().map(sns_version),
     }
 }

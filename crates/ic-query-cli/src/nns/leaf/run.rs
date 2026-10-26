@@ -39,15 +39,15 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
-    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
     let request =
-        NnsInventoryListRequest::new(cache, options.source_endpoint, current_unix_secs()?);
+        NnsInventoryListRequest::new(cache, options.common.source_endpoint, current_unix_secs()?);
     let report = reports
         .build_list_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
     write_text_or_json_verbose(
-        options.format,
+        options.common.format,
         &report,
         options.verbose,
         |report| reports.list_report_text(report),
@@ -64,10 +64,10 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
-    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
     let request = NnsInventoryInfoRequest::new(
         cache,
-        options.source_endpoint,
+        options.common.source_endpoint,
         options.input,
         current_unix_secs()?,
     );
@@ -75,7 +75,7 @@ where
         .build_info_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
-    write_text_or_json(options.format, &report, |report| {
+    write_text_or_json(options.common.format, &report, |report| {
         reports.info_report_text(report)
     })
 }
@@ -89,11 +89,14 @@ where
     Reports: NnsLeafReports,
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
-    let format = options.format;
-    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.network);
-    let mut request =
-        NnsInventoryRefreshRequest::new(cache, options.source_endpoint, current_unix_secs()?)
-            .with_dry_run(options.dry_run);
+    let format = options.common.format;
+    let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
+    let mut request = NnsInventoryRefreshRequest::new(
+        cache,
+        options.common.source_endpoint,
+        current_unix_secs()?,
+    )
+    .with_dry_run(options.dry_run);
     if let Some(output_path) = options.output_path {
         request = request.with_output_path(output_path);
     }

@@ -63,8 +63,8 @@ async fn run_nns_proposal_list_with_options(
     options: NnsProposalListOptions,
 ) -> Result<(), NnsCommandError> {
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.network,
-        options.source_endpoint,
+        options.common.network,
+        options.common.source_endpoint,
         current_unix_secs()?,
         "ic-query",
     );
@@ -86,7 +86,11 @@ async fn run_nns_proposal_list_with_options(
         Some(report) => report,
         None => build_nns_proposal_list_report(&request).await?,
     };
-    write_text_or_json(options.format, &report, nns_proposal_list_report_text)
+    write_text_or_json(
+        options.common.format,
+        &report,
+        nns_proposal_list_report_text,
+    )
 }
 
 async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
@@ -96,8 +100,8 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
 
 async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
     let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.network,
-        options.source_endpoint,
+        options.common.network,
+        options.common.source_endpoint,
         current_unix_secs()?,
         "ic-query",
     );
@@ -108,7 +112,7 @@ async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<()
         Some(report) => report,
         None => build_nns_proposal_report(&request).await?,
     };
-    write_text_or_json(options.format, &report, nns_proposal_report_text)
+    write_text_or_json(options.common.format, &report, nns_proposal_report_text)
 }
 
 async fn run_nns_proposal_refresh(
@@ -116,7 +120,7 @@ async fn run_nns_proposal_refresh(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.common.format;
     let request = options.into_request(cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report = refresh_nns_proposal_cache_with_progress(&request, &mut progress).await?;

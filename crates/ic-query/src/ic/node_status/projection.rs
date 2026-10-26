@@ -51,16 +51,16 @@ pub fn ic_subnet_status_report_from_snapshot(
     view: &IcNodeStatusView,
 ) -> Result<IcSubnetStatusReport, IcNodeStatusProjectionError> {
     validate_snapshot(snapshot)?;
-    let mut grouped = BTreeMap::<String, Vec<&IcNodeStatusRow>>::new();
+    let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
     for node in &snapshot.nodes {
         if let Some(subnet_id) = &node.subnet_id {
-            grouped.entry(subnet_id.clone()).or_default().push(node);
+            grouped.entry(subnet_id).or_default().push(node);
         }
     }
     let resolution = resolve_optional_target(
         "Subnet",
         view.target.as_deref(),
-        grouped.keys().map(String::as_str),
+        grouped.keys().copied(),
         "subnet_principal",
     )?;
     let subnet_count = grouped.len();
@@ -70,8 +70,8 @@ pub fn ic_subnet_status_report_from_snapshot(
         let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
         let requires_attention = statuses.non_up() > 0;
         attention_subnet_count += usize::from(requires_attention);
-        if view_includes(view, resolution.as_ref(), &subnet_id, requires_attention) {
-            subnets.push(subnet_row(subnet_id, statuses, &nodes));
+        if view_includes(view, resolution.as_ref(), subnet_id, requires_attention) {
+            subnets.push(subnet_row(subnet_id.to_string(), statuses, &nodes));
         }
     }
 
@@ -96,17 +96,17 @@ pub fn ic_node_provider_status_report_from_snapshot(
     view: &IcNodeStatusView,
 ) -> Result<IcNodeProviderStatusReport, IcNodeStatusProjectionError> {
     validate_snapshot(snapshot)?;
-    let mut grouped = BTreeMap::<String, Vec<&IcNodeStatusRow>>::new();
+    let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
     for node in &snapshot.nodes {
         grouped
-            .entry(node.node_provider_id.clone())
+            .entry(&node.node_provider_id)
             .or_default()
             .push(node);
     }
     let resolution = resolve_optional_target(
         "node provider",
         view.target.as_deref(),
-        grouped.keys().map(String::as_str),
+        grouped.keys().copied(),
         "node_provider_principal",
     )?;
     let provider_count = grouped.len();
@@ -132,11 +132,11 @@ pub fn ic_node_provider_status_report_from_snapshot(
         if view_includes(
             view,
             resolution.as_ref(),
-            &node_provider_id,
+            node_provider_id,
             requires_attention,
         ) {
             providers.push(IcNodeProviderStatusRow {
-                node_provider_id,
+                node_provider_id: node_provider_id.to_string(),
                 node_provider_name: nodes
                     .first()
                     .map_or_else(String::new, |node| node.node_provider_name.clone()),

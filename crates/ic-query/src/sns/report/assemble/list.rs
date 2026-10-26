@@ -1,23 +1,25 @@
 //! Module: sns::report::assemble::list
 //!
-//! Responsibility: assemble deployed SNS list and info reports.
-//! Does not own: SNS-W fetching, list sorting, lookup resolution, or rendering.
-//! Boundary: maps source-layer deployed SNS rows into serializable report DTOs.
+//! Responsibility: apply deployed SNS list views and assemble list and info reports.
+//! Does not own: SNS-W fetching, sort algorithms, lookup resolution, or rendering.
+//! Boundary: live and cached lists share filtering, ordering, counts, and DTO projection.
 
 use crate::sns::report::{
     JoinedMainnetSnsInventory, MAINNET_SNS_WASM_CANISTER_ID, MainnetSns,
     SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport,
-    SnsListRow, SnsListSort, SnsSourceRequest, assemble::SnsReportProvenance,
+    SnsListRequest, SnsListRow, SnsSourceRequest,
+    assemble::SnsReportProvenance,
+    view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
-    list: JoinedMainnetSnsInventory,
-    catalog_sns_count: usize,
-    all_lifecycles: bool,
-    verbose: bool,
-    sort: SnsListSort,
+    mut list: JoinedMainnetSnsInventory,
+    request: &SnsListRequest,
     provenance: SnsReportProvenance,
 ) -> SnsListReport {
+    let catalog_sns_count = list.sns_instances.len();
+    filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
+    sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
     let JoinedMainnetSnsInventory {
         network,
         sns_wasm_canister_id,
@@ -56,9 +58,9 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         data_source: provenance.data_source,
         cache_path: provenance.cache_path,
         cache_complete: provenance.cache_complete,
-        all_lifecycles,
-        verbose,
-        sort: sort.as_str().to_string(),
+        all_lifecycles: request.all_lifecycles,
+        verbose: request.verbose,
+        sort: request.sort.as_str().to_string(),
         catalog_sns_count,
         excluded_sns_count: catalog_sns_count.saturating_sub(sns_instances.len()),
         sns_count: sns_instances.len(),

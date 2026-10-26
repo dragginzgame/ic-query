@@ -6,7 +6,7 @@
 
 use super::NnsCommonOptions;
 use crate::{
-    cli::{clap::typed_option, common::OutputFormat},
+    cli::clap::typed_option,
     nns::leaf::commands::{DRY_RUN_ARG, OUTPUT_ARG},
 };
 use clap::ArgMatches;
@@ -20,9 +20,7 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafRefreshOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
 
     pub(in crate::nns) dry_run: bool,
     pub(in crate::nns) output_path: Option<PathBuf>,
@@ -32,9 +30,7 @@ impl NnsLeafRefreshOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         let common = NnsCommonOptions::from_matches(matches, network);
         Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
+            common,
 
             dry_run: matches.get_flag(DRY_RUN_ARG),
             output_path: typed_option(matches, OUTPUT_ARG),

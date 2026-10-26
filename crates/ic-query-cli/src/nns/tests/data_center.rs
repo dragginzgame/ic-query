@@ -10,10 +10,10 @@ fn data_center_list_parses_defaults_and_json_format() {
     )
     .expect("parse defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT
     );
     assert!(!defaults.verbose);
@@ -30,8 +30,8 @@ fn data_center_list_parses_defaults_and_json_format() {
     )
     .expect("parse data-center list");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
     assert!(options.verbose);
 }
 
@@ -45,9 +45,9 @@ fn data_center_info_parses_input_and_json_format() {
     .expect("parse data-center info");
 
     assert_eq!(options.input, "an1");
-    assert_eq!(options.network, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.network, MAINNET_NETWORK);
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 }
 
 #[test]
@@ -59,10 +59,10 @@ fn data_center_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse refresh defaults");
 
-    assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.common.network, MAINNET_NETWORK);
+    assert_eq!(defaults.common.format, OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.common.source_endpoint,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT
     );
 
@@ -83,8 +83,8 @@ fn data_center_refresh_parses_defaults_and_export_options() {
     )
     .expect("parse data-center refresh");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
 
     assert!(options.dry_run);
     assert_eq!(

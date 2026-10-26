@@ -13,7 +13,6 @@ use crate::sns::report::{
         SnsCatalogSource, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
         validate_mainnet_sns_inventory,
     },
-    view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
 
 pub async fn build_sns_list_report(
@@ -26,16 +25,10 @@ pub async fn build_sns_list_report_with_source(
     request: &SnsListRequest,
     source: &dyn SnsCatalogSource,
 ) -> Result<SnsListReport, SnsHostError> {
-    let mut list = fetch_joined_sns_catalog(request, source).await?;
-    let catalog_sns_count = list.sns_instances.len();
-    filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
-    sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
+    let list = fetch_joined_sns_catalog(request, source).await?;
     Ok(sns_list_report_from_list(
         list,
-        catalog_sns_count,
-        request.all_lifecycles,
-        request.verbose,
-        request.sort,
+        request,
         SnsReportProvenance::live(),
     ))
 }

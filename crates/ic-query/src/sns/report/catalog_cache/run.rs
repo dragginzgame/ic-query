@@ -32,7 +32,6 @@ use crate::{
             JoinedMainnetSnsInventory, MainnetSns, SnsCatalogSource,
             validate_joined_mainnet_sns_catalog,
         },
-        view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
     },
 };
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
@@ -307,7 +306,7 @@ fn cache_from_list(list: JoinedMainnetSnsInventory) -> Result<SnsCatalogCache, S
 
 fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) -> SnsListReport {
     let CachedSnsCatalog { path, cache } = cached;
-    let mut list = JoinedMainnetSnsInventory {
+    let list = JoinedMainnetSnsInventory {
         network: cache.network,
         sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
         fetched_at: cache.fetched_at,
@@ -315,17 +314,7 @@ fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) ->
         source_endpoint: cache.source_endpoint,
         sns_instances: cache.data.sns_instances,
     };
-    let catalog_sns_count = list.sns_instances.len();
-    filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);
-    sort_mainnet_sns_instances(&mut list.sns_instances, request.sort);
-    sns_list_report_from_list(
-        list,
-        catalog_sns_count,
-        request.all_lifecycles,
-        request.verbose,
-        request.sort,
-        SnsReportProvenance::cache(&path, true),
-    )
+    sns_list_report_from_list(list, request, SnsReportProvenance::cache(&path, true))
 }
 
 fn catalog_is_stale(cached: &CachedSnsCatalog, now_unix_secs: u64) -> bool {

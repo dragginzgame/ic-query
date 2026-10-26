@@ -29,12 +29,13 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
         request.now_unix_secs,
         "ic-query".to_string(),
     );
-    let inventory = source.fetch_sns_inventory(&fetch_request).await?;
+    let mut inventory = source.fetch_sns_inventory(&fetch_request).await?;
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;
-    let (id, target) = resolve_sns(&inventory.sns_instances, &request.input)?;
+    let index = resolve_sns(&inventory.sns_instances, &request.input)?;
     let metadata = source
-        .fetch_sns_metadata(&fetch_request, std::slice::from_ref(&target))
+        .fetch_sns_metadata(&fetch_request, &inventory.sns_instances[index..=index])
         .await?;
+    let target = inventory.sns_instances.swap_remove(index);
     let list = join_mainnet_sns_inventory(selected_inventory(inventory, target), metadata)?;
     let mut sns =
         list.sns_instances
@@ -44,20 +45,15 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
                 capability: "SNS metadata",
                 reason: "metadata join returned no selected SNS".to_string(),
             })?;
-    sns.id = id;
+    sns.id = index + 1;
     Ok(SnsLookup { fetch_request, sns })
 }
 
-fn resolve_sns(
-    instances: &[MainnetSnsCanisters],
-    input: &str,
-) -> Result<(usize, MainnetSnsCanisters), SnsHostError> {
+fn resolve_sns(instances: &[MainnetSnsCanisters], input: &str) -> Result<usize, SnsHostError> {
     if let Ok(id) = input.parse::<usize>() {
         return id
             .checked_sub(1)
-            .and_then(|index| instances.get(index))
-            .cloned()
-            .map(|sns| (id, sns))
+            .filter(|index| *index < instances.len())
             .ok_or(SnsHostError::UnknownSnsId {
                 id,
                 sns_count: instances.len(),
@@ -67,9 +63,7 @@ fn resolve_sns(
     let root_canister_id = parse_sns_root_canister_input(input)?;
     instances
         .iter()
-        .enumerate()
-        .find(|(_, sns)| sns.root_canister_id == root_canister_id)
-        .map(|(index, sns)| (index + 1, sns.clone()))
+        .position(|sns| sns.root_canister_id == root_canister_id)
         .ok_or(SnsHostError::UnknownSnsRoot { root_canister_id })
 }
 

@@ -14,13 +14,14 @@ pub(super) async fn run_node_list(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = node_list_options_from_matches(matches, network);
-    let cache = cache_request(&options.network)?;
-    let request = NnsNodeListRequest::new(cache, options.source_endpoint, current_unix_secs()?)
-        .with_filters(options.filters);
+    let cache = cache_request(&options.common.network)?;
+    let request =
+        NnsNodeListRequest::new(cache, options.common.source_endpoint, current_unix_secs()?)
+            .with_filters(options.filters);
     let report =
         build_nns_node_list_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;
     write_text_or_json_verbose(
-        options.format,
+        options.common.format,
         &report,
         options.verbose,
         nns_node_list_report_text,

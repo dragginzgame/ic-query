@@ -1,7 +1,4 @@
-use crate::{
-    cli::common::OutputFormat,
-    nns::{leaf::NnsCommonOptions, topology::commands::DRY_RUN_ARG},
-};
+use crate::nns::{leaf::NnsCommonOptions, topology::commands::DRY_RUN_ARG};
 use clap::ArgMatches;
 
 ///
@@ -12,9 +9,7 @@ use clap::ArgMatches;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct TopologyRefreshOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
 
     pub(in crate::nns) dry_run: bool,
 }
@@ -23,9 +18,7 @@ impl TopologyRefreshOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         let common = NnsCommonOptions::from_matches(matches, network);
         Self {
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
+            common,
 
             dry_run: matches.get_flag(DRY_RUN_ARG),
         }

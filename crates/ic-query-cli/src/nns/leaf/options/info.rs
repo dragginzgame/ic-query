@@ -5,10 +5,7 @@
 //! Boundary: converts info command arguments into command-runner options.
 
 use super::NnsCommonOptions;
-use crate::{
-    cli::{clap::required_string, common::OutputFormat},
-    nns::leaf::commands::INPUT_ARG,
-};
+use crate::{cli::clap::required_string, nns::leaf::commands::INPUT_ARG};
 use clap::ArgMatches;
 
 ///
@@ -20,9 +17,7 @@ use clap::ArgMatches;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct NnsLeafInfoOptions {
     pub(in crate::nns) input: String,
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
 }
 
 impl NnsLeafInfoOptions {
@@ -30,9 +25,7 @@ impl NnsLeafInfoOptions {
         let common = NnsCommonOptions::from_matches(matches, network);
         Self {
             input: required_string(matches, INPUT_ARG),
-            network: common.network,
-            format: common.format,
-            source_endpoint: common.source_endpoint,
+            common,
         }
     }
 }

@@ -9,10 +9,10 @@ pub(super) async fn run_node_refresh(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.common.format;
     let mut request = NnsInventoryRefreshRequest::new(
-        cache_request(&options.network)?,
-        options.source_endpoint,
+        cache_request(&options.common.network)?,
+        options.common.source_endpoint,
         current_unix_secs()?,
     )
     .with_dry_run(options.dry_run);

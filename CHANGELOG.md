@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.2]
+
+### 🔧 Changed
+
+- Adopt Shared Tooling 0.26.21 with task-specific engineering guidance and
+  emoji sections for current release notes.
+
+### 🧹 Cleanup
+
+- Share live and cached SNS list projection and common NNS command options,
+  preserving report fields, source provenance and command behavior.
+- Reduce repeated routing-range scans and temporary SNS/node-status copies;
+  retain Unicode name ordering, range pagination and cache validation.
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.74.1] - 2026-10-26
 
 - Consolidate Candid error projection, source provenance checks and Registry
