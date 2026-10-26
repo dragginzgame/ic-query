@@ -1,8 +1,8 @@
 # Shared Tooling snapshot v1
-# version	0.26.18
+# version	0.26.19
 format	1
 source	https://github.com/dragginzgame/shared-tooling.git
-revision	37652c087fff16f55f83d18d27ba17c83f34021c
+revision	c830c33447f0a84e015bda7fa14b6c096a58368e
 # entrypoint	DRAGGINZGAME.md
 # entrypoint	rules/changelogs.md
 # entrypoint	rules/cargo-dependencies.md
@@ -96,7 +96,7 @@ file	4a1ba791945d797e007f7a06048d8a64a8d0ad7b5d7be3c02270d57d81703f7f	-	DRAGGINZ
 file	2ec7b772514ff1d437beb51a314e337266553ff925c67e2489fe6e3e7a2484cf	-	rules/changelogs.md
 file	44d8e696ad84d39714854d42ca01b2005f408e5a3dfca94541da34b361735a1a	-	rules/cargo-dependencies.md
 file	ea61b8d4e501011f73729ed56613c365b14a947c8ca18d66dced4990cbdb40ea	-	rules/git-hooks.md
-file	9e4877c1f11d613c753c2c784f719a79a78f1f2e0b45cf1b5aa9d0ec2a241a18	-	docs/releases.md
+file	9567eeaba8dc34c56f5da8e32910b0db57aa43606a6e08109615d1476a356c94	-	docs/releases.md
 file	59f6cb0b47fcfa698396776bbb391737292ebf34457ad7c65803fe7b36961499	-	docs/principles/README.md
 file	9315c9faffa4f36cfab496342535bf49d728ddd2111e8e127cbc44b3fac89ce7	-	docs/principles/decision-artifact-discipline.md
 file	c08e85ebfd986cf549613b3ad2324ea4daff4d6819b3b495ff3b82d317f89ed7	-	docs/principles/reviewable-changes.md
@@ -156,7 +156,7 @@ file	1c1712e19d3c8328a4664776dc4faf6d4b081ee7e4010a57e46f0a93829f4c17	-	make/too
 file	5be336cb3e8045b2d2d536542a94944b376ee812b03f786a90b9d962ab697f13	x	scripts/ci/archive-evidence.sh
 file	a52db278800a9f02d85a6b8a780a9b1eed860c49d5442cef9db1f7f9d7ddee0a	x	scripts/ci/check-format-tools.sh
 file	9e32385247296ce95d2b15b1290c64e6b6dff15716c1c139f21ab5e5128f4be3	x	scripts/ci/check-make-execution.sh
-file	040a856599110c89c33e2e2c9e45a8ff330b68069225cd0c4d60f89b1432c624	-	scripts/ci/finalize-release-changelog.awk
+file	1316c76e83c65a39d9cca45992433d71bcb9473a7a0af1da4cb09f8a7026f52f	-	scripts/ci/finalize-release-changelog.awk
 file	918815a81861abd80684fea14f71cb5a298644317afc0f5860a3d1b6506a0a16	x	scripts/ci/next-release-version.sh
 file	4ff0a961d5fb8639edf798d64bbe3abc0fcd83c6f703d7a6875c6f5174e76201	x	scripts/ci/run-formatting.sh
 file	8e72d1bf484eee8c8ec079ab65be7c5718f46117952a41fe9cbcf6ad3abf4bd3	x	scripts/ci/run-release.sh

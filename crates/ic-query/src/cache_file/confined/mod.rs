@@ -32,13 +32,6 @@ mod read;
 mod scan;
 
 #[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
-pub use read::ManagedReadBudget;
-#[cfg(any(
     feature = "host",
     feature = "icrc-host",
     feature = "nns-host",
@@ -46,9 +39,6 @@ pub use read::ManagedReadBudget;
     test
 ))]
 pub use read::open_managed_file;
-#[cfg(feature = "host")]
-pub use read::read_bounded_stream;
-pub use read::{BoundedManagedFileReadError, managed_file_exists};
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "subnet-catalog-host",
@@ -58,7 +48,17 @@ pub use read::{BoundedManagedFileReadError, managed_file_exists};
     feature = "sns-host",
     test
 ))]
-pub use read::{read_bounded_managed_file, read_opened_file_bounded};
+pub use read::read_bounded_managed_file;
+#[cfg(feature = "host")]
+pub use read::read_bounded_stream;
+pub use read::{BoundedManagedFileReadError, managed_file_exists};
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
+pub use read::{ManagedReadBudget, read_opened_file_bounded};
 #[cfg(feature = "sns-host")]
 pub use scan::collect_managed_collection_files;
 #[cfg(feature = "host")]

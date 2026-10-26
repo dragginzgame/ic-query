@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.73.4]
+
+- Adopt Shared Tooling 0.26.19 so archived Draft labels no longer block a new
+  release; current candidate conflicts remain errors.
+- Align dependency minimums with Host/Build/Testkit 0.68.6, Platform 0.6.17 and
+  Wire 0.7.15, preserving public type identities and protocol bytes.
+- Avoid unused-import warnings in standalone Subnet Catalog host builds.
+
+Detailed release notes: [docs/changelog/0.73.md](docs/changelog/0.73.md)
+
 ## [0.73.3] - 2026-10-26
 
 - Share ICRC read-through refresh orchestration, SNS enrichment scheduling and target

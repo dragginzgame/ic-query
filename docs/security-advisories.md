@@ -8,7 +8,7 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected path is Platform 0.6.16 → Agent 0.49.3 → elliptic-curve 0.13.8 →
+The selected path is Platform 0.6.17 → Agent 0.49.3 → elliptic-curve 0.13.8 →
 crypto-bigint 0.5.5, including Agent's k256/p256 paths. elliptic-curve requires
 crypto-bigint 0.5; the patched 0.7.6 cannot replace it through a compatible lock
 update. Do not fork cryptography or force an incompatible override here.
@@ -30,3 +30,8 @@ other advisories and warnings still fail the gate. Keep
 this exception when a compatible upstream correction eliminates affected versions
 from Query's resolved graph, then rerun the current-feed dependency gate and
 relevant Agent/MSRV checks. Do not transfer this acceptance to other consumers.
+
+Shared IC dependency and interface adoption is coordinated through
+[Platform #58](https://github.com/dragginzgame/ic-platform/issues/58). Query retains
+its affected-graph and consumer qualification obligation in
+[Query #102](https://github.com/dragginzgame/ic-query/issues/102).

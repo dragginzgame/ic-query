@@ -36,15 +36,15 @@ pub const MAX_COLLECTION_SNAPSHOT_BYTES: u64 = 512 * 1024 * 1024;
 pub const MAX_REFRESH_ATTEMPT_BYTES: u64 = 1024 * 1024;
 
 pub use confined::BoundedManagedFileReadError;
+pub use confined::read_bounded_managed_file;
+pub use confined::write_managed_file_atomically;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub use confined::ManagedReadBudget;
-pub use confined::write_managed_file_atomically;
-pub use confined::{read_bounded_managed_file, read_opened_file_bounded};
+pub use confined::{ManagedReadBudget, read_opened_file_bounded};
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]

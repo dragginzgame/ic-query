@@ -679,7 +679,9 @@ Pass the saved previous version even after package metadata has been bumped.
 Undated numbered sections at or below that version remain history. One pending
 numbered section must agree with the target; competing candidates or a target
 already dated differently are conflicts. The selected numbered candidate must
-be the first release heading; `Draft` and misplaced candidates are rejected.
+be the first release heading; an active `Draft` or misplaced candidate is rejected.
+An archived `Draft` label below a numbered release at or below the canonical
+previous version is preserved as historical content and does not block release.
 Both `## [X.Y.Z]` and `## [X.Y.Z] - Unreleased` are accepted pending spellings.
 Release preparation writes `## [X.Y.Z] - YYYY-MM-DD` using the saved UTC release
 date before the release commit, tag and push; no manual heading edit is needed
