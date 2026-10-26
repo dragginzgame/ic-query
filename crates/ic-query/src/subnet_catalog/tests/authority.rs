@@ -173,10 +173,10 @@ fn raw_registry_kind_charging_and_policy_relations_fail_closed() {
             "subnet_specialization" => subnet.subnet_specialization = SubnetSpecialization::None,
             "geographic_scope" => subnet.geographic_scope = GeographicScope::Europe,
             "subnet_specialization_source" => {
-                subnet.subnet_specialization_source = ClassificationSource::Computed
+                subnet.subnet_specialization_source = ClassificationSource::Computed;
             }
             "geographic_scope_source" => {
-                subnet.geographic_scope_source = ClassificationSource::Computed
+                subnet.geographic_scope_source = ClassificationSource::Computed;
             }
             "subnet_label" => subnet.subnet_label = "edited".to_string(),
             "subnet_label_source" => subnet.subnet_label_source = ClassificationSource::Computed,
