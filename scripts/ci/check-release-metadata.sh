@@ -98,6 +98,15 @@ for refusal in editor allowance bound; do
   done
 done
 perl scripts/release/metadata.pl prepare "$evidence"
+for package in ic-query ic-query-cli ic-query-testkit; do
+  selected_version="$(awk -F '"' -v package="$package" '
+    /^\[\[package\]\]$/ { name = "" }
+    /^name = / { name = $2 }
+    /^version = / && name == package { print $2 }
+  ' Cargo.lock)"
+  [[ "$selected_version" == "$RELEASE_VERSION" ]] || fail "workspace lock version differs: $package"
+done
+perl scripts/release/metadata.pl check "$evidence"
 mkdir -p "$work_dir/prepared/docs/changelog"
 for payload in Cargo.toml Cargo.lock CHANGELOG.md "$detail"; do
   cp "$payload" "$work_dir/prepared/$payload"

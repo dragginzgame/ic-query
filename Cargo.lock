@@ -1724,9 +1724,9 @@ checksum = "5434237fd713fb583f4f5ad09c7bdd862875da7be71af316411ad110527288cf"
 
 [[package]]
 name = "ic-platform"
-version = "0.6.17"
+version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52bcf60b412c28eb1a461eab055aa6ea93b1413b177a6d208b78351b9afddccb"
+checksum = "171f5f17040c02a104cdfd76b1361ef83d185e3c9a0111debcc6be87f19c7893"
 dependencies = [
  "candid",
  "candid_parser",
@@ -1748,9 +1748,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-macros"
-version = "0.6.17"
+version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37324c84fb851d1ad44f02018776c6ce8bf140bf2098c34206e41d689630cb0f"
+checksum = "1f7c126e4c84d44ed2f4a585719c21fd893cfdddb760deba36768bf1269d9a24"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1759,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.73.3"
+version = "0.73.4"
 dependencies = [
  "futures",
  "futures-util",
@@ -1784,7 +1784,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.73.3"
+version = "0.73.4"
 dependencies = [
  "clap",
  "ic-build",
@@ -1807,7 +1807,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-testkit"
-version = "0.73.3"
+version = "0.73.4"
 dependencies = [
  "ic-host-artifacts",
  "ic-platform",
@@ -1866,9 +1866,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire"
-version = "0.7.15"
+version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7de85c57afae161067f2f936bb5476c61ac227ba5a880eea584135f32588de65"
+checksum = "586c6b0c4b9e13f899f201233d8e236e0f121e8b15f6d33d75ef0c076a845402"
 dependencies = [
  "bytemuck",
  "ic-wire-derive",
@@ -1879,9 +1879,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire-derive"
-version = "0.7.15"
+version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1979e7e3772343d04260b370202b501c606ee8b9a56e9ec1a792de8a06e81c9c"
+checksum = "108748d2580648475aa0523f53b572c67236f4af2c86202355fbb1e539ec7a77"
 dependencies = [
  "proc-macro2",
  "quote",

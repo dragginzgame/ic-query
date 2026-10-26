@@ -98,7 +98,7 @@ sub expected {
         $count == 1 or die "missing owned workspace dependency version\n";
     } elsif ($path eq 'Cargo.lock') {
         open my $lock, '-|', $editor, '--max-input-bytes', $max_bytes,
-            'lock', "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli'
+            'lock', "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli', 'ic-query-testkit'
             or die "cannot run IC Build lockfile editor: $!\n";
         local $/;
         $text = <$lock>;

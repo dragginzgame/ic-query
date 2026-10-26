@@ -318,6 +318,11 @@ dependencies = ["external-fixture"]
 name = "ic-query-cli"
 version = "0.46.5"
 dependencies = ["ic-query"]
+
+[[package]]
+name = "ic-query-testkit"
+version = "0.46.5"
+dependencies = ["ic-query"]
 LOCK
   printf 'ic-query = { version = "0.46", default-features = false }\n' > README.md
   cp README.md docs/library-usage.md
