@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.73.3]
+## [0.73.3] - 2026-10-26
 
 - Share ICRC read-through refresh orchestration, SNS enrichment scheduling and target
   validation, refresh CLI construction and Subnet range rendering.
