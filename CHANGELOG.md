@@ -5,6 +5,20 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.0]
+
+- **Breaking:** NNS proposal rows retain raw timestamps only; text output derives
+  UTC labels. Preserve required old snapshots and explicitly refresh the proposal
+  cache after updating consumers; schema identifiers remain 1.
+- **Breaking:** NNS proposal cache listing now surfaces invalid refresh-attempt
+  errors and retains attempts without a complete snapshot, matching cache status.
+- Simplify route resolution, report provenance and analytics validation without
+  changing authority evidence or classification policy.
+- Avoid unnecessary copies during proposal conversion, cached neuron selection
+  and CLI help preparation; consolidate SNS public-signature test declarations.
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.73.5] - 2026-10-26
 
 - Include the private Testkit workspace member when preparing release lockfiles,

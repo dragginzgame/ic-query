@@ -35,24 +35,14 @@ fn sns_proposal_report_from_cache(
     cache: SnsProposalsCache,
 ) -> Option<SnsProposalReport> {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let proposal = cache
-        .data
+    let (context, data) = SnsReportContext::from_snapshot(cache);
+    let proposal = data
         .proposals
         .into_iter()
         .find(|proposal| proposal.proposal_id == request.proposal_id)?;
     Some(sns_proposal_report_from_parts(
         request,
-        SnsReportContext {
-            network: cache.network,
-            sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
-            fetched_at: cache.fetched_at,
-            source_endpoint: cache.source_endpoint,
-            fetched_by: cache.fetched_by,
-            id: cache.metadata.id,
-            name: cache.metadata.name,
-            root_canister_id: cache.metadata.root_canister_id,
-            governance_canister_id: cache.metadata.governance_canister_id,
-        },
+        context,
         SnsReportProvenance::cache(&cache_path, cache_complete),
         proposal,
     ))

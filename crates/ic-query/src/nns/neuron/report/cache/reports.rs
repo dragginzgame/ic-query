@@ -20,8 +20,7 @@ use crate::{
         NnsGovernanceCacheRequest,
         governance::{
             NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceReportContext,
-            NnsGovernanceSourceProvenance, read_governance_refresh_attempt_status,
-            validate_governance_cache_metadata,
+            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
         },
         neuron::report::{
             NnsNeuronHostError,
@@ -77,11 +76,17 @@ pub fn build_nns_neuron_list_report_from_cache(
     });
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     let end_index = start_index.saturating_add(limit).min(total_neuron_count);
-    let neurons = cache.data.neurons[start_index..end_index].to_vec();
+    let provenance = cache_provenance(&path, &cache);
+    let neurons = cache
+        .data
+        .neurons
+        .into_iter()
+        .skip(start_index)
+        .take(end_index - start_index)
+        .collect::<Vec<_>>();
     let next_start_neuron_id = (end_index < total_neuron_count)
         .then(|| neurons.last().map(|row| row.neuron_id))
         .flatten();
-    let provenance = cache_provenance(&path, &cache);
     Ok(Some(list_report_from_rows(
         request,
         provenance,
@@ -98,21 +103,21 @@ pub fn build_nns_neuron_info_report_from_cache(
 ) -> Result<Option<NnsNeuronInfoReport>, NnsNeuronHostError> {
     enforce_mainnet_network(&request.governance.network)?;
     let path = nns_neuron_cache_path(cache_root, &request.governance.network);
-    let cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
+    let mut cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
         Ok(cache) => cache,
         Err(error) if is_missing_cache(&error) => return Ok(None),
         Err(error) => return Err(error),
     };
-    let neuron = cache
+    let Ok(index) = cache
         .data
         .neurons
         .binary_search_by_key(&request.neuron_id, |row| row.neuron_id)
-        .ok()
-        .map(|index| cache.data.neurons[index].clone());
-    Ok(neuron.map(|neuron| {
-        let provenance = cache_provenance(&path, &cache);
-        info_report_from_row(request, provenance, neuron)
-    }))
+    else {
+        return Ok(None);
+    };
+    let provenance = cache_provenance(&path, &cache);
+    let neuron = cache.data.neurons.swap_remove(index);
+    Ok(Some(info_report_from_row(request, provenance, neuron)))
 }
 
 /// Inspect the expected complete neuron snapshot without making a live call.
@@ -217,16 +222,7 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
 
 fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProvenance {
     NnsNeuronReportProvenance {
-        context: NnsGovernanceReportContext {
-            schema_version: 1,
-            network: cache.network.clone(),
-            governance_canister_id: cache.metadata.governance_canister_id.clone(),
-            fetched_at: cache.fetched_at.clone(),
-            source: NnsGovernanceSourceProvenance::ReplicaQuery {
-                endpoint: cache.source_endpoint.clone(),
-                fetched_by: cache.fetched_by.clone(),
-            },
-        },
+        context: NnsGovernanceReportContext::from_snapshot(cache),
         cache_path: Some(path.display().to_string()),
     }
 }

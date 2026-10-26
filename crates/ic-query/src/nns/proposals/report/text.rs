@@ -227,7 +227,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
                         NnsProposalStatus::from_code(proposal.status)
                             .as_str()
                             .to_string(),
-                        proposal.proposed_at.clone(),
+                        format_utc_timestamp_secs(proposal.proposal_timestamp_seconds),
                         proposal_title(proposal),
                     ]
                 })
@@ -369,22 +369,27 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
             "reject_cost: {}",
             e8s_decimal_text(proposal.reject_cost_e8s)
         ),
-        format!("proposed_at: {}", terminal_text(&proposal.proposed_at)),
+        format!(
+            "proposed_at: {}",
+            format_utc_timestamp_secs(proposal.proposal_timestamp_seconds)
+        ),
         format!(
             "deadline_at: {}",
-            terminal_text(proposal.deadline_at.as_deref().unwrap_or("-"))
+            proposal
+                .deadline_timestamp_seconds
+                .map_or_else(|| "-".to_string(), format_utc_timestamp_secs)
         ),
         format!(
             "decided_at: {}",
-            terminal_text(proposal.decided_at.as_deref().unwrap_or("-"))
+            nonzero_timestamp_text(proposal.decided_timestamp_seconds)
         ),
         format!(
             "executed_at: {}",
-            terminal_text(proposal.executed_at.as_deref().unwrap_or("-"))
+            nonzero_timestamp_text(proposal.executed_timestamp_seconds)
         ),
         format!(
             "failed_at: {}",
-            terminal_text(proposal.failed_at.as_deref().unwrap_or("-"))
+            nonzero_timestamp_text(proposal.failed_timestamp_seconds)
         ),
         format!("reward_event_round: {}", proposal.reward_event_round),
         format!(
@@ -457,4 +462,12 @@ fn push_activity_section(lines: &mut Vec<String>, title: &str, table: Option<Str
     lines.push(String::new());
     lines.push(title.to_string());
     lines.push(table.unwrap_or_else(|| "-".to_string()));
+}
+
+fn nonzero_timestamp_text(timestamp_seconds: u64) -> String {
+    if timestamp_seconds == 0 {
+        "-".to_string()
+    } else {
+        format_utc_timestamp_secs(timestamp_seconds)
+    }
 }

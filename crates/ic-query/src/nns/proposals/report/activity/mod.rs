@@ -7,15 +7,10 @@
 use super::{
     NnsProposalCollectionState, collection::validate_collection_state, model::NnsProposalRow,
 };
-use crate::{
-    nns::{
-        MAINNET_GOVERNANCE_CANISTER_ID,
-        governance::{
-            NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
-            validate_governance_report_source, validate_governance_time_interval,
-        },
-    },
-    subnet_catalog::MAINNET_NETWORK,
+use crate::nns::governance::{
+    NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
+    validate_governance_collection_source, validate_governance_report_identity,
+    validate_governance_time_interval,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -278,18 +273,8 @@ fn validate_activity_header(
             report.schema_version, NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION
         )));
     }
-    if report.network != MAINNET_NETWORK {
-        return Err(invalid_validation(format!(
-            "network is {}, expected {MAINNET_NETWORK}",
-            report.network
-        )));
-    }
-    if report.governance_canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
-        return Err(invalid_validation(format!(
-            "governance_canister_id is {}, expected {MAINNET_GOVERNANCE_CANISTER_ID}",
-            report.governance_canister_id
-        )));
-    }
+    validate_governance_report_identity(&report.network, &report.governance_canister_id)
+        .map_err(invalid_validation)?;
     if report.collection_page_count == 0 {
         return Err(invalid_validation(
             "complete activity report must retain at least one collection page",
@@ -315,13 +300,8 @@ fn validate_activity_header(
         ));
     }
 
-    validate_governance_report_source(&report.network, &report.source).map_err(|error| {
-        let context = match &report.source {
-            NnsGovernanceSourceProvenance::ReplicaQuery { .. } => "source",
-            NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => "provenance",
-        };
-        invalid_validation(format!("invalid collection {context}: {error}"))
-    })
+    validate_governance_collection_source(&report.network, &report.source)
+        .map_err(invalid_validation)
 }
 
 fn validate_activity_selection(

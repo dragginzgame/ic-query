@@ -30,12 +30,9 @@ use super::{
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
-use crate::nns::{
-    MAINNET_GOVERNANCE_CANISTER_ID,
-    governance::{
-        NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
-        NnsGovernanceSourceProvenance, validate_governance_request, validate_source_provenance,
-    },
+use crate::nns::governance::{
+    NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
+    validate_governance_request, validate_source_provenance,
 };
 use std::{future::Future, pin::Pin};
 
@@ -98,7 +95,10 @@ pub async fn build_nns_neuron_list_report_with_source(
     )?;
     Ok(list_report_from_rows(
         request,
-        NnsNeuronReportProvenance::live(report_context(&request.governance, data.provenance)),
+        NnsNeuronReportProvenance::live(NnsGovernanceReportContext::from_source(
+            &request.governance,
+            data.provenance,
+        )),
         data.value.neurons,
         data.value.next_start_neuron_id,
         None,
@@ -126,7 +126,10 @@ pub async fn build_nns_neuron_info_report_with_source(
     validate_neuron_rows(std::slice::from_ref(&data.value))?;
     Ok(info_report_from_row(
         request,
-        NnsNeuronReportProvenance::live(report_context(&request.governance, data.provenance)),
+        NnsNeuronReportProvenance::live(NnsGovernanceReportContext::from_source(
+            &request.governance,
+            data.provenance,
+        )),
         data.value,
     ))
 }
@@ -284,19 +287,6 @@ pub(super) fn validate_neuron_page(
         });
     }
     Ok(())
-}
-
-fn report_context(
-    request: &NnsGovernanceRequest,
-    source: NnsGovernanceSourceProvenance,
-) -> NnsGovernanceReportContext {
-    NnsGovernanceReportContext {
-        schema_version: 1,
-        network: request.network.clone(),
-        governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        fetched_at: request.fetched_at.clone(),
-        source,
-    }
 }
 
 #[cfg(any(

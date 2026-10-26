@@ -30,23 +30,13 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     cache.data.neurons.truncate(limit);
     let cache_complete = cache.completeness.is_api_exhausted();
     let provenance = SnsReportProvenance::cache(&cache_path, cache_complete);
-    let metadata = cache.metadata;
+    let (context, data) = SnsReportContext::from_snapshot(cache);
     Ok(sns_neurons_report_from_rows(
         request,
-        SnsReportContext {
-            network: cache.network,
-            sns_wasm_canister_id: metadata.sns_wasm_canister_id,
-            fetched_at: cache.fetched_at,
-            source_endpoint: cache.source_endpoint,
-            fetched_by: cache.fetched_by,
-            id: metadata.id,
-            name: metadata.name,
-            root_canister_id: metadata.root_canister_id,
-            governance_canister_id: metadata.governance_canister_id,
-        },
+        context,
         provenance,
         None,
         total_neuron_count,
-        cache.data.neurons,
+        data.neurons,
     ))
 }

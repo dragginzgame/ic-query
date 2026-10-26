@@ -113,24 +113,14 @@ pub struct NnsProposalRow {
     pub reject_cost_e8s: u64,
     /// Proposal creation time in Unix seconds.
     pub proposal_timestamp_seconds: u64,
-    /// UTC text derived from the proposal creation timestamp.
-    pub proposed_at: String,
     /// Voting deadline in Unix seconds, when supplied by Governance.
     pub deadline_timestamp_seconds: Option<u64>,
-    /// UTC text derived from a nonzero voting deadline.
-    pub deadline_at: Option<String>,
     /// Decision time in Unix seconds; zero means no decision time was recorded.
     pub decided_timestamp_seconds: u64,
-    /// UTC decision time, absent when the raw timestamp is zero.
-    pub decided_at: Option<String>,
     /// Execution time in Unix seconds; zero means no execution time was recorded.
     pub executed_timestamp_seconds: u64,
-    /// UTC execution time, absent when the raw timestamp is zero.
-    pub executed_at: Option<String>,
     /// Execution failure time in Unix seconds; zero means no failure time was recorded.
     pub failed_timestamp_seconds: u64,
-    /// UTC failure time, absent when the raw timestamp is zero.
-    pub failed_at: Option<String>,
     /// Native reward distribution round assigned to the proposal.
     pub reward_event_round: u64,
     /// Total potential voting power, when supplied by Governance.

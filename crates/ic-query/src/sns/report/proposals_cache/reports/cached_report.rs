@@ -95,8 +95,8 @@ fn sns_proposals_report_from_cache(
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let mut proposals = cache
-        .data
+    let (context, data) = SnsReportContext::from_snapshot(cache);
+    let mut proposals = data
         .proposals
         .into_iter()
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
@@ -107,17 +107,7 @@ fn sns_proposals_report_from_cache(
     proposals.truncate(usize::try_from(request.limit).unwrap_or(usize::MAX));
     sns_proposals_report_from_parts(
         request,
-        SnsReportContext {
-            network: cache.network,
-            sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
-            fetched_at: cache.fetched_at,
-            source_endpoint: cache.source_endpoint,
-            fetched_by: cache.fetched_by,
-            id: cache.metadata.id,
-            name: cache.metadata.name,
-            root_canister_id: cache.metadata.root_canister_id,
-            governance_canister_id: cache.metadata.governance_canister_id,
-        },
+        context,
         SnsReportProvenance::cache(&cache_path, cache_complete),
         proposals,
     )

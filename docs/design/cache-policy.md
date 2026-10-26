@@ -622,6 +622,17 @@ supported; exhaustion still does not establish a point-in-time snapshot.
 
 ## Raw NNS proposal classification evidence
 
+NNS proposal snapshots retain only native Unix-second timestamps. Text renderers
+derive UTC labels from those values. The 0.74 schema-1 hard cut requires callers
+to preserve any needed previous snapshots and collection evidence, update custom
+sources and JSON consumers, then explicitly refresh the local proposal cache.
+Cache reads never migrate, rewrite or delete rejected files.
+
+NNS proposal cache list and status share strict attempt admission. Invalid
+refresh-attempt evidence remains an error, missing attempts remain valid absence,
+and valid attempts remain visible even without a complete snapshot. Invalid
+snapshot content is still represented by an invalid summary row.
+
 Proposal rows, ballots and activity count buckets persist raw protocol codes;
 renderers and view sorts derive classifications through the public enums.
 Unknown raw codes remain evidence. Strict proposal and ballot deserialization

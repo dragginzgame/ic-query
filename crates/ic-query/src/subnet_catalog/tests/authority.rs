@@ -159,12 +159,37 @@ fn raw_registry_kind_charging_and_policy_relations_fail_closed() {
         Err(CatalogError::ChargingPolicyMismatch { .. })
     ));
 
-    let mut annotation = fixture_catalog();
-    annotation.subnets[0].subnet_label = "edited".to_string();
-    assert!(matches!(
-        ValidatedSubnetCatalog::try_from_raw(annotation, &validation_context()),
-        Err(CatalogError::ClassificationMismatch { .. })
-    ));
+    for field in [
+        "subnet_specialization",
+        "subnet_specialization_source",
+        "geographic_scope",
+        "geographic_scope_source",
+        "subnet_label",
+        "subnet_label_source",
+    ] {
+        let mut annotation = fixture_catalog();
+        let subnet = &mut annotation.subnets[0];
+        match field {
+            "subnet_specialization" => subnet.subnet_specialization = SubnetSpecialization::None,
+            "geographic_scope" => subnet.geographic_scope = GeographicScope::Europe,
+            "subnet_specialization_source" => {
+                subnet.subnet_specialization_source = ClassificationSource::Computed
+            }
+            "geographic_scope_source" => {
+                subnet.geographic_scope_source = ClassificationSource::Computed
+            }
+            "subnet_label" => subnet.subnet_label = "edited".to_string(),
+            "subnet_label_source" => subnet.subnet_label_source = ClassificationSource::Computed,
+            _ => unreachable!(),
+        }
+        assert!(
+            matches!(
+                ValidatedSubnetCatalog::try_from_raw(annotation, &validation_context()),
+                Err(CatalogError::ClassificationMismatch { .. })
+            ),
+            "{field}"
+        );
+    }
 }
 
 #[test]

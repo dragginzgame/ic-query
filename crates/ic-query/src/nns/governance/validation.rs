@@ -25,6 +25,33 @@ pub fn validate_governance_request(
     parse_governance_timestamp("fetched_at", &request.fetched_at).map(|_| ())
 }
 
+/// Check the fixed identity shared by portable Governance analytics reports.
+pub fn validate_governance_report_identity(network: &str, canister_id: &str) -> Result<(), String> {
+    if network != MAINNET_NETWORK {
+        return Err(format!("network is {network}, expected {MAINNET_NETWORK}"));
+    }
+    if canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
+        return Err(format!(
+            "governance_canister_id is {canister_id}, expected {MAINNET_GOVERNANCE_CANISTER_ID}"
+        ));
+    }
+    Ok(())
+}
+
+/// Retain the transport-specific context when analytics provenance is invalid.
+pub fn validate_governance_collection_source(
+    network: &str,
+    source: &NnsGovernanceSourceProvenance,
+) -> Result<(), String> {
+    validate_governance_report_source(network, source).map_err(|error| {
+        let context = match source {
+            NnsGovernanceSourceProvenance::ReplicaQuery { .. } => "source",
+            NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => "provenance",
+        };
+        format!("invalid collection {context}: {error}")
+    })
+}
+
 /// Bind a continuation request to the collection's original network and source.
 pub fn validate_governance_continuation_request<Error>(
     request: &NnsGovernanceRequest,

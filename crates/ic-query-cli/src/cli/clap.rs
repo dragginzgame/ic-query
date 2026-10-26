@@ -13,8 +13,7 @@ use std::ffi::OsString;
 pub fn prepare_command_tree(command: Command) -> Command {
     let mut command = default_namespaces_to_help(command);
     command.build();
-    set_equal_subcommand_display_order(&mut command);
-    command
+    set_equal_subcommand_display_order(command)
 }
 
 fn default_namespaces_to_help(command: Command) -> Command {
@@ -29,11 +28,10 @@ fn default_namespaces_to_help(command: Command) -> Command {
     }
 }
 
-fn set_equal_subcommand_display_order(command: &mut Command) {
-    for subcommand in command.get_subcommands_mut() {
-        set_equal_subcommand_display_order(subcommand);
-        *subcommand = subcommand.clone().display_order(0);
-    }
+fn set_equal_subcommand_display_order(command: Command) -> Command {
+    command.mut_subcommands(|subcommand| {
+        set_equal_subcommand_display_order(subcommand).display_order(0)
+    })
 }
 
 pub fn parse_matches<I>(command: Command, args: I) -> Result<ArgMatches, clap::Error>

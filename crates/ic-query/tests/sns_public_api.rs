@@ -89,86 +89,8 @@ const SAMPLE_SNS_NEURON_ID: &str =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
 #[cfg(feature = "sns-host")]
-type SnsListBuilder =
-    for<'a> fn(
-        &'a SnsListRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsListReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsInfoBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsInfoReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsMetricsBuilder =
-    for<'a> fn(
-        &'a SnsMetricsRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsMetricsReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsCanisterBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsCanisterReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsTokenBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsTokenReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsParamsBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsParamsReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsSwapBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsSwapReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsUpgradeBuilder =
-    for<'a> fn(
-        &'a SnsLookupRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsUpgradeReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsProposalsBuilder =
-    for<'a> fn(
-        &'a SnsProposalsRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalsReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsProposalBuilder =
-    for<'a> fn(
-        &'a SnsProposalRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsNeuronBuilder =
-    for<'a> fn(
-        &'a SnsNeuronRequest,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<SnsNeuronDetailReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsRewardCheckpointBuilder = for<'a> fn(
-    &'a SnsRewardCheckpointRequest,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<SnsRewardCheckpointReport, SnsHostError>,
->;
-#[cfg(feature = "sns-host")]
-type SnsNeuronsBuilder =
-    for<'a> fn(
-        &'a SnsNeuronsRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsNeuronsReport, SnsHostError>>;
-#[cfg(feature = "sns-host")]
-type SnsSnapshotRefreshBuilder = for<'a> fn(
-    &'a SnsSnapshotRefreshRequest,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<SnsSnapshotRefreshReport, SnsHostError>,
->;
-#[cfg(feature = "sns-host")]
-type SnsCatalogRefreshBuilder =
-    for<'a> fn(
-        &'a SnsCatalogRefreshRequest,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<SnsCatalogRefreshReport, SnsHostError>>;
+type SnsBuilder<Request, Report> =
+    for<'a> fn(&'a Request) -> ic_query::report::SourceFuture<'a, Result<Report, SnsHostError>>;
 
 #[test]
 fn public_sns_request_constructors_set_expected_fields() {
@@ -1130,32 +1052,54 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 #[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_live_builder_entry_points() {
-    accepts_public_function::<SnsListBuilder>(|arg0| Box::pin(build_sns_list_report(arg0)));
-    accepts_public_function::<SnsInfoBuilder>(|arg0| Box::pin(build_sns_info_report(arg0)));
-    accepts_public_function::<SnsMetricsBuilder>(|arg0| Box::pin(build_sns_metrics_report(arg0)));
-    accepts_public_function::<SnsCanisterBuilder>(|arg0| Box::pin(build_sns_canister_report(arg0)));
-    accepts_public_function::<SnsTokenBuilder>(|arg0| Box::pin(build_sns_token_report(arg0)));
-    accepts_public_function::<SnsParamsBuilder>(|arg0| Box::pin(build_sns_params_report(arg0)));
-    accepts_public_function::<SnsSwapBuilder>(|arg0| Box::pin(build_sns_swap_report(arg0)));
-    accepts_public_function::<SnsUpgradeBuilder>(|arg0| Box::pin(build_sns_upgrade_report(arg0)));
-    accepts_public_function::<SnsProposalsBuilder>(|arg0| {
+    accepts_public_function::<SnsBuilder<SnsListRequest, SnsListReport>>(|arg0| {
+        Box::pin(build_sns_list_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsInfoReport>>(|arg0| {
+        Box::pin(build_sns_info_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsMetricsRequest, SnsMetricsReport>>(|arg0| {
+        Box::pin(build_sns_metrics_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsCanisterReport>>(|arg0| {
+        Box::pin(build_sns_canister_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsTokenReport>>(|arg0| {
+        Box::pin(build_sns_token_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsParamsReport>>(|arg0| {
+        Box::pin(build_sns_params_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsSwapReport>>(|arg0| {
+        Box::pin(build_sns_swap_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsUpgradeReport>>(|arg0| {
+        Box::pin(build_sns_upgrade_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsProposalsRequest, SnsProposalsReport>>(|arg0| {
         Box::pin(build_sns_proposals_report(arg0))
     });
-    accepts_public_function::<SnsProposalBuilder>(|arg0| Box::pin(build_sns_proposal_report(arg0)));
-    accepts_public_function::<SnsNeuronBuilder>(|arg0| {
+    accepts_public_function::<SnsBuilder<SnsProposalRequest, SnsProposalReport>>(|arg0| {
+        Box::pin(build_sns_proposal_report(arg0))
+    });
+    accepts_public_function::<SnsBuilder<SnsNeuronRequest, SnsNeuronDetailReport>>(|arg0| {
         Box::pin(build_sns_neuron_detail_report(arg0))
     });
-    accepts_public_function::<SnsRewardCheckpointBuilder>(|arg0| {
-        Box::pin(build_sns_reward_checkpoint_report(arg0))
+    accepts_public_function::<SnsBuilder<SnsRewardCheckpointRequest, SnsRewardCheckpointReport>>(
+        |arg0| Box::pin(build_sns_reward_checkpoint_report(arg0)),
+    );
+    accepts_public_function::<SnsBuilder<SnsNeuronsRequest, SnsNeuronsReport>>(|arg0| {
+        Box::pin(build_sns_neurons_report(arg0))
     });
-    accepts_public_function::<SnsNeuronsBuilder>(|arg0| Box::pin(build_sns_neurons_report(arg0)));
-    accepts_public_function::<SnsSnapshotRefreshBuilder>(|arg0| {
-        Box::pin(refresh_sns_neurons_cache(arg0))
-    });
-    accepts_public_function::<SnsSnapshotRefreshBuilder>(|arg0| {
-        Box::pin(refresh_sns_proposals_cache(arg0))
-    });
-    accepts_public_function::<SnsCatalogRefreshBuilder>(|arg0| Box::pin(refresh_sns_catalog(arg0)));
+    accepts_public_function::<SnsBuilder<SnsSnapshotRefreshRequest, SnsSnapshotRefreshReport>>(
+        |arg0| Box::pin(refresh_sns_neurons_cache(arg0)),
+    );
+    accepts_public_function::<SnsBuilder<SnsSnapshotRefreshRequest, SnsSnapshotRefreshReport>>(
+        |arg0| Box::pin(refresh_sns_proposals_cache(arg0)),
+    );
+    accepts_public_function::<SnsBuilder<SnsCatalogRefreshRequest, SnsCatalogRefreshReport>>(
+        |arg0| Box::pin(refresh_sns_catalog(arg0)),
+    );
     let live_source = LiveSnsSource::default();
     accepts_public_function(live_source);
 }

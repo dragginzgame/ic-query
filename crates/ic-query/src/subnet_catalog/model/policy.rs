@@ -45,46 +45,68 @@ pub(super) fn classification_policy_digest() -> String {
 #[cfg(feature = "subnet-catalog-host")]
 pub(super) fn apply_mainnet_classification_policy(subnets: &mut [SubnetInfo]) {
     for subnet in subnets {
-        apply_default_classification(subnet);
-        match subnet.subnet_principal.as_str() {
-            FIDUCIARY_SUBNET => apply_curated_classification(
-                subnet,
-                SubnetSpecialization::Fiduciary,
-                GeographicScope::Global,
-                "fiduciary",
-            ),
-            EUROPEAN_SUBNET => apply_curated_classification(
-                subnet,
-                SubnetSpecialization::European,
-                GeographicScope::Europe,
-                "european",
-            ),
-            _ => {}
-        }
+        let classification = mainnet_classification(subnet);
+        subnet.subnet_specialization = classification.specialization;
+        subnet.subnet_specialization_source = classification.source;
+        subnet.geographic_scope = classification.geographic_scope;
+        subnet.geographic_scope_source = classification.source;
+        subnet.subnet_label = classification.label.to_string();
+        subnet.subnet_label_source = classification.source;
+    }
+}
+
+///
+/// SubnetClassification
+///
+/// Derived annotations used to apply and independently check the current policy.
+///
+
+#[cfg(feature = "subnet-catalog-host")]
+pub(super) struct SubnetClassification {
+    specialization: SubnetSpecialization,
+    geographic_scope: GeographicScope,
+    label: &'static str,
+    source: ClassificationSource,
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+impl SubnetClassification {
+    pub(super) fn matches(&self, subnet: &SubnetInfo) -> bool {
+        subnet.subnet_specialization == self.specialization
+            && subnet.subnet_specialization_source == self.source
+            && subnet.geographic_scope == self.geographic_scope
+            && subnet.geographic_scope_source == self.source
+            && subnet.subnet_label == self.label
+            && subnet.subnet_label_source == self.source
     }
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-fn apply_default_classification(subnet: &mut SubnetInfo) {
-    subnet.subnet_specialization = SubnetSpecialization::None;
-    subnet.subnet_specialization_source = ClassificationSource::Computed;
-    subnet.geographic_scope = GeographicScope::Global;
-    subnet.geographic_scope_source = ClassificationSource::Computed;
-    subnet.subnet_label = subnet.subnet_kind.as_str().to_string();
-    subnet.subnet_label_source = ClassificationSource::Computed;
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-fn apply_curated_classification(
-    subnet: &mut SubnetInfo,
-    specialization: SubnetSpecialization,
-    geographic_scope: GeographicScope,
-    label: &str,
-) {
-    subnet.subnet_specialization = specialization;
-    subnet.subnet_specialization_source = ClassificationSource::Curated;
-    subnet.geographic_scope = geographic_scope;
-    subnet.geographic_scope_source = ClassificationSource::Curated;
-    subnet.subnet_label = label.to_string();
-    subnet.subnet_label_source = ClassificationSource::Curated;
+pub(super) fn mainnet_classification(subnet: &SubnetInfo) -> SubnetClassification {
+    let (specialization, geographic_scope, label, source) = match subnet.subnet_principal.as_str() {
+        FIDUCIARY_SUBNET => (
+            SubnetSpecialization::Fiduciary,
+            GeographicScope::Global,
+            "fiduciary",
+            ClassificationSource::Curated,
+        ),
+        EUROPEAN_SUBNET => (
+            SubnetSpecialization::European,
+            GeographicScope::Europe,
+            "european",
+            ClassificationSource::Curated,
+        ),
+        _ => (
+            SubnetSpecialization::None,
+            GeographicScope::Global,
+            subnet.subnet_kind.as_str(),
+            ClassificationSource::Computed,
+        ),
+    };
+    SubnetClassification {
+        specialization,
+        geographic_scope,
+        label,
+        source,
+    }
 }

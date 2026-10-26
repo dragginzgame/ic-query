@@ -8,7 +8,7 @@ use super::{
     NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
     model::{NnsProposalCache, NnsProposalCacheListReport},
-    paths::{nns_proposal_cache_paths, nns_proposal_cache_root},
+    paths::nns_proposal_cache_paths,
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
@@ -17,8 +17,7 @@ use crate::{
         NnsGovernanceCacheRequest,
         governance::{
             NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceReportContext,
-            NnsGovernanceSourceProvenance, read_governance_refresh_attempt_status,
-            validate_governance_cache_metadata,
+            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
         },
         proposals::report::{
             NnsProposalHostError,
@@ -76,43 +75,17 @@ pub fn build_nns_proposal_activity_report_from_cache(
 pub fn build_nns_proposal_cache_list_report(
     request: &NnsGovernanceCacheRequest,
 ) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
-    enforce_mainnet_network(&request.network)?;
-    let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    let file = open_proposal_cache(&request.cache_root, &paths.snapshot_path)?;
-    let found = file.is_some();
-    let caches = if let Some(file) = file {
-        vec![load_nns_proposal_cache_summary(
-            &request.cache_root,
-            paths.snapshot_path.clone(),
-            &request.network,
-            file,
-        )]
-    } else {
-        Vec::new()
-    };
-    let latest_attempt = if found {
-        read_governance_refresh_attempt_status(
-            &request.cache_root,
-            &paths.refresh_attempt_path,
-            &request.network,
-            NNS_PROPOSAL_CACHE_COMPONENT,
-        )
-        .ok()
-        .flatten()
-    } else {
-        None
-    };
+    let status = build_nns_proposal_cache_status_report(request)?;
+    let caches = status.cache.into_iter().collect::<Vec<_>>();
     Ok(NnsProposalCacheListReport {
         schema_version: NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
-        network: request.network.clone(),
-        collection: "proposals".to_string(),
-        cache_root: nns_proposal_cache_root(&request.cache_root, &request.network)
-            .display()
-            .to_string(),
+        network: status.network,
+        collection: status.collection,
+        cache_root: status.cache_root,
         cache_count: caches.len(),
         caches,
-        refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
-        latest_attempt,
+        refresh_attempt_path: status.refresh_attempt_path,
+        latest_attempt: status.latest_attempt,
     })
 }
 
@@ -296,7 +269,7 @@ fn nns_proposal_list_report_from_cache(
     cache: NnsProposalCache,
 ) -> NnsProposalListReport {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let context = nns_proposal_cache_report_context(&cache);
+    let context = NnsGovernanceReportContext::from_snapshot(&cache);
     let proposals = cache
         .data
         .proposals
@@ -320,7 +293,7 @@ fn nns_proposal_report_from_cache(
     cache: NnsProposalCache,
 ) -> Option<NnsProposalReport> {
     let cache_complete = cache.completeness.is_api_exhausted();
-    let context = nns_proposal_cache_report_context(&cache);
+    let context = NnsGovernanceReportContext::from_snapshot(&cache);
     let proposal = cache
         .data
         .proposals
@@ -334,19 +307,6 @@ fn nns_proposal_report_from_cache(
         verbose: request.verbose,
         proposal,
     }))
-}
-
-fn nns_proposal_cache_report_context(cache: &NnsProposalCache) -> NnsGovernanceReportContext {
-    NnsGovernanceReportContext {
-        schema_version: 1,
-        network: cache.network.clone(),
-        governance_canister_id: cache.metadata.governance_canister_id.clone(),
-        fetched_at: cache.fetched_at.clone(),
-        source: NnsGovernanceSourceProvenance::ReplicaQuery {
-            endpoint: cache.source_endpoint.clone(),
-            fetched_by: cache.fetched_by.clone(),
-        },
-    }
 }
 
 fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsProposalHostError {

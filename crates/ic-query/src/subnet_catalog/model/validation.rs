@@ -9,7 +9,10 @@ use super::UncertifiedCatalogCollection;
 #[cfg(feature = "subnet-catalog-host")]
 use super::{
     CatalogAssurance, CatalogValidationContext, ValidatedSubnetCatalog,
-    policy::{RESOLVER_BACKEND, apply_mainnet_classification_policy, classification_policy_digest},
+    policy::{
+        RESOLVER_BACKEND, apply_mainnet_classification_policy, classification_policy_digest,
+        mainnet_classification,
+    },
 };
 use super::{RawSubnetCatalog, RoutingRange, SubnetInfo};
 #[cfg(feature = "certified-subnet-catalog-host")]
@@ -828,16 +831,8 @@ fn validate_policy_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> 
 
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_classification_policy(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
-    let mut expected = raw.subnets.clone();
-    apply_mainnet_classification_policy(&mut expected);
-    for (actual, expected) in raw.subnets.iter().zip(&expected) {
-        if actual.subnet_specialization != expected.subnet_specialization
-            || actual.subnet_specialization_source != expected.subnet_specialization_source
-            || actual.geographic_scope != expected.geographic_scope
-            || actual.geographic_scope_source != expected.geographic_scope_source
-            || actual.subnet_label != expected.subnet_label
-            || actual.subnet_label_source != expected.subnet_label_source
-        {
+    for actual in &raw.subnets {
+        if !mainnet_classification(actual).matches(actual) {
             return Err(CatalogError::ClassificationMismatch {
                 subnet_principal: actual.subnet_principal.clone(),
                 field: "curated_or_computed_annotations",

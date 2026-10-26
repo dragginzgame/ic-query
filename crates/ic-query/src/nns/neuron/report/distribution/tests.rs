@@ -4,6 +4,7 @@ use crate::nns::{
     governance::NnsGovernanceRequest,
     neuron::{NnsKnownNeuronData, nns_neuron_distribution_report_text},
 };
+use crate::{nns::MAINNET_GOVERNANCE_CANISTER_ID, subnet_catalog::MAINNET_NETWORK};
 
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 

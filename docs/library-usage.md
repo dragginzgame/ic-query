@@ -358,6 +358,15 @@ helpers when labels are needed. Preserve old proposal snapshots before an
 explicit refresh; strict row decoding rejects unsupported fields without
 rewriting the original evidence.
 
+NNS proposal rows also retain only raw Unix-second timestamps. Render UTC labels
+from those fields when needed; Query's text renderers do this automatically.
+Before adopting 0.74, preserve required proposal snapshots and caller-retained
+collection evidence, update custom sources and JSON consumers, and explicitly
+refresh the local proposal cache. Schema identifiers remain 1 and no reader
+migrates or deletes rejected evidence. NNS proposal cache listing surfaces invalid
+refresh-attempt errors, matching cache status, and retains valid attempts even
+when no complete snapshot exists.
+
 ICRC tip-certificate custom sources return the standard optional
 `ic_platform::icrc_ledger_types::ICRC3DataCertificate` byte pair. Complete
 authentication before returning it. The report builder derives its hex strings

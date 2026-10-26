@@ -6,7 +6,10 @@
 
 use crate::{
     report::ReportDataSource,
-    sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SnsSourceRequest},
+    snapshot_cache::SnapshotEnvelope,
+    sns::report::{
+        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SnsSourceRequest, cache_storage::SnsCacheMetadata,
+    },
 };
 use std::path::Path;
 
@@ -61,6 +64,26 @@ pub(in crate::sns::report) struct SnsReportContext {
 }
 
 impl SnsReportContext {
+    /// Consume admitted snapshot identity and return its separately owned rows.
+    pub(in crate::sns::report) fn from_snapshot<Data>(
+        cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
+    ) -> (Self, Data) {
+        (
+            Self {
+                network: cache.network,
+                sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
+                fetched_at: cache.fetched_at,
+                source_endpoint: cache.source_endpoint,
+                fetched_by: cache.fetched_by,
+                id: cache.metadata.id,
+                name: cache.metadata.name,
+                root_canister_id: cache.metadata.root_canister_id,
+                governance_canister_id: cache.metadata.governance_canister_id,
+            },
+            cache.data,
+        )
+    }
+
     /// Project the validated live source identity and collection provenance.
     pub(in crate::sns::report) fn from_live(
         fetch_request: SnsSourceRequest,

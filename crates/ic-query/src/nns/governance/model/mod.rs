@@ -9,6 +9,10 @@ mod economics;
 mod events;
 mod metrics;
 
+use super::{NNS_GOVERNANCE_REPORT_SCHEMA_VERSION, NnsGovernanceRequest};
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+#[cfg(feature = "nns-host")]
+use crate::{nns::governance::NnsGovernanceCacheMetadata, snapshot_cache::SnapshotEnvelope};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::fmt;
 
@@ -136,6 +140,37 @@ pub struct NnsGovernanceReportContext {
     pub fetched_at: String,
     /// Transport-specific source provenance.
     pub source: NnsGovernanceSourceProvenance,
+}
+
+impl NnsGovernanceReportContext {
+    pub(in crate::nns) fn from_source(
+        request: &NnsGovernanceRequest,
+        source: NnsGovernanceSourceProvenance,
+    ) -> Self {
+        Self {
+            schema_version: NNS_GOVERNANCE_REPORT_SCHEMA_VERSION,
+            network: request.network.clone(),
+            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
+            fetched_at: request.fetched_at.clone(),
+            source,
+        }
+    }
+
+    #[cfg(feature = "nns-host")]
+    pub(in crate::nns) fn from_snapshot<Rows>(
+        cache: &SnapshotEnvelope<NnsGovernanceCacheMetadata, Rows>,
+    ) -> Self {
+        Self {
+            schema_version: 1,
+            network: cache.network.clone(),
+            governance_canister_id: cache.metadata.governance_canister_id.clone(),
+            fetched_at: cache.fetched_at.clone(),
+            source: NnsGovernanceSourceProvenance::ReplicaQuery {
+                endpoint: cache.source_endpoint.clone(),
+                fetched_by: cache.fetched_by.clone(),
+            },
+        }
+    }
 }
 
 pub use economics::{
