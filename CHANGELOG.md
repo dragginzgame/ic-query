@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.74.0]
+## [0.74.0] - 2026-10-26
 
 - **Breaking:** NNS proposal rows retain raw timestamps only; text output derives
   UTC labels. Preserve required old snapshots and explicitly refresh the proposal
