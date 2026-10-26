@@ -7,11 +7,13 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
+#[cfg(test)]
+use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::{required_string, required_typed, typed_option, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+        source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
@@ -58,21 +60,29 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionInfoOptions::from_matches(matches);
     let request = IcReplicaVersionInfoRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
+        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
         options.replica_version_id,
     );
     let report = build_ic_replica_version_info_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_replica_version_info_report_text)
+    write_text_or_json(
+        options.source.format,
+        &report,
+        ic_replica_version_info_report_text,
+    )
 }
 
 async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionListOptions::from_matches(matches);
     let request = IcReplicaVersionListRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
+        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
         IcReplicaVersionListQuery::new(options.limit, options.offset, options.max_proposal_index),
     );
     let report = build_ic_replica_version_list_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_replica_version_list_report_text)
+    write_text_or_json(
+        options.source.format,
+        &report,
+        ic_replica_version_list_report_text,
+    )
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -142,16 +152,14 @@ fn list_command() -> ClapCommand {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ReplicaVersionInfoOptions {
     replica_version_id: String,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl ReplicaVersionInfoOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             replica_version_id: required_string(matches, "replica-version-id"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -161,8 +169,7 @@ struct ReplicaVersionListOptions {
     limit: u16,
     offset: u64,
     max_proposal_index: Option<u64>,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl ReplicaVersionListOptions {
@@ -171,8 +178,7 @@ impl ReplicaVersionListOptions {
             limit: required_typed(matches, "limit"),
             offset: required_typed(matches, "offset"),
             max_proposal_index: typed_option(matches, "max-proposal-index"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -215,8 +221,8 @@ mod tests {
         .expect("info options");
 
         assert_eq!(options.replica_version_id, VERSION_ID);
-        assert_eq!(options.format, OutputFormat::Json);
-        assert_eq!(options.source_endpoint, "https://example.com/api/v3");
+        assert_eq!(options.source.format, OutputFormat::Json);
+        assert_eq!(options.source.source_endpoint, "https://example.com/api/v3");
     }
 
     #[test]
@@ -239,7 +245,7 @@ mod tests {
         assert_eq!(options.limit, 25);
         assert_eq!(options.offset, 50);
         assert_eq!(options.max_proposal_index, Some(438));
-        assert_eq!(options.format, OutputFormat::Json);
+        assert_eq!(options.source.format, OutputFormat::Json);
     }
 
     #[test]
@@ -251,6 +257,6 @@ mod tests {
         assert_eq!(options.limit, DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT);
         assert_eq!(options.offset, 0);
         assert_eq!(options.max_proposal_index, None);
-        assert_eq!(options.format, OutputFormat::Text);
+        assert_eq!(options.source.format, OutputFormat::Text);
     }
 }

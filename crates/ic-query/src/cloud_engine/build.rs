@@ -105,33 +105,21 @@ pub(super) fn validate_source_request(
     expected: &CloudEngineSourceRequest,
     actual: &CloudEngineSourceRequest,
 ) -> Result<(), CloudEngineHostError> {
-    for (field, expected, actual) in [
+    if actual.network != expected.network {
+        return invalid_source(format!(
+            "network is {:?}, expected requested value {:?}",
+            actual.network, expected.network
+        ));
+    }
+    if let Some(reason) = crate::report::source_provenance_mismatch(
         (
-            "network",
-            expected.network.as_str(),
-            actual.network.as_str(),
+            &expected.endpoint,
+            &expected.fetched_at,
+            &expected.fetched_by,
         ),
-        (
-            "source_endpoint",
-            expected.endpoint.as_str(),
-            actual.endpoint.as_str(),
-        ),
-        (
-            "fetched_at",
-            expected.fetched_at.as_str(),
-            actual.fetched_at.as_str(),
-        ),
-        (
-            "fetched_by",
-            expected.fetched_by.as_str(),
-            actual.fetched_by.as_str(),
-        ),
-    ] {
-        if actual != expected {
-            return invalid_source(format!(
-                "{field} is {actual:?}, expected requested value {expected:?}"
-            ));
-        }
+        (&actual.endpoint, &actual.fetched_at, &actual.fetched_by),
+    ) {
+        return invalid_source(reason);
     }
     Ok(())
 }

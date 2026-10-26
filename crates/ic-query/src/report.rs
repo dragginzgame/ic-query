@@ -3,6 +3,24 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Compare the endpoint and collection provenance echoed by a report source.
+#[cfg(any(feature = "cloud-engine-host", feature = "dashboard-host"))]
+pub(crate) fn source_provenance_mismatch(
+    expected: (&str, &str, &str),
+    actual: (&str, &str, &str),
+) -> Option<String> {
+    [
+        ("source_endpoint", expected.0, actual.0),
+        ("fetched_at", expected.1, actual.1),
+        ("fetched_by", expected.2, actual.2),
+    ]
+    .into_iter()
+    .find_map(|(field, expected, actual)| {
+        (actual != expected)
+            .then(|| format!("{field} is {actual:?}, expected requested value {expected:?}"))
+    })
+}
+
 ///
 /// SourceFuture
 ///
@@ -78,6 +96,21 @@ impl fmt::Display for ReportResultScope {
 #[cfg(test)]
 mod tests {
     use super::{ReportDataSource, ReportResultScope};
+
+    #[cfg(any(feature = "cloud-engine-host", feature = "dashboard-host"))]
+    #[test]
+    fn source_provenance_comparison_preserves_field_order() {
+        let expected = ("endpoint", "time", "collector");
+        assert_eq!(super::source_provenance_mismatch(expected, expected), None);
+        for (actual, field) in [
+            (("other", "other", "other"), "source_endpoint"),
+            (("endpoint", "other", "other"), "fetched_at"),
+            (("endpoint", "time", "other"), "fetched_by"),
+        ] {
+            let reason = super::source_provenance_mismatch(expected, actual).unwrap();
+            assert!(reason.starts_with(&format!("{field} is ")));
+        }
+    }
 
     #[test]
     fn report_provenance_labels_round_trip() {

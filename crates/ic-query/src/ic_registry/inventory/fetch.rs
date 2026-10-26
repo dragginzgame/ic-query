@@ -22,7 +22,7 @@ use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(feature = "nns-host")]
-use crate::ic_registry::relations::node_provider_counts_from_records;
+use crate::ic_registry::relations::node_counts_from_records;
 
 #[cfg(feature = "nns-host")]
 pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
@@ -37,10 +37,11 @@ pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
         RegistryRelationInventoryScope::BaseRelations,
     )
     .await?;
-    node_provider_counts_from_records(
+    node_counts_from_records(
         &inventory.node_principals,
         &inventory.node_records,
         &inventory.node_operator_records,
+        |relation| Some(relation.node_provider_principal),
     )
 }
 

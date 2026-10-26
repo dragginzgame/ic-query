@@ -19,7 +19,7 @@ use super::{RawSubnetCatalog, RoutingRange, SubnetInfo};
 use crate::nns::registry::NnsAuthenticatedRegistryArchive;
 use crate::subnet_catalog::{
     CATALOG_SCHEMA_VERSION, CatalogError, MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID,
-    parse_principal, principal_bytes, resolver::routing_range_sorts_after,
+    parse_principal, principal_bytes,
 };
 #[cfg(feature = "subnet-catalog-host")]
 use crate::{
@@ -226,7 +226,7 @@ fn validate_subnet_catalog_content(
         let start = principal_bytes(&range.start_canister_id, "start_canister_id")?;
         let end = principal_bytes(&range.end_canister_id, "end_canister_id")?;
         parse_principal(&range.subnet_principal, "routing_range.subnet_principal")?;
-        if routing_range_sorts_after(&start, &end) {
+        if start > end {
             return Err(CatalogError::InvalidRoutingRange {
                 subnet_principal: range.subnet_principal.clone(),
                 start_canister_id: range.start_canister_id.clone(),

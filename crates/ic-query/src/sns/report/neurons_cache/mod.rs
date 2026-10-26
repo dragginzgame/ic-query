@@ -9,7 +9,6 @@ mod model;
 mod paths;
 mod refresh;
 mod reports;
-mod storage;
 
 pub use paths::{
     sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,

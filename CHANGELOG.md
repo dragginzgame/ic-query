@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.1]
+
+- Consolidate Candid error projection, source provenance checks and Registry
+  relation counts while preserving public errors, report shapes and validation.
+- Centralize topology coverage labels and SNS collection storage identity;
+  reuse common CLI source/output options without changing help or parsing.
+- Simplify public-API signature fixtures and remove a redundant routing-order
+  helper, preserving supported source lifetimes and cache contracts.
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.74.0] - 2026-10-26
 
 - **Breaking:** NNS proposal rows retain raw timestamps only; text output derives

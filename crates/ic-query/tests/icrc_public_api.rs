@@ -51,6 +51,10 @@ use serde_json::json;
 #[cfg(feature = "icrc-host")]
 use std::path::PathBuf;
 
+#[cfg(feature = "icrc-host")]
+type IcrcBuilder<Request, Report, Error> =
+    for<'a> fn(&'a Request) -> ic_query::report::SourceFuture<'a, Result<Report, Error>>;
+
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
 const ARCHIVE_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
@@ -60,28 +64,6 @@ const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
 const FETCHED_BY: &str = "ic-query";
 const SUBACCOUNT_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
 
-#[cfg(feature = "icrc-host")]
-type IcrcTokenBuilder =
-    for<'a> fn(
-        &'a IcrcLedgerRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcTokenReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcBalanceBuilder =
-    for<'a> fn(
-        &'a IcrcBalanceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcBalanceReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcAllowanceBuilder =
-    for<'a> fn(
-        &'a IcrcAllowanceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcAllowanceReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionPageBuilder = for<'a> fn(
-    &'a IcrcAccountTransactionPageRequest,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError>,
->;
 #[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionListBuilder =
     fn(
@@ -125,13 +107,7 @@ type IcrcAccountTransactionCacheStatusBuilder =
     fn(
         &IcrcAccountTransactionCacheRequest,
     ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError>;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionRefresh = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
->;
+
 #[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionRefreshWithProgress = for<'a> fn(
     &'a IcrcAccountTransactionRefreshRequest,
@@ -140,13 +116,7 @@ type IcrcAccountTransactionRefreshWithProgress = for<'a> fn(
     'a,
     Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
 >;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionLoadMissing = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>,
->;
+
 #[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadStale = for<'a> fn(
     &'a IcrcAccountTransactionRefreshRequest,
@@ -155,39 +125,6 @@ type IcrcAccountTransactionLoadStale = for<'a> fn(
     'a,
     Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>,
 >;
-#[cfg(feature = "icrc-host")]
-type IcrcIndexBuilder =
-    for<'a> fn(
-        &'a IcrcLedgerRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcIndexReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcTransactionsBuilder =
-    for<'a> fn(
-        &'a IcrcTransactionsRequest,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<IcrcTransactionsReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcBlockTypesBuilder =
-    for<'a> fn(
-        &'a IcrcLedgerRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcBlockTypesReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcArchivesBuilder =
-    for<'a> fn(
-        &'a IcrcArchivesRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcrcArchivesReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcTipCertificateBuilder =
-    for<'a> fn(
-        &'a IcrcLedgerRequest,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<IcrcTipCertificateReport, IcrcError>>;
-#[cfg(feature = "icrc-host")]
-type IcrcCapabilitiesBuilder =
-    for<'a> fn(
-        &'a IcrcLedgerRequest,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<IcrcCapabilitiesReport, IcrcError>>;
 
 #[test]
 fn public_icrc_subaccount_normalization_is_available_without_host() {
@@ -312,14 +249,22 @@ fn public_icrc_request_constructors_set_expected_fields() {
 fn public_icrc_host_api_exposes_live_builder_entry_points() {
     assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
 
-    accepts_public_function::<IcrcTokenBuilder>(|arg0| Box::pin(build_icrc_token_report(arg0)));
-    accepts_public_function::<IcrcBalanceBuilder>(|arg0| Box::pin(build_icrc_balance_report(arg0)));
-    accepts_public_function::<IcrcAllowanceBuilder>(|arg0| {
-        Box::pin(build_icrc_allowance_report(arg0))
+    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcTokenReport, IcrcError>>(|arg0| {
+        Box::pin(build_icrc_token_report(arg0))
     });
-    accepts_public_function::<IcrcAccountTransactionPageBuilder>(|arg0| {
-        Box::pin(build_icrc_account_transaction_page_report(arg0))
-    });
+    accepts_public_function::<IcrcBuilder<IcrcBalanceRequest, IcrcBalanceReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_balance_report(arg0)),
+    );
+    accepts_public_function::<IcrcBuilder<IcrcAllowanceRequest, IcrcAllowanceReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_allowance_report(arg0)),
+    );
+    accepts_public_function::<
+        IcrcBuilder<
+            IcrcAccountTransactionPageRequest,
+            IcrcAccountTransactionPageReport,
+            IcrcAccountTransactionError,
+        >,
+    >(|arg0| Box::pin(build_icrc_account_transaction_page_report(arg0)));
     accepts_public_function::<IcrcAccountTransactionListBuilder>(
         build_icrc_account_transaction_list_report,
     );
@@ -349,36 +294,46 @@ fn public_icrc_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<IcrcAccountTransactionCacheStatusBuilder>(
         build_icrc_account_transaction_cache_status_report,
     );
-    accepts_public_function::<IcrcAccountTransactionRefresh>(|arg0| {
-        Box::pin(refresh_icrc_account_transaction_cache(arg0))
-    });
+    accepts_public_function::<
+        IcrcBuilder<
+            IcrcAccountTransactionRefreshRequest,
+            IcrcAccountTransactionRefreshReport,
+            IcrcAccountTransactionError,
+        >,
+    >(|arg0| Box::pin(refresh_icrc_account_transaction_cache(arg0)));
     accepts_public_function::<IcrcAccountTransactionRefreshWithProgress>(|arg0, arg1| {
         Box::pin(refresh_icrc_account_transaction_cache_with_progress(
             arg0, arg1,
         ))
     });
-    accepts_public_function::<IcrcAccountTransactionLoadMissing>(|arg0| {
-        Box::pin(load_or_refresh_missing_icrc_account_transactions(arg0))
-    });
+    accepts_public_function::<
+        IcrcBuilder<
+            IcrcAccountTransactionRefreshRequest,
+            CachedIcrcAccountTransactionSnapshot,
+            IcrcAccountTransactionError,
+        >,
+    >(|arg0| Box::pin(load_or_refresh_missing_icrc_account_transactions(arg0)));
     accepts_public_function::<IcrcAccountTransactionLoadStale>(|arg0, arg1| {
         Box::pin(load_or_refresh_stale_icrc_account_transactions(arg0, arg1))
     });
-    accepts_public_function::<IcrcIndexBuilder>(|arg0| Box::pin(build_icrc_index_report(arg0)));
-    accepts_public_function::<IcrcTransactionsBuilder>(|arg0| {
-        Box::pin(build_icrc_transactions_report(arg0))
+    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcIndexReport, IcrcError>>(|arg0| {
+        Box::pin(build_icrc_index_report(arg0))
     });
-    accepts_public_function::<IcrcBlockTypesBuilder>(|arg0| {
-        Box::pin(build_icrc_block_types_report(arg0))
-    });
-    accepts_public_function::<IcrcArchivesBuilder>(|arg0| {
-        Box::pin(build_icrc_archives_report(arg0))
-    });
-    accepts_public_function::<IcrcTipCertificateBuilder>(|arg0| {
-        Box::pin(build_icrc_tip_certificate_report(arg0))
-    });
-    accepts_public_function::<IcrcCapabilitiesBuilder>(|arg0| {
-        Box::pin(build_icrc_capabilities_report(arg0))
-    });
+    accepts_public_function::<
+        IcrcBuilder<IcrcTransactionsRequest, IcrcTransactionsReport, IcrcError>,
+    >(|arg0| Box::pin(build_icrc_transactions_report(arg0)));
+    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcBlockTypesReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_block_types_report(arg0)),
+    );
+    accepts_public_function::<IcrcBuilder<IcrcArchivesRequest, IcrcArchivesReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_archives_report(arg0)),
+    );
+    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcTipCertificateReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_tip_certificate_report(arg0)),
+    );
+    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcCapabilitiesReport, IcrcError>>(
+        |arg0| Box::pin(build_icrc_capabilities_report(arg0)),
+    );
 }
 
 #[cfg(feature = "icrc-host")]

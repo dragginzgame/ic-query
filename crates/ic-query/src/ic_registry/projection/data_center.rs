@@ -3,8 +3,8 @@ use crate::{
         MainnetDataCenter, MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
         normalized_data_center_id,
         relations::{
-            RegistryRelationInventory, data_center_node_counts_from_records,
-            data_center_operator_counts_from_records, data_center_provider_counts_from_records,
+            DataCenterOperatorCounts, RegistryRelationInventory,
+            data_center_operator_counts_from_records, node_counts_from_records,
         },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
@@ -17,21 +17,18 @@ pub(in crate::ic_registry) fn data_center_list_from_inventory(
     inventory: RegistryRelationInventory,
     registry_version: u64,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {
-    let node_counts = data_center_node_counts_from_records(
+    let node_counts = node_counts_from_records(
         &inventory.node_principals,
         &inventory.node_records,
         &inventory.node_operator_records,
+        |relation| normalized_data_center_id(&relation.data_center_id),
     )?;
     let operator_counts =
-        data_center_operator_counts_from_records(&inventory.node_operator_records);
-    let provider_counts =
-        data_center_provider_counts_from_records(&inventory.node_operator_records)?;
+        data_center_operator_counts_from_records(&inventory.node_operator_records)?;
     let mut data_centers = inventory
         .data_center_records
         .into_iter()
-        .map(|(id, record)| {
-            data_center_from_record(id, record, &operator_counts, &provider_counts, &node_counts)
-        })
+        .map(|(id, record)| data_center_from_record(id, record, &operator_counts, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
     data_centers.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(MainnetDataCenterList {
@@ -48,8 +45,7 @@ pub(in crate::ic_registry) fn data_center_list_from_inventory(
 fn data_center_from_record(
     id: String,
     record: DataCenterRecord,
-    operator_counts: &BTreeMap<String, u32>,
-    provider_counts: &BTreeMap<String, u32>,
+    operator_counts: &BTreeMap<String, DataCenterOperatorCounts>,
     node_counts: &BTreeMap<String, u32>,
 ) -> Result<MainnetDataCenter, RegistryFetchError> {
     if !record.id.is_empty() && normalized_data_center_id(&record.id).as_deref() != Some(&id) {
@@ -59,8 +55,12 @@ fn data_center_from_record(
         });
     }
     Ok(MainnetDataCenter {
-        node_operator_count: operator_counts.get(&id).copied().unwrap_or(0),
-        node_provider_count: provider_counts.get(&id).copied().unwrap_or(0),
+        node_operator_count: operator_counts
+            .get(&id)
+            .map_or(0, |counts| counts.operators),
+        node_provider_count: operator_counts
+            .get(&id)
+            .map_or(0, |counts| counts.providers),
         node_count: node_counts.get(&id).copied().unwrap_or(0),
         id,
         region: record.region,

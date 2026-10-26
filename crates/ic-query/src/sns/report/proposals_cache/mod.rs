@@ -9,7 +9,6 @@ mod model;
 mod paths;
 mod refresh;
 mod reports;
-mod storage;
 
 pub(in crate::sns::report) use paths::SnsProposalsCacheCollection;
 pub use paths::{

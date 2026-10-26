@@ -30,7 +30,7 @@ pub use source::{
     LiveIcrcSource,
 };
 
-use crate::{candid_call::CandidCallError, icrc::model::IcrcError};
+use crate::icrc::model::IcrcError;
 
 pub(in crate::icrc) const ICRC_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(in crate::icrc) const ICRC_BALANCE_REPORT_SCHEMA_VERSION: u32 = 1;
@@ -47,19 +47,4 @@ pub(in crate::icrc) const ICRC_FETCHED_BY: &str = "ic-query";
 /// Largest account-history page accepted by the built-in index adapter.
 pub const ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE: u32 = 100;
 
-impl CandidCallError for IcrcError {
-    fn candid_encode(message: &'static str, reason: String) -> Self {
-        Self::CandidEncode { message, reason }
-    }
-
-    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
-        Self::AgentCall {
-            method,
-            reason: error.to_string(),
-        }
-    }
-
-    fn candid_decode(message: &'static str, reason: String) -> Self {
-        Self::CandidDecode { message, reason }
-    }
-}
+crate::candid_call::impl_candid_call_error!(IcrcError);

@@ -27,52 +27,19 @@ pub(in crate::ic_registry) fn node_operator_references_from_records(
 }
 
 #[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn node_provider_counts_from_records(
+pub(in crate::ic_registry) fn node_counts_from_records(
     node_principals: &BTreeSet<String>,
     node_records: &BTreeMap<String, NodeRecord>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
+    key: impl Fn(ResolvedNodeRelation) -> Option<String>,
 ) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
     let mut counts = BTreeMap::<String, u32>::new();
     for relation in
         resolved_node_relations_from_records(node_principals, node_records, node_operator_records)?
             .into_values()
     {
-        let count = counts.entry(relation.node_provider_principal).or_default();
-        *count = count.saturating_add(1);
-    }
-    Ok(counts)
-}
-
-#[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn node_operator_counts_from_records(
-    node_principals: &BTreeSet<String>,
-    node_records: &BTreeMap<String, NodeRecord>,
-    node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
-) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
-    let mut counts = BTreeMap::<String, u32>::new();
-    for relation in
-        resolved_node_relations_from_records(node_principals, node_records, node_operator_records)?
-            .into_values()
-    {
-        let count = counts.entry(relation.node_operator_principal).or_default();
-        *count = count.saturating_add(1);
-    }
-    Ok(counts)
-}
-
-#[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn data_center_node_counts_from_records(
-    node_principals: &BTreeSet<String>,
-    node_records: &BTreeMap<String, NodeRecord>,
-    node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
-) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
-    let mut counts = BTreeMap::<String, u32>::new();
-    for relation in
-        resolved_node_relations_from_records(node_principals, node_records, node_operator_records)?
-            .into_values()
-    {
-        if let Some(data_center_id) = normalized_data_center_id(&relation.data_center_id) {
-            let count = counts.entry(data_center_id).or_default();
+        if let Some(key) = key(relation) {
+            let count = counts.entry(key).or_default();
             *count = count.saturating_add(1);
         }
     }
@@ -139,44 +106,44 @@ pub(in crate::ic_registry) fn node_provider_principal_from_record(
     )
 }
 
+///
+/// DataCenterOperatorCounts
+///
+/// Operator totals and distinct provider totals from one admitted data-center relation set.
+///
+
 #[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn data_center_operator_counts_from_records(
-    node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
-) -> BTreeMap<String, u32> {
-    let mut counts = BTreeMap::<String, u32>::new();
-    for record in node_operator_records.values() {
-        if let Some(data_center_id) = normalized_data_center_id(&record.dc_id) {
-            let count = counts.entry(data_center_id).or_default();
-            *count = count.saturating_add(1);
-        }
-    }
-    counts
+pub(in crate::ic_registry) struct DataCenterOperatorCounts {
+    pub(in crate::ic_registry) operators: u32,
+    pub(in crate::ic_registry) providers: u32,
 }
 
 #[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn data_center_provider_counts_from_records(
+pub(in crate::ic_registry) fn data_center_operator_counts_from_records(
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
-) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
-    let mut providers_by_data_center = BTreeMap::<String, BTreeSet<String>>::new();
+) -> Result<BTreeMap<String, DataCenterOperatorCounts>, RegistryFetchError> {
+    let mut relations = BTreeMap::<String, (u32, BTreeSet<String>)>::new();
     for record in node_operator_records.values() {
         let Some(data_center_id) = normalized_data_center_id(&record.dc_id) else {
             continue;
         };
-        let node_provider_principal = principal_text_from_required_raw(
+        let provider = principal_text_from_required_raw(
             &record.node_provider_principal_id,
             "node_operator_record.node_provider_principal_id",
         )?;
-        providers_by_data_center
-            .entry(data_center_id)
-            .or_default()
-            .insert(node_provider_principal);
+        let (operators, providers) = relations.entry(data_center_id).or_default();
+        *operators = operators.saturating_add(1);
+        providers.insert(provider);
     }
-    Ok(providers_by_data_center
+    Ok(relations
         .into_iter()
-        .map(|(data_center_id, providers)| {
+        .map(|(id, (operators, providers))| {
             (
-                data_center_id,
-                u32::try_from(providers.len()).unwrap_or(u32::MAX),
+                id,
+                DataCenterOperatorCounts {
+                    operators,
+                    providers: u32::try_from(providers.len()).unwrap_or(u32::MAX),
+                },
             )
         })
         .collect())

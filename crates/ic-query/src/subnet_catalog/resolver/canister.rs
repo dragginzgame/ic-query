@@ -65,10 +65,6 @@ impl ValidatedSubnetCatalog {
     }
 }
 
-pub(in crate::subnet_catalog) fn routing_range_sorts_after(start: &[u8], end: &[u8]) -> bool {
-    start > end
-}
-
 fn range_contains_principal(
     range: &crate::subnet_catalog::RoutingRange,
     principal: &[u8],

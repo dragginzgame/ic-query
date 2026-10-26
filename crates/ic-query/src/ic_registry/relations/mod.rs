@@ -5,9 +5,8 @@ mod subnet;
 pub(super) use counts::ResolvedNodeRelation;
 #[cfg(feature = "nns-host")]
 pub(super) use counts::{
-    data_center_node_counts_from_records, data_center_operator_counts_from_records,
-    data_center_provider_counts_from_records, node_operator_counts_from_records,
-    node_provider_counts_from_records, node_provider_principal_from_record,
+    DataCenterOperatorCounts, data_center_operator_counts_from_records, node_counts_from_records,
+    node_provider_principal_from_record,
 };
 pub(super) use counts::{
     node_operator_references_from_records, resolved_node_relations_from_records,

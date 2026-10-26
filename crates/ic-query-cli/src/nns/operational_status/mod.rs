@@ -4,13 +4,15 @@
 //! Does not own: Dashboard collection, cache policy, report projection, or rendering.
 //! Boundary: adds the same status operation beneath node, Subnet, and provider nouns.
 
+#[cfg(test)]
+use crate::cli::common::OutputFormat;
 use crate::storage::cache_root;
 use crate::{
     cli::{
-        clap::{flag_arg, required_string, string_option},
+        clap::{flag_arg, string_option},
         common::{
-            COLLECTION_MODE_CACHE_REFRESH_STALE, OutputFormat, collection_help, current_unix_secs,
-            json_arg, output_format, source_endpoint_arg, write_text_or_json,
+            COLLECTION_MODE_CACHE_REFRESH_STALE, SourceOutputOptions, collection_help,
+            current_unix_secs, json_arg, source_endpoint_arg, write_text_or_json,
         },
     },
     nns::NnsCommandError,
@@ -125,7 +127,7 @@ pub(in crate::nns) async fn run(
     let request = IcNodeStatusReadRequest::new(
         cache_root()?,
         network,
-        options.source_endpoint,
+        options.source.source_endpoint,
         current_unix_secs()?,
     )
     .with_view(view)
@@ -135,35 +137,37 @@ pub(in crate::nns) async fn run(
     match subject {
         OperationalStatusSubject::Node => {
             let report = build_ic_node_status_report(&request, &mut progress).await?;
-            write_text_or_json(options.format, &report, ic_node_status_report_text)
+            write_text_or_json(options.source.format, &report, ic_node_status_report_text)
         }
         OperationalStatusSubject::NodeProvider => {
             let report = build_ic_node_provider_status_report(&request, &mut progress).await?;
-            write_text_or_json(options.format, &report, ic_node_provider_status_report_text)
+            write_text_or_json(
+                options.source.format,
+                &report,
+                ic_node_provider_status_report_text,
+            )
         }
         OperationalStatusSubject::Subnet => {
             let report = build_ic_subnet_status_report(&request, &mut progress).await?;
-            write_text_or_json(options.format, &report, ic_subnet_status_report_text)
+            write_text_or_json(options.source.format, &report, ic_subnet_status_report_text)
         }
     }
 }
 
 struct OperationalStatusOptions {
-    format: OutputFormat,
+    source: SourceOutputOptions,
     target: Option<String>,
     include_all: bool,
     force_refresh: bool,
-    source_endpoint: String,
 }
 
 impl OperationalStatusOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
         Self {
-            format: output_format(matches),
+            source: SourceOutputOptions::from_matches(matches),
             target: string_option(matches, TARGET_ARG),
             include_all: matches.get_flag(ALL_ARG),
             force_refresh: matches.get_flag(REFRESH_ARG),
-            source_endpoint: required_string(matches, "source-endpoint"),
         }
     }
 }
@@ -207,9 +211,12 @@ mod tests {
         let options = OperationalStatusOptions::from_matches(&matches);
 
         assert_eq!(options.target.as_deref(), Some("tdb26"));
-        assert_eq!(options.format, OutputFormat::Json);
+        assert_eq!(options.source.format, OutputFormat::Json);
         assert!(options.include_all);
         assert!(options.force_refresh);
-        assert_eq!(options.source_endpoint, "https://example.test/api/v3");
+        assert_eq!(
+            options.source.source_endpoint,
+            "https://example.test/api/v3"
+        );
     }
 }

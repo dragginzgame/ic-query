@@ -20,6 +20,33 @@ pub trait CandidCallError: Sized {
     fn candid_decode(message: &'static str, reason: String) -> Self;
 }
 
+// These families expose the same error variants while retaining distinct public error types.
+macro_rules! impl_candid_call_error {
+    ($error:ty) => {
+        impl $crate::candid_call::CandidCallError for $error {
+            fn candid_encode(message: &'static str, reason: String) -> Self {
+                Self::CandidEncode { message, reason }
+            }
+
+            fn agent_call(
+                method: &'static str,
+                error: $crate::agent_transport::QueryCallError,
+            ) -> Self {
+                Self::AgentCall {
+                    method,
+                    reason: error.to_string(),
+                }
+            }
+
+            fn candid_decode(message: &'static str, reason: String) -> Self {
+                Self::CandidDecode { message, reason }
+            }
+        }
+    };
+}
+
+pub(crate) use impl_candid_call_error;
+
 /// Encode a Candid argument list before admitting a family-owned agent.
 pub fn encode_request<Args, E>(args: Args, message: &'static str) -> Result<Vec<u8>, E>
 where

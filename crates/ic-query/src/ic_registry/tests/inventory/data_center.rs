@@ -1,6 +1,37 @@
 use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
+fn data_center_counts_preserve_distinct_providers_and_empty_location_rules() {
+    let provider = Principal::self_authenticating(b"provider").to_text();
+    let mut records = BTreeMap::new();
+    for (operator, location) in [("a", "dc-a"), ("b", " DC-A "), ("c", "  ")] {
+        let mut record = node_operator_record(&provider);
+        record.dc_id = location.to_string();
+        if location.trim().is_empty() {
+            record.node_provider_principal_id.clear();
+        }
+        records.insert(operator.to_string(), record);
+    }
+    let counts = crate::ic_registry::relations::data_center_operator_counts_from_records(&records)
+        .expect("location-free operators do not claim provider membership");
+    assert_eq!(counts.len(), 1);
+    assert_eq!(counts["dc-a"].operators, 2);
+    assert_eq!(counts["dc-a"].providers, 1);
+
+    records
+        .get_mut("a")
+        .unwrap()
+        .node_provider_principal_id
+        .clear();
+    assert!(matches!(
+        crate::ic_registry::relations::data_center_operator_counts_from_records(&records),
+        Err(RegistryFetchError::MissingField {
+            field: "node_operator_record.node_provider_principal_id"
+        })
+    ));
+}
+
+#[test]
 fn data_center_list_aggregates_registry_relations() {
     let request = registry_fetch_request();
     let provider_a = Principal::self_authenticating(b"provider-a").to_text();

@@ -34,9 +34,13 @@ fn node_provider_counts_follow_subnet_nodes_to_providers() {
         (operator_b, node_operator_record(&provider_b)),
     ]);
 
-    let counts =
-        node_provider_counts_from_records(&node_principals, &node_records, &node_operator_records)
-            .expect("provider counts");
+    let counts = node_counts_from_records(
+        &node_principals,
+        &node_records,
+        &node_operator_records,
+        |relation| Some(relation.node_provider_principal),
+    )
+    .expect("provider counts");
 
     assert_eq!(counts.get(&provider_a), Some(&2));
     assert_eq!(counts.get(&provider_b), Some(&1));

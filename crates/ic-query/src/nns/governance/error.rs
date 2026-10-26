@@ -148,19 +148,4 @@ pub enum NnsGovernanceError {
 }
 
 #[cfg(feature = "nns-host")]
-impl crate::candid_call::CandidCallError for NnsGovernanceError {
-    fn candid_encode(message: &'static str, reason: String) -> Self {
-        Self::CandidEncode { message, reason }
-    }
-
-    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
-        Self::AgentCall {
-            method,
-            reason: error.to_string(),
-        }
-    }
-
-    fn candid_decode(message: &'static str, reason: String) -> Self {
-        Self::CandidDecode { message, reason }
-    }
-}
+crate::candid_call::impl_candid_call_error!(NnsGovernanceError);

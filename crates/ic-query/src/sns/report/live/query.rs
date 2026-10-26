@@ -7,28 +7,12 @@
 use super::SnsHostError;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-    candid_call::CandidCallError,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
-impl CandidCallError for SnsHostError {
-    fn candid_encode(message: &'static str, reason: String) -> Self {
-        Self::CandidEncode { message, reason }
-    }
-
-    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
-        Self::AgentCall {
-            method,
-            reason: error.to_string(),
-        }
-    }
-
-    fn candid_decode(message: &'static str, reason: String) -> Self {
-        Self::CandidDecode { message, reason }
-    }
-}
+crate::candid_call::impl_candid_call_error!(SnsHostError);
 
 /// Call one Candid canister ingress method and wait for its response.
 pub(super) async fn update_canister<Arg, Response>(

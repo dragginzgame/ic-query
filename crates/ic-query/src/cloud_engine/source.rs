@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-    candid_call::{CandidCallError, encode_request, query_encoded},
+    candid_call::{encode_request, query_encoded},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
@@ -339,19 +339,4 @@ fn parse_principal(field: &'static str, value: &str) -> Result<Principal, CloudE
     })
 }
 
-impl CandidCallError for CloudEngineHostError {
-    fn candid_encode(message: &'static str, reason: String) -> Self {
-        Self::CandidEncode { message, reason }
-    }
-
-    fn agent_call(method: &'static str, error: crate::agent_transport::QueryCallError) -> Self {
-        Self::AgentCall {
-            method,
-            reason: error.to_string(),
-        }
-    }
-
-    fn candid_decode(message: &'static str, reason: String) -> Self {
-        Self::CandidDecode { message, reason }
-    }
-}
+crate::candid_call::impl_candid_call_error!(CloudEngineHostError);

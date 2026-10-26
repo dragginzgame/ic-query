@@ -7,11 +7,13 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
+#[cfg(test)]
+use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+        source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{ArgAction, ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
@@ -63,18 +65,22 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 async fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterCollectionOptions::from_matches(matches);
     let request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
-        options.source_endpoint,
+        options.source.source_endpoint,
         current_unix_secs()?,
     ))
     .with_filters(options.filters);
     let report = build_ic_canister_count_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_canister_count_report_text)
+    write_text_or_json(
+        options.source.format,
+        &report,
+        ic_canister_count_report_text,
+    )
 }
 
 async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterPageOptions::from_matches(matches);
     let mut request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
-        options.collection.source_endpoint,
+        options.collection.source.source_endpoint,
         current_unix_secs()?,
     ))
     .with_filters(options.collection.filters)
@@ -83,7 +89,7 @@ async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     request.before = options.before;
     let report = build_ic_canister_page_report(&request).await?;
     write_text_or_json(
-        options.collection.format,
+        options.collection.source.format,
         &report,
         ic_canister_page_report_text,
     )
@@ -92,11 +98,11 @@ async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterInfoOptions::from_matches(matches);
     let request = IcCanisterRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
+        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
         options.canister_id,
     );
     let report = build_ic_canister_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_canister_report_text)
+    write_text_or_json(options.source.format, &report, ic_canister_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -229,16 +235,14 @@ fn info_command() -> ClapCommand {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterInfoOptions {
     canister_id: String,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl CanisterInfoOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             canister_id: required_string(matches, "canister-id"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -246,16 +250,14 @@ impl CanisterInfoOptions {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct CanisterCollectionOptions {
     filters: IcCanisterFilters,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl CanisterCollectionOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             filters: canister_filters(matches),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -343,8 +345,8 @@ mod tests {
         .expect("canister options");
 
         assert_eq!(options.canister_id, CANISTER_ID);
-        assert_eq!(options.format, OutputFormat::Json);
-        assert_eq!(options.source_endpoint, "https://example.com/api/v3");
+        assert_eq!(options.source.format, OutputFormat::Json);
+        assert_eq!(options.source.source_endpoint, "https://example.com/api/v3");
     }
 
     #[test]
@@ -382,7 +384,7 @@ mod tests {
         assert_eq!(options.filters.canister_types, ["ledger"]);
         assert_eq!(options.filters.query.as_deref(), Some("ICP Ledger"));
         assert_eq!(
-            options.source_endpoint,
+            options.source.source_endpoint,
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT
         );
     }

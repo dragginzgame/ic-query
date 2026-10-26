@@ -78,28 +78,15 @@ pub fn validate_provenance(
     expected: &IcSourceRequest,
     actual: &IcSourceRequest,
 ) -> Result<(), IcHostError> {
-    for (field, expected, actual) in [
+    if let Some(reason) = crate::report::source_provenance_mismatch(
         (
-            "source_endpoint",
-            expected.endpoint.as_str(),
-            actual.endpoint.as_str(),
+            &expected.endpoint,
+            &expected.fetched_at,
+            &expected.fetched_by,
         ),
-        (
-            "fetched_at",
-            expected.fetched_at.as_str(),
-            actual.fetched_at.as_str(),
-        ),
-        (
-            "fetched_by",
-            expected.fetched_by.as_str(),
-            actual.fetched_by.as_str(),
-        ),
-    ] {
-        if actual != expected {
-            return invalid_source(format!(
-                "{field} is {actual:?}, expected requested value {expected:?}"
-            ));
-        }
+        (&actual.endpoint, &actual.fetched_at, &actual.fetched_by),
+    ) {
+        return invalid_source(reason);
     }
     Ok(())
 }
