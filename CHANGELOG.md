@@ -5,7 +5,7 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.73.5]
+## [0.73.5] - 2026-10-26
 
 - Include the private Testkit workspace member when preparing release lockfiles,
   keeping prepared-metadata checks consistent with Cargo.
