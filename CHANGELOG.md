@@ -18,6 +18,8 @@ Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
 
 ## [0.74.0] - 2026-10-26
 
+### 📝 Summary
+
 - **Breaking:** NNS proposal rows retain raw timestamps only; text output derives
   UTC labels. Preserve required old snapshots and explicitly refresh the proposal
   cache after updating consumers; schema identifiers remain 1.
