@@ -20,9 +20,7 @@ use ic_query::nns::neuron::{
     nns_neuron_info_report_text, nns_neuron_list_report_text,
     refresh_nns_neuron_cache_with_progress,
 };
-use ic_query::nns::{
-    NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest,
-};
+use ic_query::nns::{NnsGovernanceCacheRequest, governance::NnsGovernanceRequest};
 
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,
@@ -85,17 +83,11 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
 
 async fn run_refresh(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let request = NnsGovernanceRefreshRequest::new(
-        cache_root()?,
-        options.network,
-        options.source_endpoint,
-        current_unix_secs()?,
-        options.page_size,
-    )
-    .with_max_pages(options.max_pages);
+    let format = options.format;
+    let request = options.into_request(cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report = refresh_nns_neuron_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(options.format, &report, nns_governance_refresh_report_text)
+    write_text_or_json(format, &report, nns_governance_refresh_report_text)
 }
 
 fn run_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

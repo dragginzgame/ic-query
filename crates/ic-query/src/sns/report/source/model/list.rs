@@ -245,88 +245,93 @@ fn index_mainnet_sns_metadata(
     targets: &[MainnetSnsCanisters],
     metadata: Vec<MainnetSnsMetadata>,
 ) -> Result<BTreeMap<String, MainnetSnsMetadata>, SnsHostError> {
-    let mut expected_roots = targets
-        .iter()
-        .map(|sns| sns.root_canister_id.as_str())
-        .collect::<BTreeSet<_>>();
-    let mut by_root = BTreeMap::new();
-    for row in metadata {
-        METADATA_VALIDATOR
-            .canonical_principal("metadata root_canister_id", &row.root_canister_id)?;
-        if by_root.contains_key(&row.root_canister_id) {
-            return Err(METADATA_VALIDATOR.invalid(format!(
-                "duplicate metadata root canister id {}",
-                row.root_canister_id
-            )));
-        }
-        if !expected_roots.remove(row.root_canister_id.as_str()) {
-            return Err(METADATA_VALIDATOR.invalid(format!(
-                "metadata returned unrequested root canister id {}",
-                row.root_canister_id
-            )));
-        }
-        for (field, value) in [
-            ("name", row.name.as_deref()),
-            ("description", row.description.as_deref()),
-            ("url", row.url.as_deref()),
-        ] {
-            validate_optional_metadata_text(&row.root_canister_id, field, value)?;
-        }
-        if let Some(error) = row.metadata_error.as_deref() {
-            validate_metadata_text(&row.root_canister_id, "metadata_error", error)?;
-            if row.name.is_some() || row.description.is_some() || row.url.is_some() {
-                return Err(METADATA_VALIDATOR.invalid(format!(
-                    "metadata for {} contains both payload fields and metadata_error",
-                    row.root_canister_id
-                )));
+    index_enrichment_rows(
+        targets
+            .iter()
+            .map(|sns| sns.root_canister_id.as_str())
+            .collect(),
+        metadata,
+        "metadata",
+        METADATA_VALIDATOR,
+        |row| &row.root_canister_id,
+        |row| {
+            for (field, value) in [
+                ("name", row.name.as_deref()),
+                ("description", row.description.as_deref()),
+                ("url", row.url.as_deref()),
+            ] {
+                validate_optional_metadata_text(&row.root_canister_id, field, value)?;
             }
-        }
-        by_root.insert(row.root_canister_id.clone(), row);
-    }
-    if !expected_roots.is_empty() {
-        let missing = expected_roots.into_iter().collect::<Vec<_>>().join(", ");
-        return Err(METADATA_VALIDATOR.invalid(format!(
-            "metadata is missing requested root canister ids: {missing}"
-        )));
-    }
-    Ok(by_root)
+            if let Some(error) = row.metadata_error.as_deref() {
+                validate_metadata_text(&row.root_canister_id, "metadata_error", error)?;
+                if row.name.is_some() || row.description.is_some() || row.url.is_some() {
+                    return Err(METADATA_VALIDATOR.invalid(format!(
+                        "metadata for {} contains both payload fields and metadata_error",
+                        row.root_canister_id
+                    )));
+                }
+            }
+            Ok(())
+        },
+    )
 }
 
 fn index_mainnet_sns_lifecycles(
     targets: &[MainnetSns],
     lifecycles: Vec<MainnetSnsLifecycle>,
 ) -> Result<BTreeMap<String, MainnetSnsLifecycle>, SnsHostError> {
-    let mut expected_roots = targets
-        .iter()
-        .map(|sns| sns.canisters.root_canister_id.as_str())
-        .collect::<BTreeSet<_>>();
+    index_enrichment_rows(
+        targets
+            .iter()
+            .map(|sns| sns.canisters.root_canister_id.as_str())
+            .collect(),
+        lifecycles,
+        "lifecycle",
+        LIFECYCLE_VALIDATOR,
+        |row| &row.root_canister_id,
+        |row| {
+            validate_lifecycle_fields(
+                &row.root_canister_id,
+                row.lifecycle,
+                row.lifecycle_error.as_deref(),
+            )?;
+            Ok(())
+        },
+    )
+}
+
+fn index_enrichment_rows<Row>(
+    mut expected_roots: BTreeSet<&str>,
+    rows: Vec<Row>,
+    kind: &'static str,
+    validator: SnsSourceValidator,
+    root: impl Fn(&Row) -> &str,
+    validate: impl Fn(&Row) -> Result<(), SnsHostError>,
+) -> Result<BTreeMap<String, Row>, SnsHostError> {
     let mut by_root = BTreeMap::new();
-    for row in lifecycles {
-        LIFECYCLE_VALIDATOR
-            .canonical_principal("lifecycle root_canister_id", &row.root_canister_id)?;
-        if by_root.contains_key(&row.root_canister_id) {
-            return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-                "duplicate lifecycle root canister id {}",
-                row.root_canister_id
+    for row in rows {
+        let root = root(&row);
+        let field = match kind {
+            "metadata" => "metadata root_canister_id",
+            "lifecycle" => "lifecycle root_canister_id",
+            _ => unreachable!("only metadata and lifecycle enrichment are indexed"),
+        };
+        validator.canonical_principal(field, root)?;
+        if by_root.contains_key(root) {
+            return Err(validator.invalid(format!("duplicate {kind} root canister id {root}")));
+        }
+        if !expected_roots.remove(root) {
+            return Err(validator.invalid(format!(
+                "{kind} returned unrequested root canister id {root}"
             )));
         }
-        if !expected_roots.remove(row.root_canister_id.as_str()) {
-            return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-                "lifecycle returned unrequested root canister id {}",
-                row.root_canister_id
-            )));
-        }
-        validate_lifecycle_fields(
-            &row.root_canister_id,
-            row.lifecycle,
-            row.lifecycle_error.as_deref(),
-        )?;
-        by_root.insert(row.root_canister_id.clone(), row);
+        validate(&row)?;
+        by_root.insert(root.to_string(), row);
     }
     if !expected_roots.is_empty() {
         let missing = expected_roots.into_iter().collect::<Vec<_>>().join(", ");
-        return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-            "lifecycle is missing requested root canister ids: {missing}"
+        return Err(validator.invalid(format!(
+            "{kind} is missing requested root canister ids: {missing}"
         )));
     }
     Ok(by_root)

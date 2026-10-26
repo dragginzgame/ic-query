@@ -4,8 +4,15 @@
 //! Does not own: command specs, option DTOs, or command runtime validation.
 //! Boundary: centralizes reusable clap argument shapes for SNS commands.
 
-use crate::cli::clap::value_arg;
+use crate::cli::{
+    clap::value_arg,
+    common::{
+        COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, max_pages_arg, page_size_arg,
+        source_endpoint_arg,
+    },
+};
 use ic_platform::candid::contract::Principal;
+use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE};
 
 pub(super) fn sns_lookup_input_arg() -> clap::Arg {
     value_arg("input")
@@ -53,4 +60,25 @@ fn sns_lookup_input_value_parser() -> clap::builder::ValueParser {
             Err("must be a positive SNS list id or root canister principal".to_string())
         }
     })
+}
+
+pub(super) fn sns_snapshot_refresh_command(
+    command: clap::Command,
+    default_page_size: &'static str,
+    page_help: &'static str,
+    examples: &'static str,
+) -> clap::Command {
+    command
+        .arg(sns_lookup_input_arg())
+        .arg(json_arg())
+        .arg(
+            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
+                .help("IC API endpoint used for SNS-W and governance queries"),
+        )
+        .arg(page_size_arg(default_page_size, SNS_REFRESH_MAX_PAGE_SIZE).help(page_help))
+        .arg(
+            max_pages_arg()
+                .help("Stop before publishing if this page count is reached before API exhaustion"),
+        )
+        .after_help(collection_help(COLLECTION_MODE_FORCE_REFRESH, examples))
 }

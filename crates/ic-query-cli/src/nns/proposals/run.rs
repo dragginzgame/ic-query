@@ -22,9 +22,7 @@ use ic_query::nns::proposals::{
     nns_proposal_list_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
 };
-use ic_query::nns::{
-    NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest,
-};
+use ic_query::nns::{NnsGovernanceCacheRequest, governance::NnsGovernanceRequest};
 
 const PROPOSAL_CACHE_COMMAND: &str = "cache";
 const PROPOSAL_CACHE_LIST_COMMAND: &str = "list";
@@ -118,17 +116,11 @@ async fn run_nns_proposal_refresh(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let request = NnsGovernanceRefreshRequest::new(
-        cache_root()?,
-        options.network,
-        options.source_endpoint,
-        current_unix_secs()?,
-        options.page_size,
-    )
-    .with_max_pages(options.max_pages);
+    let format = options.format;
+    let request = options.into_request(cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report = refresh_nns_proposal_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(options.format, &report, nns_governance_refresh_report_text)
+    write_text_or_json(format, &report, nns_governance_refresh_report_text)
 }
 
 fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

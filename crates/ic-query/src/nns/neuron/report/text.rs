@@ -128,89 +128,67 @@ fn distribution_preamble(report: &NnsNeuronDistributionReport) -> Vec<String> {
 }
 
 fn state_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
-    (!report.state_distribution.is_empty()).then(|| {
-        let rows = report
-            .state_distribution
-            .iter()
-            .map(|row| {
-                [
-                    row.state.to_string(),
-                    NnsNeuronState::from_code(row.state).to_string(),
-                    row.neuron_count.to_string(),
-                    e8s_decimal_text(row.effective_stake_e8s),
-                ]
-            })
-            .collect::<Vec<_>>();
-        render(
-            &["STATE_CODE", "STATE", "NEURONS", "EFFECTIVE_STAKE_ICP"],
-            &rows,
-            &[
-                Alignment::Right,
-                Alignment::Left,
-                Alignment::Right,
-                Alignment::Right,
-            ],
-            REPORT_TABLE_OPTIONS,
-        )
-    })
+    distribution_table(
+        ["STATE_CODE", "STATE", "NEURONS", "EFFECTIVE_STAKE_ICP"],
+        report.state_distribution.iter().map(|row| {
+            [
+                row.state.to_string(),
+                NnsNeuronState::from_code(row.state).to_string(),
+                row.neuron_count.to_string(),
+                e8s_decimal_text(row.effective_stake_e8s),
+            ]
+        }),
+    )
 }
 
 fn visibility_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
-    (!report.visibility_distribution.is_empty()).then(|| {
-        let rows = report
-            .visibility_distribution
-            .iter()
-            .map(|row| {
-                [
-                    row.visibility
-                        .map_or_else(|| "-".to_string(), |value| value.to_string()),
-                    NnsNeuronVisibility::from_code(row.visibility).to_string(),
-                    row.neuron_count.to_string(),
-                    e8s_decimal_text(row.effective_stake_e8s),
-                ]
-            })
-            .collect::<Vec<_>>();
-        render(
-            &[
-                "VISIBILITY_CODE",
-                "VISIBILITY",
-                "NEURONS",
-                "EFFECTIVE_STAKE_ICP",
-            ],
-            &rows,
-            &[
-                Alignment::Right,
-                Alignment::Left,
-                Alignment::Right,
-                Alignment::Right,
-            ],
-            REPORT_TABLE_OPTIONS,
-        )
-    })
+    distribution_table(
+        [
+            "VISIBILITY_CODE",
+            "VISIBILITY",
+            "NEURONS",
+            "EFFECTIVE_STAKE_ICP",
+        ],
+        report.visibility_distribution.iter().map(|row| {
+            [
+                row.visibility
+                    .map_or_else(|| "-".to_string(), |value| value.to_string()),
+                NnsNeuronVisibility::from_code(row.visibility).to_string(),
+                row.neuron_count.to_string(),
+                e8s_decimal_text(row.effective_stake_e8s),
+            ]
+        }),
+    )
 }
 
 fn neuron_type_distribution_table(report: &NnsNeuronDistributionReport) -> Option<String> {
-    (!report.neuron_type_distribution.is_empty()).then(|| {
-        let rows = report
-            .neuron_type_distribution
-            .iter()
-            .map(|row| {
-                [
-                    row.neuron_type
-                        .map_or_else(|| "-".to_string(), |value| value.to_string()),
-                    NnsNeuronType::from_code(row.neuron_type).to_string(),
-                    row.neuron_count.to_string(),
-                    e8s_decimal_text(row.effective_stake_e8s),
-                ]
-            })
-            .collect::<Vec<_>>();
+    distribution_table(
+        [
+            "NEURON_TYPE_CODE",
+            "NEURON_TYPE",
+            "NEURONS",
+            "EFFECTIVE_STAKE_ICP",
+        ],
+        report.neuron_type_distribution.iter().map(|row| {
+            [
+                row.neuron_type
+                    .map_or_else(|| "-".to_string(), |value| value.to_string()),
+                NnsNeuronType::from_code(row.neuron_type).to_string(),
+                row.neuron_count.to_string(),
+                e8s_decimal_text(row.effective_stake_e8s),
+            ]
+        }),
+    )
+}
+
+fn distribution_table(
+    headers: [&str; 4],
+    rows: impl Iterator<Item = [String; 4]>,
+) -> Option<String> {
+    let rows = rows.collect::<Vec<_>>();
+    (!rows.is_empty()).then(|| {
         render(
-            &[
-                "NEURON_TYPE_CODE",
-                "NEURON_TYPE",
-                "NEURONS",
-                "EFFECTIVE_STAKE_ICP",
-            ],
+            &headers,
             &rows,
             &[
                 Alignment::Right,

@@ -9,12 +9,11 @@ use crate::{
         clap::{flag_arg, value_arg},
         common::{
             COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            COLLECTION_MODE_CACHE_REFRESH_MISSING, COLLECTION_MODE_FORCE_REFRESH, collection_help,
-            json_arg, max_pages_arg, page_size_arg, source_endpoint_arg,
+            COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help, json_arg, source_endpoint_arg,
         },
     },
     sns::commands::spec::{
-        commands::args::{sns_lookup_input_arg, sns_root_input_arg},
+        commands::args::{sns_lookup_input_arg, sns_root_input_arg, sns_snapshot_refresh_command},
         values::{
             SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
             SnsProposalsSortArg,
@@ -23,7 +22,7 @@ use crate::{
 };
 use clap::builder::NonEmptyStringValueParser;
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
-use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
 
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
 const SNS_PROPOSALS_MAX_LIMIT: u64 = 100;
@@ -232,30 +231,14 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
 }
 
 pub(in crate::sns::commands) fn sns_proposal_refresh_command() -> ClapCommand {
-    ClapCommand::new("refresh")
-        .bin_name("icq sns proposal refresh")
-        .about("Force-refresh and cache a complete SNS governance proposal snapshot")
-        .arg(sns_lookup_input_arg())
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance queries"),
-        )
-        .arg(
-            page_size_arg(
-                SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE,
-                SNS_REFRESH_MAX_PAGE_SIZE,
-            )
-            .help("Maximum proposals to request per SNS governance page"),
-        )
-        .arg(
-            max_pages_arg()
-                .help("Stop before publishing if this page count is reached before API exhaustion"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_FORCE_REFRESH,
-            SNS_PROPOSALS_REFRESH_HELP_AFTER,
-        ))
+    sns_snapshot_refresh_command(
+        ClapCommand::new("refresh")
+            .bin_name("icq sns proposal refresh")
+            .about("Force-refresh and cache a complete SNS governance proposal snapshot"),
+        SNS_PROPOSALS_REFRESH_DEFAULT_PAGE_SIZE,
+        "Maximum proposals to request per SNS governance page",
+        SNS_PROPOSALS_REFRESH_HELP_AFTER,
+    )
 }
 
 pub(in crate::sns::commands) fn sns_proposal_cache_command() -> ClapCommand {

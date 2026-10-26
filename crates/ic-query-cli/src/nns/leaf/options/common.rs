@@ -9,6 +9,8 @@ use crate::cli::{
     common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
 };
 use clap::ArgMatches;
+use ic_query::nns::NnsGovernanceRefreshRequest;
+use std::path::PathBuf;
 
 ///
 /// NnsCommonOptions
@@ -58,5 +60,20 @@ impl NnsPagedRefreshOptions {
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option(matches, "max-pages"),
         }
+    }
+
+    pub(in crate::nns) fn into_request(
+        self,
+        cache_root: PathBuf,
+        now_unix_secs: u64,
+    ) -> NnsGovernanceRefreshRequest {
+        NnsGovernanceRefreshRequest::new(
+            cache_root,
+            self.network,
+            self.source_endpoint,
+            now_unix_secs,
+            self.page_size,
+        )
+        .with_max_pages(self.max_pages)
     }
 }

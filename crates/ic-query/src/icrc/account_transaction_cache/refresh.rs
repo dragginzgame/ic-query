@@ -125,17 +125,7 @@ pub async fn load_or_refresh_missing_icrc_account_transactions_with_source(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
-    load_or_refresh_cache(
-        || load_cached_icrc_account_transactions(&request.cache),
-        |_| false,
-        |error| account_transaction_cache_refresh_reason(error, &expected_path),
-        async |_| {
-            refresh_icrc_account_transaction_cache_with_source(request, source).await?;
-            Ok(())
-        },
-    )
-    .await
+    load_or_refresh_account_transactions_with_source(request, source, |_| false).await
 }
 
 /// Load a complete cache, refreshing when it is missing, invalid, or stale.
@@ -157,16 +147,25 @@ pub async fn load_or_refresh_stale_icrc_account_transactions_with_source(
     stale_after_seconds: u64,
     source: &dyn IcrcAccountTransactionCollectionSource,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    load_or_refresh_account_transactions_with_source(request, source, |snapshot| {
+        snapshot_is_stale(
+            &snapshot.snapshot,
+            request.now_unix_secs,
+            stale_after_seconds,
+        )
+    })
+    .await
+}
+
+async fn load_or_refresh_account_transactions_with_source(
+    request: &IcrcAccountTransactionRefreshRequest,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+    is_stale: impl Fn(&CachedIcrcAccountTransactionSnapshot) -> bool,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
     let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
     load_or_refresh_cache(
         || load_cached_icrc_account_transactions(&request.cache),
-        |snapshot| {
-            snapshot_is_stale(
-                &snapshot.snapshot,
-                request.now_unix_secs,
-                stale_after_seconds,
-            )
-        },
+        is_stale,
         |error| account_transaction_cache_refresh_reason(error, &expected_path),
         async |_| {
             refresh_icrc_account_transaction_cache_with_source(request, source).await?;

@@ -98,68 +98,56 @@ fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
 }
 
 fn topic_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
-    (!report.topic_counts.is_empty()).then(|| {
-        let rows = report
-            .topic_counts
-            .iter()
-            .map(|row| {
-                [
-                    row.topic.to_string(),
-                    NnsProposalTopic::from_code(row.topic).as_str().to_string(),
-                    row.proposal_count.to_string(),
-                ]
-            })
-            .collect::<Vec<_>>();
-        render(
-            &["TOPIC_CODE", "TOPIC", "PROPOSALS"],
-            &rows,
-            &[Alignment::Right, Alignment::Left, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
-        )
-    })
+    activity_count_table(
+        ["TOPIC_CODE", "TOPIC", "PROPOSALS"],
+        report.topic_counts.iter().map(|row| {
+            [
+                row.topic.to_string(),
+                NnsProposalTopic::from_code(row.topic).as_str().to_string(),
+                row.proposal_count.to_string(),
+            ]
+        }),
+    )
 }
 
 fn status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
-    (!report.status_counts.is_empty()).then(|| {
-        let rows = report
-            .status_counts
-            .iter()
-            .map(|row| {
-                [
-                    row.status.to_string(),
-                    NnsProposalStatus::from_code(row.status)
-                        .as_str()
-                        .to_string(),
-                    row.proposal_count.to_string(),
-                ]
-            })
-            .collect::<Vec<_>>();
-        render(
-            &["STATUS_CODE", "STATUS", "PROPOSALS"],
-            &rows,
-            &[Alignment::Right, Alignment::Left, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
-        )
-    })
+    activity_count_table(
+        ["STATUS_CODE", "STATUS", "PROPOSALS"],
+        report.status_counts.iter().map(|row| {
+            [
+                row.status.to_string(),
+                NnsProposalStatus::from_code(row.status)
+                    .as_str()
+                    .to_string(),
+                row.proposal_count.to_string(),
+            ]
+        }),
+    )
 }
 
 fn reward_status_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
-    (!report.reward_status_counts.is_empty()).then(|| {
-        let rows = report
-            .reward_status_counts
-            .iter()
-            .map(|row| {
-                [
-                    row.reward_status.to_string(),
-                    NnsProposalRewardStatus::from_code(row.reward_status)
-                        .as_str()
-                        .to_string(),
-                    row.proposal_count.to_string(),
-                ]
-            })
-            .collect::<Vec<_>>();
+    activity_count_table(
+        ["REWARD_STATUS_CODE", "REWARD_STATUS", "PROPOSALS"],
+        report.reward_status_counts.iter().map(|row| {
+            [
+                row.reward_status.to_string(),
+                NnsProposalRewardStatus::from_code(row.reward_status)
+                    .as_str()
+                    .to_string(),
+                row.proposal_count.to_string(),
+            ]
+        }),
+    )
+}
+
+fn activity_count_table(
+    headers: [&str; 3],
+    rows: impl Iterator<Item = [String; 3]>,
+) -> Option<String> {
+    let rows = rows.collect::<Vec<_>>();
+    (!rows.is_empty()).then(|| {
         render(
-            &["REWARD_STATUS_CODE", "REWARD_STATUS", "PROPOSALS"],
+            &headers,
             &rows,
             &[Alignment::Right, Alignment::Left, Alignment::Right],
             REPORT_TABLE_OPTIONS,

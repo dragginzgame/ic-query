@@ -24,6 +24,7 @@ use crate::subnet_catalog::MAINNET_NETWORK;
 use futures_util::{StreamExt, stream};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
+use std::future::Future;
 
 use crate::sns::report::MainnetSnsCanisters;
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
@@ -74,20 +75,13 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata(
         return Ok(Vec::new());
     }
     let agent = sns_agent(source, request)?;
-    let fetched = stream::iter(
+    collect_enrichment_rows(
         targets
             .iter()
             .cloned()
             .map(|sns| fetch_mainnet_sns_metadata_row(agent, sns)),
     )
-    .buffered(SNS_METADATA_CONCURRENCY)
-    .collect::<Vec<_>>()
-    .await;
-    let mut metadata = Vec::with_capacity(fetched.len());
-    for row in fetched {
-        metadata.push(row?);
-    }
-    Ok(metadata)
+    .await
 }
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
@@ -121,20 +115,13 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycles(
         return Ok(Vec::new());
     }
     let agent = sns_agent(source, request)?;
-    let fetched = stream::iter(
+    collect_enrichment_rows(
         targets
             .iter()
             .cloned()
             .map(|sns| fetch_mainnet_sns_lifecycle_row(agent, sns)),
     )
-    .buffered(SNS_METADATA_CONCURRENCY)
-    .collect::<Vec<_>>()
-    .await;
-    let mut lifecycles = Vec::with_capacity(fetched.len());
-    for row in fetched {
-        lifecycles.push(row?);
-    }
-    Ok(lifecycles)
+    .await
 }
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
@@ -187,4 +174,69 @@ async fn fetch_governance_metadata(
         &GetMetadataRequest {},
     )
     .await
+}
+
+async fn collect_enrichment_rows<Row, Task>(
+    tasks: impl IntoIterator<Item = Task>,
+) -> Result<Vec<Row>, SnsHostError>
+where
+    Task: Future<Output = Result<Row, SnsHostError>>,
+{
+    stream::iter(tasks)
+        .buffered(SNS_METADATA_CONCURRENCY)
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+
+    #[tokio::test]
+    async fn enrichment_bounds_concurrency_preserves_order_and_finishes_before_error() {
+        let count = SNS_METADATA_CONCURRENCY * 2;
+        for fail_first in [false, true] {
+            let active = Cell::new(0);
+            let peak = Cell::new(0);
+            let completed = Cell::new(0);
+            let result = collect_enrichment_rows((0..count).map(|index| {
+                let active = &active;
+                let peak = &peak;
+                let completed = &completed;
+                async move {
+                    active.set(active.get() + 1);
+                    peak.set(peak.get().max(active.get()));
+                    tokio::task::yield_now().await;
+                    active.set(active.get() - 1);
+                    completed.set(completed.get() + 1);
+                    if fail_first && index == 0 {
+                        Err(SnsHostError::InvalidSourceData {
+                            capability: "fixture",
+                            reason: "first row failed".to_string(),
+                        })
+                    } else {
+                        Ok(index)
+                    }
+                }
+            }))
+            .await;
+            assert_eq!(completed.get(), count);
+            assert_eq!(peak.get(), SNS_METADATA_CONCURRENCY);
+            assert_eq!(active.get(), 0);
+            if fail_first {
+                assert!(matches!(
+                    result,
+                    Err(SnsHostError::InvalidSourceData {
+                        capability: "fixture",
+                        ..
+                    })
+                ));
+            } else {
+                assert_eq!(result.unwrap(), (0..count).collect::<Vec<_>>());
+            }
+        }
+    }
 }

@@ -5,7 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.73.2]
+## [0.73.3]
+
+- Share ICRC read-through refresh orchestration, SNS enrichment scheduling and target
+  validation, refresh CLI construction and Subnet range rendering.
+- Adopt Shared Tooling 0.26.16 with Host/Build/Testkit 0.68.5, Platform 0.6.16,
+  Metrics 0.16.2 and Wire 0.7.12.
+- Consolidate NNS proposal activity and neuron-distribution table rendering while
+  preserving headings, empty sections, alignment and token amounts.
+
+Detailed release notes: [docs/changelog/0.73.md](docs/changelog/0.73.md)
+
+## [0.73.2] - 2026-10-25
 
 - Reuse admitted snapshot handles in SNS, NNS neuron/proposal and ICRC cache
   inspection, avoiding repeated opens while preserving missing and invalid-cache reporting.

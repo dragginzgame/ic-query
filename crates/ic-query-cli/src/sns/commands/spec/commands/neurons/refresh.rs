@@ -4,15 +4,8 @@
 //! Does not own: refresh execution, progress reporting, or cache storage.
 //! Boundary: defines refresh limits, source endpoint option, and examples.
 
-use crate::{
-    cli::common::{
-        COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, max_pages_arg, page_size_arg,
-        source_endpoint_arg,
-    },
-    sns::commands::spec::commands::args::sns_lookup_input_arg,
-};
+use crate::sns::commands::spec::commands::args::sns_snapshot_refresh_command;
 use clap::Command as ClapCommand;
-use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE};
 
 const SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
 
@@ -24,28 +17,12 @@ Examples:
   icq --network ic sns neuron refresh 1 --json";
 
 pub(in crate::sns::commands) fn sns_neuron_refresh_command() -> ClapCommand {
-    ClapCommand::new("refresh")
-        .bin_name("icq sns neuron refresh")
-        .about("Force-refresh and cache a complete SNS governance neuron snapshot")
-        .arg(sns_lookup_input_arg())
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance queries"),
-        )
-        .arg(
-            page_size_arg(
-                SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE,
-                SNS_REFRESH_MAX_PAGE_SIZE,
-            )
-            .help("Maximum neurons to request per SNS governance page"),
-        )
-        .arg(
-            max_pages_arg()
-                .help("Stop before publishing if this page count is reached before API exhaustion"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_FORCE_REFRESH,
-            SNS_NEURONS_REFRESH_HELP_AFTER,
-        ))
+    sns_snapshot_refresh_command(
+        ClapCommand::new("refresh")
+            .bin_name("icq sns neuron refresh")
+            .about("Force-refresh and cache a complete SNS governance neuron snapshot"),
+        SNS_NEURONS_REFRESH_DEFAULT_PAGE_SIZE,
+        "Maximum neurons to request per SNS governance page",
+        SNS_NEURONS_REFRESH_HELP_AFTER,
+    )
 }
