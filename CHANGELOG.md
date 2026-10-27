@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.3]
+
+### ➕ Added
+
+- Add source-injectable NNS neuron and proposal builders that prefer complete
+  cached reports and query live sources when the requested report is absent.
+
+### 🧹 Cleanup
+
+- Reuse admitted node-status snapshots for internal projection and consolidate
+  request conversion, Registry decoding, principal checks and sort ordering.
+- Simplify NNS analytics bookkeeping while preserving report fields, cache
+  formats, diagnostics and CLI behavior.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.2] - 2026-10-27
 
 ### 🩹 Fixed

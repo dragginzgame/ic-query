@@ -306,17 +306,17 @@ pub(super) fn validate_canonical_principal(
     field: &'static str,
     value: &str,
 ) -> Result<Principal, CloudEngineHostError> {
-    let principal =
-        Principal::from_text(value).map_err(|error| CloudEngineHostError::InvalidSourceData {
+    crate::principal_text::parse_canonical(
+        value,
+        |error| CloudEngineHostError::InvalidSourceData {
             reason: format!("invalid {field} {value:?}: {error}"),
-        })?;
-    let canonical = principal.to_text();
-    if canonical != value {
-        return invalid_source(format!(
-            "{field} {value:?} is not canonical principal text; expected {canonical:?}"
-        ));
-    }
-    Ok(principal)
+        },
+        |canonical| CloudEngineHostError::InvalidSourceData {
+            reason: format!(
+                "{field} {value:?} is not canonical principal text; expected {canonical:?}"
+            ),
+        },
+    )
 }
 
 pub(super) fn validate_principal_match(

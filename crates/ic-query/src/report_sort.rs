@@ -73,12 +73,9 @@ pub fn compare_optional_ascii_case_insensitive_text(
     right: Option<&str>,
     descending: bool,
 ) -> Ordering {
-    match (left, right) {
-        (Some(left), Some(right)) => compare_ascii_case_insensitive_text(left, right, descending),
-        (Some(_), None) => Ordering::Less,
-        (None, Some(_)) => Ordering::Greater,
-        (None, None) => Ordering::Equal,
-    }
+    compare_optional_by(left, right, |left, right| {
+        compare_ascii_case_insensitive_text(left, right, descending)
+    })
 }
 
 pub fn compare_ascii_case_insensitive_text(left: &str, right: &str, descending: bool) -> Ordering {
@@ -97,8 +94,18 @@ pub fn compare_optional_ord<T>(left: Option<T>, right: Option<T>, descending: bo
 where
     T: Ord,
 {
+    compare_optional_by(left, right, |left, right| {
+        compare_ord(left, right, descending)
+    })
+}
+
+fn compare_optional_by<T>(
+    left: Option<T>,
+    right: Option<T>,
+    compare: impl FnOnce(T, T) -> Ordering,
+) -> Ordering {
     match (left, right) {
-        (Some(left), Some(right)) => compare_ord(left, right, descending),
+        (Some(left), Some(right)) => compare(left, right),
         (Some(_), None) => Ordering::Less,
         (None, Some(_)) => Ordering::Greater,
         (None, None) => Ordering::Equal,

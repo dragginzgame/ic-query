@@ -16,13 +16,12 @@ use ic_query::nns::governance::{
 use ic_query::nns::proposals::{
     NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_activity_report_from_cache,
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
-    build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
-    build_nns_proposal_report, build_nns_proposal_report_from_cache,
-    nns_proposal_activity_report_text, nns_proposal_cache_list_report_text,
-    nns_proposal_list_report_text, nns_proposal_report_text,
+    build_nns_proposal_list_report_with_cache_and_source,
+    build_nns_proposal_report_with_cache_and_source, nns_proposal_activity_report_text,
+    nns_proposal_cache_list_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
     refresh_nns_proposal_cache_with_progress,
 };
-use ic_query::nns::{NnsGovernanceCacheRequest, governance::NnsGovernanceRequest};
+use ic_query::nns::{LiveNnsSource, NnsGovernanceCacheRequest};
 
 const PROPOSAL_CACHE_COMMAND: &str = "cache";
 const PROPOSAL_CACHE_LIST_COMMAND: &str = "list";
@@ -62,12 +61,7 @@ async fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
 async fn run_nns_proposal_list_with_options(
     options: NnsProposalListOptions,
 ) -> Result<(), NnsCommandError> {
-    let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.common.network,
-        options.common.source_endpoint,
-        current_unix_secs()?,
-        "ic-query",
-    );
+    let (format, governance) = options.common.into_governance_request(current_unix_secs()?);
     let request = NnsProposalListRequest {
         governance,
         limit: options.limit,
@@ -82,15 +76,13 @@ async fn run_nns_proposal_list_with_options(
         verbose: options.verbose,
     };
 
-    let report = match build_nns_proposal_list_report_from_cache(&request, &cache_root()?)? {
-        Some(report) => report,
-        None => build_nns_proposal_list_report(&request).await?,
-    };
-    write_text_or_json(
-        options.common.format,
-        &report,
-        nns_proposal_list_report_text,
+    let report = build_nns_proposal_list_report_with_cache_and_source(
+        &request,
+        &cache_root()?,
+        &LiveNnsSource::default(),
     )
+    .await?;
+    write_text_or_json(format, &report, nns_proposal_list_report_text)
 }
 
 async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
@@ -99,20 +91,17 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
 }
 
 async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
-    let governance = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.common.network,
-        options.common.source_endpoint,
-        current_unix_secs()?,
-        "ic-query",
-    );
+    let (format, governance) = options.common.into_governance_request(current_unix_secs()?);
     let request = NnsProposalRequest::new(governance, options.proposal_id)
         .with_show_ballots(options.show_ballots)
         .with_verbose(options.verbose);
-    let report = match build_nns_proposal_report_from_cache(&request, &cache_root()?)? {
-        Some(report) => report,
-        None => build_nns_proposal_report(&request).await?,
-    };
-    write_text_or_json(options.common.format, &report, nns_proposal_report_text)
+    let report = build_nns_proposal_report_with_cache_and_source(
+        &request,
+        &cache_root()?,
+        &LiveNnsSource::default(),
+    )
+    .await?;
+    write_text_or_json(format, &report, nns_proposal_report_text)
 }
 
 async fn run_nns_proposal_refresh(

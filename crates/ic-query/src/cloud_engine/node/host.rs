@@ -74,11 +74,15 @@ pub async fn build_cloud_engine_node_list_report_with_source(
             source_data.node_reward_type
         ));
     }
-    let expected_statuses = included_statuses();
-    if source_data.included_statuses != expected_statuses {
+    if !source_data
+        .included_statuses
+        .iter()
+        .map(String::as_str)
+        .eq(CLOUD_ENGINE_NODE_INCLUDED_STATUSES)
+    {
         return invalid_source(format!(
             "included status scope is {:?}, expected {:?}",
-            source_data.included_statuses, expected_statuses
+            source_data.included_statuses, CLOUD_ENGINE_NODE_INCLUDED_STATUSES
         ));
     }
     canonicalize_node_status_rows_with_policy(
@@ -195,11 +199,4 @@ fn validate_type4_nodes(
         }
     }
     Ok(())
-}
-
-fn included_statuses() -> Vec<String> {
-    CLOUD_ENGINE_NODE_INCLUDED_STATUSES
-        .into_iter()
-        .map(str::to_string)
-        .collect()
 }

@@ -497,7 +497,6 @@ impl DimensionAccumulator {
 #[derive(Default)]
 struct OptionalValueAccumulator {
     reported_neuron_count: u64,
-    unreported_neuron_count: u64,
     total_reported_value: u64,
 }
 
@@ -506,14 +505,13 @@ impl OptionalValueAccumulator {
         &mut self,
         value: Option<u64>,
         reported_field: &'static str,
-        unreported_field: &'static str,
         total_field: &'static str,
     ) -> Result<(), NnsNeuronDistributionError> {
         if let Some(value) = value {
             increment(&mut self.reported_neuron_count, reported_field)?;
             add(&mut self.total_reported_value, value, total_field)
         } else {
-            increment(&mut self.unreported_neuron_count, unreported_field)
+            Ok(())
         }
     }
 }
@@ -529,8 +527,7 @@ struct DistributionAccumulator {
     potential_voting_power: OptionalValueAccumulator,
     known_neuron_metadata_count: u64,
     neurons_fund_join_timestamp_present_count: u64,
-    earliest_retrieved_at_timestamp_seconds: Option<u64>,
-    latest_retrieved_at_timestamp_seconds: Option<u64>,
+    retrieved_timestamp_bounds: Option<(u64, u64)>,
 }
 
 impl DistributionAccumulator {
@@ -564,19 +561,16 @@ impl DistributionAccumulator {
         self.staked_maturity.observe(
             neuron.staked_maturity_e8s_equivalent,
             "reported_staked_maturity_neuron_count",
-            "unreported_staked_maturity_neuron_count",
             "total_reported_staked_maturity_e8s_equivalent",
         )?;
         self.deciding_voting_power.observe(
             neuron.deciding_voting_power,
             "reported_deciding_voting_power_neuron_count",
-            "unreported_deciding_voting_power_neuron_count",
             "total_reported_deciding_voting_power",
         )?;
         self.potential_voting_power.observe(
             neuron.potential_voting_power,
             "reported_potential_voting_power_neuron_count",
-            "unreported_potential_voting_power_neuron_count",
             "total_reported_potential_voting_power",
         )?;
         if neuron.known_neuron_data.is_some() {
@@ -592,14 +586,10 @@ impl DistributionAccumulator {
             )?;
         }
         let retrieved_at = neuron.retrieved_at_timestamp_seconds;
-        self.earliest_retrieved_at_timestamp_seconds = Some(
-            self.earliest_retrieved_at_timestamp_seconds
-                .map_or(retrieved_at, |earliest| earliest.min(retrieved_at)),
-        );
-        self.latest_retrieved_at_timestamp_seconds = Some(
-            self.latest_retrieved_at_timestamp_seconds
-                .map_or(retrieved_at, |latest| latest.max(retrieved_at)),
-        );
+        self.retrieved_timestamp_bounds = Some(match self.retrieved_timestamp_bounds {
+            Some((earliest, latest)) => (earliest.min(retrieved_at), latest.max(retrieved_at)),
+            None => (retrieved_at, retrieved_at),
+        });
         Ok(())
     }
 
@@ -619,27 +609,30 @@ impl DistributionAccumulator {
             collection_page_count: collection.pages_fetched(),
             collected_neuron_count,
             point_in_time_guaranteed: false,
-            earliest_retrieved_at_timestamp_seconds: self.earliest_retrieved_at_timestamp_seconds,
-            latest_retrieved_at_timestamp_seconds: self.latest_retrieved_at_timestamp_seconds,
+            earliest_retrieved_at_timestamp_seconds: self
+                .retrieved_timestamp_bounds
+                .map(|bounds| bounds.0),
+            latest_retrieved_at_timestamp_seconds: self
+                .retrieved_timestamp_bounds
+                .map(|bounds| bounds.1),
             total_effective_stake_e8s: self.total_effective_stake_e8s,
             reported_staked_maturity_neuron_count: self.staked_maturity.reported_neuron_count,
-            unreported_staked_maturity_neuron_count: self.staked_maturity.unreported_neuron_count,
+            unreported_staked_maturity_neuron_count: collected_neuron_count
+                - self.staked_maturity.reported_neuron_count,
             total_reported_staked_maturity_e8s_equivalent: self
                 .staked_maturity
                 .total_reported_value,
             reported_deciding_voting_power_neuron_count: self
                 .deciding_voting_power
                 .reported_neuron_count,
-            unreported_deciding_voting_power_neuron_count: self
-                .deciding_voting_power
-                .unreported_neuron_count,
+            unreported_deciding_voting_power_neuron_count: collected_neuron_count
+                - self.deciding_voting_power.reported_neuron_count,
             total_reported_deciding_voting_power: self.deciding_voting_power.total_reported_value,
             reported_potential_voting_power_neuron_count: self
                 .potential_voting_power
                 .reported_neuron_count,
-            unreported_potential_voting_power_neuron_count: self
-                .potential_voting_power
-                .unreported_neuron_count,
+            unreported_potential_voting_power_neuron_count: collected_neuron_count
+                - self.potential_voting_power.reported_neuron_count,
             total_reported_potential_voting_power: self.potential_voting_power.total_reported_value,
             known_neuron_metadata_count: self.known_neuron_metadata_count,
             neurons_fund_join_timestamp_present_count: self

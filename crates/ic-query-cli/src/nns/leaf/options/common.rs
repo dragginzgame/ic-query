@@ -9,7 +9,7 @@ use crate::cli::{
     common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
 };
 use clap::ArgMatches;
-use ic_query::nns::NnsGovernanceRefreshRequest;
+use ic_query::nns::{NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest};
 use std::path::PathBuf;
 
 ///
@@ -26,6 +26,21 @@ pub(in crate::nns) struct NnsCommonOptions {
 }
 
 impl NnsCommonOptions {
+    pub(in crate::nns) fn into_governance_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, NnsGovernanceRequest) {
+        (
+            self.format,
+            NnsGovernanceRequest::replica_query_from_unix_secs(
+                self.network,
+                self.source_endpoint,
+                now_unix_secs,
+                "ic-query",
+            ),
+        )
+    }
+
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
             network: network.to_string(),

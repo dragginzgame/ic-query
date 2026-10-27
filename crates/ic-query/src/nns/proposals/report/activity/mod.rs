@@ -540,8 +540,7 @@ struct ActivityAccumulator {
     included_proposal_count: u64,
     excluded_before_from_count: u64,
     excluded_at_or_after_until_count: u64,
-    earliest_included_proposal_timestamp_seconds: Option<u64>,
-    latest_included_proposal_timestamp_seconds: Option<u64>,
+    included_timestamp_bounds: Option<(u64, u64)>,
 }
 
 impl ActivityAccumulator {
@@ -555,8 +554,7 @@ impl ActivityAccumulator {
             included_proposal_count: 0,
             excluded_before_from_count: 0,
             excluded_at_or_after_until_count: 0,
-            earliest_included_proposal_timestamp_seconds: None,
-            latest_included_proposal_timestamp_seconds: None,
+            included_timestamp_bounds: None,
         }
     }
 
@@ -603,14 +601,10 @@ impl ActivityAccumulator {
         )?;
         let day_start = timestamp - (timestamp % SECONDS_PER_DAY);
         increment_count(self.day_counts.entry(day_start).or_default(), "day_count")?;
-        self.earliest_included_proposal_timestamp_seconds = Some(
-            self.earliest_included_proposal_timestamp_seconds
-                .map_or(timestamp, |earliest| earliest.min(timestamp)),
-        );
-        self.latest_included_proposal_timestamp_seconds = Some(
-            self.latest_included_proposal_timestamp_seconds
-                .map_or(timestamp, |latest| latest.max(timestamp)),
-        );
+        self.included_timestamp_bounds = Some(match self.included_timestamp_bounds {
+            Some((earliest, latest)) => (earliest.min(timestamp), latest.max(timestamp)),
+            None => (timestamp, timestamp),
+        });
         Ok(())
     }
 
@@ -637,9 +631,11 @@ impl ActivityAccumulator {
             excluded_before_from_count: self.excluded_before_from_count,
             excluded_at_or_after_until_count: self.excluded_at_or_after_until_count,
             earliest_included_proposal_timestamp_seconds: self
-                .earliest_included_proposal_timestamp_seconds,
+                .included_timestamp_bounds
+                .map(|bounds| bounds.0),
             latest_included_proposal_timestamp_seconds: self
-                .latest_included_proposal_timestamp_seconds,
+                .included_timestamp_bounds
+                .map(|bounds| bounds.1),
             topic_counts: self
                 .topic_counts
                 .into_iter()

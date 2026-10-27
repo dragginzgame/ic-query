@@ -3,7 +3,8 @@ use super::{
     NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource,
     NnsNeuronSourceFuture, NnsNeuronVisibility, build_nns_neuron_cache_status_report,
     build_nns_neuron_distribution_report_from_cache, build_nns_neuron_info_report_from_cache,
-    build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_from_cache,
+    build_nns_neuron_info_report_with_cache_and_source, build_nns_neuron_info_report_with_source,
+    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_cache_and_source,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
     nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
 };
@@ -28,6 +29,75 @@ use std::{
 static LIVE_SOURCE_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 struct FixtureSource;
+
+#[tokio::test(flavor = "current_thread")]
+async fn cache_aware_neuron_builders_preserve_fallback_and_strict_cache_errors() {
+    let root = temp_dir("ic-query-nns-neuron-cache-source");
+    let governance = governance_request(1_700_000_001);
+    let list = NnsNeuronListRequest::new(governance.clone(), 2);
+    let info = NnsNeuronInfoRequest::new(governance.clone(), 2);
+    assert!(
+        !build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .from_cache
+    );
+    assert!(
+        !build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .from_cache
+    );
+
+    refresh_nns_neuron_cache_with_source(
+        &NnsGovernanceRefreshRequest::new(
+            &root,
+            MAINNET_NETWORK,
+            DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
+            1_700_000_000,
+            2,
+        ),
+        &FixtureSource,
+    )
+    .await
+    .unwrap();
+    assert!(
+        build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .from_cache
+    );
+    assert!(
+        build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .from_cache
+    );
+    let missing = NnsNeuronInfoRequest::new(governance, 999);
+    let report =
+        build_nns_neuron_info_report_with_cache_and_source(&missing, &root, &FixtureSource)
+            .await
+            .unwrap();
+    assert!(!report.from_cache);
+    assert_eq!(report.neuron.neuron_id, 999);
+
+    let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
+    fs::write(&path, "{}").unwrap();
+    assert!(matches!(
+        build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource).await,
+        Err(NnsNeuronHostError::Cache(
+            crate::HostCacheError::ParseCache { .. }
+        ))
+    ));
+    assert!(matches!(
+        build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource).await,
+        Err(NnsNeuronHostError::Cache(
+            crate::HostCacheError::ParseCache { .. }
+        ))
+    ));
+    assert_eq!(fs::read(&path).unwrap(), b"{}");
+    fs::remove_dir_all(root).unwrap();
+}
 
 impl NnsNeuronSource for FixtureSource {
     fn fetch_neuron_page<'a>(

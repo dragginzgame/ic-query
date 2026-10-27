@@ -4,6 +4,7 @@
 //! Does not own: catalog delta replay, cache publication, or report rendering.
 //! Boundary: accepts a Registry value only after certificate and witness validation.
 
+use super::codec::decode_message;
 use crate::{
     certification::{CertifiedDataError, authenticate_canister_tree},
     hex::hex_bytes,
@@ -84,12 +85,8 @@ pub(in crate::ic_registry) async fn get_certified_latest_version(
         method: GET_CERTIFIED_LATEST_VERSION_METHOD,
         reason: error.to_string(),
     })?;
-    let response = RegistryCertifiedResponse::decode(bytes.as_slice()).map_err(|error| {
-        RegistryFetchError::ProtobufDecode {
-            message: "CertifiedResponse",
-            reason: error.to_string(),
-        }
-    })?;
+    let response =
+        decode_message::<RegistryCertifiedResponse>("CertifiedResponse", bytes.as_slice())?;
     verified_certified_registry_version(agent, registry_canister, response)
 }
 

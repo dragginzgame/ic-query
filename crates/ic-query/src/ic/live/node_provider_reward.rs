@@ -227,19 +227,17 @@ fn number_to_u64(field: &str, value: Number) -> Result<u64, IcHostError> {
         return Ok(value);
     }
     let raw = value.to_string();
-    let Some((integer, fraction)) = raw.split_once('.') else {
-        return Err(IcHostError::InvalidSourceData {
-            reason: format!("{field} is not an unsigned integer: {raw}"),
-        });
+    let invalid_integer = || IcHostError::InvalidSourceData {
+        reason: format!("{field} is not an unsigned integer: {raw}"),
     };
-    if integer.is_empty()
-        || !integer.bytes().all(|byte| byte.is_ascii_digit())
+    let Some((integer, fraction)) = raw.split_once('.') else {
+        return Err(invalid_integer());
+    };
+    if !crate::decimal::is_unsigned_decimal(integer)
         || fraction.is_empty()
         || !fraction.bytes().all(|byte| byte == b'0')
     {
-        return Err(IcHostError::InvalidSourceData {
-            reason: format!("{field} is not an unsigned integer: {raw}"),
-        });
+        return Err(invalid_integer());
     }
     let parsed = integer
         .parse()

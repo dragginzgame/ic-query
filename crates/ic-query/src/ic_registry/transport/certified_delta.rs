@@ -11,6 +11,7 @@ use super::certified::{
 use super::chunk::{
     RegistryChunkBudget, RegistryChunkLimits, get_large_registry_value, validated_chunk_hashes,
 };
+use super::codec::decode_message;
 use crate::{
     hex::hex_bytes,
     ic_registry::{
@@ -60,12 +61,8 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         reason: error.to_string(),
     })?;
     let response_bytes = bytes.len();
-    let response = RegistryCertifiedResponse::decode(bytes.as_slice()).map_err(|error| {
-        RegistryFetchError::ProtobufDecode {
-            message: "CertifiedResponse",
-            reason: error.to_string(),
-        }
-    })?;
+    let response =
+        decode_message::<RegistryCertifiedResponse>("CertifiedResponse", bytes.as_slice())?;
     let mut witness =
         authenticate_delta_response(agent, registry_canister, response, requested_version)?;
     let mut chunk_budget = RegistryChunkBudget::new(
@@ -130,12 +127,8 @@ pub fn authenticate_certified_registry_delta_witness(
     certificate: Vec<u8>,
     encoded_hash_tree: &[u8],
 ) -> Result<AuthenticatedRegistryDeltaWitness, RegistryFetchError> {
-    let hash_tree = RegistryMixedHashTree::decode(encoded_hash_tree).map_err(|error| {
-        RegistryFetchError::ProtobufDecode {
-            message: "RegistryMixedHashTree",
-            reason: error.to_string(),
-        }
-    })?;
+    let hash_tree =
+        decode_message::<RegistryMixedHashTree>("RegistryMixedHashTree", encoded_hash_tree)?;
     authenticate_delta_response(
         agent,
         registry_canister,
@@ -262,12 +255,10 @@ fn validate_delta_tree(
                 )));
             }
         };
-        let atomic = HighCapacityRegistryAtomicMutateRequest::decode(bytes).map_err(|error| {
-            RegistryFetchError::ProtobufDecode {
-                message: "HighCapacityRegistryAtomicMutateRequest",
-                reason: error.to_string(),
-            }
-        })?;
+        let atomic = decode_message::<HighCapacityRegistryAtomicMutateRequest>(
+            "HighCapacityRegistryAtomicMutateRequest",
+            bytes,
+        )?;
         let validated = validate_atomic_delta(version, atomic, &mut counters)?;
         versions.push(validated);
         expected_version = expected_version

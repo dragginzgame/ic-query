@@ -1,7 +1,7 @@
 //! Module: nns::proposals::report::cache::reports
 //!
 //! Responsibility: build NNS proposal cache list and status reports.
-//! Does not own: refresh execution, live governance calls, or text rendering.
+//! Does not own: refresh execution, transport execution, or text rendering.
 //! Boundary: loads local complete snapshots and projects cache metadata.
 
 use super::{
@@ -9,6 +9,10 @@ use super::{
     NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
     model::{NnsProposalCache, NnsProposalCacheListReport},
     paths::nns_proposal_cache_paths,
+};
+use crate::nns::proposals::report::source::{
+    NnsProposalSource, build_nns_proposal_list_report_with_source,
+    build_nns_proposal_report_with_source,
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
@@ -48,6 +52,30 @@ use std::{
     fs::File,
     path::{Path, PathBuf},
 };
+
+/// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
+pub async fn build_nns_proposal_list_report_with_cache_and_source(
+    request: &NnsProposalListRequest,
+    cache_root: &Path,
+    source: &dyn NnsProposalSource,
+) -> Result<NnsProposalListReport, NnsProposalHostError> {
+    if let Some(report) = build_nns_proposal_list_report_from_cache(request, cache_root)? {
+        return Ok(report);
+    }
+    Ok(build_nns_proposal_list_report_with_source(request, source).await?)
+}
+
+/// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
+pub async fn build_nns_proposal_report_with_cache_and_source(
+    request: &NnsProposalRequest,
+    cache_root: &Path,
+    source: &dyn NnsProposalSource,
+) -> Result<NnsProposalReport, NnsProposalHostError> {
+    if let Some(report) = build_nns_proposal_report_from_cache(request, cache_root)? {
+        return Ok(report);
+    }
+    Ok(build_nns_proposal_report_with_source(request, source).await?)
+}
 
 /// Build proposal activity from the complete local snapshot without making a network call.
 pub fn build_nns_proposal_activity_report_from_cache(

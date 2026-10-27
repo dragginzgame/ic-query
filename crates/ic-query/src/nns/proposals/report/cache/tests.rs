@@ -3,7 +3,8 @@ use super::{
     reports::{
         build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
         build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
-        build_nns_proposal_report_from_cache,
+        build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report_from_cache,
+        build_nns_proposal_report_with_cache_and_source,
     },
 };
 use crate::nns::governance::nns_governance_refresh_report_text;
@@ -46,6 +47,69 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
 struct FixtureSource;
+
+#[tokio::test(flavor = "current_thread")]
+async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors() {
+    let root = temp_dir("ic-query-nns-proposal-cache-source");
+    let governance = proposal_governance_request(1_700_000_001);
+    let list = NnsProposalListRequest::new(governance.clone(), 2);
+    let info = NnsProposalRequest::new(governance.clone(), 2);
+    assert_eq!(
+        build_nns_proposal_list_report_with_cache_and_source(&list, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .data_source
+            .as_str(),
+        "live"
+    );
+    assert_eq!(
+        build_nns_proposal_report_with_cache_and_source(&info, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .data_source
+            .as_str(),
+        "live"
+    );
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
+    assert_eq!(
+        build_nns_proposal_list_report_with_cache_and_source(&list, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .data_source
+            .as_str(),
+        "cache"
+    );
+    assert_eq!(
+        build_nns_proposal_report_with_cache_and_source(&info, &root, &FixtureSource)
+            .await
+            .unwrap()
+            .data_source
+            .as_str(),
+        "cache"
+    );
+    let missing = NnsProposalRequest::new(governance, 999);
+    let report = build_nns_proposal_report_with_cache_and_source(&missing, &root, &FixtureSource)
+        .await
+        .unwrap();
+    assert_eq!(report.data_source.as_str(), "live");
+    assert_eq!(report.proposal_id, 999);
+
+    fs::write(&path, "{}").unwrap();
+    assert!(matches!(
+        build_nns_proposal_list_report_with_cache_and_source(&list, &root, &FixtureSource).await,
+        Err(NnsProposalHostError::Cache(
+            HostCacheError::ParseCache { .. }
+        ))
+    ));
+    assert!(matches!(
+        build_nns_proposal_report_with_cache_and_source(&info, &root, &FixtureSource).await,
+        Err(NnsProposalHostError::Cache(
+            HostCacheError::ParseCache { .. }
+        ))
+    ));
+    assert_eq!(fs::read(&path).unwrap(), b"{}");
+    fs::remove_dir_all(root).unwrap();
+}
 
 struct FullTerminalPageSource;
 

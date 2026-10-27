@@ -12,11 +12,19 @@ pub fn validate_canonical<E>(
     invalid: impl FnOnce(String) -> E,
     noncanonical: impl FnOnce(String) -> E,
 ) -> Result<(), E> {
-    let canonical = Principal::from_text(value)
-        .map_err(|error| invalid(error.to_string()))?
-        .to_text();
+    parse_canonical(value, invalid, noncanonical).map(|_| ())
+}
+
+/// Admit strict principal evidence and retain the parsed identity.
+pub fn parse_canonical<E>(
+    value: &str,
+    invalid: impl FnOnce(String) -> E,
+    noncanonical: impl FnOnce(String) -> E,
+) -> Result<Principal, E> {
+    let principal = Principal::from_text(value).map_err(|error| invalid(error.to_string()))?;
+    let canonical = principal.to_text();
     if canonical == value {
-        Ok(())
+        Ok(principal)
     } else {
         Err(noncanonical(canonical))
     }

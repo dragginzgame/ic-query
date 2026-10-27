@@ -19,7 +19,8 @@ pub use refresh::{
 };
 pub use reports::{
     build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report_from_cache,
+    build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_cache_and_source,
+    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_cache_and_source,
 };
 
 const NNS_NEURON_CACHE_SCHEMA_VERSION: u32 = 1;

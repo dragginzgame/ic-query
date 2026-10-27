@@ -18,31 +18,7 @@ pub fn ic_node_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcNodeStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot(snapshot)?;
-    let resolution = resolve_optional_target(
-        "node",
-        view.target.as_deref(),
-        snapshot.nodes.iter().map(|node| node.node_id.as_str()),
-        "node_principal",
-    )?;
-    let nodes = snapshot
-        .nodes
-        .iter()
-        .filter(|node| view_includes(view, resolution.as_ref(), &node.node_id, node.is_non_up()))
-        .cloned()
-        .collect::<Vec<_>>();
-
-    Ok(IcNodeStatusReport {
-        observation: snapshot.observation.clone(),
-        snapshot_node_count: snapshot.node_count,
-        counts: snapshot.counts.clone(),
-        include_all: view.include_all,
-        requested_target: view.target.clone(),
-        resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
-        resolved_from: resolution.map(|value| value.resolved_from),
-        returned_node_count: nodes.len(),
-        nodes,
-    })
+    ValidatedNodeStatusSnapshot::new(snapshot)?.node_report(view)
 }
 
 /// Project a Subnet-level status report from one complete observed snapshot.
@@ -50,44 +26,7 @@ pub fn ic_subnet_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcSubnetStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot(snapshot)?;
-    let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
-    for node in &snapshot.nodes {
-        if let Some(subnet_id) = &node.subnet_id {
-            grouped.entry(subnet_id).or_default().push(node);
-        }
-    }
-    let resolution = resolve_optional_target(
-        "Subnet",
-        view.target.as_deref(),
-        grouped.keys().copied(),
-        "subnet_principal",
-    )?;
-    let subnet_count = grouped.len();
-    let mut attention_subnet_count = 0;
-    let mut subnets = Vec::new();
-    for (subnet_id, nodes) in grouped {
-        let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
-        let requires_attention = statuses.non_up() > 0;
-        attention_subnet_count += usize::from(requires_attention);
-        if view_includes(view, resolution.as_ref(), subnet_id, requires_attention) {
-            subnets.push(subnet_row(subnet_id.to_string(), statuses, &nodes));
-        }
-    }
-
-    Ok(IcSubnetStatusReport {
-        observation: snapshot.observation.clone(),
-        snapshot_node_count: snapshot.node_count,
-        assigned_node_count: snapshot.counts.assignment_statuses.assigned.total,
-        subnet_count,
-        attention_subnet_count,
-        include_all: view.include_all,
-        requested_target: view.target.clone(),
-        resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
-        resolved_from: resolution.map(|value| value.resolved_from),
-        returned_subnet_count: subnets.len(),
-        subnets,
-    })
+    ValidatedNodeStatusSnapshot::new(snapshot)?.subnet_report(view)
 }
 
 /// Project a node-provider status report from one complete observed snapshot.
@@ -95,73 +34,179 @@ pub fn ic_node_provider_status_report_from_snapshot(
     snapshot: &IcNodeStatusSnapshot,
     view: &IcNodeStatusView,
 ) -> Result<IcNodeProviderStatusReport, IcNodeStatusProjectionError> {
-    validate_snapshot(snapshot)?;
-    let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
-    for node in &snapshot.nodes {
-        grouped
-            .entry(&node.node_provider_id)
-            .or_default()
-            .push(node);
+    ValidatedNodeStatusSnapshot::new(snapshot)?.provider_report(view)
+}
+
+///
+/// ValidatedNodeStatusSnapshot
+///
+/// Immutable projection input admitted through raw-snapshot or cache validation.
+///
+
+pub(super) struct ValidatedNodeStatusSnapshot<'a> {
+    snapshot: &'a IcNodeStatusSnapshot,
+}
+
+impl<'a> ValidatedNodeStatusSnapshot<'a> {
+    fn new(snapshot: &'a IcNodeStatusSnapshot) -> Result<Self, IcNodeStatusProjectionError> {
+        validate_snapshot(snapshot)?;
+        Ok(Self { snapshot })
     }
-    let resolution = resolve_optional_target(
-        "node provider",
-        view.target.as_deref(),
-        grouped.keys().copied(),
-        "node_provider_principal",
-    )?;
-    let provider_count = grouped.len();
-    let mut attention_provider_count = 0;
-    let mut up_comparisons = IcNodeCountComparisonCounts::default();
-    let mut non_up_comparisons = IcNodeCountComparisonCounts::default();
-    let mut providers = Vec::new();
-    for (node_provider_id, nodes) in grouped {
-        let counts = node_status_group_counts(nodes.iter().copied());
-        let assigned = &counts.assignment_statuses.assigned;
-        let unassigned = &counts.assignment_statuses.unassigned;
-        let unassigned_up_vs_assigned_up =
-            IcNodeCountComparison::from_counts(unassigned.up, assigned.up);
-        let unassigned_non_up_vs_assigned_non_up =
-            IcNodeCountComparison::from_counts(unassigned.non_up(), assigned.non_up());
-        increment_comparison(&mut up_comparisons, unassigned_up_vs_assigned_up);
-        increment_comparison(
-            &mut non_up_comparisons,
-            unassigned_non_up_vs_assigned_non_up,
-        );
-        let requires_attention = counts.statuses.non_up() > 0;
-        attention_provider_count += usize::from(requires_attention);
-        if view_includes(
-            view,
-            resolution.as_ref(),
-            node_provider_id,
-            requires_attention,
-        ) {
-            providers.push(IcNodeProviderStatusRow {
-                node_provider_id: node_provider_id.to_string(),
-                node_provider_name: nodes
-                    .first()
-                    .map_or_else(String::new, |node| node.node_provider_name.clone()),
-                unassigned_up_vs_assigned_up,
-                unassigned_non_up_vs_assigned_non_up,
-                counts,
-                non_up_nodes: non_up_nodes(&nodes),
-            });
+
+    #[cfg(feature = "dashboard-host")]
+    pub(super) const fn from_cache(cached: &'a super::cache::LoadedNodeStatusSnapshot) -> Self {
+        Self {
+            snapshot: cached.snapshot(),
         }
     }
 
-    Ok(IcNodeProviderStatusReport {
-        observation: snapshot.observation.clone(),
-        snapshot_node_count: snapshot.node_count,
-        provider_count,
-        attention_provider_count,
-        unassigned_up_vs_assigned_up_provider_counts: up_comparisons,
-        unassigned_non_up_vs_assigned_non_up_provider_counts: non_up_comparisons,
-        include_all: view.include_all,
-        requested_target: view.target.clone(),
-        resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
-        resolved_from: resolution.map(|value| value.resolved_from),
-        returned_provider_count: providers.len(),
-        providers,
-    })
+    pub(super) fn node_report(
+        &self,
+        view: &IcNodeStatusView,
+    ) -> Result<IcNodeStatusReport, IcNodeStatusProjectionError> {
+        let snapshot = self.snapshot;
+        let resolution = resolve_optional_target(
+            "node",
+            view.target.as_deref(),
+            snapshot.nodes.iter().map(|node| node.node_id.as_str()),
+            "node_principal",
+        )?;
+        let nodes = snapshot
+            .nodes
+            .iter()
+            .filter(|node| {
+                view_includes(view, resolution.as_ref(), &node.node_id, node.is_non_up())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+
+        Ok(IcNodeStatusReport {
+            observation: snapshot.observation.clone(),
+            snapshot_node_count: snapshot.node_count,
+            counts: snapshot.counts.clone(),
+            include_all: view.include_all,
+            requested_target: view.target.clone(),
+            resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
+            resolved_from: resolution.map(|value| value.resolved_from),
+            returned_node_count: nodes.len(),
+            nodes,
+        })
+    }
+    pub(super) fn subnet_report(
+        &self,
+        view: &IcNodeStatusView,
+    ) -> Result<IcSubnetStatusReport, IcNodeStatusProjectionError> {
+        let snapshot = self.snapshot;
+        let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
+        for node in &snapshot.nodes {
+            if let Some(subnet_id) = &node.subnet_id {
+                grouped.entry(subnet_id).or_default().push(node);
+            }
+        }
+        let resolution = resolve_optional_target(
+            "Subnet",
+            view.target.as_deref(),
+            grouped.keys().copied(),
+            "subnet_principal",
+        )?;
+        let subnet_count = grouped.len();
+        let mut attention_subnet_count = 0;
+        let mut subnets = Vec::new();
+        for (subnet_id, nodes) in grouped {
+            let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
+            let requires_attention = statuses.non_up() > 0;
+            attention_subnet_count += usize::from(requires_attention);
+            if view_includes(view, resolution.as_ref(), subnet_id, requires_attention) {
+                subnets.push(subnet_row(subnet_id.to_string(), statuses, &nodes));
+            }
+        }
+
+        Ok(IcSubnetStatusReport {
+            observation: snapshot.observation.clone(),
+            snapshot_node_count: snapshot.node_count,
+            assigned_node_count: snapshot.counts.assignment_statuses.assigned.total,
+            subnet_count,
+            attention_subnet_count,
+            include_all: view.include_all,
+            requested_target: view.target.clone(),
+            resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
+            resolved_from: resolution.map(|value| value.resolved_from),
+            returned_subnet_count: subnets.len(),
+            subnets,
+        })
+    }
+    pub(super) fn provider_report(
+        &self,
+        view: &IcNodeStatusView,
+    ) -> Result<IcNodeProviderStatusReport, IcNodeStatusProjectionError> {
+        let snapshot = self.snapshot;
+        let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
+        for node in &snapshot.nodes {
+            grouped
+                .entry(&node.node_provider_id)
+                .or_default()
+                .push(node);
+        }
+        let resolution = resolve_optional_target(
+            "node provider",
+            view.target.as_deref(),
+            grouped.keys().copied(),
+            "node_provider_principal",
+        )?;
+        let provider_count = grouped.len();
+        let mut attention_provider_count = 0;
+        let mut up_comparisons = IcNodeCountComparisonCounts::default();
+        let mut non_up_comparisons = IcNodeCountComparisonCounts::default();
+        let mut providers = Vec::new();
+        for (node_provider_id, nodes) in grouped {
+            let counts = node_status_group_counts(nodes.iter().copied());
+            let assigned = &counts.assignment_statuses.assigned;
+            let unassigned = &counts.assignment_statuses.unassigned;
+            let unassigned_up_vs_assigned_up =
+                IcNodeCountComparison::from_counts(unassigned.up, assigned.up);
+            let unassigned_non_up_vs_assigned_non_up =
+                IcNodeCountComparison::from_counts(unassigned.non_up(), assigned.non_up());
+            increment_comparison(&mut up_comparisons, unassigned_up_vs_assigned_up);
+            increment_comparison(
+                &mut non_up_comparisons,
+                unassigned_non_up_vs_assigned_non_up,
+            );
+            let requires_attention = counts.statuses.non_up() > 0;
+            attention_provider_count += usize::from(requires_attention);
+            if view_includes(
+                view,
+                resolution.as_ref(),
+                node_provider_id,
+                requires_attention,
+            ) {
+                providers.push(IcNodeProviderStatusRow {
+                    node_provider_id: node_provider_id.to_string(),
+                    node_provider_name: nodes
+                        .first()
+                        .map_or_else(String::new, |node| node.node_provider_name.clone()),
+                    unassigned_up_vs_assigned_up,
+                    unassigned_non_up_vs_assigned_non_up,
+                    counts,
+                    non_up_nodes: non_up_nodes(&nodes),
+                });
+            }
+        }
+
+        Ok(IcNodeProviderStatusReport {
+            observation: snapshot.observation.clone(),
+            snapshot_node_count: snapshot.node_count,
+            provider_count,
+            attention_provider_count,
+            unassigned_up_vs_assigned_up_provider_counts: up_comparisons,
+            unassigned_non_up_vs_assigned_non_up_provider_counts: non_up_comparisons,
+            include_all: view.include_all,
+            requested_target: view.target.clone(),
+            resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
+            resolved_from: resolution.map(|value| value.resolved_from),
+            returned_provider_count: providers.len(),
+            providers,
+        })
+    }
 }
 
 fn subnet_row(

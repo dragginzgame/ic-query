@@ -68,12 +68,7 @@ where
     Report: Serialize,
 {
     let options = NnsCommonOptions::from_matches(matches, network);
-    let request = NnsGovernanceRequest::replica_query_from_unix_secs(
-        options.network,
-        options.source_endpoint,
-        current_unix_secs()?,
-        "ic-query",
-    );
+    let (format, request) = options.into_governance_request(current_unix_secs()?);
     let report = build(&request).await?;
-    write_text_or_json(options.format, &report, render_text)
+    write_text_or_json(format, &report, render_text)
 }

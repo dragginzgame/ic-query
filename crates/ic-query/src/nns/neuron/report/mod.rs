@@ -22,7 +22,8 @@ mod wire;
 #[cfg(feature = "nns-host")]
 pub use cache::{
     build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,
-    build_nns_neuron_info_report_from_cache, build_nns_neuron_list_report_from_cache,
+    build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_cache_and_source,
+    build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_cache_and_source,
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
     refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
     refresh_nns_neuron_cache_with_source,

@@ -1,7 +1,7 @@
 //! Module: nns::neuron::report::cache::reports
 //!
 //! Responsibility: build NNS neuron cache-backed list, detail, and status reports.
-//! Does not own: refresh execution, live governance calls, or text rendering.
+//! Does not own: refresh execution, transport execution, or text rendering.
 //! Boundary: loads and validates local complete snapshots before projection.
 
 use super::{
@@ -11,6 +11,10 @@ use super::{
         NNS_NEURON_CACHE_COLLECTION, NNS_NEURON_CACHE_DOMAIN, NNS_NEURON_CACHE_ENTITY,
         nns_neuron_cache_path, nns_neuron_cache_paths,
     },
+};
+use crate::nns::neuron::report::source::{
+    NnsNeuronSource, build_nns_neuron_info_report_with_source,
+    build_nns_neuron_list_report_with_source,
 };
 use crate::{
     HostCacheError,
@@ -40,6 +44,30 @@ use crate::{
     snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
 use std::path::{Path, PathBuf};
+
+/// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
+pub async fn build_nns_neuron_list_report_with_cache_and_source(
+    request: &NnsNeuronListRequest,
+    cache_root: &Path,
+    source: &dyn NnsNeuronSource,
+) -> Result<NnsNeuronListReport, NnsNeuronHostError> {
+    if let Some(report) = build_nns_neuron_list_report_from_cache(request, cache_root)? {
+        return Ok(report);
+    }
+    Ok(build_nns_neuron_list_report_with_source(request, source).await?)
+}
+
+/// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
+pub async fn build_nns_neuron_info_report_with_cache_and_source(
+    request: &NnsNeuronInfoRequest,
+    cache_root: &Path,
+    source: &dyn NnsNeuronSource,
+) -> Result<NnsNeuronInfoReport, NnsNeuronHostError> {
+    if let Some(report) = build_nns_neuron_info_report_from_cache(request, cache_root)? {
+        return Ok(report);
+    }
+    Ok(build_nns_neuron_info_report_with_source(request, source).await?)
+}
 
 /// Build public-neuron distribution from the complete local snapshot without a network call.
 pub fn build_nns_neuron_distribution_report_from_cache(
