@@ -1,4 +1,5 @@
 use super::{NnsTopologyProviderAccumulator, ProviderAggregate};
+use crate::nns::topology::report::capacity::operator_capacity;
 use crate::nns::{
     node::NnsNodeListReport,
     node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
@@ -55,10 +56,10 @@ impl NnsTopologyProviderAccumulator {
         provider.node_operator_count += 1;
         provider.node_allowance += operator.node_allowance;
         provider.assigned_node_count += assigned_node_count;
-        provider.available_node_slots +=
-            operator.node_allowance.saturating_sub(assigned_node_count);
-        provider.over_assigned_node_count +=
-            assigned_node_count.saturating_sub(operator.node_allowance);
+        let (available, over_assigned) =
+            operator_capacity(operator.node_allowance, assigned_node_count);
+        provider.available_node_slots += available;
+        provider.over_assigned_node_count += over_assigned;
         provider.insert_data_center(
             &operator.data_center_id,
             self.data_center_regions

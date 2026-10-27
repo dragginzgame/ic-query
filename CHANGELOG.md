@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.1]
+
+### 🔧 Changed
+
+- Adopt Shared Tooling 0.26.24 with visible formatting passes and hooks that
+  preserve opaque submodules, retaining prepared-tool checks and failure logs.
+
+### 🧹 Cleanup
+
+- Reduce repeated work in certified catalog recovery, catalog sealing and SNS
+  reward reconciliation while preserving validation and retained evidence.
+- Consolidate Registry limits, permission checks and ICRC internals without
+  changing commands, report fields or cache formats.
+- Simplify Registry acquisition, SNS conversion and topology calculations while
+  preserving source evidence, report ordering and diagnostics.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.0] - 2026-10-27
 
 ### ⚠️ Breaking

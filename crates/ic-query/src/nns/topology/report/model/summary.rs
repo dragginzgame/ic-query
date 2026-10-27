@@ -40,6 +40,33 @@ pub struct NnsTopologySummaryReport {
     pub registry_versions: Vec<NnsTopologyRegistryVersionRow>,
 }
 
+impl NnsTopologySummaryReport {
+    pub(in crate::nns::topology::report) const fn join_counts(&self) -> [(usize, usize); 5] {
+        [
+            (
+                self.nodes_with_known_node_provider_count,
+                self.nodes_with_unknown_node_provider_count,
+            ),
+            (
+                self.nodes_with_known_node_operator_count,
+                self.nodes_with_unknown_node_operator_count,
+            ),
+            (
+                self.nodes_with_known_data_center_count,
+                self.nodes_with_unknown_data_center_count,
+            ),
+            (
+                self.node_operators_with_known_node_provider_count,
+                self.node_operators_with_unknown_node_provider_count,
+            ),
+            (
+                self.node_operators_with_known_data_center_count,
+                self.node_operators_with_unknown_data_center_count,
+            ),
+        ]
+    }
+}
+
 ///
 /// NnsTopologyRegistryVersionRow
 ///

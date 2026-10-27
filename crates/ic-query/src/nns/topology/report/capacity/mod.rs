@@ -50,10 +50,10 @@ pub(super) fn topology_capacity_report_from_report(
 
 fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapacityRow {
     let assigned_node_count = operator.node_count.map(u64::from);
-    let available_node_slots =
-        assigned_node_count.map(|node_count| operator.node_allowance.saturating_sub(node_count));
-    let over_assigned_node_count =
-        assigned_node_count.map(|node_count| node_count.saturating_sub(operator.node_allowance));
+    let capacity =
+        assigned_node_count.map(|count| operator_capacity(operator.node_allowance, count));
+    let available_node_slots = capacity.map(|(available, _)| available);
+    let over_assigned_node_count = capacity.map(|(_, over_assigned)| over_assigned);
     let utilization = assigned_node_count.map_or_else(
         || "-".to_string(),
         |node_count| ratio_percent_text(node_count, operator.node_allowance),
@@ -79,6 +79,16 @@ fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapaci
         utilization,
         status,
     }
+}
+
+pub(in crate::nns::topology::report) const fn operator_capacity(
+    allowance: u64,
+    assigned: u64,
+) -> (u64, u64) {
+    (
+        allowance.saturating_sub(assigned),
+        assigned.saturating_sub(allowance),
+    )
 }
 
 fn sort_capacity_rows(capacity: &mut [NnsTopologyCapacityRow]) {

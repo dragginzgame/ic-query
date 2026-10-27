@@ -129,14 +129,6 @@ pub use model::{
     SnsNeuronsSort, SnsRefreshAttemptStatus, SnsRewardCheckpointRequest, SnsSnapshotRefreshReport,
     SnsSnapshotRefreshRequest,
 };
-pub(in crate::sns::report) use model::{
-    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use model::{
-    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
-    validate_sns_reward_running_version_evidence,
-};
 #[cfg(feature = "sns-host")]
 pub use neurons_cache::{
     build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,

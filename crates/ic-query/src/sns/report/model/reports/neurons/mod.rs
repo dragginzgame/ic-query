@@ -4,21 +4,17 @@
 //! Does not own: live neuron fetches, cache storage, sorting, or rendering.
 //! Boundary: re-exports serializable neuron report models.
 
-mod detail;
+pub(in crate::sns::report) mod detail;
 mod diff;
 #[cfg(feature = "sns-host")]
 mod report;
-mod reward;
+pub(in crate::sns::report) mod reward;
 mod row;
 
 pub use detail::{
     SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow, SnsNeuronPermissionValue,
     SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus, sns_neuron_permission_name,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use detail::{
-    validate_maturity_disbursements, validate_neuron_permissions,
 };
 pub use diff::{
     SnsRewardAllocationStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
@@ -30,13 +26,5 @@ pub use reward::{
     SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
     SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardEvent,
     SnsRewardProposalId, validate_sns_reward_checkpoint_report,
-};
-pub(in crate::sns::report) use reward::{
-    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use reward::{
-    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
-    validate_sns_reward_running_version_evidence,
 };
 pub use row::{SnsNeuronDissolveState, SnsNeuronRow};

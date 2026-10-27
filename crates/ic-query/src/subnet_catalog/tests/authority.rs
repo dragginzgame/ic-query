@@ -11,6 +11,28 @@ fn catalog_digest_hashes_canonical_json_with_an_empty_digest_field() {
     assert_eq!(actual, expected.to_string());
 }
 
+#[test]
+fn raw_validation_and_sealing_preserve_their_validation_order() {
+    let mut raw = fixture_catalog();
+    raw.provenance.network = "invalid".to_string();
+    raw.subnets.clear();
+    assert!(matches!(
+        raw.validate(),
+        Err(CatalogError::NetworkMismatch { .. })
+    ));
+    assert!(matches!(
+        raw.canonicalize_and_seal(),
+        Err(CatalogError::EmptySubnets)
+    ));
+
+    let mut raw = fixture_catalog();
+    raw.provenance.network = "invalid".to_string();
+    assert!(matches!(
+        raw.canonicalize_and_seal(),
+        Err(CatalogError::NetworkMismatch { .. })
+    ));
+}
+
 fn validation_context() -> CatalogValidationContext {
     CatalogValidationContext::new(
         MAINNET_NETWORK,

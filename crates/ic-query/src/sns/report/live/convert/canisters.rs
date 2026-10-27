@@ -221,10 +221,6 @@ fn push_many(
     canisters: &mut Vec<SnsCanisterRow>,
     gaps: &mut Vec<SnsCanisterGap>,
 ) {
-    let inventory_canister_ids = inventory_canister_ids
-        .into_iter()
-        .map(|value| value.to_text())
-        .collect::<Vec<_>>();
     let mut summaries_by_canister = BTreeMap::<String, Vec<CanisterSummary>>::new();
 
     for summary in summaries {
@@ -243,26 +239,23 @@ fn push_many(
             .push(summary);
     }
 
-    for inventory_canister_id in &inventory_canister_ids {
-        let Some(mut summaries) = summaries_by_canister.remove(inventory_canister_id) else {
+    for inventory_canister_id in inventory_canister_ids
+        .into_iter()
+        .map(|value| value.to_text())
+    {
+        let Some(mut summaries) = summaries_by_canister.remove(&inventory_canister_id) else {
             canisters.push(canister_row(role, inventory_canister_id.clone(), None));
             gaps.push(gap(
                 SnsCanisterGapKind::SummaryMissing,
                 role,
-                Some(inventory_canister_id.clone()),
+                Some(inventory_canister_id),
                 None,
             ));
             continue;
         };
         if summaries.len() == 1 {
             let summary = summaries.remove(0);
-            push_matched_summary(
-                role,
-                inventory_canister_id.clone(),
-                summary.status,
-                canisters,
-                gaps,
-            );
+            push_matched_summary(role, inventory_canister_id, summary.status, canisters, gaps);
             continue;
         }
 

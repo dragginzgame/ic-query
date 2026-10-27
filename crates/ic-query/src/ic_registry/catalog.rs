@@ -39,25 +39,101 @@ pub(super) trait CatalogRegistryReader: Sync {
     fn query_call_count(&self) -> u64;
 }
 
-pub(super) async fn catalog_from_registry_records_detailed<R>(
-    request: &MainnetRegistryFetchRequest,
+///
+/// CatalogReadContext
+///
+/// Pinned collection identity and completed Registry response evidence.
+///
+
+pub(super) struct CatalogReadContext<'a, R> {
+    request: &'a MainnetRegistryFetchRequest,
     registry_version: u64,
-    reader: &R,
+    reader: &'a R,
+    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+}
+
+impl<'a, R> CatalogReadContext<'a, R> {
+    pub(super) const fn new(
+        request: &'a MainnetRegistryFetchRequest,
+        registry_version: u64,
+        reader: &'a R,
+    ) -> Self {
+        Self {
+            request,
+            registry_version,
+            reader,
+            registry_records: Vec::new(),
+        }
+    }
+
+    pub(super) fn record_failure(
+        &self,
+        subject: SubnetCatalogRegistryRecordSubject,
+        returned_registry_value_version: Option<u64>,
+        source: RegistryFetchError,
+    ) -> Box<SubnetCatalogRegistryFailure> {
+        SubnetCatalogRegistryFailure::new(
+            Some(self.registry_version),
+            Some(SubnetCatalogSubject::RegistryRecord(subject)),
+            source,
+        )
+        .with_value_response(&self.request.endpoint, returned_registry_value_version)
+        .with_registry_records(self.registry_records.clone())
+    }
+
+    pub(super) async fn record<Record>(
+        &mut self,
+        subject: &SubnetCatalogRegistryRecordSubject,
+    ) -> Result<(Record, u64), Box<SubnetCatalogRegistryFailure>>
+    where
+        R: CatalogRegistryReader,
+        Record: Message + Default,
+    {
+        let value = self
+            .reader
+            .value(&subject.key, self.registry_version)
+            .await
+            .map_err(|failure| {
+                self.record_failure(subject.clone(), failure.returned_version, failure.source)
+            })?;
+        if value.version > self.registry_version {
+            return Err(self.record_failure(
+                subject.clone(),
+                Some(value.version),
+                RegistryFetchError::InvalidRegistryValueVersion {
+                    key: subject.key.clone(),
+                    requested_version: self.registry_version,
+                    returned_version: value.version,
+                },
+            ));
+        }
+        self.registry_records.push(record_evidence(
+            self.request,
+            self.registry_version,
+            subject.clone(),
+            &value,
+        ));
+        let record = decode_message(subject.kind.protobuf_schema(), &value.value)
+            .map_err(|source| self.record_failure(subject.clone(), Some(value.version), source))?;
+        Ok((record, value.version))
+    }
+}
+
+pub(super) async fn catalog_from_registry_records_detailed<R>(
+    mut context: CatalogReadContext<'_, R>,
     subnet_list: SubnetListRecord,
     routing_table: RoutingTable,
     routing_source: SubnetCatalogRoutingSource,
-    mut registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
 ) -> Result<RawSubnetCatalog, Box<SubnetCatalogRegistryFailure>>
 where
     R: CatalogRegistryReader,
 {
+    let request = context.request;
+    let registry_version = context.registry_version;
     if subnet_list.subnets.is_empty() {
-        return Err(record_failure(
-            request,
-            registry_version,
+        return Err(context.record_failure(
             SubnetCatalogRegistryRecordSubject::subnet_list(),
             None,
-            registry_records,
             RegistryFetchError::EmptySubnetList,
         ));
     }
@@ -68,15 +144,12 @@ where
             }
             SubnetCatalogRoutingSource::LegacyRoutingTable => ROUTING_TABLE_KEY,
         };
-        return Err(record_failure(
-            request,
-            registry_version,
+        return Err(context.record_failure(
             SubnetCatalogRegistryRecordSubject::exact_keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 key,
             ),
             None,
-            registry_records,
             RegistryFetchError::EmptyRoutingTable,
         ));
     }
@@ -92,18 +165,11 @@ where
                 source,
             )
             .with_value_response(&request.endpoint, None)
-            .with_registry_records(registry_records.clone())
+            .with_registry_records(context.registry_records.clone())
         })?;
         let subnet_principal = subnet.to_text();
         let subject = SubnetCatalogRegistryRecordSubject::subnet_record(subnet);
-        let (record, _) = get_catalog_record::<_, SubnetRecord>(
-            reader,
-            &subject,
-            registry_version,
-            request,
-            &mut registry_records,
-        )
-        .await?;
+        let (record, _) = context.record::<SubnetRecord>(&subject).await?;
         subnets.push(subnet_info_from_record(&subnet_principal, &record));
     }
 
@@ -111,7 +177,7 @@ where
         .map_err(|failure| {
             failure
                 .with_value_response(&request.endpoint, None)
-                .with_registry_records(registry_records.clone())
+                .with_registry_records(context.registry_records.clone())
         })?;
     RawSubnetCatalog::new_mainnet_uncertified(
         UncertifiedCatalogCollection {
@@ -120,9 +186,9 @@ where
             fetched_at: request.fetched_at.clone(),
             fetched_by: request.fetched_by.clone(),
             collector_version: env!("CARGO_PKG_VERSION").to_string(),
-            registry_query_call_count: reader.query_call_count(),
+            registry_query_call_count: context.reader.query_call_count(),
             routing_source,
-            registry_records: registry_records.clone(),
+            registry_records: context.registry_records.clone(),
         },
         subnets,
         routing_ranges,
@@ -131,7 +197,7 @@ where
         let subject = subject_from_catalog_error(&source);
         SubnetCatalogRegistryFailure::new(Some(registry_version), subject, source.into())
             .with_value_response(&request.endpoint, None)
-            .with_registry_records(registry_records)
+            .with_registry_records(context.registry_records)
     })
 }
 
@@ -217,64 +283,6 @@ fn routing_ranges_from_table_inner(
         .collect()
 }
 
-pub(super) async fn get_catalog_record<R, Record>(
-    reader: &R,
-    subject: &SubnetCatalogRegistryRecordSubject,
-    registry_version: u64,
-    request: &MainnetRegistryFetchRequest,
-    registry_records: &mut Vec<SubnetCatalogRegistryRecordEvidence>,
-) -> Result<(Record, u64), Box<SubnetCatalogRegistryFailure>>
-where
-    R: CatalogRegistryReader,
-    Record: Message + Default,
-{
-    let value = reader
-        .value(&subject.key, registry_version)
-        .await
-        .map_err(|failure| {
-            record_failure(
-                request,
-                registry_version,
-                subject.clone(),
-                failure.returned_version,
-                registry_records.clone(),
-                failure.source,
-            )
-        })?;
-    if value.version > registry_version {
-        return Err(record_failure(
-            request,
-            registry_version,
-            subject.clone(),
-            Some(value.version),
-            registry_records.clone(),
-            RegistryFetchError::InvalidRegistryValueVersion {
-                key: subject.key.clone(),
-                requested_version: registry_version,
-                returned_version: value.version,
-            },
-        ));
-    }
-    registry_records.push(record_evidence(
-        request,
-        registry_version,
-        subject.clone(),
-        &value,
-    ));
-    let record =
-        decode_message(subject.kind.protobuf_schema(), &value.value).map_err(|source| {
-            record_failure(
-                request,
-                registry_version,
-                subject.clone(),
-                Some(value.version),
-                registry_records.clone(),
-                source,
-            )
-        })?;
-    Ok((record, value.version))
-}
-
 fn record_evidence(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
@@ -292,23 +300,6 @@ fn record_evidence(
             RegistryValueEncoding::Chunked => SubnetCatalogRegistryValueEncoding::Chunked,
         },
     )
-}
-
-pub(super) fn record_failure(
-    request: &MainnetRegistryFetchRequest,
-    registry_version: u64,
-    subject: SubnetCatalogRegistryRecordSubject,
-    returned_registry_value_version: Option<u64>,
-    registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    source: RegistryFetchError,
-) -> Box<SubnetCatalogRegistryFailure> {
-    SubnetCatalogRegistryFailure::new(
-        Some(registry_version),
-        Some(SubnetCatalogSubject::RegistryRecord(subject)),
-        source,
-    )
-    .with_value_response(&request.endpoint, returned_registry_value_version)
-    .with_registry_records(registry_records)
 }
 
 fn routing_range_failure(
@@ -342,12 +333,9 @@ mod detailed_failure_tests {
         };
         let subnet = Principal::from_text(SUBNET).expect("subnet");
         let key = crate::ic_registry::subnet_record_key(SUBNET);
-        let failure = record_failure(
-            &request,
-            882_110,
+        let failure = CatalogReadContext::new(&request, 882_110, &()).record_failure(
             SubnetCatalogRegistryRecordSubject::subnet_record(subnet),
             Some(882_000),
-            Vec::new(),
             RegistryFetchError::MissingValue { key: key.clone() },
         );
 
@@ -377,12 +365,9 @@ mod detailed_failure_tests {
             fetched_at: "2026-08-20T00:00:00Z".to_string(),
             fetched_by: "test".to_string(),
         };
-        let table_failure = record_failure(
-            &request,
-            882_111,
+        let table_failure = CatalogReadContext::new(&request, 882_111, &()).record_failure(
             SubnetCatalogRegistryRecordSubject::legacy_routing_table(),
             None,
-            Vec::new(),
             RegistryFetchError::EmptyRoutingTable,
         );
         assert_eq!(table_failure.registry_version, Some(882_111));

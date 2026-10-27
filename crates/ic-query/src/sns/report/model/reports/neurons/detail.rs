@@ -249,15 +249,19 @@ pub(in crate::sns::report::model) const fn permission_code_policy_observations(
             SnsPolicyObservationStatus::ObservedSatisfied,
             SnsPolicyObservationStatus::Violated,
         ),
-        0 | 11..=i32::MAX | i32::MIN..=-1 => (
-            SnsPolicyObservationStatus::Unassessable,
-            SnsPolicyObservationStatus::Unassessable,
+        _ if permission_code_is_assessable(code) => (
+            SnsPolicyObservationStatus::ObservedSatisfied,
+            SnsPolicyObservationStatus::ObservedSatisfied,
         ),
-        1..=6 | 10 => (
-            SnsPolicyObservationStatus::ObservedSatisfied,
-            SnsPolicyObservationStatus::ObservedSatisfied,
+        _ => (
+            SnsPolicyObservationStatus::Unassessable,
+            SnsPolicyObservationStatus::Unassessable,
         ),
     }
+}
+
+pub(in crate::sns::report::model) const fn permission_code_is_assessable(code: i32) -> bool {
+    matches!(code, 1..=10)
 }
 
 ///

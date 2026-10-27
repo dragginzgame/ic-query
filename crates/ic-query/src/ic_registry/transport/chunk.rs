@@ -134,14 +134,12 @@ impl RegistryChunkBudget {
         &mut self,
         hashes: &[Vec<u8>],
     ) -> Result<Vec<[u8; REGISTRY_CHUNK_SHA256_BYTES]>, RegistryFetchError> {
-        let reference_count = self.reference_count.checked_add(hashes.len()).ok_or(
-            RegistryFetchError::RegistryChunkLimit {
-                field: "reference count",
-                maximum: self.limits.references,
-                actual: usize::MAX,
-            },
+        let reference_count = checked_total(
+            "reference count",
+            self.reference_count,
+            hashes.len(),
+            self.limits.references,
         )?;
-        enforce_limit("reference count", reference_count, self.limits.references)?;
         let hashes = validated_chunk_hashes(hashes)?;
         self.reference_count = reference_count;
         Ok(hashes)
@@ -165,25 +163,16 @@ impl RegistryChunkBudget {
     }
 
     fn record_query_response(&mut self, response_bytes: usize) -> Result<(), RegistryFetchError> {
-        let query_call_count =
-            self.query_call_count
-                .checked_add(1)
-                .ok_or(RegistryFetchError::RegistryChunkLimit {
-                    field: "query call count",
-                    maximum: self.limits.references,
-                    actual: usize::MAX,
-                })?;
-        enforce_limit("query call count", query_call_count, self.limits.references)?;
-        let total_response_bytes = self.response_bytes.checked_add(response_bytes).ok_or(
-            RegistryFetchError::RegistryChunkLimit {
-                field: "response bytes",
-                maximum: self.limits.response_bytes,
-                actual: usize::MAX,
-            },
+        let query_call_count = checked_total(
+            "query call count",
+            self.query_call_count,
+            1,
+            self.limits.references,
         )?;
-        enforce_limit(
+        let total_response_bytes = checked_total(
             "response bytes",
-            total_response_bytes,
+            self.response_bytes,
+            response_bytes,
             self.limits.response_bytes,
         )?;
         self.query_call_count = query_call_count;
@@ -301,26 +290,16 @@ fn append_reconstructed_bytes(
     total_value_bytes: &mut usize,
     limits: RegistryChunkLimits,
 ) -> Result<(), RegistryFetchError> {
-    let value_bytes =
-        value
-            .len()
-            .checked_add(content.len())
-            .ok_or(RegistryFetchError::RegistryChunkLimit {
-                field: "value bytes",
-                maximum: limits.value_bytes,
-                actual: usize::MAX,
-            })?;
-    enforce_limit("value bytes", value_bytes, limits.value_bytes)?;
-    let reconstructed_value_bytes = total_value_bytes.checked_add(content.len()).ok_or(
-        RegistryFetchError::RegistryChunkLimit {
-            field: "reconstructed value bytes",
-            maximum: limits.total_value_bytes,
-            actual: usize::MAX,
-        },
+    checked_total(
+        "value bytes",
+        value.len(),
+        content.len(),
+        limits.value_bytes,
     )?;
-    enforce_limit(
+    let reconstructed_value_bytes = checked_total(
         "reconstructed value bytes",
-        reconstructed_value_bytes,
+        *total_value_bytes,
+        content.len(),
         limits.total_value_bytes,
     )?;
     value.extend_from_slice(content);
@@ -340,6 +319,23 @@ fn validate_chunk_hash(
         });
     }
     Ok(())
+}
+
+fn checked_total(
+    field: &'static str,
+    current: usize,
+    increment: usize,
+    maximum: usize,
+) -> Result<usize, RegistryFetchError> {
+    let total = current
+        .checked_add(increment)
+        .ok_or(RegistryFetchError::RegistryChunkLimit {
+            field,
+            maximum,
+            actual: usize::MAX,
+        })?;
+    enforce_limit(field, total, maximum)?;
+    Ok(total)
 }
 
 const fn enforce_limit(
@@ -510,5 +506,19 @@ mod tests {
                 ..
             }
         ));
+        assert_eq!(budget.query_call_count, 1);
+        assert_eq!(budget.response_bytes, 6);
+        budget
+            .record_query_response(0)
+            .expect("remaining query allowance");
+        assert!(matches!(
+            budget.record_query_response(0),
+            Err(RegistryFetchError::RegistryChunkLimit {
+                field: "query call count",
+                ..
+            })
+        ));
+        assert_eq!(budget.query_call_count, 2);
+        assert_eq!(budget.response_bytes, 6);
     }
 }

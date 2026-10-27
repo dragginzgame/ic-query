@@ -7,9 +7,9 @@
 use super::proposals::sns_topic_text;
 use crate::sns::report::{
     SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
-    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
-    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
-    SnsRewardCheckpointRow, hex_bytes,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronId,
+    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
+    SnsPolicyObservationStatus, SnsRewardCheckpointRow, hex_bytes,
     live::types::{
         SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
         SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
@@ -22,12 +22,8 @@ use crate::sns::report::{
 pub(in crate::sns::report::live) fn sns_neuron_row(
     neuron: SnsGovernanceNeuron,
 ) -> Result<SnsNeuronRow, SnsHostError> {
-    let neuron_id = neuron.id.ok_or(SnsHostError::MissingNeuronId)?.id;
-    if neuron_id.is_empty() {
-        return Err(SnsHostError::InvalidNeuronId);
-    }
     Ok(SnsNeuronRow {
-        neuron_id: hex_bytes(&neuron_id),
+        neuron_id: neuron_id_text(neuron.id)?,
         cached_neuron_stake_e8s: neuron.cached_neuron_stake_e8s,
         maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
         staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
@@ -46,57 +42,40 @@ pub(in crate::sns::report::live) fn sns_neuron_row(
 pub(in crate::sns::report::live) fn mainnet_sns_neuron(
     neuron: SnsGovernanceNeuronDetail,
 ) -> Result<SnsNeuronDetail, SnsHostError> {
-    let SnsGovernanceNeuronDetail {
-        id,
-        staked_maturity_e8s_equivalent,
-        permissions,
-        maturity_e8s_equivalent,
-        cached_neuron_stake_e8s,
-        created_timestamp_seconds,
-        source_nns_neuron_id,
-        auto_stake_maturity,
-        aging_since_timestamp_seconds,
-        dissolve_state,
-        voting_power_percentage_multiplier,
-        vesting_period_seconds,
-        disburse_maturity_in_progress,
-        followees,
-        topic_followees,
-        neuron_fees_e8s,
-    } = neuron;
-    let neuron_id = id.as_ref().ok_or(SnsHostError::MissingNeuronId)?;
-    let neuron_id_text = hex_bytes(&neuron_id.id);
-    let neuron = sns_neuron_row(SnsGovernanceNeuron {
-        id,
-        staked_maturity_e8s_equivalent,
-        maturity_e8s_equivalent,
-        cached_neuron_stake_e8s,
-        created_timestamp_seconds,
-        source_nns_neuron_id,
-        auto_stake_maturity,
-        aging_since_timestamp_seconds,
-        dissolve_state,
-        voting_power_percentage_multiplier,
-        vesting_period_seconds,
-        neuron_fees_e8s,
-    })?;
-    let permissions = permissions
+    let row = SnsNeuronRow {
+        neuron_id: neuron_id_text(neuron.id)?,
+        cached_neuron_stake_e8s: neuron.cached_neuron_stake_e8s,
+        maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
+        staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
+        created_timestamp_seconds: neuron.created_timestamp_seconds,
+        source_nns_neuron_id: neuron.source_nns_neuron_id,
+        auto_stake_maturity: neuron.auto_stake_maturity,
+        aging_since_timestamp_seconds: neuron.aging_since_timestamp_seconds,
+        dissolve_state: neuron.dissolve_state.map(sns_neuron_dissolve_state),
+        voting_power_percentage_multiplier: neuron.voting_power_percentage_multiplier,
+        vesting_period_seconds: neuron.vesting_period_seconds,
+        neuron_fees_e8s: neuron.neuron_fees_e8s,
+    };
+    let permissions = neuron
+        .permissions
         .into_iter()
         .enumerate()
-        .map(|(index, permission)| required_neuron_permission(&neuron_id_text, index, permission))
+        .map(|(index, permission)| required_neuron_permission(&row.neuron_id, index, permission))
         .collect::<Result<Vec<_>, _>>()?;
     let mut detail = SnsNeuronDetail {
-        neuron,
+        neuron: row,
         permissions,
-        disburse_maturity_in_progress: disburse_maturity_in_progress
+        disburse_maturity_in_progress: neuron
+            .disburse_maturity_in_progress
             .into_iter()
             .map(maturity_disbursement)
             .collect(),
-        followees: followees
+        followees: neuron
+            .followees
             .into_iter()
             .map(|(function_id, followees)| legacy_followees(function_id, followees))
             .collect(),
-        topic_followees: topic_followees.map(topic_followees_rows),
+        topic_followees: neuron.topic_followees.map(topic_followees_rows),
         maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
         manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
     };
@@ -110,10 +89,7 @@ pub(in crate::sns::report::live) fn mainnet_sns_neuron(
 pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
     neuron: SnsGovernanceRewardNeuron,
 ) -> Result<SnsRewardCheckpointRow, SnsHostError> {
-    let neuron_id = neuron.id.ok_or(SnsHostError::MissingNeuronId)?.id;
-    if neuron_id.is_empty() {
-        return Err(SnsHostError::InvalidNeuronId);
-    }
+    let neuron_id = neuron_id_text(neuron.id)?;
     let maturity_e8s_equivalent = neuron.maturity_e8s_equivalent;
     let staked_maturity_e8s_equivalent = neuron.staked_maturity_e8s_equivalent;
     let combined_maturity_e8s_equivalent = maturity_e8s_equivalent
@@ -122,7 +98,7 @@ pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
             field: "combined_maturity_e8s_equivalent",
         })?;
     let mut row = SnsRewardCheckpointRow {
-        neuron_id: hex_bytes(&neuron_id),
+        neuron_id,
         created_timestamp_seconds: neuron.created_timestamp_seconds,
         maturity_e8s_equivalent,
         staked_maturity_e8s_equivalent,
@@ -145,6 +121,14 @@ pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
     row.maturity_mint_conversion_observed_disabled = mint;
     row.manual_maturity_staking_observed_disabled = staking;
     Ok(row)
+}
+
+fn neuron_id_text(id: Option<SnsNeuronId>) -> Result<String, SnsHostError> {
+    let id = id.ok_or(SnsHostError::MissingNeuronId)?.id;
+    if id.is_empty() {
+        return Err(SnsHostError::InvalidNeuronId);
+    }
+    Ok(hex_bytes(&id))
 }
 
 fn required_neuron_permission(
@@ -300,6 +284,13 @@ mod tests {
     fn exact_neuron_conversion_preserves_variable_native_evidence() {
         let detail = mainnet_sns_neuron(detail_neuron()).expect("convert detail");
 
+        assert_eq!(
+            detail.neuron,
+            sns_neuron_row(neuron(SnsGovernanceDissolveState::DissolveDelaySeconds(
+                86_400
+            )))
+            .expect("list and detail retain the same native fields")
+        );
         assert_eq!(detail.neuron.neuron_id, "01".repeat(32));
         assert_eq!(
             detail.permissions[0].principal.as_deref(),
@@ -326,6 +317,34 @@ mod tests {
             detail.manual_maturity_staking_observed_disabled,
             SnsPolicyObservationStatus::Violated
         );
+    }
+
+    #[test]
+    fn neuron_projections_reject_missing_or_empty_ids_before_other_evidence() {
+        for id in [None, Some(SnsNeuronId { id: Vec::new() })] {
+            let missing = id.is_none();
+            let mut list = neuron(SnsGovernanceDissolveState::DissolveDelaySeconds(0));
+            list.id = id.clone();
+            let mut detail = detail_neuron();
+            detail.id = id.clone();
+            detail.permissions[0].principal = None;
+            let mut reward = reward_neuron();
+            reward.id = id;
+            reward.maturity_e8s_equivalent = u64::MAX;
+            reward.staked_maturity_e8s_equivalent = Some(1);
+            for result in [
+                sns_neuron_row(list).map(|_| ()),
+                mainnet_sns_neuron(detail).map(|_| ()),
+                sns_reward_checkpoint_row(reward).map(|_| ()),
+            ] {
+                let error = result.expect_err("reject invalid neuron identity first");
+                if missing {
+                    assert!(matches!(error, SnsHostError::MissingNeuronId));
+                } else {
+                    assert!(matches!(error, SnsHostError::InvalidNeuronId));
+                }
+            }
+        }
     }
 
     #[test]

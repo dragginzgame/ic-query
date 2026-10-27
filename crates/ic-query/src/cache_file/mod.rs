@@ -45,6 +45,8 @@ pub use confined::write_managed_file_atomically;
     feature = "sns-host"
 ))]
 pub use confined::{ManagedReadBudget, read_opened_file_bounded};
+#[cfg(feature = "subnet-catalog-host")]
+pub use write::canonical_json_identity;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]
@@ -82,7 +84,7 @@ pub use json::CachedJsonReport;
 ))]
 pub use json::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache};
 pub use lock::RefreshLockRequest;
-#[cfg(any(feature = "host", test))]
+#[cfg(feature = "host")]
 pub use lock::inspect_open_refresh_lock;
 #[cfg(test)]
 pub use lock::inspect_refresh_lock;

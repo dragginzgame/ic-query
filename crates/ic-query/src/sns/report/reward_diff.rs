@@ -8,8 +8,8 @@ use crate::sns::report::{
     SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION, SnsPolicyObservationStatus, SnsRewardAllocationStatus,
     SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffReport, SnsRewardDiffRow, recompute_reward_checkpoint_summary,
-    validated_reward_checkpoint_summary,
+    SnsRewardDiffReport, SnsRewardDiffRow,
+    model::reports::neurons::reward::assess_reward_checkpoint,
 };
 
 /// Build one local reward diff from two untrusted in-memory checkpoints.
@@ -98,15 +98,12 @@ fn validate_checkpoint(
     kind: SnsRewardDiffInvalidReasonKind,
     reasons: &mut Vec<SnsRewardDiffInvalidReason>,
 ) -> (bool, Option<SnsRewardCheckpointSummary>) {
-    match validated_reward_checkpoint_summary(report) {
-        Ok(summary) => (true, Some(summary)),
-        Err(error) => {
-            reasons.push(reason(kind, None, error.reason));
-            (
-                false,
-                recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows).ok(),
-            )
-        }
+    let (validation, summary) = assess_reward_checkpoint(report);
+    if let Err(error) = validation {
+        reasons.push(reason(kind, None, error.reason));
+        (false, summary)
+    } else {
+        (true, summary)
     }
 }
 
@@ -298,7 +295,7 @@ fn join_matched_row(
             ),
         ));
     }
-    row_from_pair(Some(before), Some(after), delta)
+    row_from_pair(&before.neuron_id, Some(before), Some(after), delta)
 }
 
 fn join_missing_after_row(
@@ -311,6 +308,7 @@ fn join_missing_after_row(
         "neuron from the earlier checkpoint is absent later",
     ));
     row_from_pair(
+        &before.neuron_id,
         Some(before),
         None,
         -i128::from(before.combined_maturity_e8s_equivalent),
@@ -341,6 +339,7 @@ fn join_new_row(
         ));
     }
     row_from_pair(
+        &after.neuron_id,
         None,
         Some(after),
         i128::from(after.combined_maturity_e8s_equivalent),
@@ -348,15 +347,13 @@ fn join_new_row(
 }
 
 fn row_from_pair(
+    neuron_id: &str,
     before: Option<&SnsRewardCheckpointRow>,
     after: Option<&SnsRewardCheckpointRow>,
     delta: i128,
 ) -> SnsRewardDiffRow {
-    let neuron_id = before
-        .or(after)
-        .map_or_else(String::new, |row| row.neuron_id.clone());
     SnsRewardDiffRow {
-        neuron_id,
+        neuron_id: neuron_id.to_string(),
         before_combined_maturity_e8s_equivalent: before
             .map(|row| row.combined_maturity_e8s_equivalent),
         after_combined_maturity_e8s_equivalent: after

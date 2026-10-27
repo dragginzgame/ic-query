@@ -9,7 +9,9 @@ use crate::{
     hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
     sns::report::{
         SnsHostError, SnsNeuronDetail, SnsNeuronRow,
-        model::{validate_maturity_disbursements, validate_neuron_permissions},
+        model::reports::neurons::detail::{
+            validate_maturity_disbursements, validate_neuron_permissions,
+        },
     },
 };
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};

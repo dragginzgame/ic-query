@@ -14,6 +14,7 @@ pub fn is_unsigned_decimal(value: &str) -> bool {
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "dashboard-host",
+    feature = "icrc-host",
     feature = "sns-host"
 ))]
 pub fn is_canonical_unsigned_decimal(value: &str) -> bool {

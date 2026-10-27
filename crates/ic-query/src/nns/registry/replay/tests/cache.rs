@@ -239,8 +239,13 @@ async fn certified_catalog_cache_rejects_tampering_without_repairing_it() {
 
     let noncanonical = serde_json::to_vec_pretty(&envelope).expect("pretty cache fixture");
     fs::write(&cache_path, &noncanonical).expect("write noncanonical cache fixture");
+    let stale_projection = certified_catalog_projection_request(
+        NOW + 2,
+        1,
+        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
+    );
     assert!(matches!(
-        load_nns_certified_subnet_catalog(&archive, &projection, &cache_only).await,
+        load_nns_certified_subnet_catalog(&archive, &stale_projection, &cache_only).await,
         Err(NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { .. })
     ));
 
@@ -252,13 +257,18 @@ async fn certified_catalog_cache_rejects_tampering_without_repairing_it() {
     )
     .expect("write unsupported schema fixture");
     assert!(matches!(
-        load_nns_certified_subnet_catalog(&archive, &projection, &cache_only).await,
+        load_nns_certified_subnet_catalog(&archive, &stale_projection, &cache_only).await,
         Err(
             NnsCertifiedSubnetCatalogCacheError::UnsupportedSchemaVersion {
                 found: 2,
                 supported: 1,
             }
         )
+    ));
+    fs::write(&cache_path, b"invalid JSON").expect("write malformed cache fixture");
+    assert!(matches!(
+        load_nns_certified_subnet_catalog(&archive, &stale_projection, &cache_only).await,
+        Err(NnsCertifiedSubnetCatalogCacheError::InvalidJson { .. })
     ));
     let _ = fs::remove_dir_all(root);
 }

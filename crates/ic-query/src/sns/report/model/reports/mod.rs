@@ -13,7 +13,7 @@ mod governance;
 mod invocation;
 mod list;
 mod metrics;
-mod neurons;
+pub(in crate::sns::report) mod neurons;
 mod params;
 mod proposals;
 #[cfg(feature = "sns-host")]
@@ -48,15 +48,6 @@ pub use neurons::{
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
     SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
     sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
-};
-pub(in crate::sns::report) use neurons::{
-    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use neurons::{
-    validate_maturity_disbursements, validate_neuron_permissions,
-    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
-    validate_sns_reward_running_version_evidence,
 };
 pub use params::SnsParamsReport;
 pub use proposals::{

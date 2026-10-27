@@ -4,7 +4,9 @@
 //! Does not own: collection state, index wire decoding, transport, or reports.
 //! Boundary: keeps public cursor normalization and snapshot ordering on canonical decimal text.
 
-use crate::decimal::{compare_canonical_unsigned_decimal, is_unsigned_decimal};
+use crate::decimal::{
+    compare_canonical_unsigned_decimal, is_canonical_unsigned_decimal, is_unsigned_decimal,
+};
 use crate::icrc::model::{IcrcAccountTransactionError, IcrcAccountTransactionRow};
 use ic_platform::candid::contract::Nat;
 use std::str::FromStr;
@@ -27,8 +29,8 @@ pub(in crate::icrc) fn validate_canonical_account_transactions(
 ) -> Result<(), String> {
     let mut previous = None;
     for transaction in transactions {
-        validate_transaction_cursor_text(&transaction.id).map_err(|error| error.to_string())?;
-        if transaction.id.len() > 1 && transaction.id.starts_with('0') {
+        if !is_canonical_unsigned_decimal(&transaction.id) {
+            validate_transaction_cursor_text(&transaction.id).map_err(|error| error.to_string())?;
             return Err(format!(
                 "transaction id {} is not canonical decimal text",
                 transaction.id
@@ -56,13 +58,13 @@ pub(in crate::icrc) fn validate_account_transaction_page(
         (next_start, "next_start"),
         (oldest_transaction_id, "oldest_transaction_id"),
     ] {
-        if let Some(value) = value {
+        if let Some(value) = value
+            && !is_canonical_unsigned_decimal(value)
+        {
             validate_transaction_cursor_text(value)?;
-            if value.len() > 1 && value.starts_with('0') {
-                return Err(IcrcAccountTransactionError::InvalidPage {
-                    reason: format!("{field} {value:?} is not canonical unsigned decimal text"),
-                });
-            }
+            return Err(IcrcAccountTransactionError::InvalidPage {
+                reason: format!("{field} {value:?} is not canonical unsigned decimal text"),
+            });
         }
     }
     validate_canonical_account_transactions(transactions)

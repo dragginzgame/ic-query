@@ -5,30 +5,10 @@
 //! Boundary: keeps report assembly, source adaptation, and host calls in separate owners.
 
 pub(in crate::icrc) mod account_transactions;
-mod build;
+pub(in crate::icrc) mod build;
 mod fetch;
-mod source;
+pub(in crate::icrc) mod source;
 mod tip_certificate;
-
-pub use build::{
-    build_icrc_account_transaction_page_report,
-    build_icrc_account_transaction_page_report_with_source, build_icrc_allowance_report,
-    build_icrc_allowance_report_with_source, build_icrc_archives_report,
-    build_icrc_archives_report_with_source, build_icrc_balance_report,
-    build_icrc_balance_report_with_source, build_icrc_block_types_report,
-    build_icrc_block_types_report_with_source, build_icrc_capabilities_report,
-    build_icrc_capabilities_report_with_source, build_icrc_index_report,
-    build_icrc_index_report_with_source, build_icrc_tip_certificate_report,
-    build_icrc_tip_certificate_report_with_source, build_icrc_token_report,
-    build_icrc_token_report_with_source, build_icrc_transactions_report,
-    build_icrc_transactions_report_with_source,
-};
-pub use source::{
-    IcrcAccountTransactionCollectionSource, IcrcAccountTransactionPageSource, IcrcAllowanceSource,
-    IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
-    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
-    LiveIcrcSource,
-};
 
 use crate::icrc::model::IcrcError;
 

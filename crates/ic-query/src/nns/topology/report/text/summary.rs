@@ -30,7 +30,7 @@ pub fn nns_topology_summary_report_text(report: &NnsTopologySummaryReport) -> St
     lines.push(String::new());
     lines.push(render_kind_table(report));
     lines.push(String::new());
-    lines.push(render_summary_join_coverage_table(report));
+    lines.push(render_join_coverage_table(report.join_counts()));
     lines.push(String::new());
     lines.push(render_registry_version_table(&report.registry_versions));
     lines.join("\n")
@@ -88,29 +88,4 @@ fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
     ];
     let alignments = [Alignment::Left, Alignment::Right, Alignment::Right];
     render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
-}
-
-fn render_summary_join_coverage_table(report: &NnsTopologySummaryReport) -> String {
-    render_join_coverage_table([
-        (
-            report.nodes_with_known_node_provider_count,
-            report.nodes_with_unknown_node_provider_count,
-        ),
-        (
-            report.nodes_with_known_node_operator_count,
-            report.nodes_with_unknown_node_operator_count,
-        ),
-        (
-            report.nodes_with_known_data_center_count,
-            report.nodes_with_unknown_data_center_count,
-        ),
-        (
-            report.node_operators_with_known_node_provider_count,
-            report.node_operators_with_unknown_node_provider_count,
-        ),
-        (
-            report.node_operators_with_known_data_center_count,
-            report.node_operators_with_unknown_data_center_count,
-        ),
-    ])
 }

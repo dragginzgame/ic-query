@@ -37,8 +37,15 @@ pub(super) fn topology_check_derived_metrics(
         .iter()
         .map(|row| row.registry_version)
         .max();
-    let known_join_count = known_join_count(summary);
-    let unknown_join_count = unknown_join_count(summary);
+    let (known_join_count, unknown_join_count) = summary.join_counts().into_iter().fold(
+        (0_usize, 0_usize),
+        |(known, unknown), (next_known, next_unknown)| {
+            (
+                known.saturating_add(next_known),
+                unknown.saturating_add(next_unknown),
+            )
+        },
+    );
 
     NnsTopologyCheckDerivedMetrics {
         registry_source_count: summary.registry_versions.len(),
@@ -59,22 +66,4 @@ pub(super) fn topology_check_derived_metrics(
         unknown_join_count,
         join_coverage: coverage_percent_text(known_join_count, unknown_join_count),
     }
-}
-
-const fn known_join_count(report: &NnsTopologySummaryReport) -> usize {
-    report
-        .nodes_with_known_node_provider_count
-        .saturating_add(report.nodes_with_known_node_operator_count)
-        .saturating_add(report.nodes_with_known_data_center_count)
-        .saturating_add(report.node_operators_with_known_node_provider_count)
-        .saturating_add(report.node_operators_with_known_data_center_count)
-}
-
-const fn unknown_join_count(report: &NnsTopologySummaryReport) -> usize {
-    report
-        .nodes_with_unknown_node_provider_count
-        .saturating_add(report.nodes_with_unknown_node_operator_count)
-        .saturating_add(report.nodes_with_unknown_data_center_count)
-        .saturating_add(report.node_operators_with_unknown_node_provider_count)
-        .saturating_add(report.node_operators_with_unknown_data_center_count)
 }

@@ -7,7 +7,7 @@
 #[cfg(feature = "sns-host")]
 mod errors;
 mod identity;
-mod reports;
+pub(in crate::sns::report) mod reports;
 mod requests;
 mod sorts;
 
@@ -40,15 +40,6 @@ pub use reports::{
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
-};
-pub(in crate::sns::report) use reports::{
-    recompute_reward_checkpoint_summary, validated_reward_checkpoint_summary,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use reports::{
-    validate_maturity_disbursements, validate_neuron_permissions,
-    validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
-    validate_sns_reward_running_version_evidence,
 };
 pub use requests::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,

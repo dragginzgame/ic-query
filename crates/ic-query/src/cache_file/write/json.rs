@@ -6,10 +6,10 @@
 
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use ic_host_artifacts::artifact::BoundedWriter;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_host_artifacts::artifact::HashingWriter;
 #[cfg(any(feature = "certified-subnet-catalog-host", test))]
 use ic_host_artifacts::artifact::MatchingWriter;
+#[cfg(feature = "subnet-catalog-host")]
+use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter};
 use serde::Serialize;
 use std::{
     io,
@@ -40,9 +40,18 @@ pub fn canonical_json_sha256<T>(value: &T) -> Result<[u8; 32], serde_json::Error
 where
     T: Serialize + ?Sized,
 {
+    Ok(*canonical_json_identity(value)?.sha256.as_bytes())
+}
+
+/// Return the byte count and SHA-256 of canonical compact JSON without retaining encoded bytes.
+#[cfg(feature = "subnet-catalog-host")]
+pub fn canonical_json_identity<T>(value: &T) -> Result<ArtifactIdentity, serde_json::Error>
+where
+    T: Serialize + ?Sized,
+{
     let mut writer = HashingWriter::new(io::sink(), u64::MAX);
     serde_json::to_writer(&mut writer, value)?;
-    Ok(*writer.into_parts().1.sha256.as_bytes())
+    Ok(writer.into_parts().1)
 }
 
 /// Return whether `bytes` are the exact canonical compact JSON encoding of `value`.
@@ -222,6 +231,16 @@ mod tests {
         let value = serde_json::json!({"schema_version": 1, "rows": ["escape\nλ", "b"]});
         let canonical = serde_json::to_vec(&value).expect("encode canonical fixture");
 
+        #[cfg(feature = "subnet-catalog-host")]
+        {
+            let identity = canonical_json_identity(&value).expect("canonical identity");
+            assert_eq!(identity.bytes, canonical.len() as u64);
+            assert_eq!(
+                identity.sha256,
+                ic_host_artifacts::artifact::Sha256Digest::compute(&canonical)
+            );
+            assert!(canonical_json_identity(&FailingSerialization).is_err());
+        }
         assert_eq!(
             canonical_json_serialized_len(&value).expect("count canonical JSON"),
             u64::try_from(canonical.len()).expect("fixture length fits u64")

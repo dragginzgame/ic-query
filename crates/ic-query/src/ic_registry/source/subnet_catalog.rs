@@ -4,8 +4,7 @@ use crate::{
         CANISTER_RANGES_KEY_PREFIX, MainnetRegistryFetchRequest, RegistryFetchError,
         SubnetCatalogRegistryFailure,
         catalog::{
-            CatalogRegistryReader, catalog_from_registry_records_detailed, get_catalog_record,
-            record_failure,
+            CatalogReadContext, CatalogRegistryReader, catalog_from_registry_records_detailed,
         },
         transport::{
             RegistryQueryCounter, get_latest_version_counted, get_registry_key_family_counted,
@@ -74,10 +73,6 @@ pub async fn fetch_with_acquisition(
     collect_pinned_catalog(request, registry_version, &reader).await
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "routing-source selection and its evidence stay in one auditable fail-closed sequence"
-)]
 async fn collect_pinned_catalog<R>(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,
@@ -86,45 +81,34 @@ async fn collect_pinned_catalog<R>(
 where
     R: CatalogRegistryReader,
 {
-    let mut registry_records = Vec::new();
+    let mut context = CatalogReadContext::new(request, registry_version, reader);
 
     let subnet_list_subject = SubnetCatalogRegistryRecordSubject::subnet_list();
-    let (subnet_list, _) = get_catalog_record::<_, SubnetListRecord>(
-        reader,
-        &subnet_list_subject,
-        registry_version,
-        request,
-        &mut registry_records,
-    )
-    .await?;
+    let (subnet_list, _) = context
+        .record::<SubnetListRecord>(&subnet_list_subject)
+        .await?;
 
     let shard_keys = reader
         .key_family(CANISTER_RANGES_KEY_PREFIX, registry_version)
         .await
         .map_err(|source| {
-            record_failure(
-                request,
-                registry_version,
+            context.record_failure(
                 SubnetCatalogRegistryRecordSubject::exact_keyed(
                     SubnetCatalogRegistryRecordKind::RoutingTable,
                     format!("{CANISTER_RANGES_KEY_PREFIX}*"),
                 ),
                 None,
-                registry_records.clone(),
                 source,
             )
         })?;
 
     if shard_keys.is_empty() {
-        return Err(record_failure(
-            request,
-            registry_version,
+        return Err(context.record_failure(
             SubnetCatalogRegistryRecordSubject::exact_keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 format!("{CANISTER_RANGES_KEY_PREFIX}*"),
             ),
             None,
-            registry_records,
             RegistryFetchError::InvalidRegistryKeyFamily {
                 reason: format!(
                     "pinned mainnet Registry version {registry_version} has no authoritative canister-ranges shards"
@@ -133,57 +117,38 @@ where
         ));
     }
 
-    let mut shard_subjects = Vec::with_capacity(shard_keys.len());
+    let mut shards = Vec::with_capacity(shard_keys.len());
     for key in shard_keys {
         let range_start =
             canister_range_start_from_key(CANISTER_RANGES_KEY_PREFIX, &key).map_err(|reason| {
-                record_failure(
-                    request,
-                    registry_version,
+                context.record_failure(
                     SubnetCatalogRegistryRecordSubject::exact_keyed(
                         SubnetCatalogRegistryRecordKind::RoutingTable,
                         &key,
                     ),
                     None,
-                    registry_records.clone(),
                     RegistryFetchError::InvalidRegistryKeyFamily { reason },
                 )
             })?;
-        shard_subjects.push(SubnetCatalogRegistryRecordSubject::canister_ranges(
-            range_start.into(),
-        ));
+        shards.push(CatalogRoutingShard {
+            subject: SubnetCatalogRegistryRecordSubject::canister_ranges(range_start.into()),
+            range_start,
+        });
     }
     let mut routing_table = RoutingTable::default();
-    for (index, subject) in shard_subjects.iter().enumerate() {
-        let (shard, returned_version) = get_catalog_record::<_, RoutingTable>(
-            reader,
-            subject,
-            registry_version,
-            request,
-            &mut registry_records,
-        )
-        .await?;
-        let next_start = shard_subjects
-            .get(index + 1)
-            .and_then(|next| next.canister_range_start)
-            .map(Into::into);
-        let lower_bound = subject
-            .canister_range_start
-            .expect("canister-ranges subject has a range start")
-            .into();
+    for (index, descriptor) in shards.iter().enumerate() {
+        let subject = &descriptor.subject;
+        let (shard, returned_version) = context.record::<RoutingTable>(subject).await?;
         validate_routing_table_shard_bounds(
             &subject.key,
-            &lower_bound,
+            &descriptor.range_start,
             &shard,
-            next_start.as_ref(),
+            shards.get(index + 1).map(|next| &next.range_start),
         )
         .map_err(|reason| {
-            record_failure(
-                request,
-                registry_version,
+            context.record_failure(
                 subject.clone(),
                 Some(returned_version),
-                registry_records.clone(),
                 RegistryFetchError::InvalidRegistryKeyFamily { reason },
             )
         })?;
@@ -191,16 +156,13 @@ where
     }
     let routing_source = SubnetCatalogRoutingSource::CanisterRanges;
 
-    catalog_from_registry_records_detailed(
-        request,
-        registry_version,
-        reader,
-        subnet_list,
-        routing_table,
-        routing_source,
-        registry_records,
-    )
-    .await
+    catalog_from_registry_records_detailed(context, subnet_list, routing_table, routing_source)
+        .await
+}
+
+struct CatalogRoutingShard {
+    subject: SubnetCatalogRegistryRecordSubject,
+    range_start: ic_platform::Principal,
 }
 
 struct AgentCatalogRegistryReader<'a> {

@@ -363,16 +363,9 @@ pub fn project_nns_certified_subnet_catalog<'a>(
         fetched_at: format_utc_timestamp_secs(
             manifest.maximum_certificate_time_nanos / 1_000_000_000,
         ),
-        certified_registry: Some(CertifiedRegistryCatalogEvidence {
-            archive_manifest_schema_version: manifest.schema_version,
-            delta_report_schema_version: manifest.delta_report_schema_version,
-            replay_provenance_schema_version: manifest.replay_provenance_schema_version,
-            root_key_digest: manifest.root_key_digest.clone(),
-            evidence_chain_digest: manifest.evidence_chain_digest.clone(),
-            complete_state_digest: manifest.complete_state_digest.clone(),
-            minimum_certificate_time_nanos: manifest.minimum_certificate_time_nanos,
-            maximum_certificate_time_nanos: manifest.maximum_certificate_time_nanos,
-        }),
+        certified_registry: Some(
+            CertifiedRegistryCatalogEvidence::from_authenticated_archive(archive),
+        ),
         fetched_by: "ic-query".to_string(),
         collector_version: env!("CARGO_PKG_VERSION").to_string(),
         classification_schema_version: crate::subnet_catalog::CLASSIFICATION_SCHEMA_VERSION,

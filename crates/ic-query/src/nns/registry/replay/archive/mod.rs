@@ -15,17 +15,17 @@ use super::{
     validated_batch_prefix_counts,
 };
 use crate::{
+    cache_file::canonical_json_identity,
     hex::hex_bytes,
     http_endpoint::parse_http_endpoint,
     nns::registry::{
         NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsAuthenticatedRegistryDeltaBatch,
-        NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError,
+        NnsRegistryHostError,
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter, Sha256Digest};
+use ic_host_artifacts::artifact::Sha256Digest;
 use serde::{Deserialize, Serialize};
-use std::io;
 use thiserror::Error as ThisError;
 
 #[cfg(test)]
@@ -231,7 +231,11 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
             !self.batches.is_empty() && self.replay.replay_session().is_complete();
         let (segment_ordinal, segment_target_version) =
             self.next_segment(batch, begins_extension)?;
-        let report_encoding = canonical_report_encoding(batch.report())?;
+        let report_encoding = canonical_json_identity(batch.report()).map_err(|error| {
+            NnsCertifiedRegistryArchiveError::ReportEncoding {
+                reason: error.to_string(),
+            }
+        })?;
         enforce_archive_limit(
             "batch report bytes",
             report_encoding.bytes,
@@ -747,19 +751,6 @@ impl ManifestTotals {
             manifest.applied_mutation_count,
         )
     }
-}
-
-fn canonical_report_encoding(
-    report: &NnsCertifiedRegistryDeltaBatchReport,
-) -> Result<ArtifactIdentity, NnsCertifiedRegistryArchiveError> {
-    let mut writer = HashingWriter::new(io::sink(), u64::MAX);
-    serde_json::to_writer(&mut writer, report).map_err(|error| {
-        NnsCertifiedRegistryArchiveError::ReportEncoding {
-            reason: error.to_string(),
-        }
-    })?;
-    let (_, identity) = writer.into_parts();
-    Ok(identity)
 }
 
 fn required_session_value<T>(

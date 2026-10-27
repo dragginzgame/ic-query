@@ -48,6 +48,27 @@ fn canister_provenance_is_tagged_and_derives_replicated_assurance() {
 }
 
 #[test]
+fn replicated_provenance_requires_canonical_collector_evidence() {
+    for (collector, accepted) in [("aaaaa-aa", true), ("AAAAA-AA", false), ("invalid", false)] {
+        let provenance = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+            collector_canister_id: collector.to_string(),
+        };
+        let result = validate_source_provenance(
+            &NnsGovernanceSourceSelection::ReplicatedInterCanisterCall,
+            &provenance,
+        );
+        if accepted {
+            result.expect("canonical collector evidence");
+        } else {
+            assert!(matches!(
+                result,
+                Err(NnsGovernanceError::SourceEvidenceMismatch { .. })
+            ));
+        }
+    }
+}
+
+#[test]
 fn source_provenance_must_echo_the_selected_transport() {
     let selection = NnsGovernanceSourceSelection::ReplicaQuery {
         endpoint: "https://example.test".to_string(),

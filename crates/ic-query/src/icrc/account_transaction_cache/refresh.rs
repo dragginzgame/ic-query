@@ -19,11 +19,10 @@ use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache},
     icrc::{
+        ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCollectionSource,
+        LiveIcrcSource,
         ledger::principal_from_text,
-        live::{
-            ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCollectionSource,
-            LiveIcrcSource, account_transactions::validate_canonical_account_transactions,
-        },
+        live::account_transactions::validate_canonical_account_transactions,
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
             IcrcAccountTransactionError, IcrcAccountTransactionRefreshReport,

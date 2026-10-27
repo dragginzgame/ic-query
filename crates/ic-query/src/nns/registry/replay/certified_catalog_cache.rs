@@ -404,40 +404,55 @@ pub async fn load_nns_certified_subnet_catalog<'a>(
     projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
     request: &NnsCertifiedSubnetCatalogLoadRequest,
 ) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    if request.policy == NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
-        return publish_cache_with_disposition(
-            archive,
-            projection_request,
-            &request.location,
-            NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
-        );
+    let (cached, mut disposition) =
+        if request.policy == NnsCertifiedSubnetCatalogReadPolicy::ForcePublication {
+            (
+                None,
+                NnsCertifiedSubnetCatalogCacheDisposition::ForcedPublication,
+            )
+        } else {
+            match read_cached_envelope(&request.location) {
+                Ok(envelope) => (
+                    Some(envelope),
+                    NnsCertifiedSubnetCatalogCacheDisposition::CacheHit,
+                ),
+                Err(error) => (
+                    None,
+                    publication_after_error(request.policy, &error).ok_or(error)?,
+                ),
+            }
+        };
+    let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
+    let expected = cache_envelope(&authority)?;
+    if let Some(cached) = cached
+        && let Some(field) = first_envelope_mismatch(&cached, &expected)
+    {
+        let error = NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field };
+        disposition = publication_after_error(request.policy, &error).ok_or(error)?;
     }
-
-    let error = match load_cached_catalog(archive, projection_request, &request.location) {
-        Ok(outcome) => return Ok(outcome),
-        Err(error) => error,
-    };
-    let Some(disposition) = publication_after_error(request.policy, &error) else {
-        return Err(error);
-    };
-    publish_cache_with_disposition(archive, projection_request, &request.location, disposition)
+    let path = nns_certified_subnet_catalog_cache_path(&request.location.cache_directory);
+    if disposition != NnsCertifiedSubnetCatalogCacheDisposition::CacheHit {
+        publish_cache(&request.location, &path, &expected)?;
+    }
+    let archive_manifest_sha256 = expected.archive_manifest_sha256;
+    Ok(NnsCertifiedSubnetCatalogLoadOutcome {
+        authority,
+        path,
+        archive_manifest_sha256,
+        disposition,
+    })
 }
 
-fn publish_cache_with_disposition<'a>(
-    archive: &'a NnsAuthenticatedRegistryArchive,
-    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
+fn publish_cache(
     location: &NnsCertifiedSubnetCatalogCacheLocation,
-
-    disposition: NnsCertifiedSubnetCatalogCacheDisposition,
-) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
-    let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
-    let envelope = cache_envelope(&authority)?;
-    let cache_path = nns_certified_subnet_catalog_cache_path(&location.cache_directory);
+    cache_path: &Path,
+    envelope: &CertifiedCatalogCacheEnvelopeRef<'_>,
+) -> Result<(), NnsCertifiedSubnetCatalogCacheError> {
     let lock_path = nns_certified_subnet_catalog_cache_refresh_lock_path(&location.cache_directory);
-    let encoded_length = canonical_json_serialized_len(&envelope)
+    let encoded_length = canonical_json_serialized_len(envelope)
         .map_err(|source| NnsCertifiedSubnetCatalogCacheError::Serialization { source })?;
-    enforce_cache_limit(&cache_path, encoded_length, location.maximum_cache_bytes)?;
-    create_managed_parent_directory(&location.cache_root, &cache_path).map_err(file_operation)?;
+    enforce_cache_limit(cache_path, encoded_length, location.maximum_cache_bytes)?;
+    create_managed_parent_directory(&location.cache_root, cache_path).map_err(file_operation)?;
     with_refresh_lock(
         RefreshLockRequest {
             cache_root: &location.cache_root,
@@ -445,26 +460,17 @@ fn publish_cache_with_disposition<'a>(
         },
         file_operation,
         || {
-            write_managed_file_atomically(&location.cache_root, &cache_path, |file| {
-                serde_json::to_writer(file, &envelope)
+            write_managed_file_atomically(&location.cache_root, cache_path, |file| {
+                serde_json::to_writer(file, envelope)
             })
             .map_err(file_operation)
         },
-    )?;
-    let archive_manifest_sha256 = envelope.archive_manifest_sha256;
-    Ok(NnsCertifiedSubnetCatalogLoadOutcome {
-        authority,
-        path: cache_path,
-        archive_manifest_sha256,
-        disposition,
-    })
+    )
 }
 
-fn load_cached_catalog<'a>(
-    archive: &'a NnsAuthenticatedRegistryArchive,
-    projection_request: &NnsCertifiedSubnetCatalogProjectionRequest,
+fn read_cached_envelope(
     location: &NnsCertifiedSubnetCatalogCacheLocation,
-) -> Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError> {
+) -> Result<NnsCertifiedSubnetCatalogCacheEnvelope, NnsCertifiedSubnetCatalogCacheError> {
     let cache_path = nns_certified_subnet_catalog_cache_path(&location.cache_directory);
     let bytes = read_bounded_cache(location, &cache_path)?.ok_or_else(|| {
         NnsCertifiedSubnetCatalogCacheError::MissingCache {
@@ -491,17 +497,7 @@ fn load_cached_catalog<'a>(
     {
         return Err(NnsCertifiedSubnetCatalogCacheError::NonCanonicalEncoding { path: cache_path });
     }
-    let authority = project_nns_certified_subnet_catalog(archive, projection_request)?;
-    let expected = cache_envelope(&authority)?;
-    if let Some(field) = first_envelope_mismatch(&envelope, &expected) {
-        return Err(NnsCertifiedSubnetCatalogCacheError::ArchiveBindingMismatch { field });
-    }
-    Ok(NnsCertifiedSubnetCatalogLoadOutcome {
-        authority,
-        path: cache_path,
-        archive_manifest_sha256: envelope.archive_manifest_sha256,
-        disposition: NnsCertifiedSubnetCatalogCacheDisposition::CacheHit,
-    })
+    Ok(envelope)
 }
 
 const fn publication_after_error(

@@ -10,11 +10,13 @@ use super::{
     ICRC_BALANCE_REPORT_SCHEMA_VERSION, ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
     ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION, ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION,
     ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION, ICRC_TOKEN_REPORT_SCHEMA_VERSION,
-    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION, IcrcAccountTransactionPageSource, IcrcAllowanceSource,
-    IcrcArchivesSource, IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource,
-    IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource,
-    LiveIcrcSource,
+    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
     account_transactions::{normalize_transaction_cursor, validate_account_transaction_page},
+    source::{
+        IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource,
+        IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource,
+        IcrcTipCertificateSource, IcrcTokenSource, IcrcTransactionsSource, LiveIcrcSource,
+    },
 };
 use crate::icrc::{
     ledger::principal_from_text,

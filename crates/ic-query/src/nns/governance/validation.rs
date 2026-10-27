@@ -14,7 +14,7 @@ use super::{
     NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
 };
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
-use crate::subnet_catalog::{MAINNET_NETWORK, canonical_principal_text};
+use crate::subnet_catalog::MAINNET_NETWORK;
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 
 pub fn validate_governance_request(
@@ -222,20 +222,17 @@ pub fn validate_source_provenance(
             NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
                 collector_canister_id,
             },
-        ) => {
-            let canonical = canonical_principal_text(collector_canister_id).map_err(|error| {
-                NnsGovernanceError::SourceEvidenceMismatch {
-                    reason: format!("invalid collector_canister_id: {error}"),
-                }
-            })?;
-            if canonical == *collector_canister_id {
-                Ok(())
-            } else {
-                Err(NnsGovernanceError::SourceEvidenceMismatch {
-                    reason: "collector_canister_id is not canonical principal text".to_string(),
-                })
-            }
-        }
+        ) => crate::principal_text::validate_canonical(
+            collector_canister_id,
+            |reason| NnsGovernanceError::SourceEvidenceMismatch {
+                reason: format!(
+                    "invalid collector_canister_id: invalid principal in principal: {collector_canister_id}: {reason}"
+                ),
+            },
+            |_| NnsGovernanceError::SourceEvidenceMismatch {
+                reason: "collector_canister_id is not canonical principal text".to_string(),
+            },
+        ),
         _ => Err(NnsGovernanceError::SourceEvidenceMismatch {
             reason: format!("requested {selection:?}, received {provenance:?}"),
         }),

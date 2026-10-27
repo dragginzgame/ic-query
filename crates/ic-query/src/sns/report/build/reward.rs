@@ -11,8 +11,10 @@ use crate::sns::report::{
     assemble::{SnsRewardCheckpointReportParts, sns_reward_checkpoint_report_from_parts},
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
-    recompute_reward_checkpoint_summary, validate_sns_reward_checkpoint_parameter_evidence,
-    validate_sns_reward_event_evidence, validate_sns_reward_running_version_evidence,
+    model::reports::neurons::reward::{
+        recompute_reward_checkpoint_summary, validate_sns_reward_checkpoint_parameter_evidence,
+        validate_sns_reward_event_evidence, validate_sns_reward_running_version_evidence,
+    },
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 

@@ -92,7 +92,7 @@ impl RawSubnetCatalog {
         self.provenance.resolver_schema_version = RESOLVER_SCHEMA_VERSION;
         self.provenance.resolver_backend = RESOLVER_BACKEND.to_string();
         self.catalog_digest = Sha256Digest::from_bytes(canonical_catalog_digest(self)?).to_string();
-        self.validate()
+        self.validate_metadata()
     }
 
     /// Promote matching single-endpoint evidence into one sealed agreement snapshot.
@@ -112,6 +112,11 @@ impl RawSubnetCatalog {
 
     /// Validate schema, fixed mainnet identity, raw classifications, and routing structure.
     pub fn validate(&self) -> Result<(), CatalogError> {
+        self.validate_metadata()?;
+        validate_subnet_catalog_content(&self.subnets, &self.routing_ranges)
+    }
+
+    fn validate_metadata(&self) -> Result<(), CatalogError> {
         if self.catalog_schema_version != CATALOG_SCHEMA_VERSION {
             return Err(CatalogError::UnsupportedSchemaVersion {
                 found: self.catalog_schema_version,
@@ -138,7 +143,7 @@ impl RawSubnetCatalog {
             "provenance.registry_canister_id",
         )?;
 
-        validate_subnet_catalog_content(&self.subnets, &self.routing_ranges)
+        Ok(())
     }
 
     /// Find one raw Subnet row by canonical principal text.
@@ -171,17 +176,23 @@ pub fn canonicalize_subnet_catalog_content(
             Ok::<_, CatalogError>((
                 principal_bytes(&range.start_canister_id, "start_canister_id")?,
                 principal_bytes(&range.end_canister_id, "end_canister_id")?,
-                range.subnet_principal.clone(),
                 range,
             ))
         })
         .collect::<Result<Vec<_>, _>>()?;
     keyed_ranges.sort_by(|left, right| {
-        compare_routing_keys(&left.0, &left.1, &left.2, &right.0, &right.1, &right.2)
+        compare_routing_keys(
+            &left.0,
+            &left.1,
+            &left.2.subnet_principal,
+            &right.0,
+            &right.1,
+            &right.2.subnet_principal,
+        )
     });
     *routing_ranges = keyed_ranges
         .into_iter()
-        .map(|(_, _, _, range)| range)
+        .map(|(_, _, range)| range)
         .collect();
     apply_mainnet_classification_policy(subnets);
     validate_subnet_catalog_content(subnets, routing_ranges)
@@ -210,7 +221,7 @@ fn validate_subnet_catalog_content(
             });
         }
         previous_subnet = Some(subnet.subnet_principal.as_str());
-        if !subnet_principals.insert(subnet.subnet_principal.clone()) {
+        if !subnet_principals.insert(subnet.subnet_principal.as_str()) {
             return Err(CatalogError::DuplicateSubnet {
                 subnet_principal: subnet.subnet_principal.clone(),
             });
@@ -220,7 +231,7 @@ fn validate_subnet_catalog_content(
 
     let mut validated_ranges = Vec::with_capacity(routing_ranges.len());
     for range in routing_ranges {
-        if !subnet_principals.contains(&range.subnet_principal) {
+        if !subnet_principals.contains(range.subnet_principal.as_str()) {
             return Err(CatalogError::UnknownRoutingSubnet {
                 subnet_principal: range.subnet_principal.clone(),
             });
@@ -716,21 +727,30 @@ fn validate_assurance(
 }
 
 #[cfg(feature = "certified-subnet-catalog-host")]
+impl super::CertifiedRegistryCatalogEvidence {
+    pub(crate) fn from_authenticated_archive(archive: &NnsAuthenticatedRegistryArchive) -> Self {
+        let manifest = archive.manifest();
+        Self {
+            archive_manifest_schema_version: manifest.schema_version,
+            delta_report_schema_version: manifest.delta_report_schema_version,
+            replay_provenance_schema_version: manifest.replay_provenance_schema_version,
+            root_key_digest: manifest.root_key_digest.clone(),
+            evidence_chain_digest: manifest.evidence_chain_digest.clone(),
+            complete_state_digest: manifest.complete_state_digest.clone(),
+            minimum_certificate_time_nanos: manifest.minimum_certificate_time_nanos,
+            maximum_certificate_time_nanos: manifest.maximum_certificate_time_nanos,
+        }
+    }
+}
+
+#[cfg(feature = "certified-subnet-catalog-host")]
 fn validate_certified_archive_binding(
     raw: &RawSubnetCatalog,
     archive: &NnsAuthenticatedRegistryArchive,
 ) -> Result<(), CatalogError> {
     let manifest = archive.manifest();
-    let expected_evidence = super::CertifiedRegistryCatalogEvidence {
-        archive_manifest_schema_version: manifest.schema_version,
-        delta_report_schema_version: manifest.delta_report_schema_version,
-        replay_provenance_schema_version: manifest.replay_provenance_schema_version,
-        root_key_digest: manifest.root_key_digest.clone(),
-        evidence_chain_digest: manifest.evidence_chain_digest.clone(),
-        complete_state_digest: manifest.complete_state_digest.clone(),
-        minimum_certificate_time_nanos: manifest.minimum_certificate_time_nanos,
-        maximum_certificate_time_nanos: manifest.maximum_certificate_time_nanos,
-    };
+    let expected_evidence =
+        super::CertifiedRegistryCatalogEvidence::from_authenticated_archive(archive);
     if raw.provenance.assurance != CatalogAssurance::Certified
         || raw.provenance.network != manifest.network
         || raw.provenance.registry_canister_id != manifest.registry_canister_id

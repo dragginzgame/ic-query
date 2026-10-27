@@ -8,7 +8,9 @@ use crate::{
     hex::{hex_bytes, is_lowercase_hex},
     sns::report::{
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsHostError, SnsNeuronId, SnsRewardCheckpointRow,
-        model::{validate_maturity_disbursements, validate_neuron_permissions},
+        model::reports::neurons::detail::{
+            validate_maturity_disbursements, validate_neuron_permissions,
+        },
     },
 };
 

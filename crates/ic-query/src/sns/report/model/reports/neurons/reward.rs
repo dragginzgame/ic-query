@@ -7,7 +7,7 @@
 use super::{
     SnsMaturityDisbursementRow, SnsNeuronPermissionRow,
     detail::{
-        SnsPolicyObservationStatus, neuron_policy_observations,
+        SnsPolicyObservationStatus, neuron_policy_observations, permission_code_is_assessable,
         permission_code_policy_observations, validate_canonical_principal,
         validate_maturity_disbursements, validate_neuron_permissions,
     },
@@ -260,18 +260,32 @@ pub struct SnsRewardCheckpointValidationError {
 pub fn validate_sns_reward_checkpoint_report(
     report: &SnsRewardCheckpointReport,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
-    validated_reward_checkpoint_summary(report).map(|_| ())
+    validate_checkpoint_evidence(report)?;
+    assess_checkpoint_summary(report).0
 }
 
-/// Validate untrusted checkpoint evidence and retain the derived summary for projection.
-pub(in crate::sns::report) fn validated_reward_checkpoint_summary(
+/// Retain recomputed evidence even when checkpoint validation fails during reconciliation.
+pub(in crate::sns::report) fn assess_reward_checkpoint(
     report: &SnsRewardCheckpointReport,
-) -> Result<SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError> {
-    validate_checkpoint_evidence(report)?;
-    let summary = recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows)
-        .map_err(invalid_validation)?;
-    validate_checkpoint_summary(report, &summary)?;
-    Ok(summary)
+) -> (
+    Result<(), SnsRewardCheckpointValidationError>,
+    Option<SnsRewardCheckpointSummary>,
+) {
+    let evidence = validate_checkpoint_evidence(report);
+    let (summary_validation, summary) = assess_checkpoint_summary(report);
+    (evidence.and(summary_validation), summary)
+}
+
+fn assess_checkpoint_summary(
+    report: &SnsRewardCheckpointReport,
+) -> (
+    Result<(), SnsRewardCheckpointValidationError>,
+    Option<SnsRewardCheckpointSummary>,
+) {
+    match recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows) {
+        Ok(summary) => (validate_checkpoint_summary(report, &summary), Some(summary)),
+        Err(reason) => (Err(invalid_validation(reason)), None),
+    }
 }
 
 impl SnsRewardCheckpointReport {
@@ -758,7 +772,7 @@ fn accumulate_reward_row_counts(
             row.permissions
                 .iter()
                 .flat_map(|permission| permission.permission_types.iter())
-                .filter(|value| !(1..=10).contains(&value.code))
+                .filter(|value| !permission_code_is_assessable(value.code))
                 .count(),
         )
         .ok_or_else(|| "unassessable permission code count overflow".to_string())?;
@@ -797,7 +811,7 @@ fn parameter_policy_observations(
             let (code_mint, code_staking) = permission_code_policy_observations(*code);
             mint = mint.combine(code_mint);
             staking = staking.combine(code_staking);
-            if !(1..=10).contains(code) {
+            if !permission_code_is_assessable(*code) {
                 unknown_count += 1;
             }
         }
