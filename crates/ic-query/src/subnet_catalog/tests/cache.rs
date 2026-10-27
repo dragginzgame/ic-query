@@ -1,8 +1,36 @@
 use super::{fixtures::*, *};
 use crate::{CacheFileError, HostCacheError};
+use std::error::Error;
 
 #[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};
+
+#[tokio::test(flavor = "current_thread")]
+async fn load_failure_preserves_display_direct_host_source_and_into_source() {
+    let root = temp_dir("ic-query-catalog-error-contract");
+    let request = cache_only_load_request(&root);
+    let failure = load_subnet_catalog_detailed_with_source(&request, &FixtureRefreshSource::err())
+        .await
+        .expect_err("missing cache");
+    let original_message = failure.source.to_string();
+    assert_eq!(
+        failure.to_string(),
+        format!("Subnet Catalog load failed at cache_absence: {original_message}")
+    );
+    let source = failure.source().expect("direct host source");
+    assert!(std::ptr::eq(
+        std::ptr::from_ref(source.downcast_ref::<SubnetCatalogHostError>().unwrap()),
+        std::ptr::from_ref(&failure.source),
+    ));
+    assert_eq!(failure.request.network, MAINNET_NETWORK);
+    assert_eq!(failure.stage, SubnetCatalogLoadStage::CacheAbsence);
+    assert_eq!(
+        failure.cache_disposition,
+        SubnetCatalogFailureCacheDisposition::CacheMissing,
+    );
+    assert_eq!(failure.into_source().to_string(), original_message);
+    fs::remove_dir_all(root).unwrap();
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn invalid_utf8_catalog_obeys_content_repair_policy() {

@@ -97,6 +97,8 @@ STUB
 
 check_release_assertions
 
+bash "$repo_root/scripts/ci/test-retained-evidence.sh"
+
 copy_makefile() {
   mkdir -p "$1"
   bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$1" \
@@ -1140,15 +1142,7 @@ cat > "${dependency_check_case}/bin/date" <<'EOF'
 printf '%s\n' "${FIXTURE_REVIEW_DATE:-2026-11-06}"
 EOF
 chmod +x "${dependency_check_case}/bin/date"
-for review_date in 2026-11-07 2026-11-08 invalid; do
-  status=0
-  PATH="${dependency_check_case}/bin:${PATH}" FIXTURE_REVIEW_DATE="$review_date" \
-    bash "$repo_root/scripts/ci/check-dependencies.sh" /bin/true /bin/true \
-    > "$dependency_check_case/review-output" 2>&1 || status=$?
-  [[ "$status" == 2 ]] || fail 'dependency advisory acceptance outlived its review date'
-  grep -Fq 'acceptance requires review' "$dependency_check_case/review-output" \
-    || fail 'dependency advisory review refusal lost its diagnostic'
-done
+bash "$repo_root/scripts/ci/test-dependency-review.sh"
 chmod +x "${dependency_check_case}/bin/selected audit" "${dependency_check_case}/bin/selected machete"
 TMPDIR="${dependency_check_case}/tmp" PATH="${dependency_check_case}/bin:${PATH}" \
   EXPECTED_TMP_ROOT="${dependency_check_case}/tmp" \

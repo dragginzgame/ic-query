@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.5]
+
+### 🩹 Fixed
+
+- Use fixture-owned executable tools for advisory-review checks and retain
+  per-date refusal diagnostics and failed preparation evidence. [#105](https://github.com/dragginzgame/ic-query/issues/105)
+- Archive failed CI fixtures before upload so unusual filenames cannot prevent
+  retention of validation logs and original evidence. [#105](https://github.com/dragginzgame/ic-query/issues/105)
+
+### 🧹 Cleanup
+
+- Derive catalog-load and development smoke-command error chaining while
+  preserving original causes, retained evidence and display behavior. [#106](https://github.com/dragginzgame/ic-query/issues/106)
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.74.4] - 2026-10-27
 
 ### 🧹 Cleanup

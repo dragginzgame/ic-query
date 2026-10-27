@@ -16,6 +16,7 @@ use std::{
     sync::atomic::{AtomicI32, Ordering},
     time::{Duration, Instant},
 };
+use thiserror::Error as ThisError;
 
 static INTERRUPTED: AtomicI32 = AtomicI32::new(0);
 
@@ -102,8 +103,9 @@ impl Default for CommandOptions<'_> {
 /// Original operation failure with captured bytes and separate cleanup evidence.
 ///
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub struct CommandFailure {
+    #[source]
     pub source: Box<dyn Error>,
     pub stdout: Option<Vec<u8>>,
     pub stderr: Option<Vec<u8>>,
@@ -114,13 +116,8 @@ pub struct CommandFailure {
 
 impl fmt::Display for CommandFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // A derived format string creates a new formatter and loses the caller's flags.
         self.source.fmt(formatter)
-    }
-}
-
-impl Error for CommandFailure {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(self.source.as_ref())
     }
 }
 

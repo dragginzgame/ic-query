@@ -12,12 +12,52 @@ use ic_host_fs::{
 use ic_host_process::tool::{ExecutionFailure, ToolError};
 use protocol::Probe;
 use std::{
+    fmt,
     os::unix::{
         ffi::OsStringExt,
         fs::{PermissionsExt, symlink},
     },
     time::{Duration, Instant},
 };
+
+#[derive(Debug)]
+struct FormattedCause;
+
+impl fmt::Display for FormattedCause {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.pad("cause")
+    }
+}
+
+impl Error for FormattedCause {}
+
+#[test]
+fn command_failure_preserves_display_flags_and_direct_erased_source() {
+    let failure = CommandFailure {
+        source: Box::new(FormattedCause),
+        stdout: Some(b"stdout".to_vec()),
+        stderr: Some(b"stderr".to_vec()),
+        cleanup_errors: Vec::new(),
+        exited: true,
+        interrupted: Some(libc::SIGTERM),
+    };
+    assert_eq!(failure.to_string(), "cause");
+    assert_eq!(
+        format!("{failure:>9.3}"),
+        format!("{:>9.3}", failure.source)
+    );
+    assert_eq!(
+        format!("{failure:*^11}"),
+        format!("{:*^11}", failure.source)
+    );
+    let source = failure.source().expect("original cause");
+    assert!(source.downcast_ref::<FormattedCause>().is_some());
+    assert!(std::ptr::eq(source, failure.source.as_ref()));
+    assert_eq!(failure.stdout.as_deref(), Some(b"stdout".as_slice()));
+    assert_eq!(failure.stderr.as_deref(), Some(b"stderr".as_slice()));
+    assert!(failure.exited);
+    assert_eq!(failure.interrupted, Some(libc::SIGTERM));
+}
 
 fn payload(kind: &str) -> Value {
     json!({"status":"ok", "report":{

@@ -13,7 +13,8 @@ use crate::subnet_catalog::{
     SubnetCatalogRegistryRecordSubject,
 };
 use ic_platform::candid::contract::Principal;
-use std::{error::Error, fmt, path::PathBuf};
+use std::path::PathBuf;
+use thiserror::Error as ThisError;
 
 ///
 /// SubnetCatalogLoadFailureRequest
@@ -307,7 +308,8 @@ impl SubnetCatalogSourceFailure {
 /// Complete typed failure returned by detailed Subnet Catalog load APIs.
 ///
 
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
+#[error("Subnet Catalog load failed at {}: {source}", .stage.as_str())]
 pub struct SubnetCatalogLoadFailure {
     /// Requested network, selected source, and minimum assurance.
     pub request: SubnetCatalogLoadFailureRequest,
@@ -334,6 +336,7 @@ pub struct SubnetCatalogLoadFailure {
     /// Typed retry classification, including truthful unknown results.
     pub retryability: SubnetCatalogRetryability,
     /// Original host error without string conversion or replacement.
+    #[source]
     pub source: SubnetCatalogHostError,
 }
 
@@ -368,23 +371,6 @@ impl SubnetCatalogLoadFailure {
     #[must_use]
     pub fn into_source(self: Box<Self>) -> SubnetCatalogHostError {
         self.source
-    }
-}
-
-impl fmt::Display for SubnetCatalogLoadFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "Subnet Catalog load failed at {}: {}",
-            self.stage.as_str(),
-            self.source
-        )
-    }
-}
-
-impl Error for SubnetCatalogLoadFailure {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&self.source)
     }
 }
 

@@ -20,7 +20,8 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$work_dir/fixture-tool"
 chmod +x "$work_dir/fixture-tool"
 for owner in check-ci-scripts check-release-cache check-release-metadata \
   check-release-guards check-publish-guards check-public-docs \
-  check-library-feature-boundaries check-dependencies test-fixture-completion; do
+  check-library-feature-boundaries check-dependencies test-dependency-review \
+  test-retained-evidence test-fixture-completion; do
   # Execute the actual setup/handler prefix; stop before any validation effects.
   awk '{ print } /^export TMPDIR=/ { found=1; exit } END { if (!found) exit 1 }' \
     "$repo_root/scripts/ci/$owner.sh" > "$work_dir/scripts/ci/$owner.sh"

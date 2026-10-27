@@ -46,6 +46,8 @@ jq="$repo_root/.tools/host/bin/jq"
     .run == "echo \"RUSTUP_TOOLCHAIN=$MSRV\" >> \"$GITHUB_ENV\"")) and
   ($workflow.jobs.canister.steps | any(.[]; .if == "always()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
+  ($workflow.jobs.checks.steps | all(.[] | select((.uses // "") | startswith("actions/upload-artifact@"));
+    (.with.path | split("\n") | map(select(length > 0))) == ["${{ runner.temp }}/ic-query-tool-evidence.*/"])) and
   ([$workflow.jobs.checks, $workflow.jobs.canister] | all(.[];
     any(.steps[]; ((.uses // "") | startswith("actions/upload-artifact@")) and
       ((.with.path // "") | contains("ic-query-tool-evidence.*/")) and
