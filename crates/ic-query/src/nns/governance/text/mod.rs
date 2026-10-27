@@ -31,7 +31,24 @@ pub fn context_lines(context: &NnsGovernanceReportContext) -> Vec<String> {
     lines
 }
 
-pub fn source_lines(source: &NnsGovernanceSourceProvenance) -> Vec<String> {
+pub fn collection_context_lines(
+    network: &str,
+    governance_canister_id: &str,
+    started_at: &str,
+    updated_at: &str,
+    source: &NnsGovernanceSourceProvenance,
+) -> Vec<String> {
+    let mut lines = vec![
+        format!("network: {}", terminal_text(network)),
+        format!("governance_canister_id: {governance_canister_id}"),
+        format!("collection_started_at: {}", terminal_text(started_at)),
+        format!("collection_updated_at: {}", terminal_text(updated_at)),
+    ];
+    lines.extend(source_lines(source));
+    lines
+}
+
+fn source_lines(source: &NnsGovernanceSourceProvenance) -> Vec<String> {
     let mut lines = Vec::new();
     match source {
         NnsGovernanceSourceProvenance::ReplicaQuery {

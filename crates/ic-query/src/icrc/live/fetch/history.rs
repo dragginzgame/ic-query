@@ -22,7 +22,7 @@ use crate::{
     },
 };
 use ic_platform::agent::Agent;
-use ic_platform::candid::contract::{CandidType, Nat, Principal};
+use ic_platform::candid::contract::{Nat, Principal};
 use ic_platform::icrc_ledger_types::{
     ArchivedBlocks, BlockWithId, GetArchivesArgs, GetBlocksRequest, GetBlocksResult,
     ICRC3ArchiveInfo, ICRC3DataCertificate, ICRC3Value, SupportedBlockType,
@@ -74,7 +74,7 @@ pub(in crate::icrc::live) async fn fetch_transactions_async(
         start: Nat::from(request.start),
         length: Nat::from(request.limit),
     }];
-    let result = query_blocks::<_, IcrcError>(&agent, &ledger_canister, &block_args).await?;
+    let result = query_blocks::<IcrcError>(&agent, &ledger_canister, &block_args).await?;
     validate_block_page(&result, request)?;
     let followed_archives = if request.follow_archives {
         fetch_archive_blocks(&agent, &result.archived_blocks).await
@@ -390,22 +390,21 @@ pub(in crate::icrc::live) async fn fetch_tip_certificate_async(
     query_tip_certificate::<IcrcError>(&agent, &ledger_canister).await
 }
 
-pub(super) async fn query_blocks<Args, E>(
+pub(super) async fn query_blocks<E>(
     agent: &Agent,
     canister: &Principal,
-    args: &Args,
+    args: &[GetBlocksRequest],
 ) -> Result<GetBlocksResult, E>
 where
-    Args: CandidType + Sync,
     E: CandidCallError,
 {
-    query_canister::<Args, GetBlocksResult, E>(
+    query_canister::<_, GetBlocksResult, E>(
         agent,
         canister,
         ICRC3_GET_BLOCKS_METHOD,
         ICRC3_GET_BLOCKS_METHOD,
         ICRC3_GET_BLOCKS_METHOD,
-        args,
+        &args,
     )
     .await
 }

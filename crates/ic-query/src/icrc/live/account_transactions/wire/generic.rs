@@ -175,22 +175,13 @@ fn account_transactions_page(
 
 fn account_transaction_row(transaction: IcrcIndexTransactionWithId) -> IcrcAccountTransactionRow {
     let summary = transaction_summary(&transaction.transaction);
-    IcrcAccountTransactionRow {
-        id: nat_text(&transaction.id),
-        kind: transaction.transaction.kind.clone(),
-        timestamp_unix_nanos: Some(transaction.transaction.timestamp.to_string()),
-        amount_base_units: summary.amount_base_units,
-        fee_base_units: summary.fee_base_units,
-        from: summary.from,
-        to: summary.to,
-        spender: summary.spender,
-        memo_hex: summary.memo_hex,
-        created_at_time_unix_nanos: summary.created_at_time_unix_nanos,
-        expires_at_unix_nanos: summary.expires_at_unix_nanos,
-        expected_allowance_base_units: summary.expected_allowance_base_units,
-        raw_transaction: serde_json::to_value(&transaction.transaction)
+    summary.into_row(
+        nat_text(&transaction.id),
+        transaction.transaction.kind.clone(),
+        Some(transaction.transaction.timestamp.to_string()),
+        serde_json::to_value(&transaction.transaction)
             .expect("index transaction JSON serialization is infallible"),
-    }
+    )
 }
 
 fn transaction_summary(transaction: &IcrcIndexTransaction) -> TransactionSummary {

@@ -45,6 +45,18 @@ pub fn dashboard_provenance_lines(provenance: &IcDashboardReportProvenance) -> V
     ]
 }
 
+fn query_window_lines(start_unix_secs: u64, end_unix_secs: u64) -> [String; 2] {
+    [
+        format!("start_unix_secs: {start_unix_secs}"),
+        format!("end_unix_secs: {end_unix_secs}"),
+    ]
+}
+
+fn series_query_lines(start_unix_secs: u64, end_unix_secs: u64, step_secs: u32) -> [String; 3] {
+    let [start, end] = query_window_lines(start_unix_secs, end_unix_secs);
+    [start, end, format!("step_secs: {step_secs}")]
+}
+
 /// Render one official boundary-node data-center report as human-facing text.
 #[must_use]
 pub fn ic_boundary_node_data_centers_report_text(
@@ -79,11 +91,11 @@ pub fn ic_boundary_node_data_centers_report_text(
 #[must_use]
 pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        format!("start_unix_secs: {}", report.query.start_unix_secs),
-        format!("end_unix_secs: {}", report.query.end_unix_secs),
-        format!("returned_day_count: {}", report.returned_day_count),
-    ]);
+    lines.extend(query_window_lines(
+        report.query.start_unix_secs,
+        report.query.end_unix_secs,
+    ));
+    lines.extend([format!("returned_day_count: {}", report.returned_day_count)]);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -220,10 +232,12 @@ pub fn ic_node_provider_reward_history_report_text(
     report: &IcNodeProviderRewardHistoryReport,
 ) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
+    lines.extend(series_query_lines(
+        report.query.start_unix_secs,
+        report.query.end_unix_secs,
+        report.query.step_secs,
+    ));
     lines.extend([
-        format!("start_unix_secs: {}", report.query.start_unix_secs),
-        format!("end_unix_secs: {}", report.query.end_unix_secs),
-        format!("step_secs: {}", report.query.step_secs),
         format!(
             "requested_observation_limit: {}",
             report.requested_observation_limit
@@ -354,11 +368,13 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
 #[must_use]
 pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
+    lines.extend([format!("metric: {}", report.query.metric)]);
+    lines.extend(series_query_lines(
+        report.query.start_unix_secs,
+        report.query.end_unix_secs,
+        report.query.step_secs,
+    ));
     lines.extend([
-        format!("metric: {}", report.query.metric),
-        format!("start_unix_secs: {}", report.query.start_unix_secs),
-        format!("end_unix_secs: {}", report.query.end_unix_secs),
-        format!("step_secs: {}", report.query.step_secs),
         format!("returned_series_count: {}", report.returned_series_count),
         format!(
             "returned_observation_count: {}",
@@ -569,13 +585,15 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
 #[must_use]
 pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
+    lines.extend([format!(
+        "ledger_canister_id: {}",
+        terminal_text(&report.ledger_canister_id)
+    )]);
+    lines.extend(query_window_lines(
+        report.query.start_unix_secs,
+        report.query.end_unix_secs,
+    ));
     lines.extend([
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&report.ledger_canister_id)
-        ),
-        format!("start_unix_secs: {}", report.query.start_unix_secs),
-        format!("end_unix_secs: {}", report.query.end_unix_secs),
         format!("limit: {}", report.query.limit),
         format!("returned_row_count: {}", report.returned_row_count),
         format!("limit_reached: {}", yes_no(report.limit_reached)),
@@ -604,14 +622,16 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
 #[must_use]
 pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
+    lines.extend([format!(
+        "ledger_canister_id: {}",
+        terminal_text(&report.ledger_canister_id)
+    )]);
+    lines.extend(series_query_lines(
+        report.query.start_unix_secs,
+        report.query.end_unix_secs,
+        report.query.step_secs,
+    ));
     lines.extend([
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&report.ledger_canister_id)
-        ),
-        format!("start_unix_secs: {}", report.query.start_unix_secs),
-        format!("end_unix_secs: {}", report.query.end_unix_secs),
-        format!("step_secs: {}", report.query.step_secs),
         format!(
             "requested_observation_limit: {}",
             report.requested_observation_limit

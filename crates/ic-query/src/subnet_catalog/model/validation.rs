@@ -32,6 +32,8 @@ use crate::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 use ic_host_artifacts::artifact::Sha256Digest;
+#[cfg(feature = "subnet-catalog-host")]
+use std::collections::BTreeMap;
 use std::{cmp::Ordering, collections::BTreeSet};
 
 impl RawSubnetCatalog {
@@ -375,9 +377,7 @@ fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), Catal
         .iter()
         .map(|subnet| subnet.subnet_principal.clone())
         .collect::<BTreeSet<_>>();
-    let mut subnet_list_endpoints = BTreeSet::new();
-    let mut routing_endpoints = BTreeSet::new();
-    let mut subnet_record_identities = BTreeSet::new();
+    let mut coverage_by_endpoint = BTreeMap::<&str, EndpointRecordCoverage>::new();
     let mut previous_record = None;
     for evidence in &raw.provenance.registry_records {
         if evidence.requested_registry_version != raw.provenance.registry_version {
@@ -416,36 +416,41 @@ fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), Catal
         }
         previous_record = Some(record_identity);
 
-        match validated_registry_record_subject(
+        let subject = validated_registry_record_subject(
             evidence,
             raw.provenance.routing_source,
             &expected_subnets,
-        )? {
+        )?;
+        let coverage = coverage_by_endpoint
+            .entry(evidence.source_endpoint.as_str())
+            .or_default();
+        match subject {
             RegistryRecordEvidenceSubject::SubnetList => {
-                subnet_list_endpoints.insert(evidence.source_endpoint.as_str());
+                coverage.has_subnet_list = true;
             }
             RegistryRecordEvidenceSubject::Routing => {
-                routing_endpoints.insert(evidence.source_endpoint.as_str());
+                coverage.has_routing = true;
             }
             RegistryRecordEvidenceSubject::Subnet(subnet) => {
-                subnet_record_identities.insert((evidence.source_endpoint.as_str(), subnet));
+                coverage.subnets.insert(subnet);
             }
         }
     }
 
     for endpoint in &raw.provenance.source_endpoints {
-        if !subnet_list_endpoints.contains(endpoint.as_str()) {
+        let coverage = coverage_by_endpoint.entry(endpoint.as_str()).or_default();
+        if !coverage.has_subnet_list {
             return Err(invalid_registry_record_evidence(format!(
                 "source endpoint {endpoint:?} has no Subnet-list record evidence"
             )));
         }
-        if !routing_endpoints.contains(endpoint.as_str()) {
+        if !coverage.has_routing {
             return Err(invalid_registry_record_evidence(format!(
                 "source endpoint {endpoint:?} has no selected routing record evidence"
             )));
         }
         for subnet in &expected_subnets {
-            if !subnet_record_identities.contains(&(endpoint.as_str(), subnet.clone())) {
+            if !coverage.subnets.contains(subnet) {
                 return Err(invalid_registry_record_evidence(format!(
                     "source endpoint {endpoint:?} has no record evidence for Subnet {subnet}"
                 )));
@@ -453,6 +458,14 @@ fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), Catal
         }
     }
     Ok(())
+}
+
+#[cfg(feature = "subnet-catalog-host")]
+#[derive(Default)]
+struct EndpointRecordCoverage {
+    has_subnet_list: bool,
+    has_routing: bool,
+    subnets: BTreeSet<String>,
 }
 
 #[cfg(feature = "subnet-catalog-host")]

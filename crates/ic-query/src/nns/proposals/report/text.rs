@@ -19,7 +19,9 @@ use super::model::{
     NnsProposalRow, NnsProposalStatus, NnsProposalTopic,
 };
 use crate::{
-    nns::governance::{NnsGovernanceVote, governance_context_lines, governance_source_lines},
+    nns::governance::{
+        NnsGovernanceVote, governance_collection_context_lines, governance_context_lines,
+    },
     text_value::{optional_u64_text, truncate_text, yes_no},
     token_amount::e8s_decimal_text,
 };
@@ -42,19 +44,13 @@ pub fn nns_proposal_activity_report_text(report: &NnsProposalActivityReport) -> 
 }
 
 fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!(
-            "collection_started_at: {}",
-            terminal_text(&report.collection_started_at)
-        ),
-        format!(
-            "collection_updated_at: {}",
-            terminal_text(&report.collection_updated_at)
-        ),
-    ];
-    lines.extend(governance_source_lines(&report.source));
+    let mut lines = governance_collection_context_lines(
+        &report.network,
+        &report.governance_canister_id,
+        &report.collection_started_at,
+        &report.collection_updated_at,
+        &report.source,
+    );
     lines.extend([
         format!("collection_page_count: {}", report.collection_page_count),
         format!(

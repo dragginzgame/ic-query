@@ -137,25 +137,16 @@ fn account_transaction_row(transaction: IcpIndexTransactionWithId) -> IcrcAccoun
         .transaction
         .created_at_time
         .map(|timestamp| timestamp.timestamp_nanos.to_string());
-    IcrcAccountTransactionRow {
-        id: transaction.id.to_string(),
-        kind: kind.to_string(),
-        timestamp_unix_nanos: transaction
+    summary.into_row(
+        transaction.id.to_string(),
+        kind.to_string(),
+        transaction
             .transaction
             .timestamp
             .map(|timestamp| timestamp.timestamp_nanos.to_string()),
-        amount_base_units: summary.amount_base_units,
-        fee_base_units: summary.fee_base_units,
-        from: summary.from,
-        to: summary.to,
-        spender: summary.spender,
-        memo_hex: summary.memo_hex,
-        created_at_time_unix_nanos: summary.created_at_time_unix_nanos,
-        expires_at_unix_nanos: summary.expires_at_unix_nanos,
-        expected_allowance_base_units: summary.expected_allowance_base_units,
-        raw_transaction: serde_json::to_value(&transaction.transaction)
+        serde_json::to_value(&transaction.transaction)
             .expect("ICP index transaction JSON serialization is infallible"),
-    }
+    )
 }
 
 fn operation_summary(operation: &IcpIndexOperation) -> (&'static str, TransactionSummary) {

@@ -1,6 +1,35 @@
 //! Shared native NNS classification codecs and ballot votes.
 
 macro_rules! native_code_classification {
+    (@codec $name:ident, $classification:literal, $unknown:ident, {
+        $($label:literal => $variant:ident,)+
+    }) => {
+        impl serde::Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: serde::Serializer,
+            {
+                serializer.collect_str(self)
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                $crate::nns::governance::deserialize_code_label(
+                    deserializer,
+                    $classification,
+                    |label| match label {
+                        $($label => Some(Self::$variant),)+
+                        _ => None,
+                    },
+                    Self::$unknown,
+                )
+            }
+        }
+    };
     (
         $classification:literal;
         $(#[$enum_meta:meta])*
@@ -52,31 +81,12 @@ macro_rules! native_code_classification {
             }
         }
 
-        impl serde::Serialize for $name {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                serializer.collect_str(self)
+        $crate::nns::governance::native_code_classification! {
+            @codec $name, $classification, $unknown, {
+                $($label => $variant,)+
             }
         }
 
-        impl<'de> serde::Deserialize<'de> for $name {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                $crate::nns::governance::deserialize_code_label(
-                    deserializer,
-                    $classification,
-                    |label| match label {
-                        $($label => Some(Self::$variant),)+
-                        _ => None,
-                    },
-                    Self::$unknown,
-                )
-            }
-        }
     };
 }
 
@@ -139,32 +149,13 @@ macro_rules! native_optional_code_classification {
             }
         }
 
-        impl serde::Serialize for $name {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                serializer.collect_str(self)
+        $crate::nns::governance::native_code_classification! {
+            @codec $name, $classification, $unknown, {
+                "unknown" => $absent,
+                $($label => $variant,)+
             }
         }
 
-        impl<'de> serde::Deserialize<'de> for $name {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                $crate::nns::governance::deserialize_code_label(
-                    deserializer,
-                    $classification,
-                    |label| match label {
-                        "unknown" => Some(Self::$absent),
-                        $($label => Some(Self::$variant),)+
-                        _ => None,
-                    },
-                    Self::$unknown,
-                )
-            }
-        }
     };
 }
 

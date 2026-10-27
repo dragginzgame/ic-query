@@ -293,6 +293,50 @@ fn authority_validation_requires_call_counts_and_recomputes_agreement_digest() {
 }
 
 #[test]
+fn agreement_requires_complete_registry_evidence_from_each_endpoint() {
+    let mut agreement = fixture_catalog();
+    let alpha = "https://alpha.example";
+    let beta = "https://beta.example";
+    for evidence in &mut agreement.provenance.registry_records {
+        evidence.source_endpoint = alpha.to_string();
+    }
+    let mut beta_records = agreement.provenance.registry_records.clone();
+    for evidence in &mut beta_records {
+        evidence.source_endpoint = beta.to_string();
+    }
+    agreement.provenance.registry_records.extend(beta_records);
+    agreement
+        .promote_to_multi_endpoint_agreement(vec![alpha.to_string(), beta.to_string()], 10)
+        .expect("promote complete agreement");
+
+    for missing_kind in [
+        SubnetCatalogRegistryRecordKind::SubnetList,
+        SubnetCatalogRegistryRecordKind::RoutingTable,
+        SubnetCatalogRegistryRecordKind::SubnetRecord,
+    ] {
+        let mut incomplete = agreement.clone();
+        incomplete.provenance.registry_records.retain(|evidence| {
+            evidence.source_endpoint != beta || evidence.record.kind != missing_kind
+        });
+        incomplete
+            .promote_to_multi_endpoint_agreement(vec![alpha.to_string(), beta.to_string()], 10)
+            .expect("seal incomplete agreement evidence");
+        let error = ValidatedSubnetCatalog::try_from_raw(incomplete, &validation_context())
+            .expect_err("each endpoint must carry complete evidence");
+        assert!(
+            matches!(
+                &error,
+                CatalogError::InvalidProvenance {
+                    field: "provenance.registry_records",
+                    reason,
+                } if reason.contains(beta)
+            ),
+            "missing {missing_kind:?}: {error:?}"
+        );
+    }
+}
+
+#[test]
 fn authority_validation_requires_complete_exact_registry_record_subjects() {
     let complete = fixture_catalog();
     ValidatedSubnetCatalog::try_from_raw(complete.clone(), &validation_context())

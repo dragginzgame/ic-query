@@ -15,6 +15,24 @@ const INVENTORY_VALIDATOR: SnsSourceValidator =
 const METADATA_VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS metadata");
 const LIFECYCLE_VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS lifecycle");
 
+enum EnrichmentKind {
+    Metadata,
+    Lifecycle,
+}
+
+impl EnrichmentKind {
+    const fn context(self) -> (&'static str, &'static str, SnsSourceValidator) {
+        match self {
+            Self::Metadata => ("metadata", "metadata root_canister_id", METADATA_VALIDATOR),
+            Self::Lifecycle => (
+                "lifecycle",
+                "lifecycle root_canister_id",
+                LIFECYCLE_VALIDATOR,
+            ),
+        }
+    }
+}
+
 ///
 /// MainnetSnsInventory
 ///
@@ -251,8 +269,7 @@ fn index_mainnet_sns_metadata(
             .map(|sns| sns.root_canister_id.as_str())
             .collect(),
         metadata,
-        "metadata",
-        METADATA_VALIDATOR,
+        EnrichmentKind::Metadata,
         |row| &row.root_canister_id,
         |row| {
             for (field, value) in [
@@ -286,8 +303,7 @@ fn index_mainnet_sns_lifecycles(
             .map(|sns| sns.canisters.root_canister_id.as_str())
             .collect(),
         lifecycles,
-        "lifecycle",
-        LIFECYCLE_VALIDATOR,
+        EnrichmentKind::Lifecycle,
         |row| &row.root_canister_id,
         |row| {
             validate_lifecycle_fields(
@@ -303,19 +319,14 @@ fn index_mainnet_sns_lifecycles(
 fn index_enrichment_rows<Row>(
     mut expected_roots: BTreeSet<&str>,
     rows: Vec<Row>,
-    kind: &'static str,
-    validator: SnsSourceValidator,
+    kind: EnrichmentKind,
     root: impl Fn(&Row) -> &str,
     validate: impl Fn(&Row) -> Result<(), SnsHostError>,
 ) -> Result<BTreeMap<String, Row>, SnsHostError> {
+    let (kind, field, validator) = kind.context();
     let mut by_root = BTreeMap::new();
     for row in rows {
         let root = root(&row);
-        let field = match kind {
-            "metadata" => "metadata root_canister_id",
-            "lifecycle" => "lifecycle root_canister_id",
-            _ => unreachable!("only metadata and lifecycle enrichment are indexed"),
-        };
         validator.canonical_principal(field, root)?;
         if by_root.contains_key(root) {
             return Err(validator.invalid(format!("duplicate {kind} root canister id {root}")));

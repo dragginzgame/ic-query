@@ -2,7 +2,7 @@
 //!
 //! Responsibility: query the account-history index method and select its supported response codec.
 //! Does not own: index discovery, collection state, public reports, caching, or text rendering.
-//! Boundary: shares only the request envelope; generic ICRC and deployed ICP responses remain separate.
+//! Boundary: shares request and report assembly; generic ICRC and deployed ICP response codecs remain separate.
 
 use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 mod generic;
@@ -11,7 +11,9 @@ mod json;
 
 use super::collection::AccountTransactionsPage;
 use crate::candid_call::query_bytes;
-use crate::icrc::model::{IcrcAccountRow, IcrcAccountTransactionError, IcrcError};
+use crate::icrc::model::{
+    IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow, IcrcError,
+};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
 
@@ -36,6 +38,32 @@ struct TransactionSummary {
     created_at_time_unix_nanos: Option<String>,
     expires_at_unix_nanos: Option<String>,
     expected_allowance_base_units: Option<String>,
+}
+
+impl TransactionSummary {
+    fn into_row(
+        self,
+        id: String,
+        kind: String,
+        timestamp_unix_nanos: Option<String>,
+        raw_transaction: serde_json::Value,
+    ) -> IcrcAccountTransactionRow {
+        IcrcAccountTransactionRow {
+            id,
+            kind,
+            timestamp_unix_nanos,
+            amount_base_units: self.amount_base_units,
+            fee_base_units: self.fee_base_units,
+            from: self.from,
+            to: self.to,
+            spender: self.spender,
+            memo_hex: self.memo_hex,
+            created_at_time_unix_nanos: self.created_at_time_unix_nanos,
+            expires_at_unix_nanos: self.expires_at_unix_nanos,
+            expected_allowance_base_units: self.expected_allowance_base_units,
+            raw_transaction,
+        }
+    }
 }
 
 pub(super) async fn query_account_transaction_page(

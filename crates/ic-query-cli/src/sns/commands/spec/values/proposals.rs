@@ -4,157 +4,94 @@
 //! Does not own: live proposal request mapping or report view behavior.
 //! Boundary: converts CLI option values into report-model values.
 
-use clap::ValueEnum;
+use crate::cli::value_enum_with_conversion;
 use ic_query::sns::{
     SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 
-///
-/// SnsProposalsSortArg
-///
-/// Command-local clap value accepted by `icq sns proposal list <SNS> --sort`.
-///
+value_enum_with_conversion! {
+    ///
+    /// SnsProposalsSortArg
+    ///
+    /// Command-local clap value accepted by `icq sns proposal list <SNS> --sort`.
+    ///
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsProposalsSortArg {
-    #[default]
-    Api,
-    Id,
-    Status,
-    Topic,
-    Proposer,
-    Title,
-    Action,
-    ActionId,
-    Yes,
-    No,
-    TotalVotes,
-    TallyTime,
-    Ballots,
-    Eligible,
-    RejectCost,
-    RewardRound,
-    RewardEnd,
-    Created,
-    Decided,
-    Executed,
-    Failed,
-}
-
-impl From<SnsProposalsSortArg> for SnsProposalsSort {
-    fn from(value: SnsProposalsSortArg) -> Self {
-        match value {
-            SnsProposalsSortArg::Api => Self::Api,
-            SnsProposalsSortArg::Id => Self::Id,
-            SnsProposalsSortArg::Status => Self::Status,
-            SnsProposalsSortArg::Topic => Self::Topic,
-            SnsProposalsSortArg::Proposer => Self::Proposer,
-            SnsProposalsSortArg::Title => Self::Title,
-            SnsProposalsSortArg::Action => Self::Action,
-            SnsProposalsSortArg::ActionId => Self::ActionId,
-            SnsProposalsSortArg::Yes => Self::Yes,
-            SnsProposalsSortArg::No => Self::No,
-            SnsProposalsSortArg::TotalVotes => Self::TotalVotes,
-            SnsProposalsSortArg::TallyTime => Self::TallyTime,
-            SnsProposalsSortArg::Ballots => Self::Ballots,
-            SnsProposalsSortArg::Eligible => Self::Eligible,
-            SnsProposalsSortArg::RejectCost => Self::RejectCost,
-            SnsProposalsSortArg::RewardRound => Self::RewardRound,
-            SnsProposalsSortArg::RewardEnd => Self::RewardEnd,
-            SnsProposalsSortArg::Created => Self::Created,
-            SnsProposalsSortArg::Decided => Self::Decided,
-            SnsProposalsSortArg::Executed => Self::Executed,
-            SnsProposalsSortArg::Failed => Self::Failed,
-        }
+    pub(in crate::sns::commands) enum SnsProposalsSortArg => SnsProposalsSort {
+        #[default]
+        Api,
+        Id,
+        Status,
+        Topic,
+        Proposer,
+        Title,
+        Action,
+        ActionId,
+        Yes,
+        No,
+        TotalVotes,
+        TallyTime,
+        Ballots,
+        Eligible,
+        RejectCost,
+        RewardRound,
+        RewardEnd,
+        Created,
+        Decided,
+        Executed,
+        Failed,
     }
 }
 
-///
-/// SnsProposalEligibilityArg
-///
-/// Command-local clap value accepted by `icq sns proposal list <SNS> --eligible`.
-///
+value_enum_with_conversion! {
+    ///
+    /// SnsProposalEligibilityArg
+    ///
+    /// Command-local clap value accepted by `icq sns proposal list <SNS> --eligible`.
+    ///
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsProposalEligibilityArg {
-    #[default]
-    Any,
-    Yes,
-    No,
-}
-
-impl From<SnsProposalEligibilityArg> for SnsProposalEligibilityFilter {
-    fn from(value: SnsProposalEligibilityArg) -> Self {
-        match value {
-            SnsProposalEligibilityArg::Any => Self::Any,
-            SnsProposalEligibilityArg::Yes => Self::Yes,
-            SnsProposalEligibilityArg::No => Self::No,
-        }
+    pub(in crate::sns::commands) enum SnsProposalEligibilityArg => SnsProposalEligibilityFilter {
+        #[default]
+        Any,
+        Yes,
+        No,
     }
 }
 
-///
-/// SnsProposalStatusArg
-///
-/// Command-local clap value accepted by `icq sns proposal list <SNS> --status`.
-///
+value_enum_with_conversion! {
+    ///
+    /// SnsProposalStatusArg
+    ///
+    /// Command-local clap value accepted by `icq sns proposal list <SNS> --status`.
+    ///
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsProposalStatusArg {
-    #[default]
-    Any,
-    Open,
-    Decided,
-    Rejected,
-    Adopted,
-    Executed,
-    Failed,
-}
-
-impl From<SnsProposalStatusArg> for SnsProposalStatusFilter {
-    fn from(value: SnsProposalStatusArg) -> Self {
-        match value {
-            SnsProposalStatusArg::Any => Self::Any,
-            SnsProposalStatusArg::Open => Self::Open,
-            SnsProposalStatusArg::Decided => Self::Decided,
-            SnsProposalStatusArg::Rejected => Self::Rejected,
-            SnsProposalStatusArg::Adopted => Self::Adopted,
-            SnsProposalStatusArg::Executed => Self::Executed,
-            SnsProposalStatusArg::Failed => Self::Failed,
-        }
+    pub(in crate::sns::commands) enum SnsProposalStatusArg => SnsProposalStatusFilter {
+        #[default]
+        Any,
+        Open,
+        Decided,
+        Rejected,
+        Adopted,
+        Executed,
+        Failed,
     }
 }
 
-///
-/// SnsProposalTopicArg
-///
-/// Command-local clap value accepted by `icq sns proposal list <SNS> --topic`.
-///
+value_enum_with_conversion! {
+    ///
+    /// SnsProposalTopicArg
+    ///
+    /// Command-local clap value accepted by `icq sns proposal list <SNS> --topic`.
+    ///
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsProposalTopicArg {
-    #[default]
-    Any,
-    DaoCommunitySettings,
-    SnsFrameworkManagement,
-    DappCanisterManagement,
-    ApplicationBusinessLogic,
-    Governance,
-    TreasuryAssetManagement,
-    CriticalDappOperations,
-}
-
-impl From<SnsProposalTopicArg> for SnsProposalTopicFilter {
-    fn from(value: SnsProposalTopicArg) -> Self {
-        match value {
-            SnsProposalTopicArg::Any => Self::Any,
-            SnsProposalTopicArg::DaoCommunitySettings => Self::DaoCommunitySettings,
-            SnsProposalTopicArg::SnsFrameworkManagement => Self::SnsFrameworkManagement,
-            SnsProposalTopicArg::DappCanisterManagement => Self::DappCanisterManagement,
-            SnsProposalTopicArg::ApplicationBusinessLogic => Self::ApplicationBusinessLogic,
-            SnsProposalTopicArg::Governance => Self::Governance,
-            SnsProposalTopicArg::TreasuryAssetManagement => Self::TreasuryAssetManagement,
-            SnsProposalTopicArg::CriticalDappOperations => Self::CriticalDappOperations,
-        }
+    pub(in crate::sns::commands) enum SnsProposalTopicArg => SnsProposalTopicFilter {
+        #[default]
+        Any,
+        DaoCommunitySettings,
+        SnsFrameworkManagement,
+        DappCanisterManagement,
+        ApplicationBusinessLogic,
+        Governance,
+        TreasuryAssetManagement,
+        CriticalDappOperations,
     }
 }

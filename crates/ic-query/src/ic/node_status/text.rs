@@ -27,7 +27,7 @@ pub fn ic_node_status_report_text(report: &IcNodeStatusReport) -> String {
     let mut sections = observation_lines(&report.observation);
     sections.push(counts_line("nodes", &report.counts.statuses));
     sections.push(assignment_status_line(&report.counts.assignment_statuses));
-    push_table_section(&mut sections, render_node_table(&report.nodes));
+    push_table_section(&mut sections, render_node_table(report.nodes.iter()));
     sections.join("\n")
 }
 
@@ -94,16 +94,15 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
             REPORT_TABLE_OPTIONS,
         ),
     );
-    let non_up = report
+    let mut non_up = report
         .subnets
         .iter()
         .flat_map(|subnet| subnet.non_up_nodes.iter())
-        .cloned()
-        .collect::<Vec<_>>();
-    if !non_up.is_empty() {
+        .peekable();
+    if non_up.peek().is_some() {
         sections.push(String::new());
         sections.push("non-up node evidence:".to_string());
-        sections.push(render_node_table(&non_up));
+        sections.push(render_node_table(non_up));
     }
     sections.join("\n")
 }
@@ -283,10 +282,10 @@ fn comparison_counts_text(counts: &IcNodeCountComparisonCounts) -> String {
     format!("{}/{}/{}", counts.less, counts.equal, counts.greater)
 }
 
-fn render_node_table(nodes: &[IcNodeStatusRow]) -> String {
+fn render_node_table<'a>(nodes: impl IntoIterator<Item = &'a IcNodeStatusRow>) -> String {
     let headers = ["NODE", "STATUS", "TYPE", "SUBNET", "PROVIDER", "ALERT"];
     let rows = nodes
-        .iter()
+        .into_iter()
         .map(|node| {
             [
                 compact(&node.node_id),

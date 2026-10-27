@@ -56,7 +56,8 @@ pub(crate) use source::canister::{call_with_arg, canister_provenance};
 pub(crate) use source::host::host_request;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
 pub(crate) use text::{
-    context_lines as governance_context_lines, source_lines as governance_source_lines,
+    collection_context_lines as governance_collection_context_lines,
+    context_lines as governance_context_lines,
 };
 #[cfg(feature = "nns-host")]
 pub use text::{nns_governance_cache_status_report_text, nns_governance_refresh_report_text};

@@ -96,7 +96,7 @@ async fn fetch_blocks_capability(agent: &Agent, ledger_canister: &Principal) -> 
     capability_result(
         "ICRC-3 block history",
         ICRC3_GET_BLOCKS_METHOD,
-        query_blocks::<_, CapabilityQueryError>(agent, ledger_canister, &block_args).await,
+        query_blocks::<CapabilityQueryError>(agent, ledger_canister, &block_args).await,
         |result| {
             format!(
                 "log_length {}, returned_blocks {}, archive_callbacks {}",

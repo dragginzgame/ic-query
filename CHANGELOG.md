@@ -5,6 +5,19 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.74.4]
+
+### 🧹 Cleanup
+
+- Consolidate proposal CLI value mappings, Governance classification codecs and
+  report assembly while preserving command behavior and public report fields.
+- Simplify Registry evidence coverage and SNS enrichment validation, retaining
+  endpoint-specific evidence, validation order and diagnostics.
+- Share NNS and Dashboard text preambles, borrow node evidence during rendering
+  and narrow ICRC block-query arguments without changing output or wire contracts.
+
+Detailed release notes: [docs/changelog/0.74.md](docs/changelog/0.74.md)
+
 ## [0.74.3] - 2026-10-26
 
 ### 🧹 Cleanup
