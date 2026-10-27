@@ -823,12 +823,18 @@ for target in fmt fmt-check; do
     CARGO_NET_OFFLINE=false RUSTUP_AUTO_INSTALL=1 MAKEFLAGS='' MAKEOVERRIDES='' \
     HOST_TOOL_VERSIONS="$format_case/ci/tool-versions.env" \
     "$make_bin" --no-print-directory -C "$format_case" "$target" > "$format_case/success.log" 2>&1
-  if [[ "$target" == fmt ]]; then printf 'Formatting... ok\n' > "$format_case/expected-output";
-  else printf 'Checking formatting... ok\n' > "$format_case/expected-output"; fi
-  cmp "$format_case/expected-output" "$format_case/success.log" || fail 'formatter success output changed'
+  printf '%s\n' \
+    'Checking formatting inputs... running without shortcut (elapsed)' \
+    'Manifest sorting [.]... ok (elapsed)' \
+    'Rust formatting [.]... ok (elapsed)' > "$format_case/expected-output"
+  sed -E 's/ \([0-9]+\.[0-9]{2}s\)$/ (elapsed)/' \
+    "$format_case/success.log" > "$format_case/actual-output"
+  cmp "$format_case/expected-output" "$format_case/actual-output" || fail 'formatter success output changed'
   if [[ "$target" == fmt ]]; then sort_command='sort --workspace --grouped'; fmt_command='fmt --all';
   else sort_command='sort --workspace --grouped --check'; fmt_command='fmt --all -- --check'; fi
-  printf '%s\n' 'sort --version' 'fmt --version' "$sort_command" "$fmt_command" > "$format_case/expected"
+  printf '%s\n' 'sort --version' 'fmt --version' \
+    'metadata --locked --offline --no-deps --format-version 1' \
+    "$sort_command" "$fmt_command" > "$format_case/expected"
   cmp "$format_case/expected" "$format_case/trace" \
     || fail "$target changed formatter order, check flags or the selected setup pin"
   for command in 'sort --version' 'fmt --version' "$sort_command" "$fmt_command"; do
@@ -842,7 +848,8 @@ for target in fmt fmt-check; do
     cmp "$format_case/expected-failure" "$format_case/trace" \
       || fail "$target continued after failed formatter admission or execution"
     if [[ "$command" == "$sort_command" || "$command" == "$fmt_command" ]]; then
-      grep -Fq 'FAILED (exit 78)' "$format_case/failure.log" || fail 'formatter failure status was lost'
+      grep -Eq 'FAILED \(exit 78, [0-9]+\.[0-9]{2}s\)$' "$format_case/failure.log" \
+        || fail 'formatter failure status was lost'
       retained=false
       for diagnostic in "$format_case/logs/"formatting.*; do
         [[ -f "$diagnostic" ]] || continue

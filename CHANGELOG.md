@@ -12,6 +12,10 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Adopt Shared Tooling 0.26.24 with visible formatting passes and hooks that
   preserve opaque submodules, retaining prepared-tool checks and failure logs.
 
+### 🩹 Fixed
+
+- Align CI formatting fixtures with per-pass output and timed failure diagnostics.
+
 ### 🧹 Cleanup
 
 - Reduce repeated work in certified catalog recovery, catalog sealing and SNS
