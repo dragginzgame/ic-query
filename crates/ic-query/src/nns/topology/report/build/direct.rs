@@ -27,10 +27,7 @@ pub async fn build_nns_topology_gaps_report_with_source(
     Ok(topology_gaps_report_from_reports(
         request.network.clone(),
         request.source_endpoint.clone(),
-        reports.node,
-        reports.node_provider,
-        reports.node_operator,
-        reports.data_center,
+        &reports,
     ))
 }
 
@@ -93,9 +90,6 @@ pub async fn build_nns_topology_providers_report_with_source(
     Ok(topology_providers_report_from_reports(
         request.network.clone(),
         request.source_endpoint.clone(),
-        reports.node,
-        reports.node_provider,
-        reports.node_operator,
-        reports.data_center,
+        &reports,
     ))
 }

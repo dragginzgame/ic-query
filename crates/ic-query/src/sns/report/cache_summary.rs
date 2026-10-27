@@ -171,11 +171,22 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn listing_reads_attempts_under_non_utf8_cache_roots() {
+    fn listing_respects_native_non_utf8_cache_root_support() {
         let parent = temp_dir("ic-query-sns-non-utf8-root");
         let root = parent.join(OsString::from_vec(b"cache-\xff".to_vec()));
         let path = root.join("sns/ic/aaaaa-aa/proposals/full.json");
-        write_managed_text_atomically(&root, &path, "{}").unwrap();
+        let written = write_managed_text_atomically(&root, &path, "{}");
+        // macOS filesystems may reject the name with EILSEQ before a root exists.
+        #[cfg(target_os = "macos")]
+        if let Err(crate::cache_file::CacheFileError::CreateDirectory { path, source }) = &written
+            && source.raw_os_error() == Some(92)
+        {
+            assert_eq!(path, &root);
+            assert!(!root.exists());
+            std::fs::remove_dir_all(parent).unwrap();
+            return;
+        }
+        written.unwrap();
         let attempt = serde_json::json!({
             "schema_version": 1,
             "network": "ic",

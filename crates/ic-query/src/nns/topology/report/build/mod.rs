@@ -3,11 +3,7 @@ mod direct;
 mod refresh;
 mod summary;
 
-use super::{NnsTopologyHostError, NnsTopologySource};
-use crate::nns::{
-    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
-    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
-};
+use super::{NnsTopologyHostError, NnsTopologySource, TopologyInventoryReports};
 
 pub use derived::{
     build_nns_topology_check_report, build_nns_topology_check_report_with_source,
@@ -24,19 +20,6 @@ pub use refresh::{refresh_nns_topology_report, refresh_nns_topology_report_with_
 pub use summary::{
     build_nns_topology_summary_report, build_nns_topology_summary_report_with_source,
 };
-
-///
-/// TopologyInventoryReports
-///
-/// Complete component inventories collected in diagnostic read order.
-///
-
-struct TopologyInventoryReports {
-    node: NnsNodeListReport,
-    node_provider: NnsNodeProviderListReport,
-    node_operator: NnsNodeOperatorListReport,
-    data_center: NnsDataCenterListReport,
-}
 
 async fn fetch_topology_inventory_reports(
     request: &crate::nns::topology::NnsTopologyReadRequest,

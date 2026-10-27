@@ -107,11 +107,13 @@ fn validate_snapshot(
         path: path.to_path_buf(),
         reason,
     };
-    if snapshot.source_endpoint != request.source_endpoint
-        || snapshot.ledger_canister_id != request.ledger_canister_id
-        || snapshot.account_owner != request.account_owner
-        || snapshot.subaccount_hex != request.subaccount_hex
-    {
+    if !cache_identity_matches(
+        request,
+        &snapshot.source_endpoint,
+        &snapshot.ledger_canister_id,
+        &snapshot.account_owner,
+        snapshot.subaccount_hex.as_deref(),
+    ) {
         return Err(invalid(
             "snapshot identity does not match the requested endpoint, ledger, or account"
                 .to_string(),
@@ -190,6 +192,19 @@ pub(super) fn normalize_cache_request(
         account_owner: account_owner.to_text(),
         subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
     })
+}
+
+pub(super) fn cache_identity_matches(
+    request: &IcrcAccountTransactionCacheRequest,
+    source_endpoint: &str,
+    ledger_canister_id: &str,
+    account_owner: &str,
+    subaccount_hex: Option<&str>,
+) -> bool {
+    source_endpoint == request.source_endpoint
+        && ledger_canister_id == request.ledger_canister_id
+        && account_owner == request.account_owner
+        && subaccount_hex == request.subaccount_hex.as_deref()
 }
 
 pub(super) fn cache_paths(request: &IcrcAccountTransactionCacheRequest) -> SnapshotJsonPaths {

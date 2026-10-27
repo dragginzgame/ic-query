@@ -115,6 +115,12 @@ evidence rather than requiring confidentiality. Newly created directories use
 `0700`, and newly published cache and lock files use `0600`. Existing permissions
 are never automatically changed.
 
+Cache roots retain native path bytes when the filesystem accepts them. A
+filesystem may reject non-UTF-8 names; that refusal remains a typed directory
+creation error with its original OS cause. The Unix cache-list fixture exercises
+sidecar reads under such a root, or verifies macOS's specific `EILSEQ` refusal
+when the filesystem cannot create it. Other setup failures remain test failures.
+
 Confinement, nonregular-path, and unsafe-mode failures are filesystem authority
 errors. Cache-only operations report them directly, and read-through policies
 must not reinterpret them as invalid content that authorizes a live refresh.

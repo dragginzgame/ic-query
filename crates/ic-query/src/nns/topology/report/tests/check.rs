@@ -6,10 +6,12 @@ fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     let report = topology_check_report_from_summary(summary);
@@ -33,10 +35,12 @@ fn topology_check_text_renders_check_table() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
     let report = topology_check_report_from_summary(summary);
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# Shared companions: scripts/ci/RustSource.pm
 use strict;
 use warnings;
 use Cwd qw(abs_path getcwd);
@@ -12,6 +13,9 @@ use File::Temp qw(tempfile);
 use Getopt::Long qw(GetOptionsFromArray);
 use JSON::PP;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+use FindBin qw($RealBin);
+use lib $RealBin;
+use RustSource qw(has_module_path_attribute);
 
 sub now { return clock_gettime(CLOCK_MONOTONIC); }
 
@@ -137,6 +141,7 @@ sub fingerprint {
     !length($ENV{RUSTFMT} // '') or die "custom rustfmt selection\n";
     my (%files, %exclude, %scanned, @selection, @metadata);
     $files{$script} = 1;
+    $files{"$RealBin/RustSource.pm"} = 1;
     for my $workspace (@workspaces) {
         chdir $workspace or die "enter formatting workspace: $!\n";
         my $raw_metadata = execute('', 1, $cargo, 'metadata', '--locked', '--offline', '--no-deps', '--format-version', '1');
@@ -223,10 +228,9 @@ sub fingerprint {
     my @contents;
     for my $path (sort keys %files) {
         my $bytes = read_bytes($path);
-        # External Rust module paths are outside the standard input contract.
-        # Conditional path attributes can also redirect a module. A conservative
-        # match may reject a comment/string; that costs reuse, never coverage.
-        $path =~ /[.]rs\z/ && $bytes =~ /(?:#\s*\[\s*path\b|\bcfg_attr\b[\s\S]*?\bpath\b)/
+        # Explicit module paths are outside the standard input contract. Restrict
+        # inspection to balanced attributes, not unrelated later source text.
+        $path =~ /[.]rs\z/ && has_module_path_attribute(decode('UTF-8', $bytes, FB_CROAK | LEAVE_SRC))
             and die "explicit module path disables reuse\n";
         push @contents, [$path, sha256_hex($bytes)];
     }

@@ -54,14 +54,8 @@ pub(super) async fn run_sns_metrics(
     let time_window_seconds = options.time_window_seconds;
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let format = lookup.format;
-    let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
-        lookup.network,
-        lookup.source_endpoint,
-        now_unix_secs,
-        lookup.input,
-    ))
-    .with_time_window_seconds(time_window_seconds);
+    let (format, lookup) = lookup.into_request(now_unix_secs);
+    let request = SnsMetricsRequest::new(lookup).with_time_window_seconds(time_window_seconds);
     let report = build_sns_metrics_report(&request).await?;
     write_text_or_json(format, &report, sns_metrics_report_text)
 }
@@ -116,13 +110,7 @@ where
 {
     let options = SnsLookupOptions::from_matches(matches, network);
     let now_unix_secs = current_unix_secs()?;
-    let format = options.format;
-    let request = SnsLookupRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs,
-        input: options.input,
-    };
+    let (format, request) = options.into_request(now_unix_secs);
     let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)
 }

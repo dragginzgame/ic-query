@@ -391,6 +391,41 @@ async fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn read_through_cache_hits_normalize_targets_without_admitting_refresh_options() {
+    let root = temp_dir("ic-query-icrc-account-normalized-hit");
+    let mut cache = cache_request(&root);
+    cache.subaccount_hex = Some("ab".repeat(32));
+    let source = SuccessSource::new(vec![row("6")]);
+    let mut request = refresh_request(cache, 1_700_000_000);
+    refresh_icrc_account_transaction_cache_with_source(&request, &source)
+        .await
+        .unwrap();
+
+    request.cache.subaccount_hex = Some("AB".repeat(32));
+    request.page_size = 0;
+    request.max_pages = Some(0);
+    request.index_canister_id = Some("invalid principal".to_string());
+    let cached = load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
+        .await
+        .expect("a usable cache does not require live refresh options");
+    assert_eq!(cached.snapshot.subaccount_hex, Some("ab".repeat(32)));
+    assert_eq!(cached.snapshot.transactions.len(), 1);
+
+    request.cache.subaccount_hex = Some("cd".repeat(32));
+    assert!(matches!(
+        load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source).await,
+        Err(IcrcAccountTransactionError::InvalidPageSize { page_size: 0, .. })
+    ));
+    request.cache.ledger_canister_id = "invalid principal".to_string();
+    assert!(matches!(
+        refresh_icrc_account_transaction_cache_with_source(&request, &source).await,
+        Err(IcrcAccountTransactionError::InvalidPageSize { page_size: 0, .. })
+    ));
+    assert_eq!(source.calls.load(Ordering::Relaxed), 1);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_explicitly() {
     let root = temp_dir("ic-query-icrc-account-timestamp-interval");
     let cache = cache_request(&root);

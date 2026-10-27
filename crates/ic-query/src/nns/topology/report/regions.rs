@@ -45,9 +45,16 @@ pub(super) fn topology_regions_report_from_report(
                 right.region.as_str(),
             ))
     });
-    let node_operator_count = regions.iter().map(|row| row.node_operator_count).sum();
-    let node_provider_count = regions.iter().map(|row| row.node_provider_count).sum();
-    let node_count = regions.iter().map(|row| row.node_count).sum();
+    let (node_operator_count, node_provider_count, node_count) =
+        regions
+            .iter()
+            .fold((0, 0, 0), |(operators, providers, nodes), row| {
+                (
+                    operators + row.node_operator_count,
+                    providers + row.node_provider_count,
+                    nodes + row.node_count,
+                )
+            });
 
     NnsTopologyRegionsReport {
         schema_version: NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION,

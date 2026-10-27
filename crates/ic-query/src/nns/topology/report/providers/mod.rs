@@ -3,42 +3,30 @@ mod status;
 
 use super::{
     NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProviderRow,
-    NnsTopologyProvidersReport, NnsTopologyRegistryVersionRow,
+    NnsTopologyProvidersReport, NnsTopologyRegistryVersionRow, TopologyInventoryReports,
     registry_versions::topology_component_registry_versions,
 };
-use crate::nns::data_center::NnsDataCenterListReport;
-use crate::nns::node::NnsNodeListReport;
-use crate::nns::node_operator::NnsNodeOperatorListReport;
-use crate::nns::node_provider::NnsNodeProviderListReport;
 use accumulator::NnsTopologyProviderAccumulator;
 use status::sort_provider_rows;
 
 pub(super) fn topology_providers_report_from_reports(
     network: String,
     source_endpoint: String,
-    node_report: NnsNodeListReport,
-    node_provider_report: NnsNodeProviderListReport,
-    node_operator_report: NnsNodeOperatorListReport,
-    data_center_report: NnsDataCenterListReport,
+    reports: &TopologyInventoryReports,
 ) -> NnsTopologyProvidersReport {
-    let mut accumulator = NnsTopologyProviderAccumulator::from_data_centers(&data_center_report);
-    accumulator.add_registered_providers(&node_provider_report);
-    accumulator.add_nodes(&node_report);
-    accumulator.add_node_operators(&node_operator_report);
+    let mut accumulator = NnsTopologyProviderAccumulator::from_data_centers(&reports.data_center);
+    accumulator.add_registered_providers(&reports.node_provider);
+    accumulator.add_nodes(&reports.node);
+    accumulator.add_node_operators(&reports.node_operator);
 
     let mut providers = accumulator.into_provider_rows();
     sort_provider_rows(&mut providers);
-    let registry_versions = topology_component_registry_versions(
-        &node_report,
-        &node_provider_report,
-        &node_operator_report,
-        &data_center_report,
-    );
+    let registry_versions = topology_component_registry_versions(reports);
 
     nns_topology_providers_report(
         network,
         source_endpoint,
-        node_provider_report.node_provider_count,
+        reports.node_provider.node_provider_count,
         registry_versions,
         providers,
     )

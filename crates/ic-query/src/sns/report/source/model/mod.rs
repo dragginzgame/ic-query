@@ -6,7 +6,7 @@
 
 mod canisters;
 mod fetch;
-mod list;
+pub(in crate::sns::report) mod list;
 mod metrics;
 mod neurons;
 mod proposals;

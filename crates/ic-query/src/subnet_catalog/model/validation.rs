@@ -386,9 +386,9 @@ fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), Catal
     let expected_subnets = raw
         .subnets
         .iter()
-        .map(|subnet| subnet.subnet_principal.clone())
+        .map(|subnet| subnet.subnet_principal.as_str())
         .collect::<BTreeSet<_>>();
-    let mut coverage_by_endpoint = BTreeMap::<&str, EndpointRecordCoverage>::new();
+    let mut coverage_by_endpoint = BTreeMap::<&str, EndpointRecordCoverage<'_>>::new();
     let mut previous_record = None;
     for evidence in &raw.provenance.registry_records {
         if evidence.requested_registry_version != raw.provenance.registry_version {
@@ -473,25 +473,25 @@ fn validate_registry_record_evidence(raw: &RawSubnetCatalog) -> Result<(), Catal
 
 #[cfg(feature = "subnet-catalog-host")]
 #[derive(Default)]
-struct EndpointRecordCoverage {
+struct EndpointRecordCoverage<'a> {
     has_subnet_list: bool,
     has_routing: bool,
-    subnets: BTreeSet<String>,
+    subnets: BTreeSet<&'a str>,
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-enum RegistryRecordEvidenceSubject {
+enum RegistryRecordEvidenceSubject<'a> {
     SubnetList,
     Routing,
-    Subnet(String),
+    Subnet(&'a str),
 }
 
 #[cfg(feature = "subnet-catalog-host")]
-fn validated_registry_record_subject(
+fn validated_registry_record_subject<'a>(
     evidence: &super::SubnetCatalogRegistryRecordEvidence,
     routing_source: super::SubnetCatalogRoutingSource,
-    expected_subnets: &BTreeSet<String>,
-) -> Result<RegistryRecordEvidenceSubject, CatalogError> {
+    expected_subnets: &BTreeSet<&'a str>,
+) -> Result<RegistryRecordEvidenceSubject<'a>, CatalogError> {
     match evidence.record.kind {
         super::SubnetCatalogRegistryRecordKind::SubnetList => {
             if evidence.record.key != crate::ic_registry::SUBNET_LIST_KEY
@@ -548,15 +548,17 @@ fn validated_registry_record_subject(
                 ));
             };
             let subnet = subnet.to_text();
-            if evidence.record.canister_range_start.is_some()
-                || evidence.record.key != crate::ic_registry::subnet_record_key(&subnet)
-                || !expected_subnets.contains(&subnet)
-            {
-                return Err(invalid_registry_record_evidence(
+            match expected_subnets.get(subnet.as_str()) {
+                Some(&subnet)
+                    if evidence.record.canister_range_start.is_none()
+                        && evidence.record.key == crate::ic_registry::subnet_record_key(subnet) =>
+                {
+                    Ok(RegistryRecordEvidenceSubject::Subnet(subnet))
+                }
+                _ => Err(invalid_registry_record_evidence(
                     "Subnet-record evidence does not match a current catalog Subnet".to_string(),
-                ));
+                )),
             }
-            Ok(RegistryRecordEvidenceSubject::Subnet(subnet))
         }
     }
 }

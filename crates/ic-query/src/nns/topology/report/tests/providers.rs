@@ -5,10 +5,12 @@ fn topology_providers_report_summarizes_provider_distribution() {
     let report = topology_providers_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     assert_eq!(report.schema_version, 1);
@@ -74,10 +76,12 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
     let report = topology_providers_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        providers,
-        operators,
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: providers,
+            node_operator: operators,
+            data_center: data_center_report_fixture(),
+        },
     );
 
     let registered = report
@@ -132,10 +136,12 @@ fn topology_providers_text_renders_provider_table() {
     let report = topology_providers_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     let text = nns_topology_providers_report_text(&report);

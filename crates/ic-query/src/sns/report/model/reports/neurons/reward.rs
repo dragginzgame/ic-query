@@ -411,9 +411,8 @@ fn validate_checkpoint_collection_metadata(
             "serialized row counts do not match raw checkpoint rows",
         ));
     }
-    let max_neurons = report.parameters_before.max_number_of_neurons;
-    if max_neurons != Some(report.collection_row_ceiling)
-        || !(1..=SNS_REWARD_CHECKPOINT_MAX_NEURONS).contains(&report.collection_row_ceiling)
+    if reward_checkpoint_neuron_ceiling(&report.parameters_before)
+        != Some(report.collection_row_ceiling)
     {
         return Err(invalid_validation(
             "collection_row_ceiling does not match a valid max_number_of_neurons",
@@ -430,19 +429,53 @@ fn validate_checkpoint_collection_metadata(
     Ok(())
 }
 
+pub(in crate::sns::report) fn reward_checkpoint_neuron_ceiling(
+    parameters: &SnsGovernanceParameters,
+) -> Option<u64> {
+    parameters
+        .max_number_of_neurons
+        .filter(|value| (1..=SNS_REWARD_CHECKPOINT_MAX_NEURONS).contains(value))
+}
+
+/// Return the first unstable component and its persisted-report diagnostic.
+pub(in crate::sns::report) fn reward_checkpoint_bracket_mismatch(
+    parameters: (&SnsGovernanceParameters, &SnsGovernanceParameters),
+    events: (&SnsRewardEvent, &SnsRewardEvent),
+    versions: (&SnsRunningVersionResponse, &SnsRunningVersionResponse),
+) -> Option<(&'static str, &'static str)> {
+    [
+        (
+            "nervous-system parameters",
+            "nervous-system parameter brackets differ",
+            parameters.0 == parameters.1,
+        ),
+        (
+            "reward event",
+            "reward-event brackets differ",
+            events.0 == events.1,
+        ),
+        (
+            "running SNS version",
+            "running-version brackets differ",
+            versions.0 == versions.1,
+        ),
+    ]
+    .into_iter()
+    .find_map(|(component, reason, stable)| (!stable).then_some((component, reason)))
+}
+
 fn validate_checkpoint_brackets(
     report: &SnsRewardCheckpointReport,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
-    if report.parameters_before != report.parameters_after {
-        return Err(invalid_validation(
-            "nervous-system parameter brackets differ",
-        ));
-    }
-    if report.reward_event_before != report.reward_event_after {
-        return Err(invalid_validation("reward-event brackets differ"));
-    }
-    if report.running_version_before != report.running_version_after {
-        return Err(invalid_validation("running-version brackets differ"));
+    if let Some((_, reason)) = reward_checkpoint_bracket_mismatch(
+        (&report.parameters_before, &report.parameters_after),
+        (&report.reward_event_before, &report.reward_event_after),
+        (
+            &report.running_version_before,
+            &report.running_version_after,
+        ),
+    ) {
+        return Err(invalid_validation(reason));
     }
     validate_sns_reward_event_evidence(&report.reward_event_after).map_err(invalid_validation)?;
     validate_reward_event_position(report)?;

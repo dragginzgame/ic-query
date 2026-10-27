@@ -495,20 +495,23 @@ async fn sns_list_report_rejects_inexact_metadata_results() {
         (untrimmed_metadata_error, "surrounding whitespace"),
         (contradictory_metadata_result, "both payload fields"),
     ] {
-        let error = build_sns_list_report_with_source(
-            &list_request(false),
-            &MutatingMetadataSource(mutate),
-        )
-        .await
-        .expect_err("inexact custom SNS metadata must fail");
-
-        assert!(matches!(
-            error,
-            SnsHostError::InvalidSourceData {
-                capability: "SNS metadata",
-                reason,
-            } if reason.contains(expected_reason)
-        ));
+        let source = MutatingMetadataSource(mutate);
+        for error in [
+            build_sns_list_report_with_source(&list_request(false), &source)
+                .await
+                .expect_err("inexact catalog metadata must fail"),
+            build_sns_info_report_with_source(&info_request("1"), &source)
+                .await
+                .expect_err("inexact selected-target metadata must fail"),
+        ] {
+            assert!(matches!(
+                error,
+                SnsHostError::InvalidSourceData {
+                    capability: "SNS metadata",
+                    reason,
+                } if reason.contains(expected_reason)
+            ));
+        }
     }
 }
 

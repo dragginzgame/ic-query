@@ -12,8 +12,7 @@ use crate::sns::report::lookup::{
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{
-        MainnetSnsInventory, SnsDiscoverySource, join_mainnet_sns_inventory,
-        validate_mainnet_sns_inventory,
+        SnsDiscoverySource, model::list::join_selected_mainnet_sns, validate_mainnet_sns_inventory,
     },
 };
 
@@ -36,15 +35,7 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
         .fetch_sns_metadata(&fetch_request, &inventory.sns_instances[index..=index])
         .await?;
     let target = inventory.sns_instances.swap_remove(index);
-    let list = join_mainnet_sns_inventory(selected_inventory(inventory, target), metadata)?;
-    let mut sns =
-        list.sns_instances
-            .into_iter()
-            .next()
-            .ok_or_else(|| SnsHostError::InvalidSourceData {
-                capability: "SNS metadata",
-                reason: "metadata join returned no selected SNS".to_string(),
-            })?;
+    let mut sns = join_selected_mainnet_sns(target, metadata)?;
     sns.id = index + 1;
     Ok(SnsLookup { fetch_request, sns })
 }
@@ -65,18 +56,4 @@ fn resolve_sns(instances: &[MainnetSnsCanisters], input: &str) -> Result<usize, 
         .iter()
         .position(|sns| sns.root_canister_id == root_canister_id)
         .ok_or(SnsHostError::UnknownSnsRoot { root_canister_id })
-}
-
-fn selected_inventory(
-    inventory: MainnetSnsInventory,
-    target: MainnetSnsCanisters,
-) -> MainnetSnsInventory {
-    MainnetSnsInventory {
-        network: inventory.network,
-        sns_wasm_canister_id: inventory.sns_wasm_canister_id,
-        fetched_at: inventory.fetched_at,
-        fetched_by: inventory.fetched_by,
-        source_endpoint: inventory.source_endpoint,
-        sns_instances: vec![target],
-    }
 }

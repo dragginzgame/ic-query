@@ -7,12 +7,13 @@
 use crate::sns::report::{
     SNS_REWARD_CHECKPOINT_MAX_NEURONS, SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsGovernanceParameters,
     SnsHostError, SnsRewardCheckpointReport, SnsRewardCheckpointRequest, SnsRewardCollectionState,
-    SnsRewardEvent, SnsRewardSource, SnsRunningVersionResponse,
+    SnsRewardSource,
     assemble::{SnsRewardCheckpointReportParts, sns_reward_checkpoint_report_from_parts},
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     model::reports::neurons::reward::{
-        recompute_reward_checkpoint_summary, validate_sns_reward_checkpoint_parameter_evidence,
+        recompute_reward_checkpoint_summary, reward_checkpoint_bracket_mismatch,
+        reward_checkpoint_neuron_ceiling, validate_sns_reward_checkpoint_parameter_evidence,
         validate_sns_reward_event_evidence, validate_sns_reward_running_version_evidence,
     },
 };
@@ -65,14 +66,13 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     let running_version_after = source
         .fetch_sns_reward_running_version(&lookup.fetch_request, &lookup.sns)
         .await?;
-    validate_stable_brackets(
-        &parameters_before,
-        &parameters_after,
-        &reward_event_before,
-        &reward_event_after,
-        &running_version_before,
-        &running_version_after,
-    )?;
+    if let Some((component, _)) = reward_checkpoint_bracket_mismatch(
+        (&parameters_before, &parameters_after),
+        (&reward_event_before, &reward_event_after),
+        (&running_version_before, &running_version_after),
+    ) {
+        return Err(SnsHostError::UnstableRewardCheckpoint { component });
+    }
 
     let completed_at = checkpoint_completion_time(request.lookup.now_unix_secs)?;
     let page_count = collection.page_count();
@@ -166,42 +166,13 @@ fn validate_request(request: &SnsRewardCheckpointRequest) -> Result<(), SnsHostE
     Ok(())
 }
 
-fn validate_stable_brackets(
-    parameters_before: &SnsGovernanceParameters,
-    parameters_after: &SnsGovernanceParameters,
-    event_before: &SnsRewardEvent,
-    event_after: &SnsRewardEvent,
-    version_before: &SnsRunningVersionResponse,
-    version_after: &SnsRunningVersionResponse,
-) -> Result<(), SnsHostError> {
-    for (component, stable) in [
-        (
-            "nervous-system parameters",
-            parameters_before == parameters_after,
-        ),
-        ("reward event", event_before == event_after),
-        ("running SNS version", version_before == version_after),
-    ] {
-        if !stable {
-            return Err(SnsHostError::UnstableRewardCheckpoint { component });
-        }
-    }
-    Ok(())
-}
-
 fn validate_parameters(parameters: &SnsGovernanceParameters) -> Result<u64, SnsHostError> {
-    let Some(max_number_of_neurons) = parameters.max_number_of_neurons else {
-        return Err(SnsHostError::InvalidRewardCheckpointCeiling {
-            value: None,
+    let max_number_of_neurons = reward_checkpoint_neuron_ceiling(parameters).ok_or(
+        SnsHostError::InvalidRewardCheckpointCeiling {
+            value: parameters.max_number_of_neurons,
             maximum: SNS_REWARD_CHECKPOINT_MAX_NEURONS,
-        });
-    };
-    if max_number_of_neurons == 0 || max_number_of_neurons > SNS_REWARD_CHECKPOINT_MAX_NEURONS {
-        return Err(SnsHostError::InvalidRewardCheckpointCeiling {
-            value: Some(max_number_of_neurons),
-            maximum: SNS_REWARD_CHECKPOINT_MAX_NEURONS,
-        });
-    }
+        },
+    )?;
     validate_sns_reward_checkpoint_parameter_evidence(parameters).map_err(invalid_checkpoint)?;
     Ok(max_number_of_neurons)
 }

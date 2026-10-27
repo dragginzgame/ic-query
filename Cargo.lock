@@ -1564,9 +1564,9 @@ dependencies = [
 
 [[package]]
 name = "ic-build"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37e6b66125a983e0e579fe9073a2d9dce333f1bac06e879bed88815c1ec9be49"
+checksum = "5a19ff12751d697ca8343f0a0e5d1c7cfb4f6f45f6a9bef204ada7f8b8edc867"
 dependencies = [
  "cargo_metadata",
  "ic-host-artifacts",
@@ -1623,9 +1623,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-artifacts"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0be52dbee3196757c330a4b673447eb42c07823210bc6d3308917696e2bf5da7"
+checksum = "c69826f74edba91de31e169e8e6ca61f15f58b52bd7c0b54d56cd3efab47123b"
 dependencies = [
  "flate2",
  "leb128",
@@ -1636,9 +1636,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-fs"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74745003fa19e7036ecaf1523f9aa6348e7bc74c91d3e906299b688d7d3d6979"
+checksum = "face290ce4e3523149f36d475ef20fee2a0cd3486535ccfcae05924e0618f098"
 dependencies = [
  "cap-fs-ext",
  "cap-std",
@@ -1649,9 +1649,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-http"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35a7a3a416333aa62819a72b267108d869d61fc92b86906bf6ebb59319cc144b"
+checksum = "1e052546f5442e5b81a4bb3b7f5d8106f4f8c630bcab22fbf2afe04573e85218"
 dependencies = [
  "ic-host-artifacts",
  "reqwest",
@@ -1659,9 +1659,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-process"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfe52382d0c27f6e2ae313c771d736080ade7493fc6abebd720a65361403ccff"
+checksum = "d785719e46e352d87db475f0175f327ae4459db70381df02b11f03ac20490b2d"
 dependencies = [
  "command-fds",
  "ic-host-artifacts",
@@ -1672,18 +1672,18 @@ dependencies = [
 
 [[package]]
 name = "ic-host-text"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fc9e35a34079b5ca9856e4c52915cf76274779353d22f7adb53df6211f00f55"
+checksum = "a8c8eaa785a6fd61576dea0b751e7482e1c98c6b7551e4fcc445a0dd061ef5d6"
 dependencies = [
  "unicode-width 0.2.2",
 ]
 
 [[package]]
 name = "ic-host-tools"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4e92fa3a22d2eb5bee7c12eae93dd96802ca85df65cbe5207883a9e31fa3eef"
+checksum = "f8148b0df662bed2649d5c8d4c42f1c898341c345d4f45d31874747594c7614a"
 dependencies = [
  "ic-platform",
  "prost",
@@ -1819,9 +1819,9 @@ dependencies = [
 
 [[package]]
 name = "ic-testkit"
-version = "0.69.0"
+version = "0.69.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a6fdcfb4adf96f7850a6f16e8985db6d90d82562743516a6121f4376e657f97"
+checksum = "53f2342745f6c4ae4fddd8a44468336747cab60434de0dbb2aea75c69529b6d5"
 dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",

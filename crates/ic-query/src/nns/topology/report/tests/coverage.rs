@@ -5,10 +5,12 @@ fn topology_coverage_report_counts_inventory_relations() {
     let report = topology_coverage_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        &node_report_fixture(),
-        &node_provider_report_fixture(),
-        &node_operator_report_fixture(),
-        &data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     assert_eq!(report.schema_version, 1);
@@ -28,10 +30,12 @@ fn topology_coverage_text_renders_join_coverage_table() {
     let report = topology_coverage_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        &node_report_fixture(),
-        &node_provider_report_fixture(),
-        &node_operator_report_fixture(),
-        &data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
     let text = nns_topology_coverage_report_text(&report);
 

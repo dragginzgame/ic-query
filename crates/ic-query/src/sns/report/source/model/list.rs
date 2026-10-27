@@ -175,15 +175,7 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
     let sns_instances = inventory
         .sns_instances
         .into_iter()
-        .map(|canisters| {
-            let root_canister_id = canisters.root_canister_id.clone();
-            let metadata = metadata_by_root.remove(&root_canister_id).ok_or_else(|| {
-                METADATA_VALIDATOR.invalid(format!(
-                    "metadata is missing requested root canister id {root_canister_id}"
-                ))
-            })?;
-            Ok(joined_mainnet_sns(canisters, metadata))
-        })
+        .map(|canisters| join_indexed_mainnet_sns(canisters, &mut metadata_by_root))
         .collect::<Result<Vec<_>, SnsHostError>>()?;
     Ok(JoinedMainnetSnsInventory {
         network: inventory.network,
@@ -193,6 +185,29 @@ pub(in crate::sns::report) fn join_mainnet_sns_inventory(
         source_endpoint: inventory.source_endpoint,
         sns_instances,
     })
+}
+
+pub(in crate::sns::report) fn join_selected_mainnet_sns(
+    target: MainnetSnsCanisters,
+    metadata: Vec<MainnetSnsMetadata>,
+) -> Result<MainnetSns, SnsHostError> {
+    let mut metadata_by_root = index_mainnet_sns_metadata(std::slice::from_ref(&target), metadata)?;
+    join_indexed_mainnet_sns(target, &mut metadata_by_root)
+}
+
+fn join_indexed_mainnet_sns(
+    canisters: MainnetSnsCanisters,
+    metadata_by_root: &mut BTreeMap<String, MainnetSnsMetadata>,
+) -> Result<MainnetSns, SnsHostError> {
+    let metadata = metadata_by_root
+        .remove(&canisters.root_canister_id)
+        .ok_or_else(|| {
+            METADATA_VALIDATOR.invalid(format!(
+                "metadata is missing requested root canister id {}",
+                canisters.root_canister_id
+            ))
+        })?;
+    Ok(joined_mainnet_sns(canisters, metadata))
 }
 
 pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(

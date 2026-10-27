@@ -8,8 +8,7 @@ use super::{
     ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, ICRC_ACCOUNT_TRANSACTION_FETCHED_BY,
     attempt::{write_complete_attempt, write_failed_attempt, write_starting_attempt},
     storage::{
-        ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths,
-        icrc_account_transaction_cache_path, load_cached_icrc_account_transactions,
+        ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths, load_snapshot_at,
         normalize_cache_request, snapshot_is_stale, validate_collection_timestamps,
     },
 };
@@ -75,8 +74,24 @@ async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
     source: &dyn IcrcAccountTransactionCollectionSource,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    let request = normalize_refresh_request(request)?;
+    let index_canister_id = validate_refresh_options(request)?;
+    let request = IcrcAccountTransactionRefreshRequest {
+        cache: normalize_cache_request(&request.cache)?,
+        now_unix_secs: request.now_unix_secs,
+        index_canister_id,
+        page_size: request.page_size,
+        max_pages: request.max_pages,
+    };
     let paths = cache_paths(&request.cache);
+    refresh_normalized_account_transactions(&request, &paths, source, progress).await
+}
+
+async fn refresh_normalized_account_transactions(
+    request: &IcrcAccountTransactionRefreshRequest,
+    paths: &SnapshotJsonPaths,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     let collection_started = Instant::now();
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
@@ -87,20 +102,20 @@ async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
         cache_operation_error,
         async |state| {
             run_snapshot_refresh_with_attempts(
-                || write_starting_attempt(&paths.refresh_attempt_path, &request),
+                || write_starting_attempt(&paths.refresh_attempt_path, request),
                 async || {
                     let complete = source
-                        .fetch_complete_account_transactions(&request, progress)
+                        .fetch_complete_account_transactions(request, progress)
                         .await?;
                     publish_complete_snapshot(
-                        &request,
-                        &paths,
+                        request,
+                        paths,
                         state.replaced_existing_snapshot,
                         complete,
                         collection_started.elapsed(),
                     )
                 },
-                |error| write_failed_attempt(&paths.refresh_attempt_path, &request, error),
+                |error| write_failed_attempt(&paths.refresh_attempt_path, request, error),
             )
             .await
         },
@@ -161,13 +176,23 @@ async fn load_or_refresh_account_transactions_with_source(
     source: &dyn IcrcAccountTransactionCollectionSource,
     is_stale: impl Fn(&CachedIcrcAccountTransactionSnapshot) -> bool,
 ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
-    let expected_path = icrc_account_transaction_cache_path(&request.cache)?;
+    let cache = normalize_cache_request(&request.cache)?;
+    let paths = cache_paths(&cache);
     load_or_refresh_cache(
-        || load_cached_icrc_account_transactions(&request.cache),
+        || load_snapshot_at(&paths.snapshot_path, &cache, None),
         is_stale,
-        |error| account_transaction_cache_refresh_reason(error, &expected_path),
+        |error| account_transaction_cache_refresh_reason(error, &paths.snapshot_path),
         async |_| {
-            refresh_icrc_account_transaction_cache_with_source(request, source).await?;
+            let request = IcrcAccountTransactionRefreshRequest {
+                cache: cache.clone(),
+                now_unix_secs: request.now_unix_secs,
+                index_canister_id: validate_refresh_options(request)?,
+                page_size: request.page_size,
+                max_pages: request.max_pages,
+            };
+            let mut progress = IgnoreQueryProgress;
+            refresh_normalized_account_transactions(&request, &paths, source, &mut progress)
+                .await?;
             Ok(())
         },
     )
@@ -335,9 +360,9 @@ fn incomplete_collection_error(
     }
 }
 
-fn normalize_refresh_request(
+fn validate_refresh_options(
     request: &IcrcAccountTransactionRefreshRequest,
-) -> Result<IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionError> {
+) -> Result<Option<String>, IcrcAccountTransactionError> {
     if !(1..=ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE).contains(&request.page_size) {
         return Err(IcrcAccountTransactionError::InvalidPageSize {
             page_size: request.page_size,
@@ -347,19 +372,12 @@ fn normalize_refresh_request(
     if request.max_pages == Some(0) {
         return Err(IcrcAccountTransactionError::InvalidMaxPages { max_pages: 0 });
     }
-    let index_canister_id = request
+    Ok(request
         .index_canister_id
         .as_deref()
         .map(|value| principal_from_text(value, "index_canister_id"))
         .transpose()?
-        .map(|principal| principal.to_text());
-    Ok(IcrcAccountTransactionRefreshRequest {
-        cache: normalize_cache_request(&request.cache)?,
-        now_unix_secs: request.now_unix_secs,
-        index_canister_id,
-        page_size: request.page_size,
-        max_pages: request.max_pages,
-    })
+        .map(|principal| principal.to_text()))
 }
 
 fn cache_operation_error(source: crate::CacheFileError) -> IcrcAccountTransactionError {
@@ -385,7 +403,10 @@ fn account_transaction_cache_refresh_reason(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{icrc::IcrcAccountTransactionCacheRequest, test_support::temp_dir};
+    use crate::{
+        icrc::{IcrcAccountTransactionCacheRequest, load_cached_icrc_account_transactions},
+        test_support::temp_dir,
+    };
     use ic_host_text::timestamp::parse_utc_timestamp_secs;
 
     #[test]

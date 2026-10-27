@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.2]
+
+### 🩹 Fixed
+
+- Respect native filesystem support for non-UTF-8 cache names in the SNS cache
+  fixture, retaining typed macOS refusal errors. [#107](https://github.com/dragginzgame/ic-query/issues/107)
+
+### 🔧 Changed
+
+- Adopt IC Tooling 0.69.2 across Host, Build and Testkit, including the prepared
+  Cargo metadata editor and Testkit server tools.
+- Adopt Shared Tooling 0.27.0 to restore formatting-result reuse for ordinary
+  conditional Rust attributes, while retaining full checks for external modules.
+
+### 🧹 Cleanup
+
+- Consolidate cache identity, SNS reward checks and request construction, and
+  topology inventory plumbing while preserving public APIs and stored formats.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.1] - 2026-10-27
 
 ### 🔧 Changed

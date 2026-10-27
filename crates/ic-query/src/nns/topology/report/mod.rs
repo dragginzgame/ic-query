@@ -57,6 +57,26 @@ use regions::topology_regions_report_from_report;
 use summary::topology_summary_report_from_reports;
 
 #[cfg(feature = "nns-host")]
+use crate::nns::{
+    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
+    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
+};
+
+///
+/// TopologyInventoryReports
+///
+/// Complete component inventories collected in diagnostic read order.
+///
+
+#[cfg(feature = "nns-host")]
+struct TopologyInventoryReports {
+    node: NnsNodeListReport,
+    node_provider: NnsNodeProviderListReport,
+    node_operator: NnsNodeOperatorListReport,
+    data_center: NnsDataCenterListReport,
+}
+
+#[cfg(feature = "nns-host")]
 pub use build::{
     build_nns_topology_capacity_report, build_nns_topology_capacity_report_with_source,
     build_nns_topology_check_report, build_nns_topology_check_report_with_source,

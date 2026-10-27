@@ -4,21 +4,12 @@
 //! Does not own: component collection, relation joins, or text rendering.
 //! Boundary: keeps inventory and Subnet-catalog provenance consistent across views.
 
-use super::NnsTopologyRegistryVersionRow;
-use crate::{
-    nns::{
-        data_center::NnsDataCenterListReport, node::NnsNodeListReport,
-        node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
-    },
-    subnet_catalog::SubnetCatalogListReport,
-};
+use super::{NnsTopologyRegistryVersionRow, TopologyInventoryReports};
+use crate::subnet_catalog::SubnetCatalogListReport;
 
 pub(super) fn topology_registry_versions(
     subnet_report: &SubnetCatalogListReport,
-    node_report: &NnsNodeListReport,
-    node_provider_report: &NnsNodeProviderListReport,
-    node_operator_report: &NnsNodeOperatorListReport,
-    data_center_report: &NnsDataCenterListReport,
+    reports: &TopologyInventoryReports,
 ) -> Vec<NnsTopologyRegistryVersionRow> {
     let mut rows = Vec::with_capacity(5);
     rows.push(registry_version_row(
@@ -28,48 +19,40 @@ pub(super) fn topology_registry_versions(
         "-",
         Some(subnet_report.catalog_stale),
     ));
-    rows.extend(topology_component_registry_versions(
-        node_report,
-        node_provider_report,
-        node_operator_report,
-        data_center_report,
-    ));
+    rows.extend(topology_component_registry_versions(reports));
     rows
 }
 
 pub(super) fn topology_component_registry_versions(
-    node_report: &NnsNodeListReport,
-    node_provider_report: &NnsNodeProviderListReport,
-    node_operator_report: &NnsNodeOperatorListReport,
-    data_center_report: &NnsDataCenterListReport,
+    reports: &TopologyInventoryReports,
 ) -> Vec<NnsTopologyRegistryVersionRow> {
     vec![
         registry_version_row(
             "nodes",
-            node_report.registry_version,
-            &node_report.fetched_at,
-            &node_report.source_endpoint,
+            reports.node.registry_version,
+            &reports.node.fetched_at,
+            &reports.node.source_endpoint,
             None,
         ),
         registry_version_row(
             "node_providers",
-            node_provider_report.registry_version,
-            &node_provider_report.fetched_at,
-            &node_provider_report.source_endpoint,
+            reports.node_provider.registry_version,
+            &reports.node_provider.fetched_at,
+            &reports.node_provider.source_endpoint,
             None,
         ),
         registry_version_row(
             "node_operators",
-            node_operator_report.registry_version,
-            &node_operator_report.fetched_at,
-            &node_operator_report.source_endpoint,
+            reports.node_operator.registry_version,
+            &reports.node_operator.fetched_at,
+            &reports.node_operator.source_endpoint,
             None,
         ),
         registry_version_row(
             "data_centers",
-            data_center_report.registry_version,
-            &data_center_report.fetched_at,
-            &data_center_report.source_endpoint,
+            reports.data_center.registry_version,
+            &reports.data_center.fetched_at,
+            &reports.data_center.source_endpoint,
             None,
         ),
     ]

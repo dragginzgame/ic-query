@@ -8,10 +8,12 @@ fn topology_summary_counts_existing_reports() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     assert_eq!(report.schema_version, 1);
@@ -84,10 +86,12 @@ fn topology_summary_preserves_all_kind_counts_and_routing_ranges() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnets,
-        nodes,
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: nodes,
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     assert_eq!(report.subnet_count, 5);
@@ -119,10 +123,12 @@ fn topology_summary_text_renders_count_and_version_tables() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     let text = nns_topology_summary_report_text(&report);

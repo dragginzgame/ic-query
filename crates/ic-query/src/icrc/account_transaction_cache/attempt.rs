@@ -4,7 +4,7 @@
 //! Does not own: live collection, cache publication, or text rendering.
 //! Boundary: keeps failed collection progress observable without publishing partial rows.
 
-use super::ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT;
+use super::{ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, storage::cache_identity_matches};
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{
     HostCacheError,
@@ -203,11 +203,13 @@ fn validate_attempt(
         reason,
     };
     validate_snapshot_refresh_attempt(attempt, MAINNET_NETWORK).map_err(invalid)?;
-    if attempt.source_endpoint != request.source_endpoint
-        || attempt.metadata.ledger_canister_id != request.ledger_canister_id
-        || attempt.metadata.account_owner != request.account_owner
-        || attempt.metadata.subaccount_hex != request.subaccount_hex
-    {
+    if !cache_identity_matches(
+        request,
+        &attempt.source_endpoint,
+        &attempt.metadata.ledger_canister_id,
+        &attempt.metadata.account_owner,
+        attempt.metadata.subaccount_hex.as_deref(),
+    ) {
         return Err(invalid(
             "attempt identity does not match requested endpoint, ledger, or account".to_string(),
         ));

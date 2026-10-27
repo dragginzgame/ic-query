@@ -147,6 +147,11 @@ explicit module paths, external target paths or non-workspace path dependencies 
 normal formatting still runs. Optional derive reuse also needs `rg`; no tool is
 installed implicitly. Standard Cargo package sources, root/ancestor Cargo and
 Rustfmt configuration, toolchain inputs and derive configuration are covered.
+Module-path screening uses the shared Rust lexer and balanced attribute trees,
+including nested conditional attributes. Comments, literals and later source
+text do not become module overrides. Incomplete token trees or unsupported
+conditional metadata still disable reuse. The driver and its declared `RustSource.pm` companion are
+both fingerprinted; refresh their complete snapshot and hook-fixture closure.
 
 Only a successful check or write with unchanged observed inputs records a
 reusable result. A write that changes files needs a later check or unchanged

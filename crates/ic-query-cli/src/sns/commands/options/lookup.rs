@@ -29,6 +29,21 @@ pub(in crate::sns::commands) struct SnsLookupOptions {
 }
 
 impl SnsLookupOptions {
+    pub(in crate::sns::commands) fn into_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, SnsLookupRequest) {
+        (
+            self.format,
+            SnsLookupRequest::new(
+                self.network,
+                self.source_endpoint,
+                now_unix_secs,
+                self.input,
+            ),
+        )
+    }
+
     pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
             input: required_string(matches, "input"),
@@ -58,15 +73,11 @@ impl SnsPagedRefreshOptions {
         cache_root: PathBuf,
         now_unix_secs: u64,
     ) -> (OutputFormat, SnsSnapshotRefreshRequest) {
+        let (format, lookup) = self.lookup.into_request(now_unix_secs);
         (
-            self.lookup.format,
+            format,
             SnsSnapshotRefreshRequest {
-                lookup: SnsLookupRequest::new(
-                    self.lookup.network,
-                    self.lookup.source_endpoint,
-                    now_unix_secs,
-                    self.lookup.input,
-                ),
+                lookup,
                 cache_root,
                 page_size: self.page_size,
                 max_pages: self.max_pages,

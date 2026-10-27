@@ -26,13 +26,7 @@ pub async fn build_nns_topology_versions_report_with_source(
 
     let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
     let reports = fetch_topology_inventory_reports(request, source).await?;
-    let registry_versions = topology_registry_versions(
-        &subnet_report,
-        &reports.node,
-        &reports.node_provider,
-        &reports.node_operator,
-        &reports.data_center,
-    );
+    let registry_versions = topology_registry_versions(&subnet_report, &reports);
 
     Ok(NnsTopologyVersionsReport {
         schema_version: NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION,
@@ -62,10 +56,7 @@ pub async fn build_nns_topology_coverage_report_with_source(
     Ok(topology_coverage_report_from_reports(
         request.network.clone(),
         request.source_endpoint.clone(),
-        &reports.node,
-        &reports.node_provider,
-        &reports.node_operator,
-        &reports.data_center,
+        &reports,
     ))
 }
 

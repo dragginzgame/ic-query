@@ -379,34 +379,6 @@ fn nns_component(component: &str) -> Option<&'static str> {
     }
 }
 
-fn snapshot_component(parts: &[&str]) -> Option<String> {
-    match parts {
-        ["ic", _, entity, collection, ..] => Some(format!("ic/{entity}/{collection}")),
-        ["nns", _, "governance", collection, ..] => Some(format!("nns/governance/{collection}")),
-        ["sns", _, "catalog", collection, ..] => Some(format!("sns/catalog/{collection}")),
-        ["sns", _, _, collection, ..] => Some(format!("sns/{collection}")),
-        ["icrc", _, _, collection, ..] => Some(format!("icrc/{collection}")),
-        _ => None,
-    }
-}
-
-fn nns_path_component(parts: &[&str]) -> Option<String> {
-    match parts {
-        [
-            "nns",
-            "ic",
-            "subnet-catalog",
-            "history.json" | "history.lock",
-        ] => Some("nns/registry-history".to_string()),
-        ["nns", _, component, ..] => nns_component(component).map(str::to_string),
-        _ => None,
-    }
-}
-
-fn root_component(parts: &[&str]) -> String {
-    parts.first().copied().unwrap_or("unknown").to_string()
-}
-
 fn classify_cache_path(relative: &Path) -> CachePathInfo<'_> {
     let parts = path_parts(relative);
     let (recovery_policy, stale_after_seconds, inspection) = match parts.as_slice() {
@@ -453,9 +425,21 @@ fn classify_cache_path(relative: &Path) -> CachePathInfo<'_> {
         }
         _ => (Unknown, None, CacheInspection::HeaderPrefix),
     };
-    let component = nns_path_component(&parts)
-        .or_else(|| snapshot_component(&parts))
-        .unwrap_or_else(|| root_component(&parts));
+    let component = match parts.as_slice() {
+        [
+            "nns",
+            "ic",
+            "subnet-catalog",
+            "history.json" | "history.lock",
+        ] => "nns/registry-history".to_string(),
+        ["nns", _, "governance", collection, ..] => format!("nns/governance/{collection}"),
+        ["nns", _, family, ..] => nns_component(family).unwrap_or("nns").to_string(),
+        ["ic", _, entity, collection, ..] => format!("ic/{entity}/{collection}"),
+        ["sns", _, "catalog", collection, ..] => format!("sns/catalog/{collection}"),
+        ["sns", _, _, collection, ..] => format!("sns/{collection}"),
+        ["icrc", _, _, collection, ..] => format!("icrc/{collection}"),
+        _ => parts.first().copied().unwrap_or("unknown").to_string(),
+    };
     CachePathInfo {
         relative,
         component,

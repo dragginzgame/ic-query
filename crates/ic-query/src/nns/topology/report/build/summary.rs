@@ -26,9 +26,6 @@ pub async fn build_nns_topology_summary_report_with_source(
         request.network.clone(),
         request.source_endpoint.clone(),
         subnet_report,
-        reports.node,
-        reports.node_provider,
-        reports.node_operator,
-        reports.data_center,
+        &reports,
     ))
 }

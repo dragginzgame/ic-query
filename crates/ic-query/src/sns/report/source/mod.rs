@@ -4,7 +4,7 @@
 //! Does not own: live transport implementations, cache IO, report assembly, or rendering.
 //! Boundary: exposes source-layer contracts used by report builders and tests.
 
-mod model;
+pub(in crate::sns::report) mod model;
 mod traits;
 
 pub(in crate::sns::report) use model::{

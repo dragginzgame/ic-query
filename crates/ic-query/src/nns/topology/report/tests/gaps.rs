@@ -5,10 +5,12 @@ fn topology_gaps_report_lists_unknown_join_subjects() {
     let report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     assert_eq!(report.schema_version, 1);
@@ -39,10 +41,12 @@ fn topology_gaps_text_renders_gap_or_ok_tables() {
     let report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        node_provider_report_fixture(),
-        node_operator_report_fixture(),
-        data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: node_provider_report_fixture(),
+            node_operator: node_operator_report_fixture(),
+            data_center: data_center_report_fixture(),
+        },
     );
 
     let text = nns_topology_gaps_report_text(&report);
@@ -55,10 +59,12 @@ fn topology_gaps_text_renders_gap_or_ok_tables() {
     let clean_report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_report_fixture(),
-        complete_node_provider_report_fixture(),
-        complete_node_operator_report_fixture(),
-        complete_data_center_report_fixture(),
+        &TopologyInventoryReports {
+            node: node_report_fixture(),
+            node_provider: complete_node_provider_report_fixture(),
+            node_operator: complete_node_operator_report_fixture(),
+            data_center: complete_data_center_report_fixture(),
+        },
     );
     let clean_text = nns_topology_gaps_report_text(&clean_report);
 

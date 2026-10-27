@@ -4,34 +4,29 @@
 //! Does not own: source reads, cache refresh, or text rendering.
 //! Boundary: projects cached topology component reports into missing-relation rows.
 
-use super::relations::TopologyRelationIndex;
 use super::{
     NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus, NnsTopologyGapsReport,
 };
+use super::{TopologyInventoryReports, relations::TopologyRelationIndex};
 use crate::nns::{
-    data_center::NnsDataCenterListReport,
-    node::{NnsNodeListReport, NnsNodeRow},
-    node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
-    node_provider::NnsNodeProviderListReport,
+    node::NnsNodeRow,
+    node_operator::NnsNodeOperatorRow,
     topology::report::{NnsTopologyGapRelationKind, NnsTopologyGapRow, NnsTopologyGapSubjectKind},
 };
 
 pub(super) fn topology_gaps_report_from_reports(
     network: String,
     source_endpoint: String,
-    node_report: NnsNodeListReport,
-    node_provider_report: NnsNodeProviderListReport,
-    node_operator_report: NnsNodeOperatorListReport,
-    data_center_report: NnsDataCenterListReport,
+    reports: &TopologyInventoryReports,
 ) -> NnsTopologyGapsReport {
     let index = TopologyRelationIndex::from_reports(
-        &node_provider_report,
-        &node_operator_report,
-        &data_center_report,
+        &reports.node_provider,
+        &reports.node_operator,
+        &reports.data_center,
     );
-    let mut gaps = collect_node_gaps(&node_report.nodes, &index);
+    let mut gaps = collect_node_gaps(&reports.node.nodes, &index);
     gaps.extend(collect_node_operator_gaps(
-        &node_operator_report.node_operators,
+        &reports.node_operator.node_operators,
         &index,
     ));
     sort_gap_rows(&mut gaps);

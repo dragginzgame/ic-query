@@ -41,18 +41,13 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let options = SnsProposalOptions::from_matches(matches, network);
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
-    let format = lookup.format;
     let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
         .ok()
         .map(|_| cache_root())
         .transpose()?;
+    let (format, lookup) = lookup.into_request(now_unix_secs);
     let request = SnsProposalRequest {
-        lookup: ic_query::sns::SnsLookupRequest::new(
-            lookup.network,
-            lookup.source_endpoint,
-            now_unix_secs,
-            lookup.input,
-        ),
+        lookup,
         proposal_id: options.proposal_id,
         cache_root,
         verbose: options.verbose,
@@ -67,14 +62,9 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     let lookup = options.lookup;
     let now_unix_secs = current_unix_secs()?;
     let cache_root = cache_root()?;
-    let format = lookup.format;
+    let (format, lookup) = lookup.into_request(now_unix_secs);
     let request = SnsProposalsRequest {
-        lookup: ic_query::sns::SnsLookupRequest::new(
-            lookup.network,
-            lookup.source_endpoint,
-            now_unix_secs,
-            lookup.input,
-        ),
+        lookup,
         limit: options.limit,
         before_proposal_id: options.before_proposal_id,
         status: options.status.into(),
