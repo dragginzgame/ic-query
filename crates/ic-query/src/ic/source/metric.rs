@@ -71,12 +71,7 @@ pub(in crate::ic) fn metric_report_from_source(
     mut source: IcMetricSourceData,
 ) -> Result<IcMetricReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "metric query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("metric", query, &source.query)?;
 
     validate_metric_series(query, &mut source.series)?;
     let returned_observation_count = source

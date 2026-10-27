@@ -56,6 +56,22 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
+The current workspace minimums are Platform 0.7.0 and Host/Build/Testkit
+0.69.0. Query does not use the Candid frontend compiler exports retired by
+Platform 0.7. Required external Candid parsing and type checking remain in
+Testkit fixtures. Host Tools and Testkit also require Platform 0.7, so the
+selected graph shares one Platform release, including its owned Registry
+Principal. External Agent, Candid, Principal, certificate and ledger DTO
+identities remain unchanged. Query's canister runtime retains executor
+2.0.0 and ic0 1.2.0. No dependency override or copied runtime is used.
+
+Query's certificate API exposes Host Tools' `certificate::ParseError` through
+`CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
+Host Tools' `ledger_evidence::LedgerTip`. Updating these package-owned Rust
+types from Host Tools 0.68 to 0.69 requires a Query minor release. Downstream
+callers that name them must update their direct `ic-host-tools` dependency to
+0.69 as well. No serialized report or cache format changes.
+
 Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
 select the separate `temporary-file` backend. Host owns no-follow traversal,

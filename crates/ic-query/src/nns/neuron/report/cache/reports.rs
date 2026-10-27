@@ -61,11 +61,8 @@ pub fn build_nns_neuron_list_report_from_cache(
 ) -> Result<Option<NnsNeuronListReport>, NnsNeuronHostError> {
     validate_page_size(request.limit)?;
     enforce_mainnet_network(&request.governance.network)?;
-    let path = nns_neuron_cache_path(cache_root, &request.governance.network);
-    let cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
-        Ok(cache) => cache,
-        Err(error) if is_missing_cache(&error) => return Ok(None),
-        Err(error) => return Err(error),
+    let Some((path, cache)) = load_optional_cache(cache_root, &request.governance.network)? else {
+        return Ok(None);
     };
     let total_neuron_count = cache.data.neurons.len();
     let start_index = request.exclusive_start_neuron_id.map_or(0, |start| {
@@ -102,11 +99,9 @@ pub fn build_nns_neuron_info_report_from_cache(
     cache_root: &Path,
 ) -> Result<Option<NnsNeuronInfoReport>, NnsNeuronHostError> {
     enforce_mainnet_network(&request.governance.network)?;
-    let path = nns_neuron_cache_path(cache_root, &request.governance.network);
-    let mut cache = match load_cache_at(cache_root, &path, &request.governance.network, None) {
-        Ok(cache) => cache,
-        Err(error) if is_missing_cache(&error) => return Ok(None),
-        Err(error) => return Err(error),
+    let Some((path, mut cache)) = load_optional_cache(cache_root, &request.governance.network)?
+    else {
+        return Ok(None);
     };
     let Ok(index) = cache
         .data
@@ -253,4 +248,16 @@ fn nns_neuron_identity_mismatch_error(
 
 const fn is_missing_cache(error: &NnsNeuronHostError) -> bool {
     matches!(error, NnsNeuronHostError::MissingNeuronCache { .. })
+}
+
+fn load_optional_cache(
+    cache_root: &Path,
+    network: &str,
+) -> Result<Option<(PathBuf, NnsNeuronCache)>, NnsNeuronHostError> {
+    let path = nns_neuron_cache_path(cache_root, network);
+    match load_cache_at(cache_root, &path, network, None) {
+        Ok(cache) => Ok(Some((path, cache))),
+        Err(error) if is_missing_cache(&error) => Ok(None),
+        Err(error) => Err(error),
+    }
 }

@@ -84,12 +84,7 @@ pub(in crate::ic) fn icrc_account_list_report_from_source(
         ledger_canister_id,
         &source.ledger_canister_id,
     )?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "ICRC account-list query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("ICRC account-list", query, &source.query)?;
     validate_returned_page(
         source.rows.len(),
         query.limit,
@@ -161,12 +156,7 @@ pub(in crate::ic) fn icrc_holder_list_report_from_source(
         ledger_canister_id,
         &source.ledger_canister_id,
     )?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "ICRC holder-list query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("ICRC holder-list", query, &source.query)?;
     validate_returned_page(
         source.rows.len(),
         query.limit,

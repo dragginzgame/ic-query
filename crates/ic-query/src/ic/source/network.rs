@@ -87,12 +87,7 @@ pub(in crate::ic) fn daily_stats_report_from_source(
     mut source: IcDailyStatsSourceData,
 ) -> Result<IcDailyStatsReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "daily-statistics query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("daily-statistics", query, &source.query)?;
     validate_daily_stats_rows(query, &mut source.rows)?;
 
     Ok(IcDailyStatsReport {

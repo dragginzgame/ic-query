@@ -20,6 +20,7 @@ use crate::ic::{
     IcDashboardReportProvenance, IcHostError, IcSourceRequest,
 };
 use ic_platform::candid::contract::Principal;
+use std::fmt::Debug;
 
 pub use canister::{IcCanisterCollectionSource, IcCanisterSource};
 pub use icrc_analytics::IcIcrcAnalyticsSource;
@@ -87,6 +88,42 @@ pub fn validate_provenance(
         (&actual.endpoint, &actual.fetched_at, &actual.fetched_by),
     ) {
         return invalid_source(reason);
+    }
+    Ok(())
+}
+
+fn validate_requested_query<Query: Debug + PartialEq>(
+    label: &str,
+    expected: &Query,
+    actual: &Query,
+) -> Result<(), IcHostError> {
+    if actual != expected {
+        return invalid_source(format!(
+            "{label} query is {actual:?}, expected requested query {expected:?}"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_indexed_page_bounds(
+    requested_maximum: Option<u64>,
+    resolved_maximum: u64,
+    maximum_field: &str,
+    returned_count: usize,
+    limit: u16,
+    label: &str,
+) -> Result<(), IcHostError> {
+    if let Some(requested_maximum) = requested_maximum
+        && resolved_maximum > requested_maximum
+    {
+        return invalid_source(format!(
+            "{maximum_field} is {resolved_maximum}, greater than requested ceiling {requested_maximum}"
+        ));
+    }
+    if returned_count > usize::from(limit) {
+        return invalid_source(format!(
+            "source returned {returned_count} {label} rows for requested limit {limit}"
+        ));
     }
     Ok(())
 }

@@ -89,12 +89,7 @@ pub(in crate::ic) fn icrc_token_value_report_from_source(
         ledger_canister_id,
         &source.ledger_canister_id,
     )?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "ICRC token-value query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("ICRC token-value", query, &source.query)?;
 
     let returned_row_count = source.rows.len();
     if returned_row_count > usize::from(query.limit) {
@@ -213,12 +208,7 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         ledger_canister_id,
         &source.ledger_canister_id,
     )?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "ICRC total-supply query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("ICRC total-supply", query, &source.query)?;
 
     let requested_observation_limit =
         inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);

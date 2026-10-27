@@ -421,18 +421,15 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
             terminal_text(&report.ledger_canister_id)
         ),
         format!("owner: {}", optional_text(report.query.owner.as_ref())),
-        format!("sort_by: {}", report.query.sort_by),
-        format!("limit: {}", report.query.limit),
-        format!("returned_count: {}", report.returned_count),
-        format!(
-            "previous_cursor: {}",
-            optional_text(report.previous_cursor.as_ref())
-        ),
-        format!(
-            "next_cursor: {}",
-            optional_text(report.next_cursor.as_ref())
-        ),
     ]);
+    append_cursor_page_lines(
+        &mut lines,
+        report.query.sort_by.as_api_value(),
+        report.query.limit,
+        report.returned_count,
+        report.previous_cursor.as_ref(),
+        report.next_cursor.as_ref(),
+    );
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -522,23 +519,18 @@ pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String
 #[must_use]
 pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&report.ledger_canister_id)
-        ),
-        format!("sort_by: {}", report.query.sort_by),
-        format!("limit: {}", report.query.limit),
-        format!("returned_count: {}", report.returned_count),
-        format!(
-            "previous_cursor: {}",
-            optional_text(report.previous_cursor.as_ref())
-        ),
-        format!(
-            "next_cursor: {}",
-            optional_text(report.next_cursor.as_ref())
-        ),
-    ]);
+    lines.extend([format!(
+        "ledger_canister_id: {}",
+        terminal_text(&report.ledger_canister_id)
+    )]);
+    append_cursor_page_lines(
+        &mut lines,
+        report.query.sort_by.as_api_value(),
+        report.query.limit,
+        report.returned_count,
+        report.previous_cursor.as_ref(),
+        report.next_cursor.as_ref(),
+    );
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -835,4 +827,21 @@ fn json_scalar_text(value: &serde_json::Value) -> String {
         serde_json::Value::String(value) => value.clone(),
         _ => value.to_string(),
     }
+}
+
+fn append_cursor_page_lines(
+    lines: &mut Vec<String>,
+    sort_by: &str,
+    limit: u16,
+    returned_count: usize,
+    previous_cursor: Option<&String>,
+    next_cursor: Option<&String>,
+) {
+    lines.extend([
+        format!("sort_by: {sort_by}"),
+        format!("limit: {limit}"),
+        format!("returned_count: {returned_count}"),
+        format!("previous_cursor: {}", optional_text(previous_cursor)),
+        format!("next_cursor: {}", optional_text(next_cursor)),
+    ]);
 }

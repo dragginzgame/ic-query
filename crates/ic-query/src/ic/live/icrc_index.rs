@@ -121,15 +121,14 @@ fn account_list_url(
         if let Some(owner) = &query.owner {
             pairs.append_pair("owner", owner);
         }
-        for component in query.after.iter().flat_map(|cursor| cursor.split(',')) {
-            pairs.append_pair("after", component);
-        }
-        for component in query.before.iter().flat_map(|cursor| cursor.split(',')) {
-            pairs.append_pair("before", component);
-        }
-        pairs.append_pair("limit", &query.limit.to_string());
-        pairs.append_pair("sort_by", query.sort_by.as_api_value());
     }
+    append_page_query(
+        &mut url,
+        query.after.as_deref(),
+        query.before.as_deref(),
+        query.limit,
+        query.sort_by.as_api_value(),
+    );
     Ok(url)
 }
 
@@ -147,18 +146,31 @@ fn holder_list_url(
     query: &IcIcrcHolderListQuery,
 ) -> Result<Url, IcHostError> {
     let mut url = ledger_resource_url(endpoint, ledger_canister_id, &["holders"])?;
-    {
-        let mut pairs = url.query_pairs_mut();
-        for component in query.after.iter().flat_map(|cursor| cursor.split(',')) {
-            pairs.append_pair("after", component);
-        }
-        for component in query.before.iter().flat_map(|cursor| cursor.split(',')) {
-            pairs.append_pair("before", component);
-        }
-        pairs.append_pair("limit", &query.limit.to_string());
-        pairs.append_pair("sort_by", query.sort_by.as_api_value());
-    }
+    append_page_query(
+        &mut url,
+        query.after.as_deref(),
+        query.before.as_deref(),
+        query.limit,
+        query.sort_by.as_api_value(),
+    );
     Ok(url)
+}
+
+fn append_page_query(
+    url: &mut Url,
+    after: Option<&str>,
+    before: Option<&str>,
+    limit: u16,
+    sort_by: &str,
+) {
+    let mut pairs = url.query_pairs_mut();
+    for (key, cursor) in [("after", after), ("before", before)] {
+        for component in cursor.into_iter().flat_map(|cursor| cursor.split(',')) {
+            pairs.append_pair(key, component);
+        }
+    }
+    pairs.append_pair("limit", &limit.to_string());
+    pairs.append_pair("sort_by", sort_by);
 }
 
 fn account_source_row(row: Account) -> IcIcrcAccountSourceRow {

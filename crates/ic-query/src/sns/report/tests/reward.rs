@@ -155,6 +155,11 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
     assert!(text.contains("collection_status: api_exhausted_observed"));
     assert!(text.contains("row_count: 2"));
     assert!(!text.contains(&report.rows[0].neuron_id));
+    validate_sns_reward_checkpoint_report(&report)
+        .expect("collected report satisfies strict import validation");
+    let mut restored = report;
+    restored.aggregate_combined_maturity_e8s_equivalent += 1;
+    assert!(validate_sns_reward_checkpoint_report(&restored).is_err());
 }
 
 #[tokio::test(flavor = "current_thread")]

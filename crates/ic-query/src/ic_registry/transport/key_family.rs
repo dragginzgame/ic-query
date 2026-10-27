@@ -327,10 +327,6 @@ impl<'a> RegistryKeyFamilyState<'a> {
         }
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "each paginated delta page is validated and applied as one fail-closed unit"
-    )]
     fn apply_page(
         &mut self,
         response: HighCapacityRegistryGetChangesSinceResponse,
@@ -348,46 +344,23 @@ impl<'a> RegistryKeyFamilyState<'a> {
                 observed_version: response.version,
             });
         }
-        self.delta_key_count = self
-            .delta_key_count
-            .checked_add(response.deltas.len())
-            .ok_or(RegistryFetchError::RegistryKeyFamilyLimit {
-                field: "delta_keys",
-                maximum: MAX_REGISTRY_DELTA_KEYS,
-                actual: usize::MAX,
-            })?;
-        if self.delta_key_count > MAX_REGISTRY_DELTA_KEYS {
-            return Err(RegistryFetchError::RegistryKeyFamilyLimit {
-                field: "delta_keys",
-                maximum: MAX_REGISTRY_DELTA_KEYS,
-                actual: self.delta_key_count,
-            });
-        }
+        charge_key_family_count(
+            &mut self.delta_key_count,
+            response.deltas.len(),
+            "delta_keys",
+            MAX_REGISTRY_DELTA_KEYS,
+        )?;
 
         let mut page_versions = BTreeSet::new();
         let mut page_end = cursor;
         for delta in response.deltas {
-            self.value_count = self.value_count.checked_add(delta.values.len()).ok_or(
-                RegistryFetchError::RegistryKeyFamilyLimit {
-                    field: "delta_values",
-                    maximum: MAX_REGISTRY_DELTA_VALUES,
-                    actual: usize::MAX,
-                },
+            charge_key_family_count(
+                &mut self.value_count,
+                delta.values.len(),
+                "delta_values",
+                MAX_REGISTRY_DELTA_VALUES,
             )?;
-            if self.value_count > MAX_REGISTRY_DELTA_VALUES {
-                return Err(RegistryFetchError::RegistryKeyFamilyLimit {
-                    field: "delta_values",
-                    maximum: MAX_REGISTRY_DELTA_VALUES,
-                    actual: self.value_count,
-                });
-            }
-            if delta.key.len() > MAX_REGISTRY_KEY_BYTES {
-                return Err(RegistryFetchError::RegistryKeyFamilyLimit {
-                    field: "key_bytes",
-                    maximum: MAX_REGISTRY_KEY_BYTES,
-                    actual: delta.key.len(),
-                });
-            }
+            enforce_key_family_limit("key_bytes", MAX_REGISTRY_KEY_BYTES, delta.key.len())?;
             let matching_key = if delta.key.starts_with(self.prefix) {
                 Some(String::from_utf8(delta.key).map_err(|error| {
                     RegistryFetchError::InvalidRegistryKeyFamily {
@@ -420,48 +393,7 @@ impl<'a> RegistryKeyFamilyState<'a> {
                 let Some(key) = matching_key.as_ref() else {
                     continue;
                 };
-                let present = match value.content {
-                    Some(
-                        high_capacity_registry_value::Content::Value(_)
-                        | high_capacity_registry_value::Content::LargeValueChunkKeys(_),
-                    ) => true,
-                    Some(high_capacity_registry_value::Content::DeletionMarker(true)) => false,
-                    Some(high_capacity_registry_value::Content::DeletionMarker(false)) => {
-                        return Err(RegistryFetchError::InvalidRegistryKeyFamily {
-                            reason: format!(
-                                "key {key:?} version {} has a false deletion marker",
-                                value.version
-                            ),
-                        });
-                    }
-                    None => {
-                        return Err(RegistryFetchError::InvalidRegistryKeyFamily {
-                            reason: format!(
-                                "key {key:?} version {} has no value or deletion marker",
-                                value.version
-                            ),
-                        });
-                    }
-                };
-                match self.states.entry(key.clone()) {
-                    Entry::Vacant(entry) => {
-                        entry.insert((value.version, present));
-                    }
-                    Entry::Occupied(mut entry) => {
-                        let (current_version, _) = *entry.get();
-                        if value.version == current_version {
-                            return Err(RegistryFetchError::InvalidRegistryKeyFamily {
-                                reason: format!(
-                                    "key {key:?} has duplicate mutations at version {}",
-                                    value.version
-                                ),
-                            });
-                        }
-                        if value.version > current_version {
-                            entry.insert((value.version, present));
-                        }
-                    }
-                }
+                self.apply_mutation(key, value.version, value.content)?;
             }
         }
 
@@ -488,12 +420,87 @@ impl<'a> RegistryKeyFamilyState<'a> {
         Ok(page_end)
     }
 
+    fn apply_mutation(
+        &mut self,
+        key: &str,
+        version: u64,
+        content: Option<high_capacity_registry_value::Content>,
+    ) -> Result<(), RegistryFetchError> {
+        let present = match content {
+            Some(
+                high_capacity_registry_value::Content::Value(_)
+                | high_capacity_registry_value::Content::LargeValueChunkKeys(_),
+            ) => true,
+            Some(high_capacity_registry_value::Content::DeletionMarker(true)) => false,
+            Some(high_capacity_registry_value::Content::DeletionMarker(false)) => {
+                return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                    reason: format!("key {key:?} version {version} has a false deletion marker"),
+                });
+            }
+            None => {
+                return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                    reason: format!(
+                        "key {key:?} version {version} has no value or deletion marker"
+                    ),
+                });
+            }
+        };
+        match self.states.entry(key.to_string()) {
+            Entry::Vacant(entry) => {
+                entry.insert((version, present));
+            }
+            Entry::Occupied(mut entry) => {
+                let (current_version, _) = *entry.get();
+                if version == current_version {
+                    return Err(RegistryFetchError::InvalidRegistryKeyFamily {
+                        reason: format!("key {key:?} has duplicate mutations at version {version}"),
+                    });
+                }
+                if version > current_version {
+                    entry.insert((version, present));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn into_keys(self) -> Vec<String> {
         self.states
             .into_iter()
             .filter_map(|(key, (_, present))| present.then_some(key))
             .collect()
     }
+}
+
+fn charge_key_family_count(
+    count: &mut usize,
+    additional: usize,
+    field: &'static str,
+    maximum: usize,
+) -> Result<(), RegistryFetchError> {
+    *count = count
+        .checked_add(additional)
+        .ok_or(RegistryFetchError::RegistryKeyFamilyLimit {
+            field,
+            maximum,
+            actual: usize::MAX,
+        })?;
+    enforce_key_family_limit(field, maximum, *count)
+}
+
+const fn enforce_key_family_limit(
+    field: &'static str,
+    maximum: usize,
+    actual: usize,
+) -> Result<(), RegistryFetchError> {
+    if actual > maximum {
+        return Err(RegistryFetchError::RegistryKeyFamilyLimit {
+            field,
+            maximum,
+            actual,
+        });
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -875,6 +882,53 @@ mod tests {
                 observed_version: 0,
             })
         ));
+    }
+
+    #[test]
+    fn rejects_exceeded_page_budgets_before_applying_mutations() {
+        for (keys, values, key, field, maximum) in [
+            (
+                MAX_REGISTRY_DELTA_KEYS,
+                0,
+                b"canister_ranges_00".to_vec(),
+                "delta_keys",
+                MAX_REGISTRY_DELTA_KEYS,
+            ),
+            (
+                0,
+                MAX_REGISTRY_DELTA_VALUES,
+                b"canister_ranges_00".to_vec(),
+                "delta_values",
+                MAX_REGISTRY_DELTA_VALUES,
+            ),
+            (
+                0,
+                0,
+                vec![b'x'; MAX_REGISTRY_KEY_BYTES + 1],
+                "key_bytes",
+                MAX_REGISTRY_KEY_BYTES,
+            ),
+        ] {
+            let mut family = RegistryKeyFamilyState::new("canister_ranges_", 1);
+            family.delta_key_count = keys;
+            family.value_count = values;
+            let error = family
+                .apply_page(
+                    response(
+                        1,
+                        vec![HighCapacityRegistryDelta {
+                            key,
+                            values: vec![value(1)],
+                        }],
+                    ),
+                    0,
+                )
+                .unwrap_err();
+            assert!(matches!(error, RegistryFetchError::RegistryKeyFamilyLimit {
+                field: actual_field, maximum: actual_maximum, actual,
+            } if actual_field == field && actual_maximum == maximum && actual == maximum + 1));
+            assert!(family.states.is_empty());
+        }
     }
 
     #[test]

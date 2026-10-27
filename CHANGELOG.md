@@ -5,6 +5,28 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.0]
+
+### ⚠️ Breaking
+
+- Adopt IC Tooling 0.69.0. Certificate parse errors and authenticated ledger-tip
+  results now use Host Tools 0.69 Rust types; consumers naming those types must
+  update their direct `ic-host-tools` dependency to 0.69.
+
+### 🔧 Changed
+
+- Align Host, Build and Testkit with Platform 0.7.0, removing the older Platform
+  selection. Retain external protocol encodings, report fields and cache formats.
+- Adopt Shared Tooling 0.26.22 with explicit external Candid boundaries and
+  strengthened error, source-inspection and subprocess guidance.
+
+### 🧹 Cleanup
+
+- Simplify archive validation, cache decisions and report construction while
+  preserving rejection diagnostics, failure evidence and text output.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.74.5] - 2026-10-27
 
 ### 🩹 Fixed

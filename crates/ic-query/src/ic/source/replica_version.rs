@@ -71,27 +71,15 @@ pub(in crate::ic) fn replica_version_list_report_from_source(
     mut source: IcReplicaVersionListSourceData,
 ) -> Result<IcReplicaVersionListReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "replica-version query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
-    if let Some(requested_maximum) = source.query.max_proposal_index
-        && source.resolved_max_proposal_index > requested_maximum
-    {
-        return invalid_source(format!(
-            "resolved_max_proposal_index is {}, greater than requested ceiling {requested_maximum}",
-            source.resolved_max_proposal_index
-        ));
-    }
-    if source.rows.len() > usize::from(source.query.limit) {
-        return invalid_source(format!(
-            "source returned {} replica-version rows for requested limit {}",
-            source.rows.len(),
-            source.query.limit
-        ));
-    }
+    super::validate_requested_query("replica-version", query, &source.query)?;
+    super::validate_indexed_page_bounds(
+        source.query.max_proposal_index,
+        source.resolved_max_proposal_index,
+        "resolved_max_proposal_index",
+        source.rows.len(),
+        source.query.limit,
+        "replica-version",
+    )?;
     let next_offset = validate_offset_page(
         source.query.offset,
         source.total_proposals,

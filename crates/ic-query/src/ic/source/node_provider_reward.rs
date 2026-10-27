@@ -106,27 +106,15 @@ pub(in crate::ic) fn node_provider_reward_list_report_from_source(
     source: IcNodeProviderRewardListSourceData,
 ) -> Result<IcNodeProviderRewardListReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "node-provider reward query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
-    if let Some(requested_maximum) = source.query.max_reward_index
-        && source.resolved_max_reward_index > requested_maximum
-    {
-        return invalid_source(format!(
-            "resolved_max_reward_index is {}, greater than requested ceiling {requested_maximum}",
-            source.resolved_max_reward_index
-        ));
-    }
-    if source.rows.len() > usize::from(source.query.limit) {
-        return invalid_source(format!(
-            "source returned {} node-provider reward rows for requested limit {}",
-            source.rows.len(),
-            source.query.limit
-        ));
-    }
+    super::validate_requested_query("node-provider reward", query, &source.query)?;
+    super::validate_indexed_page_bounds(
+        source.query.max_reward_index,
+        source.resolved_max_reward_index,
+        "resolved_max_reward_index",
+        source.rows.len(),
+        source.query.limit,
+        "node-provider reward",
+    )?;
     let next_offset_hint = validate_offset_page(
         source.query.offset,
         source.total_reward_records,
@@ -175,12 +163,7 @@ pub(in crate::ic) fn node_provider_reward_history_report_from_source(
     source: IcNodeProviderRewardHistorySourceData,
 ) -> Result<IcNodeProviderRewardHistoryReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    if source.query != *query {
-        return invalid_source(format!(
-            "node-provider reward history query is {:?}, expected requested query {query:?}",
-            source.query
-        ));
-    }
+    super::validate_requested_query("node-provider reward history", query, &source.query)?;
     let requested_observation_limit =
         inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
     if u64::try_from(source.observations.len()).unwrap_or(u64::MAX) > requested_observation_limit {

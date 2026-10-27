@@ -46,6 +46,32 @@ struct CachePathInfo<'path> {
     inspection: CacheInspection,
 }
 
+impl CachePathInfo<'_> {
+    fn status_row(
+        &self,
+        component: String,
+        path: &Path,
+        relative_path: String,
+        size_bytes: u64,
+    ) -> CacheStatusRow {
+        CacheStatusRow {
+            component,
+            cache_path: path.display().to_string(),
+            relative_path,
+            header_status: CacheHeaderStatus::Invalid,
+            age_status: CacheAgeStatus::Unknown,
+            recovery_policy: self.recovery_policy,
+            schema_version: None,
+            network: None,
+            fetched_at: None,
+            age_seconds: None,
+            stale_after_seconds: self.stale_after_seconds,
+            size_bytes,
+            inspection_error: None,
+        }
+    }
+}
+
 struct GenericCacheHeader {
     schema_version: u32,
     network: Option<String>,
@@ -263,20 +289,15 @@ pub(super) fn cache_status_row(
                 CacheAgeStatus::Fresh
             }
         });
+    let component = component(&info, &header);
     Ok(CacheStatusRow {
-        component: component(&info, &header),
-        cache_path: path.display().to_string(),
-        relative_path,
         header_status: CacheHeaderStatus::Readable,
         age_status,
-        recovery_policy: info.recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at: Some(fetched_at_text),
         age_seconds: Some(age_seconds),
-        stale_after_seconds: info.stale_after_seconds,
-        size_bytes,
-        inspection_error: None,
+        ..info.status_row(component, path, relative_path, size_bytes)
     })
 }
 
@@ -452,19 +473,8 @@ fn invalid_row(
     error: Option<String>,
 ) -> CacheStatusRow {
     CacheStatusRow {
-        component: info.component.clone(),
-        cache_path: path.display().to_string(),
-        relative_path,
-        header_status: CacheHeaderStatus::Invalid,
-        age_status: CacheAgeStatus::Unknown,
-        recovery_policy: info.recovery_policy,
-        schema_version: None,
-        network: None,
-        fetched_at: None,
-        age_seconds: None,
-        stale_after_seconds: info.stale_after_seconds,
-        size_bytes,
         inspection_error: error,
+        ..info.status_row(info.component.clone(), path, relative_path, size_bytes)
     }
 }
 
@@ -477,20 +487,14 @@ fn unknown_age_row(
     fetched_at: Option<String>,
     error: String,
 ) -> CacheStatusRow {
+    let component = component(info, &header);
     CacheStatusRow {
-        component: component(info, &header),
-        cache_path: path.display().to_string(),
-        relative_path,
         header_status: CacheHeaderStatus::Readable,
-        age_status: CacheAgeStatus::Unknown,
-        recovery_policy: info.recovery_policy,
         schema_version: Some(header.schema_version),
         network: header.network,
         fetched_at,
-        age_seconds: None,
-        stale_after_seconds: info.stale_after_seconds,
-        size_bytes,
         inspection_error: Some(error),
+        ..info.status_row(component, path, relative_path, size_bytes)
     }
 }
 

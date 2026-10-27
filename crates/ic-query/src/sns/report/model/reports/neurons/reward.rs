@@ -267,13 +267,31 @@ pub fn validate_sns_reward_checkpoint_report(
 pub(in crate::sns::report) fn validated_reward_checkpoint_summary(
     report: &SnsRewardCheckpointReport,
 ) -> Result<SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError> {
-    validate_checkpoint_header(report)?;
-    validate_checkpoint_brackets(report)?;
-    validate_checkpoint_rows(&report.rows, report.collection_completed_at_unix_secs)?;
+    validate_checkpoint_evidence(report)?;
     let summary = recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows)
         .map_err(invalid_validation)?;
     validate_checkpoint_summary(report, &summary)?;
     Ok(summary)
+}
+
+impl SnsRewardCheckpointReport {
+    /// Validate an internally assembled checkpoint using its already recomputed summary.
+    #[cfg(feature = "sns-host")]
+    pub(in crate::sns::report) fn validate_collected_summary(
+        &self,
+        summary: &SnsRewardCheckpointSummary,
+    ) -> Result<(), SnsRewardCheckpointValidationError> {
+        validate_checkpoint_evidence(self)?;
+        validate_checkpoint_summary(self, summary)
+    }
+}
+
+fn validate_checkpoint_evidence(
+    report: &SnsRewardCheckpointReport,
+) -> Result<(), SnsRewardCheckpointValidationError> {
+    validate_checkpoint_header(report)?;
+    validate_checkpoint_brackets(report)?;
+    validate_checkpoint_rows(&report.rows, report.collection_completed_at_unix_secs)
 }
 
 fn validate_checkpoint_header(

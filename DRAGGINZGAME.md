@@ -129,8 +129,9 @@ when adding or changing commands.
 
 ## IC application encoding
 
-Use `ic-wire` for owned application endpoints; Candid adapts independently defined
-external protocols. Read the [encoding contract](rules/engineering-details.md#ic-application-encoding)
+Owned application types must not derive or implement `CandidType`. Use `ic-wire`
+for owned RPC; keep unavoidable Candid in dedicated external-protocol boundary
+types, not our domain, state or RPC models. Read the [encoding contract](rules/engineering-details.md#ic-application-encoding)
 and [RPC budgets](rules/rpc-budgets.md) for codecs, bindings or protocol changes.
 
 ## Pre-1.0 contracts

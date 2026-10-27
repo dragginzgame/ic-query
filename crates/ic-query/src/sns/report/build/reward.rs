@@ -12,8 +12,7 @@ use crate::sns::report::{
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     recompute_reward_checkpoint_summary, validate_sns_reward_checkpoint_parameter_evidence,
-    validate_sns_reward_checkpoint_report, validate_sns_reward_event_evidence,
-    validate_sns_reward_running_version_evidence,
+    validate_sns_reward_event_evidence, validate_sns_reward_running_version_evidence,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -78,7 +77,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     let rows = collection.into_rows();
     let summary = recompute_reward_checkpoint_summary(&parameters_before, &rows)
         .map_err(invalid_checkpoint)?;
-    let report = sns_reward_checkpoint_report_from_parts(SnsRewardCheckpointReportParts {
+    sns_reward_checkpoint_report_from_parts(SnsRewardCheckpointReportParts {
         fetch_request: lookup.fetch_request,
         sns: lookup.sns,
         collection_started_at_unix_secs: request.lookup.now_unix_secs,
@@ -93,10 +92,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         running_version_after,
         rows,
         summary,
-    })?;
-    validate_sns_reward_checkpoint_report(&report)
-        .map_err(|error| invalid_checkpoint(error.reason))?;
-    Ok(report)
+    })
 }
 
 async fn collect_reward_neurons(

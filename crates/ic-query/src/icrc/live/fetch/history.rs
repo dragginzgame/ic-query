@@ -28,7 +28,7 @@ use ic_platform::icrc_ledger_types::{
     ICRC3ArchiveInfo, ICRC3DataCertificate, ICRC3Value, SupportedBlockType,
 };
 use serde_json::{Map as JsonMap, Value as JsonValue};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_ARCHIVE_CALLBACKS: usize = 100;
 const MAX_ARCHIVE_REPLY_BYTES: usize = 64 * 1024 * 1024;
@@ -241,6 +241,7 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     };
     let log_length = data.log_length.as_deref().map(parse).transpose()?;
     let mut ranges = Vec::new();
+    let mut callback_ranges = BTreeMap::<_, Vec<_>>::new();
     for block in &data.blocks {
         let id = parse(&block.index)?;
         let end = Nat(&id.0 + 1u32);
@@ -253,7 +254,15 @@ pub(in crate::icrc::live) fn validate_transactions_data(
         for range in &archive.ranges {
             let start = parse(&range.start)?;
             let length = parse(&range.length)?;
-            ranges.push((start.clone(), Nat(start.0 + length.0)));
+            let end = Nat(&start.0 + length.0);
+            ranges.push((start.clone(), end.clone()));
+            callback_ranges
+                .entry((
+                    archive.callback_canister_id.as_str(),
+                    archive.callback_method.as_str(),
+                ))
+                .or_default()
+                .push(start..end);
         }
     }
     validate_page_ranges(
@@ -273,22 +282,12 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     let mut followed_ids = BTreeSet::new();
     for block in &data.followed_archive_blocks {
         let id = parse(&block.index)?;
-        let mut in_range = false;
-        for archive in &data.archived_blocks {
-            if (
-                archive.callback_canister_id.as_str(),
-                archive.callback_method.as_str(),
-            ) == (
+        let in_range = callback_ranges
+            .get(&(
                 block.archive_canister_id.as_str(),
                 block.callback_method.as_str(),
-            ) {
-                for range in &archive.ranges {
-                    let start = parse(&range.start)?;
-                    let end = Nat(&start.0 + parse(&range.length)?.0);
-                    in_range |= id >= start && id < end;
-                }
-            }
-        }
+            ))
+            .is_some_and(|ranges| ranges.iter().any(|range| range.contains(&id)));
         if !in_range || !followed_ids.insert(id) {
             return Err(invalid_transaction_page(
                 "followed archive block is outside its callback ranges or duplicated",
@@ -704,6 +703,75 @@ mod tests {
         });
         assert_eq!(archive.start, "1000");
         assert_eq!(archive.end, "2000");
+    }
+
+    #[test]
+    fn followed_blocks_remain_bound_to_each_callbacks_disjoint_ranges() {
+        let canister = Principal::anonymous();
+        let archive = |start: u32, method: &str| ArchivedBlocks {
+            args: vec![GetBlocksRequest {
+                start: Nat::from(start),
+                length: Nat::from(1u32),
+            }],
+            callback: QueryArchiveFn::new(canister, method),
+        };
+        let followed = |index: u32, method: &str| {
+            followed_archive_block_row_from_wire(
+                &canister.to_text(),
+                method,
+                BlockWithId {
+                    id: Nat::from(index),
+                    block: ICRC3Value::Nat(Nat::from(index)),
+                },
+            )
+        };
+        let request = IcrcTransactionsRequest {
+            ledger: crate::icrc::IcrcLedgerRequest::new("fixture", 0, canister.to_text()),
+            start: 0,
+            limit: 4,
+            follow_archives: true,
+        };
+        let data = transactions_data_from_blocks(
+            GetBlocksResult {
+                log_length: Nat::from(4u32),
+                blocks: vec![],
+                archived_blocks: vec![
+                    archive(0, "first"),
+                    archive(2, "first"),
+                    archive(1, "second"),
+                    archive(3, "second"),
+                ],
+            },
+            ArchiveFollowResult {
+                blocks: vec![
+                    followed(0, "first"),
+                    followed(2, "first"),
+                    followed(1, "second"),
+                    followed(3, "second"),
+                ],
+                errors: vec![],
+            },
+        );
+        validate_transactions_data(&request, &data)
+            .expect("all ranges for the same callback are retained");
+        let mut wrong_canister = followed(0, "first");
+        wrong_canister.archive_canister_id = Principal::management_canister().to_text();
+        for rejected in [followed(0, "second"), followed(4, "second"), wrong_canister] {
+            let mut invalid = data.clone();
+            invalid.followed_archive_blocks = vec![rejected];
+            assert!(matches!(
+                validate_transactions_data(&request, &invalid),
+                Err(IcrcError::InvalidTransactionPage { .. })
+            ));
+        }
+        let mut duplicated = data;
+        duplicated
+            .followed_archive_blocks
+            .push(followed(0, "first"));
+        assert!(matches!(
+            validate_transactions_data(&request, &duplicated),
+            Err(IcrcError::InvalidTransactionPage { .. })
+        ));
     }
 
     async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {

@@ -127,21 +127,11 @@ pub fn build_nns_proposal_list_report_from_cache(
     cache_root: &Path,
 ) -> Result<Option<NnsProposalListReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.governance.network)?;
-    let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
-    let cache = match load_nns_proposal_cache(
-        cache_root,
-        paths.snapshot_path.clone(),
-        &request.governance.network,
-        None,
-    ) {
-        Ok(cache) => cache,
-        Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
-        Err(error) => return Err(error),
+    let Some((path, cache)) = load_optional_cache(cache_root, &request.governance.network)? else {
+        return Ok(None);
     };
     Ok(Some(nns_proposal_list_report_from_cache(
-        request,
-        paths.snapshot_path,
-        cache,
+        request, path, cache,
     )))
 }
 
@@ -151,22 +141,10 @@ pub fn build_nns_proposal_report_from_cache(
     cache_root: &Path,
 ) -> Result<Option<NnsProposalReport>, NnsProposalHostError> {
     enforce_mainnet_network(&request.governance.network)?;
-    let paths = nns_proposal_cache_paths(cache_root, &request.governance.network);
-    let cache = match load_nns_proposal_cache(
-        cache_root,
-        paths.snapshot_path.clone(),
-        &request.governance.network,
-        None,
-    ) {
-        Ok(cache) => cache,
-        Err(NnsProposalHostError::MissingProposalCache { .. }) => return Ok(None),
-        Err(error) => return Err(error),
+    let Some((path, cache)) = load_optional_cache(cache_root, &request.governance.network)? else {
+        return Ok(None);
     };
-    Ok(nns_proposal_report_from_cache(
-        request,
-        paths.snapshot_path,
-        cache,
-    ))
+    Ok(nns_proposal_report_from_cache(request, path, cache))
 }
 
 fn open_proposal_cache(
@@ -330,5 +308,17 @@ fn nns_identity_mismatch_error(
         field: mismatch.field,
         expected: mismatch.expected,
         actual: mismatch.actual,
+    }
+}
+
+fn load_optional_cache(
+    cache_root: &Path,
+    network: &str,
+) -> Result<Option<(PathBuf, NnsProposalCache)>, NnsProposalHostError> {
+    let path = nns_proposal_cache_paths(cache_root, network).snapshot_path;
+    match load_nns_proposal_cache(cache_root, path.clone(), network, None) {
+        Ok(cache) => Ok(Some((path, cache))),
+        Err(NnsProposalHostError::MissingProposalCache { .. }) => Ok(None),
+        Err(error) => Err(error),
     }
 }

@@ -328,50 +328,37 @@ pub async fn load_subnet_catalog_detailed_with_progress(
             ),
         )
     })?;
-    match &request.policy {
+    let (disposition, trigger) = match &request.policy {
         CatalogReadPolicy::CacheOnly => {
-            load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit)
-                .map_err(|failure| cache_load_failure(request, true, failure))
+            return load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit)
+                .map_err(|failure| cache_load_failure(request, true, failure));
         }
-        CatalogReadPolicy::ForceRefresh { .. } => {
-            refresh_then_load_detailed(
-                request,
-                source,
-                progress,
-                CacheDisposition::ForcedRefresh,
-                SubnetCatalogRefreshTrigger::Forced,
-            )
-            .await
-        }
+        CatalogReadPolicy::ForceRefresh { .. } => (
+            CacheDisposition::ForcedRefresh,
+            SubnetCatalogRefreshTrigger::Forced,
+        ),
         policy => {
             match load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit) {
                 Ok(cached) => {
-                    let max_age_seconds = match policy {
-                        CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
-                            max_age_seconds,
-                            ..
-                        } => Some(*max_age_seconds),
-                        _ => None,
+                    let CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+                        max_age_seconds, ..
+                    } = policy
+                    else {
+                        return Ok(cached);
                     };
-                    if max_age_seconds.is_some_and(|max_age_seconds| {
-                        catalog_stale_status(
-                            cached.catalog.raw(),
-                            request.now_unix_secs,
-                            max_age_seconds,
-                        )
-                        .catalog_stale
-                    }) {
-                        refresh_then_load_detailed(
-                            request,
-                            source,
-                            progress,
-                            CacheDisposition::RefreshedStale,
-                            SubnetCatalogRefreshTrigger::Stale,
-                        )
-                        .await
-                    } else {
-                        Ok(cached)
+                    if !catalog_stale_status(
+                        cached.catalog.raw(),
+                        request.now_unix_secs,
+                        *max_age_seconds,
+                    )
+                    .catalog_stale
+                    {
+                        return Ok(cached);
                     }
+                    (
+                        CacheDisposition::RefreshedStale,
+                        SubnetCatalogRefreshTrigger::Stale,
+                    )
                 }
                 Err(failure)
                     if matches!(
@@ -379,14 +366,10 @@ pub async fn load_subnet_catalog_detailed_with_progress(
                         SubnetCatalogHostError::MissingCatalog { .. }
                     ) =>
                 {
-                    refresh_then_load_detailed(
-                        request,
-                        source,
-                        progress,
+                    (
                         CacheDisposition::RefreshedMissing,
                         SubnetCatalogRefreshTrigger::Missing,
                     )
-                    .await
                 }
                 Err(failure)
                     if matches!(
@@ -399,19 +382,16 @@ pub async fn load_subnet_catalog_detailed_with_progress(
                             | SubnetCatalogHostError::CachedCatalogTooLarge { .. }
                     ) =>
                 {
-                    refresh_then_load_detailed(
-                        request,
-                        source,
-                        progress,
+                    (
                         CacheDisposition::RefreshedInvalid,
                         SubnetCatalogRefreshTrigger::Rejected,
                     )
-                    .await
                 }
-                Err(failure) => Err(cache_load_failure(request, false, failure)),
+                Err(failure) => return Err(cache_load_failure(request, false, failure)),
             }
         }
-    }
+    };
+    refresh_then_load_detailed(request, source, progress, disposition, trigger).await
 }
 
 fn load_cached_with_disposition_detailed(

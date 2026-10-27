@@ -49,7 +49,7 @@ pub(in crate::sns::report) fn sns_reward_checkpoint_report_from_parts(
                 field: "client_query_count",
             })?;
     let row_count = parts.rows.len();
-    Ok(SnsRewardCheckpointReport {
+    let report = SnsRewardCheckpointReport {
         schema_version: SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         network: parts.fetch_request.network,
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
@@ -105,5 +105,12 @@ pub(in crate::sns::report) fn sns_reward_checkpoint_report_from_parts(
             .summary
             .maturity_conversion_policy_observed_status,
         rows: parts.rows,
-    })
+    };
+    report
+        .validate_collected_summary(&parts.summary)
+        .map_err(|error| SnsHostError::InvalidSourceData {
+            capability: "SNS reward checkpoint",
+            reason: error.reason,
+        })?;
+    Ok(report)
 }
