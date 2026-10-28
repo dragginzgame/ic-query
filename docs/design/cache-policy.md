@@ -682,3 +682,7 @@ error, without a second stored lifecycle label. Unknown fields are rejected
 on restore, including in joined rows with flattened canister identities.
 Preserve required evidence and update consumers before an explicit catalog
 refresh; schema identifiers remain 1 and no fallback reader is retained.
+
+Cache inventory classification preserves native path-component positions. A
+non-UTF-8 component makes the relative shape unrecognised; inspection retains
+the file but assigns no known recovery or freshness policy to that shape.

@@ -25,7 +25,6 @@ pub(in crate::ic) fn node_status_group_counts<'a>(
 }
 
 /// Count raw operational statuses without applying an assignment projection.
-#[cfg(feature = "dashboard-host")]
 pub fn node_status_counts<'a>(
     nodes: impl Iterator<Item = &'a IcNodeStatusRow>,
 ) -> IcNodeStatusCounts {

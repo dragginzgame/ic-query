@@ -230,6 +230,33 @@ pub fn build_nns_neuron_distribution_report(
         }
     })?;
 
+    aggregate_distribution(collection, neurons, expected, source)
+}
+
+#[cfg(feature = "nns-host")]
+pub(super) fn build_distribution_from_cache(
+    cache: &super::cache::AdmittedNeuronCache,
+) -> Result<NnsNeuronDistributionReport, NnsNeuronDistributionError> {
+    let collection = cache.collection_state();
+    let source = collection.source().cloned().ok_or_else(|| {
+        NnsNeuronDistributionError::InvalidCollectionState {
+            reason: "complete collection has no concrete source provenance".to_string(),
+        }
+    })?;
+    aggregate_distribution(
+        collection,
+        cache.rows(),
+        collection.neurons_fetched(),
+        source,
+    )
+}
+
+fn aggregate_distribution(
+    collection: &NnsNeuronCollectionState,
+    neurons: &[NnsNeuronRow],
+    expected: u64,
+    source: NnsGovernanceSourceProvenance,
+) -> Result<NnsNeuronDistributionReport, NnsNeuronDistributionError> {
     let mut distribution = DistributionAccumulator::default();
     for neuron in neurons {
         distribution.observe(neuron)?;

@@ -10,8 +10,9 @@ use crate::{
     cache_file::{JsonCacheReport, LoadJsonCacheRequest, load_json_cache},
     freshness::freshness_facts,
     icrc::{
-        ledger::principal_from_text,
-        live::account_transactions::validate_canonical_account_transactions,
+        live::account_transactions::{
+            normalize_account_transaction_identity, validate_canonical_account_transactions,
+        },
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCacheRequest,
             IcrcAccountTransactionError, IcrcAccountTransactionSnapshot,
@@ -182,14 +183,15 @@ pub(super) fn normalize_cache_request(
             reason: "endpoint must not be empty".to_string(),
         });
     }
-    let ledger_canister_id =
-        principal_from_text(&request.ledger_canister_id, "ledger_canister_id")?;
-    let account_owner = principal_from_text(&request.account_owner, "account_owner")?;
+    let (ledger_canister_id, account_owner) = normalize_account_transaction_identity(
+        &request.ledger_canister_id,
+        &request.account_owner,
+    )?;
     Ok(IcrcAccountTransactionCacheRequest {
         cache_root: request.cache_root.clone(),
         source_endpoint: request.source_endpoint.clone(),
-        ledger_canister_id: ledger_canister_id.to_text(),
-        account_owner: account_owner.to_text(),
+        ledger_canister_id,
+        account_owner,
         subaccount_hex: normalize_optional_subaccount_hex(request.subaccount_hex.as_deref())?,
     })
 }

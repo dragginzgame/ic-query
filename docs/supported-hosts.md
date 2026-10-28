@@ -34,6 +34,13 @@ retain their separate acceptance gates.
   Xcode Command Line Tools. Explicit executable setup also needs curl, CA
   certificates, tar with gzip/xz support and a SHA-256 backend. See the common
   [bootstrap prerequisites](local-setup.md#bootstrap-prerequisites).
+- Finish native compiler/linker and SDK setup before Cargo executable
+  preparation. Hosted jobs use their runner's native build environment and
+  prepare Rust before tool installation; local Linux contributors need a C/C++
+  toolchain, CMake and pkg-config, and macOS contributors need Xcode Command
+  Line Tools. No browser or JavaScript setup is selected by Query's release
+  gate. If fingerprinted native inputs change, explicitly re-prepare the affected
+  Cargo tools before offline admission; never bypass their receipts.
 - `make install-tools` prepares the host and common Cargo tools, followed by
   Query's selected IC executables, Cargo Audit/Machete and release metadata editor.
   IC and Rust preflight run before installations; setup does not install a Rust

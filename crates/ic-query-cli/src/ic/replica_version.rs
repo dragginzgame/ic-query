@@ -59,30 +59,21 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionInfoOptions::from_matches(matches);
-    let request = IcReplicaVersionInfoRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
-        options.replica_version_id,
-    );
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
+    let request = IcReplicaVersionInfoRequest::new(dashboard, options.replica_version_id);
     let report = build_ic_replica_version_info_report(&request).await?;
-    write_text_or_json(
-        options.source.format,
-        &report,
-        ic_replica_version_info_report_text,
-    )
+    write_text_or_json(format, &report, ic_replica_version_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = ReplicaVersionListOptions::from_matches(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
     let request = IcReplicaVersionListRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
+        dashboard,
         IcReplicaVersionListQuery::new(options.limit, options.offset, options.max_proposal_index),
     );
     let report = build_ic_replica_version_list_report(&request).await?;
-    write_text_or_json(
-        options.source.format,
-        &report,
-        ic_replica_version_list_report_text,
-    )
+    write_text_or_json(format, &report, ic_replica_version_list_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {

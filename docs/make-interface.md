@@ -66,6 +66,8 @@ not a ban on the helpers that implement those adapters.
 
 Use the existing `LOCAL_TOOL_INSTALL_TARGETS` and `LOCAL_TOOL_CHECK_TARGETS`
 ordered extension lists for product tools, including IC Testkit's PocketIC CLI.
+Their install phase follows the common Cargo tools; native/system bootstrap
+that changes Cargo fingerprints must happen earlier in the consumer adapter.
 See [setup](local-setup.md) for pins and executable storage. Do not add unordered
 prerequisites to the aggregate installation target or duplicate its recipes.
 
@@ -90,6 +92,38 @@ their consumer owner; ordinary release validation remains in the existing
 runner adapters. The include does not change user-owned release authority or add
 publication, deployment or cleanup. Preserve unfinished plans, prior tool
 installations, logs and build artifacts during adoption.
+
+### Native bootstrap adapter
+
+Keep native/system installation in the consumer's existing explicit setup or
+release-preparation adapter, before calling the shared installer. For example,
+this **consumer-owned** target has a sequential recipe, including under parallel
+Make; the local target names are examples, not additions to Shared's interface:
+
+```make
+.PHONY: prepare-release-prerequisites
+prepare-release-prerequisites:
+	+$(MAKE) install-native-tools
+	+$(MAKE) native-tools-check
+	+$(MAKE) install-tools
+	+$(MAKE) install-product-dependencies
+	+$(MAKE) native-tools-check
+	+$(MAKE) tools-check
+	+$(MAKE) product-prerequisites-check
+```
+
+`install-tools` includes the consumer's selected release editor when declared in
+its ordered extension list. The product-dependency phase must not change the
+compiler/native inputs used to prepare those tools; move such work to bootstrap.
+The final admission covers native prerequisites, declared shared/local tools and
+the remaining product prerequisites before validation starts. Do not turn this
+into sibling prerequisites that race under `make -j`.
+
+Call that sequence only where setup is already authorized. Standalone
+`tools-check`, `native-tools-check` and `product-prerequisites-check` remain
+read-only. Validation consumes prepared prerequisites without implicitly
+installing packages. Keep the actual command roster
+with the consumer; see [bootstrap ordering and re-preparation](local-setup.md#native-bootstrap-before-cargo-tools).
 
 ## Custom formatting without replacement recipes
 
@@ -247,8 +281,14 @@ recipe warnings rather than filtering them from every invocation.
    inputs together. Export all includes that will be parsed, including
    `make/consumer.mk`; the release command checker still substitutes only the
    runner and must never reach the real checkout's release adapter.
-5. Run focused consumer formatting/hook and release routing checks, then its full
-   delivery gate. Native macOS evidence remains necessary. Delete local installers
+5. Trace every command in the consumer's actual release gates, including nested
+   workspaces, native generators, the metadata editor and browser tooling. Map
+   each prerequisite to explicit setup and read-only admission. Prepare native
+   inputs before Cargo tools, keeping post-common extensions for later tools.
+   A successful `tools-check` alone does not cover the full gate's prerequisites.
+6. Run focused consumer formatting/hook and release routing checks. Full delivery
+   gates remain release-owned or explicitly requested; applicable native macOS
+   qualification remains required. Delete local installers
    or aliases only after tracing their callers and verifying equivalent behavior;
    do not remove product setup merely because it invokes a shared helper.
 
@@ -285,6 +325,22 @@ for Make fixtures too. Select `make/consumer.mk` for the consumer interface,
 Their declared companions supply the complete closure. Apply local Makefiles,
 catalogs and leaf stubs after preparation; callers retain assertions and evidence.
 The former `prepare-make-fixture.sh` command is removed.
+
+For an adapter with native bootstrap, exercise the **actual preparation sequence**
+in a disposable consumer export, replacing installation/process leaves at their
+existing script boundaries. Let the native installer record a setup marker and
+make the Cargo-tool setup substitute refuse without it. Assert the successful
+order (also with parallel Make), reverse the bootstrap/Cargo calls and require
+refusal before later setup or validation. Check that failed prerequisite admission
+stops gate dispatch and that standalone checks reach no installer. Do not test a
+handwritten duplicate of the adapter or invoke host package managers in a fixture.
+
+Shared's Cargo-tool fixtures own native-environment fingerprint invalidation and
+explicit re-preparation. Retain that rejection/recovery behavior; consumers
+qualify their wiring and named missing product proofs instead of copying the
+generic matrix. Substituted ordering fixtures do not prove native compilation,
+product behavior or macOS support. These requirements belong in the
+[consumer qualification selection](consuming-snapshots.md#consumer-qualification-selection).
 
 ## Reusing fixture exit qualification
 

@@ -113,7 +113,7 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
         let mut attention_subnet_count = 0;
         let mut subnets = Vec::new();
         for (subnet_id, nodes) in grouped {
-            let statuses = node_status_group_counts(nodes.iter().copied()).statuses;
+            let statuses = super::counts::node_status_counts(nodes.iter().copied());
             let requires_attention = statuses.non_up() > 0;
             attention_subnet_count += usize::from(requires_attention);
             if view_includes(view, resolution.as_ref(), subnet_id, requires_attention) {

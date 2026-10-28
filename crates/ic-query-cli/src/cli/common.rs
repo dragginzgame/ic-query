@@ -64,6 +64,16 @@ impl SourceOutputOptions {
             source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
         }
     }
+
+    pub(crate) fn into_dashboard_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, ic_query::ic::IcDashboardRequest) {
+        (
+            self.format,
+            ic_query::ic::IcDashboardRequest::new(self.source_endpoint, now_unix_secs),
+        )
+    }
 }
 
 ///

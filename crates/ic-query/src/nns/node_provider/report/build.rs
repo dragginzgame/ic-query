@@ -2,7 +2,7 @@ use super::{
     NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
     NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::{load_cached_nns_node_provider_report, nns_node_provider_cache_path},
-    refresh::refresh_nns_node_provider_cache_with_source,
+    refresh::refresh_nns_node_provider_report_with_source,
     resolve::resolve_node_provider,
     source::NnsNodeProviderSource,
 };
@@ -58,7 +58,7 @@ pub async fn build_nns_node_provider_list_report_with_source_and_progress(
         progress,
         |cache| load_cached_nns_node_provider_report(cache).map(|cached| cached.report),
         async |refresh_request| {
-            refresh_nns_node_provider_cache_with_source(refresh_request, source)
+            refresh_nns_node_provider_report_with_source(refresh_request, source)
                 .await
                 .map(|_| ())
         },

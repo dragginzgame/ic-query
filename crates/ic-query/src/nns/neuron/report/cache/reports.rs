@@ -29,7 +29,7 @@ use crate::{
         neuron::report::{
             NnsNeuronHostError,
             collection::validate_collection_state,
-            distribution::{NnsNeuronDistributionReport, build_nns_neuron_distribution_report},
+            distribution::{NnsNeuronDistributionReport, build_distribution_from_cache},
             enforce_mainnet_network,
             model::{
                 NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport,
@@ -44,6 +44,30 @@ use crate::{
     snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
 use std::path::{Path, PathBuf};
+
+///
+/// AdmittedNeuronCache
+///
+/// Immutable complete snapshot admitted by the family cache reader.
+///
+
+pub(in crate::nns::neuron::report) struct AdmittedNeuronCache {
+    snapshot: NnsNeuronCache,
+}
+
+impl AdmittedNeuronCache {
+    pub(in crate::nns::neuron::report) const fn collection_state(
+        &self,
+    ) -> &crate::nns::neuron::report::NnsNeuronCollectionState {
+        &self.snapshot.data.collection_state
+    }
+
+    pub(in crate::nns::neuron::report) fn rows(
+        &self,
+    ) -> &[crate::nns::neuron::report::model::NnsNeuronRow] {
+        &self.snapshot.data.neurons
+    }
+}
 
 /// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
 pub async fn build_nns_neuron_list_report_with_cache_and_source(
@@ -76,10 +100,7 @@ pub fn build_nns_neuron_distribution_report_from_cache(
     enforce_mainnet_network(&request.network)?;
     let path = nns_neuron_cache_path(&request.cache_root, &request.network);
     let cache = load_cache_at(&request.cache_root, &path, &request.network, None)?;
-    Ok(build_nns_neuron_distribution_report(
-        &cache.data.collection_state,
-        &cache.data.neurons,
-    )?)
+    Ok(build_distribution_from_cache(&cache)?)
 }
 
 /// Read a complete neuron snapshot and build a local list page when present.
@@ -159,7 +180,9 @@ pub fn build_nns_neuron_cache_status_report(
                 &request.network,
                 Some(file),
             ) {
-                Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache),
+                Ok(cache) => {
+                    NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache.snapshot)
+                }
                 Err(error) => {
                     NnsGovernanceCacheSummary::invalid(&paths.snapshot_path, error.to_string())
                 }
@@ -188,7 +211,7 @@ fn load_cache_at(
     path: &Path,
     network: &str,
     opened_file: Option<std::fs::File>,
-) -> Result<NnsNeuronCache, NnsNeuronHostError> {
+) -> Result<AdmittedNeuronCache, NnsNeuronHostError> {
     let key = SnapshotKey::full(
         NNS_NEURON_CACHE_DOMAIN,
         network,
@@ -212,7 +235,7 @@ fn load_cache_at(
         opened_file,
     )?;
     validate_cache(path, &cache)?;
-    Ok(cache)
+    Ok(AdmittedNeuronCache { snapshot: cache })
 }
 
 fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHostError> {
@@ -284,7 +307,7 @@ fn load_optional_cache(
 ) -> Result<Option<(PathBuf, NnsNeuronCache)>, NnsNeuronHostError> {
     let path = nns_neuron_cache_path(cache_root, network);
     match load_cache_at(cache_root, &path, network, None) {
-        Ok(cache) => Ok(Some((path, cache))),
+        Ok(cache) => Ok(Some((path, cache.snapshot))),
         Err(error) if is_missing_cache(&error) => Ok(None),
         Err(error) => Err(error),
     }

@@ -6,13 +6,11 @@
 
 use crate::{
     QueryProgress,
-    snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
-        run_paged_snapshot_refresh_with_progress,
-    },
+    snapshot_cache::{PagedCollectionPage, PagedCollectionState},
     sns::report::{
         SnsHostError, SnsProposalRow,
-        cache_attempt::{SnsRefreshContext, write_running_sns_refresh_page},
+        cache_attempt::SnsRefreshContext,
+        cache_collection::{SnsCollectionPages, collect_sns_snapshot},
         proposals_cache::model::CompleteSnsProposals,
         source::{SnsProposalsSource, validate_mainnet_sns_proposal_page},
     },
@@ -24,15 +22,7 @@ pub(in crate::sns::report::proposals_cache) async fn fetch_complete_sns_proposal
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteSnsProposals, SnsHostError> {
-    run_paged_snapshot_refresh_with_progress(
-        SnsProposalsRefreshPages {
-            context,
-            source,
-            pages: PagedCollectionState::new(),
-        },
-        progress,
-    )
-    .await
+    collect_sns_snapshot(context, SnsProposalsRefreshPages { source }, progress).await
 }
 
 ///
@@ -42,73 +32,41 @@ pub(in crate::sns::report::proposals_cache) async fn fetch_complete_sns_proposal
 ///
 
 struct SnsProposalsRefreshPages<'a> {
-    context: SnsRefreshContext<'a>,
     source: &'a dyn SnsProposalsSource,
-    pages: PagedCollectionState<SnsProposalRow, u64>,
 }
 
-impl PagedSnapshotRefresh for SnsProposalsRefreshPages<'_> {
-    type Complete = CompleteSnsProposals;
-    type Error = SnsHostError;
+impl SnsCollectionPages for SnsProposalsRefreshPages<'_> {
+    type Row = SnsProposalRow;
+    type Cursor = u64;
+    const COLLECTION: &'static str = "proposals";
 
-    fn progress_text(&self) -> String {
-        self.context
-            .progress_text("proposals", self.pages.page_count(), self.pages.row_count())
-    }
-
-    fn max_pages_reached(&self) -> bool {
-        self.context.max_pages_reached(self.pages.page_count())
-    }
-
-    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        SnsRefreshContext::incomplete_refresh_error(
-            self.pages.page_count(),
-            self.pages.row_count(),
-            reason,
-        )
-    }
-
-    fn fetch_next_page(
-        &mut self,
-    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+    fn fetch_next_page<'a>(
+        &'a mut self,
+        context: SnsRefreshContext<'a>,
+        pages: &'a mut PagedCollectionState<Self::Row, Self::Cursor>,
+    ) -> crate::report::SourceFuture<'a, Result<PagedCollectionPage, SnsHostError>> {
         Box::pin(async move {
             let page = self
                 .source
                 .fetch_sns_proposal_page(
-                    self.context.fetch_request,
-                    self.context.sns,
-                    self.context.request.page_size,
-                    self.pages.next_cursor().copied(),
+                    context.fetch_request,
+                    context.sns,
+                    context.request.page_size,
+                    pages.next_cursor().copied(),
                 )
                 .await?;
             validate_mainnet_sns_proposal_page(
                 &page,
-                self.context.request.page_size,
-                self.pages.next_cursor().copied(),
+                context.request.page_size,
+                pages.next_cursor().copied(),
             )?;
             let last_cursor = page.iter().map(|proposal| proposal.proposal_id).min();
             let page_len = page.len();
-            Ok(self
-                .pages
-                .ingest_page(page, page_len, last_cursor, ToString::to_string))
+            Ok(pages.ingest_page(page, page_len, last_cursor, ToString::to_string))
         })
     }
 
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        write_running_sns_refresh_page(
-            self.context,
-            self.pages.page_count(),
-            self.pages.row_count(),
-            page,
-        )
-    }
-
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        self.context
-            .page_exhausts_collection(page, self.pages.has_next_cursor())
-    }
-
-    fn into_complete(self) -> Self::Complete {
-        self.pages.into_complete(ToString::to_string)
+    fn cursor_text(cursor: &Self::Cursor) -> String {
+        cursor.to_string()
     }
 }

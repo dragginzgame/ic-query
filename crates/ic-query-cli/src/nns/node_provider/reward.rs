@@ -6,10 +6,10 @@
 
 use crate::{
     cli::{
-        clap::{required_string, required_typed, typed_option, value_arg},
+        clap::{required_typed, typed_option, value_arg},
         common::{
-            COLLECTION_MODE_LIVE, OutputFormat, collection_help, current_unix_secs, json_arg,
-            output_format, source_endpoint_arg, write_text_or_json,
+            COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+            json_arg, source_endpoint_arg, write_text_or_json,
         },
     },
     nns::NnsCommandError,
@@ -81,30 +81,21 @@ pub(super) async fn run(matches: &ArgMatches, _network: &str) -> Result<(), NnsC
 
 async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardInfoOptions::from_matches(matches);
-    let request = IcNodeProviderRewardInfoRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
-        options.reward_id,
-    );
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
+    let request = IcNodeProviderRewardInfoRequest::new(dashboard, options.reward_id);
     let report = build_ic_node_provider_reward_info_report(&request).await?;
-    write_text_or_json(
-        options.format,
-        &report,
-        ic_node_provider_reward_info_report_text,
-    )
+    write_text_or_json(format, &report, ic_node_provider_reward_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let options = RewardListOptions::from_matches(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
     let request = IcNodeProviderRewardListRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
+        dashboard,
         IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
     );
     let report = build_ic_node_provider_reward_list_report(&request).await?;
-    write_text_or_json(
-        options.format,
-        &report,
-        ic_node_provider_reward_list_report_text,
-    )
+    write_text_or_json(format, &report, ic_node_provider_reward_list_report_text)
 }
 
 async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
@@ -114,16 +105,13 @@ async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     let start = options
         .start_unix_secs
         .unwrap_or_else(|| end.saturating_sub(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS));
+    let (format, dashboard) = options.source.into_dashboard_request(now);
     let request = IcNodeProviderRewardHistoryRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, now),
+        dashboard,
         IcNodeProviderRewardHistoryQuery::new(start, end, options.step_secs),
     );
     let report = build_ic_node_provider_reward_history_report(&request).await?;
-    write_text_or_json(
-        options.format,
-        &report,
-        ic_node_provider_reward_history_report_text,
-    )
+    write_text_or_json(format, &report, ic_node_provider_reward_history_report_text)
 }
 
 fn info_command() -> ClapCommand {
@@ -222,16 +210,14 @@ fn history_command() -> ClapCommand {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct RewardInfoOptions {
     reward_id: u64,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl RewardInfoOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
         Self {
             reward_id: required_typed(matches, "reward-id"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -241,8 +227,7 @@ struct RewardListOptions {
     limit: u16,
     offset: u64,
     max_reward_index: Option<u64>,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl RewardListOptions {
@@ -251,8 +236,7 @@ impl RewardListOptions {
             limit: required_typed(matches, "limit"),
             offset: required_typed(matches, "offset"),
             max_reward_index: typed_option(matches, "max-reward-index"),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -262,8 +246,7 @@ struct RewardHistoryOptions {
     start_unix_secs: Option<u64>,
     end_unix_secs: Option<u64>,
     step_secs: u32,
-    format: OutputFormat,
-    source_endpoint: String,
+    source: SourceOutputOptions,
 }
 
 impl RewardHistoryOptions {
@@ -273,8 +256,7 @@ impl RewardHistoryOptions {
             end_unix_secs: typed_option(matches, "end"),
             step_secs: typed_option(matches, "step")
                 .unwrap_or(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            source: SourceOutputOptions::from_matches(matches),
         }
     }
 }
@@ -283,6 +265,7 @@ impl RewardHistoryOptions {
 mod tests {
     use super::*;
     use crate::cli::clap::{parse_matches, render_help};
+    use crate::cli::common::OutputFormat;
 
     fn options<T>(command: ClapCommand, args: &[&str], from: impl FnOnce(&ArgMatches) -> T) -> T {
         let matches = parse_matches(command, args.iter().map(std::ffi::OsString::from))
@@ -323,7 +306,7 @@ mod tests {
         assert_eq!(list.limit, 25);
         assert_eq!(list.offset, 50);
         assert_eq!(list.max_reward_index, Some(6_470));
-        assert_eq!(list.format, OutputFormat::Json);
+        assert_eq!(list.source.format, OutputFormat::Json);
 
         let history = options(
             history_command(),

@@ -43,7 +43,8 @@ short or empty page proves API exhaustion. Page admission validates strict row
 order; the exclusive cursor preserves that order across pages. Publication moves the admitted rows without revalidating them.
 The collector retains the row vector without allocating a second full-history
 id set. Disk reads and caller-owned analytics inputs validate their rows at
-their own trust boundaries.
+their own trust boundaries. Cached distribution projection retains immutable
+cache admission rather than repeating collection and row validation.
 
 The portable `NnsNeuronCollectionState` and
 `advance_nns_neuron_collection_with_source` API expose this walk as one bounded

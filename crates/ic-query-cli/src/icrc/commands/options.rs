@@ -213,6 +213,18 @@ impl IcrcLedgerOptions {
             source_endpoint: source.source_endpoint,
         }
     }
+
+    pub(in crate::icrc) fn into_dashboard_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, ic_query::ic::IcDashboardRequest, String) {
+        let (format, request) = SourceOutputOptions {
+            format: self.format,
+            source_endpoint: self.source_endpoint,
+        }
+        .into_dashboard_request(now_unix_secs);
+        (format, request, self.ledger_canister_id)
+    }
 }
 
 ///

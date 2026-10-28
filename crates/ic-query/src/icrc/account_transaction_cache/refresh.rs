@@ -18,10 +18,12 @@ use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache},
     icrc::{
-        ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, IcrcAccountTransactionCollectionSource,
-        LiveIcrcSource,
+        IcrcAccountTransactionCollectionSource, LiveIcrcSource,
         ledger::principal_from_text,
-        live::account_transactions::validate_canonical_account_transactions,
+        live::account_transactions::{
+            normalize_optional_index_canister_id, validate_account_transaction_page_size,
+            validate_canonical_account_transactions,
+        },
         model::{
             CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
             IcrcAccountTransactionError, IcrcAccountTransactionRefreshReport,
@@ -363,21 +365,13 @@ fn incomplete_collection_error(
 fn validate_refresh_options(
     request: &IcrcAccountTransactionRefreshRequest,
 ) -> Result<Option<String>, IcrcAccountTransactionError> {
-    if !(1..=ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE).contains(&request.page_size) {
-        return Err(IcrcAccountTransactionError::InvalidPageSize {
-            page_size: request.page_size,
-            max_page_size: ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
-        });
-    }
+    validate_account_transaction_page_size(request.page_size)?;
     if request.max_pages == Some(0) {
         return Err(IcrcAccountTransactionError::InvalidMaxPages { max_pages: 0 });
     }
-    Ok(request
-        .index_canister_id
-        .as_deref()
-        .map(|value| principal_from_text(value, "index_canister_id"))
-        .transpose()?
-        .map(|principal| principal.to_text()))
+    Ok(normalize_optional_index_canister_id(
+        request.index_canister_id.as_deref(),
+    )?)
 }
 
 fn cache_operation_error(source: crate::CacheFileError) -> IcrcAccountTransactionError {

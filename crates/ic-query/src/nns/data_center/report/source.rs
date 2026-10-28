@@ -4,10 +4,7 @@ use super::{
 };
 use crate::{
     ic_registry::{MainnetDataCenterList, fetch_mainnet_data_center_list},
-    nns::{
-        LiveNnsSource, NnsSourceRequest, inventory::fetch_nns_inventory_source_report,
-        source::mainnet_registry_fetch_request,
-    },
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
 };
 
 ///
@@ -38,22 +35,6 @@ impl NnsDataCenterSource for LiveNnsSource {
             ))
         })
     }
-}
-
-pub(super) async fn fetch_nns_data_center_list_report_with_source(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    source: &dyn NnsDataCenterSource,
-) -> Result<NnsDataCenterListReport, NnsDataCenterHostError> {
-    fetch_nns_inventory_source_report(
-        network,
-        source_endpoint,
-        now_unix_secs,
-        super::enforce_mainnet_network,
-        async |request| source.fetch_data_center_list_report(request).await,
-    )
-    .await
 }
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {

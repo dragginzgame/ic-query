@@ -3,7 +3,7 @@ use super::{
     NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
     cache::{load_cached_nns_node_report, nns_node_cache_path},
     filters::filter_node_list_report,
-    refresh::refresh_nns_node_cache_with_source,
+    refresh::refresh_nns_node_report_with_source,
     resolve::resolve_node,
     source::NnsNodeSource,
 };
@@ -58,7 +58,7 @@ pub async fn build_nns_node_list_report_with_source_and_progress(
         progress,
         |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
         async |refresh_request| {
-            refresh_nns_node_cache_with_source(refresh_request, source)
+            refresh_nns_node_report_with_source(refresh_request, source)
                 .await
                 .map(|_| ())
         },

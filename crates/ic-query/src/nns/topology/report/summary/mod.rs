@@ -6,7 +6,7 @@
 
 use super::{
     NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION, NnsTopologySummaryReport, TopologyInventoryReports,
-    coverage::topology_coverage_report_from_reports, registry_versions::topology_registry_versions,
+    coverage::topology_join_coverage_counts, registry_versions::topology_registry_versions,
 };
 use crate::subnet_catalog::{SubnetCatalogListReport, SubnetKind};
 
@@ -42,13 +42,13 @@ pub(super) fn topology_summary_report_from_reports(
             SubnetKind::Unknown => unknown_node_count += 1,
         }
     }
-    let coverage = topology_coverage_report_from_reports(network, source_endpoint, reports);
+    let coverage = topology_join_coverage_counts(reports);
     let registry_versions = topology_registry_versions(&subnet_report, reports);
 
     NnsTopologySummaryReport {
         schema_version: NNS_TOPOLOGY_SUMMARY_REPORT_SCHEMA_VERSION,
-        network: coverage.network,
-        source_endpoint: coverage.source_endpoint,
+        network,
+        source_endpoint,
         subnet_count: subnet_report.subnets.len(),
         application_subnet_count,
         cloud_engine_subnet_count,

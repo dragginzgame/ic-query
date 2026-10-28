@@ -2,7 +2,7 @@ use super::{
     NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
     NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
     cache::{load_cached_nns_node_operator_report, nns_node_operator_cache_path},
-    refresh::refresh_nns_node_operator_cache_with_source,
+    refresh::refresh_nns_node_operator_report_with_source,
     resolve::resolve_node_operator,
     source::NnsNodeOperatorSource,
 };
@@ -58,7 +58,7 @@ pub async fn build_nns_node_operator_list_report_with_source_and_progress(
         progress,
         |cache| load_cached_nns_node_operator_report(cache).map(|cached| cached.report),
         async |refresh_request| {
-            refresh_nns_node_operator_cache_with_source(refresh_request, source)
+            refresh_nns_node_operator_report_with_source(refresh_request, source)
                 .await
                 .map(|_| ())
         },

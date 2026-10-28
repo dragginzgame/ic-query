@@ -17,6 +17,8 @@ pub use refresh::{
     refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
     refresh_nns_neuron_cache_with_source,
 };
+pub(super) use reports::AdmittedNeuronCache;
+
 pub use reports::{
     build_nns_neuron_cache_status_report, build_nns_neuron_distribution_report_from_cache,
     build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_cache_and_source,

@@ -252,6 +252,13 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
     let original = fs::read(&path).unwrap();
     let report =
         build_nns_neuron_distribution_report_from_cache(&request).expect("cached distribution");
+    let cache: serde_json::Value = serde_json::from_slice(&original).unwrap();
+    let collection = serde_json::from_value(cache["data"]["collection_state"].clone()).unwrap();
+    let rows: Vec<NnsNeuronRow> = serde_json::from_value(cache["data"]["neurons"].clone()).unwrap();
+    assert_eq!(
+        report,
+        super::build_nns_neuron_distribution_report(&collection, &rows).unwrap()
+    );
     assert_eq!(report.collected_neuron_count, 3);
     assert_eq!(report.total_effective_stake_e8s, 600_000_000);
     assert_eq!(report.collection_page_count, 2);
@@ -304,6 +311,20 @@ async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
             ),
             "field {field}"
         );
+    }
+    for neuron_id in [
+        original["data"]["neurons"][1]["neuron_id"].clone(),
+        serde_json::json!(99),
+    ] {
+        let mut cache = original.clone();
+        cache["data"]["neurons"][0]["neuron_id"] = neuron_id;
+        let bytes = serde_json::to_vec(&cache).unwrap();
+        fs::write(&path, &bytes).unwrap();
+        assert!(matches!(
+            build_nns_neuron_distribution_report_from_cache(&request),
+            Err(NnsNeuronHostError::InvalidCache { .. })
+        ));
+        assert_eq!(fs::read(&path).unwrap(), bytes);
     }
     fs::remove_dir_all(root).expect("remove fixture");
 }

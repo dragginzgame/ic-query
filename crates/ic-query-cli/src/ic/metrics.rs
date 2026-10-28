@@ -43,8 +43,9 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
     let start_unix_secs = options
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_METRIC_WINDOW_SECS));
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcMetricRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, now_unix_secs),
+        dashboard,
         IcMetricQuery::new(
             options.metric,
             start_unix_secs,
@@ -53,7 +54,7 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
         ),
     );
     let report = build_ic_metric_report(&request).await?;
-    write_text_or_json(options.source.format, &report, ic_metric_report_text)
+    write_text_or_json(format, &report, ic_metric_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {

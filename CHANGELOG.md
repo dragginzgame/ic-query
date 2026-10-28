@@ -5,6 +5,27 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.4]
+
+### 🩹 Fixed
+
+- Keep cache paths containing non-UTF-8 components unrecognised instead of
+  assigning another cache family's recovery or freshness policy.
+
+### 🔧 Changed
+
+- Adopt IC Tooling 0.69.3, Platform 0.7.1, Wire 0.7.18 and Metrics 0.16.3.
+- Adopt Shared Tooling 0.27.2 with clarified native setup ordering and shared
+  dependency issue ownership.
+
+### 🧹 Cleanup
+
+- Consolidate inventory and SNS refresh flows, reuse admitted NNS collections
+  for analytics, and simplify request construction and topology projections.
+  Public APIs and cache formats remain unchanged.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.3] - 2026-10-27
 
 ### ➕ Added

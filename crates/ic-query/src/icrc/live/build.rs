@@ -5,13 +5,16 @@
 //! Boundary: validates request-local values and projects raw source data into reports.
 
 use super::{
-    ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
-    ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION, ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
-    ICRC_BALANCE_REPORT_SCHEMA_VERSION, ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
-    ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION, ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION,
-    ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION, ICRC_TOKEN_REPORT_SCHEMA_VERSION,
-    ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
-    account_transactions::{normalize_transaction_cursor, validate_account_transaction_page},
+    ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION, ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
+    ICRC_ARCHIVES_REPORT_SCHEMA_VERSION, ICRC_BALANCE_REPORT_SCHEMA_VERSION,
+    ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION, ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
+    ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION, ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
+    ICRC_TOKEN_REPORT_SCHEMA_VERSION, ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+    account_transactions::{
+        normalize_account_transaction_identity, normalize_optional_index_canister_id,
+        normalize_transaction_cursor, validate_account_transaction_page,
+        validate_account_transaction_page_size,
+    },
     source::{
         IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource,
         IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource,
@@ -162,21 +165,13 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
     request: &IcrcAccountTransactionPageRequest,
     source: &dyn IcrcAccountTransactionPageSource,
 ) -> Result<IcrcAccountTransactionPageReport, IcrcAccountTransactionError> {
-    if !(1..=ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE).contains(&request.limit) {
-        return Err(IcrcAccountTransactionError::InvalidPageSize {
-            page_size: request.limit,
-            max_page_size: ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE,
-        });
-    }
-    let ledger_canister_id =
-        principal_from_text(&request.ledger.ledger_canister_id, "ledger_canister_id")?.to_text();
-    let account_owner = principal_from_text(&request.account_owner, "account_owner")?.to_text();
-    let index_canister_id = request
-        .index_canister_id
-        .as_deref()
-        .map(|value| principal_from_text(value, "index_canister_id"))
-        .transpose()?
-        .map(|principal| principal.to_text());
+    validate_account_transaction_page_size(request.limit)?;
+    let (ledger_canister_id, account_owner) = normalize_account_transaction_identity(
+        &request.ledger.ledger_canister_id,
+        &request.account_owner,
+    )?;
+    let index_canister_id =
+        normalize_optional_index_canister_id(request.index_canister_id.as_deref())?;
     let request = IcrcAccountTransactionPageRequest {
         ledger: IcrcLedgerRequest {
             ledger_canister_id,

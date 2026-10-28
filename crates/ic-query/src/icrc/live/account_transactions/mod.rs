@@ -7,6 +7,7 @@
 use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 mod collection;
 mod cursor;
+mod request;
 mod wire;
 
 use self::collection::{AccountTransactionCollectionState, AccountTransactionsPage};
@@ -14,6 +15,10 @@ use self::cursor::parse_transaction_cursor;
 pub(in crate::icrc) use self::cursor::{
     normalize_transaction_cursor, validate_account_transaction_page,
     validate_canonical_account_transactions, validate_transaction_cursor_text,
+};
+pub(in crate::icrc) use self::request::{
+    normalize_account_transaction_identity, normalize_optional_index_canister_id,
+    validate_account_transaction_page_size,
 };
 use super::fetch::{account_from_parts, live_query_context, query_token_display_fields};
 use crate::candid_call::query_no_args;

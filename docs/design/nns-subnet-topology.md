@@ -100,8 +100,8 @@ unknown in the row and contribute no available slots to the capacity summary;
 provider diagnostics retain their separate missing-count policy. Final row
 ordering still follows capacity status, available slots, and operator id.
 
-Summary construction owns its join-coverage counts, while summary and gap
-reports share one relation-membership index.
+Summary and coverage project the same join-coverage counts directly, while
+summary and gap reports share one relation-membership index.
 Kind counts and routing-range totals are collected in one Subnet pass and
 one node-kind pass, preserving all four classifications including unknown.
 

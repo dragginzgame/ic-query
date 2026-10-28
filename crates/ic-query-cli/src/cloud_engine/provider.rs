@@ -8,8 +8,8 @@ use super::CloudEngineCommandError;
 use crate::cli::{
     clap::{required_string, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, SOURCE_ENDPOINT_ARG, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+        source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -51,36 +51,23 @@ pub(super) async fn run_matches(
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
     let request = CloudEngineProviderInfoRequest::new(
         network,
-        ic_query::ic::IcDashboardRequest::new(
-            required_string(matches, SOURCE_ENDPOINT_ARG),
-            current_unix_secs()?,
-        ),
+        dashboard,
         required_string(matches, "node-provider-id"),
     );
     let report = build_cloud_engine_provider_info_report(&request).await?;
-    write_text_or_json(
-        output_format(matches),
-        &report,
-        cloud_engine_provider_info_report_text,
-    )
+    write_text_or_json(format, &report, cloud_engine_provider_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
-    let request = CloudEngineProviderListRequest::new(
-        network,
-        ic_query::ic::IcDashboardRequest::new(
-            required_string(matches, SOURCE_ENDPOINT_ARG),
-            current_unix_secs()?,
-        ),
-    );
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
+    let request = CloudEngineProviderListRequest::new(network, dashboard);
     let report = build_cloud_engine_provider_list_report(&request).await?;
-    write_text_or_json(
-        output_format(matches),
-        &report,
-        cloud_engine_provider_list_report_text,
-    )
+    write_text_or_json(format, &report, cloud_engine_provider_list_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -130,7 +117,7 @@ mod tests {
     use super::*;
     use crate::cli::{
         clap::{parse_matches, render_help},
-        common::OutputFormat,
+        common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
     };
     use std::ffi::OsString;
 

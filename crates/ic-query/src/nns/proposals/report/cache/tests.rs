@@ -689,6 +689,17 @@ async fn cached_proposal_activity_preserves_collection_evidence_and_window_bound
         },
     )
     .expect("cached activity");
+    let cache: super::model::NnsProposalCache = serde_json::from_slice(&original).unwrap();
+    let raw_report = crate::nns::proposals::build_nns_proposal_activity_report(
+        &NnsProposalActivityRequest {
+            from_proposal_timestamp_seconds: Some(1_700_000_002),
+            until_proposal_timestamp_seconds: Some(1_700_000_003),
+        },
+        &cache.data.collection_state,
+        &cache.data.proposals,
+    )
+    .unwrap();
+    assert_eq!(report, raw_report);
     assert_eq!(report.collected_proposal_count, 3);
     assert_eq!(report.included_proposal_count, 1);
     assert_eq!(report.excluded_before_from_count, 1);
@@ -751,6 +762,35 @@ async fn cached_proposal_activity_rejects_inconsistent_collection_evidence() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn cached_proposal_activity_checks_timestamps_before_view_filtering() {
+    let root = temp_dir("ic-query-nns-cached-activity-timestamps");
+    let path = refresh_fixture_nns_proposal_cache(&root).await;
+    let mut cache: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let proposal_id = cache["data"]["proposals"][0]["proposal_id"]
+        .as_u64()
+        .unwrap();
+    cache["data"]["proposals"][0]["proposal_timestamp_seconds"] = serde_json::json!(0);
+    let bytes = serde_json::to_vec(&cache).unwrap();
+    fs::write(&path, &bytes).unwrap();
+    let error = build_nns_proposal_activity_report_from_cache(
+        &NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK),
+        &NnsProposalActivityRequest {
+            from_proposal_timestamp_seconds: Some(1),
+            until_proposal_timestamp_seconds: None,
+        },
+    )
+    .unwrap_err();
+    assert!(matches!(
+        error,
+        NnsProposalHostError::Activity(NnsProposalActivityError::ZeroProposalTimestamp {
+            proposal_id: actual,
+        }) if actual == proposal_id
+    ));
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
     let root = temp_dir("ic-query-nns-proposal-invalid-ids");
     let path = refresh_fixture_nns_proposal_cache(&root).await;
@@ -780,6 +820,11 @@ async fn nns_proposal_cache_rejects_missing_zero_and_duplicate_ids() {
                 .expect_err("invalid list cache"),
             build_nns_proposal_report_from_cache(&detail_request, &root)
                 .expect_err("invalid detail cache"),
+            build_nns_proposal_activity_report_from_cache(
+                &NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK),
+                &NnsProposalActivityRequest::default(),
+            )
+            .expect_err("invalid activity cache"),
         ] {
             assert!(matches!(
                 error,

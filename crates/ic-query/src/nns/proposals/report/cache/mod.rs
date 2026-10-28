@@ -19,6 +19,8 @@ pub use refresh::{
     refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_progress,
     refresh_nns_proposal_cache_with_source,
 };
+pub(super) use reports::AdmittedProposalCache;
+
 pub use reports::{
     build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
     build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,

@@ -518,21 +518,52 @@ pub fn build_nns_proposal_activity_report(
         return Err(NnsProposalActivityError::ProposalCountMismatch { expected, actual });
     }
 
-    let mut activity = ActivityAccumulator::with_capacity(proposals.len());
+    let mut proposal_ids = HashSet::with_capacity(proposals.len());
+    aggregate_activity(request, collection, proposals, |proposal| {
+        validate_proposal_row(proposal, &mut proposal_ids)
+    })
+}
+
+#[cfg(feature = "nns-host")]
+pub(super) fn build_activity_from_cache(
+    request: &NnsProposalActivityRequest,
+    cache: &super::cache::AdmittedProposalCache,
+) -> Result<NnsProposalActivityReport, NnsProposalActivityError> {
+    // Cache admission already establishes complete state, row accounting and unique positive ids.
+    aggregate_activity(
+        request,
+        cache.collection_state(),
+        cache.rows(),
+        |proposal| {
+            let proposal_id = proposal
+                .proposal_id
+                .ok_or(NnsProposalActivityError::MissingProposalId)?;
+            validate_proposal_timestamp(proposal, proposal_id)
+        },
+    )
+}
+
+fn aggregate_activity(
+    request: &NnsProposalActivityRequest,
+    collection: &NnsProposalCollectionState,
+    proposals: &[NnsProposalRow],
+    mut validate_row: impl FnMut(&NnsProposalRow) -> Result<(), NnsProposalActivityError>,
+) -> Result<NnsProposalActivityReport, NnsProposalActivityError> {
+    let mut activity = ActivityAccumulator::default();
     for proposal in proposals {
+        validate_row(proposal)?;
         activity.observe(request, proposal)?;
     }
-
     let source = collection.source().cloned().ok_or_else(|| {
         NnsProposalActivityError::InvalidCollectionState {
             reason: "complete collection has no concrete source provenance".to_string(),
         }
     })?;
-    Ok(activity.into_report(request, collection, expected, source))
+    Ok(activity.into_report(request, collection, collection.proposals_fetched(), source))
 }
 
+#[derive(Default)]
 struct ActivityAccumulator {
-    proposal_ids: HashSet<u64>,
     topic_counts: BTreeMap<i32, u64>,
     status_counts: BTreeMap<i32, u64>,
     reward_status_counts: BTreeMap<i32, u64>,
@@ -544,26 +575,11 @@ struct ActivityAccumulator {
 }
 
 impl ActivityAccumulator {
-    fn with_capacity(proposal_count: usize) -> Self {
-        Self {
-            proposal_ids: HashSet::with_capacity(proposal_count),
-            topic_counts: BTreeMap::new(),
-            status_counts: BTreeMap::new(),
-            reward_status_counts: BTreeMap::new(),
-            day_counts: BTreeMap::new(),
-            included_proposal_count: 0,
-            excluded_before_from_count: 0,
-            excluded_at_or_after_until_count: 0,
-            included_timestamp_bounds: None,
-        }
-    }
-
     fn observe(
         &mut self,
         request: &NnsProposalActivityRequest,
         proposal: &NnsProposalRow,
     ) -> Result<(), NnsProposalActivityError> {
-        validate_proposal_row(proposal, &mut self.proposal_ids)?;
         let timestamp = proposal.proposal_timestamp_seconds;
         if request
             .from_proposal_timestamp_seconds
@@ -708,6 +724,13 @@ fn validate_proposal_row(
     if !proposal_ids.insert(proposal_id) {
         return Err(NnsProposalActivityError::DuplicateProposalId { proposal_id });
     }
+    validate_proposal_timestamp(proposal, proposal_id)
+}
+
+const fn validate_proposal_timestamp(
+    proposal: &NnsProposalRow,
+    proposal_id: u64,
+) -> Result<(), NnsProposalActivityError> {
     if proposal.proposal_timestamp_seconds == 0 {
         return Err(NnsProposalActivityError::ZeroProposalTimestamp { proposal_id });
     }

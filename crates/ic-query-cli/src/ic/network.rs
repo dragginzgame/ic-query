@@ -58,14 +58,10 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = SourceOutputOptions::from_matches(matches);
-    let request =
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?);
+    let (format, dashboard) = options.into_dashboard_request(current_unix_secs()?);
+    let request = dashboard;
     let report = build_ic_boundary_node_data_centers_report(&request).await?;
-    write_text_or_json(
-        options.format,
-        &report,
-        ic_boundary_node_data_centers_report_text,
-    )
+    write_text_or_json(format, &report, ic_boundary_node_data_centers_report_text)
 }
 
 async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
@@ -75,12 +71,13 @@ async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let start_unix_secs = options
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_DAILY_STATS_WINDOW_SECS));
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcDailyStatsRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, now_unix_secs),
+        dashboard,
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
     );
     let report = build_ic_daily_stats_report(&request).await?;
-    write_text_or_json(options.source.format, &report, ic_daily_stats_report_text)
+    write_text_or_json(format, &report, ic_daily_stats_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {

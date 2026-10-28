@@ -26,8 +26,8 @@ use crate::{
         proposals::report::{
             NnsProposalHostError,
             activity::{
-                NnsProposalActivityReport, NnsProposalActivityRequest,
-                build_nns_proposal_activity_report, validate_time_window,
+                NnsProposalActivityReport, NnsProposalActivityRequest, build_activity_from_cache,
+                validate_time_window,
             },
             assemble::{
                 NnsProposalReportParts, NnsProposalReportProvenance,
@@ -52,6 +52,30 @@ use std::{
     fs::File,
     path::{Path, PathBuf},
 };
+
+///
+/// AdmittedProposalCache
+///
+/// Immutable complete snapshot admitted by the family cache reader.
+///
+
+pub(in crate::nns::proposals::report) struct AdmittedProposalCache {
+    snapshot: NnsProposalCache,
+}
+
+impl AdmittedProposalCache {
+    pub(in crate::nns::proposals::report) const fn collection_state(
+        &self,
+    ) -> &crate::nns::proposals::report::NnsProposalCollectionState {
+        &self.snapshot.data.collection_state
+    }
+
+    pub(in crate::nns::proposals::report) fn rows(
+        &self,
+    ) -> &[crate::nns::proposals::report::model::NnsProposalRow] {
+        &self.snapshot.data.proposals
+    }
+}
 
 /// Prefer an admitted local snapshot; query the supplied source when the requested report is absent.
 pub async fn build_nns_proposal_list_report_with_cache_and_source(
@@ -92,11 +116,7 @@ pub fn build_nns_proposal_activity_report_from_cache(
         &cache_request.network,
         None,
     )?;
-    Ok(build_nns_proposal_activity_report(
-        request,
-        &cache.data.collection_state,
-        &cache.data.proposals,
-    )?)
+    Ok(build_activity_from_cache(request, &cache)?)
 }
 
 /// Build a local NNS proposal cache list report.
@@ -194,7 +214,7 @@ fn load_nns_proposal_cache_summary(
     file: File,
 ) -> NnsGovernanceCacheSummary {
     match load_nns_proposal_cache(cache_root, cache_path.clone(), network, Some(file)) {
-        Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&cache_path, &cache),
+        Ok(cache) => NnsGovernanceCacheSummary::from_snapshot(&cache_path, &cache.snapshot),
         Err(error) => NnsGovernanceCacheSummary::invalid(&cache_path, error.to_string()),
     }
 }
@@ -204,7 +224,7 @@ fn load_nns_proposal_cache(
     cache_path: PathBuf,
     network: &str,
     opened_file: Option<File>,
-) -> Result<NnsProposalCache, NnsProposalHostError> {
+) -> Result<AdmittedProposalCache, NnsProposalHostError> {
     let key = SnapshotKey::full("nns", network, "governance", "proposals");
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
@@ -223,7 +243,7 @@ fn load_nns_proposal_cache(
         opened_file,
     )?;
     validate_nns_proposal_cache(&cache_path, &cache)?;
-    Ok(cache)
+    Ok(AdmittedProposalCache { snapshot: cache })
 }
 
 fn validate_nns_proposal_cache(
@@ -345,7 +365,7 @@ fn load_optional_cache(
 ) -> Result<Option<(PathBuf, NnsProposalCache)>, NnsProposalHostError> {
     let path = nns_proposal_cache_paths(cache_root, network).snapshot_path;
     match load_nns_proposal_cache(cache_root, path.clone(), network, None) {
-        Ok(cache) => Ok(Some((path, cache))),
+        Ok(cache) => Ok(Some((path, cache.snapshot))),
         Err(NnsProposalHostError::MissingProposalCache { .. }) => Ok(None),
         Err(error) => Err(error),
     }

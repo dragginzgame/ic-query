@@ -11,6 +11,8 @@ mod build;
 #[cfg(feature = "sns-host")]
 mod cache_attempt;
 #[cfg(feature = "sns-host")]
+mod cache_collection;
+#[cfg(feature = "sns-host")]
 mod cache_paths;
 #[cfg(feature = "sns-host")]
 mod cache_refresh;

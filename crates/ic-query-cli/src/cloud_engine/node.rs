@@ -8,8 +8,8 @@ use super::CloudEngineCommandError;
 use crate::cli::{
     clap::{required_string, string_option, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, SOURCE_ENDPOINT_ARG, collection_help, current_unix_secs, json_arg,
-        output_format, source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
+        source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -53,40 +53,24 @@ pub(super) async fn run_matches(
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
-    let request = CloudEngineNodeInfoRequest::new(
-        network,
-        ic_query::ic::IcDashboardRequest::new(
-            required_string(matches, SOURCE_ENDPOINT_ARG),
-            current_unix_secs()?,
-        ),
-        required_string(matches, "node-id"),
-    );
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
+    let request =
+        CloudEngineNodeInfoRequest::new(network, dashboard, required_string(matches, "node-id"));
     let report = build_cloud_engine_node_info_report(&request).await?;
-    write_text_or_json(
-        output_format(matches),
-        &report,
-        cloud_engine_node_info_report_text,
-    )
+    write_text_or_json(format, &report, cloud_engine_node_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
-    let request = CloudEngineNodeListRequest::new(
-        network,
-        ic_query::ic::IcDashboardRequest::new(
-            required_string(matches, SOURCE_ENDPOINT_ARG),
-            current_unix_secs()?,
-        ),
-    );
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
+    let request = CloudEngineNodeListRequest::new(network, dashboard);
     let request = match string_option(matches, "node-provider-id") {
         Some(provider) => request.with_node_provider_id(provider),
         None => request,
     };
     let report = build_cloud_engine_node_list_report(&request).await?;
-    write_text_or_json(
-        output_format(matches),
-        &report,
-        cloud_engine_node_list_report_text,
-    )
+    write_text_or_json(format, &report, cloud_engine_node_list_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -142,7 +126,7 @@ mod tests {
     use super::*;
     use crate::cli::{
         clap::{parse_matches, render_help},
-        common::OutputFormat,
+        common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
     };
     use std::ffi::OsString;
 

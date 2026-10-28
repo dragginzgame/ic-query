@@ -64,45 +64,33 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterCollectionOptions::from_matches(matches);
-    let request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
-        options.source.source_endpoint,
-        current_unix_secs()?,
-    ))
-    .with_filters(options.filters);
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
+    let request = IcCanisterCountRequest::new(dashboard).with_filters(options.filters);
     let report = build_ic_canister_count_report(&request).await?;
-    write_text_or_json(
-        options.source.format,
-        &report,
-        ic_canister_count_report_text,
-    )
+    write_text_or_json(format, &report, ic_canister_count_report_text)
 }
 
 async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterPageOptions::from_matches(matches);
-    let mut request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
-        options.collection.source.source_endpoint,
-        current_unix_secs()?,
-    ))
-    .with_filters(options.collection.filters)
-    .with_limit(options.limit);
+    let (format, dashboard) = options
+        .collection
+        .source
+        .into_dashboard_request(current_unix_secs()?);
+    let mut request = IcCanisterPageRequest::new(dashboard)
+        .with_filters(options.collection.filters)
+        .with_limit(options.limit);
     request.after = options.after;
     request.before = options.before;
     let report = build_ic_canister_page_report(&request).await?;
-    write_text_or_json(
-        options.collection.source.format,
-        &report,
-        ic_canister_page_report_text,
-    )
+    write_text_or_json(format, &report, ic_canister_page_report_text)
 }
 
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = CanisterInfoOptions::from_matches(matches);
-    let request = IcCanisterRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source.source_endpoint, current_unix_secs()?),
-        options.canister_id,
-    );
+    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
+    let request = IcCanisterRequest::new(dashboard, options.canister_id);
     let report = build_ic_canister_report(&request).await?;
-    write_text_or_json(options.source.format, &report, ic_canister_report_text)
+    write_text_or_json(format, &report, ic_canister_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {

@@ -360,13 +360,6 @@ fn invalid_header(reason: &'static str) -> serde_json::Error {
     serde_json::Error::io(std::io::Error::new(std::io::ErrorKind::InvalidData, reason))
 }
 
-fn path_parts(relative: &Path) -> Vec<&str> {
-    relative
-        .components()
-        .filter_map(|part| part.as_os_str().to_str())
-        .collect()
-}
-
 fn nns_component(component: &str) -> Option<&'static str> {
     match component {
         "subnet-catalog" => Some("nns/subnet-catalog"),
@@ -380,7 +373,12 @@ fn nns_component(component: &str) -> Option<&'static str> {
 }
 
 fn classify_cache_path(relative: &Path) -> CachePathInfo<'_> {
-    let parts = path_parts(relative);
+    // An opaque component must not shift later components into a recognised cache shape.
+    let parts = relative
+        .components()
+        .map(|part| part.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()
+        .unwrap_or_default();
     let (recovery_policy, stale_after_seconds, inspection) = match parts.as_slice() {
         ["nns", "ic", "subnet-catalog", "catalog.json"] => (
             Automatic,
@@ -503,6 +501,8 @@ pub(super) fn component_from_path(relative: &Path) -> String {
 mod tests {
     use super::*;
     use std::io::Cursor;
+    #[cfg(unix)]
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
 
     #[test]
     fn unmanaged_history_status_reads_only_the_header_prefix() {
@@ -630,6 +630,28 @@ mod tests {
             ),
         ] {
             assert_eq!(component_from_path(Path::new(path)), expected);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn opaque_path_components_keep_unregistered_caches_unmanaged() {
+        let canonical = Path::new("nns/ic/subnet-catalog/catalog.json");
+        let components = canonical.components().collect::<Vec<_>>();
+        for position in 0..components.len() {
+            let mut path = std::path::PathBuf::new();
+            for (index, component) in components.iter().enumerate() {
+                if index == position {
+                    path.push(OsStr::from_bytes(&[0xff]));
+                }
+                path.push(component.as_os_str());
+            }
+            let info = classify_cache_path(&path);
+            assert_eq!(info.relative, path);
+            assert_eq!(info.component, "unknown");
+            assert_eq!(info.recovery_policy, CacheRecoveryPolicy::Unknown);
+            assert_eq!(info.stale_after_seconds, None);
+            assert!(matches!(info.inspection, CacheInspection::HeaderPrefix));
         }
     }
 

@@ -77,13 +77,12 @@ async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcComm
         Some(("info", matches)) => {
             let options = IcrcAnalyticsAccountInfoOptions::from_matches(matches);
             let target = options.target;
-            let request = IcIcrcAccountInfoRequest::new(
-                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
-                target.ledger_canister_id,
-                options.account_id,
-            );
+            let (format, dashboard, ledger_canister_id) =
+                target.into_dashboard_request(current_unix_secs()?);
+            let request =
+                IcIcrcAccountInfoRequest::new(dashboard, ledger_canister_id, options.account_id);
             let report = build_icrc_account_info_report(&request).await?;
-            write_text_or_json(target.format, &report, icrc_account_info_report_text)
+            write_text_or_json(format, &report, icrc_account_info_report_text)
         }
         Some(("list", matches)) => {
             let options = IcrcAnalyticsAccountListOptions::from_matches(matches);
@@ -92,13 +91,11 @@ async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcComm
             query.owner = options.owner;
             query.after = options.after;
             query.before = options.before;
-            let request = IcIcrcAccountListRequest::new(
-                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
-                target.ledger_canister_id,
-                query,
-            );
+            let (format, dashboard, ledger_canister_id) =
+                target.into_dashboard_request(current_unix_secs()?);
+            let request = IcIcrcAccountListRequest::new(dashboard, ledger_canister_id, query);
             let report = build_icrc_account_list_report(&request).await?;
-            write_text_or_json(target.format, &report, icrc_account_list_report_text)
+            write_text_or_json(format, &report, icrc_account_list_report_text)
         }
         _ => unreachable!("clap requires a known ICRC account analytics subcommand"),
     }
@@ -115,13 +112,11 @@ async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcComma
             let mut query = IcIcrcHolderListQuery::new(options.limit, options.sort_by);
             query.after = options.after;
             query.before = options.before;
-            let request = IcIcrcHolderListRequest::new(
-                ic_query::ic::IcDashboardRequest::new(target.source_endpoint, current_unix_secs()?),
-                target.ledger_canister_id,
-                query,
-            );
+            let (format, dashboard, ledger_canister_id) =
+                target.into_dashboard_request(current_unix_secs()?);
+            let request = IcIcrcHolderListRequest::new(dashboard, ledger_canister_id, query);
             let report = build_icrc_holder_list_report(&request).await?;
-            write_text_or_json(target.format, &report, icrc_holder_list_report_text)
+            write_text_or_json(format, &report, icrc_holder_list_report_text)
         }
         _ => unreachable!("clap requires a known ICRC holder analytics subcommand"),
     }
@@ -136,13 +131,14 @@ async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), Icr
     let start_unix_secs = window
         .start_unix_secs
         .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS));
+    let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
     let request = IcIcrcTokenValueRequest::new(
-        ic_query::ic::IcDashboardRequest::new(target.source_endpoint, now_unix_secs),
-        target.ledger_canister_id,
+        dashboard,
+        ledger_canister_id,
         IcIcrcTokenValueQuery::new(start_unix_secs, end_unix_secs, options.limit),
     );
     let report = build_icrc_token_value_report(&request).await?;
-    write_text_or_json(target.format, &report, icrc_token_value_report_text)
+    write_text_or_json(format, &report, icrc_token_value_report_text)
 }
 
 async fn run_icrc_analytics_indexed_count(
@@ -160,13 +156,11 @@ async fn run_icrc_analytics_indexed_count_leaf(
     kind: IcIcrcIndexedCountKind,
 ) -> Result<(), IcrcCommandError> {
     let options = IcrcLedgerOptions::from_matches(matches);
-    let request = IcIcrcIndexedCountRequest::new(
-        ic_query::ic::IcDashboardRequest::new(options.source_endpoint, current_unix_secs()?),
-        options.ledger_canister_id,
-        kind,
-    );
+    let (format, dashboard, ledger_canister_id) =
+        options.into_dashboard_request(current_unix_secs()?);
+    let request = IcIcrcIndexedCountRequest::new(dashboard, ledger_canister_id, kind);
     let report = build_icrc_indexed_count_report(&request).await?;
-    write_text_or_json(options.format, &report, icrc_indexed_count_report_text)
+    write_text_or_json(format, &report, icrc_indexed_count_report_text)
 }
 
 async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
@@ -180,13 +174,14 @@ async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), Icr
             .saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS)
             .max(MIN_ICRC_ANALYTICS_TIMESTAMP)
     });
+    let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
     let request = IcIcrcTotalSupplyRequest::new(
-        ic_query::ic::IcDashboardRequest::new(target.source_endpoint, now_unix_secs),
-        target.ledger_canister_id,
+        dashboard,
+        ledger_canister_id,
         IcIcrcTotalSupplyQuery::new(start_unix_secs, end_unix_secs, options.step_secs),
     );
     let report = build_icrc_total_supply_report(&request).await?;
-    write_text_or_json(target.format, &report, icrc_total_supply_report_text)
+    write_text_or_json(format, &report, icrc_total_supply_report_text)
 }
 
 async fn run_icrc_ledger(matches: &ArgMatches) -> Result<(), IcrcCommandError> {

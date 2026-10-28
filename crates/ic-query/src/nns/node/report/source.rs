@@ -1,10 +1,7 @@
 use super::{NNS_NODE_LIST_REPORT_SCHEMA_VERSION, NnsNodeHostError, NnsNodeListReport, NnsNodeRow};
 use crate::{
     ic_registry::{MainnetNodeList, fetch_mainnet_node_list},
-    nns::{
-        LiveNnsSource, NnsSourceRequest, inventory::fetch_nns_inventory_source_report,
-        source::mainnet_registry_fetch_request,
-    },
+    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
 };
 
 ///
@@ -34,22 +31,6 @@ impl NnsNodeSource for LiveNnsSource {
             ))
         })
     }
-}
-
-pub(super) async fn fetch_nns_node_list_report_with_source(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    source: &dyn NnsNodeSource,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    fetch_nns_inventory_source_report(
-        network,
-        source_endpoint,
-        now_unix_secs,
-        super::enforce_mainnet_network,
-        async |request| source.fetch_node_list_report(request).await,
-    )
-    .await
 }
 
 fn node_report_from_list(list: MainnetNodeList) -> NnsNodeListReport {

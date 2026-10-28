@@ -204,24 +204,6 @@ where
     .await
 }
 
-/// Build one shared NNS source request after enforcing the family network contract.
-pub(in crate::nns) async fn fetch_nns_inventory_source_report<Report, Error>(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    enforce_network: impl FnOnce(&str) -> Result<(), Error>,
-    fetch: impl AsyncFnOnce(&NnsSourceRequest) -> Result<Report, Error>,
-) -> Result<Report, Error> {
-    enforce_network(network)?;
-    let request = NnsSourceRequest::new(
-        network,
-        source_endpoint,
-        format_utc_timestamp_secs(now_unix_secs),
-        "ic-query",
-    );
-    fetch(&request).await
-}
-
 /// Fetch and atomically publish one network-validated Registry inventory cache.
 #[expect(
     clippy::future_not_send,
@@ -231,32 +213,25 @@ pub(in crate::nns) async fn refresh_nns_inventory_cache<Report, Error>(
     request: &NnsInventoryRefreshRequest,
     component_dir: &'static str,
     cache_file: &str,
-    fetch: impl AsyncFnOnce(&str, &str, u64) -> Result<Report, Error>,
-) -> Result<(Report, NnsInventoryRefreshReport), Error>
+    fetch: impl AsyncFnOnce(&NnsSourceRequest) -> Result<Report, Error>,
+) -> Result<NnsInventoryRefreshReport, Error>
 where
     Report: NnsInventoryReport + Serialize,
     Error: From<HostCacheError> + NnsInventoryHostError,
 {
-    // Family fetches validate the network before invoking live or fixture sources.
-    let report = fetch(
-        &request.cache.network,
-        &request.source_endpoint,
-        request.now_unix_secs,
-    )
-    .await?;
     let source_request = NnsSourceRequest::new(
         &request.cache.network,
         &request.source_endpoint,
         format_utc_timestamp_secs(request.now_unix_secs),
         "ic-query",
     );
+    let report = fetch(&source_request).await?;
     report
         .validate_source(&source_request)
         .map_err(Error::invalid_source_data)?;
     let write_result =
         write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report).await?;
-    let outcome = report.refresh_outcome(request, write_result);
-    Ok((report, outcome))
+    Ok(report.refresh_outcome(request, write_result))
 }
 
 ///

@@ -2,7 +2,7 @@ use super::{
     NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterInfoReport,
     NnsDataCenterListReport, NnsInventoryInfoRequest, NnsInventoryListRequest,
     cache::{load_cached_nns_data_center_report, nns_data_center_cache_path},
-    refresh::refresh_nns_data_center_cache_with_source,
+    refresh::refresh_nns_data_center_report_with_source,
     resolve::resolve_data_center,
     source::NnsDataCenterSource,
 };
@@ -58,7 +58,7 @@ pub async fn build_nns_data_center_list_report_with_source_and_progress(
         progress,
         |cache| load_cached_nns_data_center_report(cache).map(|cached| cached.report),
         async |refresh_request| {
-            refresh_nns_data_center_cache_with_source(refresh_request, source)
+            refresh_nns_data_center_report_with_source(refresh_request, source)
                 .await
                 .map(|_| ())
         },

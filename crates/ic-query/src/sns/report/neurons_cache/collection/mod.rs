@@ -6,13 +6,11 @@
 
 use crate::{
     QueryProgress,
-    snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, PagedSnapshotRefresh,
-        run_paged_snapshot_refresh_with_progress,
-    },
+    snapshot_cache::{PagedCollectionPage, PagedCollectionState},
     sns::report::{
         SnsHostError, SnsNeuronRow,
-        cache_attempt::{SnsRefreshContext, write_running_sns_refresh_page},
+        cache_attempt::SnsRefreshContext,
+        cache_collection::{SnsCollectionPages, collect_sns_snapshot},
         hex_bytes,
         neurons_cache::model::CompleteSnsNeurons,
         source::{SnsNeuronId, SnsNeuronsSource, validate_mainnet_sns_neuron_page},
@@ -25,15 +23,7 @@ pub(in crate::sns::report::neurons_cache) async fn fetch_complete_sns_neurons(
     source: &dyn SnsNeuronsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<CompleteSnsNeurons, SnsHostError> {
-    run_paged_snapshot_refresh_with_progress(
-        SnsNeuronsRefreshPages {
-            context,
-            source,
-            pages: PagedCollectionState::new(),
-        },
-        progress,
-    )
-    .await
+    collect_sns_snapshot(context, SnsNeuronsRefreshPages { source }, progress).await
 }
 
 ///
@@ -43,54 +33,38 @@ pub(in crate::sns::report::neurons_cache) async fn fetch_complete_sns_neurons(
 ///
 
 struct SnsNeuronsRefreshPages<'a> {
-    context: SnsRefreshContext<'a>,
     source: &'a dyn SnsNeuronsSource,
-    pages: PagedCollectionState<SnsNeuronRow, SnsNeuronId>,
 }
 
-impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
-    type Complete = CompleteSnsNeurons;
-    type Error = SnsHostError;
+impl SnsCollectionPages for SnsNeuronsRefreshPages<'_> {
+    type Row = SnsNeuronRow;
+    type Cursor = SnsNeuronId;
+    const COLLECTION: &'static str = "neurons";
 
-    fn progress_text(&self) -> String {
-        self.context
-            .progress_text("neurons", self.pages.page_count(), self.pages.row_count())
-    }
-
-    fn max_pages_reached(&self) -> bool {
-        self.context.max_pages_reached(self.pages.page_count())
-    }
-
-    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        SnsRefreshContext::incomplete_refresh_error(
-            self.pages.page_count(),
-            self.pages.row_count(),
-            reason,
-        )
-    }
-
-    fn fetch_next_page(
-        &mut self,
-    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+    fn fetch_next_page<'a>(
+        &'a mut self,
+        context: SnsRefreshContext<'a>,
+        pages: &'a mut PagedCollectionState<Self::Row, Self::Cursor>,
+    ) -> crate::report::SourceFuture<'a, Result<PagedCollectionPage, SnsHostError>> {
         Box::pin(async move {
             let mut page = self
                 .source
                 .fetch_sns_neuron_page(
-                    self.context.fetch_request,
-                    self.context.sns,
-                    self.context.request.page_size,
-                    self.pages.next_cursor(),
+                    context.fetch_request,
+                    context.sns,
+                    context.request.page_size,
+                    pages.next_cursor(),
                     None,
                 )
                 .await?;
             validate_mainnet_sns_neuron_page(
                 &page,
-                self.context.request.page_size,
-                self.pages.next_cursor(),
+                context.request.page_size,
+                pages.next_cursor(),
             )?;
             let page_len = page.neurons.len();
             // Ordered pages can repeat only the requested boundary; retain its first observation.
-            if let Some(cursor) = self.pages.next_cursor()
+            if let Some(cursor) = pages.next_cursor()
                 && page
                     .neurons
                     .first()
@@ -98,29 +72,15 @@ impl PagedSnapshotRefresh for SnsNeuronsRefreshPages<'_> {
             {
                 page.neurons.remove(0);
             }
-            Ok(self
-                .pages
-                .ingest_page(page.neurons, page_len, page.last_cursor, |cursor| {
+            Ok(
+                pages.ingest_page(page.neurons, page_len, page.last_cursor, |cursor| {
                     hex_bytes(&cursor.id)
-                }))
+                }),
+            )
         })
     }
 
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
-        write_running_sns_refresh_page(
-            self.context,
-            self.pages.page_count(),
-            self.pages.row_count(),
-            page,
-        )
-    }
-
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        self.context
-            .page_exhausts_collection(page, self.pages.has_next_cursor())
-    }
-
-    fn into_complete(self) -> Self::Complete {
-        self.pages.into_complete(|cursor| hex_bytes(&cursor.id))
+    fn cursor_text(cursor: &Self::Cursor) -> String {
+        hex_bytes(&cursor.id)
     }
 }
