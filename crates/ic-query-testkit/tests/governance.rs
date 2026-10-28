@@ -5,7 +5,7 @@ use ic_platform::{
     candid::contract::Principal,
     pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time},
 };
-use ic_query::nns::governance::NnsGovernanceSourceProvenance;
+use ic_query::nns::governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceSourceProvenance};
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
     fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
@@ -14,6 +14,7 @@ use serde_json::Value;
 use std::{collections::BTreeSet, env, fs, time::Duration};
 
 const REPORT_METHOD: u64 = 1;
+const FIXTURE_MODULE_BYTES: usize = MAX_NNS_GOVERNANCE_RESPONSE_BYTES + 1024 * 1024;
 const REQUEST_LIMITS: ic_wire::Limits = ic_wire::Limits {
     bytes: 128,
     allocation: 2048,
@@ -95,17 +96,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     assert!(error.contains("code 7"));
     assert!(error.contains("fixture governance failure"));
 
-    replies[0].1 = b"not candid".to_vec();
-    pic.reinstall_canister(
-        governance,
-        governance_wasm(&replies),
-        ic_platform::candid::contract::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    let reply = report(pic, probe, "economics");
-    assert_eq!(reply["status"], "error");
-    assert!(reply["error"].as_str().unwrap().contains("decode Candid"));
+    assert_reply_admission(pic, probe, governance, &mut replies);
 
     pic.uninstall_canister(governance, None).unwrap();
     let reply = report(pic, probe, "economics");
@@ -115,6 +106,73 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
             .as_str()
             .unwrap()
             .contains("was rejected with code")
+    );
+}
+
+fn assert_reply_admission(
+    pic: &PocketIc,
+    probe: Principal,
+    governance: Principal,
+    replies: &mut [(&str, Vec<u8>)],
+) {
+    for (case, bytes) in [
+        ("malformed Candid", b"not candid".to_vec()),
+        (
+            "missing result",
+            ic_platform::candid::contract::encode_args(()).unwrap(),
+        ),
+        ("excessive type table", b"DIDL\x81\x20".to_vec()),
+        (
+            "amplified skipped values",
+            economics_with_skipped_values(100_000),
+        ),
+    ] {
+        replies[0].1 = bytes;
+        pic.reinstall_canister(
+            governance,
+            governance_wasm(replies),
+            ic_platform::candid::contract::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        let reply = report(pic, probe, "economics");
+        assert_eq!(reply["status"], "error", "{case}: {reply}");
+        assert!(
+            reply["error"].as_str().unwrap().contains("decode Candid"),
+            "{case}: {reply}"
+        );
+    }
+
+    replies[0].1 = economics_with_skipped_values(1);
+    pic.reinstall_canister(
+        governance,
+        governance_wasm(replies),
+        ic_platform::candid::contract::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let reply = report(pic, probe, "economics");
+    assert_eq!(reply["status"], "ok", "{reply}");
+    assert_eq!(
+        reply["report"]["economics"]["neuron_minimum_stake_e8s"],
+        100_000_000
+    );
+
+    // The installed IC rejects this reply before Query can apply its post-receipt ceiling.
+    replies[0].1 = vec![0; MAX_NNS_GOVERNANCE_RESPONSE_BYTES + 1];
+    pic.reinstall_canister(
+        governance,
+        governance_wasm(replies),
+        ic_platform::candid::contract::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let reply = report(pic, probe, "economics");
+    assert_eq!(reply["status"], "error", "{reply}");
+    let error = reply["error"].as_str().unwrap();
+    assert!(
+        error.contains("was rejected with code 5") && error.contains("size"),
+        "{reply}"
     );
 }
 
@@ -200,13 +258,13 @@ fn governance_wasm(replies: &[(&str, Vec<u8>)]) -> Vec<u8> {
         &methods,
         RawReplyLimits {
             methods: 16,
-            reply_bytes: 1024 * 1024,
+            reply_bytes: FIXTURE_MODULE_BYTES,
             method_name_bytes: 1024,
         },
     )
     .expect("fixture Governance module");
     assert!(
-        module.len() <= 1024 * 1024,
+        module.len() <= FIXTURE_MODULE_BYTES,
         "fixture Governance module limit"
     );
     module
@@ -219,7 +277,7 @@ fn governance_fixture_exports_the_configured_update_methods() {
     let facts = inspect(
         &module,
         InspectionLimits {
-            module_bytes: 1024 * 1024,
+            module_bytes: FIXTURE_MODULE_BYTES,
             sections: 100,
             exports: 100,
             custom_sections: 10,
@@ -245,4 +303,23 @@ fn candid_fixture(value: &str) -> Vec<u8> {
         .expect("Candid fixture")
         .to_bytes()
         .expect("encode fixture")
+}
+
+fn economics_with_skipped_values(count: usize) -> Vec<u8> {
+    let mut args =
+        ic_platform::candid_parser::parse_idl_args(include_str!("fixtures/economics.did"))
+            .expect("Candid economics fixture");
+    args.args
+        .push(ic_platform::candid_parser::IDLValue::Vec(vec![
+        ic_platform::candid_parser::IDLValue::Null;
+        count
+    ]));
+    let bytes = args
+        .to_bytes()
+        .expect("encode economics with unused values");
+    assert!(
+        bytes.len() < 1024,
+        "skipping amplification uses a small wire reply"
+    );
+    bytes
 }

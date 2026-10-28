@@ -22,11 +22,11 @@ repository = "https://github.com/dragginzgame/ic-query"
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.69.3", default-features = false }
-ic-host-fs = { version = "0.69.3", default-features = false }
-ic-host-http = { version = "0.69.3", default-features = false }
-ic-host-text = "0.69.3"
-ic-host-tools = { version = "0.69.3", default-features = false }
+ic-host-artifacts = { version = "0.69.4", default-features = false }
+ic-host-fs = { version = "0.69.4", default-features = false }
+ic-host-http = { version = "0.69.4", default-features = false }
+ic-host-text = "0.69.4"
+ic-host-tools = { version = "0.69.4", default-features = false }
 ic-metrics = "0.16.3"
 ic-platform = { version = "0.7.1", default-features = false, features = ["candid"] }
 ic-query = { path = "crates/ic-query", version = "0.75.4", default-features = false }
@@ -40,9 +40,9 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.69.3"
-ic-host-process = { version = "0.69.3", default-features = false }
-ic-testkit = "0.69.3"
+ic-build = "0.69.4"
+ic-host-process = { version = "0.69.4", default-features = false }
+ic-testkit = "0.69.4"
 ic-wire = "0.7.18"
 libc = "0.2"
 serde_cbor = "0.11.2"

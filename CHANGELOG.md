@@ -5,6 +5,30 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.5]
+
+### 🔧 Changed
+
+- Adopt IC Tooling 0.69.4 across Host, Build and Testkit.
+- Adopt Shared Tooling 0.27.3 with source-commit snapshot verification and
+  restricted unattended maintenance. Requalify existing maintenance launcher
+  configuration before resuming schedules.
+
+Verify the snapshot against the reviewed source commit:
+
+```bash
+bash scripts/ci/verify-shared-tooling-snapshot.sh --consumer . \
+  --source ../shared-tooling \
+  --revision cc81a58a5b2dd287c577cbffd2c576c178b6785c
+```
+
+### 🧪 Testing
+
+- Extend installed Governance probe coverage for oversized replies and bounded
+  Candid decoding. [#108](https://github.com/dragginzgame/ic-query/issues/108)
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.4] - 2026-10-28
 
 ### 🩹 Fixed

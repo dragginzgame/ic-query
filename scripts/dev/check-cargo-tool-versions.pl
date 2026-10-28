@@ -13,8 +13,9 @@ use POSIX qw(strftime);
 
 my $root = abs_path("$RealBin/../..");
 my ($consumer, $versions, $cargo_home, $json) = ($root, undef, $ENV{CARGO_HOME} // "$ENV{HOME}/.cargo", 0);
+my $selected_tool;
 sub usage {
-    return "Usage: check-cargo-tool-versions.pl [--consumer DIR] [--versions FILE] [--cargo-home DIR] [--json]\n" .
+    return "Usage: check-cargo-tool-versions.pl [--consumer DIR] [--versions FILE] [--cargo-home DIR] [--tool NAME] [--json]\n" .
         "Compare shared Cargo pins, checkout selections and Cargo installation receipts with crates.io.\n" .
         "Requires Perl and curl >= 8.4; performs bounded HTTPS reads, never installs or changes selections.\n" .
         "Exit 0: current; 1: update/missing/yanked selection; 2: incomplete or invalid observation.\n";
@@ -45,10 +46,11 @@ my $status = eval {
         my $arg = shift @ARGV;
         if ($arg eq '--help' || $arg eq '-h') { print usage(); exit 0; }
         if ($arg eq '--json') { $json = 1; next; }
-        @ARGV && $arg =~ /\A--(?:consumer|versions|cargo-home)\z/ or die usage();
+        @ARGV && $arg =~ /\A--(?:consumer|versions|cargo-home|tool)\z/ or die usage();
         my $value = shift @ARGV;
         if ($arg eq '--consumer') { $consumer = $value; }
         elsif ($arg eq '--versions') { $versions = $value; }
+        elsif ($arg eq '--tool') { $selected_tool = $value; }
         else { $cargo_home = $value; }
     }
     $versions //= "$root/ci/tool-versions.env";
@@ -68,10 +70,21 @@ my $status = eval {
         $pins{$name} = $version;
     }
     close $catalog or die "invalid Cargo tool catalog: $versions\n";
+    if (defined($selected_tool) && $selected_tool eq 'sccache') {
+        open my $optional, '-|', $^X, "$RealBin/../ci/tool-catalog-records.pl", 'ci', $versions, 'SCCACHE'
+            or die "start optional catalog reader: $!\n";
+        my $record = do { local $/; <$optional> };
+        close $optional or die "invalid optional Cargo tool catalog\n";
+        $pins{sccache} = (split /\t/, $record)[1];
+    }
     my $global_path = "$cargo_home/.crates2.json";
     my $global = -e $global_path ? receipt($global_path) : {};
     if (!-e $global_path && -e "$cargo_home/.crates.toml") { die "Cargo JSON receipt missing; cannot establish installed versions\n"; }
     my %names = (%pins, %$global);
+    if (defined $selected_tool) {
+        exists $names{$selected_tool} or die "unknown selected tool: $selected_tool\n";
+        %names = ($selected_tool => 1);
+    }
     open my $curl, '-|', 'curl', '--disable', '--version' or die "start curl: $!\n";
     my $curl_version = do { local $/; <$curl> };
     close $curl or die "curl version probe failed\n";
@@ -83,7 +96,7 @@ my $status = eval {
     for my $name (sort keys %names) {
         my $row = { tool => $name, pinned => $pins{$name}, global => $global->{$name}, local => undef };
         my $ok = eval {
-            if (exists $pins{$name}) {
+            if (exists $pins{$name} && $name ne 'sccache') {
                 my $binary = abs_path("$consumer/.tools/rust/common/bin/$name");
                 if (defined $binary && -f $binary) {
                     my $installed = receipt(dirname(dirname($binary)) . '/.crates2.json');
@@ -122,7 +135,7 @@ my $status = eval {
             $row->{latest} = $available[-1];
             $row->{rust_version} = $releases{$row->{latest}}{rust_version};
             my @findings;
-            push @findings, 'local missing' if exists $pins{$name} && !defined $row->{local};
+            push @findings, 'local missing' if exists $pins{$name} && $name ne 'sccache' && !defined $row->{local};
             for my $field (qw(pinned local global)) {
                 my $version = $row->{$field}; next unless defined $version;
                 exists $releases{$version} or die "selected $field version absent from registry: $version\n";
