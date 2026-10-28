@@ -64,7 +64,7 @@ Candid decode/skip/type-table/header budgets, and records the
 executing canister principal. Composite-query collection is not supported.
 Platform owns call submission, callbacks and executor state; Query owns the fixed
 Governance methods, external Candid and report validation. The selected Platform
-0.7.1 raw call API already supplies this boundary; no Query execution wrapper is
+0.7.2 raw call API already supplies this boundary; no Query execution wrapper is
 needed ([#108](https://github.com/dragginzgame/ic-query/issues/108)).
 The 8 MiB ceiling admits a returned byte vector before decoding; it does not bound
 Platform's runtime response allocation. The IC may reject a smaller response
@@ -72,6 +72,9 @@ before delivering bytes. Raw rejection codes remain separate from Candid and
 size-validation errors, and an unknown execution outcome never authorizes retry.
 The decoder requires the report value and permits only budgeted Candid skipping
 of additional values; it does not impose exact single-argument arity.
+These quotas do not impose a Wasm recursion-depth bound; deeply nested external
+Candid can still trap, as tracked by
+[Platform #73](https://github.com/dragginzgame/ic-platform/issues/73).
 Neither transport joins independently timed calls or inherits a Registry
 version. The caller-supplied collection timestamp is report provenance, while
 native timestamps such as metrics `timestamp_seconds`, reward-event

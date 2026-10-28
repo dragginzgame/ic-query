@@ -56,8 +56,9 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.7.0 and Host/Build/Testkit
-0.69.0. Query does not use the Candid frontend compiler exports retired by
+The current workspace minimums are Platform 0.7.2, Host/Testkit 0.69.5 and
+Build 0.69.6.
+Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
 Testkit fixtures. Host Tools and Testkit also require Platform 0.7, so the
 selected graph shares one Platform release, including its owned Registry

@@ -8,10 +8,17 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected path is Platform 0.6.17 → Agent 0.49.3 → elliptic-curve 0.13.8 →
+The selected path is Platform 0.7.2 → Agent 0.49.3 → elliptic-curve 0.13.8 →
 crypto-bigint 0.5.5, including Agent's k256/p256 paths. elliptic-curve requires
 crypto-bigint 0.5; the patched 0.7.6 cannot replace it through a compatible lock
 update. Do not fork cryptography or force an incompatible override here.
+
+The native Host and CLI normal/build graphs were rechecked on 2026-10-28 against
+the Query 0.75.5 checkout, commit `98ba0daade3f46ca1a38f7d9f43c02b23fdd957c`,
+with the pending 0.75.6 dependency updates, using locked, offline Cargo tree
+inspection. This refresh updates dependency and tracking
+facts; it does not renew the acceptance or extend its deadline. No fresh
+cargo-audit or side-channel qualification is supplied by this graph inspection.
 
 Query's built-in clients use `src/agent.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.
@@ -31,7 +38,9 @@ this exception when a compatible upstream correction eliminates affected version
 from Query's resolved graph, then rerun the current-feed dependency gate and
 relevant Agent/MSRV checks. Do not transfer this acceptance to other consumers.
 
-Shared IC dependency and interface adoption is coordinated through
-[Platform #58](https://github.com/dragginzgame/ic-platform/issues/58). Query retains
-its affected-graph and consumer qualification obligation in
-[Query #102](https://github.com/dragginzgame/ic-query/issues/102).
+Remediation and affected-consumer evidence are consolidated in Platform #50.
+[Query #102](https://github.com/dragginzgame/ic-query/issues/102) retains historical
+consumer evidence and is closed as superseded tracking, not as a vulnerability
+fix or completed qualification. Query still owns adoption and consumer checks
+when a supplying correction is available. The retired Platform #58 coordination
+queue imposes no acknowledgement or approval gate.

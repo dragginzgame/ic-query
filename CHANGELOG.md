@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.6]
+
+### 🔧 Changed
+
+- Adopt IC Platform 0.7.2, Host/Testkit 0.69.5 and Wire 0.7.19.
+- Adopt IC Build 0.69.6 with the macOS compilation correction and remove its
+  temporary compatibility pin. [Tooling #262](https://github.com/dragginzgame/ic-tooling/issues/262)
+- Refresh the reviewed Shared Tooling 0.27.3 snapshot with clarified source
+  and package self-containment guidance.
+
+### 📚 Documentation
+
+- Refresh the affected dependency graph and remediation ownership in the
+  advisory documentation, retaining the **7 November 2026** review deadline.
+  [Platform #50](https://github.com/dragginzgame/ic-platform/issues/50)
+- Clarify that external Candid work quotas do not guarantee Wasm recursion-depth
+  bounds. [Platform #73](https://github.com/dragginzgame/ic-platform/issues/73)
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.5] - 2026-10-28
 
 ### 🔧 Changed
