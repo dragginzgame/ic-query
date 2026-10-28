@@ -27,7 +27,6 @@ Examples:
 
 pub(in crate::nns) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "node",
-    bin_name: "icq nns node",
     about: "Inspect NNS node metadata",
     list_about: "List cached mainnet NNS nodes",
     info_about: "Show one cached mainnet NNS node",
@@ -37,8 +36,7 @@ pub(in crate::nns) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     refresh_help_after: NODE_REFRESH_HELP_AFTER,
     input_value_name: "node|node-prefix",
     input_help: "Node principal or unique node principal prefix",
-    list_source_help: "IC API endpoint used if the node cache is missing",
-    info_source_help: "IC API endpoint used if the node cache is missing",
+    read_source_help: "IC API endpoint used if the node cache is missing",
     refresh_source_help: "IC API endpoint used for native NNS registry queries",
     verbose_help: "Show full node principals and registry metadata in text output",
     dry_run_help: "Fetch and validate without replacing the cached node report",

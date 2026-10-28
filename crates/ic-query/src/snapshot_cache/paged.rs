@@ -21,15 +21,14 @@ pub struct CompletePagedCollection<Row> {
 ///
 /// PagedCollectionPage
 ///
-/// Per-page progress and SNS exhaustion evidence for the refresh runner.
+/// Per-page progress and family-admitted exhaustion evidence for the refresh runner.
 ///
 
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub struct PagedCollectionPage {
-    #[cfg(feature = "sns-host")]
-    page_len: usize,
     new_rows: usize,
     pub last_cursor_text: Option<String>,
+    pub collection_exhausted: bool,
 }
 
 ///
@@ -74,36 +73,11 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
         self.next_cursor.as_ref()
     }
 
-    #[cfg(feature = "sns-host")]
-    pub const fn has_next_cursor(&self) -> bool {
-        self.next_cursor.is_some()
-    }
-
     /// Record rows and a cursor only after family-owned page validation.
     pub fn ingest(&mut self, rows: Vec<Row>, next_cursor: Option<Cursor>) {
         self.rows.extend(rows);
         self.page_count = self.page_count.saturating_add(1);
         self.next_cursor = next_cursor;
-    }
-
-    /// Record admitted rows while retaining the unmodified API page length for exhaustion.
-    #[cfg(feature = "sns-host")]
-    pub fn ingest_page(
-        &mut self,
-        rows: Vec<Row>,
-        page_len: usize,
-        next_cursor: Option<Cursor>,
-        cursor_text: impl FnOnce(&Cursor) -> String,
-    ) -> PagedCollectionPage {
-        let last_cursor_text = next_cursor.as_ref().map(cursor_text);
-        let new_rows = rows.len();
-        self.ingest(rows, next_cursor);
-
-        PagedCollectionPage {
-            page_len,
-            new_rows,
-            last_cursor_text,
-        }
     }
 
     pub fn into_complete(
@@ -120,21 +94,18 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
 
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 impl PagedCollectionPage {
-    /// Describe one validated NNS page, whose rows are all newly admitted.
+    /// Describe one validated page and its family-owned completion decision.
     #[must_use]
-    #[cfg(feature = "nns-host")]
-    pub const fn new(new_rows: usize, last_cursor_text: Option<String>) -> Self {
+    pub const fn new(
+        new_rows: usize,
+        last_cursor_text: Option<String>,
+        collection_exhausted: bool,
+    ) -> Self {
         Self {
-            #[cfg(feature = "sns-host")]
-            page_len: new_rows,
             new_rows,
             last_cursor_text,
+            collection_exhausted,
         }
-    }
-
-    #[cfg(feature = "sns-host")]
-    pub fn exhausts_collection(&self, page_size: u32, has_next_cursor: bool) -> bool {
-        self.page_len < usize::try_from(page_size).unwrap_or(usize::MAX) || !has_next_cursor
     }
 
     pub const fn has_no_new_rows(&self) -> bool {

@@ -17,14 +17,13 @@ use crate::nns::neuron::report::source::{
     build_nns_neuron_list_report_with_source,
 };
 use crate::{
-    HostCacheError,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, open_managed_file},
+    cache_file::LoadJsonCacheRequest,
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
             NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceReportContext,
-            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+            build_governance_cache_status_report, validate_governance_cache_metadata,
         },
         neuron::report::{
             NnsNeuronHostError,
@@ -170,40 +169,25 @@ pub fn build_nns_neuron_cache_status_report(
 ) -> Result<NnsGovernanceCacheStatusReport, NnsNeuronHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
-    let file = open_managed_file(&request.cache_root, &paths.snapshot_path)
-        .map_err(|source| HostCacheError::operation(NNS_NEURON_CACHE_COMPONENT, source))?;
-    let cache = if let Some(file) = file {
-        Some(
-            match load_cache_at(
-                &request.cache_root,
-                &paths.snapshot_path,
-                &request.network,
-                Some(file),
-            ) {
-                Ok(cache) => {
-                    NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache.snapshot)
-                }
-                Err(error) => {
-                    NnsGovernanceCacheSummary::invalid(&paths.snapshot_path, error.to_string())
-                }
-            },
-        )
-    } else {
-        None
-    };
-    let latest_attempt = read_governance_refresh_attempt_status(
-        &request.cache_root,
-        &paths.refresh_attempt_path,
-        &request.network,
-        NNS_NEURON_CACHE_COMPONENT,
-    )?;
-    Ok(NnsGovernanceCacheStatusReport::from_cache(
+    build_governance_cache_status_report(
         request,
         "neurons",
+        NNS_NEURON_CACHE_COMPONENT,
         &paths,
-        cache,
-        latest_attempt,
-    ))
+        |file| match load_cache_at(
+            &request.cache_root,
+            &paths.snapshot_path,
+            &request.network,
+            Some(file),
+        ) {
+            Ok(cache) => {
+                NnsGovernanceCacheSummary::from_snapshot(&paths.snapshot_path, &cache.snapshot)
+            }
+            Err(error) => {
+                NnsGovernanceCacheSummary::invalid(&paths.snapshot_path, error.to_string())
+            }
+        },
+    )
 }
 
 fn load_cache_at(

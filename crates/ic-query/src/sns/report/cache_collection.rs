@@ -92,11 +92,6 @@ impl<Pages: SnsCollectionPages> PagedSnapshotRefresh for SnsCollectionRefresh<'_
         )
     }
 
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        self.context
-            .page_exhausts_collection(page, self.pages.has_next_cursor())
-    }
-
     fn into_complete(self) -> Self::Complete {
         self.pages.into_complete(Pages::cursor_text)
     }

@@ -15,8 +15,6 @@ Preserve these standing maintainer exceptions and their local scope:
 
 - Release execution, version bumps and release refs remain maintainer-only,
   as described below; contribution PR authority is separate.
-- The Changelog section retains Query’s requested/active-release note cadence,
-  selected-or-next-patch default and CLI examples, for one explicit release ledger.
 - Public-metadata schemas remain `1`, with breaking shapes replaced through
   the local hard-cut contract. Identify explicit resets and coordinate consumers;
   no exception authorizes deleting caller evidence or ignoring external obligations.
@@ -87,27 +85,10 @@ Policy adoption does not activate hooks, schedules, installers or release comman
 
 ## Changelog
 
-- Use root `CHANGELOG.md` as the concise release ledger. Update it only for
-  requested release notes or active release slices. Keep entries factual and
-  user-facing; include implementation detail only when it affects behavior,
-  compatibility, release flow, or operations.
-- Every changelog request prepares a numbered release entry and matching
-  detailed heading, never a new `Unreleased` heading or suffix. Use the
-  maintainer's explicit target version; otherwise default to the next patch
-  after the current Cargo package version. Reuse an already prepared entry for
-  that target rather than advancing the version on repeated changelog requests.
-  This assigns the notes to a release only: do not change manifests, lockfiles,
-  generated version metadata, or run version-bump or release commands.
-- When the maintainer assigns a target package version or asks whether the
-  current patch should ship as that version, treat it as an active release
-  slice: prepare the matching root release-ledger entry and detailed changelog
-  heading before handoff without waiting for a separate changelog request.
-- Detailed patch breakdowns live in `docs/changelog/<major>.<minor>.md`; link
-  the detailed file from the matching minor line in root `CHANGELOG.md` when
-  present.
-- New pending batches use one numbered, undated `## [X.Y.Z]` root heading
-  and matching detailed heading. Release preparation finalizes the selected
-  root heading with its UTC date. Preserve historical minor-line indexes.
+- Follow the [shared changelog rules](rules/changelogs.md), including automatic
+  draft maintenance after meaningful completed batches and next-version selection.
+  Query uses numbered, undated `## [X.Y.Z]` pending root headings and matching
+  detailed notes in `docs/changelog/<major>.<minor>.md`.
 - When a patch introduces any new CLI surface, include a fenced `bash` example
   in both root `CHANGELOG.md` and the matching detailed changelog file. "New
   CLI surface" includes commands, subcommands, options, option values, and new

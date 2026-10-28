@@ -9,10 +9,12 @@ use crate::{
     progress::StderrQueryProgress,
 };
 use clap::ArgMatches;
+use ic_query::QueryProgress;
 use ic_query::nns::{
     NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    NnsInventoryRefreshRequest,
+    NnsInventoryRefreshReport, NnsInventoryRefreshRequest,
 };
+use serde::Serialize;
 
 pub(in crate::nns) async fn run_cached_leaf<Reports>(
     matches: &ArgMatches,
@@ -24,8 +26,21 @@ where
 {
     match matches.subcommand() {
         Some(("list", matches)) => run_cached_leaf_list(matches, network, &reports).await,
-        Some(("info", matches)) => run_cached_leaf_info(matches, network, &reports).await,
-        Some(("refresh", matches)) => run_cached_leaf_refresh(matches, network, &reports).await,
+        Some(("info", matches)) => {
+            run_cached_leaf_info(
+                matches,
+                network,
+                async |request, progress| reports.build_info_report(request, progress).await,
+                &|report| reports.info_report_text(report),
+            )
+            .await
+        }
+        Some(("refresh", matches)) => {
+            run_cached_leaf_refresh(matches, network, async |request| {
+                reports.refresh_report(request).await
+            })
+            .await
+        }
         _ => unreachable!("clap requires a known NNS leaf subcommand"),
     }
 }
@@ -55,13 +70,18 @@ where
     )
 }
 
-async fn run_cached_leaf_info<Reports>(
+pub(in crate::nns) async fn run_cached_leaf_info<Report, Error>(
     matches: &ArgMatches,
     network: &str,
-    reports: &Reports,
+    build_report: impl AsyncFn(
+        &NnsInventoryInfoRequest,
+        &mut dyn QueryProgress,
+    ) -> Result<Report, Error>,
+    render: &(dyn Fn(&Report) -> String + Sync),
 ) -> Result<(), NnsCommandError>
 where
-    Reports: NnsLeafReports,
+    Report: Serialize,
+    Error: Into<NnsCommandError>,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
@@ -71,22 +91,21 @@ where
         options.input,
         current_unix_secs()?,
     );
-    let report = reports
-        .build_info_report(&request, &mut StderrQueryProgress::new())
+    let report = build_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
-    write_text_or_json(options.common.format, &report, |report| {
-        reports.info_report_text(report)
-    })
+    write_text_or_json(options.common.format, &report, render)
 }
 
-async fn run_cached_leaf_refresh<Reports>(
+pub(in crate::nns) async fn run_cached_leaf_refresh<Error>(
     matches: &ArgMatches,
     network: &str,
-    reports: &Reports,
+    refresh_report: impl AsyncFn(
+        &NnsInventoryRefreshRequest,
+    ) -> Result<NnsInventoryRefreshReport, Error>,
 ) -> Result<(), NnsCommandError>
 where
-    Reports: NnsLeafReports,
+    Error: Into<NnsCommandError>,
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.common.format;
@@ -100,7 +119,7 @@ where
     if let Some(output_path) = options.output_path {
         request = request.with_output_path(output_path);
     }
-    let report = reports.refresh_report(&request).await.map_err(Into::into)?;
+    let report = refresh_report(&request).await.map_err(Into::into)?;
     write_text_or_json(
         format,
         &report,

@@ -24,7 +24,6 @@ Examples:
 
 pub(in crate::nns) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     command_name: "data-center",
-    bin_name: "icq nns data-center",
     about: "Inspect NNS data-center metadata",
     list_about: "List cached mainnet NNS data centers",
     info_about: "Show one cached mainnet NNS data center",
@@ -34,8 +33,7 @@ pub(in crate::nns) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSp
     refresh_help_after: DATA_CENTER_REFRESH_HELP_AFTER,
     input_value_name: "data-center|data-center-prefix",
     input_help: "Data-center id or unique data-center id prefix",
-    list_source_help: "IC API endpoint used if the data-center cache is missing",
-    info_source_help: "IC API endpoint used if the data-center cache is missing",
+    read_source_help: "IC API endpoint used if the data-center cache is missing",
     refresh_source_help: "IC API endpoint used for native NNS registry queries",
     verbose_help: "Show GPS coordinates and registry metadata in text output",
     dry_run_help: "Fetch and validate without replacing the cached data-center report",

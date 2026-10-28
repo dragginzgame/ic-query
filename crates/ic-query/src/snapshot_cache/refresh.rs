@@ -24,7 +24,6 @@ pub trait PagedSnapshotRefresh {
         &mut self,
     ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>>;
     fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error>;
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool;
     fn into_complete(self) -> Self::Complete;
 }
 
@@ -72,7 +71,7 @@ where
             QueryProgressState::Running,
         );
 
-        if refresh.page_exhausts_collection(&page) {
+        if page.collection_exhausted {
             break;
         }
         if page.has_no_new_rows() {

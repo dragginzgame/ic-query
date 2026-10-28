@@ -1,15 +1,46 @@
 //! Shared status and summary projection for native Governance collection caches.
 
 use super::{
-    NnsGovernanceCacheMetadata, NnsGovernanceCacheRequest, NnsGovernanceRefreshAttemptStatus,
+    NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, NnsGovernanceCacheRequest,
+    NnsGovernanceRefreshAttemptStatus, read_governance_refresh_attempt_status,
 };
 use crate::{
+    HostCacheError,
     cache::CacheValidationStatus,
+    cache_file::open_managed_file,
     nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
 };
 use serde::Serialize;
-use std::path::Path;
+use std::{fs::File, path::Path};
+
+pub(in crate::nns) fn build_governance_cache_status_report<Error>(
+    request: &NnsGovernanceCacheRequest,
+    collection: &str,
+    component: &'static str,
+    paths: &SnapshotJsonPaths,
+    summary: impl FnOnce(File) -> NnsGovernanceCacheSummary,
+) -> Result<NnsGovernanceCacheStatusReport, Error>
+where
+    Error: From<HostCacheError> + From<NnsGovernanceAttemptReadError>,
+{
+    let file = open_managed_file(&request.cache_root, &paths.snapshot_path)
+        .map_err(|source| HostCacheError::operation(component, source))?;
+    let cache = file.map(summary);
+    let latest_attempt = read_governance_refresh_attempt_status(
+        &request.cache_root,
+        &paths.refresh_attempt_path,
+        &request.network,
+        component,
+    )?;
+    Ok(NnsGovernanceCacheStatusReport::from_cache(
+        request,
+        collection,
+        paths,
+        cache,
+        latest_attempt,
+    ))
+}
 
 ///
 /// NnsGovernanceCacheSummary

@@ -18,8 +18,8 @@ use crate::nns::{
     governance::{
         NnsGovernanceCollectionStatus, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
         NnsGovernanceSourceSelection, validate_governance_collection_identity,
-        validate_governance_collection_page_bounds, validate_governance_continuation_request,
-        validate_governance_request, validate_governance_time_interval, validate_source_provenance,
+        validate_governance_collection_page_bounds, validate_governance_continuation,
+        validate_governance_request, validate_source_provenance,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -198,36 +198,7 @@ pub async fn advance_nns_neuron_collection_with_source(
 ) -> Result<NnsNeuronCollectionStep, NnsNeuronError> {
     validate_governance_request(request)?;
     validate_collection_state(state)?;
-    validate_governance_continuation_request(
-        request,
-        &state.network,
-        &state.requested_source,
-        |field, expected, actual| NnsNeuronError::CollectionRequestMismatch {
-            field,
-            expected,
-            actual,
-        },
-    )?;
-    validate_governance_time_interval(
-        "updated_at",
-        &state.updated_at,
-        "fetched_at",
-        &request.fetched_at,
-    )?;
-    match state.status {
-        NnsGovernanceCollectionStatus::Complete => {
-            return Err(NnsNeuronError::CollectionComplete {
-                pages_fetched: state.pages_fetched,
-            });
-        }
-        NnsGovernanceCollectionStatus::PageLimitReached => {
-            return Err(NnsNeuronError::CollectionPageLimitReached {
-                pages_fetched: state.pages_fetched,
-                max_pages: state.max_pages,
-            });
-        }
-        NnsGovernanceCollectionStatus::Ready | NnsGovernanceCollectionStatus::Collecting => {}
-    }
+    validate_governance_continuation!(request, state, NnsNeuronError)?;
 
     let mut page_request = NnsNeuronListRequest::new(request.clone(), state.page_size);
     page_request.exclusive_start_neuron_id = state.next_start_neuron_id;
@@ -323,7 +294,7 @@ pub(super) fn validate_collection_state(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::nns::governance::NnsGovernanceError;
+    use crate::nns::governance::{NnsGovernanceError, validate_governance_time_interval};
 
     struct UnexpectedSource;
     impl NnsNeuronSource for UnexpectedSource {

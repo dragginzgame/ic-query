@@ -62,7 +62,7 @@ impl SnsCollectionPages for SnsProposalsRefreshPages<'_> {
             )?;
             let last_cursor = page.iter().map(|proposal| proposal.proposal_id).min();
             let page_len = page.len();
-            Ok(pages.ingest_page(page, page_len, last_cursor, ToString::to_string))
+            Ok(context.ingest_page(pages, page, page_len, last_cursor, ToString::to_string))
         })
     }
 

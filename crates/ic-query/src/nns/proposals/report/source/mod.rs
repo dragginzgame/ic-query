@@ -35,7 +35,7 @@ use crate::nns::governance::{
     NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
     validate_governance_request, validate_source_provenance,
 };
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::collections::HashSet;
 
 /// Build one bounded proposal list through the native replica adapter.
 #[cfg(feature = "nns-host")]
@@ -113,7 +113,7 @@ pub async fn build_nns_proposal_report_with_source(
 ///
 
 pub type NnsProposalSourceFuture<'a, T> =
-    Pin<Box<dyn Future<Output = Result<NnsGovernanceSourceData<T>, NnsProposalError>> + Send + 'a>>;
+    crate::report::SourceFuture<'a, Result<NnsGovernanceSourceData<T>, NnsProposalError>>;
 
 ///
 /// NnsProposalSource

@@ -112,6 +112,7 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             Ok(PagedCollectionPage::new(
                 page_len,
                 next_cursor.map(|cursor| cursor.to_string()),
+                self.collection_state.is_complete(),
             ))
         })
     }
@@ -128,10 +129,6 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             ),
         )
         .map_err(NnsProposalHostError::from)
-    }
-
-    fn page_exhausts_collection(&self, _page: &PagedCollectionPage) -> bool {
-        self.collection_state.is_complete()
     }
 
     fn into_complete(self) -> CompleteNnsProposalCollection {

@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.7]
+
+### 🧹 Cleanup
+
+- Consolidate NNS and SNS collection, cache-status and analytics flows while
+  preserving pagination, typed errors and failure evidence.
+- Simplify CLI handlers and metadata, principal resolution and cache inspection.
+  Public APIs, command output and stored formats remain unchanged.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.6] - 2026-10-28
 
 ### 🔧 Changed

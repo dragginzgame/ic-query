@@ -9,8 +9,8 @@ impl RawSubnetCatalog {
         input: &str,
         forced: Option<ResolveAs>,
     ) -> Result<ResolvedSubnet, CatalogError> {
-        if canonical_principal_text(input).is_ok() {
-            return self.resolve_principal(input, forced);
+        if let Ok(principal) = canonical_principal_text(input) {
+            return self.resolve_canonical_principal(&principal, forced);
         }
         self.resolve_principal_prefix(input, forced)
     }

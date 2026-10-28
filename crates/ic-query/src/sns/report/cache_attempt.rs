@@ -9,9 +9,9 @@ use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
     snapshot_cache::{
-        PagedCollectionPage, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt,
-        SnapshotRefreshProgress, current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
-        validate_snapshot_refresh_attempt,
+        PagedCollectionPage, PagedCollectionState, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
+        SnapshotRefreshAttempt, SnapshotRefreshProgress, current_attempt_timestamp,
+        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
@@ -85,12 +85,22 @@ impl SnsRefreshContext<'_> {
         }
     }
 
-    pub(in crate::sns::report) fn page_exhausts_collection(
+    pub(in crate::sns::report) fn ingest_page<Row, Cursor>(
         self,
-        page: &PagedCollectionPage,
-        has_next_cursor: bool,
-    ) -> bool {
-        page.exhausts_collection(self.request.page_size, has_next_cursor)
+        pages: &mut PagedCollectionState<Row, Cursor>,
+        rows: Vec<Row>,
+        raw_page_len: usize,
+        next_cursor: Option<Cursor>,
+        cursor_text: impl FnOnce(&Cursor) -> String,
+    ) -> PagedCollectionPage {
+        // The API page length precedes removal of a repeated neuron boundary row.
+        let exhausted = raw_page_len
+            < usize::try_from(self.request.page_size).unwrap_or(usize::MAX)
+            || next_cursor.is_none();
+        let page =
+            PagedCollectionPage::new(rows.len(), next_cursor.as_ref().map(cursor_text), exhausted);
+        pages.ingest(rows, next_cursor);
+        page
     }
 }
 

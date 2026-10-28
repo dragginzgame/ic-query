@@ -26,7 +26,7 @@ pub use build::{
 #[cfg(feature = "nns-host")]
 pub(super) use collection::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata,
-    read_governance_refresh_attempt_status, run_governance_snapshot_refresh,
+    build_governance_cache_status_report, run_governance_snapshot_refresh,
     validate_governance_cache_metadata, write_running_governance_refresh_attempt,
 };
 #[cfg(feature = "nns-host")]
@@ -73,6 +73,9 @@ pub(crate) use validation::{
     validate_governance_collection_row_bounds, validate_governance_collection_source,
     validate_governance_continuation_request, validate_governance_report_identity,
     validate_governance_request, validate_governance_time_interval, validate_source_provenance,
+};
+pub(in crate::nns) use validation::{
+    validate_governance_analytics_pages, validate_governance_continuation,
 };
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";

@@ -73,7 +73,7 @@ impl SnsCollectionPages for SnsNeuronsRefreshPages<'_> {
                 page.neurons.remove(0);
             }
             Ok(
-                pages.ingest_page(page.neurons, page_len, page.last_cursor, |cursor| {
+                context.ingest_page(pages, page.neurons, page_len, page.last_cursor, |cursor| {
                     hex_bytes(&cursor.id)
                 }),
             )

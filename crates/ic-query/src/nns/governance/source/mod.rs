@@ -14,7 +14,6 @@ use super::{
     NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,
     NnsGovernanceSourceProvenance,
 };
-use std::{future::Future, pin::Pin};
 
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 pub use canister::CanisterNnsSource;
@@ -47,9 +46,8 @@ impl<T> NnsGovernanceSourceData<T> {
 /// Boxed caller-runtime future returned by a direct Governance source.
 ///
 
-pub type NnsGovernanceSourceFuture<'a, T> = Pin<
-    Box<dyn Future<Output = Result<NnsGovernanceSourceData<T>, NnsGovernanceError>> + Send + 'a>,
->;
+pub type NnsGovernanceSourceFuture<'a, T> =
+    crate::report::SourceFuture<'a, Result<NnsGovernanceSourceData<T>, NnsGovernanceError>>;
 
 ///
 /// NnsGovernanceSource

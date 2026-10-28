@@ -76,6 +76,68 @@ pub fn validate_governance_continuation_request<Error>(
     Ok(())
 }
 
+// Both persisted collection states retain these fields and project family-specific errors.
+macro_rules! validate_governance_continuation {
+    ($request:expr, $state:expr, $error:ident) => {{
+        use $crate::nns::governance::NnsGovernanceCollectionStatus;
+        let request = $request;
+        let state = $state;
+        $crate::nns::governance::validate_governance_continuation_request(
+            request,
+            &state.network,
+            &state.requested_source,
+            |field, expected, actual| $error::CollectionRequestMismatch {
+                field,
+                expected,
+                actual,
+            },
+        )?;
+        $crate::nns::governance::validate_governance_time_interval(
+            "updated_at",
+            &state.updated_at,
+            "fetched_at",
+            &request.fetched_at,
+        )?;
+        match state.status {
+            NnsGovernanceCollectionStatus::Complete => Err($error::CollectionComplete {
+                pages_fetched: state.pages_fetched,
+            }),
+            NnsGovernanceCollectionStatus::PageLimitReached => {
+                Err($error::CollectionPageLimitReached {
+                    pages_fetched: state.pages_fetched,
+                    max_pages: state.max_pages,
+                })
+            }
+            NnsGovernanceCollectionStatus::Ready | NnsGovernanceCollectionStatus::Collecting => {
+                Ok(())
+            }
+        }
+    }};
+}
+
+pub(in crate::nns) use validate_governance_continuation;
+
+/// Admit the retained page evidence shared by complete Governance analytics reports.
+pub fn validate_governance_analytics_pages(
+    pages: u32,
+    rows: u64,
+    report_label: &str,
+    row_label: &str,
+) -> Result<(), String> {
+    if pages == 0 {
+        return Err(format!(
+            "complete {report_label} report must retain at least one collection page"
+        ));
+    }
+    let minimum = u64::from(pages - 1);
+    if rows < minimum {
+        return Err(format!(
+            "collection_page_count {pages} requires at least {minimum} collected {row_label}, found {rows}"
+        ));
+    }
+    Ok(())
+}
+
 /// Admit restored collection identity and timestamps before family page-size checks.
 pub fn validate_governance_collection_identity<Error>(
     network: &str,

@@ -16,12 +16,12 @@ use crate::nns::proposals::report::source::{
 };
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
-    cache_file::{LoadJsonCacheRequest, open_managed_file},
+    cache_file::LoadJsonCacheRequest,
     nns::{
         NnsGovernanceCacheRequest,
         governance::{
             NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceReportContext,
-            read_governance_refresh_attempt_status, validate_governance_cache_metadata,
+            build_governance_cache_status_report, validate_governance_cache_metadata,
         },
         proposals::report::{
             NnsProposalHostError,
@@ -143,30 +143,20 @@ pub fn build_nns_proposal_cache_status_report(
 ) -> Result<NnsGovernanceCacheStatusReport, NnsProposalHostError> {
     enforce_mainnet_network(&request.network)?;
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
-    let cache = if let Some(file) = open_proposal_cache(&request.cache_root, &paths.snapshot_path)?
-    {
-        Some(load_nns_proposal_cache_summary(
-            &request.cache_root,
-            paths.snapshot_path.clone(),
-            &request.network,
-            file,
-        ))
-    } else {
-        None
-    };
-    let latest_attempt = read_governance_refresh_attempt_status(
-        &request.cache_root,
-        &paths.refresh_attempt_path,
-        &request.network,
-        NNS_PROPOSAL_CACHE_COMPONENT,
-    )?;
-    Ok(NnsGovernanceCacheStatusReport::from_cache(
+    build_governance_cache_status_report(
         request,
         "proposals",
+        NNS_PROPOSAL_CACHE_COMPONENT,
         &paths,
-        cache,
-        latest_attempt,
-    ))
+        |file| {
+            load_nns_proposal_cache_summary(
+                &request.cache_root,
+                paths.snapshot_path.clone(),
+                &request.network,
+                file,
+            )
+        },
+    )
 }
 
 /// Build an NNS proposal list report from a complete local proposal snapshot.
@@ -193,18 +183,6 @@ pub fn build_nns_proposal_report_from_cache(
         return Ok(None);
     };
     Ok(nns_proposal_report_from_cache(request, path, cache))
-}
-
-fn open_proposal_cache(
-    cache_root: &Path,
-    path: &Path,
-) -> Result<Option<File>, NnsProposalHostError> {
-    open_managed_file(cache_root, path).map_err(|source| {
-        NnsProposalHostError::Cache(crate::HostCacheError::operation(
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            source,
-        ))
-    })
 }
 
 fn load_nns_proposal_cache_summary(

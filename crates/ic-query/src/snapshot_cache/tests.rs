@@ -510,7 +510,7 @@ fn snapshot_refresh_attempt_reader_rejects_oversized_sidecar() {
 }
 
 #[test]
-fn paged_collection_state_tracks_admitted_rows_and_original_page_length() {
+fn paged_collection_state_tracks_admitted_rows_and_cursors() {
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct Row {
         id: &'static str,
@@ -518,23 +518,16 @@ fn paged_collection_state_tracks_admitted_rows_and_original_page_length() {
 
     let mut state = PagedCollectionState::<Row, Vec<u8>>::new();
 
-    let first_page = state.ingest_page(vec![Row { id: "a" }], 2, Some(vec![1, 2]), |cursor| {
-        format!("{cursor:?}")
-    });
+    state.ingest(vec![Row { id: "a" }], Some(vec![1, 2]));
 
     assert_eq!(state.page_count(), 1);
     assert_eq!(state.row_count(), 1);
     assert_eq!(state.next_cursor(), Some(&vec![1, 2]));
-    assert_eq!(first_page.last_cursor_text, Some("[1, 2]".to_string()));
-    assert!(!first_page.exhausts_collection(2, state.has_next_cursor()));
-
-    let final_page = state.ingest_page(vec![Row { id: "b" }], 1, None, |cursor| {
-        format!("{cursor:?}")
-    });
+    state.ingest(vec![Row { id: "b" }], None);
 
     assert_eq!(state.page_count(), 2);
     assert_eq!(state.row_count(), 2);
-    assert!(final_page.exhausts_collection(2, state.has_next_cursor()));
+    assert_eq!(state.next_cursor(), None);
 
     let complete = state.into_complete(|cursor| format!("{cursor:?}"));
     assert_eq!(complete.page_count, 2);
@@ -946,9 +939,13 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
                 return Err("no fixture page".to_string());
             }
             let (rows, page_len, cursor) = self.pages.remove(0);
-            Ok(self
-                .state
-                .ingest_page(rows, page_len, cursor, |cursor| (*cursor).to_string()))
+            let page = PagedCollectionPage::new(
+                rows.len(),
+                cursor.map(str::to_string),
+                page_len < 2 || cursor.is_none(),
+            );
+            self.state.ingest(rows, cursor);
+            Ok(page)
         })
     }
 
@@ -958,10 +955,6 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
             .push((self.state.page_count(), self.state.row_count()));
         self.attempt_error
             .map_or(Ok(()), |error| Err(error.to_string()))
-    }
-
-    fn page_exhausts_collection(&self, page: &PagedCollectionPage) -> bool {
-        page.exhausts_collection(2, self.state.has_next_cursor())
     }
 
     fn into_complete(self) -> Self::Complete {

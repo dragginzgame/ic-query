@@ -9,8 +9,8 @@ use super::{
 };
 use crate::nns::governance::{
     NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
-    validate_governance_collection_source, validate_governance_report_identity,
-    validate_governance_time_interval,
+    validate_governance_analytics_pages, validate_governance_collection_source,
+    validate_governance_report_identity, validate_governance_time_interval,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -275,18 +275,13 @@ fn validate_activity_header(
     }
     validate_governance_report_identity(&report.network, &report.governance_canister_id)
         .map_err(invalid_validation)?;
-    if report.collection_page_count == 0 {
-        return Err(invalid_validation(
-            "complete activity report must retain at least one collection page",
-        ));
-    }
-    let minimum_proposal_count = u64::from(report.collection_page_count - 1);
-    if report.collected_proposal_count < minimum_proposal_count {
-        return Err(invalid_validation(format!(
-            "collection_page_count {} requires at least {minimum_proposal_count} collected proposals, found {}",
-            report.collection_page_count, report.collected_proposal_count
-        )));
-    }
+    validate_governance_analytics_pages(
+        report.collection_page_count,
+        report.collected_proposal_count,
+        "activity",
+        "proposals",
+    )
+    .map_err(invalid_validation)?;
     validate_governance_time_interval(
         "collection_started_at",
         &report.collection_started_at,

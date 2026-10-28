@@ -7,9 +7,7 @@ pub(super) use commands::{command, command_with_list, list_command, output_path_
 #[cfg(test)]
 pub(super) use commands::{info_command, refresh_command};
 pub(super) use model::{NnsLeafCommandSpec, NnsLeafReports};
+pub(super) use options::{NnsCommonOptions, NnsLeafRefreshOptions, NnsPagedRefreshOptions};
 #[cfg(test)]
-pub(super) use options::NnsLeafListOptions;
-pub(super) use options::{
-    NnsCommonOptions, NnsLeafInfoOptions, NnsLeafRefreshOptions, NnsPagedRefreshOptions,
-};
-pub(super) use run::run_cached_leaf;
+pub(super) use options::{NnsLeafInfoOptions, NnsLeafListOptions};
+pub(super) use run::{run_cached_leaf, run_cached_leaf_info, run_cached_leaf_refresh};

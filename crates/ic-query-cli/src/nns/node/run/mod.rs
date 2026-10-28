@@ -1,11 +1,12 @@
-mod info;
 mod list;
-mod refresh;
 
-use crate::nns::NnsCommandError;
+use crate::nns::{NnsCommandError, leaf};
 use crate::storage::cache_root;
 use clap::ArgMatches;
 use ic_query::nns::NnsInventoryCacheRequest;
+use ic_query::nns::node::{
+    build_nns_node_info_report_with_progress, nns_node_info_report_text, refresh_nns_node_report,
+};
 
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,
@@ -21,8 +22,18 @@ pub(in crate::nns) async fn run(
             .await
         }
         Some(("list", matches)) => list::run_node_list(matches, network).await,
-        Some(("info", matches)) => info::run_node_info(matches, network).await,
-        Some(("refresh", matches)) => refresh::run_node_refresh(matches, network).await,
+        Some(("info", matches)) => {
+            leaf::run_cached_leaf_info(
+                matches,
+                network,
+                build_nns_node_info_report_with_progress,
+                &nns_node_info_report_text,
+            )
+            .await
+        }
+        Some(("refresh", matches)) => {
+            leaf::run_cached_leaf_refresh(matches, network, refresh_nns_node_report).await
+        }
         _ => unreachable!("clap requires a known NNS node subcommand"),
     }
 }

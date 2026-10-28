@@ -9,12 +9,20 @@ impl RawSubnetCatalog {
         forced: Option<ResolveAs>,
     ) -> Result<ResolvedSubnet, CatalogError> {
         let input_principal = canonical_principal_text(input)?;
+        self.resolve_canonical_principal(&input_principal, forced)
+    }
+
+    pub(super) fn resolve_canonical_principal(
+        &self,
+        input_principal: &str,
+        forced: Option<ResolveAs>,
+    ) -> Result<ResolvedSubnet, CatalogError> {
         match forced {
-            Some(ResolveAs::Subnet) => self.resolve_known_subnet(&input_principal),
-            None if self.subnet_by_principal(&input_principal).is_some() => {
-                self.resolve_known_subnet(&input_principal)
+            Some(ResolveAs::Subnet) => self.resolve_known_subnet(input_principal),
+            None if self.subnet_by_principal(input_principal).is_some() => {
+                self.resolve_known_subnet(input_principal)
             }
-            Some(ResolveAs::Canister) | None => self.resolve_canister(&input_principal),
+            Some(ResolveAs::Canister) | None => self.resolve_canister(input_principal),
         }
     }
 

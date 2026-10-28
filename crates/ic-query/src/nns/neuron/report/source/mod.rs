@@ -34,7 +34,6 @@ use crate::nns::governance::{
     NnsGovernanceReportContext, NnsGovernanceRequest, NnsGovernanceSourceData,
     validate_governance_request, validate_source_provenance,
 };
-use std::{future::Future, pin::Pin};
 
 #[cfg(any(
     feature = "nns-host",
@@ -141,7 +140,7 @@ pub async fn build_nns_neuron_info_report_with_source(
 ///
 
 pub type NnsNeuronSourceFuture<'a, T> =
-    Pin<Box<dyn Future<Output = Result<NnsGovernanceSourceData<T>, NnsNeuronError>> + Send + 'a>>;
+    crate::report::SourceFuture<'a, Result<NnsGovernanceSourceData<T>, NnsNeuronError>>;
 
 ///
 /// NnsNeuronSource

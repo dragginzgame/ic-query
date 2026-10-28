@@ -8,7 +8,7 @@ use crate::sns::report::{
     SnsHostError, SnsListReport, SnsListRequest,
     assemble::{SnsReportProvenance, sns_list_report_from_list},
     live::LiveSnsSource,
-    lookup::{assign_sns_ids_in_current_order, sns_list_fetch_request},
+    lookup::sns_list_fetch_request,
     source::{
         SnsCatalogSource, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
         validate_mainnet_sns_inventory,
@@ -48,6 +48,8 @@ pub(in crate::sns::report) async fn fetch_joined_sns_catalog(
         .await?;
     let mut list = join_mainnet_sns_inventory(inventory, metadata)?;
     join_mainnet_sns_lifecycles(&mut list, lifecycles)?;
-    assign_sns_ids_in_current_order(&mut list.sns_instances);
+    for (index, sns) in list.sns_instances.iter_mut().enumerate() {
+        sns.id = index + 1;
+    }
     Ok(list)
 }
