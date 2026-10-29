@@ -16,58 +16,14 @@ use std::io::{self, IsTerminal, Write};
 
 #[derive(Debug)]
 pub struct StderrQueryProgress {
-    line: ProgressLine,
-}
-
-impl StderrQueryProgress {
-    /// Create a CLI progress sink using the current stderr terminal state.
-    pub fn new() -> Self {
-        Self {
-            line: ProgressLine::stderr(),
-        }
-    }
-}
-
-impl QueryProgress for StderrQueryProgress {
-    fn report(&mut self, event: QueryProgressEvent) {
-        match event {
-            QueryProgressEvent::CacheRefresh {
-                component,
-                path,
-                source_endpoint,
-            } => {
-                self.line.clear();
-                eprintln!(
-                    "{component} cache refresh required at {}; calling {source_endpoint} to refresh/create cache",
-                    path.display()
-                );
-            }
-            QueryProgressEvent::PagedRefresh { text, state } => {
-                if state == QueryProgressState::Running {
-                    self.line.update(&text);
-                } else {
-                    self.line.finish(&text);
-                }
-            }
-        }
-    }
-}
-
-///
-/// ProgressLine
-///
-/// Same-line stderr writer used by the CLI progress sink.
-///
-
-#[derive(Debug)]
-struct ProgressLine {
     enabled: bool,
     frames: ProgressFrames,
     stderr: io::Stderr,
 }
 
-impl ProgressLine {
-    fn stderr() -> Self {
+impl StderrQueryProgress {
+    /// Create a CLI progress sink using the current stderr terminal state.
+    pub fn new() -> Self {
         Self {
             enabled: io::stderr().is_terminal(),
             frames: ProgressFrames::new(),
@@ -104,7 +60,32 @@ impl ProgressLine {
     }
 }
 
-impl Drop for ProgressLine {
+impl QueryProgress for StderrQueryProgress {
+    fn report(&mut self, event: QueryProgressEvent) {
+        match event {
+            QueryProgressEvent::CacheRefresh {
+                component,
+                path,
+                source_endpoint,
+            } => {
+                self.clear();
+                eprintln!(
+                    "{component} cache refresh required at {}; calling {source_endpoint} to refresh/create cache",
+                    path.display()
+                );
+            }
+            QueryProgressEvent::PagedRefresh { text, state } => {
+                if state == QueryProgressState::Running {
+                    self.update(&text);
+                } else {
+                    self.finish(&text);
+                }
+            }
+        }
+    }
+}
+
+impl Drop for StderrQueryProgress {
     fn drop(&mut self) {
         self.clear();
     }

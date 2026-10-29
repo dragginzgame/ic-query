@@ -5,6 +5,28 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.0]
+
+### ⚠️ Breaking
+
+- Adopt IC Platform 0.8.1. Custom ICRC tip-certificate sources must use its
+  Platform-owned certificate DTO; the Rust type is no longer the registry ledger
+  package's type. External wire formats and report/cache schemas are unchanged.
+- Adopt IC Tooling 0.70.0. Library consumers naming Query's Host certificate or
+  ledger-evidence types must also select `ic-host-tools` 0.70.
+
+### ⬆️ Dependencies
+
+- Require Wire 0.7.22 and refresh Shared Tooling to 0.27.7, preserving Wire
+  protocol bytes and the Rust 1.91 minimum.
+
+### 🧹 Cleanup
+
+- Simplify progress handling and report construction, preserving lifecycle
+  events, terminal cleanup, report formats and public APIs.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.75.14] - 2026-10-29
 
 ### 🧹 Cleanup

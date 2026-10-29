@@ -65,8 +65,16 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.7.6, Metrics 0.17.2,
-Host/Testkit 0.69.5 and Build 0.69.6.
+The current workspace minimums are Platform 0.8.1, Metrics 0.17.2,
+Host/Build/Testkit 0.70.0 and Wire 0.7.22.
+
+Platform 0.8 owns the selected ICRC DTO and callback Rust types. Custom
+`IcrcTipCertificateSource` implementations use its `ICRC3DataCertificate`, rather
+than the registry ledger package's certificate type. External wire/Serde shapes
+and value hashes remain the protocol contracts; the Rust identity change selects
+Query 0.76. Host/Testkit 0.70 share Platform 0.8.1, including owned Registry
+Principals and ledger values. The upstream Agent/Candid/certificate identities
+remain unchanged.
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.
 Query retains its existing byte, work, type-table and header budgets and reply
@@ -74,18 +82,17 @@ arity policy. This wire-nesting bound does not guarantee arbitrary custom
 deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
-Testkit fixtures. Host Tools and Testkit also require Platform 0.7, so the
-selected graph shares one Platform release, including its owned Registry
-Principal. External Agent, Candid, Principal, certificate and ledger DTO
-identities remain unchanged. Query's canister runtime retains executor
-2.0.0 and ic0 1.2.0. No dependency override or copied runtime is used.
+Testkit fixtures. External Agent, Candid, Principal and certificate identities
+remain shared across the selected packages. Query's canister runtime
+retains executor 2.0.0 and ic0 1.2.0. No dependency override or copied runtime is
+used.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
 Host Tools' `ledger_evidence::LedgerTip`. Updating these package-owned Rust
-types from Host Tools 0.68 to 0.69 requires a Query minor release. Downstream
+types from Host Tools 0.69 to 0.70 requires a Query minor release. Downstream
 callers that name them must update their direct `ic-host-tools` dependency to
-0.69 as well. No serialized report or cache format changes.
+0.70 as well. No serialized report or cache format changes.
 
 Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
@@ -111,33 +118,26 @@ permissions and may leave partial output on write/sync failure. These APIs are
 available in the selected published Host packages; no sibling checkout or local
 copy substitutes for them.
 
-The published Platform 0.6.0 boundary preserves upstream Candid type identities
-and Query's existing decoder quotas and error projection. Query's `canister`
-feature selects Platform's `cdk` facade for canister identity and bounded calls.
-The typed probe uses Platform's explicit-codec entrypoint generator with bounded
-Wire request/reply hooks. External Governance calls retain explicit Candid bytes;
-probe callers use Wire frames, including for request admission before copying. There are no direct Candid,
-CDK or macro-package declarations. Host Tools 0.63.0 and Testkit 0.63.0 share
-Query's published Platform 0.6.0 selection; the resolved graph no longer retains
-Platform 0.5.1. Required external Candid, Agent, certification and ledger DTO
-identities remain shared. Native fixtures use raw PocketIC transport bytes and
-Wire; external Governance fixtures encode and decode through Platform directly.
-Query's Candid, Agent and runtime features include 0.6's new
-`principal` feature automatically; executor-only profiles remain independent.
-Registry conversions infer Host's owned Principal from its published signatures
-instead of encoding its package selection in the conversion. Testkit and Build
-use the same Host 0.63 package identities as Query. External Candid, Agent and
-certification DTO identities remain unchanged. Query uses neither service-generation
-macros nor the retired runtime storage/timeout APIs; its explicit Wire hooks and
-bounded-call defaults remain.
-The replicated Governance adapter uses Platform's owned Principal for runtime
-calls. Required Candid DTOs and public APIs retain
-`ic_platform::candid::contract::Principal`, and ledger DTOs retain their external
-Account identity; substituting owned types would change their Candid contracts.
-Host's Registry shard keys and bounds use owned Principals. Query converts at
-that boundary, preserving the external Principal in public report/evidence DTOs
-and passing owned identities to shard validation. Replay keeps inferred owned
-bounds internally; no wire or persisted identity encoding changes.
+The published Platform boundary preserves upstream Candid identities and Query's
+existing decoder quotas and error projection. Query's `canister` feature selects
+Platform's `cdk` facade for canister identity and bounded calls. The typed probe
+uses Platform's explicit-codec entrypoint generator with bounded Wire hooks.
+External Governance calls retain explicit Candid bytes; probe callers use Wire
+frames, including for request admission before copying. There are no direct
+Candid, CDK or macro-package declarations. Native fixtures use raw PocketIC
+transport bytes and Wire; external Governance fixtures encode/decode through
+Platform directly.
+
+Required Candid and Agent features select `principal-external`; Platform's raw
+runtime and CDK select only its owned Principal capability. The Governance adapter
+converts at the runtime boundary while public report/evidence DTOs retain
+`ic_platform::candid::contract::Principal`. Host's Registry shard keys and bounds
+use its supplier-owned Principals. Query keeps those bounds inferred from Host's
+published signatures until shard validation, and projects external Principals
+into catalog evidence. Replay uses the same ownership pattern. No wire or
+persisted Principal encoding changes. Query uses neither the retired runtime
+storage/timeout APIs nor service-generation macros.
+
 Native host features select `ic-platform/agent`; the CLI smoke harness enables
 that feature through its development dependency. Platform exposes the same Agent
 and typed transport/reject errors without choosing endpoints, root keys, HTTP
@@ -175,14 +175,14 @@ also come from Platform; there are no remaining Agent hash-tree import exception
 There is no direct `ic-certification` declaration; its transitive presence through
 Platform, Host and Agent is intentional.
 
-Platform's optional ledger surface exports the original `icrc-ledger-types` 0.2.0
-identities. `icrc-host` and `sns-host` select it directly; Host's
+Platform's optional ledger surface owns the maintained ICRC Rust DTOs.
+`icrc-host` and `sns-host` select it directly; Host's
 `ledger-evidence` feature selects it for `ledger-evidence-host`. Query has
 no direct ledger-types declaration. Account semantics, generic-value hashes,
-wire variants and archive callback types remain upstream. Query retains archive
+wire variants and archive callbacks retain their external contracts. Query retains archive
 admission, bounded calls, certificate verification and transaction interpretation.
-The upstream `storable` feature is disabled; stable-memory storage is outside
-Query's boundary and excluded from supported normal/build graphs.
+The registry ledger and CBOR dependency family is absent; stable-memory storage
+is outside Query's boundary and excluded from supported normal/build graphs.
 
 Host's pure `encoding` feature admits canonical unsigned `u64` LEB128 leaves for
 certified Registry and API-boundary-node state. Query supplies the field context

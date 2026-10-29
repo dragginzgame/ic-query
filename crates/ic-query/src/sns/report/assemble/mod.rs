@@ -9,7 +9,7 @@ mod neurons;
 mod proposals;
 mod provenance;
 
-pub(super) use list::{sns_info_report_from_parts, sns_list_report_from_list};
+pub(super) use list::sns_list_report_from_list;
 pub(super) use neurons::sns_neurons_report_from_rows;
 pub(super) use proposals::{sns_proposal_report_from_parts, sns_proposals_report_from_parts};
 pub(super) use provenance::SnsReportContext;

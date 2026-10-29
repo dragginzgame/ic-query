@@ -53,19 +53,11 @@ pub async fn run_paged_snapshot_refresh_with_progress<Refresh>(
 where
     Refresh: PagedSnapshotRefresh,
 {
-    report_progress(
-        progress,
-        refresh.progress_text_for_state(QueryProgressState::Running),
-        QueryProgressState::Running,
-    );
+    report_progress(progress, &refresh, QueryProgressState::Running);
 
     loop {
         if refresh.max_pages_reached() {
-            report_progress(
-                progress,
-                refresh.progress_text_for_state(QueryProgressState::Stopped),
-                QueryProgressState::Stopped,
-            );
+            report_progress(progress, &refresh, QueryProgressState::Stopped);
             return Err(refresh.incomplete_refresh_error(Refresh::PAGE_LIMIT_REASON));
         }
 
@@ -75,43 +67,34 @@ where
         }) {
             Ok(page) => page,
             Err(err) => {
-                report_progress(
-                    progress,
-                    refresh.progress_text_for_state(QueryProgressState::Failed),
-                    QueryProgressState::Failed,
-                );
+                report_progress(progress, &refresh, QueryProgressState::Failed);
                 return Err(err);
             }
         };
-        report_progress(
-            progress,
-            refresh.progress_text_for_state(QueryProgressState::Running),
-            QueryProgressState::Running,
-        );
+        report_progress(progress, &refresh, QueryProgressState::Running);
 
         if page.collection_exhausted {
             break;
         }
         if page.has_no_new_rows() {
-            report_progress(
-                progress,
-                refresh.progress_text_for_state(QueryProgressState::Stalled),
-                QueryProgressState::Stalled,
-            );
+            report_progress(progress, &refresh, QueryProgressState::Stalled);
             return Err(refresh.incomplete_refresh_error(
                 "page returned no new rows while advertising another cursor",
             ));
         }
     }
 
-    report_progress(
-        progress,
-        refresh.progress_text_for_state(QueryProgressState::Complete),
-        QueryProgressState::Complete,
-    );
+    report_progress(progress, &refresh, QueryProgressState::Complete);
     Ok(refresh.into_complete())
 }
 
-fn report_progress(progress: &mut dyn QueryProgress, text: String, state: QueryProgressState) {
-    progress.report(QueryProgressEvent::PagedRefresh { text, state });
+fn report_progress(
+    progress: &mut dyn QueryProgress,
+    refresh: &impl PagedSnapshotRefresh,
+    state: QueryProgressState,
+) {
+    progress.report(QueryProgressEvent::PagedRefresh {
+        text: refresh.progress_text_for_state(state),
+        state,
+    });
 }

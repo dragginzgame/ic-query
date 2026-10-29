@@ -8,17 +8,18 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected path is Platform 0.7.6 → Agent 0.49.3 → elliptic-curve 0.13.8 →
-crypto-bigint 0.5.5, including Agent's k256/p256 paths. elliptic-curve requires
-crypto-bigint 0.5; the patched 0.7.6 cannot replace it through a compatible lock
+The selected native path is Platform 0.8.1 → Agent 0.49.3 → elliptic-curve 0.13.8
+→ crypto-bigint 0.5.5,
+including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
+the patched crypto-bigint 0.7.6 cannot replace it through a compatible lock
 update. Do not fork cryptography or force an incompatible override here.
 
 The native Host and CLI normal/build graphs were rechecked on 2026-10-29 against
-the Query 0.75.11 checkout, commit `ffce0adbffe722e36956104e02a4a0808421a829`,
-with the pending 0.75.12 changes and Platform 0.7.6 minimum, using locked, offline
-Cargo tree inspection. This refresh updates dependency and tracking
-facts; it does not renew the acceptance or extend its deadline. No fresh
-cargo-audit or side-channel qualification is supplied by this graph inspection.
+the Query 0.75.14 checkout, commit `3eaa1662ab53900d349538d4386b636591252306`,
+with the pending 0.76.0 changes, Platform 0.8.1 and Tooling 0.70.0, using locked, offline
+Cargo tree inspection. This refresh updates dependency and tracking facts; it
+does not renew the acceptance or extend its deadline. No fresh cargo-audit or
+side-channel qualification is supplied by this graph inspection.
 
 Query's built-in clients use `src/agent.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.

@@ -1,14 +1,13 @@
 //! Module: sns::report::assemble::list
 //!
-//! Responsibility: apply deployed SNS list views and assemble list and info reports.
+//! Responsibility: apply deployed SNS list views and assemble list reports.
 //! Does not own: SNS-W fetching, sort algorithms, lookup resolution, or rendering.
 //! Boundary: live and cached lists share filtering, ordering, counts, and DTO projection.
 
 use crate::report::ReportProvenance;
 use crate::sns::report::{
-    JoinedMainnetSnsInventory, MAINNET_SNS_WASM_CANISTER_ID, MainnetSns,
-    SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport,
-    SnsListRequest, SnsListRow, SnsSourceRequest,
+    JoinedMainnetSnsInventory, SNS_LIST_REPORT_SCHEMA_VERSION, SnsListReport, SnsListRequest,
+    SnsListRow,
     view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
 
@@ -67,25 +66,5 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         metadata_error_count,
         lifecycle_error_count,
         sns_instances,
-    }
-}
-
-pub(in crate::sns::report) fn sns_info_report_from_parts(
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-) -> SnsInfoReport {
-    SnsInfoReport {
-        schema_version: SNS_INFO_REPORT_SCHEMA_VERSION,
-        network: fetch_request.network,
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: fetch_request.fetched_at,
-        source_endpoint: fetch_request.endpoint,
-        fetched_by: fetch_request.fetched_by,
-        id: sns.id,
-        name: sns.name,
-        description: sns.description,
-        url: sns.url,
-        canisters: sns.canisters,
-        metadata_error: sns.metadata_error,
     }
 }

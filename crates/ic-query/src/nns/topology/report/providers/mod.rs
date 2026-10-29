@@ -2,9 +2,8 @@ mod accumulator;
 mod status;
 
 use super::{
-    NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProviderRow,
-    NnsTopologyProvidersReport, NnsTopologyRegistryVersionRow, TopologyInventoryReports,
-    registry_versions::topology_component_registry_versions,
+    NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION, NnsTopologyProvidersReport,
+    TopologyInventoryReports, registry_versions::topology_component_registry_versions,
 };
 use accumulator::NnsTopologyProviderAccumulator;
 use status::sort_provider_rows;
@@ -23,27 +22,11 @@ pub(super) fn topology_providers_report_from_reports(
     sort_provider_rows(&mut providers);
     let registry_versions = topology_component_registry_versions(reports);
 
-    nns_topology_providers_report(
-        network,
-        source_endpoint,
-        reports.node_provider.node_provider_count,
-        registry_versions,
-        providers,
-    )
-}
-
-fn nns_topology_providers_report(
-    network: String,
-    source_endpoint: String,
-    registered_node_provider_count: usize,
-    registry_versions: Vec<NnsTopologyRegistryVersionRow>,
-    providers: Vec<NnsTopologyProviderRow>,
-) -> NnsTopologyProvidersReport {
     let mut report = NnsTopologyProvidersReport {
         schema_version: NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION,
         network,
         source_endpoint,
-        registered_node_provider_count,
+        registered_node_provider_count: reports.node_provider.node_provider_count,
         referenced_node_provider_count: providers.len(),
         provider_with_nodes_count: 0,
         provider_with_node_operators_count: 0,

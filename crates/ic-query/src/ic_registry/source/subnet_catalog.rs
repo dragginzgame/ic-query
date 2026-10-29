@@ -130,20 +130,19 @@ where
                     RegistryFetchError::InvalidRegistryKeyFamily { reason },
                 )
             })?;
-        shards.push(CatalogRoutingShard {
-            subject: SubnetCatalogRegistryRecordSubject::canister_ranges(range_start.into()),
+        shards.push((
+            SubnetCatalogRegistryRecordSubject::canister_ranges(range_start.into()),
             range_start,
-        });
+        ));
     }
     let mut routing_table = RoutingTable::default();
-    for (index, descriptor) in shards.iter().enumerate() {
-        let subject = &descriptor.subject;
+    for (index, (subject, range_start)) in shards.iter().enumerate() {
         let (shard, returned_version) = context.record::<RoutingTable>(subject).await?;
         validate_routing_table_shard_bounds(
             &subject.key,
-            &descriptor.range_start,
+            range_start,
             &shard,
-            shards.get(index + 1).map(|next| &next.range_start),
+            shards.get(index + 1).map(|(_, next_start)| next_start),
         )
         .map_err(|reason| {
             context.record_failure(
@@ -158,11 +157,6 @@ where
 
     catalog_from_registry_records_detailed(context, subnet_list, routing_table, routing_source)
         .await
-}
-
-struct CatalogRoutingShard {
-    subject: SubnetCatalogRegistryRecordSubject,
-    range_start: ic_platform::Principal,
 }
 
 struct AgentCatalogRegistryReader<'a> {

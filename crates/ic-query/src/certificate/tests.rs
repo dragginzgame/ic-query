@@ -158,7 +158,7 @@ fn tip_requires_exact_hash_and_canonical_bounded_index() {
 #[test]
 #[cfg(feature = "ledger-evidence-host")]
 fn admitted_tip_connects_directly_to_the_host_chain_verifier() {
-    let block = Value::Map(BTreeMap::default());
+    let block = Value::Map(BTreeMap::new());
     let tree = fork(
         labeled(
             b"last_block_hash".to_vec(),
