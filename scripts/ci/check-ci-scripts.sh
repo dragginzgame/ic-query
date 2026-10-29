@@ -962,6 +962,7 @@ if [[ "$1" == tree ]]; then
   if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
     [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
     || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* \
+    || "${FEATURE_TREE_SCOPE:-}" == wasm && "$*" == *"--target wasm32-unknown-unknown"* && "$*" != *"--features"* \
     || "${FEATURE_TREE_SCOPE:-}" == canister && "$*" == *"--features canister"* \
     || "${FEATURE_TREE_SCOPE:-}" == cli && "$package" == ic-query-cli ]]; then
     case "$FEATURE_TREE_LINE" in
@@ -1048,6 +1049,25 @@ for scope in canister cli; do
     grep -Fq "forbidden $dependency:" "${feature_boundary_case}/tooling-refusal.log" \
       || fail "the $scope production graph lost the tooling diagnostic"
   done
+done
+
+# Metrics' standard transport metadata is native-only.
+TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+  FEATURE_TREE_SCOPE=cli FEATURE_TREE_LINE=ic-wire \
+  TRACE_FILE="${feature_boundary_case}/trace" \
+  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+    >"${feature_boundary_case}/native-wire.log" 2>&1 \
+    || fail "the native CLI graph rejected Metrics' Wire dependency"
+for scope in wasm canister; do
+  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE=ic-wire \
+    TRACE_FILE="${feature_boundary_case}/trace" \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/wasm-wire-refusal.log" 2>&1; then
+    fail "the $scope production graph accepted native Wire metadata"
+  fi
+  grep -Fq 'forbidden ic-wire:' "${feature_boundary_case}/wasm-wire-refusal.log" \
+    || fail "the $scope production graph lost its Wire diagnostic"
 done
 
 for dependency in ic-host-fs ic-platform ic-host-tools/certificate; do

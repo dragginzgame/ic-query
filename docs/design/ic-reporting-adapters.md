@@ -43,6 +43,13 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
+Metrics 0.17 includes validated Serde transport for measurement aggregates and
+scalar counters, with Wire metadata on native hosts. Query currently uses its
+percentage arithmetic and has no local aggregate/counter transport mirrors to
+replace. Dashboard observations and Governance metric payloads retain their
+source-specific report contracts. Native dependency graphs include Metrics' Wire
+metadata support; portable Wasm and canister graphs continue excluding Wire.
+
 The private Registry adapter consumes Host's published protobuf projections and
 routing-shard checks directly. The `subnet-catalog-host` feature enables this
 capability; portable, canister and unrelated host selections do not. Query still

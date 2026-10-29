@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.9]
+
+### 🔧 Changed
+
+- Adopt IC Metrics 0.17.0 with standard validated numeric transport and native
+  Wire metadata. Existing report APIs and formats remain unchanged.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.8] - 2026-10-29
 
 ### 🧹 Cleanup

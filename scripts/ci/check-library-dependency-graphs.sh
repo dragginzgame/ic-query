@@ -9,7 +9,6 @@ forbidden_tooling_dependencies=(
   ic-build
   ic-host-process
   ic-testkit
-  ic-wire
   wat
 )
 
@@ -229,6 +228,7 @@ while IFS=$'	' read -r target feature _tests; do
     wasm32-unknown-unknown:none)
       check_tree_absent "ic-query wasm32-unknown-unknown --no-default-features" \
         "${forbidden_pure_library_dependencies[@]}" \
+        ic-wire \
         -- \
         --package ic-query \
         --target wasm32-unknown-unknown \
@@ -238,6 +238,7 @@ while IFS=$'	' read -r target feature _tests; do
       check_tree_absent "ic-query wasm32-unknown-unknown --features canister" \
         "${forbidden_canister_dependencies[@]}" \
         "${forbidden_tooling_dependencies[@]}" \
+        ic-wire \
         -- \
         --package ic-query \
         --target wasm32-unknown-unknown \
@@ -317,6 +318,7 @@ while IFS=$'	' read -r target feature _tests; do
   esac
 done < "$repo_root/ci/library-feature-cases.tsv"
 
+# Metrics supplies native Wire metadata; Wasm production graphs exclude Wire above.
 check_tree_absent "ic-query-cli production dependencies" \
   "${forbidden_tooling_dependencies[@]}" \
   -- --package ic-query-cli

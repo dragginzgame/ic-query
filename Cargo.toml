@@ -27,7 +27,7 @@ ic-host-fs = { version = "0.69.5", default-features = false }
 ic-host-http = { version = "0.69.5", default-features = false }
 ic-host-text = "0.69.5"
 ic-host-tools = { version = "0.69.5", default-features = false }
-ic-metrics = "0.16.3"
+ic-metrics = "0.17.0"
 ic-platform = { version = "0.7.2", default-features = false, features = ["candid"] }
 ic-query = { path = "crates/ic-query", version = "0.75.8", default-features = false }
 prost = "0.14.3"
