@@ -1,9 +1,7 @@
 //! Collect complete Governance snapshots through family-specific paging.
 
 use super::{
-    NNS_PROPOSAL_CACHE_COMPONENT,
-    collection::fetch_complete_nns_proposal_collection,
-    model::{CompleteNnsProposalCollection, NnsProposalCacheRows},
+    NNS_PROPOSAL_CACHE_COMPONENT, collection::fetch_complete_nns_proposal_collection,
     paths::nns_proposal_cache_paths,
 };
 use crate::{
@@ -62,18 +60,17 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
         &paths,
         NNS_PROPOSAL_CACHE_COMPONENT,
         async |context| {
-            let CompleteNnsProposalCollection { proposals, state } =
-                fetch_complete_nns_proposal_collection(
-                    request,
-                    source,
-                    &paths.refresh_attempt_path,
-                    progress,
-                )
-                .await?;
+            let data = fetch_complete_nns_proposal_collection(
+                request,
+                source,
+                &paths.refresh_attempt_path,
+                progress,
+            )
+            .await?;
             let publication_progress = SnapshotRefreshProgress::new(
-                state.pages_fetched(),
-                proposals.len(),
-                state
+                data.collection_state.pages_fetched(),
+                data.proposals.len(),
+                data.collection_state
                     .next_before_proposal_id()
                     .map(|cursor| cursor.to_string()),
             );
@@ -81,10 +78,7 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
                 "proposals",
                 NNS_PROPOSAL_FETCHED_BY,
                 publication_progress,
-                NnsProposalCacheRows {
-                    collection_state: state,
-                    proposals,
-                },
+                data,
             )
         },
     )

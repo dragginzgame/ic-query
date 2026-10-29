@@ -2,6 +2,7 @@
 
 #[macro_use]
 mod macros;
+mod collection;
 mod data_center;
 mod governance;
 mod leaf;

@@ -102,13 +102,14 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
     };
-    let report = build_nns_node_operator_list_report_with_source_and_progress(
+    let mut report = build_nns_node_operator_list_report_with_source_and_progress(
         &list_request,
         source,
         progress,
     )
     .await?;
-    let (operator, resolved_from) = resolve_node_operator(&report, &request.input)?;
+    let (index, resolved_from) = resolve_node_operator(&report, &request.input)?;
+    let operator = report.node_operators.swap_remove(index);
     Ok(NnsNodeOperatorInfoReport {
         schema_version: NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),

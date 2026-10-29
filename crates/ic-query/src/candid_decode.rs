@@ -42,6 +42,7 @@ pub fn decode_reply<'a, T: Deserialize<'a> + CandidType>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ic_platform::candid::{contract::Error, nesting::NestingError};
 
     #[derive(Debug, PartialEq, ic_platform::candid::contract::CandidType, serde::Deserialize)]
     #[candid_path("ic_platform::candid::contract")]
@@ -86,6 +87,23 @@ mod tests {
     }
 
     #[test]
+    fn skipped_external_values_retain_platform_nesting_admission_and_typed_errors() {
+        let shallow = Tree::Branch(vec![Tree::Leaf(1)]);
+        let deep = (0..16).fold(Tree::Leaf(1), |child, _| Tree::Branch(vec![child]));
+        let ordinary = ic_platform::candid::contract::encode_args((42_u64, shallow)).unwrap();
+        assert_eq!(decode_reply::<u64>(&ordinary).unwrap(), 42);
+
+        let nested = ic_platform::candid::contract::encode_args((42_u64, deep)).unwrap();
+        let Error::Custom(error) = decode_reply::<u64>(&nested).unwrap_err() else {
+            panic!("expected Platform's typed nesting refusal");
+        };
+        assert_eq!(
+            error.downcast_ref::<NestingError>(),
+            Some(&NestingError::ValueDepth { maximum: 16 }),
+        );
+    }
+
+    #[test]
     fn rejects_amplified_decoding_in_a_small_reply() {
         let bytes = ic_platform::candid::contract::encode_one(vec![(); 1_000_000]).unwrap();
         assert!(bytes.len() < 32);
@@ -103,7 +121,15 @@ mod tests {
     fn rejects_an_excessive_type_table_before_reading_entries() {
         // DIDL followed by the unsigned LEB128 type count 4097.
         let bytes = b"DIDL\x81\x20";
-        let error = decode_reply::<u64>(bytes).unwrap_err();
-        assert!(format!("{error:#}").contains("type table"));
+        let Error::Custom(error) = decode_reply::<u64>(bytes).unwrap_err() else {
+            panic!("expected Platform's typed type-table refusal");
+        };
+        assert_eq!(
+            error.downcast_ref::<NestingError>(),
+            Some(&NestingError::Types {
+                actual: 4_097,
+                maximum: MAX_TYPE_ENTRIES,
+            }),
+        );
     }
 }

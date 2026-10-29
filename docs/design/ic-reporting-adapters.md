@@ -63,8 +63,13 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.7.2, Host/Testkit 0.69.5 and
+The current workspace minimums are Platform 0.7.5, Host/Testkit 0.69.5 and
 Build 0.69.6.
+Platform's bounded Candid decoder admits at most 16 constructed wire levels
+before upstream decoding, including unused type definitions and skipped values.
+Query retains its existing byte, work, type-table and header budgets and reply
+arity policy. This wire-nesting bound does not guarantee arbitrary custom
+deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
 Testkit fixtures. Host Tools and Testkit also require Platform 0.7, so the
@@ -670,9 +675,11 @@ assurance.
   official generic index-ng and deployed ICP index interfaces without
   conflating structured ICRC accounts with ICP account identifiers. Complete
   collection resolves and verifies that context once, exhausts the same index,
-  and atomically publishes one endpoint/ledger/account snapshot. It records
-  API exhaustion but no point-in-time guarantee because the index exposes no
-  snapshot version. A custom complete-collection source must return the
+  and atomically publishes one endpoint/ledger/account snapshot. The shared
+  paged collection runner owns loop and progress-state transitions; the account
+  adapter retains index-specific page admission, diagnostics and progress text.
+  It records API exhaustion but no point-in-time guarantee because the index
+  exposes no snapshot version. A custom complete-collection source must return the
   explicitly requested index canister when supplied, fit the stated page
   capacity, and stay within any requested page cap. Failed collection
   attempts retain a resolved index canister and page/row/cursor progress when

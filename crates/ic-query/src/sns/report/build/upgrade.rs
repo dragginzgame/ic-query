@@ -1,13 +1,13 @@
 //! Module: sns::report::build::upgrade
 //!
 //! Responsibility: build bounded SNS upgrade reports.
-//! Does not own: command parsing, transport internals, DTO assembly, or rendering.
-//! Boundary: resolves SNS identity, validates one source result, and delegates assembly.
+//! Does not own: command parsing, transport internals, or rendering.
+//! Boundary: resolves SNS identity, validates one source result, and assembles the report.
 
 use crate::sns::report::{
-    SnsHostError, SnsLookupRequest, SnsUpgradeReport, SnsUpgradeSource,
-    assemble::sns_upgrade_report_from_parts, live::LiveSnsSource, lookup::resolve_sns_lookup,
-    source::canonicalize_mainnet_sns_upgrade,
+    MainnetSns, MainnetSnsUpgrade, SNS_UPGRADE_QUERY_COUNT, SNS_UPGRADE_REPORT_SCHEMA_VERSION,
+    SnsHostError, SnsLookupRequest, SnsSourceRequest, SnsUpgradeReport, SnsUpgradeSource,
+    live::LiveSnsSource, lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_upgrade,
 };
 
 /// Build a live bounded upgrade report for one deployed SNS.
@@ -32,4 +32,34 @@ pub async fn build_sns_upgrade_report_with_source(
         lookup.sns,
         upgrade,
     ))
+}
+
+fn sns_upgrade_report_from_parts(
+    fetch_request: SnsSourceRequest,
+    sns: MainnetSns,
+    upgrade: MainnetSnsUpgrade,
+) -> SnsUpgradeReport {
+    let component_gap_count = usize::from(upgrade.next_version_gap.is_some());
+    SnsUpgradeReport {
+        schema_version: SNS_UPGRADE_REPORT_SCHEMA_VERSION,
+        network: fetch_request.network,
+        sns_wasm_canister_id: upgrade.sns_wasm_canister_id,
+        fetched_at: fetch_request.fetched_at,
+        source_endpoint: fetch_request.endpoint,
+        fetched_by: fetch_request.fetched_by,
+        id: sns.id,
+        name: sns.name,
+        root_canister_id: sns.canisters.root_canister_id,
+        governance_canister_id: upgrade.governance_canister_id,
+        running_version_method: upgrade.running_version_method,
+        next_version_method: upgrade.next_version_method,
+        point_in_time_guaranteed: upgrade.point_in_time_guaranteed,
+        component_query_count: SNS_UPGRADE_QUERY_COUNT,
+        successful_component_query_count: SNS_UPGRADE_QUERY_COUNT - component_gap_count,
+        component_gap_count,
+        deployed_version: upgrade.deployed_version,
+        pending_upgrade: upgrade.pending_upgrade,
+        next_version: upgrade.next_version,
+        next_version_gap: upgrade.next_version_gap,
+    }
 }

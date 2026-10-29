@@ -102,10 +102,11 @@ pub async fn build_nns_data_center_info_report_with_source_and_progress(
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
     };
-    let report =
+    let mut report =
         build_nns_data_center_list_report_with_source_and_progress(&list_request, source, progress)
             .await?;
-    let (data_center, resolved_from) = resolve_data_center(&report, &request.input)?;
+    let (index, resolved_from) = resolve_data_center(&report, &request.input)?;
+    let data_center = report.data_centers.swap_remove(index);
     Ok(NnsDataCenterInfoReport {
         schema_version: NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),

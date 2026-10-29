@@ -13,39 +13,10 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsHostError, SnsLookupRequest, SnsMetricsRequest, build_sns_info_report,
-    build_sns_metrics_report, build_sns_params_report, build_sns_swap_report,
-    build_sns_token_report, build_sns_upgrade_report, sns_info_report_text,
-    sns_metrics_report_text, sns_params_report_text, sns_swap_report_text, sns_token_report_text,
-    sns_upgrade_report_text,
+    SnsHostError, SnsLookupRequest, SnsMetricsRequest, build_sns_metrics_report,
+    sns_metrics_report_text,
 };
 use serde::Serialize;
-pub(super) async fn run_sns_info(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    run_sns_lookup(
-        matches,
-        network,
-        build_sns_info_report,
-        sns_info_report_text,
-    )
-    .await
-}
-
-pub(super) async fn run_sns_token(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    run_sns_lookup(
-        matches,
-        network,
-        build_sns_token_report,
-        sns_token_report_text,
-    )
-    .await
-}
-
 pub(super) async fn run_sns_metrics(
     matches: &ArgMatches,
     network: &str,
@@ -58,45 +29,6 @@ pub(super) async fn run_sns_metrics(
     let request = SnsMetricsRequest::new(lookup).with_time_window_seconds(time_window_seconds);
     let report = build_sns_metrics_report(&request).await?;
     write_text_or_json(format, &report, sns_metrics_report_text)
-}
-
-pub(super) async fn run_sns_parameters(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    run_sns_lookup(
-        matches,
-        network,
-        build_sns_params_report,
-        sns_params_report_text,
-    )
-    .await
-}
-
-pub(super) async fn run_sns_swap(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    run_sns_lookup(
-        matches,
-        network,
-        build_sns_swap_report,
-        sns_swap_report_text,
-    )
-    .await
-}
-
-pub(super) async fn run_sns_upgrade(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    run_sns_lookup(
-        matches,
-        network,
-        build_sns_upgrade_report,
-        sns_upgrade_report_text,
-    )
-    .await
 }
 
 pub(super) async fn run_sns_lookup<Report>(

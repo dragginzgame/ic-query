@@ -4,7 +4,7 @@
 //! Does not own: refresh locking, cache publication, or command parsing.
 //! Boundary: drives proposal paging and refresh-attempt progress updates.
 
-use super::{NNS_PROPOSAL_CACHE_COMPONENT, model::CompleteNnsProposalCollection};
+use super::{NNS_PROPOSAL_CACHE_COMPONENT, model::NnsProposalCacheRows};
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::{
     QueryProgress,
@@ -31,7 +31,7 @@ pub(super) async fn fetch_complete_nns_proposal_collection(
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
-) -> Result<CompleteNnsProposalCollection, NnsProposalHostError> {
+) -> Result<NnsProposalCacheRows, NnsProposalHostError> {
     let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
         MAINNET_NETWORK,
         &request.source_endpoint,
@@ -70,7 +70,7 @@ struct NnsProposalRefreshPages<'a> {
 }
 
 impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
-    type Complete = CompleteNnsProposalCollection;
+    type Complete = NnsProposalCacheRows;
     type Error = NnsProposalHostError;
 
     fn progress_text(&self) -> String {
@@ -106,18 +106,16 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             )
             .await?;
             let page_len = step.page.proposals.len();
-            let next_cursor = step.state.next_before_proposal_id();
             self.proposals.extend(step.page.proposals);
             self.collection_state = step.state;
             Ok(PagedCollectionPage::new(
                 page_len,
-                next_cursor.map(|cursor| cursor.to_string()),
                 self.collection_state.is_complete(),
             ))
         })
     }
 
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
+    fn write_running_attempt(&self) -> Result<(), Self::Error> {
         write_running_governance_refresh_attempt(
             self.attempt_path,
             self.request,
@@ -125,18 +123,20 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
             SnapshotRefreshProgress::new(
                 self.collection_state.pages_fetched(),
                 self.proposals.len(),
-                page.last_cursor_text.clone(),
+                self.collection_state
+                    .next_before_proposal_id()
+                    .map(|cursor| cursor.to_string()),
             ),
         )
         .map_err(NnsProposalHostError::from)
     }
 
-    fn into_complete(self) -> CompleteNnsProposalCollection {
+    fn into_complete(self) -> NnsProposalCacheRows {
         let mut proposals = self.proposals;
         proposals.sort_by_key(|proposal| Reverse(proposal.proposal_id));
-        CompleteNnsProposalCollection {
+        NnsProposalCacheRows {
             proposals,
-            state: self.collection_state,
+            collection_state: self.collection_state,
         }
     }
 }

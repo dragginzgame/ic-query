@@ -939,17 +939,13 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
                 return Err("no fixture page".to_string());
             }
             let (rows, page_len, cursor) = self.pages.remove(0);
-            let page = PagedCollectionPage::new(
-                rows.len(),
-                cursor.map(str::to_string),
-                page_len < 2 || cursor.is_none(),
-            );
+            let page = PagedCollectionPage::new(rows.len(), page_len < 2 || cursor.is_none());
             self.state.ingest(rows, cursor);
             Ok(page)
         })
     }
 
-    fn write_running_attempt(&self, _page: &PagedCollectionPage) -> Result<(), Self::Error> {
+    fn write_running_attempt(&self) -> Result<(), Self::Error> {
         self.attempts
             .borrow_mut()
             .push((self.state.page_count(), self.state.row_count()));

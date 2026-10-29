@@ -11,8 +11,8 @@ use crate::sns::report::live::{
     },
     query::{principal_from_text, sns_agent},
     types::{
-        GetLifecycleResponse, GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
-        ListDeployedSnsesResponse, SnsSwapQueryRequest,
+        GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
+        ListDeployedSnsesResponse,
     },
 };
 use crate::sns::report::{
@@ -125,15 +125,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
     sns: &MainnetSnsCanisters,
 ) -> Result<MainnetSnsLifecycle, SnsHostError> {
     let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
-    let result = query_canister::<_, GetLifecycleResponse, SnsHostError>(
-        agent,
-        &swap_canister,
-        SnsCanisterMethod::GetLifecycle.as_str(),
-        "SnsSwapQueryRequest",
-        "GetLifecycleResponse",
-        &SnsSwapQueryRequest {},
-    )
-    .await;
+    let result = super::swap::query_lifecycle(agent, &swap_canister).await;
     let (lifecycle, lifecycle_error) = match result {
         Ok(response) => response.lifecycle.map_or_else(
             || {

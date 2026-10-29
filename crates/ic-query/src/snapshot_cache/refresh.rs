@@ -17,13 +17,31 @@ pub trait PagedSnapshotRefresh {
     type Complete;
     type Error;
 
+    /// Family diagnostic retained when a page ceiling prevents API exhaustion.
+    const PAGE_LIMIT_REASON: &'static str = "max pages reached before API exhaustion";
+
     fn progress_text(&self) -> String;
+    /// Format family-owned progress without changing the shared lifecycle state.
+    fn progress_text_for_state(&self, state: QueryProgressState) -> String {
+        let text = self.progress_text();
+        match state {
+            QueryProgressState::Running => text,
+            QueryProgressState::Stopped => format!("{text} stopped before completion"),
+            QueryProgressState::Failed => format!("{text} failed"),
+            QueryProgressState::Stalled => format!("{text} stalled"),
+            QueryProgressState::Complete => format!("{text} complete"),
+        }
+    }
+
     fn max_pages_reached(&self) -> bool;
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error;
     fn fetch_next_page(
         &mut self,
     ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>>;
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error>;
+    /// Persist admitted progress from adapter state when this collection has a page sidecar.
+    fn write_running_attempt(&self) -> Result<(), Self::Error> {
+        Ok(())
+    }
     fn into_complete(self) -> Self::Complete;
 }
 
@@ -37,7 +55,7 @@ where
 {
     report_progress(
         progress,
-        refresh.progress_text(),
+        refresh.progress_text_for_state(QueryProgressState::Running),
         QueryProgressState::Running,
     );
 
@@ -45,21 +63,21 @@ where
         if refresh.max_pages_reached() {
             report_progress(
                 progress,
-                format!("{} stopped before completion", refresh.progress_text()),
+                refresh.progress_text_for_state(QueryProgressState::Stopped),
                 QueryProgressState::Stopped,
             );
-            return Err(refresh.incomplete_refresh_error("max pages reached before API exhaustion"));
+            return Err(refresh.incomplete_refresh_error(Refresh::PAGE_LIMIT_REASON));
         }
 
         let page = match refresh.fetch_next_page().await.and_then(|page| {
-            refresh.write_running_attempt(&page)?;
+            refresh.write_running_attempt()?;
             Ok(page)
         }) {
             Ok(page) => page,
             Err(err) => {
                 report_progress(
                     progress,
-                    format!("{} failed", refresh.progress_text()),
+                    refresh.progress_text_for_state(QueryProgressState::Failed),
                     QueryProgressState::Failed,
                 );
                 return Err(err);
@@ -67,7 +85,7 @@ where
         };
         report_progress(
             progress,
-            refresh.progress_text(),
+            refresh.progress_text_for_state(QueryProgressState::Running),
             QueryProgressState::Running,
         );
 
@@ -77,7 +95,7 @@ where
         if page.has_no_new_rows() {
             report_progress(
                 progress,
-                format!("{} stalled", refresh.progress_text()),
+                refresh.progress_text_for_state(QueryProgressState::Stalled),
                 QueryProgressState::Stalled,
             );
             return Err(refresh.incomplete_refresh_error(
@@ -88,7 +106,7 @@ where
 
     report_progress(
         progress,
-        format!("{} complete", refresh.progress_text()),
+        refresh.progress_text_for_state(QueryProgressState::Complete),
         QueryProgressState::Complete,
     );
     Ok(refresh.into_complete())

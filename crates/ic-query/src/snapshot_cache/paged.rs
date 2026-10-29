@@ -24,10 +24,9 @@ pub struct CompletePagedCollection<Row> {
 /// Per-page progress and family-admitted exhaustion evidence for the refresh runner.
 ///
 
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub struct PagedCollectionPage {
     new_rows: usize,
-    pub last_cursor_text: Option<String>,
     pub collection_exhausted: bool,
 }
 
@@ -92,18 +91,13 @@ impl<Row, Cursor> PagedCollectionState<Row, Cursor> {
     }
 }
 
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 impl PagedCollectionPage {
     /// Describe one validated page and its family-owned completion decision.
     #[must_use]
-    pub const fn new(
-        new_rows: usize,
-        last_cursor_text: Option<String>,
-        collection_exhausted: bool,
-    ) -> Self {
+    pub const fn new(new_rows: usize, collection_exhausted: bool) -> Self {
         Self {
             new_rows,
-            last_cursor_text,
             collection_exhausted,
         }
     }

@@ -12,7 +12,7 @@ impl NnsInventoryRow for NnsNodeOperatorRow {
 pub(super) fn resolve_node_operator(
     report: &NnsNodeOperatorListReport,
     input: &str,
-) -> Result<(NnsNodeOperatorRow, String), NnsNodeOperatorHostError> {
+) -> Result<(usize, String), NnsNodeOperatorHostError> {
     resolve_nns_inventory_row(
         &report.node_operators,
         input,

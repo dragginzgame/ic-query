@@ -55,15 +55,3 @@ pub(super) struct NnsProposalCacheRows {
     pub(super) collection_state: NnsProposalCollectionState,
     pub(super) proposals: Vec<NnsProposalRow>,
 }
-
-///
-/// CompleteNnsProposalCollection
-///
-/// Complete in-memory proposal collection produced by refresh paging.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct CompleteNnsProposalCollection {
-    pub(super) proposals: Vec<NnsProposalRow>,
-    pub(super) state: NnsProposalCollectionState,
-}

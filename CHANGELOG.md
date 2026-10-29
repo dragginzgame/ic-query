@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.10]
+
+### 🔧 Changed
+
+- Require IC Platform 0.7.5, including its bounded external Candid nesting guard.
+  Existing report formats and reply-arity policy remain unchanged.
+
+### 🧹 Cleanup
+
+- Simplify NNS and SNS command handling, report construction and snapshot
+  publication while preserving public APIs, output and stored formats.
+- Share ICRC account-history pagination with the existing collection lifecycle,
+  retaining index identity, failure evidence, progress and page-limit diagnostics.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.9] - 2026-10-29
 
 ### 🔧 Changed

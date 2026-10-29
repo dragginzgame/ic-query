@@ -221,11 +221,7 @@ fn validate_subnet_catalog_content(
             });
         }
         previous_subnet = Some(subnet.subnet_principal.as_str());
-        if !subnet_principals.insert(subnet.subnet_principal.as_str()) {
-            return Err(CatalogError::DuplicateSubnet {
-                subnet_principal: subnet.subnet_principal.clone(),
-            });
-        }
+        subnet_principals.insert(subnet.subnet_principal.as_str());
         validate_raw_subnet_classification(subnet)?;
     }
 
@@ -238,7 +234,6 @@ fn validate_subnet_catalog_content(
         }
         let start = principal_bytes(&range.start_canister_id, "start_canister_id")?;
         let end = principal_bytes(&range.end_canister_id, "end_canister_id")?;
-        parse_principal(&range.subnet_principal, "routing_range.subnet_principal")?;
         if start > end {
             return Err(CatalogError::InvalidRoutingRange {
                 subnet_principal: range.subnet_principal.clone(),

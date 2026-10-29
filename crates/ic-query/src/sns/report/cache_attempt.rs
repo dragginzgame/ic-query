@@ -91,14 +91,12 @@ impl SnsRefreshContext<'_> {
         rows: Vec<Row>,
         raw_page_len: usize,
         next_cursor: Option<Cursor>,
-        cursor_text: impl FnOnce(&Cursor) -> String,
     ) -> PagedCollectionPage {
         // The API page length precedes removal of a repeated neuron boundary row.
         let exhausted = raw_page_len
             < usize::try_from(self.request.page_size).unwrap_or(usize::MAX)
             || next_cursor.is_none();
-        let page =
-            PagedCollectionPage::new(rows.len(), next_cursor.as_ref().map(cursor_text), exhausted);
+        let page = PagedCollectionPage::new(rows.len(), exhausted);
         pages.ingest(rows, next_cursor);
         page
     }
@@ -120,12 +118,12 @@ pub(in crate::sns::report) fn write_running_sns_refresh_page(
     context: SnsRefreshContext<'_>,
     page_count: u32,
     row_count: usize,
-    page: &PagedCollectionPage,
+    last_cursor: Option<String>,
 ) -> Result<(), SnsHostError> {
     write_sns_refresh_attempt_status(
         context,
         CacheRefreshAttemptStatus::Running,
-        SnapshotRefreshProgress::new(page_count, row_count, page.last_cursor_text.clone()),
+        SnapshotRefreshProgress::new(page_count, row_count, last_cursor),
         None,
     )
 }

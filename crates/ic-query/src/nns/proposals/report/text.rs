@@ -4,7 +4,7 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: returns formatted strings without selecting or writing to a process output sink.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::{REPORT_TABLE_OPTIONS, push_titled_table_section};
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_text::{
     escape::terminal_text,
@@ -32,14 +32,14 @@ const NNS_PROPOSAL_DETAIL_TEXT_LIMIT: usize = 240;
 #[must_use]
 pub fn nns_proposal_activity_report_text(report: &NnsProposalActivityReport) -> String {
     let mut lines = activity_preamble(report);
-    push_activity_section(&mut lines, "topics:", topic_activity_table(report));
-    push_activity_section(&mut lines, "statuses:", status_activity_table(report));
-    push_activity_section(
+    push_titled_table_section(&mut lines, "topics:", topic_activity_table(report));
+    push_titled_table_section(&mut lines, "statuses:", status_activity_table(report));
+    push_titled_table_section(
         &mut lines,
         "reward_statuses:",
         reward_status_activity_table(report),
     );
-    push_activity_section(&mut lines, "daily_activity:", daily_activity_table(report));
+    push_titled_table_section(&mut lines, "daily_activity:", daily_activity_table(report));
     lines.join("\n")
 }
 
@@ -452,12 +452,6 @@ fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
         &[Alignment::Right, Alignment::Left, Alignment::Right],
         REPORT_TABLE_OPTIONS,
     ))
-}
-
-fn push_activity_section(lines: &mut Vec<String>, title: &str, table: Option<String>) {
-    lines.push(String::new());
-    lines.push(title.to_string());
-    lines.push(table.unwrap_or_else(|| "-".to_string()));
 }
 
 fn nonzero_timestamp_text(timestamp_seconds: u64) -> String {

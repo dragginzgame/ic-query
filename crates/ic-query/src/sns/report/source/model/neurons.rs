@@ -6,7 +6,7 @@
 
 use super::validation::SnsSourceValidator;
 use crate::{
-    hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex},
+    hex::{decode_lowercase_hex, is_lowercase_hex_32_bytes},
     sns::report::{
         SnsHostError, SnsNeuronDetail, SnsNeuronRow,
         model::reports::neurons::detail::{
@@ -121,9 +121,7 @@ pub(in crate::sns::report) fn validate_sns_neuron_rows(
 
 /// Validate canonical fields derived for one SNS neuron row.
 pub(in crate::sns::report) fn validate_sns_neuron_row(neuron: &SnsNeuronRow) -> Result<(), String> {
-    if neuron.neuron_id.len() != SNS_NEURON_ID_HEX_LENGTH
-        || !is_canonical_lowercase_hex(&neuron.neuron_id)
-    {
+    if !is_lowercase_hex_32_bytes(&neuron.neuron_id) {
         return Err(format!(
             "neuron id {} is not 32-byte canonical lowercase hexadecimal",
             neuron.neuron_id
@@ -227,7 +225,7 @@ fn validate_followee_ids(neuron_ids: &[String]) -> Result<(), SnsHostError> {
 }
 
 pub(super) fn validate_exact_neuron_id(neuron_id: &str, field: &str) -> Result<(), SnsHostError> {
-    if neuron_id.len() == SNS_NEURON_ID_HEX_LENGTH && is_lowercase_hex(neuron_id) {
+    if is_lowercase_hex_32_bytes(neuron_id) {
         Ok(())
     } else {
         Err(invalid_neuron_detail(format!(

@@ -6,7 +6,6 @@
 
 use super::cursor::validate_account_transaction_page;
 use crate::{
-    QueryProgress, QueryProgressEvent, QueryProgressState,
     icrc::model::{
         IcrcAccountTransactionCollectionData, IcrcAccountTransactionError,
         IcrcAccountTransactionRow,
@@ -134,19 +133,12 @@ impl AccountTransactionCollectionState {
         }
     }
 
-    pub(super) fn report_progress(
-        &self,
-        progress: &mut dyn QueryProgress,
-        state: QueryProgressState,
-    ) {
-        progress.report(QueryProgressEvent::PagedRefresh {
-            text: format!(
-                "refreshing ICRC account transactions: pages={} rows={}",
-                self.pages.page_count(),
-                self.pages.row_count()
-            ),
-            state,
-        });
+    pub(super) fn progress_text(&self) -> String {
+        format!(
+            "refreshing ICRC account transactions: pages={} rows={}",
+            self.pages.page_count(),
+            self.pages.row_count()
+        )
     }
 
     pub(super) fn into_complete(

@@ -17,6 +17,7 @@ use crate::sns::report::{
     },
     source::sns_swap_component_method,
 };
+use ic_platform::{agent::Agent, candid::contract::Principal};
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     source: &crate::sns::LiveSnsSource,
@@ -28,16 +29,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     let request = SnsSwapQueryRequest {};
     let mut gaps = Vec::new();
 
-    let lifecycle = match query_canister::<_, GetLifecycleResponse, SnsHostError>(
-        agent,
-        &swap_canister,
-        SnsCanisterMethod::GetLifecycle.as_str(),
-        "SnsSwapQueryRequest",
-        "GetLifecycleResponse",
-        &request,
-    )
-    .await
-    {
+    let lifecycle = match query_lifecycle(agent, &swap_canister).await {
         Ok(response) => Some(sns_swap_lifecycle(response)),
         Err(error) => {
             gaps.push(query_gap(SnsSwapComponent::Lifecycle, error));
@@ -96,4 +88,19 @@ fn query_gap(component: SnsSwapComponent, error: SnsHostError) -> SnsSwapQueryGa
         method: sns_swap_component_method(component),
         reason: error.to_string(),
     }
+}
+
+pub(super) async fn query_lifecycle(
+    agent: &Agent,
+    swap_canister: &Principal,
+) -> Result<GetLifecycleResponse, SnsHostError> {
+    query_canister(
+        agent,
+        swap_canister,
+        SnsCanisterMethod::GetLifecycle.as_str(),
+        "SnsSwapQueryRequest",
+        "GetLifecycleResponse",
+        &SnsSwapQueryRequest {},
+    )
+    .await
 }

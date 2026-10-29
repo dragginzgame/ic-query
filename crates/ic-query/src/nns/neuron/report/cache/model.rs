@@ -27,14 +27,3 @@ pub(super) struct NnsNeuronCacheRows {
     pub(super) collection_state: NnsNeuronCollectionState,
     pub(super) neurons: Vec<NnsNeuronRow>,
 }
-
-///
-/// CompleteNeuronCollection
-///
-/// Complete in-memory neuron collection produced by refresh paging.
-///
-
-pub(super) struct CompleteNeuronCollection {
-    pub(super) neurons: Vec<NnsNeuronRow>,
-    pub(super) state: NnsNeuronCollectionState,
-}

@@ -32,6 +32,9 @@ use crate::{
             IcrcAccountTransactionRefreshRequest, IcrcError,
         },
     },
+    snapshot_cache::{
+        PagedCollectionPage, PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress,
+    },
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
@@ -80,43 +83,15 @@ pub(super) async fn fetch_complete_account_transactions_async(
         request.cache.subaccount_hex.as_deref(),
     )
     .await?;
-    let mut state = AccountTransactionCollectionState::new(context.index_canister.to_text());
-
-    state.report_progress(progress, QueryProgressState::Running);
-    loop {
-        if request
-            .max_pages
-            .is_some_and(|max_pages| state.page_count() >= max_pages)
-        {
-            let error = state.incomplete("max pages reached before index exhaustion");
-            state.report_progress(progress, QueryProgressState::Stopped);
-            return Err(error);
-        }
-
-        let page =
-            match query_account_transaction_page(&context, state.next_cursor(), request.page_size)
-                .await
-            {
-                Ok(page) => page,
-                Err(source) => {
-                    let error = state.page_error(source);
-                    state.report_progress(progress, QueryProgressState::Failed);
-                    return Err(error);
-                }
-            };
-        let exhausted = match state.ingest(page, request.page_size) {
-            Ok(exhausted) => exhausted,
-            Err(error) => {
-                state.report_progress(progress, QueryProgressState::Failed);
-                return Err(error);
-            }
-        };
-        state.report_progress(progress, QueryProgressState::Running);
-        if exhausted {
-            break;
-        }
-    }
-    state.report_progress(progress, QueryProgressState::Complete);
+    let state = run_paged_snapshot_refresh_with_progress(
+        AccountTransactionRefresh {
+            request,
+            context: &context,
+            state: AccountTransactionCollectionState::new(context.index_canister.to_text()),
+        },
+        progress,
+    )
+    .await?;
 
     state.into_complete(context.token_symbol, context.decimals)
 }
@@ -198,3 +173,58 @@ async fn resolve_index_canister(
         }),
     }
 }
+
+struct AccountTransactionRefresh<'a> {
+    request: &'a IcrcAccountTransactionRefreshRequest,
+    context: &'a AccountTransactionQueryContext,
+    state: AccountTransactionCollectionState,
+}
+
+impl PagedSnapshotRefresh for AccountTransactionRefresh<'_> {
+    type Complete = AccountTransactionCollectionState;
+    type Error = IcrcAccountTransactionError;
+
+    const PAGE_LIMIT_REASON: &'static str = "max pages reached before index exhaustion";
+
+    fn progress_text(&self) -> String {
+        self.state.progress_text()
+    }
+
+    fn progress_text_for_state(&self, _state: QueryProgressState) -> String {
+        self.state.progress_text()
+    }
+
+    fn max_pages_reached(&self) -> bool {
+        self.request
+            .max_pages
+            .is_some_and(|limit| self.state.page_count() >= limit)
+    }
+
+    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
+        self.state.incomplete(reason)
+    }
+
+    fn fetch_next_page(
+        &mut self,
+    ) -> crate::report::SourceFuture<'_, Result<PagedCollectionPage, Self::Error>> {
+        Box::pin(async move {
+            let page = query_account_transaction_page(
+                self.context,
+                self.state.next_cursor(),
+                self.request.page_size,
+            )
+            .await
+            .map_err(|error| self.state.page_error(error))?;
+            let page_len = page.transactions.len();
+            let exhausted = self.state.ingest(page, self.request.page_size)?;
+            Ok(PagedCollectionPage::new(page_len, exhausted))
+        })
+    }
+
+    fn into_complete(self) -> Self::Complete {
+        self.state
+    }
+}
+
+#[cfg(test)]
+mod tests;

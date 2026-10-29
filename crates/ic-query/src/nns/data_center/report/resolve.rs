@@ -12,7 +12,7 @@ impl NnsInventoryRow for NnsDataCenterRow {
 pub(super) fn resolve_data_center(
     report: &NnsDataCenterListReport,
     input: &str,
-) -> Result<(NnsDataCenterRow, String), NnsDataCenterHostError> {
+) -> Result<(usize, String), NnsDataCenterHostError> {
     resolve_nns_inventory_row(
         &report.data_centers,
         input,

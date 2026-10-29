@@ -35,8 +35,8 @@ async fn node_provider_info_resolves_exact_principal() {
 fn node_provider_info_resolves_unique_prefix() {
     let report = node_provider_report_fixture();
 
-    let (provider, resolved_from) =
-        resolve_node_provider(&report, "ryjl").expect("prefix resolves");
+    let (index, resolved_from) = resolve_node_provider(&report, "ryjl").expect("prefix resolves");
+    let provider = &report.node_providers[index];
 
     assert_eq!(resolved_from, "node_provider_principal_prefix");
     assert_eq!(

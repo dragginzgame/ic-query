@@ -15,7 +15,7 @@ mod model;
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 mod paged;
 mod paths;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 mod refresh;
 
 #[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
@@ -34,7 +34,7 @@ pub use lifecycle::{publish_snapshot_with_attempt, run_snapshot_refresh_with_att
 pub use model::{SnapshotEnvelope, SnapshotIdentityMismatch};
 #[cfg(feature = "sns-host")]
 pub use paged::CompletePagedCollection;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub use paged::PagedCollectionPage;
 #[cfg(any(feature = "icrc-host", feature = "sns-host"))]
 pub use paged::PagedCollectionState;
@@ -43,7 +43,7 @@ pub use paths::SnapshotJsonPaths;
 pub use paths::collect_full_collection_snapshot_paths;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 pub use paths::snapshot_network_dir;
-#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
 pub use refresh::{PagedSnapshotRefresh, run_paged_snapshot_refresh_with_progress};
 
 #[cfg(all(test, feature = "host"))]

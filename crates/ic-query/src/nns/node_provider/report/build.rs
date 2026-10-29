@@ -102,13 +102,14 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
         source_endpoint: request.source_endpoint.clone(),
         now_unix_secs: request.now_unix_secs,
     };
-    let report = build_nns_node_provider_list_report_with_source_and_progress(
+    let mut report = build_nns_node_provider_list_report_with_source_and_progress(
         &list_request,
         source,
         progress,
     )
     .await?;
-    let (provider, resolved_from) = resolve_node_provider(&report, &request.input)?;
+    let (index, resolved_from) = resolve_node_provider(&report, &request.input)?;
+    let provider = report.node_providers.swap_remove(index);
     Ok(NnsNodeProviderInfoReport {
         schema_version: NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),

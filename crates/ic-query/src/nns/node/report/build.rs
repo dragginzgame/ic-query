@@ -99,10 +99,11 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
         request.source_endpoint.clone(),
         request.now_unix_secs,
     );
-    let report =
+    let mut report =
         build_nns_node_list_report_with_source_and_progress(&list_request, source, progress)
             .await?;
-    let (node, resolved_from) = resolve_node(&report, &request.input)?;
+    let (index, resolved_from) = resolve_node(&report, &request.input)?;
+    let node = report.nodes.swap_remove(index);
     Ok(NnsNodeInfoReport {
         schema_version: NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),

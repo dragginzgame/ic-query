@@ -6,13 +6,9 @@
 
 use super::options::{NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions};
 use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
-use crate::nns::leaf::NnsPagedRefreshOptions;
 use crate::storage::cache_root;
-use crate::{cli::common::write_text_or_json, nns::NnsCommandError, progress::StderrQueryProgress};
+use crate::{cli::common::write_text_or_json, nns::NnsCommandError};
 use clap::ArgMatches;
-use ic_query::nns::governance::{
-    nns_governance_cache_status_report_text, nns_governance_refresh_report_text,
-};
 use ic_query::nns::proposals::{
     NnsProposalListRequest, NnsProposalRequest, build_nns_proposal_activity_report_from_cache,
     build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
@@ -32,7 +28,14 @@ pub(in crate::nns) async fn run(
         Some(("cache", matches)) => run_nns_proposal_cache(matches, network),
         Some(("list", matches)) => run_nns_proposal_list(matches, network).await,
         Some(("info", matches)) => run_nns_proposal_info(matches, network).await,
-        Some(("refresh", matches)) => run_nns_proposal_refresh(matches, network).await,
+        Some(("refresh", matches)) => {
+            crate::nns::collection::run_refresh(
+                matches,
+                network,
+                refresh_nns_proposal_cache_with_progress,
+            )
+            .await
+        }
         _ => unreachable!("clap requires a known NNS proposal subcommand"),
     }
 }
@@ -85,22 +88,14 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     write_text_or_json(format, &report, nns_proposal_report_text)
 }
 
-async fn run_nns_proposal_refresh(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), NnsCommandError> {
-    let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let format = options.common.format;
-    let request = options.into_request(cache_root()?, current_unix_secs()?);
-    let mut progress = StderrQueryProgress::new();
-    let report = refresh_nns_proposal_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(format, &report, nns_governance_refresh_report_text)
-}
-
 fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("list", matches)) => run_nns_proposal_cache_list(matches, network),
-        Some(("status", matches)) => run_nns_proposal_cache_status(matches, network),
+        Some(("status", matches)) => crate::nns::collection::run_cache_status(
+            matches,
+            network,
+            build_nns_proposal_cache_status_report,
+        ),
         _ => unreachable!("clap requires a known NNS proposal cache subcommand"),
     }
 }
@@ -110,18 +105,4 @@ fn run_nns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<()
     let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
     let report = build_nns_proposal_cache_list_report(&request)?;
     write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
-}
-
-fn run_nns_proposal_cache_status(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), NnsCommandError> {
-    let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(cache_root()?, options.network);
-    let report = build_nns_proposal_cache_status_report(&request)?;
-    write_text_or_json(
-        options.format,
-        &report,
-        nns_governance_cache_status_report_text,
-    )
 }

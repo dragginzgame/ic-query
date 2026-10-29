@@ -4,7 +4,7 @@
 //! Does not own: live Governance calls, cache IO, or JSON serialization.
 //! Boundary: formats raw public neuron values without changing report data.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::{REPORT_TABLE_OPTIONS, push_titled_table_section};
 use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::{
     escape::terminal_text,
@@ -24,13 +24,13 @@ use crate::{
 #[must_use]
 pub fn nns_neuron_distribution_report_text(report: &NnsNeuronDistributionReport) -> String {
     let mut lines = distribution_preamble(report);
-    push_distribution_section(&mut lines, "states:", state_distribution_table(report));
-    push_distribution_section(
+    push_titled_table_section(&mut lines, "states:", state_distribution_table(report));
+    push_titled_table_section(
         &mut lines,
         "visibilities:",
         visibility_distribution_table(report),
     );
-    push_distribution_section(
+    push_titled_table_section(
         &mut lines,
         "neuron_types:",
         neuron_type_distribution_table(report),
@@ -193,12 +193,6 @@ fn distribution_table(
             REPORT_TABLE_OPTIONS,
         )
     })
-}
-
-fn push_distribution_section(lines: &mut Vec<String>, title: &str, table: Option<String>) {
-    lines.push(String::new());
-    lines.push(title.to_string());
-    lines.push(table.unwrap_or_else(|| "-".to_string()));
 }
 
 /// Render one public NNS neuron-index page.

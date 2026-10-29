@@ -12,7 +12,7 @@ impl NnsInventoryRow for NnsNodeRow {
 pub(super) fn resolve_node(
     report: &NnsNodeListReport,
     input: &str,
-) -> Result<(NnsNodeRow, String), NnsNodeHostError> {
+) -> Result<(usize, String), NnsNodeHostError> {
     resolve_nns_inventory_row(
         &report.nodes,
         input,

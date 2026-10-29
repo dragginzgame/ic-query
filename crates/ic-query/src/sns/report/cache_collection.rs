@@ -83,12 +83,12 @@ impl<Pages: SnsCollectionPages> PagedSnapshotRefresh for SnsCollectionRefresh<'_
         self.fetch.fetch_next_page(self.context, &mut self.pages)
     }
 
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
+    fn write_running_attempt(&self) -> Result<(), Self::Error> {
         write_running_sns_refresh_page(
             self.context,
             self.pages.page_count(),
             self.pages.row_count(),
-            page,
+            self.pages.next_cursor().map(Pages::cursor_text),
         )
     }
 

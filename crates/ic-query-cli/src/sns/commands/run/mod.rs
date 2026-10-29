@@ -21,9 +21,12 @@ use clap::ArgMatches;
 use ic_query::{
     QueryProgress, QueryProgressEvent,
     sns::{
-        SnsCatalogRefreshRequest, SnsListReport, SnsListRequest,
-        build_sns_list_report_from_cache_or_refresh, refresh_sns_catalog, sns_catalog_cache_path,
-        sns_catalog_refresh_report_text, sns_list_report_text,
+        SnsCatalogRefreshRequest, SnsListReport, SnsListRequest, build_sns_info_report,
+        build_sns_list_report_from_cache_or_refresh, build_sns_params_report,
+        build_sns_swap_report, build_sns_token_report, build_sns_upgrade_report,
+        refresh_sns_catalog, sns_catalog_cache_path, sns_catalog_refresh_report_text,
+        sns_info_report_text, sns_list_report_text, sns_params_report_text, sns_swap_report_text,
+        sns_token_report_text, sns_upgrade_report_text,
     },
 };
 use std::{
@@ -46,12 +49,52 @@ pub async fn run_matches(
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_list(matches, network).await,
         Some(("refresh", matches)) => run_sns_refresh(matches, network).await,
-        Some(("info", matches)) => lookup::run_sns_info(matches, network).await,
+        Some(("info", matches)) => {
+            lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_info_report,
+                sns_info_report_text,
+            )
+            .await
+        }
         Some(("metrics", matches)) => lookup::run_sns_metrics(matches, network).await,
-        Some(("token", matches)) => lookup::run_sns_token(matches, network).await,
-        Some(("parameters", matches)) => lookup::run_sns_parameters(matches, network).await,
-        Some(("swap", matches)) => lookup::run_sns_swap(matches, network).await,
-        Some(("upgrade", matches)) => lookup::run_sns_upgrade(matches, network).await,
+        Some(("token", matches)) => {
+            lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_token_report,
+                sns_token_report_text,
+            )
+            .await
+        }
+        Some(("parameters", matches)) => {
+            lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_params_report,
+                sns_params_report_text,
+            )
+            .await
+        }
+        Some(("swap", matches)) => {
+            lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_swap_report,
+                sns_swap_report_text,
+            )
+            .await
+        }
+        Some(("upgrade", matches)) => {
+            lookup::run_sns_lookup(
+                matches,
+                network,
+                build_sns_upgrade_report,
+                sns_upgrade_report_text,
+            )
+            .await
+        }
         Some(("canister", matches)) => canisters::run_sns_canister(matches, network).await,
         Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network).await,
         Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network).await,

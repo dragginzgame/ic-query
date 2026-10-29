@@ -276,7 +276,7 @@ pub(in crate::nns) enum NnsInventoryResolveError {
 /// Internal identifier access required by Registry inventory resolution.
 ///
 
-pub(in crate::nns) trait NnsInventoryRow: Clone {
+pub(in crate::nns) trait NnsInventoryRow {
     /// Canonical identifier used for exact and prefix lookup.
     fn inventory_id(&self) -> &str;
 }
@@ -288,15 +288,15 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
     input_kind: NnsInventoryInputKind,
     exact_source: &'static str,
     prefix_source: &'static str,
-) -> Result<(Row, String), NnsInventoryResolveError> {
+) -> Result<(usize, String), NnsInventoryResolveError> {
     let exact = match input_kind {
         NnsInventoryInputKind::Principal => canonical_principal_text(input).ok(),
         NnsInventoryInputKind::Text => normalized_text(input),
     };
     if let Some(exact) = exact
-        && let Some(row) = rows.iter().find(|row| row.inventory_id() == exact)
+        && let Some(index) = rows.iter().position(|row| row.inventory_id() == exact)
     {
-        return Ok((row.clone(), exact_source.to_string()));
+        return Ok((index, exact_source.to_string()));
     }
 
     let prefix = input.trim().to_ascii_lowercase();
@@ -307,10 +307,11 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
     }
     let matches = rows
         .iter()
-        .filter(|row| row.inventory_id().starts_with(&prefix))
+        .enumerate()
+        .filter(|(_, row)| row.inventory_id().starts_with(&prefix))
         .collect::<Vec<_>>();
     match matches.as_slice() {
-        [row] => Ok(((*row).clone(), prefix_source.to_string())),
+        [(index, _)] => Ok((*index, prefix_source.to_string())),
         [] => Err(NnsInventoryResolveError::NotFound {
             input: input.to_string(),
         }),
@@ -318,7 +319,7 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
             prefix,
             matches: matches
                 .into_iter()
-                .map(|row| row.inventory_id().to_string())
+                .map(|(_, row)| row.inventory_id().to_string())
                 .collect(),
         }),
     }
@@ -353,7 +354,7 @@ mod tests {
                 "id",
                 "prefix",
             ),
-            Ok((Row("dc1"), "id".to_string()))
+            Ok((0, "id".to_string()))
         );
 
         let principal_rows = [Row("ryjl3-tyaaa-aaaaa-aaaba-cai")];
@@ -365,10 +366,7 @@ mod tests {
                 "principal",
                 "principal_prefix",
             ),
-            Ok((
-                Row("ryjl3-tyaaa-aaaaa-aaaba-cai"),
-                "principal_prefix".to_string(),
-            ))
+            Ok((0, "principal_prefix".to_string(),))
         );
     }
 

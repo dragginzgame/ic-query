@@ -8,15 +8,15 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected path is Platform 0.7.2 → Agent 0.49.3 → elliptic-curve 0.13.8 →
+The selected path is Platform 0.7.5 → Agent 0.49.3 → elliptic-curve 0.13.8 →
 crypto-bigint 0.5.5, including Agent's k256/p256 paths. elliptic-curve requires
 crypto-bigint 0.5; the patched 0.7.6 cannot replace it through a compatible lock
 update. Do not fork cryptography or force an incompatible override here.
 
-The native Host and CLI normal/build graphs were rechecked on 2026-10-28 against
-the Query 0.75.5 checkout, commit `98ba0daade3f46ca1a38f7d9f43c02b23fdd957c`,
-with the pending 0.75.6 dependency updates, using locked, offline Cargo tree
-inspection. This refresh updates dependency and tracking
+The native Host and CLI normal/build graphs were rechecked on 2026-10-29 against
+the Query 0.75.9 checkout, commit `5a38656ed857bb09cb11fe7ebd019c685a014fbd`,
+with the pending 0.75.10 changes and Platform 0.7.5 minimum, using locked, offline
+Cargo tree inspection. This refresh updates dependency and tracking
 facts; it does not renew the acceptance or extend its deadline. No fresh
 cargo-audit or side-channel qualification is supplied by this graph inspection.
 

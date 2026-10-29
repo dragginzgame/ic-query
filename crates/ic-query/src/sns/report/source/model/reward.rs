@@ -5,7 +5,7 @@
 //! Boundary: rejects non-canonical rows, pagination overlap, cursor drift, and post-exhaustion rows.
 
 use crate::{
-    hex::{hex_bytes, is_lowercase_hex},
+    hex::{hex_bytes, is_lowercase_hex_32_bytes},
     sns::report::{
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsHostError, SnsNeuronId, SnsRewardCheckpointRow,
         model::reports::neurons::detail::{
@@ -15,7 +15,6 @@ use crate::{
 };
 
 const CAPABILITY: &str = "SNS reward checkpoint";
-const NEURON_ID_HEX_LENGTH: usize = 64;
 
 ///
 /// MainnetSnsRewardNeuronPage
@@ -126,7 +125,7 @@ pub(in crate::sns::report) fn validate_mainnet_sns_reward_neuron_page(
 pub(in crate::sns::report) fn validate_reward_checkpoint_row(
     row: &SnsRewardCheckpointRow,
 ) -> Result<(), SnsHostError> {
-    if row.neuron_id.len() != NEURON_ID_HEX_LENGTH || !is_lowercase_hex(&row.neuron_id) {
+    if !is_lowercase_hex_32_bytes(&row.neuron_id) {
         return Err(invalid(format!(
             "neuron id {} is not 32-byte lowercase hexadecimal text",
             row.neuron_id

@@ -1,9 +1,7 @@
 //! Collect complete Governance snapshots through family-specific paging.
 
 use super::{
-    NNS_NEURON_CACHE_COMPONENT,
-    collection::fetch_complete_neuron_collection,
-    model::{CompleteNeuronCollection, NnsNeuronCacheRows},
+    NNS_NEURON_CACHE_COMPONENT, collection::fetch_complete_neuron_collection,
     paths::nns_neuron_cache_paths,
 };
 use crate::{
@@ -57,7 +55,7 @@ async fn refresh_with_source_and_progress(
         &paths,
         NNS_NEURON_CACHE_COMPONENT,
         async |context| {
-            let CompleteNeuronCollection { neurons, state } = fetch_complete_neuron_collection(
+            let data = fetch_complete_neuron_collection(
                 request,
                 source,
                 &paths.refresh_attempt_path,
@@ -65,21 +63,13 @@ async fn refresh_with_source_and_progress(
             )
             .await?;
             let publication_progress = SnapshotRefreshProgress::new(
-                state.pages_fetched(),
-                neurons.len(),
-                state
+                data.collection_state.pages_fetched(),
+                data.neurons.len(),
+                data.collection_state
                     .next_start_neuron_id()
                     .map(|cursor| cursor.to_string()),
             );
-            context.publish(
-                "neurons",
-                NNS_NEURON_FETCHED_BY,
-                publication_progress,
-                NnsNeuronCacheRows {
-                    collection_state: state,
-                    neurons,
-                },
-            )
+            context.publish("neurons", NNS_NEURON_FETCHED_BY, publication_progress, data)
         },
     )
     .await

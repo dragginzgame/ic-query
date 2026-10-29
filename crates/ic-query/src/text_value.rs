@@ -35,3 +35,10 @@ pub fn optional_u64_text(value: Option<u64>) -> String {
 pub const fn yes_no(value: bool) -> &'static str {
     if value { "yes" } else { "no" }
 }
+
+/// Append one titled report table, including the required section gap and empty placeholder.
+pub fn push_titled_table_section(lines: &mut Vec<String>, title: &str, table: Option<String>) {
+    lines.push(String::new());
+    lines.push(title.to_string());
+    lines.push(table.unwrap_or_else(|| "-".to_string()));
+}

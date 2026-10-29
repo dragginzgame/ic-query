@@ -4,7 +4,7 @@
 //! Does not own: refresh locking, cache publication, or command parsing.
 //! Boundary: drives neuron paging and refresh-attempt progress updates.
 
-use super::{NNS_NEURON_CACHE_COMPONENT, model::CompleteNeuronCollection};
+use super::{NNS_NEURON_CACHE_COMPONENT, model::NnsNeuronCacheRows};
 use crate::{
     QueryProgress,
     nns::{
@@ -30,7 +30,7 @@ pub(super) async fn fetch_complete_neuron_collection(
     source: &dyn NnsNeuronSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
-) -> Result<CompleteNeuronCollection, NnsNeuronHostError> {
+) -> Result<NnsNeuronCacheRows, NnsNeuronHostError> {
     let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
         MAINNET_NETWORK,
         &request.source_endpoint,
@@ -63,7 +63,7 @@ struct NeuronRefreshPages<'a> {
 }
 
 impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
-    type Complete = CompleteNeuronCollection;
+    type Complete = NnsNeuronCacheRows;
     type Error = NnsNeuronHostError;
 
     fn progress_text(&self) -> String {
@@ -99,18 +99,16 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
             )
             .await?;
             let page_len = step.page.neurons.len();
-            let cursor = step.state.next_start_neuron_id();
             self.neurons.extend(step.page.neurons);
             self.collection_state = step.state;
             Ok(PagedCollectionPage::new(
                 page_len,
-                cursor.map(|cursor| cursor.to_string()),
                 self.collection_state.is_complete(),
             ))
         })
     }
 
-    fn write_running_attempt(&self, page: &PagedCollectionPage) -> Result<(), Self::Error> {
+    fn write_running_attempt(&self) -> Result<(), Self::Error> {
         write_running_governance_refresh_attempt(
             self.attempt_path,
             self.request,
@@ -118,16 +116,18 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
             SnapshotRefreshProgress::new(
                 self.collection_state.pages_fetched(),
                 self.neurons.len(),
-                page.last_cursor_text.clone(),
+                self.collection_state
+                    .next_start_neuron_id()
+                    .map(|cursor| cursor.to_string()),
             ),
         )
         .map_err(NnsNeuronHostError::from)
     }
 
     fn into_complete(self) -> Self::Complete {
-        CompleteNeuronCollection {
+        NnsNeuronCacheRows {
             neurons: self.neurons,
-            state: self.collection_state,
+            collection_state: self.collection_state,
         }
     }
 }

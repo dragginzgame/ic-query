@@ -74,7 +74,8 @@ fn data_center_text_renders_relation_counts() {
 fn data_center_info_resolves_unique_prefix() {
     let report = data_center_report_fixture();
 
-    let (data_center, resolved_from) = resolve_data_center(&report, "dc").expect("prefix resolves");
+    let (index, resolved_from) = resolve_data_center(&report, "dc").expect("prefix resolves");
+    let data_center = &report.data_centers[index];
 
     assert_eq!(resolved_from, "data_center_id_prefix");
     assert_eq!(data_center.data_center_id, "dc1");
