@@ -5,9 +5,8 @@
 //! Boundary: resolves SNS identity, fetches parameters, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SNS_PARAMS_REPORT_SCHEMA_VERSION,
-    SnsGovernanceParameters, SnsHostError, SnsLookupRequest, SnsParamsReport, SnsSourceRequest,
-    live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsParamsSource,
+    MAINNET_SNS_WASM_CANISTER_ID, SNS_PARAMS_REPORT_SCHEMA_VERSION, SnsHostError, SnsLookupRequest,
+    SnsParamsReport, live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsParamsSource,
 };
 
 pub async fn build_sns_params_report(
@@ -24,29 +23,17 @@ pub async fn build_sns_params_report_with_source(
     let parameters = source
         .fetch_sns_params(&lookup.fetch_request, &lookup.sns)
         .await?;
-    Ok(sns_params_report_from_parts(
-        lookup.fetch_request,
-        lookup.sns,
-        parameters,
-    ))
-}
-
-fn sns_params_report_from_parts(
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-    parameters: SnsGovernanceParameters,
-) -> SnsParamsReport {
-    SnsParamsReport {
+    Ok(SnsParamsReport {
         schema_version: SNS_PARAMS_REPORT_SCHEMA_VERSION,
-        network: fetch_request.network,
+        network: lookup.fetch_request.network,
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: fetch_request.fetched_at,
-        source_endpoint: fetch_request.endpoint,
-        fetched_by: fetch_request.fetched_by,
-        id: sns.id,
-        name: sns.name,
-        root_canister_id: sns.canisters.root_canister_id,
-        governance_canister_id: sns.canisters.governance_canister_id,
+        fetched_at: lookup.fetch_request.fetched_at,
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
+        governance_canister_id: lookup.sns.canisters.governance_canister_id,
         parameters,
-    }
+    })
 }

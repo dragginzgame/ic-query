@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.1]
+
+### 🧹 Cleanup
+
+- Simplify report assembly, inventory lookup and cache refresh handling while
+  preserving public APIs, validation, diagnostics and report formats.
+- Reduce unnecessary copies and repeated inventory work, and consolidate shared
+  report fixtures.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.0] - 2026-10-29
 
 ### ⚠️ Breaking

@@ -270,20 +270,10 @@ pub(in crate::nns) enum NnsInventoryResolveError {
     },
 }
 
-///
-/// NnsInventoryRow
-///
-/// Internal identifier access required by Registry inventory resolution.
-///
-
-pub(in crate::nns) trait NnsInventoryRow {
-    /// Canonical identifier used for exact and prefix lookup.
-    fn inventory_id(&self) -> &str;
-}
-
 /// Resolve a Registry inventory row by exact normalized identifier or unique prefix.
-pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
+pub(in crate::nns) fn resolve_nns_inventory_row<Row>(
     rows: &[Row],
+    identifier: impl Fn(&Row) -> &str,
     input: &str,
     input_kind: NnsInventoryInputKind,
     exact_source: &'static str,
@@ -298,7 +288,7 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
     if let Some(exact) = exact
         && let Some(index) = rows
             .iter()
-            .position(|row| row.inventory_id() == exact.as_ref())
+            .position(|row| identifier(row) == exact.as_ref())
     {
         return Ok((index, exact_source.to_string()));
     }
@@ -311,7 +301,7 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
     let matches = rows
         .iter()
         .enumerate()
-        .filter(|(_, row)| row.inventory_id().starts_with(&prefix))
+        .filter(|(_, row)| identifier(row).starts_with(&prefix))
         .collect::<Vec<_>>();
     match matches.as_slice() {
         [(index, _)] => Ok((*index, format!("{exact_source}_prefix"))),
@@ -322,7 +312,7 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
             prefix,
             matches: matches
                 .into_iter()
-                .map(|(_, row)| row.inventory_id().to_string())
+                .map(|(_, row)| identifier(row).to_string())
                 .collect(),
         }),
     }
@@ -335,22 +325,28 @@ mod tests {
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct Row(&'static str);
 
-    impl NnsInventoryRow for Row {
-        fn inventory_id(&self) -> &str {
-            self.0
-        }
-    }
-
     #[test]
     fn resolves_normalized_text_exactly_and_principals_by_prefix() {
         let text_rows = [Row("dc1")];
         assert_eq!(
-            resolve_nns_inventory_row(&text_rows, " DC1 ", NnsInventoryInputKind::Text, "id",),
+            resolve_nns_inventory_row(
+                &text_rows,
+                |row| row.0,
+                " DC1 ",
+                NnsInventoryInputKind::Text,
+                "id"
+            ),
             Ok((0, "id".to_string()))
         );
 
         assert_eq!(
-            resolve_nns_inventory_row(&text_rows, " DC ", NnsInventoryInputKind::Text, "id"),
+            resolve_nns_inventory_row(
+                &text_rows,
+                |row| row.0,
+                " DC ",
+                NnsInventoryInputKind::Text,
+                "id"
+            ),
             Ok((0, "id_prefix".to_string()))
         );
 
@@ -358,6 +354,7 @@ mod tests {
         assert_eq!(
             resolve_nns_inventory_row(
                 &principal_rows,
+                |row| row.0,
                 "ryjl",
                 NnsInventoryInputKind::Principal,
                 "principal",
@@ -370,13 +367,13 @@ mod tests {
     fn preserves_not_found_input_and_ambiguous_matches() {
         let rows = [Row("dc1"), Row("dc2")];
         assert_eq!(
-            resolve_nns_inventory_row(&rows, " ", NnsInventoryInputKind::Text, "id",),
+            resolve_nns_inventory_row(&rows, |row| row.0, " ", NnsInventoryInputKind::Text, "id"),
             Err(NnsInventoryResolveError::NotFound {
                 input: " ".to_string(),
             })
         );
         assert_eq!(
-            resolve_nns_inventory_row(&rows, "DC", NnsInventoryInputKind::Text, "id",),
+            resolve_nns_inventory_row(&rows, |row| row.0, "DC", NnsInventoryInputKind::Text, "id"),
             Err(NnsInventoryResolveError::Ambiguous {
                 prefix: "dc".to_string(),
                 matches: vec!["dc1".to_string(), "dc2".to_string()],

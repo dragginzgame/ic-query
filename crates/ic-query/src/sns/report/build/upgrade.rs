@@ -5,9 +5,9 @@
 //! Boundary: resolves SNS identity, validates one source result, and assembles the report.
 
 use crate::sns::report::{
-    MainnetSns, MainnetSnsUpgrade, SNS_UPGRADE_QUERY_COUNT, SNS_UPGRADE_REPORT_SCHEMA_VERSION,
-    SnsHostError, SnsLookupRequest, SnsSourceRequest, SnsUpgradeReport, SnsUpgradeSource,
-    live::LiveSnsSource, lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_upgrade,
+    SNS_UPGRADE_QUERY_COUNT, SNS_UPGRADE_REPORT_SCHEMA_VERSION, SnsHostError, SnsLookupRequest,
+    SnsUpgradeReport, SnsUpgradeSource, live::LiveSnsSource, lookup::resolve_sns_lookup,
+    source::canonicalize_mainnet_sns_upgrade,
 };
 
 /// Build a live bounded upgrade report for one deployed SNS.
@@ -27,29 +27,17 @@ pub async fn build_sns_upgrade_report_with_source(
         .fetch_sns_upgrade(&lookup.fetch_request, &lookup.sns)
         .await?;
     canonicalize_mainnet_sns_upgrade(&upgrade, &lookup.sns.canisters.governance_canister_id)?;
-    Ok(sns_upgrade_report_from_parts(
-        lookup.fetch_request,
-        lookup.sns,
-        upgrade,
-    ))
-}
-
-fn sns_upgrade_report_from_parts(
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-    upgrade: MainnetSnsUpgrade,
-) -> SnsUpgradeReport {
     let component_gap_count = usize::from(upgrade.next_version_gap.is_some());
-    SnsUpgradeReport {
+    Ok(SnsUpgradeReport {
         schema_version: SNS_UPGRADE_REPORT_SCHEMA_VERSION,
-        network: fetch_request.network,
+        network: lookup.fetch_request.network,
         sns_wasm_canister_id: upgrade.sns_wasm_canister_id,
-        fetched_at: fetch_request.fetched_at,
-        source_endpoint: fetch_request.endpoint,
-        fetched_by: fetch_request.fetched_by,
-        id: sns.id,
-        name: sns.name,
-        root_canister_id: sns.canisters.root_canister_id,
+        fetched_at: lookup.fetch_request.fetched_at,
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
         governance_canister_id: upgrade.governance_canister_id,
         running_version_method: upgrade.running_version_method,
         next_version_method: upgrade.next_version_method,
@@ -61,5 +49,5 @@ fn sns_upgrade_report_from_parts(
         pending_upgrade: upgrade.pending_upgrade,
         next_version: upgrade.next_version,
         next_version_gap: upgrade.next_version_gap,
-    }
+    })
 }

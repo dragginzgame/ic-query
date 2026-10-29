@@ -348,14 +348,12 @@ fn canister_row(
             controllers: Vec::new(),
         };
     };
-    let mut controllers = status
+    let controllers = status
         .settings
         .controllers
         .into_iter()
         .map(|controller| controller.to_text())
         .collect::<Vec<_>>();
-    controllers.sort();
-
     let cycles = nat_text(&status.cycles);
     let cycle_balance_status = if cycles == "0" {
         SnsCanisterCycleBalanceStatus::ReportedZero

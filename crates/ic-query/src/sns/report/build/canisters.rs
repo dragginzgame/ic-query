@@ -5,10 +5,10 @@
 //! Boundary: resolves SNS identity, calls one source capability, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsCanisterInventory,
-    SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterCycleBalanceStatus, SnsCanisterReport,
-    SnsCanisterSource, SnsHostError, SnsLookupRequest, SnsSourceRequest, live::LiveSnsSource,
-    lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_canister_inventory,
+    MAINNET_SNS_WASM_CANISTER_ID, SNS_CANISTER_REPORT_SCHEMA_VERSION,
+    SnsCanisterCycleBalanceStatus, SnsCanisterReport, SnsCanisterSource, SnsHostError,
+    SnsLookupRequest, live::LiveSnsSource, lookup::resolve_sns_lookup,
+    source::canonicalize_mainnet_sns_canister_inventory,
 };
 
 /// Build a live SNS Root canister inventory and health report.
@@ -28,18 +28,6 @@ pub async fn build_sns_canister_report_with_source(
         .fetch_sns_canisters(&lookup.fetch_request, &lookup.sns)
         .await?;
     canonicalize_mainnet_sns_canister_inventory(&mut inventory)?;
-    Ok(sns_canister_report_from_parts(
-        lookup.fetch_request,
-        lookup.sns,
-        inventory,
-    ))
-}
-
-fn sns_canister_report_from_parts(
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-    inventory: MainnetSnsCanisterInventory,
-) -> SnsCanisterReport {
     let health_status_count = inventory
         .canisters
         .iter()
@@ -59,16 +47,16 @@ fn sns_canister_report_from_parts(
             canister.cycle_balance_status == SnsCanisterCycleBalanceStatus::Unavailable
         })
         .count();
-    SnsCanisterReport {
+    Ok(SnsCanisterReport {
         schema_version: SNS_CANISTER_REPORT_SCHEMA_VERSION,
-        network: fetch_request.network,
+        network: lookup.fetch_request.network,
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: fetch_request.fetched_at,
-        source_endpoint: fetch_request.endpoint,
-        fetched_by: fetch_request.fetched_by,
-        id: sns.id,
-        name: sns.name,
-        root_canister_id: sns.canisters.root_canister_id,
+        fetched_at: lookup.fetch_request.fetched_at,
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
         inventory_method: inventory.inventory_method,
         health_method: inventory.health_method,
         health_call_type: inventory.health_call_type,
@@ -82,5 +70,5 @@ fn sns_canister_report_from_parts(
         health_query_gap: inventory.health_query_gap,
         canisters: inventory.canisters,
         gaps: inventory.gaps,
-    }
+    })
 }

@@ -97,21 +97,17 @@ pub async fn build_cloud_engine_node_list_report_with_source(
         true,
     )?;
 
-    let node_providers = source_data
-        .nodes
-        .iter()
-        .map(|node| node.node_provider_id.as_str())
-        .collect::<HashSet<_>>();
-    let cloud_engine_subnets = source_data
-        .nodes
-        .iter()
-        .filter_map(|node| node.cloud_engine_subnet_id.as_deref())
-        .collect::<HashSet<_>>();
-    let unassigned_cloud_engine_node_count = source_data
-        .nodes
-        .iter()
-        .filter(|node| node.cloud_engine_subnet_id.is_none())
-        .count();
+    let mut node_providers = HashSet::new();
+    let mut cloud_engine_subnets = HashSet::new();
+    let mut unassigned_cloud_engine_node_count = 0;
+    for node in &source_data.nodes {
+        node_providers.insert(node.node_provider_id.as_str());
+        if let Some(subnet) = node.cloud_engine_subnet_id.as_deref() {
+            cloud_engine_subnets.insert(subnet);
+        } else {
+            unassigned_cloud_engine_node_count += 1;
+        }
+    }
 
     Ok(CloudEngineNodeListReport {
         provenance: report_provenance(source_data.source),

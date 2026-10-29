@@ -480,7 +480,7 @@ fn transaction_block_row_from_wire(block: BlockWithId) -> IcrcTransactionBlockRo
         block_type,
         timestamp_unix_nanos: icrc3_nat_at_path(&block.block, &["ts"]),
         amount_base_units: icrc3_nat_at_path(&block.block, &["tx", "amt"]),
-        raw_block: icrc3_value_json(&block.block),
+        raw_block: icrc3_value_json(block.block),
     }
 }
 
@@ -568,40 +568,27 @@ fn icrc3_value_at_path<'a>(value: &'a ICRC3Value, path: &[&str]) -> Option<&'a I
     })
 }
 
-fn icrc3_value_json(value: &ICRC3Value) -> JsonValue {
-    let mut variant = JsonMap::new();
-    match value {
-        ICRC3Value::Blob(bytes) => {
-            variant.insert("Blob".to_string(), JsonValue::String(hex_bytes(bytes)));
-        }
-        ICRC3Value::Text(text) => {
-            variant.insert("Text".to_string(), JsonValue::String(text.clone()));
-        }
-        ICRC3Value::Nat(nat) => {
-            variant.insert("Nat".to_string(), JsonValue::String(nat_text(nat)));
-        }
-        ICRC3Value::Int(int) => {
-            variant.insert("Int".to_string(), JsonValue::String(int.0.to_str_radix(10)));
-        }
-        ICRC3Value::Array(values) => {
-            variant.insert(
-                "Array".to_string(),
-                JsonValue::Array(values.iter().map(icrc3_value_json).collect()),
-            );
-        }
-        ICRC3Value::Map(entries) => {
-            variant.insert(
-                "Map".to_string(),
-                JsonValue::Object(
-                    entries
-                        .iter()
-                        .map(|(key, value)| (key.clone(), icrc3_value_json(value)))
-                        .collect(),
-                ),
-            );
-        }
-    }
-    JsonValue::Object(variant)
+fn icrc3_value_json(value: ICRC3Value) -> JsonValue {
+    let (kind, value) = match value {
+        ICRC3Value::Blob(bytes) => ("Blob", JsonValue::String(hex_bytes(&bytes))),
+        ICRC3Value::Text(text) => ("Text", JsonValue::String(text)),
+        ICRC3Value::Nat(nat) => ("Nat", JsonValue::String(nat_text(&nat))),
+        ICRC3Value::Int(int) => ("Int", JsonValue::String(int.0.to_str_radix(10))),
+        ICRC3Value::Array(values) => (
+            "Array",
+            JsonValue::Array(values.into_iter().map(icrc3_value_json).collect()),
+        ),
+        ICRC3Value::Map(entries) => (
+            "Map",
+            JsonValue::Object(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (key, icrc3_value_json(value)))
+                    .collect(),
+            ),
+        ),
+    };
+    JsonValue::Object(JsonMap::from_iter([(kind.to_string(), value)]))
 }
 
 #[cfg(test)]

@@ -5,9 +5,9 @@
 //! Boundary: resolves SNS identity, fetches token data, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION,
-    SnsHostError, SnsLookupRequest, SnsSourceRequest, SnsTokenReport, live::LiveSnsSource,
-    lookup::resolve_sns_lookup, source::SnsTokenSource,
+    MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsHostError,
+    SnsLookupRequest, SnsTokenReport, live::LiveSnsSource, lookup::resolve_sns_lookup,
+    source::SnsTokenSource,
 };
 
 pub async fn build_sns_token_report(
@@ -24,37 +24,25 @@ pub async fn build_sns_token_report_with_source(
     let token = source
         .fetch_sns_token(&lookup.fetch_request, &lookup.sns)
         .await?;
-    Ok(sns_token_report_from_parts(
-        lookup.fetch_request,
-        lookup.sns,
-        token,
-    ))
-}
-
-fn sns_token_report_from_parts(
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-    token: MainnetSnsToken,
-) -> SnsTokenReport {
     let MainnetSnsToken {
         token,
         ledger_index_canister_id,
         ledger_index_error,
     } = token;
-    SnsTokenReport {
+    Ok(SnsTokenReport {
         schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
-        network: fetch_request.network,
+        network: lookup.fetch_request.network,
         sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: fetch_request.fetched_at,
-        source_endpoint: fetch_request.endpoint,
-        fetched_by: fetch_request.fetched_by,
-        id: sns.id,
-        name: sns.name,
-        root_canister_id: sns.canisters.root_canister_id,
-        ledger_canister_id: sns.canisters.ledger_canister_id,
-        sns_index_canister_id: sns.canisters.index_canister_id,
+        fetched_at: lookup.fetch_request.fetched_at,
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
+        ledger_canister_id: lookup.sns.canisters.ledger_canister_id,
+        sns_index_canister_id: lookup.sns.canisters.index_canister_id,
         token,
         ledger_index_canister_id,
         ledger_index_error,
-    }
+    })
 }

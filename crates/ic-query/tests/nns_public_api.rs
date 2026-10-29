@@ -3959,101 +3959,75 @@ fn sample_nns_node_operator_list_report() -> NnsNodeOperatorListReport {
 }
 
 #[cfg(feature = "nns-host")]
-fn sample_nns_node_refresh_report(root: &Path) -> NnsInventoryRefreshReport {
+fn sample_nns_inventory_refresh_report(
+    collection: &str,
+    cache_path: &Path,
+    refresh_lock_path: &Path,
+    source_endpoint: &str,
+    governance_canister_id: Option<&str>,
+) -> NnsInventoryRefreshReport {
     NnsInventoryRefreshReport {
         schema_version: 1,
-        collection: "nodes".to_string(),
+        collection: collection.to_string(),
         network: "ic".to_string(),
-        cache_path: nns_node_cache_path(root, "ic").display().to_string(),
-        refresh_lock_path: nns_node_refresh_lock_path(root, "ic").display().to_string(),
+        cache_path: cache_path.display().to_string(),
+        refresh_lock_path: refresh_lock_path.display().to_string(),
         output_path: None,
-        governance_canister_id: None,
+        governance_canister_id: governance_canister_id.map(str::to_string),
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         registry_version: 42,
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_NODE_SOURCE_ENDPOINT.to_string(),
+        source_endpoint: source_endpoint.to_string(),
         fetched_by: "ic-query".to_string(),
         dry_run: true,
         wrote_cache: false,
         replaced_existing_cache: true,
         row_count: 1,
     }
+}
+
+#[cfg(feature = "nns-host")]
+fn sample_nns_node_refresh_report(root: &Path) -> NnsInventoryRefreshReport {
+    sample_nns_inventory_refresh_report(
+        "nodes",
+        &nns_node_cache_path(root, "ic"),
+        &nns_node_refresh_lock_path(root, "ic"),
+        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
+        None,
+    )
 }
 
 #[cfg(feature = "nns-host")]
 fn sample_nns_data_center_refresh_report(root: &Path) -> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        schema_version: 1,
-        collection: "data_centers".to_string(),
-        network: "ic".to_string(),
-        cache_path: nns_data_center_cache_path(root, "ic").display().to_string(),
-        refresh_lock_path: nns_data_center_refresh_lock_path(root, "ic")
-            .display()
-            .to_string(),
-        output_path: None,
-        governance_canister_id: None,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT.to_string(),
-        fetched_by: "ic-query".to_string(),
-        dry_run: true,
-        wrote_cache: false,
-        replaced_existing_cache: true,
-        row_count: 1,
-    }
+    sample_nns_inventory_refresh_report(
+        "data_centers",
+        &nns_data_center_cache_path(root, "ic"),
+        &nns_data_center_refresh_lock_path(root, "ic"),
+        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+        None,
+    )
 }
 
 #[cfg(feature = "nns-host")]
 fn sample_nns_node_provider_refresh_report(root: &Path) -> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        schema_version: 1,
-        collection: "node_providers".to_string(),
-        network: "ic".to_string(),
-        cache_path: nns_node_provider_cache_path(root, "ic")
-            .display()
-            .to_string(),
-        refresh_lock_path: nns_node_provider_refresh_lock_path(root, "ic")
-            .display()
-            .to_string(),
-        output_path: None,
-        governance_canister_id: Some("rrkah-fqaaa-aaaaa-aaaaq-cai".to_string()),
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT.to_string(),
-        fetched_by: "ic-query".to_string(),
-        dry_run: true,
-        wrote_cache: false,
-        replaced_existing_cache: true,
-        row_count: 1,
-    }
+    sample_nns_inventory_refresh_report(
+        "node_providers",
+        &nns_node_provider_cache_path(root, "ic"),
+        &nns_node_provider_refresh_lock_path(root, "ic"),
+        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
+        Some("rrkah-fqaaa-aaaaa-aaaaq-cai"),
+    )
 }
 
 #[cfg(feature = "nns-host")]
 fn sample_nns_node_operator_refresh_report(root: &Path) -> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        schema_version: 1,
-        collection: "node_operators".to_string(),
-        network: "ic".to_string(),
-        cache_path: nns_node_operator_cache_path(root, "ic")
-            .display()
-            .to_string(),
-        refresh_lock_path: nns_node_operator_refresh_lock_path(root, "ic")
-            .display()
-            .to_string(),
-        output_path: None,
-        governance_canister_id: None,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT.to_string(),
-        fetched_by: "ic-query".to_string(),
-        dry_run: true,
-        wrote_cache: false,
-        replaced_existing_cache: true,
-        row_count: 1,
-    }
+    sample_nns_inventory_refresh_report(
+        "node_operators",
+        &nns_node_operator_cache_path(root, "ic"),
+        &nns_node_operator_refresh_lock_path(root, "ic"),
+        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
+        None,
+    )
 }
 
 #[cfg(feature = "nns-host")]

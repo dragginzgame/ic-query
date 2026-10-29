@@ -1,13 +1,7 @@
-use super::{NnsNodeOperatorHostError, NnsNodeOperatorListReport, NnsNodeOperatorRow};
+use super::{NnsNodeOperatorHostError, NnsNodeOperatorListReport};
 use crate::nns::inventory::{
-    NnsInventoryInputKind, NnsInventoryResolveError, NnsInventoryRow, resolve_nns_inventory_row,
+    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
 };
-
-impl NnsInventoryRow for NnsNodeOperatorRow {
-    fn inventory_id(&self) -> &str {
-        &self.node_operator_principal
-    }
-}
 
 pub(super) fn resolve_node_operator(
     report: &NnsNodeOperatorListReport,
@@ -15,6 +9,7 @@ pub(super) fn resolve_node_operator(
 ) -> Result<(usize, String), NnsNodeOperatorHostError> {
     resolve_nns_inventory_row(
         &report.node_operators,
+        |row| row.node_operator_principal.as_str(),
         input,
         NnsInventoryInputKind::Principal,
         "node_operator_principal",

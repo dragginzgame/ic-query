@@ -51,12 +51,12 @@ impl RawSubnetCatalog {
         &self,
         prefix: &str,
         forced: Option<ResolveAs>,
-    ) -> BTreeSet<String> {
+    ) -> BTreeSet<&str> {
         let mut matches = BTreeSet::new();
         if forced != Some(ResolveAs::Canister) {
             for subnet in &self.subnets {
                 if subnet.subnet_principal.starts_with(prefix) {
-                    matches.insert(subnet.subnet_principal.clone());
+                    matches.insert(subnet.subnet_principal.as_str());
                 }
             }
         }
