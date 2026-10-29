@@ -16,6 +16,7 @@ use crate::{
     },
 };
 
+/// Refresh a complete SNS neuron snapshot using the live SNS source.
 pub async fn refresh_sns_neurons_cache(
     request: &SnsSnapshotRefreshRequest,
 ) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
@@ -31,6 +32,7 @@ pub async fn refresh_sns_neurons_cache_with_progress(
         .await
 }
 
+/// Refresh a complete SNS neuron snapshot using a caller-supplied source.
 pub async fn refresh_sns_neurons_cache_with_source(
     request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsNeuronsSource,

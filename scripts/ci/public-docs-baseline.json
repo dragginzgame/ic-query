@@ -1038,8 +1038,6 @@
   "crates/ic-query/src/sns/report/neurons_cache/paths.rs::::a function::sns_neurons_cache_path",
   "crates/ic-query/src/sns/report/neurons_cache/paths.rs::::a function::sns_neurons_refresh_attempt_path",
   "crates/ic-query/src/sns/report/neurons_cache/paths.rs::::a function::sns_neurons_refresh_lock_path",
-  "crates/ic-query/src/sns/report/neurons_cache/refresh/run.rs::::a function::refresh_sns_neurons_cache",
-  "crates/ic-query/src/sns/report/neurons_cache/refresh/run.rs::::a function::refresh_sns_neurons_cache_with_source",
   "crates/ic-query/src/sns/report/proposals_cache/paths.rs::::a function::sns_proposals_cache_path",
   "crates/ic-query/src/sns/report/proposals_cache/paths.rs::::a function::sns_proposals_refresh_attempt_path",
   "crates/ic-query/src/sns/report/proposals_cache/paths.rs::::a function::sns_proposals_refresh_lock_path",
