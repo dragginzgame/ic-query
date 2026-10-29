@@ -1,4 +1,5 @@
 use crate::cli::clap::value_arg;
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use ic_query::subnet_catalog::SubnetKind;
 
 pub(in crate::nns::node) const SUBNET_FILTER_ARG: &str = "subnet";
@@ -18,12 +19,15 @@ pub(super) fn subnet_kind_filter_arg() -> clap::Arg {
     value_arg(SUBNET_KIND_FILTER_ARG)
         .long(SUBNET_KIND_FILTER_ARG)
         .value_name("application|cloud_engine|system|unknown")
-        .value_parser([
-            SubnetKind::Application.as_str(),
-            SubnetKind::CloudEngine.as_str(),
-            SubnetKind::System.as_str(),
-            SubnetKind::Unknown.as_str(),
-        ])
+        .value_parser(
+            PossibleValuesParser::new([
+                SubnetKind::Application.as_str(),
+                SubnetKind::CloudEngine.as_str(),
+                SubnetKind::System.as_str(),
+                SubnetKind::Unknown.as_str(),
+            ])
+            .try_map(|value| value.parse::<SubnetKind>()),
+        )
         .help("Show only nodes assigned to subnets of this kind")
 }
 

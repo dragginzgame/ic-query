@@ -46,7 +46,6 @@ pub(super) fn collect_inventory_paths(
             CandidateKind::RefreshLock => inventory.refresh_locks.push(path),
         }
     }
-    sort_inventory(&mut inventory);
     Ok(inventory)
 }
 
@@ -74,9 +73,4 @@ fn candidate_kind(path: &Path) -> Option<CandidateKind> {
     } else {
         None
     }
-}
-
-fn sort_inventory(inventory: &mut CacheInventoryPaths) {
-    inventory.caches.sort();
-    inventory.refresh_locks.sort();
 }

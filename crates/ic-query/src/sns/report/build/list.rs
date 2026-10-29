@@ -4,9 +4,10 @@
 //! Does not own: command parsing, SNS-W transport internals, report DTO mapping, or rendering.
 //! Boundary: fetches source rows, assigns stable ids, applies view sorting, and assembles output.
 
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SnsHostError, SnsListReport, SnsListRequest,
-    assemble::{SnsReportProvenance, sns_list_report_from_list},
+    assemble::sns_list_report_from_list,
     live::LiveSnsSource,
     lookup::sns_list_fetch_request,
     source::{
@@ -29,7 +30,7 @@ pub async fn build_sns_list_report_with_source(
     Ok(sns_list_report_from_list(
         list,
         request,
-        SnsReportProvenance::live(),
+        ReportProvenance::live(),
     ))
 }
 

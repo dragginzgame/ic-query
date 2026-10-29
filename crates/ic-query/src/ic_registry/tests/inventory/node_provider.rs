@@ -34,9 +34,10 @@ fn node_provider_counts_follow_subnet_nodes_to_providers() {
         (operator_b, node_operator_record(&provider_b)),
     ]);
 
-    let counts = node_counts_from_records(
+    let counts = node_counts_from_relations(
         &node_principals,
-        &node_records,
+        &crate::ic_registry::relations::node_operator_principals_from_records(node_records)
+            .expect("node operator principals"),
         &node_operator_records,
         |relation| Some(relation.node_provider_principal),
     )

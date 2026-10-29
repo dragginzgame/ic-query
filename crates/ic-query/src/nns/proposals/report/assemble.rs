@@ -8,66 +8,18 @@ use crate::{
     nns::governance::NnsGovernanceReportContext,
     nns::proposals::report::{
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        model::{NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRow},
+        model::{
+            NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
+            NnsProposalRow,
+        },
     },
-    report::{ReportDataSource, ReportResultScope},
+    report::{ReportDataSource, ReportProvenance, ReportResultScope},
 };
-#[cfg(feature = "nns-host")]
-use std::path::Path;
-
-///
-/// NnsProposalReportProvenance
-///
-/// Shared source metadata attached to NNS proposal reports.
-///
-
-pub(in crate::nns::proposals::report) struct NnsProposalReportProvenance {
-    pub(in crate::nns::proposals::report) data_source: ReportDataSource,
-    pub(in crate::nns::proposals::report) cache_path: Option<String>,
-    pub(in crate::nns::proposals::report) cache_complete: Option<bool>,
-}
-
-impl NnsProposalReportProvenance {
-    /// Build provenance for live NNS governance reports.
-    pub(in crate::nns::proposals::report) const fn live() -> Self {
-        Self {
-            data_source: ReportDataSource::Live,
-            cache_path: None,
-            cache_complete: None,
-        }
-    }
-
-    /// Build provenance for complete-cache NNS governance reports.
-    #[cfg(feature = "nns-host")]
-    pub(in crate::nns::proposals::report) fn cache(cache_path: &Path) -> Self {
-        Self {
-            data_source: ReportDataSource::Cache,
-            cache_path: Some(cache_path.display().to_string()),
-            cache_complete: Some(true),
-        }
-    }
-}
-
-///
-/// NnsProposalReportParts
-///
-/// Inputs needed to assemble one NNS proposal detail report.
-///
-
-pub(in crate::nns::proposals::report) struct NnsProposalReportParts {
-    pub(in crate::nns::proposals::report) context: NnsGovernanceReportContext,
-    pub(in crate::nns::proposals::report) proposal_id: u64,
-    pub(in crate::nns::proposals::report) show_ballots: bool,
-    pub(in crate::nns::proposals::report) verbose: bool,
-    pub(in crate::nns::proposals::report) provenance: NnsProposalReportProvenance,
-    pub(in crate::nns::proposals::report) proposal: NnsProposalRow,
-}
-
 /// Assemble an NNS proposal list from request settings, resolved rows and provenance.
 pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
     request: &NnsProposalListRequest,
     context: NnsGovernanceReportContext,
-    provenance: NnsProposalReportProvenance,
+    provenance: ReportProvenance,
     proposals: Vec<NnsProposalRow>,
 ) -> NnsProposalListReport {
     NnsProposalListReport {
@@ -100,21 +52,24 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
     }
 }
 
-/// Assemble an NNS proposal detail report from resolved proposal parts.
-pub(in crate::nns::proposals::report) fn nns_proposal_report_from_parts(
-    parts: NnsProposalReportParts,
+/// Assemble an NNS proposal detail from its request, resolved row and provenance.
+pub(in crate::nns::proposals::report) fn nns_proposal_report_from_row(
+    request: &NnsProposalRequest,
+    context: NnsGovernanceReportContext,
+    provenance: ReportProvenance,
+    proposal: NnsProposalRow,
 ) -> NnsProposalReport {
     NnsProposalReport {
         context: NnsGovernanceReportContext {
             schema_version: NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-            ..parts.context
+            ..context
         },
-        data_source: parts.provenance.data_source,
-        cache_path: parts.provenance.cache_path,
-        cache_complete: parts.provenance.cache_complete,
-        proposal_id: parts.proposal_id,
-        show_ballots: parts.show_ballots,
-        verbose: parts.verbose,
-        proposal: parts.proposal,
+        data_source: provenance.data_source,
+        cache_path: provenance.cache_path,
+        cache_complete: provenance.cache_complete,
+        proposal_id: request.proposal_id,
+        show_ballots: request.show_ballots,
+        verbose: request.verbose,
+        proposal,
     }
 }

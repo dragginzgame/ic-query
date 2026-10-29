@@ -1,6 +1,6 @@
 #[cfg(feature = "nns-host")]
 use ic_host_tools::registry::proto::DataCenterRecord;
-use ic_host_tools::registry::proto::{NodeOperatorRecord, NodeRecord, SubnetRecord};
+use ic_host_tools::registry::proto::{NodeOperatorRecord, SubnetRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
 ///
@@ -11,7 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub(in crate::ic_registry) struct RegistryRelationInventory {
     pub(in crate::ic_registry) node_principals: BTreeSet<String>,
-    pub(in crate::ic_registry) node_records: BTreeMap<String, NodeRecord>,
+    /// Canonical operator IDs admitted from the fetched node records.
+    pub(in crate::ic_registry) node_operator_principals: BTreeMap<String, String>,
     pub(in crate::ic_registry) node_operator_records: BTreeMap<String, NodeOperatorRecord>,
     pub(in crate::ic_registry) subnet_records: BTreeMap<String, SubnetRecord>,
     #[cfg(feature = "nns-host")]

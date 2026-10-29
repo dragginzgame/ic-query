@@ -331,6 +331,24 @@ fn analytics_total_supply_options_apply_bounded_defaults() {
 }
 
 #[test]
+fn analytics_total_supply_step_values_keep_the_official_discrete_set() {
+    for (step, expected) in [("3600", 3_600), ("86400", 86_400)] {
+        let options = parse_test_options(
+            icrc_analytics_total_supply_command(),
+            &[LEDGER_CANISTER_ID, "--step", step],
+            IcrcAnalyticsTotalSupplyOptions::from_matches,
+        );
+        assert_eq!(options.step_secs, expected);
+    }
+    for step in ["7200", "0", "invalid"] {
+        let error = icrc_analytics_total_supply_command()
+            .try_get_matches_from(["total-supply", LEDGER_CANISTER_ID, "--step", step])
+            .expect_err("unsupported step must fail during parsing");
+        assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
+    }
+}
+
+#[test]
 fn analytics_token_value_options_parse_bounds_limit_and_shared_target() {
     let options = parse_test_options(
         icrc_analytics_token_values_command(),

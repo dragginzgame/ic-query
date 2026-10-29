@@ -9,6 +9,7 @@ use super::{
     SnsCatalogCacheRequest, SnsCatalogRefreshReport, SnsCatalogRefreshRequest,
 };
 use crate::cache_file::write_managed_json_pretty_atomically;
+use crate::report::ReportProvenance;
 use crate::{
     HostCacheError, QueryProgress, QueryProgressEvent,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
@@ -23,7 +24,7 @@ use crate::{
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsListReport,
         SnsListRequest,
-        assemble::{SnsReportProvenance, sns_list_report_from_list},
+        assemble::sns_list_report_from_list,
         build::fetch_joined_sns_catalog,
         cache_storage::sns_identity_mismatch_error,
         enforce_mainnet_network,
@@ -315,7 +316,7 @@ fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) ->
         source_endpoint: cache.source_endpoint,
         sns_instances: cache.data.sns_instances,
     };
-    sns_list_report_from_list(list, request, SnsReportProvenance::cache(&path))
+    sns_list_report_from_list(list, request, ReportProvenance::cache(&path))
 }
 
 const fn catalog_is_stale(cached: &CachedSnsCatalog, now_unix_secs: u64) -> bool {

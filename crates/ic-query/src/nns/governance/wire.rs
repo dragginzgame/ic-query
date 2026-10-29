@@ -1,8 +1,8 @@
 //! Module: nns::governance::wire
 //!
-//! Responsibility: decode and project native NNS Governance metric responses.
+//! Responsibility: share external NNS Governance identifiers, errors and metrics projections.
 //! Does not own: transport, report provenance, or public rendering.
-//! Boundary: exists only where unlabeled Candid buckets differ from named public JSON rows.
+//! Boundary: preserves official Candid records and converts unnamed metric buckets to report rows.
 
 use super::{
     NnsGovernanceMaturityModulation, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
@@ -93,6 +93,18 @@ pub(super) struct NeuronSubsetMetrics {
 }
 
 ///
+/// NnsGovernanceNeuronId
+///
+/// External NNS Governance neuron identifier shared by neuron and proposal queries.
+///
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
+pub(in crate::nns) struct NnsGovernanceNeuronId {
+    pub(in crate::nns) id: u64,
+}
+
+///
 /// GovernanceError
 ///
 /// Native Candid Governance application error.
@@ -100,9 +112,9 @@ pub(super) struct NeuronSubsetMetrics {
 
 #[derive(CandidType, Deserialize)]
 #[candid_path("ic_platform::candid::contract")]
-pub(super) struct GovernanceError {
-    pub(super) error_message: String,
-    pub(super) error_type: i32,
+pub(in crate::nns) struct GovernanceError {
+    pub(in crate::nns) error_message: String,
+    pub(in crate::nns) error_type: i32,
 }
 
 ///
@@ -111,12 +123,7 @@ pub(super) struct GovernanceError {
 /// Native Candid result returned by the Governance metrics query.
 ///
 
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(super) enum GetMetricsResult {
-    Ok(Box<GovernanceCachedMetrics>),
-    Err(GovernanceError),
-}
+pub(super) type GetMetricsResult = Result<Box<GovernanceCachedMetrics>, GovernanceError>;
 
 ///
 /// GetMaturityModulationRequest

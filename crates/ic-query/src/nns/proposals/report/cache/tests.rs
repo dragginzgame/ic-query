@@ -8,6 +8,7 @@ use super::{
     },
 };
 use crate::nns::governance::nns_governance_refresh_report_text;
+use crate::nns::governance::{NnsGovernanceNeuronId, NnsGovernanceProposalId};
 use crate::{
     HostCacheError,
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -32,8 +33,8 @@ use crate::{
             source::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info},
             text::{nns_proposal_list_report_text, nns_proposal_report_text},
             wire::{
-                NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
-                NnsProposalInfo, NnsProposalTallyWire,
+                NnsGovernanceBallot, NnsProposal, NnsProposalAction, NnsProposalInfo,
+                NnsProposalTallyWire,
             },
         },
     },
@@ -1042,7 +1043,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
 
 fn proposal_info(proposal_id: u64) -> NnsProposalInfo {
     NnsProposalInfo {
-        id: Some(NnsProposalId { id: proposal_id }),
+        id: Some(NnsGovernanceProposalId { id: proposal_id }),
         status: 4,
         topic: 4,
         ballots: vec![(
@@ -1071,7 +1072,7 @@ fn proposal_info(proposal_id: u64) -> NnsProposalInfo {
             action: Some(NnsProposalAction::Motion(Reserved)),
             summary: "Proposal summary".to_string(),
         }),
-        proposer: Some(NnsNeuronId { id: 99 }),
+        proposer: Some(NnsGovernanceNeuronId { id: 99 }),
         executed_timestamp_seconds: 1_700_000_300,
         total_potential_voting_power: Some(100),
     }

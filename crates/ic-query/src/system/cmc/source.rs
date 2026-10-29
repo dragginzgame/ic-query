@@ -6,7 +6,7 @@
 
 use super::{
     CmcCertification, CmcCertifiedRate, CmcHostError, CmcIcpXdrConversionRate,
-    MAINNET_CMC_CANISTER_ID, enforce_mainnet_network, wire::CmcCertifiedRateResponse,
+    MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
 };
 use crate::{
     agent::build_ic_agent,
@@ -16,6 +16,7 @@ use crate::{
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{HashTree, LookupResult};
+use ic_platform::cmc_types::IcpXdrConversionRateResponse;
 
 const GET_ICP_XDR_CONVERSION_RATE_METHOD: &str = "get_icp_xdr_conversion_rate";
 const ICP_XDR_CONVERSION_RATE_LABEL: &[u8] = b"ICP_XDR_CONVERSION_RATE";
@@ -132,8 +133,8 @@ async fn fetch_live_certified_rate(
                 method: GET_ICP_XDR_CONVERSION_RATE_METHOD,
                 reason: error.to_string(),
             })?;
-    let response: CmcCertifiedRateResponse =
-        crate::candid_decode::decode_reply(&bytes).map_err(|error| CmcHostError::CandidDecode {
+    let response: IcpXdrConversionRateResponse = crate::candid_decode::decode_reply(&bytes)
+        .map_err(|error| CmcHostError::CandidDecode {
             message: "IcpXdrConversionRateResponse",
             reason: error.to_string(),
         })?;
@@ -143,7 +144,7 @@ async fn fetch_live_certified_rate(
 fn verified_certified_rate(
     agent: &ic_platform::agent::Agent,
     canister: &Principal,
-    response: CmcCertifiedRateResponse,
+    response: IcpXdrConversionRateResponse,
 ) -> Result<CmcCertifiedRate, CmcHostError> {
     let hash_tree = authenticate_canister_hash_tree(
         agent,
@@ -153,10 +154,14 @@ fn verified_certified_rate(
         "canister",
     )
     .map_err(map_certified_data_error)?;
-    verify_rate_leaf(&hash_tree, &response.data)?;
+    let rate = CmcIcpXdrConversionRate {
+        timestamp_seconds: response.data.timestamp_seconds,
+        xdr_permyriad_per_icp: response.data.xdr_permyriad_per_icp,
+    };
+    verify_rate_leaf(&hash_tree, &rate)?;
 
     Ok(CmcCertifiedRate {
-        rate: response.data,
+        rate,
         certification: CmcCertification {
             certificate_verified: true,
             certificate_hex: hex_bytes(&response.certificate),
@@ -220,7 +225,7 @@ mod tests {
         let response = response(Vec::new(), Vec::new());
         let bytes = ic_platform::candid::contract::encode_one(&response)
             .expect("encode official CMC response");
-        let decoded: CmcCertifiedRateResponse =
+        let decoded: IcpXdrConversionRateResponse =
             crate::candid_decode::decode_reply(&bytes).expect("decode official CMC response");
 
         assert_eq!(decoded, response);
@@ -306,9 +311,12 @@ mod tests {
         }
     }
 
-    fn response(hash_tree: Vec<u8>, certificate: Vec<u8>) -> CmcCertifiedRateResponse {
-        CmcCertifiedRateResponse {
-            data: rate(),
+    fn response(hash_tree: Vec<u8>, certificate: Vec<u8>) -> IcpXdrConversionRateResponse {
+        IcpXdrConversionRateResponse {
+            data: ic_platform::cmc_types::IcpXdrConversionRate {
+                timestamp_seconds: rate().timestamp_seconds,
+                xdr_permyriad_per_icp: rate().xdr_permyriad_per_icp,
+            },
             hash_tree,
             certificate,
         }

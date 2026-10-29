@@ -43,7 +43,7 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.17.1 includes validated Serde transport for measurement aggregates and
+Metrics 0.17.2 includes validated Serde transport for measurement aggregates and
 scalar counters, with Wire metadata on native hosts. Query currently uses its
 percentage arithmetic and has no local aggregate/counter transport mirrors to
 replace. Dashboard observations and Governance metric payloads retain their
@@ -65,7 +65,7 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.7.6, Metrics 0.17.1,
+The current workspace minimums are Platform 0.7.6, Metrics 0.17.2,
 Host/Testkit 0.69.5 and Build 0.69.6.
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.

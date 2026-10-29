@@ -4,6 +4,7 @@
 //! Does not own: command parsing, cache file primitives, proposal row conversion, or rendering.
 //! Boundary: routes cache-backed requests through cache reports and live reads through sources.
 
+use crate::report::ReportProvenance;
 use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
@@ -11,8 +12,7 @@ use crate::{
         SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
         SnsProposalsReport, SnsProposalsRequest,
         assemble::{
-            SnsReportContext, SnsReportProvenance, sns_proposal_report_from_parts,
-            sns_proposals_report_from_parts,
+            SnsReportContext, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
         },
         enforce_mainnet_network,
         live::LiveSnsSource,
@@ -71,7 +71,7 @@ pub async fn build_sns_proposal_report_with_source(
     Ok(sns_proposal_report_from_parts(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
-        SnsReportProvenance::live(),
+        ReportProvenance::live(),
         proposal,
     ))
 }
@@ -134,7 +134,7 @@ async fn build_sns_proposals_report_live(
     Ok(sns_proposals_report_from_parts(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
-        SnsReportProvenance::live(),
+        ReportProvenance::live(),
         proposals,
     ))
 }

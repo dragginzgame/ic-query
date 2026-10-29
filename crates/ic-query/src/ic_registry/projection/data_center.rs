@@ -4,7 +4,7 @@ use crate::{
         normalized_data_center_id,
         relations::{
             DataCenterOperatorCounts, RegistryRelationInventory,
-            data_center_operator_counts_from_records, node_counts_from_records,
+            data_center_operator_counts_from_records, node_counts_from_relations,
         },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
@@ -17,20 +17,19 @@ pub(in crate::ic_registry) fn data_center_list_from_inventory(
     inventory: RegistryRelationInventory,
     registry_version: u64,
 ) -> Result<MainnetDataCenterList, RegistryFetchError> {
-    let node_counts = node_counts_from_records(
+    let node_counts = node_counts_from_relations(
         &inventory.node_principals,
-        &inventory.node_records,
+        &inventory.node_operator_principals,
         &inventory.node_operator_records,
         |relation| normalized_data_center_id(&relation.data_center_id),
     )?;
     let operator_counts =
         data_center_operator_counts_from_records(&inventory.node_operator_records)?;
-    let mut data_centers = inventory
+    let data_centers = inventory
         .data_center_records
         .into_iter()
         .map(|(id, record)| data_center_from_record(id, record, &operator_counts, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
-    data_centers.sort_by(|left, right| left.id.cmp(&right.id));
     Ok(MainnetDataCenterList {
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),

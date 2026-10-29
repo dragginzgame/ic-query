@@ -15,7 +15,7 @@ use crate::cli::{
 };
 use clap::{
     ArgAction, Command as ClapCommand,
-    builder::{RangedU64ValueParser, ValueParser},
+    builder::{PossibleValuesParser, RangedU64ValueParser, TypedValueParser, ValueParser},
 };
 use ic_query::ic::{
     DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
@@ -145,7 +145,8 @@ pub(in crate::icrc) fn icrc_analytics_total_supply_command() -> ClapCommand {
                 value_arg(STEP_ARG)
                     .long(STEP_ARG)
                     .value_name("seconds")
-                    .value_parser(["3600", "86400"])
+                    .value_parser(PossibleValuesParser::new(["3600", "86400"])
+                        .try_map(|value| value.parse::<u32>()))
                     .help("Observation interval accepted by the official API; defaults to 86400"),
             ),
     )

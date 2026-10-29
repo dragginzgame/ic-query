@@ -8,7 +8,8 @@ use crate::ic_registry::{
     RegistryFetchError, SUBNET_LIST_KEY, principal_text_from_raw,
     relations::{
         RegistryRelationInventory, RegistryRelationInventoryScope,
-        assigned_node_principals_from_subnets, node_operator_references_from_records,
+        assigned_node_principals_from_subnets, node_operator_principals_from_records,
+        node_operator_references,
     },
     subnet_record_key,
     transport::{decode_message, get_registry_value},
@@ -22,7 +23,7 @@ use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(feature = "nns-host")]
-use crate::ic_registry::relations::node_counts_from_records;
+use crate::ic_registry::relations::node_counts_from_relations;
 
 #[cfg(feature = "nns-host")]
 pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
@@ -37,9 +38,9 @@ pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
         RegistryRelationInventoryScope::BaseRelations,
     )
     .await?;
-    node_counts_from_records(
+    node_counts_from_relations(
         &inventory.node_principals,
-        &inventory.node_records,
+        &inventory.node_operator_principals,
         &inventory.node_operator_records,
         |relation| Some(relation.node_provider_principal),
     )
@@ -97,7 +98,8 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         .try_collect::<BTreeMap<_, _>>()
         .await?;
 
-    let node_operator_references = node_operator_references_from_records(&node_records)?;
+    let node_operator_principals = node_operator_principals_from_records(node_records)?;
+    let node_operator_references = node_operator_references(&node_operator_principals);
 
     let node_operator_records = stream::iter(node_operator_references)
         .map(
@@ -140,7 +142,7 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
 
     Ok(RegistryRelationInventory {
         node_principals,
-        node_records,
+        node_operator_principals,
         node_operator_records,
         subnet_records,
         #[cfg(feature = "nns-host")]
@@ -250,6 +252,34 @@ mod tests {
     }
 
     #[test]
+    fn node_relation_admission_rejects_missing_and_invalid_operator_ids() {
+        let missing = BTreeMap::from([(
+            "node-a".to_string(),
+            NodeRecord {
+                node_operator_id: Vec::new(),
+            },
+        )]);
+        assert!(matches!(
+            node_operator_principals_from_records(missing),
+            Err(RegistryFetchError::MissingNodeOperatorPrincipal { node_principal })
+                if node_principal == "node-a"
+        ));
+        let invalid = BTreeMap::from([(
+            "node-b".to_string(),
+            NodeRecord {
+                node_operator_id: vec![1; 30],
+            },
+        )]);
+        assert!(matches!(
+            node_operator_principals_from_records(invalid),
+            Err(RegistryFetchError::InvalidPrincipal {
+                field: "node_record.node_operator_id",
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn operator_reference_context_is_canonically_ordered() {
         let node_a = Principal::self_authenticating(b"node-a").to_text();
         let node_b = Principal::self_authenticating(b"node-b").to_text();
@@ -268,8 +298,9 @@ mod tests {
             (node_a.clone(), NodeRecord { node_operator_id }),
         ]);
 
-        let references =
-            node_operator_references_from_records(&records).expect("operator references");
+        let references = node_operator_references(
+            &node_operator_principals_from_records(records).expect("node operator principals"),
+        );
 
         assert_eq!(references.get(&node_operator), Some(&vec![node_a, node_b]));
     }

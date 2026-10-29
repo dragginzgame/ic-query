@@ -14,6 +14,7 @@ use crate::nns::proposals::report::source::{
     NnsProposalSource, build_nns_proposal_list_report_with_source,
     build_nns_proposal_report_with_source,
 };
+use crate::report::ReportProvenance;
 use crate::{
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
     cache_file::LoadJsonCacheRequest,
@@ -29,10 +30,7 @@ use crate::{
                 NnsProposalActivityReport, NnsProposalActivityRequest, build_activity_from_cache,
                 validate_time_window,
             },
-            assemble::{
-                NnsProposalReportParts, NnsProposalReportProvenance,
-                nns_proposal_list_report_from_rows, nns_proposal_report_from_parts,
-            },
+            assemble::{nns_proposal_list_report_from_rows, nns_proposal_report_from_row},
             collection::validate_collection_state,
             enforce_mainnet_network,
             model::{
@@ -285,7 +283,7 @@ fn nns_proposal_list_report_from_cache(
     nns_proposal_list_report_from_rows(
         request,
         context,
-        NnsProposalReportProvenance::cache(&cache_path),
+        ReportProvenance::cache(&cache_path),
         proposals,
     )
 }
@@ -301,14 +299,12 @@ fn nns_proposal_report_from_cache(
         .proposals
         .into_iter()
         .find(|proposal| proposal.proposal_id == Some(request.proposal_id))?;
-    Some(nns_proposal_report_from_parts(NnsProposalReportParts {
+    Some(nns_proposal_report_from_row(
+        request,
         context,
-        provenance: NnsProposalReportProvenance::cache(&cache_path),
-        proposal_id: request.proposal_id,
-        show_ballots: request.show_ballots,
-        verbose: request.verbose,
+        ReportProvenance::cache(&cache_path),
         proposal,
-    }))
+    ))
 }
 
 fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsProposalHostError {

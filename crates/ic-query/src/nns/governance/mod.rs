@@ -77,6 +77,8 @@ pub(crate) use validation::{
 pub(in crate::nns) use validation::{
     validate_governance_analytics_pages, validate_governance_continuation,
 };
+#[cfg(any(feature = "nns-host", feature = "canister"))]
+pub(in crate::nns) use wire::{GovernanceError, NnsGovernanceNeuronId};
 /// Default replica endpoint used for direct NNS Governance reports.
 pub const DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 

@@ -4,7 +4,7 @@ use crate::{
         projection::subnet_kind_from_registry,
         relations::{
             RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
-            resolved_node_relations_from_records,
+            resolved_node_relations,
         },
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
@@ -18,12 +18,12 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
     registry_version: u64,
 ) -> Result<MainnetNodeList, RegistryFetchError> {
     let node_subnets = node_subnet_assignments_from_records(&inventory.subnet_records)?;
-    let node_relations = resolved_node_relations_from_records(
+    let node_relations = resolved_node_relations(
         &inventory.node_principals,
-        &inventory.node_records,
+        &inventory.node_operator_principals,
         &inventory.node_operator_records,
     )?;
-    let mut nodes = node_relations
+    let nodes = node_relations
         .into_iter()
         .map(|(principal, relation)| {
             node_from_relation(
@@ -34,7 +34,6 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
-    nodes.sort_by(|left, right| left.principal.cmp(&right.principal));
     Ok(MainnetNodeList {
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),

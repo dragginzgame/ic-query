@@ -4,7 +4,8 @@
 //! Does not own: proposal fetching, cache loading, view filtering/sorting, or rendering.
 //! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
 
-use super::{SnsReportContext, SnsReportProvenance};
+use super::SnsReportContext;
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
     SnsProposalRequest, SnsProposalRow, SnsProposalsReport, SnsProposalsRequest,
@@ -14,7 +15,7 @@ use crate::sns::report::{
 pub(in crate::sns::report) fn sns_proposal_report_from_parts(
     request: &SnsProposalRequest,
     context: SnsReportContext,
-    provenance: SnsReportProvenance,
+    provenance: ReportProvenance,
     proposal: SnsProposalRow,
 ) -> SnsProposalReport {
     SnsProposalReport {
@@ -42,7 +43,7 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
 pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     request: &SnsProposalsRequest,
     context: SnsReportContext,
-    provenance: SnsReportProvenance,
+    provenance: ReportProvenance,
     proposals: Vec<SnsProposalRow>,
 ) -> SnsProposalsReport {
     let proposal_count = proposals.len();

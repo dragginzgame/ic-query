@@ -4,9 +4,10 @@
 //! Does not own: command parsing, cache file primitives, row rendering, or amount formatting.
 //! Boundary: routes cache-backed sorts to cache reports or live API reads to assembly.
 
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::{SnsReportContext, SnsReportProvenance, sns_neurons_report_from_rows},
+    assemble::{SnsReportContext, sns_neurons_report_from_rows},
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     neurons_cache,
@@ -41,7 +42,7 @@ pub async fn build_sns_neurons_report_with_source(
     Ok(sns_neurons_report_from_rows(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
-        SnsReportProvenance::live(),
+        ReportProvenance::live(),
         request.owner_principal_id.clone(),
         total_neuron_count,
         neurons,

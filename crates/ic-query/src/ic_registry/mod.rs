@@ -84,7 +84,7 @@ use ic_host_tools::registry::proto::{
 
 #[cfg(all(test, feature = "nns-host"))]
 use relations::{
-    RegistryRelationInventory, assigned_node_principals_from_subnets, node_counts_from_records,
+    RegistryRelationInventory, assigned_node_principals_from_subnets, node_counts_from_relations,
 };
 
 #[cfg(all(test, feature = "nns-host"))]

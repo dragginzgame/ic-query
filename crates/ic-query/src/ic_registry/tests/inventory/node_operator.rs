@@ -12,11 +12,13 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
     let subnet = Principal::self_authenticating(b"subnet").to_text();
     let inventory = RegistryRelationInventory {
         node_principals: BTreeSet::from([node_a.clone(), node_b.clone(), node_c.clone()]),
-        node_records: BTreeMap::from([
-            (node_a.clone(), node_record(&primary_operator)),
-            (node_b.clone(), node_record(&primary_operator)),
-            (node_c.clone(), node_record(&secondary_operator)),
-        ]),
+        node_operator_principals:
+            crate::ic_registry::relations::node_operator_principals_from_records(BTreeMap::from([
+                (node_a.clone(), node_record(&primary_operator)),
+                (node_b.clone(), node_record(&primary_operator)),
+                (node_c.clone(), node_record(&secondary_operator)),
+            ]))
+            .expect("node operator principals"),
         node_operator_records: BTreeMap::from([
             (
                 primary_operator.clone(),

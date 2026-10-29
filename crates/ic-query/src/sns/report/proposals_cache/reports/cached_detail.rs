@@ -4,9 +4,10 @@
 //! Does not own: live proposal detail fetches, cache refresh, or text rendering.
 //! Boundary: returns an optional report so callers can fall back to live lookup.
 
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SnsHostError, SnsProposalReport, SnsProposalRequest,
-    assemble::{SnsReportContext, SnsReportProvenance, sns_proposal_report_from_parts},
+    assemble::{SnsReportContext, sns_proposal_report_from_parts},
     cache_storage::load_sns_cache_for_root,
     proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };
@@ -42,7 +43,7 @@ fn sns_proposal_report_from_cache(
     Some(sns_proposal_report_from_parts(
         request,
         context,
-        SnsReportProvenance::cache(&cache_path),
+        ReportProvenance::cache(&cache_path),
         proposal,
     ))
 }

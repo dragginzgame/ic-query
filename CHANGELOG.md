@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.13]
+
+### 🔧 Changed
+
+- Adopt IC Metrics 0.17.2, preserving percentage calculations, report formats
+  and the Rust 1.91 minimum. IC Platform remains at 0.7.6.
+
+### 🧹 Cleanup
+
+- Consolidate external protocol types, report provenance and CLI value parsing
+  while preserving public APIs, report formats and accepted options.
+- Simplify Registry relation processing and remove redundant ordering work,
+  retaining validation and complete missing-relation diagnostics.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.12] - 2026-10-29
 
 ### 🔧 Changed

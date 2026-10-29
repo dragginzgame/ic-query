@@ -28,7 +28,7 @@ host = [
     "sns-host",
 ]
 cloud-engine-host = ["ic-host-tools/agent", "ic-platform/agent"]
-cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent"]
+cmc-host = ["ic-host-tools/agent", "certificate-host", "ic-platform/agent", "ic-platform/cmc-types"]
 certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding"]
 dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:ic-host-http", "dep:reqwest"]
 ic-state-host = [

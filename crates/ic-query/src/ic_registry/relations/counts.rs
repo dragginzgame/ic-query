@@ -4,39 +4,51 @@ use crate::ic_registry::{RegistryFetchError, principal_text_from_required_raw};
 use ic_host_tools::registry::proto::{NodeOperatorRecord, NodeRecord};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(in crate::ic_registry) fn node_operator_references_from_records(
-    node_records: &BTreeMap<String, NodeRecord>,
-) -> Result<BTreeMap<String, Vec<String>>, RegistryFetchError> {
+pub(in crate::ic_registry) fn node_operator_principals_from_records(
+    node_records: BTreeMap<String, NodeRecord>,
+) -> Result<BTreeMap<String, String>, RegistryFetchError> {
+    node_records
+        .into_iter()
+        .map(|(node_principal, record)| {
+            if record.node_operator_id.is_empty() {
+                return Err(RegistryFetchError::MissingNodeOperatorPrincipal { node_principal });
+            }
+            let operator = principal_text_from_required_raw(
+                &record.node_operator_id,
+                "node_record.node_operator_id",
+            )?;
+            Ok((node_principal, operator))
+        })
+        .collect()
+}
+
+pub(in crate::ic_registry) fn node_operator_references(
+    node_operator_principals: &BTreeMap<String, String>,
+) -> BTreeMap<String, Vec<String>> {
     let mut references = BTreeMap::<String, Vec<String>>::new();
-    for (node_principal, record) in node_records {
-        if record.node_operator_id.is_empty() {
-            return Err(RegistryFetchError::MissingNodeOperatorPrincipal {
-                node_principal: node_principal.clone(),
-            });
-        }
-        let node_operator_principal = principal_text_from_required_raw(
-            &record.node_operator_id,
-            "node_record.node_operator_id",
-        )?;
+    for (node, operator) in node_operator_principals {
         references
-            .entry(node_operator_principal)
+            .entry(operator.clone())
             .or_default()
-            .push(node_principal.clone());
+            .push(node.clone());
     }
-    Ok(references)
+    references
 }
 
 #[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) fn node_counts_from_records(
+pub(in crate::ic_registry) fn node_counts_from_relations(
     node_principals: &BTreeSet<String>,
-    node_records: &BTreeMap<String, NodeRecord>,
+    node_operator_principals: &BTreeMap<String, String>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
     key: impl Fn(ResolvedNodeRelation) -> Option<String>,
 ) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
     let mut counts = BTreeMap::<String, u32>::new();
-    for relation in
-        resolved_node_relations_from_records(node_principals, node_records, node_operator_records)?
-            .into_values()
+    for relation in resolved_node_relations(
+        node_principals,
+        node_operator_principals,
+        node_operator_records,
+    )?
+    .into_values()
     {
         if let Some(key) = key(relation) {
             let count = counts.entry(key).or_default();
@@ -46,42 +58,36 @@ pub(in crate::ic_registry) fn node_counts_from_records(
     Ok(counts)
 }
 
-pub(in crate::ic_registry) fn resolved_node_relations_from_records(
+pub(in crate::ic_registry) fn resolved_node_relations(
     node_principals: &BTreeSet<String>,
-    node_records: &BTreeMap<String, NodeRecord>,
+    node_operator_principals: &BTreeMap<String, String>,
     node_operator_records: &BTreeMap<String, NodeOperatorRecord>,
 ) -> Result<BTreeMap<String, ResolvedNodeRelation>, RegistryFetchError> {
-    let node_operator_references = node_operator_references_from_records(node_records)?;
     let mut relations = BTreeMap::new();
     for node_principal in node_principals {
-        let node_record = node_records.get(node_principal).ok_or_else(|| {
-            RegistryFetchError::MissingNodeRecord {
-                node_principal: node_principal.clone(),
-            }
-        })?;
-        let node_operator_principal = principal_text_from_required_raw(
-            &node_record.node_operator_id,
-            "node_record.node_operator_id",
-        )?;
-        let referencing_node_principals = node_operator_references
-            .get(&node_operator_principal)
-            .cloned()
-            .ok_or(RegistryFetchError::MissingField {
-                field: "node_operator_references",
-            })?;
+        let node_operator_principal =
+            node_operator_principals
+                .get(node_principal)
+                .ok_or_else(|| RegistryFetchError::MissingNodeRecord {
+                    node_principal: node_principal.clone(),
+                })?;
         let node_operator_record = node_operator_records
-            .get(&node_operator_principal)
+            .get(node_operator_principal)
             .ok_or_else(|| RegistryFetchError::MissingNodeOperatorRecord {
-                referencing_node_principals,
+                referencing_node_principals: node_operator_principals
+                    .iter()
+                    .filter(|(_, operator)| *operator == node_operator_principal)
+                    .map(|(node, _)| node.clone())
+                    .collect(),
                 node_operator_principal: node_operator_principal.clone(),
             })?;
         let node_provider_principal =
-            node_provider_principal_from_record(&node_operator_principal, node_operator_record)?;
+            node_provider_principal_from_record(node_operator_principal, node_operator_record)?;
         relations.insert(
             node_principal.clone(),
             ResolvedNodeRelation {
                 #[cfg(feature = "nns-host")]
-                node_operator_principal,
+                node_operator_principal: node_operator_principal.clone(),
                 node_provider_principal,
                 #[cfg(feature = "nns-host")]
                 data_center_id: node_operator_record.dc_id.clone(),

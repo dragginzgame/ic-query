@@ -9,7 +9,11 @@ fn node_list_follows_nodes_to_subnets_operators_and_providers() {
     let subnet = Principal::self_authenticating(b"subnet").to_text();
     let inventory = RegistryRelationInventory {
         node_principals: BTreeSet::from([node.clone()]),
-        node_records: BTreeMap::from([(node.clone(), node_record(&operator))]),
+        node_operator_principals:
+            crate::ic_registry::relations::node_operator_principals_from_records(BTreeMap::from([
+                (node.clone(), node_record(&operator)),
+            ]))
+            .expect("node operator principals"),
         node_operator_records: BTreeMap::from([(
             operator.clone(),
             NodeOperatorRecord {

@@ -3,9 +3,7 @@ use crate::{
         MainnetRegistryFetchRequest, MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider,
         MainnetSubnetTopologySubnet, RegistryFetchError,
         projection::subnet_kind_from_registry,
-        relations::{
-            RegistryRelationInventory, ResolvedNodeRelation, resolved_node_relations_from_records,
-        },
+        relations::{RegistryRelationInventory, ResolvedNodeRelation, resolved_node_relations},
     },
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -19,9 +17,9 @@ pub(in crate::ic_registry) fn subnet_topology_from_inventory(
     registry_version: u64,
 ) -> Result<MainnetSubnetTopology, RegistryFetchError> {
     let mut node_assignments = BTreeMap::<String, String>::new();
-    let node_relations = resolved_node_relations_from_records(
+    let node_relations = resolved_node_relations(
         &inventory.node_principals,
-        &inventory.node_records,
+        &inventory.node_operator_principals,
         &inventory.node_operator_records,
     )?;
     let mut subnets = Vec::with_capacity(inventory.subnet_records.len());
@@ -120,11 +118,15 @@ mod tests {
         let provider_b = Principal::self_authenticating(b"provider-b").to_text();
         let inventory = RegistryRelationInventory {
             node_principals: BTreeSet::from([node_a.clone(), node_b.clone(), node_c.clone()]),
-            node_records: BTreeMap::from([
-                (node_a.clone(), node_record(&operator_a)),
-                (node_b.clone(), node_record(&operator_a)),
-                (node_c.clone(), node_record(&operator_b)),
-            ]),
+            node_operator_principals:
+                crate::ic_registry::relations::node_operator_principals_from_records(
+                    BTreeMap::from([
+                        (node_a.clone(), node_record(&operator_a)),
+                        (node_b.clone(), node_record(&operator_a)),
+                        (node_c.clone(), node_record(&operator_b)),
+                    ]),
+                )
+                .expect("node operator principals"),
             node_operator_records: BTreeMap::from([
                 (operator_a, node_operator_record(&provider_a)),
                 (operator_b, node_operator_record(&provider_b)),
@@ -180,7 +182,11 @@ mod tests {
         let (subnet_a, subnet_b, node, _, _, operator, _, provider) = principals();
         let inventory = RegistryRelationInventory {
             node_principals: BTreeSet::from([node.clone()]),
-            node_records: BTreeMap::from([(node.clone(), node_record(&operator))]),
+            node_operator_principals:
+                crate::ic_registry::relations::node_operator_principals_from_records(
+                    BTreeMap::from([(node.clone(), node_record(&operator))]),
+                )
+                .expect("node operator principals"),
             node_operator_records: BTreeMap::from([(operator, node_operator_record(&provider))]),
             subnet_records: BTreeMap::from([
                 (
@@ -213,10 +219,14 @@ mod tests {
         expected_referencing_nodes.sort();
         let inventory = RegistryRelationInventory {
             node_principals: BTreeSet::from([node_a.clone(), node_b.clone()]),
-            node_records: BTreeMap::from([
-                (node_a.clone(), node_record(&operator)),
-                (node_b.clone(), node_record(&operator)),
-            ]),
+            node_operator_principals:
+                crate::ic_registry::relations::node_operator_principals_from_records(
+                    BTreeMap::from([
+                        (node_a.clone(), node_record(&operator)),
+                        (node_b.clone(), node_record(&operator)),
+                    ]),
+                )
+                .expect("node operator principals"),
             node_operator_records: BTreeMap::new(),
             subnet_records: BTreeMap::from([(
                 subnet,
@@ -243,7 +253,11 @@ mod tests {
         let (subnet, _, node, _, _, operator, _, _) = principals();
         let inventory = RegistryRelationInventory {
             node_principals: BTreeSet::from([node.clone()]),
-            node_records: BTreeMap::from([(node.clone(), node_record(&operator))]),
+            node_operator_principals:
+                crate::ic_registry::relations::node_operator_principals_from_records(
+                    BTreeMap::from([(node.clone(), node_record(&operator))]),
+                )
+                .expect("node operator principals"),
             node_operator_records: BTreeMap::from([(
                 operator.clone(),
                 NodeOperatorRecord {

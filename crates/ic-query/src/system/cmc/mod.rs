@@ -6,8 +6,6 @@ mod model;
 #[cfg(feature = "cmc-host")]
 mod source;
 mod text;
-#[cfg(feature = "cmc-host")]
-mod wire;
 
 #[cfg(feature = "cmc-host")]
 use thiserror::Error as ThisError;

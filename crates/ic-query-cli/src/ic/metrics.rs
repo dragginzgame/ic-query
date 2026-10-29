@@ -10,13 +10,16 @@ use super::parse_test_options;
 #[cfg(test)]
 use crate::cli::common::OutputFormat;
 use crate::cli::{
-    clap::{required_string, typed_option, value_arg},
+    clap::{required_typed, typed_option, value_arg},
     common::{
         COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
         source_endpoint_arg, write_text_or_json,
     },
 };
-use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::{
+    ArgMatches, Command as ClapCommand,
+    builder::{PossibleValuesParser, RangedU64ValueParser, TypedValueParser},
+};
 use ic_query::ic::{
     DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
     DEFAULT_IC_METRIC_WINDOW_SECS, IcMetricKind, IcMetricQuery, IcMetricRequest,
@@ -65,7 +68,10 @@ pub(super) fn command() -> ClapCommand {
             value_arg("metric")
                 .required(true)
                 .value_name("metric")
-                .value_parser(IcMetricKind::all().map(IcMetricKind::as_str))
+                .value_parser(
+                    PossibleValuesParser::new(IcMetricKind::all().map(IcMetricKind::as_str))
+                        .try_map(|value| value.parse::<IcMetricKind>()),
+                )
                 .help("Official Dashboard metric path name"),
         )
         .arg(
@@ -111,9 +117,7 @@ struct MetricOptions {
 
 impl MetricOptions {
     fn from_matches(matches: &ArgMatches) -> Self {
-        let metric = required_string(matches, "metric")
-            .parse()
-            .expect("clap restricts official metric names");
+        let metric = required_typed(matches, "metric");
         Self {
             metric,
             start_unix_secs: typed_option(matches, "start"),

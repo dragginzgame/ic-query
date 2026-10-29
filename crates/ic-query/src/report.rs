@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+use std::path::Path;
 
 /// Compare the endpoint and collection provenance echoed by a report source.
 #[cfg(any(feature = "cloud-engine-host", feature = "dashboard-host"))]
@@ -28,6 +30,39 @@ pub(crate) fn source_provenance_mismatch(
 ///
 
 pub type SourceFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
+
+///
+/// ReportProvenance
+///
+/// Source and complete-cache metadata shared by report families.
+///
+
+pub(crate) struct ReportProvenance {
+    pub(crate) data_source: ReportDataSource,
+    pub(crate) cache_path: Option<String>,
+    pub(crate) cache_complete: Option<bool>,
+}
+
+impl ReportProvenance {
+    /// Build provenance for live reports.
+    pub(crate) const fn live() -> Self {
+        Self {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        }
+    }
+
+    /// Build provenance for complete-cache reports.
+    #[cfg(any(feature = "nns-host", feature = "sns-host"))]
+    pub(crate) fn cache(cache_path: &Path) -> Self {
+        Self {
+            data_source: ReportDataSource::Cache,
+            cache_path: Some(cache_path.display().to_string()),
+            cache_complete: Some(true),
+        }
+    }
+}
 
 ///
 /// ReportDataSource

@@ -4,6 +4,12 @@
 //! Does not own: CLI parsing, cache IO, transport internals, or text rendering.
 //! Boundary: native, canister, and custom sources converge before report assembly.
 
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+use crate::nns::governance::NnsGovernanceProposalId;
+use crate::report::ReportProvenance;
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 mod canister;
 #[cfg(feature = "nns-host")]
@@ -11,10 +17,7 @@ mod host;
 
 use super::{
     NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalError,
-    assemble::{
-        NnsProposalReportParts, NnsProposalReportProvenance, nns_proposal_list_report_from_rows,
-        nns_proposal_report_from_parts,
-    },
+    assemble::{nns_proposal_list_report_from_rows, nns_proposal_report_from_row},
     model::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalReport, NnsProposalRequest,
         NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter,
@@ -27,7 +30,7 @@ use super::{
 ))]
 use super::{
     model::{NnsProposalBallotRow, NnsProposalTally},
-    wire::{NnsGovernanceBallot, NnsListProposalInfoRequest, NnsProposalId, NnsProposalInfo},
+    wire::{NnsGovernanceBallot, NnsListProposalInfoRequest, NnsProposalInfo},
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -75,7 +78,7 @@ pub async fn build_nns_proposal_list_report_with_source(
     Ok(nns_proposal_list_report_from_rows(
         request,
         NnsGovernanceReportContext::from_source(&request.governance, data.provenance),
-        NnsProposalReportProvenance::live(),
+        ReportProvenance::live(),
         proposals,
     ))
 }
@@ -96,14 +99,12 @@ pub async fn build_nns_proposal_report_with_source(
             actual: data.value.proposal_id,
         });
     }
-    Ok(nns_proposal_report_from_parts(NnsProposalReportParts {
-        context: NnsGovernanceReportContext::from_source(&request.governance, data.provenance),
-        provenance: NnsProposalReportProvenance::live(),
-        proposal_id: request.proposal_id,
-        show_ballots: request.show_ballots,
-        verbose: request.verbose,
-        proposal: data.value,
-    }))
+    Ok(nns_proposal_report_from_row(
+        request,
+        NnsGovernanceReportContext::from_source(&request.governance, data.provenance),
+        ReportProvenance::live(),
+        data.value,
+    ))
 }
 
 ///
@@ -272,7 +273,7 @@ fn proposal_page_request(
             .into_iter()
             .collect(),
         omit_large_fields: Some(false),
-        before_proposal: before_proposal_id.map(|id| NnsProposalId { id }),
+        before_proposal: before_proposal_id.map(|id| NnsGovernanceProposalId { id }),
         limit,
         exclude_topic: Vec::new(),
         include_all_manage_neuron_proposals: Some(true),

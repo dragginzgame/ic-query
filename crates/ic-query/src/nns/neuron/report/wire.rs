@@ -4,6 +4,7 @@
 //! Does not own: live transport, report DTOs, or text rendering.
 //! Boundary: models only the fields needed by bounded neuron reports.
 
+use crate::nns::governance::{GovernanceError, NnsGovernanceNeuronId, NnsGovernanceProposalId};
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
@@ -15,7 +16,7 @@ use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 #[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct GetNeuronIndexRequestWire {
-    pub(in crate::nns::neuron::report) exclusive_start_neuron_id: Option<NeuronIdWire>,
+    pub(in crate::nns::neuron::report) exclusive_start_neuron_id: Option<NnsGovernanceNeuronId>,
     pub(in crate::nns::neuron::report) page_size: Option<u32>,
 }
 
@@ -26,7 +27,7 @@ pub(in crate::nns::neuron::report) struct GetNeuronIndexRequestWire {
 ///
 
 pub(in crate::nns::neuron::report) type GetNeuronIndexResultWire =
-    Result<NeuronIndexDataWire, GovernanceErrorWire>;
+    Result<NeuronIndexDataWire, GovernanceError>;
 
 ///
 /// GetNeuronInfoResultWire
@@ -35,7 +36,7 @@ pub(in crate::nns::neuron::report) type GetNeuronIndexResultWire =
 ///
 
 pub(in crate::nns::neuron::report) type GetNeuronInfoResultWire =
-    Result<Box<NeuronInfoWire>, GovernanceErrorWire>;
+    Result<Box<NeuronInfoWire>, GovernanceError>;
 
 ///
 /// NeuronIndexDataWire
@@ -50,19 +51,6 @@ pub(in crate::nns::neuron::report) struct NeuronIndexDataWire {
 }
 
 ///
-/// GovernanceErrorWire
-///
-/// Candid Governance application-level failure.
-///
-
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::nns::neuron::report) struct GovernanceErrorWire {
-    pub(in crate::nns::neuron::report) error_message: String,
-    pub(in crate::nns::neuron::report) error_type: i32,
-}
-
-///
 /// NeuronInfoWire
 ///
 /// Candid public limited neuron view returned by Governance.
@@ -71,7 +59,7 @@ pub(in crate::nns::neuron::report) struct GovernanceErrorWire {
 #[derive(CandidType, Deserialize)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct NeuronInfoWire {
-    pub(in crate::nns::neuron::report) id: Option<NeuronIdWire>,
+    pub(in crate::nns::neuron::report) id: Option<NnsGovernanceNeuronId>,
     pub(in crate::nns::neuron::report) dissolve_delay_seconds: u64,
     pub(in crate::nns::neuron::report) recent_ballots: Vec<BallotInfoWire>,
     pub(in crate::nns::neuron::report) neuron_type: Option<i32>,
@@ -92,30 +80,6 @@ pub(in crate::nns::neuron::report) struct NeuronInfoWire {
 }
 
 ///
-/// NeuronIdWire
-///
-/// Candid NNS Governance neuron identifier.
-///
-
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::nns::neuron::report) struct NeuronIdWire {
-    pub(in crate::nns::neuron::report) id: u64,
-}
-
-///
-/// ProposalIdWire
-///
-/// Candid proposal identifier attached to a recent neuron ballot.
-///
-
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::nns::neuron::report) struct ProposalIdWire {
-    pub(in crate::nns::neuron::report) id: u64,
-}
-
-///
 /// BallotInfoWire
 ///
 /// Candid recent ballot exposed by a public neuron view.
@@ -125,7 +89,7 @@ pub(in crate::nns::neuron::report) struct ProposalIdWire {
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct BallotInfoWire {
     pub(in crate::nns::neuron::report) vote: i32,
-    pub(in crate::nns::neuron::report) proposal_id: Option<ProposalIdWire>,
+    pub(in crate::nns::neuron::report) proposal_id: Option<NnsGovernanceProposalId>,
 }
 
 ///
@@ -156,7 +120,7 @@ mod tests {
     #[candid_path("ic_platform::candid::contract")]
     enum GovernanceReply<T> {
         Ok(T),
-        Err(GovernanceErrorWire),
+        Err(GovernanceError),
     }
 
     #[test]
@@ -173,7 +137,7 @@ mod tests {
     #[test]
     fn boxed_info_reply_projects_the_native_error_variant() {
         let bytes = encode_one(GovernanceReply::<Box<NeuronInfoWire>>::Err(
-            GovernanceErrorWire {
+            GovernanceError {
                 error_type: 4,
                 error_message: "fixture neuron is absent".to_string(),
             },

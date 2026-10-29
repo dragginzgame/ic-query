@@ -4,9 +4,10 @@
 //! Does not own: live neuron fetching, cache refresh, text rendering, or CLI parsing.
 //! Boundary: applies view sorting/limit over one complete cached neuron snapshot.
 
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::{SnsReportContext, SnsReportProvenance, sns_neurons_report_from_rows},
+    assemble::{SnsReportContext, sns_neurons_report_from_rows},
     cache_storage::load_sns_cache_for_root,
     neurons_cache::paths::SnsNeuronsCacheCollection,
     view::sort_sns_neurons,
@@ -28,7 +29,7 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     let total_neuron_count = cache.data.neurons.len();
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     cache.data.neurons.truncate(limit);
-    let provenance = SnsReportProvenance::cache(&cache_path);
+    let provenance = ReportProvenance::cache(&cache_path);
     let (context, data) = SnsReportContext::from_snapshot(cache);
     Ok(sns_neurons_report_from_rows(
         request,

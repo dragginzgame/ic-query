@@ -4,18 +4,18 @@
 //! Does not own: SNS-W fetching, sort algorithms, lookup resolution, or rendering.
 //! Boundary: live and cached lists share filtering, ordering, counts, and DTO projection.
 
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     JoinedMainnetSnsInventory, MAINNET_SNS_WASM_CANISTER_ID, MainnetSns,
     SNS_INFO_REPORT_SCHEMA_VERSION, SNS_LIST_REPORT_SCHEMA_VERSION, SnsInfoReport, SnsListReport,
     SnsListRequest, SnsListRow, SnsSourceRequest,
-    assemble::SnsReportProvenance,
     view::{filter_mainnet_sns_instances, sort_mainnet_sns_instances},
 };
 
 pub(in crate::sns::report) fn sns_list_report_from_list(
     mut list: JoinedMainnetSnsInventory,
     request: &SnsListRequest,
-    provenance: SnsReportProvenance,
+    provenance: ReportProvenance,
 ) -> SnsListReport {
     let catalog_sns_count = list.sns_instances.len();
     filter_mainnet_sns_instances(&mut list.sns_instances, request.all_lifecycles);

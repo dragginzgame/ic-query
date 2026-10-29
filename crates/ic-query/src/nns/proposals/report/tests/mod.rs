@@ -22,10 +22,10 @@ use super::{
     text::{nns_proposal_list_report_text, nns_proposal_report_text},
     view::proposal_matches_query,
     wire::{
-        NnsGovernanceBallot, NnsNeuronId, NnsProposal, NnsProposalAction, NnsProposalId,
-        NnsProposalInfo, NnsProposalTallyWire,
+        NnsGovernanceBallot, NnsProposal, NnsProposalAction, NnsProposalInfo, NnsProposalTallyWire,
     },
 };
+use crate::nns::governance::{NnsGovernanceNeuronId, NnsGovernanceProposalId};
 use crate::{
     ic_registry::DEFAULT_MAINNET_ENDPOINT,
     nns::{
@@ -254,7 +254,7 @@ fn proposal_info_with_tally_timestamp(
 
 fn proposal_info_with_proposer(proposal_id: u64, proposer_neuron_id: u64) -> NnsProposalInfo {
     NnsProposalInfo {
-        proposer: Some(NnsNeuronId {
+        proposer: Some(NnsGovernanceNeuronId {
             id: proposer_neuron_id,
         }),
         ..proposal_info(
@@ -276,7 +276,7 @@ fn proposal_info_with_summary(
     summary: &str,
 ) -> NnsProposalInfo {
     NnsProposalInfo {
-        id: Some(NnsProposalId { id: proposal_id }),
+        id: Some(NnsGovernanceProposalId { id: proposal_id }),
         status,
         topic,
         ballots: vec![
@@ -314,7 +314,7 @@ fn proposal_info_with_summary(
             action: Some(NnsProposalAction::Motion(Reserved)),
             summary: summary.to_string(),
         }),
-        proposer: Some(NnsNeuronId { id: 99 }),
+        proposer: Some(NnsGovernanceNeuronId { id: 99 }),
         executed_timestamp_seconds: 1_700_000_300,
         total_potential_voting_power: Some(100),
     }

@@ -4,12 +4,13 @@
 //! Does not own: refresh locking, live fetch paging, command parsing, or rendering.
 //! Boundary: coordinates cache load/refresh policy and cache-backed report projection.
 
+use crate::report::ReportProvenance;
 use crate::{
     QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, load_or_refresh_cache},
     sns::report::{
         SnsHostError, SnsProposalsReport, SnsProposalsRequest, SnsSnapshotRefreshRequest,
-        assemble::{SnsReportContext, SnsReportProvenance, sns_proposals_report_from_parts},
+        assemble::{SnsReportContext, sns_proposals_report_from_parts},
         cache_storage::load_sns_cache_for_root,
         proposals_cache::{
             SNS_PROPOSALS_AUTO_REFRESH_PAGE_SIZE, model::SnsProposalsCache,
@@ -107,7 +108,7 @@ fn sns_proposals_report_from_cache(
     sns_proposals_report_from_parts(
         request,
         context,
-        SnsReportProvenance::cache(&cache_path),
+        ReportProvenance::cache(&cache_path),
         proposals,
     )
 }

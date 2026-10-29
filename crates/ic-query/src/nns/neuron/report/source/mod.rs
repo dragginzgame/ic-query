@@ -4,6 +4,11 @@
 //! Does not own: CLI parsing, cache IO, transport internals, or text rendering.
 //! Boundary: native, canister, and custom sources converge before report assembly.
 
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+use crate::nns::governance::{GovernanceError, NnsGovernanceNeuronId};
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 mod canister;
 #[cfg(feature = "nns-host")]
@@ -23,10 +28,7 @@ use super::{
 ))]
 use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
-    wire::{
-        GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GovernanceErrorWire, NeuronIdWire,
-        NeuronInfoWire,
-    },
+    wire::{GetNeuronIndexRequestWire, GetNeuronIndexResultWire, NeuronInfoWire},
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -293,7 +295,7 @@ pub(super) fn validate_neuron_page(
     all(feature = "canister", target_arch = "wasm32")
 ))]
 pub(in crate::nns::neuron::report) fn governance_result<Response>(
-    result: Result<Response, GovernanceErrorWire>,
+    result: Result<Response, GovernanceError>,
 ) -> Result<Response, NnsNeuronError> {
     result.map_err(|error| NnsNeuronError::GovernanceResponse {
         error_type: error.error_type,
@@ -371,7 +373,7 @@ fn neuron_page_request(
     page_size: u32,
 ) -> GetNeuronIndexRequestWire {
     GetNeuronIndexRequestWire {
-        exclusive_start_neuron_id: exclusive_start_neuron_id.map(|id| NeuronIdWire { id }),
+        exclusive_start_neuron_id: exclusive_start_neuron_id.map(|id| NnsGovernanceNeuronId { id }),
         page_size: Some(page_size),
     }
 }

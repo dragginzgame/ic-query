@@ -44,11 +44,13 @@ fn data_center_list_aggregates_registry_relations() {
     let subnet = Principal::self_authenticating(b"subnet").to_text();
     let inventory = RegistryRelationInventory {
         node_principals: BTreeSet::from([node_a.clone(), node_b.clone(), node_c.clone()]),
-        node_records: BTreeMap::from([
-            (node_a.clone(), node_record(&operator_a)),
-            (node_b.clone(), node_record(&operator_a)),
-            (node_c.clone(), node_record(&operator_b)),
-        ]),
+        node_operator_principals:
+            crate::ic_registry::relations::node_operator_principals_from_records(BTreeMap::from([
+                (node_a.clone(), node_record(&operator_a)),
+                (node_b.clone(), node_record(&operator_a)),
+                (node_c.clone(), node_record(&operator_b)),
+            ]))
+            .expect("node operator principals"),
         node_operator_records: BTreeMap::from([
             (
                 operator_a.clone(),

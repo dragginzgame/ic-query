@@ -4,7 +4,8 @@
 //! Does not own: neuron fetching, sorting, cache loading, or rendering.
 //! Boundary: carries source scope and pre-limit totals supplied by each caller.
 
-use super::{SnsReportContext, SnsReportProvenance};
+use super::SnsReportContext;
+use crate::report::ReportProvenance;
 use crate::sns::report::{
     SNS_NEURONS_REPORT_SCHEMA_VERSION, SnsNeuronRow, SnsNeuronsReport, SnsNeuronsRequest,
 };
@@ -13,7 +14,7 @@ use crate::sns::report::{
 pub(in crate::sns::report) fn sns_neurons_report_from_rows(
     request: &SnsNeuronsRequest,
     context: SnsReportContext,
-    provenance: SnsReportProvenance,
+    provenance: ReportProvenance,
     owner_principal_id: Option<String>,
     total_neuron_count: usize,
     neurons: Vec<SnsNeuronRow>,
