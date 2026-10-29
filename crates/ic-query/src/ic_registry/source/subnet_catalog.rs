@@ -93,7 +93,7 @@ where
         .await
         .map_err(|source| {
             context.record_failure(
-                SubnetCatalogRegistryRecordSubject::exact_keyed(
+                SubnetCatalogRegistryRecordSubject::keyed(
                     SubnetCatalogRegistryRecordKind::RoutingTable,
                     format!("{CANISTER_RANGES_KEY_PREFIX}*"),
                 ),
@@ -104,7 +104,7 @@ where
 
     if shard_keys.is_empty() {
         return Err(context.record_failure(
-            SubnetCatalogRegistryRecordSubject::exact_keyed(
+            SubnetCatalogRegistryRecordSubject::keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 format!("{CANISTER_RANGES_KEY_PREFIX}*"),
             ),
@@ -122,7 +122,7 @@ where
         let range_start =
             canister_range_start_from_key(CANISTER_RANGES_KEY_PREFIX, &key).map_err(|reason| {
                 context.record_failure(
-                    SubnetCatalogRegistryRecordSubject::exact_keyed(
+                    SubnetCatalogRegistryRecordSubject::keyed(
                         SubnetCatalogRegistryRecordKind::RoutingTable,
                         &key,
                     ),
@@ -218,7 +218,7 @@ fn latest_version_failure(source: RegistryFetchError) -> Box<SubnetCatalogRegist
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic_registry::{ROUTING_TABLE_KEY, SUBNET_LIST_KEY, wire::RegistryValueEncoding};
+    use crate::ic_registry::{ROUTING_TABLE_KEY, SUBNET_LIST_KEY};
     use crate::subnet_catalog::{CatalogAssurance, SubnetCatalogRegistryValueEncoding};
     use ic_host_tools::registry::proto::{
         CanisterId, CanisterIdRange, PrincipalId, RoutingTableEntry, SubnetId, SubnetRecord,
@@ -235,7 +235,7 @@ mod tests {
         value: Vec<u8>,
         version: u64,
         timestamp_nanoseconds: u64,
-        encoding: RegistryValueEncoding,
+        encoding: SubnetCatalogRegistryValueEncoding,
     }
 
     #[derive(Default)]
@@ -253,7 +253,7 @@ mod tests {
             key: impl Into<String>,
             message: &M,
             version: u64,
-            encoding: RegistryValueEncoding,
+            encoding: SubnetCatalogRegistryValueEncoding,
         ) {
             self.values.insert(
                 key.into(),
@@ -395,13 +395,13 @@ mod tests {
                 subnets: vec![active.as_slice().to_vec()],
             },
             63_348,
-            RegistryValueEncoding::Inline,
+            SubnetCatalogRegistryValueEncoding::Inline,
         );
         reader.insert_message(
             &key,
             &routing_table(start, end, active),
             63_420,
-            RegistryValueEncoding::Chunked,
+            SubnetCatalogRegistryValueEncoding::Chunked,
         );
         reader.insert_message(
             crate::ic_registry::subnet_record_key(ACTIVE_SUBNET),
@@ -411,13 +411,13 @@ mod tests {
                 canister_cycles_cost_schedule: 1,
             },
             63_300,
-            RegistryValueEncoding::Inline,
+            SubnetCatalogRegistryValueEncoding::Inline,
         );
         reader.insert_message(
             ROUTING_TABLE_KEY,
             &routing_table(start, end, deleted),
             51_979,
-            RegistryValueEncoding::Inline,
+            SubnetCatalogRegistryValueEncoding::Inline,
         );
         (reader, start, end, key)
     }
@@ -663,7 +663,7 @@ mod tests {
             second_key,
             &routing_table(second_start, second_end, active),
             63_421,
-            RegistryValueEncoding::Inline,
+            SubnetCatalogRegistryValueEncoding::Inline,
         );
 
         let failure = futures::executor::block_on(collect_pinned_catalog(

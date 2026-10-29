@@ -10,6 +10,7 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_platform::candid::contract::Principal;
+use ic_query::sns::SnsNeuronsSort;
 
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
 
@@ -58,17 +59,18 @@ impl SnsNeuronsOptions {
     }
 
     fn validate(&self) -> Result<(), SnsCommandError> {
-        if self.sort == SnsNeuronsSortArg::Api && self.limit > SNS_NEURONS_LIVE_MAX_LIMIT {
+        let uses_cache = SnsNeuronsSort::from(self.sort).uses_cache();
+        if !uses_cache && self.limit > SNS_NEURONS_LIVE_MAX_LIMIT {
             return Err(SnsCommandError::Usage(format!(
                 "`icq sns neuron list --sort api` can request at most {SNS_NEURONS_LIVE_MAX_LIMIT} live neurons at a time; refresh the cache and use `--sort <id|stake|maturity|created>` for larger limits"
             )));
         }
-        if self.sort != SnsNeuronsSortArg::Api && self.owner_principal_id.is_some() {
+        if uses_cache && self.owner_principal_id.is_some() {
             return Err(SnsCommandError::Usage(
                 "`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string(),
             ));
         }
-        if self.sort != SnsNeuronsSortArg::Api {
+        if uses_cache {
             Principal::from_text(&self.lookup.input).map_err(|_| {
                 SnsCommandError::Usage(
                     "cached neuron views require an SNS root canister principal".to_string(),

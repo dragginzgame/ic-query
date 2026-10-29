@@ -28,6 +28,7 @@ pub(in crate::sns::report::live) struct SnsDefaultFolloweesWire {
 /// Complete native nervous-system parameter response.
 ///
 
+#[cfg_attr(test, derive(Default))]
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceParametersWire {

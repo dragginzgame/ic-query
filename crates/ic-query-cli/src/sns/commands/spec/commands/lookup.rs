@@ -66,7 +66,6 @@ Examples:
 pub(in crate::sns::commands) fn sns_info_command() -> ClapCommand {
     sns_lookup_command(
         "info",
-        "icq sns info",
         "Resolve a deployed SNS by list id or root principal",
         "IC API endpoint used for SNS-W and governance metadata queries",
         SNS_INFO_HELP_AFTER,
@@ -76,7 +75,6 @@ pub(in crate::sns::commands) fn sns_info_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_token_command() -> ClapCommand {
     sns_lookup_command(
         "token",
-        "icq sns token",
         "Show SNS ledger token metadata by list id or root principal",
         "IC API endpoint used for SNS-W, governance, and ledger queries",
         SNS_TOKEN_HELP_AFTER,
@@ -86,7 +84,6 @@ pub(in crate::sns::commands) fn sns_token_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_parameters_command() -> ClapCommand {
     sns_lookup_command(
         "parameters",
-        "icq sns parameters",
         "Show SNS governance nervous system parameters by list id or root principal",
         "IC API endpoint used for SNS-W and governance queries",
         SNS_PARAMETERS_HELP_AFTER,
@@ -96,7 +93,6 @@ pub(in crate::sns::commands) fn sns_parameters_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_swap_command() -> ClapCommand {
     sns_lookup_command(
         "swap",
-        "icq sns swap",
         "Show bounded SNS swap lifecycle, sale parameters, and derived state",
         "IC API endpoint used for SNS-W, Governance metadata, and swap queries",
         SNS_SWAP_HELP_AFTER,
@@ -106,7 +102,6 @@ pub(in crate::sns::commands) fn sns_swap_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_upgrade_command() -> ClapCommand {
     sns_lookup_command(
         "upgrade",
-        "icq sns upgrade",
         "Show the running SNS version and next blessed upgrade",
         "IC API endpoint used for SNS-W and Governance metadata/version queries",
         SNS_UPGRADE_HELP_AFTER,
@@ -116,7 +111,6 @@ pub(in crate::sns::commands) fn sns_upgrade_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_metrics_command() -> ClapCommand {
     sns_lookup_command(
         "metrics",
-        "icq sns metrics",
         "Show bounded native Governance metrics for one SNS",
         "IC API endpoint used for SNS-W, Governance metadata, and metrics queries",
         SNS_METRICS_HELP_AFTER,
@@ -143,13 +137,12 @@ fn parse_metrics_window(value: &str) -> Result<u64, String> {
 
 pub(super) fn sns_lookup_command(
     name: &'static str,
-    bin_name: &'static str,
     about: &'static str,
     source_endpoint_help: &'static str,
     after_help: &'static str,
 ) -> ClapCommand {
     ClapCommand::new(name)
-        .bin_name(bin_name)
+        .bin_name(format!("icq sns {name}"))
         .about(about)
         .arg(json_arg())
         .arg(source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT).help(source_endpoint_help))

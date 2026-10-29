@@ -20,7 +20,7 @@ use crate::{
         IcMetricReport, IcNodeProviderRewardHistoryReport, IcNodeProviderRewardInfoReport,
         IcNodeProviderRewardListReport, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
     },
-    text_value::{optional_text, optional_u64_text, truncate_text, yes_no},
+    text_value::{optional_text, optional_u64_text, text_or_dash, truncate_text, yes_no},
 };
 
 const IC_REPLICA_VERSION_TITLE_TEXT_LIMIT: usize = 80;
@@ -810,14 +810,6 @@ fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {
     }
     if let Some(query) = filters.query.as_deref() {
         lines.push(format!("filter.query: {}", terminal_text(query)));
-    }
-}
-
-fn text_or_dash(value: &str) -> String {
-    if value.is_empty() {
-        "-".to_string()
-    } else {
-        terminal_text(value).into_owned()
     }
 }
 

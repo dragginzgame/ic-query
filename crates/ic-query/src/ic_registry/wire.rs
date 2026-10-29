@@ -1,4 +1,5 @@
 use crate::ic_registry::RegistryFetchError;
+use crate::subnet_catalog::SubnetCatalogRegistryValueEncoding;
 use ic_host_tools::registry::proto::LargeValueChunkKeys;
 #[cfg(feature = "nns-host")]
 use ic_platform::candid::contract::Principal;
@@ -17,18 +18,6 @@ pub(super) enum RegistryValueContent {
 }
 
 ///
-/// RegistryValueEncoding
-///
-/// Transport representation used to complete one Registry value.
-///
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum RegistryValueEncoding {
-    Inline,
-    Chunked,
-}
-
-///
 /// RegistryVersionedValue
 ///
 /// Completed value plus the individual mutation provenance returned by Registry.
@@ -39,7 +28,7 @@ pub(super) struct RegistryVersionedValue {
     pub(super) value: Vec<u8>,
     pub(super) version: u64,
     pub(super) timestamp_nanoseconds: u64,
-    pub(super) encoding: RegistryValueEncoding,
+    pub(super) encoding: SubnetCatalogRegistryValueEncoding,
 }
 
 ///

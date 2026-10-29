@@ -164,22 +164,13 @@ impl SubnetCatalogRegistryRecordSubject {
     }
 
     #[must_use]
-    fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
+    pub(crate) fn keyed(kind: SubnetCatalogRegistryRecordKind, key: impl Into<String>) -> Self {
         Self {
             kind,
             key: key.into(),
             subnet: None,
             canister_range_start: None,
         }
-    }
-
-    #[cfg(feature = "subnet-catalog-host")]
-    #[must_use]
-    pub(crate) fn exact_keyed(
-        kind: SubnetCatalogRegistryRecordKind,
-        key: impl Into<String>,
-    ) -> Self {
-        Self::keyed(kind, key)
     }
 }
 

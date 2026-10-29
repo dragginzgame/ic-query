@@ -27,9 +27,9 @@ pub(in crate::sns::commands) fn sns_canister_command() -> ClapCommand {
 pub(in crate::sns::commands) fn sns_canister_list_command() -> ClapCommand {
     sns_lookup_command(
         "list",
-        "icq sns canister list",
         "List SNS Root canisters and operational health by SNS list id or root principal",
         "IC API endpoint used for SNS-W discovery and Root inventory and health calls",
         SNS_CANISTER_LIST_HELP_AFTER,
     )
+    .bin_name("icq sns canister list")
 }

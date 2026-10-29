@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.14]
+
+### 🧹 Cleanup
+
+- Simplify Registry evidence handling and SNS report construction while preserving
+  public APIs, validation and report formats.
+- Consolidate CLI defaults, cache-selection policy and text formatting, retaining
+  accepted options and existing help.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.13] - 2026-10-29
 
 ### 🔧 Changed

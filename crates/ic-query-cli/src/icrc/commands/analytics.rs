@@ -19,7 +19,8 @@ use clap::{
 };
 use ic_query::ic::{
     DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-    MAX_ICRC_INDEX_PAGE_ROWS, MAX_ICRC_TOKEN_VALUE_ROWS, MIN_ICRC_ANALYTICS_TIMESTAMP,
+    DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, MAX_ICRC_INDEX_PAGE_ROWS, MAX_ICRC_TOKEN_VALUE_ROWS,
+    MIN_ICRC_ANALYTICS_TIMESTAMP,
 };
 
 pub(in crate::icrc) fn command() -> ClapCommand {
@@ -145,6 +146,8 @@ pub(in crate::icrc) fn icrc_analytics_total_supply_command() -> ClapCommand {
                 value_arg(STEP_ARG)
                     .long(STEP_ARG)
                     .value_name("seconds")
+                    .default_value(DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS.to_string())
+                    .hide_default_value(true)
                     .value_parser(PossibleValuesParser::new(["3600", "86400"])
                         .try_map(|value| value.parse::<u32>()))
                     .help("Observation interval accepted by the official API; defaults to 86400"),

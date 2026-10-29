@@ -67,26 +67,28 @@ mod tests {
 
     #[test]
     fn complete_parameter_conversion_preserves_default_followees() {
-        let mut parameters = empty_parameters();
-        parameters.default_followees = Some(SnsDefaultFolloweesWire {
-            followees: vec![
-                (
-                    7,
-                    SnsGovernanceFollowees {
-                        followees: vec![SnsNeuronId { id: vec![0xab; 32] }],
-                    },
-                ),
-                (
-                    9,
-                    SnsGovernanceFollowees {
-                        followees: vec![
-                            SnsNeuronId { id: vec![0xcd; 32] },
-                            SnsNeuronId { id: vec![0xef; 32] },
-                        ],
-                    },
-                ),
-            ],
-        });
+        let parameters = SnsGovernanceParametersWire {
+            default_followees: Some(SnsDefaultFolloweesWire {
+                followees: vec![
+                    (
+                        7,
+                        SnsGovernanceFollowees {
+                            followees: vec![SnsNeuronId { id: vec![0xab; 32] }],
+                        },
+                    ),
+                    (
+                        9,
+                        SnsGovernanceFollowees {
+                            followees: vec![
+                                SnsNeuronId { id: vec![0xcd; 32] },
+                                SnsNeuronId { id: vec![0xef; 32] },
+                            ],
+                        },
+                    ),
+                ],
+            }),
+            ..Default::default()
+        };
 
         let converted = sns_governance_parameters(parameters);
         let defaults = converted.default_followees.expect("default followees");
@@ -98,32 +100,5 @@ mod tests {
             defaults.followees[1].followee_neuron_ids,
             ["cd".repeat(32), "ef".repeat(32)]
         );
-    }
-
-    const fn empty_parameters() -> SnsGovernanceParametersWire {
-        SnsGovernanceParametersWire {
-            default_followees: None,
-            max_dissolve_delay_seconds: None,
-            max_dissolve_delay_bonus_percentage: None,
-            max_followees_per_function: None,
-            neuron_claimer_permissions: None,
-            neuron_minimum_stake_e8s: None,
-            max_neuron_age_for_age_bonus: None,
-            initial_voting_period_seconds: None,
-            neuron_minimum_dissolve_delay_to_vote_seconds: None,
-            reject_cost_e8s: None,
-            max_proposals_to_keep_per_action: None,
-            wait_for_quiet_deadline_increase_seconds: None,
-            max_number_of_neurons: None,
-            transaction_fee_e8s: None,
-            max_number_of_proposals_with_ballots: None,
-            max_age_bonus_percentage: None,
-            neuron_grantable_permissions: None,
-            voting_rewards_parameters: None,
-            maturity_modulation_disabled: None,
-            max_number_of_principals_per_neuron: None,
-            automatically_advance_target_version: None,
-            custom_proposal_criticality: None,
-        }
     }
 }

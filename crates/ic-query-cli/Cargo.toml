@@ -17,7 +17,7 @@ name = "icq"
 path = "src/main.rs"
 
 [dependencies]
-clap.workspace = true
+clap = { workspace = true, features = ["string"] }
 ic-host-text.workspace = true
 ic-platform.workspace = true
 ic-query = { workspace = true, features = ["host"] }

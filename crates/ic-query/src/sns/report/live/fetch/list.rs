@@ -5,10 +5,7 @@
 //! Boundary: keeps SNS-W inventory separate from bounded Governance metadata and Swap lifecycle queries.
 use crate::candid_call::query_canister;
 use crate::sns::report::live::{
-    convert::{
-        bounded_query_error_summary, mainnet_sns_canisters_from_deployed_sns,
-        mainnet_sns_metadata_from_response,
-    },
+    convert::{mainnet_sns_canisters_from_deployed_sns, mainnet_sns_metadata_from_response},
     query::{principal_from_text, sns_agent},
     types::{
         GetMetadataRequest, GetMetadataResponse, ListDeployedSnsesRequest,
@@ -176,6 +173,30 @@ where
         .await
         .into_iter()
         .collect()
+}
+
+/// Return a compact bounded-query error summary when the error is displayable.
+fn bounded_query_error_summary(err: &SnsHostError) -> Option<String> {
+    let summary = match err {
+        SnsHostError::AgentCall { method, reason } => Some(format!("{method}: {reason}")),
+        SnsHostError::CandidEncode { message, reason } => {
+            Some(format!("encode {message}: {reason}"))
+        }
+        SnsHostError::CandidDecode { message, reason } => {
+            Some(format!("decode {message}: {reason}"))
+        }
+        SnsHostError::GovernanceError {
+            method,
+            error_type,
+            message,
+        } => Some(format!("{method} governance error {error_type}: {message}")),
+        SnsHostError::MissingGovernanceResult { method } => {
+            Some(format!("{method}: missing governance result"))
+        }
+        _ => None,
+    }?;
+    let summary = summary.trim();
+    (!summary.is_empty()).then(|| summary.to_string())
 }
 
 #[cfg(test)]

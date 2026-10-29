@@ -11,6 +11,14 @@ pub const REPORT_TABLE_OPTIONS: Options = Options {
     header_separator: true,
 };
 
+pub fn text_or_dash(value: &str) -> String {
+    if value.is_empty() {
+        "-".to_string()
+    } else {
+        terminal_text(value).into_owned()
+    }
+}
+
 pub fn optional_text(value: Option<&String>) -> String {
     value.map_or_else(
         || "-".to_string(),

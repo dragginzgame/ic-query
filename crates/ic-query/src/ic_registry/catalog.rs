@@ -4,14 +4,13 @@ use super::{
     projection::subnet_kind_from_registry,
     subnet_id_text,
     transport::decode_message,
-    wire::{RegistryValueEncoding, RegistryVersionedValue, RegistryVersionedValueFailure},
+    wire::{RegistryVersionedValue, RegistryVersionedValueFailure},
 };
 use crate::subnet_catalog::{
     ClassificationSource, GeographicScope, RawSubnetCatalog, RoutingRange, SubnetCatalogField,
     SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
-    SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
-    SubnetCatalogRoutingSource, SubnetCatalogSubject, SubnetInfo, SubnetSpecialization,
-    UncertifiedCatalogCollection, subject_from_catalog_error,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogRoutingSource, SubnetCatalogSubject,
+    SubnetInfo, SubnetSpecialization, UncertifiedCatalogCollection, subject_from_catalog_error,
 };
 use ic_host_tools::registry::proto::{RoutingTable, SubnetListRecord, SubnetRecord};
 use prost::Message;
@@ -145,7 +144,7 @@ where
             SubnetCatalogRoutingSource::LegacyRoutingTable => ROUTING_TABLE_KEY,
         };
         return Err(context.record_failure(
-            SubnetCatalogRegistryRecordSubject::exact_keyed(
+            SubnetCatalogRegistryRecordSubject::keyed(
                 SubnetCatalogRegistryRecordKind::RoutingTable,
                 key,
             ),
@@ -295,10 +294,7 @@ fn record_evidence(
         value.version,
         value.timestamp_nanoseconds,
         &request.endpoint,
-        match value.encoding {
-            RegistryValueEncoding::Inline => SubnetCatalogRegistryValueEncoding::Inline,
-            RegistryValueEncoding::Chunked => SubnetCatalogRegistryValueEncoding::Chunked,
-        },
+        value.encoding,
     )
 }
 

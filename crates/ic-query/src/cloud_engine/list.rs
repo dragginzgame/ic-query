@@ -103,7 +103,7 @@ pub async fn build_cloud_engine_list_report_with_sources_and_progress(
 
 pub(super) async fn build_cloud_engine_list_report_from_catalog_with_source(
     control_plane_request: &CloudEngineSourceRequest,
-    mut catalog: SubnetCatalogListReport,
+    catalog: SubnetCatalogListReport,
     source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
     enforce_mainnet_network(&control_plane_request.network)?;
@@ -120,9 +120,6 @@ pub(super) async fn build_cloud_engine_list_report_from_catalog_with_source(
         ));
     }
 
-    catalog
-        .subnets
-        .sort_unstable_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
     validate_catalog_rows(&catalog)?;
 
     let cloud_engines = collect_binding_rows(control_plane_request, &catalog, source).await?;

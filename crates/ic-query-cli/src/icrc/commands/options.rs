@@ -17,7 +17,7 @@ use crate::cli::{
 };
 use clap::ArgMatches;
 use ic_query::{
-    ic::{DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, IcIcrcAccountSort, IcIcrcHolderSort},
+    ic::{IcIcrcAccountSort, IcIcrcHolderSort},
     icrc::IcrcAccountTransactionSort,
 };
 
@@ -135,8 +135,7 @@ pub(in crate::icrc) struct IcrcAnalyticsTotalSupplyOptions {
 
 impl IcrcAnalyticsTotalSupplyOptions {
     pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        let step_secs =
-            typed_option(matches, STEP_ARG).unwrap_or(DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS);
+        let step_secs = required_typed(matches, STEP_ARG);
         Self {
             window: IcrcAnalyticsWindowOptions::from_matches(matches),
             step_secs,

@@ -176,6 +176,8 @@ fn history_command() -> ClapCommand {
             value_arg("step")
                 .long("step")
                 .value_name("seconds")
+                .default_value(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS.to_string())
+                .hide_default_value(true)
                 .value_parser(RangedU64ValueParser::<u32>::new().range(
                     u64::from(MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS)
                         ..=u64::from(MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS),
@@ -237,8 +239,7 @@ impl RewardHistoryOptions {
         Self {
             start_unix_secs: typed_option(matches, "start"),
             end_unix_secs: typed_option(matches, "end"),
-            step_secs: typed_option(matches, "step")
-                .unwrap_or(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS),
+            step_secs: required_typed(matches, "step"),
             source: SourceOutputOptions::from_matches(matches),
         }
     }

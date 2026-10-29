@@ -587,28 +587,33 @@ fn list_catalog_report(subnet_ids: &[&str]) -> SubnetCatalogListReport {
         classification_schema_version: 1,
         classification_policy_digest: "1".repeat(64),
         resolver_schema_version: 1,
-        subnets: subnet_ids
-            .iter()
-            .enumerate()
-            .map(|(index, subnet_id)| SubnetCatalogSubnetRow {
-                subnet_principal: (*subnet_id).to_string(),
-                registry_subnet_type: 5,
-                subnet_kind: SubnetKind::CloudEngine,
-                subnet_kind_source: ClassificationSource::Registry,
-                subnet_specialization: SubnetSpecialization::None,
-                subnet_specialization_source: ClassificationSource::Curated,
-                geographic_scope: GeographicScope::Global,
-                geographic_scope_source: ClassificationSource::Curated,
-                subnet_label: format!("cloud-engine-{}", index + 1),
-                subnet_label_source: ClassificationSource::Curated,
-                node_count: Some(13),
-                charges_apply_by_default: true,
-                range_count: 1,
-                ranges_shown: 0,
-                range_offset: 0,
-                range_limit: 50,
-                ranges: Vec::new(),
-            })
-            .collect(),
+        subnets: {
+            // Catalog report builders preserve canonical principal ordering.
+            let mut rows = subnet_ids
+                .iter()
+                .enumerate()
+                .map(|(index, subnet_id)| SubnetCatalogSubnetRow {
+                    subnet_principal: (*subnet_id).to_string(),
+                    registry_subnet_type: 5,
+                    subnet_kind: SubnetKind::CloudEngine,
+                    subnet_kind_source: ClassificationSource::Registry,
+                    subnet_specialization: SubnetSpecialization::None,
+                    subnet_specialization_source: ClassificationSource::Curated,
+                    geographic_scope: GeographicScope::Global,
+                    geographic_scope_source: ClassificationSource::Curated,
+                    subnet_label: format!("cloud-engine-{}", index + 1),
+                    subnet_label_source: ClassificationSource::Curated,
+                    node_count: Some(13),
+                    charges_apply_by_default: true,
+                    range_count: 1,
+                    ranges_shown: 0,
+                    range_offset: 0,
+                    range_limit: 50,
+                    ranges: Vec::new(),
+                })
+                .collect::<Vec<_>>();
+            rows.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
+            rows
+        },
     }
 }

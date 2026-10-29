@@ -5,11 +5,9 @@ use super::{
 };
 use crate::ic_registry::{
     RegistryFetchError,
-    wire::{
-        RegistryValueContent, RegistryValueEncoding, RegistryVersionedValue,
-        RegistryVersionedValueFailure,
-    },
+    wire::{RegistryValueContent, RegistryVersionedValue, RegistryVersionedValueFailure},
 };
+use crate::subnet_catalog::SubnetCatalogRegistryValueEncoding;
 use ic_host_tools::registry::proto::{
     RegistryGetValueRequest, RegistryGetValueResponse, UInt64Value, registry_get_value_response,
 };
@@ -94,7 +92,7 @@ async fn get_registry_versioned_value_inner(
             value,
             version: returned_version,
             timestamp_nanoseconds,
-            encoding: RegistryValueEncoding::Inline,
+            encoding: SubnetCatalogRegistryValueEncoding::Inline,
         }),
         RegistryValueContent::LargeValueChunkKeys(keys) => {
             let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::ordinary_value(), 0)
@@ -118,7 +116,7 @@ async fn get_registry_versioned_value_inner(
                 value,
                 version: returned_version,
                 timestamp_nanoseconds,
-                encoding: RegistryValueEncoding::Chunked,
+                encoding: SubnetCatalogRegistryValueEncoding::Chunked,
             })
         }
     }
