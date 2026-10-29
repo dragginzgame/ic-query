@@ -25,7 +25,6 @@ use crate::{
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
-use std::{future::Future, pin::Pin};
 
 ///
 /// NnsRegistryVersionData
@@ -101,12 +100,9 @@ impl NnsRegistrySource for LiveNnsSource {
 /// Caller-runtime future returned by a certified Registry delta source.
 ///
 
-pub type NnsCertifiedRegistryDeltaSourceFuture<'a> = Pin<
-    Box<
-        dyn Future<Output = Result<NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError>>
-            + Send
-            + 'a,
-    >,
+pub type NnsCertifiedRegistryDeltaSourceFuture<'a> = crate::report::SourceFuture<
+    'a,
+    Result<NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError>,
 >;
 
 ///

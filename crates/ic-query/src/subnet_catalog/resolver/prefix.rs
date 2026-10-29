@@ -1,5 +1,5 @@
 use super::{ResolveAs, ResolvedSubnet};
-use crate::subnet_catalog::{CatalogError, RawSubnetCatalog, canonical_principal_text};
+use crate::subnet_catalog::{CatalogError, RawSubnetCatalog, parse_principal};
 use std::collections::BTreeSet;
 
 impl RawSubnetCatalog {
@@ -9,8 +9,8 @@ impl RawSubnetCatalog {
         input: &str,
         forced: Option<ResolveAs>,
     ) -> Result<ResolvedSubnet, CatalogError> {
-        if let Ok(principal) = canonical_principal_text(input) {
-            return self.resolve_canonical_principal(&principal, forced);
+        if let Ok(principal) = parse_principal(input, "principal") {
+            return self.resolve_parsed_principal(&principal, forced);
         }
         self.resolve_principal_prefix(input, forced)
     }

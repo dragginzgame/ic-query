@@ -41,14 +41,11 @@ impl NnsProposalReportProvenance {
 
     /// Build provenance for complete-cache NNS governance reports.
     #[cfg(feature = "nns-host")]
-    pub(in crate::nns::proposals::report) fn cache(
-        cache_path: &Path,
-        cache_complete: bool,
-    ) -> Self {
+    pub(in crate::nns::proposals::report) fn cache(cache_path: &Path) -> Self {
         Self {
             data_source: ReportDataSource::Cache,
             cache_path: Some(cache_path.display().to_string()),
-            cache_complete: Some(cache_complete),
+            cache_complete: Some(true),
             result_scope: ReportResultScope::CompleteCache,
         }
     }

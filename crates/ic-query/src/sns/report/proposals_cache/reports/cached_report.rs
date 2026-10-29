@@ -94,7 +94,6 @@ fn sns_proposals_report_from_cache(
     cache_path: PathBuf,
     cache: SnsProposalsCache,
 ) -> SnsProposalsReport {
-    let cache_complete = cache.completeness.is_api_exhausted();
     let (context, data) = SnsReportContext::from_snapshot(cache);
     let mut proposals = data
         .proposals
@@ -108,7 +107,7 @@ fn sns_proposals_report_from_cache(
     sns_proposals_report_from_parts(
         request,
         context,
-        SnsReportProvenance::cache(&cache_path, cache_complete),
+        SnsReportProvenance::cache(&cache_path),
         proposals,
     )
 }

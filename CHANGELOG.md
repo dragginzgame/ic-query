@@ -5,6 +5,18 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.8]
+
+### 🧹 Cleanup
+
+- Consolidate topology relation checks and derive overall status from individual
+  check results, preserving report fields and diagnostics.
+- Simplify SNS and NNS command orchestration, cache provenance and Subnet
+  resolution. Public APIs, Candid replies, command output and cache formats remain
+  unchanged.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.7] - 2026-10-28
 
 ### 🧹 Cleanup

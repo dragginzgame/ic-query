@@ -23,25 +23,16 @@ use ic_query::nns::proposals::{
 };
 use ic_query::nns::{LiveNnsSource, NnsGovernanceCacheRequest};
 
-const PROPOSAL_CACHE_COMMAND: &str = "cache";
-const PROPOSAL_CACHE_LIST_COMMAND: &str = "list";
-const PROPOSAL_CACHE_STATUS_COMMAND: &str = "status";
-const PROPOSAL_INFO_COMMAND: &str = "info";
-const PROPOSAL_LIST_COMMAND: &str = "list";
-const PROPOSAL_REFRESH_COMMAND: &str = "refresh";
-
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
         Some(("activity", matches)) => run_nns_proposal_activity(matches, network),
-        Some((PROPOSAL_CACHE_COMMAND, matches)) => run_nns_proposal_cache(matches, network),
-        Some((PROPOSAL_LIST_COMMAND, matches)) => run_nns_proposal_list(matches, network).await,
-        Some((PROPOSAL_INFO_COMMAND, matches)) => run_nns_proposal_info(matches, network).await,
-        Some((PROPOSAL_REFRESH_COMMAND, matches)) => {
-            run_nns_proposal_refresh(matches, network).await
-        }
+        Some(("cache", matches)) => run_nns_proposal_cache(matches, network),
+        Some(("list", matches)) => run_nns_proposal_list(matches, network).await,
+        Some(("info", matches)) => run_nns_proposal_info(matches, network).await,
+        Some(("refresh", matches)) => run_nns_proposal_refresh(matches, network).await,
         _ => unreachable!("clap requires a known NNS proposal subcommand"),
     }
 }
@@ -55,12 +46,6 @@ fn run_nns_proposal_activity(matches: &ArgMatches, network: &str) -> Result<(), 
 
 async fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsProposalListOptions::from_matches(matches, network)?;
-    run_nns_proposal_list_with_options(options).await
-}
-
-async fn run_nns_proposal_list_with_options(
-    options: NnsProposalListOptions,
-) -> Result<(), NnsCommandError> {
     let (format, governance) = options.common.into_governance_request(current_unix_secs()?);
     let request = NnsProposalListRequest {
         governance,
@@ -87,10 +72,6 @@ async fn run_nns_proposal_list_with_options(
 
 async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     let options = NnsProposalOptions::from_matches(matches, network);
-    run_nns_proposal_with_options(options).await
-}
-
-async fn run_nns_proposal_with_options(options: NnsProposalOptions) -> Result<(), NnsCommandError> {
     let (format, governance) = options.common.into_governance_request(current_unix_secs()?);
     let request = NnsProposalRequest::new(governance, options.proposal_id)
         .with_show_ballots(options.show_ballots)
@@ -118,12 +99,8 @@ async fn run_nns_proposal_refresh(
 
 fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some((PROPOSAL_CACHE_LIST_COMMAND, matches)) => {
-            run_nns_proposal_cache_list(matches, network)
-        }
-        Some((PROPOSAL_CACHE_STATUS_COMMAND, matches)) => {
-            run_nns_proposal_cache_status(matches, network)
-        }
+        Some(("list", matches)) => run_nns_proposal_cache_list(matches, network),
+        Some(("status", matches)) => run_nns_proposal_cache_status(matches, network),
         _ => unreachable!("clap requires a known NNS proposal cache subcommand"),
     }
 }

@@ -34,7 +34,6 @@ fn sns_proposal_report_from_cache(
     cache_path: PathBuf,
     cache: SnsProposalsCache,
 ) -> Option<SnsProposalReport> {
-    let cache_complete = cache.completeness.is_api_exhausted();
     let (context, data) = SnsReportContext::from_snapshot(cache);
     let proposal = data
         .proposals
@@ -43,7 +42,7 @@ fn sns_proposal_report_from_cache(
     Some(sns_proposal_report_from_parts(
         request,
         context,
-        SnsReportProvenance::cache(&cache_path, cache_complete),
+        SnsReportProvenance::cache(&cache_path),
         proposal,
     ))
 }

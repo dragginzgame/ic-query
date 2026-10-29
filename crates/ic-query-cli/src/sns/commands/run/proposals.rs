@@ -4,8 +4,7 @@
 //! Does not own: proposal cache storage, live governance calls, or rendering.
 //! Boundary: maps proposal CLI options into report/cache request DTOs.
 
-use crate::cli::common::NetworkOutputOptions;
-use crate::sns::commands::options::{SnsCacheStatusOptions, SnsPagedRefreshOptions};
+use super::cache;
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
@@ -22,7 +21,6 @@ use ic_query::sns::{
     build_sns_proposals_report_with_progress, refresh_sns_proposals_cache_with_progress,
     sns_proposal_report_text, sns_proposals_cache_list_report_text,
     sns_proposals_cache_status_report_text, sns_proposals_report_text,
-    sns_snapshot_refresh_report_text,
 };
 pub(super) async fn run_sns_proposal(
     matches: &ArgMatches,
@@ -31,7 +29,10 @@ pub(super) async fn run_sns_proposal(
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_proposal_list(matches, network).await,
         Some(("info", matches)) => run_sns_proposal_info(matches, network).await,
-        Some(("refresh", matches)) => run_sns_proposal_refresh(matches, network).await,
+        Some(("refresh", matches)) => {
+            cache::run_snapshot_refresh(matches, network, refresh_sns_proposals_cache_with_progress)
+                .await
+        }
         Some(("cache", matches)) => run_sns_proposal_cache(matches, network),
         _ => unreachable!("clap requires a known SNS proposal subcommand"),
     }
@@ -82,39 +83,20 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 
-async fn run_sns_proposal_refresh(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    let options = SnsPagedRefreshOptions::from_matches(matches, network);
-    let (format, request) = options.into_request(cache_root()?, current_unix_secs()?);
-    let mut progress = StderrQueryProgress::new();
-    let report = refresh_sns_proposals_cache_with_progress(&request, &mut progress).await?;
-    write_text_or_json(format, &report, sns_snapshot_refresh_report_text)
-}
-
 fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_sns_proposal_cache_list(matches, network),
-        Some(("status", matches)) => run_sns_proposal_cache_status(matches, network),
+        Some(("list", matches)) => cache::run_cache_list(
+            matches,
+            network,
+            build_sns_proposals_cache_list_report,
+            sns_proposals_cache_list_report_text,
+        ),
+        Some(("status", matches)) => cache::run_cache_status(
+            matches,
+            network,
+            build_sns_proposals_cache_status_report,
+            sns_proposals_cache_status_report_text,
+        ),
         _ => unreachable!("clap requires a known SNS proposal cache subcommand"),
     }
-}
-
-fn run_sns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = NetworkOutputOptions::from_matches(matches, network);
-    let (format, request) =
-        crate::sns::commands::options::cache_list_request(options, cache_root()?);
-    let report = build_sns_proposals_cache_list_report(&request)?;
-    write_text_or_json(format, &report, sns_proposals_cache_list_report_text)
-}
-
-fn run_sns_proposal_cache_status(
-    matches: &ArgMatches,
-    network: &str,
-) -> Result<(), SnsCommandError> {
-    let options = SnsCacheStatusOptions::from_matches(matches, network);
-    let (format, request) = options.into_request(cache_root()?);
-    let report = build_sns_proposals_cache_status_report(&request)?;
-    write_text_or_json(format, &report, sns_proposals_cache_status_report_text)
 }

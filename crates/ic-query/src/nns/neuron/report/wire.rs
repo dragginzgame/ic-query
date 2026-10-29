@@ -25,21 +25,8 @@ pub(in crate::nns::neuron::report) struct GetNeuronIndexRequestWire {
 /// Candid result returned by `get_neuron_index`.
 ///
 
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::nns::neuron::report) enum GetNeuronIndexResultWire {
-    Ok(NeuronIndexDataWire),
-    Err(GovernanceErrorWire),
-}
-
-impl GovernanceResult<NeuronIndexDataWire> for GetNeuronIndexResultWire {
-    fn into_result(self) -> Result<NeuronIndexDataWire, GovernanceErrorWire> {
-        match self {
-            Self::Ok(data) => Ok(data),
-            Self::Err(error) => Err(error),
-        }
-    }
-}
+pub(in crate::nns::neuron::report) type GetNeuronIndexResultWire =
+    Result<NeuronIndexDataWire, GovernanceErrorWire>;
 
 ///
 /// GetNeuronInfoResultWire
@@ -47,31 +34,8 @@ impl GovernanceResult<NeuronIndexDataWire> for GetNeuronIndexResultWire {
 /// Candid result returned by `get_neuron_info`.
 ///
 
-#[derive(CandidType, Deserialize)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::nns::neuron::report) enum GetNeuronInfoResultWire {
-    Ok(Box<NeuronInfoWire>),
-    Err(GovernanceErrorWire),
-}
-
-impl GovernanceResult<NeuronInfoWire> for GetNeuronInfoResultWire {
-    fn into_result(self) -> Result<NeuronInfoWire, GovernanceErrorWire> {
-        match self {
-            Self::Ok(data) => Ok(*data),
-            Self::Err(error) => Err(error),
-        }
-    }
-}
-
-///
-/// GovernanceResult
-///
-/// Shared conversion boundary for Governance result variants.
-///
-
-pub(in crate::nns::neuron::report) trait GovernanceResult<Response> {
-    fn into_result(self) -> Result<Response, GovernanceErrorWire>;
-}
+pub(in crate::nns::neuron::report) type GetNeuronInfoResultWire =
+    Result<Box<NeuronInfoWire>, GovernanceErrorWire>;
 
 ///
 /// NeuronIndexDataWire
@@ -176,4 +140,50 @@ pub(in crate::nns::neuron::report) struct KnownNeuronDataWire {
     pub(in crate::nns::neuron::report) name: String,
     pub(in crate::nns::neuron::report) description: Option<String>,
     pub(in crate::nns::neuron::report) links: Option<Vec<String>>,
+}
+
+#[cfg(all(test, feature = "nns-host"))]
+mod tests {
+    use super::*;
+    use crate::{
+        candid_decode::decode_reply,
+        nns::neuron::report::{NnsNeuronError, source::governance_result},
+    };
+    use ic_platform::candid::contract::encode_one;
+
+    // Governance's external variant labels are part of the Candid contract.
+    #[derive(CandidType)]
+    #[candid_path("ic_platform::candid::contract")]
+    enum GovernanceReply<T> {
+        Ok(T),
+        Err(GovernanceErrorWire),
+    }
+
+    #[test]
+    fn index_reply_accepts_the_native_ok_variant() {
+        let bytes = encode_one(GovernanceReply::Ok(NeuronIndexDataWire {
+            neurons: Vec::new(),
+        }))
+        .unwrap();
+        let reply = decode_reply::<GetNeuronIndexResultWire>(&bytes).unwrap();
+        let page = governance_result(reply).unwrap();
+        assert!(page.neurons.is_empty());
+    }
+
+    #[test]
+    fn boxed_info_reply_projects_the_native_error_variant() {
+        let bytes = encode_one(GovernanceReply::<Box<NeuronInfoWire>>::Err(
+            GovernanceErrorWire {
+                error_type: 4,
+                error_message: "fixture neuron is absent".to_string(),
+            },
+        ))
+        .unwrap();
+        let reply = decode_reply::<GetNeuronInfoResultWire>(&bytes).unwrap();
+        assert!(matches!(
+            governance_result(reply),
+            Err(NnsNeuronError::GovernanceResponse { error_type: 4, message })
+                if message == "fixture neuron is absent"
+        ));
+    }
 }

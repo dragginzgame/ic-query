@@ -272,7 +272,6 @@ fn nns_proposal_list_report_from_cache(
     cache_path: PathBuf,
     cache: NnsProposalCache,
 ) -> NnsProposalListReport {
-    let cache_complete = cache.completeness.is_api_exhausted();
     let context = NnsGovernanceReportContext::from_snapshot(&cache);
     let proposals = cache
         .data
@@ -286,7 +285,7 @@ fn nns_proposal_list_report_from_cache(
     nns_proposal_list_report_from_rows(
         request,
         context,
-        NnsProposalReportProvenance::cache(&cache_path, cache_complete),
+        NnsProposalReportProvenance::cache(&cache_path),
         proposals,
     )
 }
@@ -296,7 +295,6 @@ fn nns_proposal_report_from_cache(
     cache_path: PathBuf,
     cache: NnsProposalCache,
 ) -> Option<NnsProposalReport> {
-    let cache_complete = cache.completeness.is_api_exhausted();
     let context = NnsGovernanceReportContext::from_snapshot(&cache);
     let proposal = cache
         .data
@@ -305,7 +303,7 @@ fn nns_proposal_report_from_cache(
         .find(|proposal| proposal.proposal_id == Some(request.proposal_id))?;
     Some(nns_proposal_report_from_parts(NnsProposalReportParts {
         context,
-        provenance: NnsProposalReportProvenance::cache(&cache_path, cache_complete),
+        provenance: NnsProposalReportProvenance::cache(&cache_path),
         proposal_id: request.proposal_id,
         show_ballots: request.show_ballots,
         verbose: request.verbose,

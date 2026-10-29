@@ -18,13 +18,12 @@ pub(super) fn topology_check_report_from_summary(
     summary: NnsTopologySummaryReport,
 ) -> NnsTopologyCheckReport {
     let check = topology_check_derived_metrics(&summary);
-    let status = NnsTopologyAssessmentStatus::from_ok(
-        check.registry_versions_aligned
-            && check.stale_source_count == 0
-            && check.unknown_freshness_source_count == 0
-            && check.unknown_join_count == 0,
-    );
     let checks = topology_check_checks(&summary, &check);
+    let status = NnsTopologyAssessmentStatus::from_ok(
+        checks
+            .iter()
+            .all(|row| row.status == NnsTopologyAssessmentStatus::Ok),
+    );
 
     NnsTopologyCheckReport {
         schema_version: NNS_TOPOLOGY_CHECK_REPORT_SCHEMA_VERSION,

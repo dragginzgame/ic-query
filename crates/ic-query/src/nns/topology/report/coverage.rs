@@ -69,18 +69,15 @@ pub(super) fn topology_join_coverage_counts(
 
     let mut counts = NnsTopologyJoinCoverageCounts::default();
     for node in &reports.node.nodes {
-        counts.nodes_with_known_node_provider_count +=
-            usize::from(index.has_node_provider(&node.node_provider_principal));
-        counts.nodes_with_known_node_operator_count +=
-            usize::from(index.has_node_operator(&node.node_operator_principal));
-        counts.nodes_with_known_data_center_count +=
-            usize::from(index.has_data_center(&node.data_center_id));
+        let [provider, operator, data_center] = index.node_relations(node);
+        counts.nodes_with_known_node_provider_count += usize::from(provider.known);
+        counts.nodes_with_known_node_operator_count += usize::from(operator.known);
+        counts.nodes_with_known_data_center_count += usize::from(data_center.known);
     }
     for operator in &reports.node_operator.node_operators {
-        counts.node_operators_with_known_node_provider_count +=
-            usize::from(index.has_node_provider(&operator.node_provider_principal));
-        counts.node_operators_with_known_data_center_count +=
-            usize::from(index.has_data_center(&operator.data_center_id));
+        let [provider, data_center] = index.operator_relations(operator);
+        counts.node_operators_with_known_node_provider_count += usize::from(provider.known);
+        counts.node_operators_with_known_data_center_count += usize::from(data_center.known);
     }
     counts.nodes_with_unknown_node_provider_count = reports
         .node

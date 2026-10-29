@@ -62,6 +62,7 @@ type SnsCatalogCache = SnapshotEnvelope<SnsCatalogMetadata, SnsCatalogData>;
 struct CachedSnsCatalog {
     path: PathBuf,
     cache: SnsCatalogCache,
+    fetched_at_unix_secs: u64,
 }
 
 /// Return the canonical deployed-SNS catalog cache path.
@@ -230,11 +231,15 @@ fn load_cached_sns_catalog(
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
         None,
     )?;
-    validate_catalog_cache(&path, &cache)?;
-    Ok(CachedSnsCatalog { path, cache })
+    let fetched_at_unix_secs = validate_catalog_cache(&path, &cache)?;
+    Ok(CachedSnsCatalog {
+        path,
+        cache,
+        fetched_at_unix_secs,
+    })
 }
 
-fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), SnsHostError> {
+fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<u64, SnsHostError> {
     let invalid = |reason| SnsHostError::InvalidCache {
         path: path.to_path_buf(),
         reason,
@@ -252,13 +257,11 @@ fn validate_catalog_cache(path: &Path, cache: &SnsCatalogCache) -> Result<(), Sn
             cache.metadata.sns_wasm_canister_id
         )));
     }
-    if parse_utc_timestamp_secs(&cache.fetched_at).is_none() {
-        return Err(invalid(
-            "fetched_at is not a canonical UTC timestamp".to_string(),
-        ));
-    }
+    let fetched_at_unix_secs = parse_utc_timestamp_secs(&cache.fetched_at)
+        .ok_or_else(|| invalid("fetched_at is not a canonical UTC timestamp".to_string()))?;
     validate_joined_mainnet_sns_catalog(&cache.data.sns_instances)
-        .map_err(|error| invalid(format!("cached joined SNS catalog is invalid: {error}")))
+        .map_err(|error| invalid(format!("cached joined SNS catalog is invalid: {error}")))?;
+    Ok(fetched_at_unix_secs)
 }
 
 fn load_observed_sns_catalog(
@@ -266,9 +269,7 @@ fn load_observed_sns_catalog(
     now_unix_secs: u64,
 ) -> Result<CachedSnsCatalog, SnsHostError> {
     let cached = load_cached_sns_catalog(request)?;
-    let fetched_at = parse_utc_timestamp_secs(&cached.cache.fetched_at)
-        .expect("catalog validation requires a canonical timestamp");
-    if fetched_at > now_unix_secs {
+    if cached.fetched_at_unix_secs > now_unix_secs {
         return Err(SnsHostError::InvalidCache {
             path: cached.path,
             reason: "fetched_at is in the future relative to the observation time".to_string(),
@@ -305,7 +306,7 @@ fn cache_from_list(list: JoinedMainnetSnsInventory) -> Result<SnsCatalogCache, S
 }
 
 fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) -> SnsListReport {
-    let CachedSnsCatalog { path, cache } = cached;
+    let CachedSnsCatalog { path, cache, .. } = cached;
     let list = JoinedMainnetSnsInventory {
         network: cache.network,
         sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
@@ -314,12 +315,12 @@ fn list_report_from_cache(request: &SnsListRequest, cached: CachedSnsCatalog) ->
         source_endpoint: cache.source_endpoint,
         sns_instances: cache.data.sns_instances,
     };
-    sns_list_report_from_list(list, request, SnsReportProvenance::cache(&path, true))
+    sns_list_report_from_list(list, request, SnsReportProvenance::cache(&path))
 }
 
-fn catalog_is_stale(cached: &CachedSnsCatalog, now_unix_secs: u64) -> bool {
+const fn catalog_is_stale(cached: &CachedSnsCatalog, now_unix_secs: u64) -> bool {
     freshness_facts(
-        parse_utc_timestamp_secs(&cached.cache.fetched_at),
+        Some(cached.fetched_at_unix_secs),
         now_unix_secs,
         DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS,
     )

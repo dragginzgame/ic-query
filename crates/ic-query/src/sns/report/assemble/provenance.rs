@@ -36,11 +36,11 @@ impl SnsReportProvenance {
     }
 
     /// Build provenance for complete-cache SNS source reports.
-    pub(in crate::sns::report) fn cache(cache_path: &Path, cache_complete: bool) -> Self {
+    pub(in crate::sns::report) fn cache(cache_path: &Path) -> Self {
         Self {
             data_source: ReportDataSource::Cache,
             cache_path: Some(cache_path.display().to_string()),
-            cache_complete: Some(cache_complete),
+            cache_complete: Some(true),
         }
     }
 }

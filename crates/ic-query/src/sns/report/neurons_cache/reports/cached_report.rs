@@ -28,8 +28,7 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     let total_neuron_count = cache.data.neurons.len();
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     cache.data.neurons.truncate(limit);
-    let cache_complete = cache.completeness.is_api_exhausted();
-    let provenance = SnsReportProvenance::cache(&cache_path, cache_complete);
+    let provenance = SnsReportProvenance::cache(&cache_path);
     let (context, data) = SnsReportContext::from_snapshot(cache);
     Ok(sns_neurons_report_from_rows(
         request,

@@ -50,29 +50,15 @@ fn collect_node_gaps(
 ) -> Vec<NnsTopologyGapRow> {
     let mut gaps = Vec::new();
     for node in nodes {
-        if !index.has_node_provider(&node.node_provider_principal) {
-            gaps.push(topology_gap_row(
-                NnsTopologyGapSubjectKind::Node,
-                &node.node_principal,
-                NnsTopologyGapRelationKind::NodeProvider,
-                &node.node_provider_principal,
-            ));
-        }
-        if !index.has_node_operator(&node.node_operator_principal) {
-            gaps.push(topology_gap_row(
-                NnsTopologyGapSubjectKind::Node,
-                &node.node_principal,
-                NnsTopologyGapRelationKind::NodeOperator,
-                &node.node_operator_principal,
-            ));
-        }
-        if !index.has_data_center(&node.data_center_id) {
-            gaps.push(topology_gap_row(
-                NnsTopologyGapSubjectKind::Node,
-                &node.node_principal,
-                NnsTopologyGapRelationKind::DataCenter,
-                &node.data_center_id,
-            ));
+        for relation in index.node_relations(node) {
+            if !relation.known {
+                gaps.push(topology_gap_row(
+                    NnsTopologyGapSubjectKind::Node,
+                    &node.node_principal,
+                    relation.kind,
+                    relation.referenced_id,
+                ));
+            }
         }
     }
     gaps
@@ -84,21 +70,15 @@ fn collect_node_operator_gaps(
 ) -> Vec<NnsTopologyGapRow> {
     let mut gaps = Vec::new();
     for operator in operators {
-        if !index.has_node_provider(&operator.node_provider_principal) {
-            gaps.push(topology_gap_row(
-                NnsTopologyGapSubjectKind::NodeOperator,
-                &operator.node_operator_principal,
-                NnsTopologyGapRelationKind::NodeProvider,
-                &operator.node_provider_principal,
-            ));
-        }
-        if !index.has_data_center(&operator.data_center_id) {
-            gaps.push(topology_gap_row(
-                NnsTopologyGapSubjectKind::NodeOperator,
-                &operator.node_operator_principal,
-                NnsTopologyGapRelationKind::DataCenter,
-                &operator.data_center_id,
-            ));
+        for relation in index.operator_relations(operator) {
+            if !relation.known {
+                gaps.push(topology_gap_row(
+                    NnsTopologyGapSubjectKind::NodeOperator,
+                    &operator.node_operator_principal,
+                    relation.kind,
+                    relation.referenced_id,
+                ));
+            }
         }
     }
     gaps

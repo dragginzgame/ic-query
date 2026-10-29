@@ -24,7 +24,7 @@ use super::{
 use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
     wire::{
-        GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GovernanceResult, NeuronIdWire,
+        GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GovernanceErrorWire, NeuronIdWire,
         NeuronInfoWire,
     },
 };
@@ -293,14 +293,12 @@ pub(super) fn validate_neuron_page(
     all(feature = "canister", target_arch = "wasm32")
 ))]
 pub(in crate::nns::neuron::report) fn governance_result<Response>(
-    result: impl GovernanceResult<Response>,
+    result: Result<Response, GovernanceErrorWire>,
 ) -> Result<Response, NnsNeuronError> {
-    result
-        .into_result()
-        .map_err(|error| NnsNeuronError::GovernanceResponse {
-            error_type: error.error_type,
-            message: error.error_message,
-        })
+    result.map_err(|error| NnsNeuronError::GovernanceResponse {
+        error_type: error.error_type,
+        message: error.error_message,
+    })
 }
 
 #[cfg(any(

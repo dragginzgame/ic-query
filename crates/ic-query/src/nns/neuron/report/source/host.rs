@@ -62,7 +62,7 @@ impl NnsNeuronSource for LiveNnsSource {
             let wire = governance_result(result)
                 .map_err(|error| map_neuron_info_error(error, neuron_id))?;
             Ok(NnsGovernanceSourceData::new(
-                neuron_row_from_wire(wire)?,
+                neuron_row_from_wire(*wire)?,
                 provenance,
             ))
         })

@@ -9,8 +9,15 @@ impl RawSubnetCatalog {
     /// Resolve a canister principal through cached routing ranges.
     pub fn resolve_canister(&self, input_principal: &str) -> Result<ResolvedSubnet, CatalogError> {
         let canister = parse_principal(input_principal, "canister_principal")?;
+        self.resolve_parsed_canister(&canister)
+    }
+
+    pub(super) fn resolve_parsed_canister(
+        &self,
+        canister: &Principal,
+    ) -> Result<ResolvedSubnet, CatalogError> {
         let canonical_canister = canister.to_text();
-        let (range, subnet) = self.canister_route(&canister)?;
+        let (range, subnet) = self.canister_route(canister)?;
         Ok(ResolvedSubnet {
             input_principal: canonical_canister.clone(),
             resolved_as: ResolvedSubnetSubject::Canister,

@@ -14,7 +14,7 @@ use crate::{
     },
 };
 use futures_util::{StreamExt, stream};
-use std::{collections::BTreeSet, future::Future, pin::Pin};
+use std::collections::BTreeSet;
 
 ///
 /// SubnetCatalogSourceFuture
@@ -23,7 +23,7 @@ use std::{collections::BTreeSet, future::Future, pin::Pin};
 ///
 
 pub type SubnetCatalogSourceFuture<'a> =
-    Pin<Box<dyn Future<Output = Result<RawSubnetCatalog, SubnetCatalogHostError>> + Send + 'a>>;
+    crate::report::SourceFuture<'a, Result<RawSubnetCatalog, SubnetCatalogHostError>>;
 
 ///
 /// SubnetCatalogDetailedSourceFuture
@@ -31,9 +31,8 @@ pub type SubnetCatalogSourceFuture<'a> =
 /// Boxed caller-runtime future retaining typed source failure provenance.
 ///
 
-pub type SubnetCatalogDetailedSourceFuture<'a> = Pin<
-    Box<dyn Future<Output = Result<RawSubnetCatalog, Box<SubnetCatalogSourceFailure>>> + Send + 'a>,
->;
+pub type SubnetCatalogDetailedSourceFuture<'a> =
+    crate::report::SourceFuture<'a, Result<RawSubnetCatalog, Box<SubnetCatalogSourceFailure>>>;
 
 ///
 /// CatalogSourceSelection

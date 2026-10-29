@@ -4,6 +4,7 @@
 //! Does not own: clap command shape, report construction, or text rendering.
 //! Boundary: maps command-line options into report requests.
 
+mod cache;
 mod canisters;
 mod lookup;
 mod neurons;

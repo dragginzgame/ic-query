@@ -4,8 +4,7 @@
 //! Does not own: neuron cache mechanics, live governance calls, or rendering.
 //! Boundary: chooses live versus cache-capable request setup from CLI options.
 
-mod cache;
-mod refresh;
+use super::cache;
 
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
@@ -19,7 +18,10 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::sns::{
     SnsNeuronRequest, SnsNeuronsRequest, SnsNeuronsSort, build_sns_neuron_detail_report,
-    build_sns_neurons_report, sns_neuron_detail_report_text, sns_neurons_report_text,
+    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
+    build_sns_neurons_report, refresh_sns_neurons_cache_with_progress,
+    sns_neuron_detail_report_text, sns_neurons_cache_list_report_text,
+    sns_neurons_cache_status_report_text, sns_neurons_report_text,
 };
 use std::path::PathBuf;
 
@@ -30,9 +32,30 @@ pub(super) async fn run_sns_neuron(
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_neuron_list(matches, network).await,
         Some(("info", matches)) => run_sns_neuron_info(matches, network).await,
-        Some(("refresh", matches)) => refresh::run_sns_neuron_refresh(matches, network).await,
-        Some(("cache", matches)) => cache::run_sns_neuron_cache(matches, network),
+        Some(("refresh", matches)) => {
+            cache::run_snapshot_refresh(matches, network, refresh_sns_neurons_cache_with_progress)
+                .await
+        }
+        Some(("cache", matches)) => run_sns_neuron_cache(matches, network),
         _ => unreachable!("clap requires a known SNS neuron subcommand"),
+    }
+}
+
+fn run_sns_neuron_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => cache::run_cache_list(
+            matches,
+            network,
+            build_sns_neurons_cache_list_report,
+            sns_neurons_cache_list_report_text,
+        ),
+        Some(("status", matches)) => cache::run_cache_status(
+            matches,
+            network,
+            build_sns_neurons_cache_status_report,
+            sns_neurons_cache_status_report_text,
+        ),
+        _ => unreachable!("clap requires a known SNS neuron cache subcommand"),
     }
 }
 
