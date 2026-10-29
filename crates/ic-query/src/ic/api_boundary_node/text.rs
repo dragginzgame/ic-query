@@ -4,7 +4,7 @@
 //! Does not own: JSON serialization, state-tree collection, or report validation.
 //! Boundary: keeps certificate provenance separate from the following node table.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::{REPORT_TABLE_OPTIONS, yes_no};
 use ic_host_text::{
     escape::terminal_text,
     table::{Alignment, render},
@@ -79,8 +79,4 @@ pub fn ic_api_boundary_node_report_text(report: &IcApiBoundaryNodeReport) -> Str
     }
 
     lines.join("\n")
-}
-
-const fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
 }

@@ -4,6 +4,7 @@
 //! Does not own: typed option extraction, live HTTP calls, reports, or output.
 //! Boundary: exposes only explicit ledger and time bounds supported by the official API.
 
+use super::sort::{IcrcAccountSortArg, IcrcHolderSortArg};
 use super::{
     ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, END_ARG, LIMIT_ARG, OWNER_ARG, SORT_BY_ARG, START_ARG,
     STEP_ARG, ledger_canister_id_arg, principal_text_value_parser,
@@ -14,7 +15,7 @@ use crate::cli::{
 };
 use clap::{
     ArgAction, Command as ClapCommand,
-    builder::{PossibleValuesParser, RangedU64ValueParser},
+    builder::{RangedU64ValueParser, ValueParser},
 };
 use ic_query::ic::{
     DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
@@ -216,18 +217,7 @@ pub(in crate::icrc) fn icrc_analytics_account_list_command() -> ClapCommand {
                         .value_parser(principal_text_value_parser())
                         .help("Restrict accounts to one canonical owner principal"),
                 ),
-            &[
-                "id",
-                "-id",
-                "balance",
-                "-balance",
-                "total_transactions",
-                "-total_transactions",
-                "created_timestamp",
-                "-created_timestamp",
-                "owner",
-                "-owner",
-            ],
+            clap::value_parser!(IcrcAccountSortArg).into(),
             "id",
         ),
     )
@@ -245,23 +235,14 @@ pub(in crate::icrc) fn icrc_analytics_holder_list_command() -> ClapCommand {
                 COLLECTION_MODE_LIVE,
                 "Examples:\n  icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --limit 25\n  icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --sort-by=-balance --json",
             )),
-        &[
-            "balance",
-            "-balance",
-            "total_transactions",
-            "-total_transactions",
-            "created_timestamp",
-            "-created_timestamp",
-            "principal",
-            "-principal",
-        ],
+        clap::value_parser!(IcrcHolderSortArg).into(),
         "principal",
     ))
 }
 
 fn index_page_command(
     command: ClapCommand,
-    sort_values: &'static [&'static str],
+    sort_parser: ValueParser,
     default_sort: &'static str,
 ) -> ClapCommand {
     command
@@ -295,7 +276,7 @@ fn index_page_command(
                 .long(SORT_BY_ARG)
                 .value_name("field")
                 .default_value(default_sort)
-                .value_parser(PossibleValuesParser::new(sort_values.iter().copied()))
+                .value_parser(sort_parser)
                 .action(ArgAction::Set)
                 .allow_hyphen_values(true)
                 .help("Stable upstream page sort; a leading '-' selects descending order"),

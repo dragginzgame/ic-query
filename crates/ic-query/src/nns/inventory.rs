@@ -15,7 +15,7 @@ use crate::{
 };
 use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{borrow::Cow, path::PathBuf};
 
 ///
 /// NnsInventoryRefreshReport
@@ -287,19 +287,22 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
     input: &str,
     input_kind: NnsInventoryInputKind,
     exact_source: &'static str,
-    prefix_source: &'static str,
 ) -> Result<(usize, String), NnsInventoryResolveError> {
+    let prefix = input.trim().to_ascii_lowercase();
     let exact = match input_kind {
-        NnsInventoryInputKind::Principal => canonical_principal_text(input).ok(),
-        NnsInventoryInputKind::Text => normalized_text(input),
+        NnsInventoryInputKind::Principal => canonical_principal_text(input).ok().map(Cow::Owned),
+        NnsInventoryInputKind::Text => {
+            (!prefix.is_empty()).then_some(Cow::Borrowed(prefix.as_str()))
+        }
     };
     if let Some(exact) = exact
-        && let Some(index) = rows.iter().position(|row| row.inventory_id() == exact)
+        && let Some(index) = rows
+            .iter()
+            .position(|row| row.inventory_id() == exact.as_ref())
     {
         return Ok((index, exact_source.to_string()));
     }
 
-    let prefix = input.trim().to_ascii_lowercase();
     if prefix.is_empty() {
         return Err(NnsInventoryResolveError::NotFound {
             input: input.to_string(),
@@ -311,7 +314,7 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
         .filter(|(_, row)| row.inventory_id().starts_with(&prefix))
         .collect::<Vec<_>>();
     match matches.as_slice() {
-        [(index, _)] => Ok((*index, prefix_source.to_string())),
+        [(index, _)] => Ok((*index, format!("{exact_source}_prefix"))),
         [] => Err(NnsInventoryResolveError::NotFound {
             input: input.to_string(),
         }),
@@ -323,11 +326,6 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row: NnsInventoryRow>(
                 .collect(),
         }),
     }
-}
-
-fn normalized_text(input: &str) -> Option<String> {
-    let normalized = input.trim().to_ascii_lowercase();
-    (!normalized.is_empty()).then_some(normalized)
 }
 
 #[cfg(test)]
@@ -347,14 +345,13 @@ mod tests {
     fn resolves_normalized_text_exactly_and_principals_by_prefix() {
         let text_rows = [Row("dc1")];
         assert_eq!(
-            resolve_nns_inventory_row(
-                &text_rows,
-                " DC1 ",
-                NnsInventoryInputKind::Text,
-                "id",
-                "prefix",
-            ),
+            resolve_nns_inventory_row(&text_rows, " DC1 ", NnsInventoryInputKind::Text, "id",),
             Ok((0, "id".to_string()))
+        );
+
+        assert_eq!(
+            resolve_nns_inventory_row(&text_rows, " DC ", NnsInventoryInputKind::Text, "id"),
+            Ok((0, "id_prefix".to_string()))
         );
 
         let principal_rows = [Row("ryjl3-tyaaa-aaaaa-aaaba-cai")];
@@ -364,7 +361,6 @@ mod tests {
                 "ryjl",
                 NnsInventoryInputKind::Principal,
                 "principal",
-                "principal_prefix",
             ),
             Ok((0, "principal_prefix".to_string(),))
         );
@@ -374,13 +370,13 @@ mod tests {
     fn preserves_not_found_input_and_ambiguous_matches() {
         let rows = [Row("dc1"), Row("dc2")];
         assert_eq!(
-            resolve_nns_inventory_row(&rows, " ", NnsInventoryInputKind::Text, "id", "prefix",),
+            resolve_nns_inventory_row(&rows, " ", NnsInventoryInputKind::Text, "id",),
             Err(NnsInventoryResolveError::NotFound {
                 input: " ".to_string(),
             })
         );
         assert_eq!(
-            resolve_nns_inventory_row(&rows, "DC", NnsInventoryInputKind::Text, "id", "prefix",),
+            resolve_nns_inventory_row(&rows, "DC", NnsInventoryInputKind::Text, "id",),
             Err(NnsInventoryResolveError::Ambiguous {
                 prefix: "dc".to_string(),
                 matches: vec!["dc1".to_string(), "dc2".to_string()],

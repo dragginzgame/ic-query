@@ -25,7 +25,6 @@ pub(in crate::nns::proposals::report) struct NnsProposalReportProvenance {
     pub(in crate::nns::proposals::report) data_source: ReportDataSource,
     pub(in crate::nns::proposals::report) cache_path: Option<String>,
     pub(in crate::nns::proposals::report) cache_complete: Option<bool>,
-    pub(in crate::nns::proposals::report) result_scope: ReportResultScope,
 }
 
 impl NnsProposalReportProvenance {
@@ -35,7 +34,6 @@ impl NnsProposalReportProvenance {
             data_source: ReportDataSource::Live,
             cache_path: None,
             cache_complete: None,
-            result_scope: ReportResultScope::BoundedLive,
         }
     }
 
@@ -46,7 +44,6 @@ impl NnsProposalReportProvenance {
             data_source: ReportDataSource::Cache,
             cache_path: Some(cache_path.display().to_string()),
             cache_complete: Some(true),
-            result_scope: ReportResultScope::CompleteCache,
         }
     }
 }
@@ -93,7 +90,10 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
             .sort
             .direction_label(request.sort_direction)
             .to_string(),
-        result_scope: provenance.result_scope,
+        result_scope: match provenance.data_source {
+            ReportDataSource::Live => ReportResultScope::BoundedLive,
+            ReportDataSource::Cache => ReportResultScope::CompleteCache,
+        },
         verbose: request.verbose,
         proposal_count: proposals.len(),
         proposals,

@@ -4,12 +4,12 @@
 //! Does not own: HTTP transport, source validation, report rendering, or caching.
 //! Boundary: provider identity means an NNS node-provider principal, not an engine canister.
 
-use super::CloudEngineCommandError;
+use super::{CloudEngineCommandError, report_args};
 use crate::cli::{
     clap::{required_string, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-        source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+        write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -19,6 +19,8 @@ use ic_query::cloud_engine::{
     build_cloud_engine_provider_list_report, cloud_engine_provider_info_report_text,
     cloud_engine_provider_list_report_text,
 };
+
+const SOURCE_ENDPOINT_HELP: &str = "Official Dashboard v3 endpoint used for provider metadata";
 
 const INFO_HELP_AFTER: &str = "\
 Examples:
@@ -92,6 +94,8 @@ fn info_command() -> ClapCommand {
                     .value_name("node-provider-id")
                     .help("Exact NNS node-provider principal; not an engine canister principal"),
             ),
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
 }
@@ -101,15 +105,10 @@ fn list_command() -> ClapCommand {
         ClapCommand::new("list")
             .bin_name("icq cloud-engine provider list")
             .about("List providers carrying explicit CloudEngine evidence"),
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
-}
-
-fn report_args(command: ClapCommand) -> ClapCommand {
-    command.arg(json_arg()).arg(
-        source_endpoint_arg(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official Dashboard v3 endpoint used for provider metadata"),
-    )
 }
 
 #[cfg(test)]

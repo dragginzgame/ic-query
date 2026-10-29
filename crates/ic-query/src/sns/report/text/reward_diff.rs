@@ -6,7 +6,7 @@
 
 use ic_host_text::escape::terminal_text;
 
-use crate::sns::report::SnsRewardDiffReport;
+use crate::{sns::report::SnsRewardDiffReport, text_value::optional_u64_text};
 use std::fmt::Write as _;
 
 const MAX_TEXT_REASONS: usize = 20;
@@ -21,8 +21,8 @@ pub fn sns_reward_diff_report_text(report: &SnsRewardDiffReport) -> String {
         report.before.governance_canister_id,
         report.allocation_status.as_str(),
         report.checkpoint_content_authenticated,
-        optional_u64(report.before.reward_event_end_timestamp_seconds),
-        optional_u64(report.after.reward_event_end_timestamp_seconds),
+        optional_u64_text(report.before.reward_event_end_timestamp_seconds),
+        optional_u64_text(report.after.reward_event_end_timestamp_seconds),
         report.after.reward_event_actual_timestamp_seconds,
         report.distributed_e8s_equivalent,
         optional_i128(report.aggregate_maturity_delta_e8s_equivalent),
@@ -52,10 +52,6 @@ pub fn sns_reward_diff_report_text(report: &SnsRewardDiffReport) -> String {
         );
     }
     text
-}
-
-fn optional_u64(value: Option<u64>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| value.to_string())
 }
 
 fn optional_i128(value: Option<i128>) -> String {

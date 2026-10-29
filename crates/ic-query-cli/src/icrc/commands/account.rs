@@ -4,6 +4,7 @@
 //! Does not own: typed option extraction, command dispatch, report construction, or output.
 //! Boundary: keeps live account queries and explicit history collection modes under one family.
 
+use super::sort::IcrcAccountTransactionSortArg;
 use super::{
     DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE, DEFAULT_ICRC_TRANSACTIONS_LIMIT,
     INDEX_CANISTER_ID_ARG, LIMIT_ARG, MAX_ICRC_TRANSACTIONS_LIMIT, MAX_PAGES_ARG,
@@ -146,7 +147,7 @@ pub(in crate::icrc) fn icrc_account_transaction_list_command() -> ClapCommand {
                 .long(SORT_ARG)
                 .value_name("newest|oldest")
                 .default_value("newest")
-                .value_parser(["newest", "oldest"])
+                .value_parser(clap::value_parser!(IcrcAccountTransactionSortArg))
                 .help("Cached transaction ordering"),
         );
     with_common_icrc_options(command)

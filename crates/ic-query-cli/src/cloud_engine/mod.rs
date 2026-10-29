@@ -33,6 +33,8 @@ use ic_query::subnet_catalog::{
 use std::io;
 use thiserror::Error as ThisError;
 
+const SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for native CloudEngine queries";
+
 const INFO_HELP_AFTER: &str = "\
 Examples:
   icq cloud-engine info 2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe
@@ -195,6 +197,8 @@ fn list_command() -> ClapCommand {
                     .default_value(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
                     .help("IC API endpoint used to refresh the Registry Subnet Catalog"),
             ),
+        DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(LIST_COLLECTION_MODE, LIST_HELP_AFTER))
 }
@@ -210,6 +214,8 @@ fn info_command() -> ClapCommand {
                     .value_name("subnet-id")
                     .help("CloudEngine Subnet principal to resolve"),
             ),
+        DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
 }
@@ -219,15 +225,20 @@ fn prices_command() -> ClapCommand {
         ClapCommand::new("prices")
             .bin_name("icq cloud-engine prices")
             .about("Show the public CloudEngine network fee and marketplace prices"),
+        DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, PRICES_HELP_AFTER))
 }
 
-fn report_args(command: ClapCommand) -> ClapCommand {
-    command.arg(json_arg()).arg(
-        source_endpoint_arg(DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT)
-            .help("IC API endpoint used for native CloudEngine queries"),
-    )
+fn report_args(
+    command: ClapCommand,
+    endpoint: &'static str,
+    source_help: &'static str,
+) -> ClapCommand {
+    command
+        .arg(json_arg())
+        .arg(source_endpoint_arg(endpoint).help(source_help))
 }
 
 const REGISTRY_SOURCE_ENDPOINT_ARG: &str = "registry-source-endpoint";

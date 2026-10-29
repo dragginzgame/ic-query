@@ -15,12 +15,12 @@ pub(super) async fn run_catalog_list(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = CatalogListOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.common.format;
     let verbose = options.verbose;
-    let cache = cache_request(&options.network)?;
+    let cache = cache_request(&options.common.network)?;
     let request = SubnetCatalogListRequest::new(
         cache,
-        options.source_endpoint,
+        options.common.source_endpoint,
         current_unix_secs()?,
         DEFAULT_STALE_AFTER_SECONDS,
     )

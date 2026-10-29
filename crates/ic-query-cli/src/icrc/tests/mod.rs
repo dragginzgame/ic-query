@@ -423,6 +423,57 @@ fn analytics_account_list_options_preserve_cursor_owner_and_descending_sort() {
 }
 
 #[test]
+fn analytics_sort_values_preserve_official_spelling_and_reject_unknown_values() {
+    for value in [
+        "id",
+        "-id",
+        "balance",
+        "-balance",
+        "total_transactions",
+        "-total_transactions",
+        "created_timestamp",
+        "-created_timestamp",
+        "owner",
+        "-owner",
+    ] {
+        let options = parse_test_options(
+            icrc_analytics_account_list_command(),
+            &[LEDGER_CANISTER_ID, "--sort-by", value],
+            IcrcAnalyticsAccountListOptions::from_matches,
+        );
+        assert_eq!(options.sort_by.as_api_value(), value);
+    }
+    for value in [
+        "balance",
+        "-balance",
+        "total_transactions",
+        "-total_transactions",
+        "created_timestamp",
+        "-created_timestamp",
+        "principal",
+        "-principal",
+    ] {
+        let options = parse_test_options(
+            icrc_analytics_holder_list_command(),
+            &[LEDGER_CANISTER_ID, "--sort-by", value],
+            IcrcAnalyticsHolderListOptions::from_matches,
+        );
+        assert_eq!(options.sort_by.as_api_value(), value);
+    }
+    for command in [
+        icrc_analytics_account_list_command(),
+        icrc_analytics_holder_list_command(),
+    ] {
+        let error = parse_matches(
+            command,
+            [LEDGER_CANISTER_ID, "--sort-by", "invalid"].map(std::ffi::OsString::from),
+        )
+        .expect_err("unknown sort value must fail in Clap");
+        assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
+    }
+}
+
+#[test]
 fn analytics_holder_list_and_account_info_options_use_operation_specific_contracts() {
     let holder = parse_test_options(
         icrc_analytics_holder_list_command(),

@@ -9,6 +9,7 @@ mod analytics;
 mod dispatch;
 mod ledger;
 mod options;
+mod sort;
 #[cfg(test)]
 pub(in crate::icrc) use account::{
     command as icrc_account_command, icrc_account_transaction_cache_command,

@@ -1,7 +1,6 @@
 use crate::{
     cli::clap::{required_string, required_typed, typed_option},
-    cli::common::output_format,
-    nns::OutputFormat,
+    nns::leaf::NnsCommonOptions,
 };
 use clap::ArgMatches;
 use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
@@ -14,9 +13,7 @@ use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct CatalogListOptions {
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
     pub(in crate::nns) filters: SubnetCatalogFilters,
     pub(in crate::nns) show_ranges: bool,
     pub(in crate::nns) verbose: bool,
@@ -33,18 +30,14 @@ pub(in crate::nns) struct CatalogListOptions {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::nns) struct CatalogInfoOptions {
     pub(in crate::nns) input: String,
-    pub(in crate::nns) network: String,
-    pub(in crate::nns) format: OutputFormat,
-    pub(in crate::nns) source_endpoint: String,
+    pub(in crate::nns) common: NnsCommonOptions,
     pub(in crate::nns) forced: Option<ResolveAs>,
 }
 
 impl CatalogListOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
-            network: network.to_string(),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            common: NnsCommonOptions::from_matches(matches, network),
             filters: SubnetCatalogFilters {
                 kind: typed_option(matches, "kind"),
                 specialization: typed_option(matches, "specialization"),
@@ -62,9 +55,7 @@ impl CatalogInfoOptions {
     pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
         Self {
             input: required_string(matches, "input"),
-            network: network.to_string(),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
+            common: NnsCommonOptions::from_matches(matches, network),
             forced: typed_option(matches, "as"),
         }
     }

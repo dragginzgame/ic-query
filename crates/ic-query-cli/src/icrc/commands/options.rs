@@ -4,6 +4,7 @@
 //! Does not own: command dispatch, report construction, or output.
 //! Boundary: validates command arguments before dispatch constructs public requests.
 
+use super::sort::{IcrcAccountSortArg, IcrcAccountTransactionSortArg, IcrcHolderSortArg};
 use super::{
     ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG,
     INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_ARG,
@@ -44,19 +45,7 @@ impl IcrcAnalyticsAccountListOptions {
             after: string_option(matches, AFTER_ARG),
             before: string_option(matches, BEFORE_ARG),
             limit: required_typed(matches, LIMIT_ARG),
-            sort_by: match required_string(matches, SORT_BY_ARG).as_str() {
-                "id" => IcIcrcAccountSort::Id,
-                "-id" => IcIcrcAccountSort::IdDescending,
-                "balance" => IcIcrcAccountSort::Balance,
-                "-balance" => IcIcrcAccountSort::BalanceDescending,
-                "total_transactions" => IcIcrcAccountSort::TotalTransactions,
-                "-total_transactions" => IcIcrcAccountSort::TotalTransactionsDescending,
-                "created_timestamp" => IcIcrcAccountSort::CreatedTimestamp,
-                "-created_timestamp" => IcIcrcAccountSort::CreatedTimestampDescending,
-                "owner" => IcIcrcAccountSort::Owner,
-                "-owner" => IcIcrcAccountSort::OwnerDescending,
-                _ => unreachable!("Clap restricts ICRC account sort values"),
-            },
+            sort_by: required_typed::<IcrcAccountSortArg>(matches, SORT_BY_ARG).into(),
         }
     }
 }
@@ -104,17 +93,7 @@ impl IcrcAnalyticsHolderListOptions {
             after: string_option(matches, AFTER_ARG),
             before: string_option(matches, BEFORE_ARG),
             limit: required_typed(matches, LIMIT_ARG),
-            sort_by: match required_string(matches, SORT_BY_ARG).as_str() {
-                "balance" => IcIcrcHolderSort::Balance,
-                "-balance" => IcIcrcHolderSort::BalanceDescending,
-                "total_transactions" => IcIcrcHolderSort::TotalTransactions,
-                "-total_transactions" => IcIcrcHolderSort::TotalTransactionsDescending,
-                "created_timestamp" => IcIcrcHolderSort::CreatedTimestamp,
-                "-created_timestamp" => IcIcrcHolderSort::CreatedTimestampDescending,
-                "principal" => IcIcrcHolderSort::Principal,
-                "-principal" => IcIcrcHolderSort::PrincipalDescending,
-                _ => unreachable!("Clap restricts ICRC holder sort values"),
-            },
+            sort_by: required_typed::<IcrcHolderSortArg>(matches, SORT_BY_ARG).into(),
         }
     }
 }
@@ -317,15 +296,10 @@ pub(in crate::icrc) struct IcrcAccountTransactionListOptions {
 
 impl IcrcAccountTransactionListOptions {
     pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        let sort = match required_string(matches, SORT_ARG).as_str() {
-            "newest" => IcrcAccountTransactionSort::Newest,
-            "oldest" => IcrcAccountTransactionSort::Oldest,
-            _ => unreachable!("Clap restricts account transaction sort values"),
-        };
         Self {
             target: IcrcAccountOptions::from_matches(matches),
             limit: required_typed(matches, LIMIT_ARG),
-            sort,
+            sort: required_typed::<IcrcAccountTransactionSortArg>(matches, SORT_ARG).into(),
         }
     }
 }

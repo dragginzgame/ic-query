@@ -4,12 +4,12 @@
 //! Does not own: HTTP transport, source validation, report rendering, or caching.
 //! Boundary: requests the explicit Type4 and complete current status scope.
 
-use super::CloudEngineCommandError;
+use super::{CloudEngineCommandError, report_args};
 use crate::cli::{
     clap::{required_string, string_option, value_arg},
     common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-        source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+        write_text_or_json,
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
@@ -19,6 +19,9 @@ use ic_query::cloud_engine::{
     build_cloud_engine_node_list_report, cloud_engine_node_info_report_text,
     cloud_engine_node_list_report_text,
 };
+
+const SOURCE_ENDPOINT_HELP: &str =
+    "Official Dashboard v3 endpoint used for Type4 node observations";
 
 const INFO_HELP_AFTER: &str = "\
 Examples:
@@ -95,6 +98,8 @@ fn info_command() -> ClapCommand {
                     .value_name("node-id")
                     .help("Exact CloudEngine Type4 node principal"),
             ),
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
 }
@@ -110,15 +115,10 @@ fn list_command() -> ClapCommand {
                     .value_name("principal")
                     .help("Restrict the remote query to one exact node-provider principal"),
             ),
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+        SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
-}
-
-fn report_args(command: ClapCommand) -> ClapCommand {
-    command.arg(json_arg()).arg(
-        source_endpoint_arg(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official Dashboard v3 endpoint used for Type4 node observations"),
-    )
 }
 
 #[cfg(test)]

@@ -18,7 +18,6 @@ pub(super) fn resolve_node_provider(
         input,
         NnsInventoryInputKind::Principal,
         "node_provider_principal",
-        "node_provider_principal_prefix",
     )
     .map_err(|error| match error {
         NnsInventoryResolveError::NotFound { input } => {

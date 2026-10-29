@@ -7,10 +7,10 @@ fn list_defaults_to_mainnet_ic_catalog() {
     let options = parse_test_options(list_command(), &[], CatalogListOptions::from_matches)
         .expect("parse list");
 
-    assert_eq!(options.network, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Text);
+    assert_eq!(options.common.network, MAINNET_NETWORK);
+    assert_eq!(options.common.format, OutputFormat::Text);
     assert_eq!(
-        options.source_endpoint,
+        options.common.source_endpoint,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
     assert_eq!(options.range_limit, 50);
@@ -47,9 +47,9 @@ fn list_parses_filters_and_json_format() {
         options.filters.geographic_scope,
         Some(GeographicScope::Global)
     );
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.common.format, OutputFormat::Json);
     assert_eq!(
-        options.source_endpoint,
+        options.common.source_endpoint,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
     assert!(options.show_ranges);

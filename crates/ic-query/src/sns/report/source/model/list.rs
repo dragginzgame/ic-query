@@ -31,6 +31,25 @@ impl EnrichmentKind {
             ),
         }
     }
+    fn validate_text(
+        self,
+        root_canister_id: &str,
+        field: &'static str,
+        value: &str,
+    ) -> Result<(), SnsHostError> {
+        let (kind, _, validator) = self.context();
+        if value.trim().is_empty() {
+            return Err(
+                validator.invalid(format!("{kind} {field} for {root_canister_id} is empty"))
+            );
+        }
+        if value.trim() != value {
+            return Err(validator.invalid(format!(
+                "{kind} {field} for {root_canister_id} has surrounding whitespace"
+            )));
+        }
+        Ok(())
+    }
 }
 
 ///
@@ -233,7 +252,11 @@ pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
                 sns.canisters.root_canister_id
             )));
         }
-        validate_metadata_text(&sns.canisters.root_canister_id, "name", &sns.name)?;
+        EnrichmentKind::Metadata.validate_text(
+            &sns.canisters.root_canister_id,
+            "name",
+            &sns.name,
+        )?;
         validate_optional_metadata_text(
             &sns.canisters.root_canister_id,
             "description",
@@ -295,7 +318,11 @@ fn index_mainnet_sns_metadata(
                 validate_optional_metadata_text(&row.root_canister_id, field, value)?;
             }
             if let Some(error) = row.metadata_error.as_deref() {
-                validate_metadata_text(&row.root_canister_id, "metadata_error", error)?;
+                EnrichmentKind::Metadata.validate_text(
+                    &row.root_canister_id,
+                    "metadata_error",
+                    error,
+                )?;
                 if row.name.is_some() || row.description.is_some() || row.url.is_some() {
                     return Err(METADATA_VALIDATOR.invalid(format!(
                         "metadata for {} contains both payload fields and metadata_error",
@@ -370,7 +397,7 @@ fn validate_lifecycle_fields(
     lifecycle_error: Option<&str>,
 ) -> Result<(), SnsHostError> {
     if let Some(error) = lifecycle_error {
-        validate_lifecycle_text(root_canister_id, "lifecycle_error", error)?;
+        EnrichmentKind::Lifecycle.validate_text(root_canister_id, "lifecycle_error", error)?;
         if lifecycle.is_some() {
             return Err(LIFECYCLE_VALIDATOR.invalid(format!(
                 "lifecycle for {root_canister_id} contains both value fields and lifecycle_error"
@@ -392,42 +419,7 @@ fn validate_optional_metadata_text(
     value: Option<&str>,
 ) -> Result<(), SnsHostError> {
     if let Some(value) = value {
-        validate_metadata_text(root_canister_id, field, value)?;
-    }
-    Ok(())
-}
-
-fn validate_metadata_text(
-    root_canister_id: &str,
-    field: &'static str,
-    value: &str,
-) -> Result<(), SnsHostError> {
-    if value.trim().is_empty() {
-        return Err(
-            METADATA_VALIDATOR.invalid(format!("metadata {field} for {root_canister_id} is empty"))
-        );
-    }
-    if value.trim() != value {
-        return Err(METADATA_VALIDATOR.invalid(format!(
-            "metadata {field} for {root_canister_id} has surrounding whitespace"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_lifecycle_text(
-    root_canister_id: &str,
-    field: &'static str,
-    value: &str,
-) -> Result<(), SnsHostError> {
-    if value.trim().is_empty() {
-        return Err(LIFECYCLE_VALIDATOR
-            .invalid(format!("lifecycle {field} for {root_canister_id} is empty")));
-    }
-    if value.trim() != value {
-        return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-            "lifecycle {field} for {root_canister_id} has surrounding whitespace"
-        )));
+        EnrichmentKind::Metadata.validate_text(root_canister_id, field, value)?;
     }
     Ok(())
 }

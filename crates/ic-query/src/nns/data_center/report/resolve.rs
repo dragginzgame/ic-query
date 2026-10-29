@@ -18,7 +18,6 @@ pub(super) fn resolve_data_center(
         input,
         NnsInventoryInputKind::Text,
         "data_center_id",
-        "data_center_id_prefix",
     )
     .map_err(|error| match error {
         NnsInventoryResolveError::NotFound { input } => {

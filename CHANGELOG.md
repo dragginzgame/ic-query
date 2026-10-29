@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.12]
+
+### 🔧 Changed
+
+- Adopt IC Metrics 0.17.1 and IC Platform 0.7.6, preserving report formats,
+  numeric behavior and bounded Candid decoding policy.
+
+### 🧹 Cleanup
+
+- Consolidate CLI option parsing and report setup while preserving supported
+  sort values, defaults, help text and diagnostics.
+- Simplify SNS report construction and validation, inventory lookup and proposal
+  provenance. Public APIs, report fields and stored formats remain unchanged.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.11] - 2026-10-29
 
 ### 🧹 Cleanup

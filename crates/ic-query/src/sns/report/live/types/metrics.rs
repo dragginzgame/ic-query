@@ -98,12 +98,7 @@ pub(in crate::sns::report::live) struct MetricsWire {
 /// Native SNS Governance metrics result variant.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) enum GetMetricsResult {
-    Ok(MetricsWire),
-    Err(SnsGovernanceError),
-}
+pub(in crate::sns::report::live) type GetMetricsResult = Result<MetricsWire, SnsGovernanceError>;
 
 ///
 /// GetMetricsResponse

@@ -15,11 +15,11 @@ pub(super) async fn run_catalog_info(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = CatalogInfoOptions::from_matches(matches, network);
-    let format = options.format;
-    let cache = cache_request(&options.network)?;
+    let format = options.common.format;
+    let cache = cache_request(&options.common.network)?;
     let mut request = SubnetCatalogInfoRequest::new(
         cache,
-        options.source_endpoint,
+        options.common.source_endpoint,
         options.input,
         current_unix_secs()?,
         DEFAULT_STALE_AFTER_SECONDS,
