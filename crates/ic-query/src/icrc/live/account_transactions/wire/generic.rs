@@ -334,7 +334,7 @@ mod tests {
 
     #[test]
     fn every_operation_preserves_exact_decimal_blob_and_nullable_json_fields() {
-        let response = every_operation_response();
+        let response = IcrcIndexTransactionsResult::Ok(every_operation_transactions());
         let bytes = ic_platform::candid::contract::encode_one(&response).unwrap();
         let page = decode(&bytes, &Principal::management_canister())
             .unwrap()
@@ -465,7 +465,7 @@ mod tests {
         assert_eq!(row.raw_transaction["transfer"], JsonValue::Null);
     }
 
-    fn every_operation_response() -> IcrcIndexTransactionsResult {
+    fn every_operation_transactions() -> IcrcIndexTransactions {
         let amount = Nat::parse(b"3402823669209384634633746074317682114561234").unwrap();
         let from = LedgerAccount {
             owner: Principal::anonymous(),
@@ -535,13 +535,13 @@ mod tests {
                 reason: None,
             }),
         };
-        IcrcIndexTransactionsResult::Ok(IcrcIndexTransactions {
+        IcrcIndexTransactions {
             balance: amount.clone(),
             transactions: vec![IcrcIndexTransactionWithId {
                 id: amount,
                 transaction,
             }],
             oldest_tx_id: None,
-        })
+        }
     }
 }
