@@ -4,9 +4,10 @@
 //! Does not own: command parsing, live wire decoding, or text rendering.
 //! Boundary: validates the id, resolves one SNS, fetches one neuron, and validates source evidence.
 
+use crate::report::ReportDataSource;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronDetailReport, SnsNeuronRequest,
-    assemble::{SnsNeuronDetailReportParts, sns_neuron_detail_report_from_parts},
+    MAINNET_SNS_WASM_CANISTER_ID, SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION, SnsHostError,
+    SnsNeuronDetailReport, SnsNeuronRequest,
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     source::{SnsNeuronSource, sns_neuron_id_from_text, validate_mainnet_sns_neuron},
@@ -30,12 +31,19 @@ pub async fn build_sns_neuron_detail_report_with_source(
         .fetch_sns_neuron(&lookup.fetch_request, &lookup.sns, &request.neuron_id)
         .await?;
     validate_mainnet_sns_neuron(&neuron, &request.neuron_id)?;
-    Ok(sns_neuron_detail_report_from_parts(
-        SnsNeuronDetailReportParts {
-            fetch_request: lookup.fetch_request,
-            sns: lookup.sns,
-            neuron_id: request.neuron_id.clone(),
-            neuron,
-        },
-    ))
+    Ok(SnsNeuronDetailReport {
+        schema_version: SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION,
+        network: lookup.fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        fetched_at: lookup.fetch_request.fetched_at,
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
+        governance_canister_id: lookup.sns.canisters.governance_canister_id,
+        neuron_id: request.neuron_id.clone(),
+        data_source: ReportDataSource::Live,
+        detail: neuron,
+    })
 }

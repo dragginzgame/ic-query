@@ -27,12 +27,5 @@ pub(super) fn catalog_cycles_per_billion(subnet: &SubnetInfo) -> Option<u128> {
     if node_count == 0 {
         return None;
     }
-    Some(ceil_div(
-        BASE_13_NODE_CYCLES_PER_BILLION_INSTRUCTIONS * node_count,
-        13,
-    ))
-}
-
-const fn ceil_div(numerator: u128, denominator: u128) -> u128 {
-    numerator.div_ceil(denominator)
+    Some((BASE_13_NODE_CYCLES_PER_BILLION_INSTRUCTIONS * node_count).div_ceil(13))
 }

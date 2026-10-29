@@ -97,11 +97,7 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
     source: &dyn NnsNodeProviderSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
-    let list_request = NnsInventoryListRequest {
-        cache: request.cache.clone(),
-        source_endpoint: request.source_endpoint.clone(),
-        now_unix_secs: request.now_unix_secs,
-    };
+    let list_request = request.to_list_request();
     let mut report = build_nns_node_provider_list_report_with_source_and_progress(
         &list_request,
         source,

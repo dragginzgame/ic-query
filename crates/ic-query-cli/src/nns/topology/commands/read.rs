@@ -4,54 +4,6 @@ use crate::{
 };
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
-const TOPOLOGY_SUMMARY_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology summary
-  icq --network ic nns topology summary --json
-  icq nns topology summary --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_COVERAGE_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology coverage
-  icq --network ic nns topology coverage --json
-  icq nns topology coverage --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_VERSIONS_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology versions
-  icq --network ic nns topology versions --json
-  icq nns topology versions --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_CHECK_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology check
-  icq --network ic nns topology check --json
-  icq nns topology check --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_GAPS_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology gaps
-  icq --network ic nns topology gaps --json
-  icq nns topology gaps --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_CAPACITY_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology capacity
-  icq --network ic nns topology capacity --json
-  icq nns topology capacity --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_REGIONS_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology regions
-  icq --network ic nns topology regions --json
-  icq nns topology regions --source-endpoint https://icp-api.io";
-
-const TOPOLOGY_PROVIDERS_HELP_AFTER: &str = "\
-Examples:
-  icq nns topology providers
-  icq --network ic nns topology providers --json
-  icq nns topology providers --source-endpoint https://icp-api.io";
-
 const TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP: &str =
     "IC API endpoint used if a topology component cache is missing";
 const TOPOLOGY_OPERATOR_CACHE_SOURCE_HELP: &str =
@@ -64,7 +16,6 @@ pub(in crate::nns) fn topology_summary_command() -> clap::Command {
         "summary",
         "Summarize cached mainnet NNS topology reports",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_SUMMARY_HELP_AFTER,
     )
 }
 
@@ -73,7 +24,6 @@ pub(in crate::nns) fn topology_coverage_command() -> clap::Command {
         "coverage",
         "Show cached mainnet NNS topology join coverage",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_COVERAGE_HELP_AFTER,
     )
 }
 
@@ -82,7 +32,6 @@ pub(in crate::nns) fn topology_versions_command() -> clap::Command {
         "versions",
         "Show cached mainnet NNS topology component registry versions",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_VERSIONS_HELP_AFTER,
     )
 }
 
@@ -91,7 +40,6 @@ pub(in crate::nns) fn topology_check_command() -> clap::Command {
         "check",
         "Check cached mainnet NNS topology consistency",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_CHECK_HELP_AFTER,
     )
 }
 
@@ -100,7 +48,6 @@ pub(in crate::nns) fn topology_gaps_command() -> clap::Command {
         "gaps",
         "List cached mainnet NNS topology join gaps",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_GAPS_HELP_AFTER,
     )
 }
 
@@ -109,7 +56,6 @@ pub(in crate::nns) fn topology_capacity_command() -> clap::Command {
         "capacity",
         "Show cached mainnet NNS node-operator capacity",
         TOPOLOGY_OPERATOR_CACHE_SOURCE_HELP,
-        TOPOLOGY_CAPACITY_HELP_AFTER,
     )
 }
 
@@ -118,7 +64,6 @@ pub(in crate::nns) fn topology_regions_command() -> clap::Command {
         "regions",
         "Summarize cached mainnet NNS topology by region",
         TOPOLOGY_DATA_CENTER_CACHE_SOURCE_HELP,
-        TOPOLOGY_REGIONS_HELP_AFTER,
     )
 }
 
@@ -127,7 +72,6 @@ pub(in crate::nns) fn topology_providers_command() -> clap::Command {
         "providers",
         "Summarize cached mainnet NNS topology by node provider",
         TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP,
-        TOPOLOGY_PROVIDERS_HELP_AFTER,
     )
 }
 
@@ -135,8 +79,14 @@ fn topology_read_command(
     name: &'static str,
     about: &'static str,
     source_help: &'static str,
-    after_help: &'static str,
 ) -> clap::Command {
+    let examples = format!(
+        "\
+Examples:
+  icq nns topology {name}
+  icq --network ic nns topology {name} --json
+  icq nns topology {name} --source-endpoint https://icp-api.io"
+    );
     clap::Command::new(name)
         .bin_name(format!("icq nns topology {name}"))
         .about(about)
@@ -144,6 +94,6 @@ fn topology_read_command(
         .arg(leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT).help(source_help))
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_REFRESH_MISSING,
-            after_help,
+            &examples,
         ))
 }

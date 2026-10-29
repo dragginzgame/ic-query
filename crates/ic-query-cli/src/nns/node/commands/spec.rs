@@ -39,6 +39,4 @@ pub(in crate::nns) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     read_source_help: "IC API endpoint used if the node cache is missing",
     refresh_source_help: "IC API endpoint used for native NNS registry queries",
     verbose_help: "Show full node principals and registry metadata in text output",
-    dry_run_help: "Fetch and validate without replacing the cached node report",
-    output_help: "Also write the fetched node JSON to this path",
 };

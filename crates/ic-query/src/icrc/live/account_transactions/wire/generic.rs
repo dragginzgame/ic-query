@@ -19,12 +19,7 @@ use crate::{
 use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
 use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-enum IcrcIndexTransactionsResult {
-    Ok(IcrcIndexTransactions),
-    Err(IcrcIndexTransactionsError),
-}
+type IcrcIndexTransactionsResult = Result<IcrcIndexTransactions, IcrcIndexTransactionsError>;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
@@ -153,15 +148,10 @@ fn account_transactions_page(
     result: IcrcIndexTransactionsResult,
     index_canister: &Principal,
 ) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
-    let transactions = match result {
-        IcrcIndexTransactionsResult::Ok(transactions) => transactions,
-        IcrcIndexTransactionsResult::Err(error) => {
-            return Err(IcrcAccountTransactionError::IndexQuery {
-                index_canister_id: index_canister.to_text(),
-                message: error.message,
-            });
-        }
-    };
+    let transactions = result.map_err(|error| IcrcAccountTransactionError::IndexQuery {
+        index_canister_id: index_canister.to_text(),
+        message: error.message,
+    })?;
     Ok(AccountTransactionsPage {
         balance: nat_text(&transactions.balance),
         oldest_transaction_id: transactions.oldest_tx_id.as_ref().map(nat_text),

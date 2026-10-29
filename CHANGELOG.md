@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.75.11]
+
+### 🧹 Cleanup
+
+- Simplify CLI dispatch, help metadata and report construction while preserving
+  supported commands, diagnostics, public APIs and report formats.
+- Reduce duplicate index-result handling and inventory request conversion,
+  retaining the separate ICP and generic ICRC wire protocols.
+
+Detailed release notes: [docs/changelog/0.75.md](docs/changelog/0.75.md)
+
 ## [0.75.10] - 2026-10-29
 
 ### 🔧 Changed

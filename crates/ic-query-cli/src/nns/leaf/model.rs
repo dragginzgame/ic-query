@@ -22,8 +22,6 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
     pub(in crate::nns) read_source_help: &'static str,
     pub(in crate::nns) refresh_source_help: &'static str,
     pub(in crate::nns) verbose_help: &'static str,
-    pub(in crate::nns) dry_run_help: &'static str,
-    pub(in crate::nns) output_help: &'static str,
 }
 
 impl NnsLeafCommandSpec {

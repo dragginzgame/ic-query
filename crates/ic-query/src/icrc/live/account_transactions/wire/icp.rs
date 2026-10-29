@@ -16,12 +16,7 @@ use crate::{
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 use serde::{Serialize, Serializer};
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-enum IcpIndexTransactionsResult {
-    Ok(IcpIndexTransactions),
-    Err(IcpIndexTransactionsError),
-}
+type IcpIndexTransactionsResult = Result<IcpIndexTransactions, IcpIndexTransactionsError>;
 
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
@@ -110,15 +105,10 @@ fn account_transactions_page(
     result: IcpIndexTransactionsResult,
     index_canister: &Principal,
 ) -> Result<AccountTransactionsPage, IcrcAccountTransactionError> {
-    let transactions = match result {
-        IcpIndexTransactionsResult::Ok(transactions) => transactions,
-        IcpIndexTransactionsResult::Err(error) => {
-            return Err(IcrcAccountTransactionError::IndexQuery {
-                index_canister_id: index_canister.to_text(),
-                message: error.message,
-            });
-        }
-    };
+    let transactions = result.map_err(|error| IcrcAccountTransactionError::IndexQuery {
+        index_canister_id: index_canister.to_text(),
+        message: error.message,
+    })?;
     Ok(AccountTransactionsPage {
         balance: transactions.balance.to_string(),
         oldest_transaction_id: transactions.oldest_tx_id.map(|id| id.to_string()),

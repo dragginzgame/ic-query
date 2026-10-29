@@ -36,6 +36,4 @@ pub(in crate::nns) const NODE_OPERATOR_SPEC: NnsLeafCommandSpec = NnsLeafCommand
     read_source_help: "IC API endpoint used if the node-operator cache is missing",
     refresh_source_help: "IC API endpoint used for native NNS registry queries",
     verbose_help: "Show full node-operator principals and registry metadata in text output",
-    dry_run_help: "Fetch and validate without replacing the cached node-operator report",
-    output_help: "Also write the fetched node-operator JSON to this path",
 };

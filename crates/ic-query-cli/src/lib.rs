@@ -18,6 +18,9 @@ use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
 
+const ENDPOINT_NETWORK_ADVICE: &str =
+    "use the command's --source-endpoint option to select its API endpoint";
+
 const TOP_LEVEL_HELP_TEMPLATE: &str = "{name} {version}\n{about-with-newline}\n{usage-heading} {usage}\n\nCommands:\n{subcommands}\n\nOptions:\n{options}{after-help}\n";
 
 ///
@@ -148,16 +151,28 @@ where
 
     match command {
         "cache" => {
-            reject_network_for_local_family(command, selected_network.as_deref())?;
+            reject_network_option(
+                command,
+                selected_network.as_deref(),
+                "this command inspects every network under the local cache root",
+            )?;
             Ok(cache::run_matches(matches)?)
         }
         "cloud-engine" => Ok(cloud_engine::run_matches(matches, network).await?),
         "ic" => {
-            reject_network_for_endpoint_family(command, selected_network.as_deref())?;
+            reject_network_option(
+                command,
+                selected_network.as_deref(),
+                ENDPOINT_NETWORK_ADVICE,
+            )?;
             Ok(ic::run_matches(matches).await?)
         }
         "icrc" => {
-            reject_network_for_endpoint_family(command, selected_network.as_deref())?;
+            reject_network_option(
+                command,
+                selected_network.as_deref(),
+                ENDPOINT_NETWORK_ADVICE,
+            )?;
             Ok(icrc::run_matches(matches).await?)
         }
         "nns" => Ok(nns::run_matches(matches, network).await?),
@@ -167,28 +182,16 @@ where
     }
 }
 
-fn reject_network_for_endpoint_family(
+fn reject_network_option(
     command: &str,
     selected_network: Option<&str>,
+    explanation: &str,
 ) -> Result<(), IcqCliError> {
     if selected_network.is_none() {
         return Ok(());
     }
     Err(IcqCliError::Usage(format!(
-        "--network is not supported by `icq {command}`; use the command's --source-endpoint option to select its API endpoint\n\n{}",
-        usage()
-    )))
-}
-
-fn reject_network_for_local_family(
-    command: &str,
-    selected_network: Option<&str>,
-) -> Result<(), IcqCliError> {
-    if selected_network.is_none() {
-        return Ok(());
-    }
-    Err(IcqCliError::Usage(format!(
-        "--network is not supported by `icq {command}`; this command inspects every network under the local cache root\n\n{}",
+        "--network is not supported by `icq {command}`; {explanation}\n\n{}",
         usage()
     )))
 }

@@ -4,26 +4,19 @@
 //! Does not own: SNS list report sorting or command runtime behavior.
 //! Boundary: converts CLI sort values into report-model sort values.
 
-use clap::ValueEnum;
+use crate::cli::value_enum_with_conversion;
 use ic_query::sns::SnsListSort;
 
-///
-/// SnsListSortArg
-///
-/// Command-local clap value accepted by `icq sns list --sort`.
-///
+value_enum_with_conversion! {
+    ///
+    /// SnsListSortArg
+    ///
+    /// Command-local clap value accepted by `icq sns list --sort`.
+    ///
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
-pub(in crate::sns::commands) enum SnsListSortArg {
-    Id,
-    Name,
-}
-
-impl From<SnsListSortArg> for SnsListSort {
-    fn from(value: SnsListSortArg) -> Self {
-        match value {
-            SnsListSortArg::Id => Self::Id,
-            SnsListSortArg::Name => Self::Name,
-        }
+    pub(in crate::sns::commands) enum SnsListSortArg => SnsListSort {
+        #[default]
+        Id,
+        Name,
     }
 }

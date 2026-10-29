@@ -6,7 +6,6 @@
 
 mod canisters;
 mod list;
-mod neuron;
 mod neurons;
 mod proposals;
 mod provenance;
@@ -14,7 +13,6 @@ mod reward;
 
 pub(super) use canisters::sns_canister_report_from_parts;
 pub(super) use list::{sns_info_report_from_parts, sns_list_report_from_list};
-pub(super) use neuron::{SnsNeuronDetailReportParts, sns_neuron_detail_report_from_parts};
 pub(super) use neurons::sns_neurons_report_from_rows;
 pub(super) use proposals::{sns_proposal_report_from_parts, sns_proposals_report_from_parts};
 pub(super) use provenance::{SnsReportContext, SnsReportProvenance};

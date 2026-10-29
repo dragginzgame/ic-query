@@ -193,3 +193,29 @@ pub fn max_pages_arg() -> clap::Arg {
         .value_name("count")
         .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
 }
+
+/// Build a bounded row limit while the command family owns its default and maximum.
+pub fn page_limit_arg(default: &'static str, maximum: u16) -> clap::Arg {
+    value_arg("limit")
+        .long("limit")
+        .value_name("rows")
+        .default_value(default)
+        .value_parser(RangedU64ValueParser::<u16>::new().range(1..=u64::from(maximum)))
+}
+
+/// Build an explicit zero-based offset for a single Dashboard page.
+pub fn page_offset_arg() -> clap::Arg {
+    value_arg("offset")
+        .long("offset")
+        .value_name("rows")
+        .default_value("0")
+        .value_parser(clap::value_parser!(u64))
+}
+
+/// Build the optional index ceiling selected by a Dashboard command family.
+pub fn index_ceiling_arg(name: &'static str) -> clap::Arg {
+    value_arg(name)
+        .long(name)
+        .value_name("index")
+        .value_parser(clap::value_parser!(u64))
+}

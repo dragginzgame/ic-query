@@ -8,72 +8,7 @@ use clap::ArgMatches;
 use ic_query::nns::topology::{self, NnsTopologyHostError};
 use serde::Serialize;
 
-macro_rules! topology_read_runner {
-    (
-        $name:ident,
-        $report:ty,
-        $build:path,
-        $render:path
-    ) => {
-        pub(in crate::nns::topology::run) async fn $name(
-            matches: &ArgMatches,
-            network: &str,
-        ) -> Result<(), NnsCommandError> {
-            run_topology_read::<$report>(matches, network, $build, $render).await
-        }
-    };
-}
-
-topology_read_runner!(
-    run_topology_summary,
-    topology::NnsTopologySummaryReport,
-    topology::build_nns_topology_summary_report,
-    topology::nns_topology_summary_report_text
-);
-topology_read_runner!(
-    run_topology_coverage,
-    topology::NnsTopologyCoverageReport,
-    topology::build_nns_topology_coverage_report,
-    topology::nns_topology_coverage_report_text
-);
-topology_read_runner!(
-    run_topology_versions,
-    topology::NnsTopologyVersionsReport,
-    topology::build_nns_topology_versions_report,
-    topology::nns_topology_versions_report_text
-);
-topology_read_runner!(
-    run_topology_check,
-    topology::NnsTopologyCheckReport,
-    topology::build_nns_topology_check_report,
-    topology::nns_topology_check_report_text
-);
-topology_read_runner!(
-    run_topology_gaps,
-    topology::NnsTopologyGapsReport,
-    topology::build_nns_topology_gaps_report,
-    topology::nns_topology_gaps_report_text
-);
-topology_read_runner!(
-    run_topology_capacity,
-    topology::NnsTopologyCapacityReport,
-    topology::build_nns_topology_capacity_report,
-    topology::nns_topology_capacity_report_text
-);
-topology_read_runner!(
-    run_topology_regions,
-    topology::NnsTopologyRegionsReport,
-    topology::build_nns_topology_regions_report,
-    topology::nns_topology_regions_report_text
-);
-topology_read_runner!(
-    run_topology_providers,
-    topology::NnsTopologyProvidersReport,
-    topology::build_nns_topology_providers_report,
-    topology::nns_topology_providers_report_text
-);
-
-async fn run_topology_read<Report>(
+pub(super) async fn run_topology_read<Report>(
     matches: &ArgMatches,
     network: &str,
     build_report: impl AsyncFn(

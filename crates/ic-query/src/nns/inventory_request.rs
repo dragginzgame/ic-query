@@ -71,6 +71,15 @@ pub struct NnsInventoryInfoRequest {
 }
 
 impl NnsInventoryInfoRequest {
+    #[cfg(feature = "nns-host")]
+    pub(in crate::nns) fn to_list_request(&self) -> NnsInventoryListRequest {
+        NnsInventoryListRequest {
+            cache: self.cache.clone(),
+            source_endpoint: self.source_endpoint.clone(),
+            now_unix_secs: self.now_unix_secs,
+        }
+    }
+
     #[must_use]
     pub fn new(
         cache: NnsInventoryCacheRequest,

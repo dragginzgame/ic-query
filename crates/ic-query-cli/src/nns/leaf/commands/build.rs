@@ -85,12 +85,14 @@ pub(in crate::nns) fn refresh_command(
         .about(spec.refresh_about)
         .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.refresh_source_help))
-        .arg(
-            flag_arg(DRY_RUN_ARG)
-                .long(DRY_RUN_ARG)
-                .help(spec.dry_run_help),
-        )
-        .arg(output_path_arg().help(spec.output_help))
+        .arg(flag_arg(DRY_RUN_ARG).long(DRY_RUN_ARG).help(format!(
+            "Fetch and validate without replacing the cached {} report",
+            spec.command_name,
+        )))
+        .arg(output_path_arg().help(format!(
+            "Also write the fetched {} JSON to this path",
+            spec.command_name,
+        )))
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
             spec.refresh_help_after,

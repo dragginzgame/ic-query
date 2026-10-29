@@ -36,6 +36,4 @@ pub(in crate::nns) const DATA_CENTER_SPEC: NnsLeafCommandSpec = NnsLeafCommandSp
     read_source_help: "IC API endpoint used if the data-center cache is missing",
     refresh_source_help: "IC API endpoint used for native NNS registry queries",
     verbose_help: "Show GPS coordinates and registry metadata in text output",
-    dry_run_help: "Fetch and validate without replacing the cached data-center report",
-    output_help: "Also write the fetched data-center JSON to this path",
 };

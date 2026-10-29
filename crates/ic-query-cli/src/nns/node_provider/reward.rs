@@ -9,7 +9,8 @@ use crate::{
         clap::{required_typed, typed_option, value_arg},
         common::{
             COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-            json_arg, source_endpoint_arg, write_text_or_json,
+            index_ceiling_arg, json_arg, page_limit_arg, page_offset_arg, source_endpoint_arg,
+            write_text_or_json,
         },
     },
     nns::NnsCommandError,
@@ -28,7 +29,6 @@ use ic_query::ic::{
 };
 
 const DEFAULT_LIMIT_ARG: &str = "50";
-const DEFAULT_OFFSET_ARG: &str = "0";
 
 const INFO_HELP_AFTER: &str = "\
 Examples:
@@ -138,29 +138,12 @@ fn list_command() -> ClapCommand {
         .bin_name("icq nns node-provider reward list")
         .about("Show one bounded Dashboard node-provider reward page")
         .arg(
-            value_arg("limit")
-                .long("limit")
-                .value_name("rows")
-                .default_value(DEFAULT_LIMIT_ARG)
-                .value_parser(
-                    RangedU64ValueParser::<u16>::new()
-                        .range(1..=u64::from(MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT)),
-                )
+            page_limit_arg(DEFAULT_LIMIT_ARG, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT)
                 .help("Maximum reward records; one through 100"),
         )
+        .arg(page_offset_arg().help("Zero-based reward-record offset"))
         .arg(
-            value_arg("offset")
-                .long("offset")
-                .value_name("rows")
-                .default_value(DEFAULT_OFFSET_ARG)
-                .value_parser(clap::value_parser!(u64))
-                .help("Zero-based reward-record offset"),
-        )
-        .arg(
-            value_arg("max-reward-index")
-                .long("max-reward-index")
-                .value_name("index")
-                .value_parser(clap::value_parser!(u64))
+            index_ceiling_arg("max-reward-index")
                 .help("Optional reward-index ceiling returned by an earlier page"),
         )
         .arg(json_arg())
