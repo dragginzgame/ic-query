@@ -21,7 +21,7 @@ use ic_platform::icrc_ledger_types::Account as LedgerAccount;
 
 type IcrcIndexTransactionsResult = Result<IcrcIndexTransactions, IcrcIndexTransactionsError>;
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactions {
     balance: Nat,
@@ -29,20 +29,20 @@ struct IcrcIndexTransactions {
     oldest_tx_id: Option<Nat>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactionsError {
     message: String,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransactionWithId {
     id: Nat,
     transaction: IcrcIndexTransaction,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransaction {
     burn: Option<IcrcIndexBurn>,
@@ -56,7 +56,7 @@ struct IcrcIndexTransaction {
     transfer: Option<IcrcIndexTransfer>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexApprove {
     fee: Option<Nat>,
@@ -69,7 +69,7 @@ struct IcrcIndexApprove {
     spender: LedgerAccount,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexBurn {
     from: LedgerAccount,
@@ -80,7 +80,7 @@ struct IcrcIndexBurn {
     fee: Option<Nat>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexMint {
     to: LedgerAccount,
@@ -90,7 +90,7 @@ struct IcrcIndexMint {
     fee: Option<Nat>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexTransfer {
     to: LedgerAccount,
@@ -102,7 +102,7 @@ struct IcrcIndexTransfer {
     spender: Option<LedgerAccount>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexFeeCollector {
     caller: Option<Principal>,
@@ -111,7 +111,7 @@ struct IcrcIndexFeeCollector {
     mthd: Option<String>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAuthorizedMint {
     to: LedgerAccount,
@@ -122,7 +122,7 @@ struct IcrcIndexAuthorizedMint {
     reason: Option<String>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAuthorizedBurn {
     from: LedgerAccount,

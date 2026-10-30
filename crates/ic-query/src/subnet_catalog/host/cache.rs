@@ -328,70 +328,72 @@ pub async fn load_subnet_catalog_detailed_with_progress(
             ),
         )
     })?;
-    let (disposition, trigger) = match &request.policy {
+    let (trigger, source_selection) = match &request.policy {
         CatalogReadPolicy::CacheOnly => {
             return load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit)
                 .map_err(|failure| cache_load_failure(request, true, failure));
         }
-        CatalogReadPolicy::ForceRefresh { .. } => (
-            CacheDisposition::ForcedRefresh,
-            SubnetCatalogRefreshTrigger::Forced,
-        ),
-        policy => {
-            match load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit) {
-                Ok(cached) => {
-                    let CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
-                        max_age_seconds, ..
-                    } = policy
-                    else {
-                        return Ok(cached);
-                    };
-                    if !catalog_stale_status(
-                        cached.catalog.raw(),
-                        request.now_unix_secs,
-                        *max_age_seconds,
-                    )
-                    .catalog_stale
-                    {
-                        return Ok(cached);
+        CatalogReadPolicy::ForceRefresh {
+            source: source_selection,
+        } => (SubnetCatalogRefreshTrigger::Forced, source_selection),
+        policy @ (CatalogReadPolicy::RefreshMissing {
+            source: source_selection,
+        }
+        | CatalogReadPolicy::RefreshMissingOrInvalid {
+            source: source_selection,
+        }
+        | CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+            source: source_selection,
+            ..
+        }) => {
+            let trigger =
+                match load_cached_with_disposition_detailed(request, CacheDisposition::CacheHit) {
+                    Ok(cached) => {
+                        let CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+                            max_age_seconds,
+                            ..
+                        } = policy
+                        else {
+                            return Ok(cached);
+                        };
+                        if !catalog_stale_status(
+                            cached.catalog.raw(),
+                            request.now_unix_secs,
+                            *max_age_seconds,
+                        )
+                        .catalog_stale
+                        {
+                            return Ok(cached);
+                        }
+                        SubnetCatalogRefreshTrigger::Stale
                     }
-                    (
-                        CacheDisposition::RefreshedStale,
-                        SubnetCatalogRefreshTrigger::Stale,
-                    )
-                }
-                Err(failure)
-                    if matches!(
-                        failure.source,
-                        SubnetCatalogHostError::MissingCatalog { .. }
-                    ) =>
-                {
-                    (
-                        CacheDisposition::RefreshedMissing,
-                        SubnetCatalogRefreshTrigger::Missing,
-                    )
-                }
-                Err(failure)
-                    if matches!(
-                        policy,
-                        CatalogReadPolicy::RefreshMissingOrInvalid { .. }
-                            | CatalogReadPolicy::RefreshMissingInvalidOrOlderThan { .. }
-                    ) && matches!(
-                        failure.source,
-                        SubnetCatalogHostError::Catalog(_)
-                            | SubnetCatalogHostError::CachedCatalogTooLarge { .. }
-                    ) =>
-                {
-                    (
-                        CacheDisposition::RefreshedInvalid,
-                        SubnetCatalogRefreshTrigger::Rejected,
-                    )
-                }
-                Err(failure) => return Err(cache_load_failure(request, false, failure)),
-            }
+                    Err(failure)
+                        if matches!(
+                            failure.source,
+                            SubnetCatalogHostError::MissingCatalog { .. }
+                        ) =>
+                    {
+                        SubnetCatalogRefreshTrigger::Missing
+                    }
+                    Err(failure)
+                        if matches!(
+                            policy,
+                            CatalogReadPolicy::RefreshMissingOrInvalid { .. }
+                                | CatalogReadPolicy::RefreshMissingInvalidOrOlderThan { .. }
+                        ) && matches!(
+                            failure.source,
+                            SubnetCatalogHostError::Catalog(_)
+                                | SubnetCatalogHostError::CachedCatalogTooLarge { .. }
+                        ) =>
+                    {
+                        SubnetCatalogRefreshTrigger::Rejected
+                    }
+                    Err(failure) => return Err(cache_load_failure(request, false, failure)),
+                };
+            (trigger, source_selection)
         }
     };
-    refresh_then_load_detailed(request, source, progress, disposition, trigger).await
+    refresh_then_load_detailed(request, source_selection, source, progress, trigger).await
 }
 
 fn load_cached_with_disposition_detailed(
@@ -492,21 +494,11 @@ fn bounded_catalog_read_error(error: BoundedManagedFileReadError) -> SubnetCatal
 
 async fn refresh_then_load_detailed(
     request: &SubnetCatalogLoadRequest,
+    source_selection: &CatalogSourceSelection,
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),
-    disposition: CacheDisposition,
     trigger: SubnetCatalogRefreshTrigger,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
-    let source_selection = request.policy.source().ok_or_else(|| {
-        load_failure(
-            request,
-            SubnetCatalogLoadStage::RefreshAttempted,
-            SubnetCatalogFailureCacheDisposition::RefreshAttempted(trigger),
-            SubnetCatalogSourceFailure::from_source(SubnetCatalogHostError::InvalidReadPolicy {
-                reason: "refresh policy is missing its source selection".to_string(),
-            }),
-        )
-    })?;
     enforce_minimum_assurance(source_selection.assurance(), request.minimum_assurance).map_err(
         |source| {
             let (stage, cache_disposition) = if trigger == SubnetCatalogRefreshTrigger::Forced {
@@ -545,6 +537,12 @@ async fn refresh_then_load_detailed(
                     failure,
                 )
             })?;
+    let disposition = match trigger {
+        SubnetCatalogRefreshTrigger::Forced => CacheDisposition::ForcedRefresh,
+        SubnetCatalogRefreshTrigger::Missing => CacheDisposition::RefreshedMissing,
+        SubnetCatalogRefreshTrigger::Rejected => CacheDisposition::RefreshedInvalid,
+        SubnetCatalogRefreshTrigger::Stale => CacheDisposition::RefreshedStale,
+    };
     load_cached_with_disposition_detailed(request, disposition).map_err(|mut failure| {
         if failure.registry_version.is_none() {
             failure.registry_version = Some(refresh.registry_version);

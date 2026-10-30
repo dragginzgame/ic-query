@@ -14,6 +14,12 @@ mod error;
 ))]
 mod json;
 mod lock;
+#[cfg(any(
+    feature = "dashboard-host",
+    feature = "icrc-host",
+    feature = "nns-topology-host",
+    feature = "sns-host"
+))]
 mod policy;
 #[cfg(all(test, feature = "host"))]
 mod tests;
@@ -97,14 +103,7 @@ pub use lock::with_refresh_lock_async;
     feature = "nns-topology-host",
     feature = "sns-host"
 ))]
-pub use policy::CacheRefreshReason;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
-pub use policy::{host_cache_refresh_reason, load_or_refresh_cache};
+pub use policy::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache};
 #[cfg(feature = "subnet-catalog-host")]
 pub use write::validate_output_path;
 #[cfg(feature = "subnet-catalog-host")]

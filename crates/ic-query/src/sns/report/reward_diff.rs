@@ -243,26 +243,26 @@ fn join_reward_rows(
     let mut rows = Vec::with_capacity(before.rows.len().max(after.rows.len()));
     let mut before_rows = before.rows.iter().peekable();
     let mut after_rows = after.rows.iter().peekable();
-    while before_rows.peek().is_some() || after_rows.peek().is_some() {
+    loop {
         match (before_rows.peek(), after_rows.peek()) {
-            (Some(before_row), Some(after_row)) if before_row.neuron_id == after_row.neuron_id => {
+            (before_row, Some(after_row))
+                if before_row.is_none_or(|before| after_row.neuron_id < before.neuron_id) =>
+            {
+                rows.push(join_new_row(before, after, after_row, reasons));
+                after_rows.next();
+            }
+            (Some(before_row), after_row)
+                if after_row.is_none_or(|after| before_row.neuron_id < after.neuron_id) =>
+            {
+                rows.push(join_missing_after_row(before_row, reasons));
+                before_rows.next();
+            }
+            (Some(before_row), Some(after_row)) => {
                 rows.push(join_matched_row(before_row, after_row, reasons));
                 before_rows.next();
                 after_rows.next();
             }
-            (Some(before_row), Some(after_row)) if before_row.neuron_id < after_row.neuron_id => {
-                rows.push(join_missing_after_row(before_row, reasons));
-                before_rows.next();
-            }
-            (Some(_) | None, Some(after_row)) => {
-                rows.push(join_new_row(before, after, after_row, reasons));
-                after_rows.next();
-            }
-            (Some(before_row), None) => {
-                rows.push(join_missing_after_row(before_row, reasons));
-                before_rows.next();
-            }
-            (None, None) => break,
+            _ => break,
         }
     }
     rows

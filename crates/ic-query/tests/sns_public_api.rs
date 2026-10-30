@@ -425,6 +425,32 @@ fn public_sns_reward_diff_preserves_negative_missing_and_new_neuron_evidence() {
 }
 
 #[test]
+fn public_sns_reward_diff_orders_replaced_neurons_in_either_direction() {
+    for (before_id, after_id) in [(1, 2), (2, 1)] {
+        let mut before = sample_sns_reward_checkpoint_report();
+        before.rows[0].neuron_id = format!("{before_id:02x}").repeat(32);
+        let mut after = advance_reward_checkpoint(&before, 0, 0);
+        after.rows[0].neuron_id = format!("{after_id:02x}").repeat(32);
+        after.rows[0].created_timestamp_seconds = before.collection_completed_at_unix_secs + 1;
+        let report = build_sns_reward_diff_report(&before, &after);
+        assert_eq!(report.rows.len(), 2);
+        assert_eq!(report.rows[0].neuron_id, "01".repeat(32));
+        assert_eq!(report.rows[1].neuron_id, "02".repeat(32));
+        for row in &report.rows {
+            let is_new = row.neuron_id == after.rows[0].neuron_id;
+            assert_eq!(row.new_neuron, is_new);
+            assert_eq!(row.missing_after, !is_new);
+        }
+        assert_eq!(report.summed_neuron_maturity_delta_e8s_equivalent, Some(0));
+        assert!(
+            report.invalid_reasons.iter().any(|reason| {
+                reason.kind == SnsRewardDiffInvalidReasonKind::NeuronMissingAfter
+            })
+        );
+    }
+}
+
+#[test]
 fn public_sns_reward_diff_matches_stable_canister_identity_not_display_metadata() {
     let before = sample_sns_reward_checkpoint_report();
     let mut after = advance_reward_checkpoint(&before, 5_000, 5_000);

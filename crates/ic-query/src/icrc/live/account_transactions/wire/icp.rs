@@ -18,13 +18,13 @@ use serde::{Serialize, Serializer};
 
 type IcpIndexTransactionsResult = Result<IcpIndexTransactions, IcpIndexTransactionsError>;
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactionsError {
     message: String,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactions {
     balance: u64,
@@ -32,14 +32,14 @@ struct IcpIndexTransactions {
     oldest_tx_id: Option<u64>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransactionWithId {
     id: u64,
     transaction: IcpIndexTransaction,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcpIndexTransaction {
     memo: u64,
@@ -49,7 +49,7 @@ struct IcpIndexTransaction {
     timestamp: Option<IcpIndexTimestamp>,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 enum IcpIndexOperation {
     Approve {

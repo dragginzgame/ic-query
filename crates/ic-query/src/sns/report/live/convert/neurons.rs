@@ -9,80 +9,73 @@ use crate::sns::report::{
     SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronId,
     SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-    SnsPolicyObservationStatus, SnsRewardCheckpointRow, hex_bytes,
+    SnsRewardCheckpointRow, hex_bytes,
     live::types::{
         SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
         SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
         SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceRewardNeuron,
         SnsGovernanceTopicFollowees,
     },
+    model::reports::neurons::detail::neuron_policy_observations,
 };
+
+macro_rules! base_neuron_row {
+    ($neuron:ident) => {
+        SnsNeuronRow {
+            neuron_id: neuron_id_text($neuron.id)?,
+            cached_neuron_stake_e8s: $neuron.cached_neuron_stake_e8s,
+            maturity_e8s_equivalent: $neuron.maturity_e8s_equivalent,
+            staked_maturity_e8s_equivalent: $neuron.staked_maturity_e8s_equivalent,
+            created_timestamp_seconds: $neuron.created_timestamp_seconds,
+            source_nns_neuron_id: $neuron.source_nns_neuron_id,
+            auto_stake_maturity: $neuron.auto_stake_maturity,
+            aging_since_timestamp_seconds: $neuron.aging_since_timestamp_seconds,
+            dissolve_state: $neuron.dissolve_state.map(sns_neuron_dissolve_state),
+            voting_power_percentage_multiplier: $neuron.voting_power_percentage_multiplier,
+            vesting_period_seconds: $neuron.vesting_period_seconds,
+            neuron_fees_e8s: $neuron.neuron_fees_e8s,
+        }
+    };
+}
 
 /// Convert one SNS governance neuron wire row into a report/cache row.
 pub(in crate::sns::report::live) fn sns_neuron_row(
     neuron: SnsGovernanceNeuron,
 ) -> Result<SnsNeuronRow, SnsHostError> {
-    Ok(SnsNeuronRow {
-        neuron_id: neuron_id_text(neuron.id)?,
-        cached_neuron_stake_e8s: neuron.cached_neuron_stake_e8s,
-        maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
-        staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
-        created_timestamp_seconds: neuron.created_timestamp_seconds,
-        source_nns_neuron_id: neuron.source_nns_neuron_id,
-        auto_stake_maturity: neuron.auto_stake_maturity,
-        aging_since_timestamp_seconds: neuron.aging_since_timestamp_seconds,
-        dissolve_state: neuron.dissolve_state.map(sns_neuron_dissolve_state),
-        voting_power_percentage_multiplier: neuron.voting_power_percentage_multiplier,
-        vesting_period_seconds: neuron.vesting_period_seconds,
-        neuron_fees_e8s: neuron.neuron_fees_e8s,
-    })
+    Ok(base_neuron_row!(neuron))
 }
 
 /// Convert one exact SNS Governance neuron into full detail source data.
 pub(in crate::sns::report::live) fn mainnet_sns_neuron(
     neuron: SnsGovernanceNeuronDetail,
 ) -> Result<SnsNeuronDetail, SnsHostError> {
-    let row = SnsNeuronRow {
-        neuron_id: neuron_id_text(neuron.id)?,
-        cached_neuron_stake_e8s: neuron.cached_neuron_stake_e8s,
-        maturity_e8s_equivalent: neuron.maturity_e8s_equivalent,
-        staked_maturity_e8s_equivalent: neuron.staked_maturity_e8s_equivalent,
-        created_timestamp_seconds: neuron.created_timestamp_seconds,
-        source_nns_neuron_id: neuron.source_nns_neuron_id,
-        auto_stake_maturity: neuron.auto_stake_maturity,
-        aging_since_timestamp_seconds: neuron.aging_since_timestamp_seconds,
-        dissolve_state: neuron.dissolve_state.map(sns_neuron_dissolve_state),
-        voting_power_percentage_multiplier: neuron.voting_power_percentage_multiplier,
-        vesting_period_seconds: neuron.vesting_period_seconds,
-        neuron_fees_e8s: neuron.neuron_fees_e8s,
-    };
+    let row = base_neuron_row!(neuron);
     let permissions = neuron
         .permissions
         .into_iter()
         .enumerate()
         .map(|(index, permission)| required_neuron_permission(&row.neuron_id, index, permission))
         .collect::<Result<Vec<_>, _>>()?;
-    let mut detail = SnsNeuronDetail {
+    let disburse_maturity_in_progress = neuron
+        .disburse_maturity_in_progress
+        .into_iter()
+        .map(maturity_disbursement)
+        .collect::<Vec<_>>();
+    let (mint, staking) =
+        neuron_policy_observations(&permissions, !disburse_maturity_in_progress.is_empty());
+    Ok(SnsNeuronDetail {
         neuron: row,
         permissions,
-        disburse_maturity_in_progress: neuron
-            .disburse_maturity_in_progress
-            .into_iter()
-            .map(maturity_disbursement)
-            .collect(),
+        disburse_maturity_in_progress,
         followees: neuron
             .followees
             .into_iter()
             .map(|(function_id, followees)| legacy_followees(function_id, followees))
             .collect(),
         topic_followees: neuron.topic_followees.map(topic_followees_rows),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-    };
-    let (mint, staking) = detail.derived_policy_observations();
-    detail.maturity_mint_conversion_observed_disabled = mint;
-    detail.manual_maturity_staking_observed_disabled = staking;
-    Ok(detail)
+        maturity_mint_conversion_observed_disabled: mint,
+        manual_maturity_staking_observed_disabled: staking,
+    })
 }
 
 /// Convert one reward-checkpoint neuron projection into report evidence.
@@ -97,30 +90,30 @@ pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
         .ok_or(SnsHostError::RewardCheckpointArithmetic {
             field: "combined_maturity_e8s_equivalent",
         })?;
-    let mut row = SnsRewardCheckpointRow {
+    let permissions = neuron
+        .permissions
+        .into_iter()
+        .map(neuron_permission)
+        .collect::<Vec<_>>();
+    let disburse_maturity_in_progress = neuron
+        .disburse_maturity_in_progress
+        .into_iter()
+        .map(maturity_disbursement)
+        .collect::<Vec<_>>();
+    let (mint, staking) =
+        neuron_policy_observations(&permissions, !disburse_maturity_in_progress.is_empty());
+    Ok(SnsRewardCheckpointRow {
         neuron_id,
         created_timestamp_seconds: neuron.created_timestamp_seconds,
         maturity_e8s_equivalent,
         staked_maturity_e8s_equivalent,
         combined_maturity_e8s_equivalent,
         auto_stake_maturity: neuron.auto_stake_maturity,
-        permissions: neuron
-            .permissions
-            .into_iter()
-            .map(neuron_permission)
-            .collect(),
-        disburse_maturity_in_progress: neuron
-            .disburse_maturity_in_progress
-            .into_iter()
-            .map(maturity_disbursement)
-            .collect(),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-    };
-    let (mint, staking) = row.derived_policy_observations();
-    row.maturity_mint_conversion_observed_disabled = mint;
-    row.manual_maturity_staking_observed_disabled = staking;
-    Ok(row)
+        permissions,
+        disburse_maturity_in_progress,
+        maturity_mint_conversion_observed_disabled: mint,
+        manual_maturity_staking_observed_disabled: staking,
+    })
 }
 
 fn neuron_id_text(id: Option<SnsNeuronId>) -> Result<String, SnsHostError> {
@@ -235,7 +228,7 @@ const fn sns_neuron_dissolve_state(state: SnsGovernanceDissolveState) -> SnsNeur
 mod tests {
     use super::*;
     use crate::sns::report::{
-        SnsNeuronId,
+        SnsNeuronId, SnsPolicyObservationStatus,
         live::types::{SnsMetricsAccount, SnsMetricsSubaccount, SnsTopic},
     };
     use ic_platform::candid::contract::Principal;

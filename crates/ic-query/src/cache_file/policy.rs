@@ -4,27 +4,8 @@
 //! Does not own: command-specific cache keys, refresh requests, or report DTOs.
 //! Boundary: centralizes explicit owner-selected refresh policy for cache-backed reads.
 
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
 use super::HostCacheError;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
-use std::path::Path;
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 ///
 /// CacheRefreshReason
@@ -33,12 +14,6 @@ use std::path::PathBuf;
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
 pub enum CacheRefreshReason {
     /// The expected cache file does not exist.
     Missing(PathBuf),
@@ -50,12 +25,6 @@ pub enum CacheRefreshReason {
 
 /// Load a cache, using an owner-defined error policy to refresh recoverable
 /// local state, then load the persisted result again.
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
 pub async fn load_or_refresh_cache<T, Error>(
     mut load: impl FnMut() -> Result<T, Error>,
     stale: impl FnOnce(&T) -> bool,
@@ -73,12 +42,6 @@ pub async fn load_or_refresh_cache<T, Error>(
 
 /// Classify shared JSON cache load failures that can be replaced safely by an
 /// owner-selected refresh policy while preserving filesystem failures.
-#[cfg(any(
-    feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "nns-topology-host",
-    feature = "sns-host"
-))]
 pub fn host_cache_refresh_reason(
     error: HostCacheError,
     expected_path: &Path,

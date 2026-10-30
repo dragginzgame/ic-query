@@ -119,6 +119,20 @@ impl IcrcAnalyticsWindowOptions {
             end_unix_secs: typed_option(matches, END_ARG),
         }
     }
+
+    pub(in crate::icrc) fn resolve_bounds(
+        &self,
+        now_unix_secs: u64,
+        default_window_secs: u64,
+        minimum_default_start: u64,
+    ) -> (u64, u64) {
+        let end = self.end_unix_secs.unwrap_or(now_unix_secs);
+        let start = self.start_unix_secs.unwrap_or_else(|| {
+            end.saturating_sub(default_window_secs)
+                .max(minimum_default_start)
+        });
+        (start, end)
+    }
 }
 
 ///
@@ -198,6 +212,20 @@ impl IcrcLedgerOptions {
         }
         .into_dashboard_request(now_unix_secs);
         (format, request, self.ledger_canister_id)
+    }
+
+    pub(in crate::icrc) fn into_ledger_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, ic_query::icrc::IcrcLedgerRequest) {
+        (
+            self.format,
+            ic_query::icrc::IcrcLedgerRequest::new(
+                self.source_endpoint,
+                now_unix_secs,
+                self.ledger_canister_id,
+            ),
+        )
     }
 }
 
@@ -367,5 +395,45 @@ impl IcrcArchivesOptions {
             ledger: IcrcLedgerOptions::from_matches(matches),
             from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn target() -> IcrcLedgerOptions {
+        IcrcLedgerOptions {
+            ledger_canister_id: "aaaaa-aa".to_string(),
+            source_endpoint: "https://example.com/api".to_string(),
+            format: OutputFormat::Json,
+        }
+    }
+
+    #[test]
+    fn native_ledger_request_retains_explicit_target_time_and_output() {
+        let (format, request) = target().into_ledger_request(123);
+        assert_eq!(format, OutputFormat::Json);
+        assert_eq!(request.source_endpoint, "https://example.com/api");
+        assert_eq!(request.ledger_canister_id, "aaaaa-aa");
+        assert_eq!(request.now_unix_secs, 123);
+    }
+
+    #[test]
+    fn analytics_defaults_clamp_only_the_implicit_start() {
+        let mut window = IcrcAnalyticsWindowOptions {
+            target: target(),
+            start_unix_secs: None,
+            end_unix_secs: None,
+        };
+        assert_eq!(window.resolve_bounds(100, 30, 0), (70, 100));
+        assert_eq!(window.resolve_bounds(10, 30, 0), (0, 10));
+        assert_eq!(window.resolve_bounds(100, 30, 80), (80, 100));
+        window.end_unix_secs = Some(90);
+        assert_eq!(window.resolve_bounds(100, 30, 0), (60, 90));
+        window.start_unix_secs = Some(5);
+        assert_eq!(window.resolve_bounds(100, 30, 80), (5, 90));
+        window.start_unix_secs = Some(110);
+        assert_eq!(window.resolve_bounds(100, 30, 80), (110, 90));
     }
 }

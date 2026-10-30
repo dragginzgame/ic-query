@@ -74,16 +74,11 @@ impl CachePathInfo<'_> {
 
 struct GenericCacheHeader {
     schema_version: u32,
-    network: Option<String>,
-    fetched_at: Option<String>,
-    collection_completed_at: Option<String>,
-    domain: Option<String>,
-    entity: Option<String>,
-    collection: Option<String>,
+    fields: CacheHeaderFields,
 }
 
-#[derive(Deserialize)]
-struct FullGenericCacheHeader {
+#[derive(Default, Deserialize)]
+struct CacheHeaderFields {
     schema_version: Option<u32>,
     catalog_schema_version: Option<u32>,
     network: Option<String>,
@@ -94,7 +89,7 @@ struct FullGenericCacheHeader {
     collection: Option<String>,
 }
 
-impl FullGenericCacheHeader {
+impl CacheHeaderFields {
     fn into_generic(self) -> Result<GenericCacheHeader, serde_json::Error> {
         let schema_version = match (self.schema_version, self.catalog_schema_version) {
             (Some(schema_version), None) | (None, Some(schema_version)) => schema_version,
@@ -103,15 +98,21 @@ impl FullGenericCacheHeader {
             }
             (None, None) => return Err(invalid_header("cache has no schema version field")),
         };
-        Ok(GenericCacheHeader {
+        Ok(self.with_schema(schema_version))
+    }
+
+    fn capture<E: DeError>(self) -> Result<GenericCacheHeader, E> {
+        let schema_version = self
+            .schema_version
+            .ok_or_else(|| E::missing_field("schema_version"))?;
+        Ok(self.with_schema(schema_version))
+    }
+
+    const fn with_schema(self, schema_version: u32) -> GenericCacheHeader {
+        GenericCacheHeader {
             schema_version,
-            network: self.network,
-            fetched_at: self.fetched_at,
-            collection_completed_at: self.collection_completed_at,
-            domain: self.domain,
-            entity: self.entity,
-            collection: self.collection,
-        })
+            fields: self,
+        }
     }
 }
 
@@ -130,40 +131,25 @@ impl<'de> Visitor<'de> for GenericCacheHeaderVisitor<'_> {
     where
         Map: MapAccess<'de>,
     {
-        let mut schema_version = None;
-        let mut network = None;
-        let mut fetched_at = None;
-        let mut collection_completed_at = None;
-        let mut domain = None;
-        let mut entity = None;
-        let mut collection = None;
+        let mut fields = CacheHeaderFields::default();
         while let Some(key) = map.next_key::<String>()? {
             match key.as_str() {
                 "schema_version" | "catalog_schema_version" => {
-                    if schema_version.is_some() {
+                    if fields.schema_version.is_some() {
                         return Err(Map::Error::duplicate_field("schema_version"));
                     }
-                    schema_version = Some(map.next_value()?);
+                    fields.schema_version = Some(map.next_value()?);
                 }
-                "network" => network = Some(map.next_value()?),
-                "fetched_at" => fetched_at = Some(map.next_value()?),
+                "network" => fields.network = Some(map.next_value()?),
+                "fetched_at" => fields.fetched_at = Some(map.next_value()?),
                 "collection_completed_at" => {
-                    collection_completed_at = Some(map.next_value()?);
+                    fields.collection_completed_at = Some(map.next_value()?);
                 }
-                "domain" => domain = Some(map.next_value()?),
-                "entity" => entity = Some(map.next_value()?),
-                "collection" => collection = Some(map.next_value()?),
+                "domain" => fields.domain = Some(map.next_value()?),
+                "entity" => fields.entity = Some(map.next_value()?),
+                "collection" => fields.collection = Some(map.next_value()?),
                 key if begins_cache_payload(key) => {
-                    *self.captured = Some(GenericCacheHeader {
-                        schema_version: schema_version
-                            .ok_or_else(|| Map::Error::missing_field("schema_version"))?,
-                        network,
-                        fetched_at,
-                        collection_completed_at,
-                        domain,
-                        entity,
-                        collection,
-                    });
+                    *self.captured = Some(fields.capture::<Map::Error>()?);
                     return Err(Map::Error::custom("cache payload follows captured header"));
                 }
                 _ => {
@@ -171,16 +157,7 @@ impl<'de> Visitor<'de> for GenericCacheHeaderVisitor<'_> {
                 }
             }
         }
-        Ok(GenericCacheHeader {
-            schema_version: schema_version
-                .ok_or_else(|| Map::Error::missing_field("schema_version"))?,
-            network,
-            fetched_at,
-            collection_completed_at,
-            domain,
-            entity,
-            collection,
-        })
+        fields.capture()
     }
 }
 
@@ -244,9 +221,10 @@ pub(super) fn cache_status_row(
         ));
     };
     let fetched_at = header
+        .fields
         .fetched_at
         .clone()
-        .or_else(|| header.collection_completed_at.clone());
+        .or_else(|| header.fields.collection_completed_at.clone());
     let Some(fetched_at_text) = fetched_at else {
         return Ok(unknown_age_row(
             &info,
@@ -294,7 +272,7 @@ pub(super) fn cache_status_row(
         header_status: CacheHeaderStatus::Readable,
         age_status,
         schema_version: Some(header.schema_version),
-        network: header.network,
+        network: header.fields.network,
         fetched_at: Some(fetched_at_text),
         age_seconds: Some(age_seconds),
         ..info.status_row(component, path, relative_path, size_bytes)
@@ -326,8 +304,8 @@ fn read_cache_header(
                 serde_json::Error::io(source)
             },
         )?;
-        return serde_json::from_slice::<FullGenericCacheHeader>(&data)
-            .and_then(FullGenericCacheHeader::into_generic);
+        return serde_json::from_slice::<CacheHeaderFields>(&data)
+            .and_then(CacheHeaderFields::into_generic);
     }
     let mut bounded = reader.take(maximum_bytes);
     let mut captured = None;
@@ -509,7 +487,7 @@ fn unknown_age_row(
     CacheStatusRow {
         header_status: CacheHeaderStatus::Readable,
         schema_version: Some(header.schema_version),
-        network: header.network,
+        network: header.fields.network,
         fetched_at,
         inspection_error: Some(error),
         ..info.status_row(component, path, relative_path, size_bytes)
@@ -518,9 +496,9 @@ fn unknown_age_row(
 
 fn component(info: &CachePathInfo<'_>, header: &GenericCacheHeader) -> String {
     match (
-        header.domain.as_deref(),
-        header.entity.as_deref(),
-        header.collection.as_deref(),
+        header.fields.domain.as_deref(),
+        header.fields.entity.as_deref(),
+        header.fields.collection.as_deref(),
     ) {
         (Some(domain), Some(entity), Some(collection)) => {
             format!("{domain}/{entity}/{collection}")
@@ -560,7 +538,7 @@ mod tests {
 
         assert_eq!(header.schema_version, 1);
         assert_eq!(
-            header.collection_completed_at.as_deref(),
+            header.fields.collection_completed_at.as_deref(),
             Some("2026-08-03T00:00:00Z")
         );
         assert!(reader.get_ref().position() <= 1_024);

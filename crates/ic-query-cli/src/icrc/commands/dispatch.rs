@@ -125,12 +125,10 @@ async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcComma
 async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAnalyticsTokenValueOptions::from_matches(matches);
     let window = options.window;
-    let target = window.target;
     let now_unix_secs = current_unix_secs()?;
-    let end_unix_secs = window.end_unix_secs.unwrap_or(now_unix_secs);
-    let start_unix_secs = window
-        .start_unix_secs
-        .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS));
+    let (start_unix_secs, end_unix_secs) =
+        window.resolve_bounds(now_unix_secs, DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, 0);
+    let target = window.target;
     let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
     let request = IcIcrcTokenValueRequest::new(
         dashboard,
@@ -166,14 +164,13 @@ async fn run_icrc_analytics_indexed_count_leaf(
 async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAnalyticsTotalSupplyOptions::from_matches(matches);
     let window = options.window;
-    let target = window.target;
     let now_unix_secs = current_unix_secs()?;
-    let end_unix_secs = window.end_unix_secs.unwrap_or(now_unix_secs);
-    let start_unix_secs = window.start_unix_secs.unwrap_or_else(|| {
-        end_unix_secs
-            .saturating_sub(DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS)
-            .max(MIN_ICRC_ANALYTICS_TIMESTAMP)
-    });
+    let (start_unix_secs, end_unix_secs) = window.resolve_bounds(
+        now_unix_secs,
+        DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
+        MIN_ICRC_ANALYTICS_TIMESTAMP,
+    );
+    let target = window.target;
     let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
     let request = IcIcrcTotalSupplyRequest::new(
         dashboard,
@@ -231,13 +228,9 @@ where
     Report: Serialize,
 {
     let options = IcrcLedgerOptions::from_matches(matches);
-    let request = IcrcLedgerRequest {
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        ledger_canister_id: options.ledger_canister_id,
-    };
+    let (format, request) = options.into_ledger_request(current_unix_secs()?);
     let report = build(&request).await?;
-    write_text_or_json(options.format, &report, render_text)
+    write_text_or_json(format, &report, render_text)
 }
 
 async fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
@@ -251,36 +244,28 @@ async fn run_icrc_account(matches: &ArgMatches) -> Result<(), IcrcCommandError> 
 
 async fn run_icrc_balance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountOptions::from_matches(matches);
-    let ledger = options.ledger;
+    let (format, ledger) = options.ledger.into_ledger_request(current_unix_secs()?);
     let request = IcrcBalanceRequest {
-        ledger: IcrcLedgerRequest::new(
-            ledger.source_endpoint,
-            current_unix_secs()?,
-            ledger.ledger_canister_id,
-        ),
+        ledger,
         account_owner: options.account_owner,
         subaccount_hex: options.subaccount_hex,
     };
     let report = build_icrc_balance_report(&request).await?;
-    write_text_or_json(ledger.format, &report, icrc_balance_report_text)
+    write_text_or_json(format, &report, icrc_balance_report_text)
 }
 
 async fn run_icrc_allowance(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAllowanceOptions::from_matches(matches);
-    let ledger = options.ledger;
+    let (format, ledger) = options.ledger.into_ledger_request(current_unix_secs()?);
     let request = IcrcAllowanceRequest {
-        ledger: IcrcLedgerRequest::new(
-            ledger.source_endpoint,
-            current_unix_secs()?,
-            ledger.ledger_canister_id,
-        ),
+        ledger,
         account_owner: options.account_owner,
         account_subaccount_hex: options.account_subaccount_hex,
         spender_owner: options.spender_owner,
         spender_subaccount_hex: options.spender_subaccount_hex,
     };
     let report = build_icrc_allowance_report(&request).await?;
-    write_text_or_json(ledger.format, &report, icrc_allowance_report_text)
+    write_text_or_json(format, &report, icrc_allowance_report_text)
 }
 
 async fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
@@ -295,14 +280,10 @@ async fn run_icrc_account_transaction(matches: &ArgMatches) -> Result<(), IcrcCo
 
 async fn run_icrc_account_transaction_page(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcAccountTransactionPageOptions::from_matches(matches);
-    let format = options.target.ledger.format;
     let target = options.target;
+    let (format, ledger) = target.ledger.into_ledger_request(current_unix_secs()?);
     let request = IcrcAccountTransactionPageRequest {
-        ledger: IcrcLedgerRequest::new(
-            target.ledger.source_endpoint,
-            current_unix_secs()?,
-            target.ledger.ledger_canister_id,
-        ),
+        ledger,
         index_canister_id: options.index_canister_id,
         account_owner: target.account_owner,
         subaccount_hex: target.subaccount_hex,
@@ -380,32 +361,24 @@ fn account_transaction_cache_request(
 
 async fn run_icrc_transactions(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcTransactionsOptions::from_matches(matches);
-    let ledger = options.ledger;
+    let (format, ledger) = options.ledger.into_ledger_request(current_unix_secs()?);
     let request = IcrcTransactionsRequest {
-        ledger: IcrcLedgerRequest::new(
-            ledger.source_endpoint,
-            current_unix_secs()?,
-            ledger.ledger_canister_id,
-        ),
+        ledger,
         start: options.start,
         limit: options.limit,
         follow_archives: options.follow_archives,
     };
     let report = build_icrc_transactions_report(&request).await?;
-    write_text_or_json(ledger.format, &report, icrc_transactions_report_text)
+    write_text_or_json(format, &report, icrc_transactions_report_text)
 }
 
 async fn run_icrc_archives(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
     let options = IcrcArchivesOptions::from_matches(matches);
-    let ledger = options.ledger;
+    let (format, ledger) = options.ledger.into_ledger_request(current_unix_secs()?);
     let request = IcrcArchivesRequest {
-        ledger: IcrcLedgerRequest::new(
-            ledger.source_endpoint,
-            current_unix_secs()?,
-            ledger.ledger_canister_id,
-        ),
+        ledger,
         from_canister_id: options.from_canister_id,
     };
     let report = build_icrc_archives_report(&request).await?;
-    write_text_or_json(ledger.format, &report, icrc_archives_report_text)
+    write_text_or_json(format, &report, icrc_archives_report_text)
 }

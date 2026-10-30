@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.3]
+
+### 🧹 Cleanup
+
+- Simplify SNS neuron projection, reward reconciliation and Registry history
+  recording while preserving report formats, validation and failure evidence.
+- Consolidate ICRC request construction, analytics defaults and cache-header
+  assembly; retain existing commands, time bounds and cache inspection limits.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.2] - 2026-10-30
 
 ### 🧹 Cleanup

@@ -50,7 +50,7 @@ where
     let mut collected_pages: usize = 0;
     let mut family = RegistryKeyFamilyState::new(prefix, registry_version);
     let checkpoint_key = (counter.endpoint.clone(), prefix.to_string());
-    let mut pages =
+    let pages =
         if let Some(checkpoint) = restore_checkpoint(counter, &checkpoint_key, registry_version)? {
             cursor = checkpoint.version;
             family.states = checkpoint.states.clone();
@@ -64,12 +64,7 @@ where
                 .and_then(|context| context.history_cache.as_ref())
                 .map(|_| Vec::new())
         };
-    let mut retained_bytes = pages.as_ref().map_or(0, |pages| {
-        pages
-            .iter()
-            .map(|page| page.response_hex.len())
-            .sum::<usize>()
-    });
+    let mut recording = RegistryHistoryRecording::new(pages);
     counter.emit(SubnetCatalogProgressPhase::History {
         registry_version,
         through_version: cursor,
@@ -77,29 +72,10 @@ where
     });
     while cursor < registry_version {
         let mut response = page(cursor).await?;
-        let encoded = pages.as_ref().map(|_| {
-            normalize_history_response(&mut response);
-            response.encode_to_vec()
-        });
+        let encoded = recording.prepare(&mut response);
         cursor = family.apply_page(response, cursor)?.min(registry_version);
         collected_pages += 1;
-        if let Some(encoded) = encoded {
-            let retained = pages.as_mut().expect("recorded history transcript");
-            let page_bytes = encoded.len().saturating_mul(2);
-            if retained.len() < MAX_HISTORY_PAGES
-                && encoded.len() <= MAX_HISTORY_PAGE_BYTES
-                && retained_bytes.saturating_add(page_bytes)
-                    <= usize::try_from(MAX_HISTORY_BYTES).expect("history byte ceiling fits usize")
-            {
-                retained.push(RegistryHistoryPage {
-                    through_version: cursor,
-                    response_hex: crate::hex::hex_bytes(&encoded).into(),
-                });
-                retained_bytes += page_bytes;
-            } else {
-                pages = None;
-            }
-        }
+        recording.record(cursor, encoded);
         // Publish only after the entire page passes continuity and content validation.
         if let Some(context) = &counter.acquisition {
             let checkpoint = Arc::new(RegistryKeyFamilyCheckpoint {
@@ -107,7 +83,7 @@ where
                 states: family.states.clone(),
                 delta_key_count: family.delta_key_count,
                 value_count: family.value_count,
-                pages: pages.clone(),
+                pages: recording.pages.clone(),
             });
             remember_checkpoint(counter, &checkpoint_key, Arc::clone(&checkpoint));
             if let Some(cache) = &context.history_cache
@@ -126,6 +102,55 @@ where
         });
     }
     Ok(family.into_keys())
+}
+
+struct RegistryHistoryRecording {
+    pages: Option<Vec<RegistryHistoryPage>>,
+    retained_bytes: usize,
+}
+
+impl RegistryHistoryRecording {
+    fn new(pages: Option<Vec<RegistryHistoryPage>>) -> Self {
+        let retained_bytes = pages.as_ref().map_or(0, |pages| {
+            pages.iter().map(|page| page.response_hex.len()).sum()
+        });
+        Self {
+            pages,
+            retained_bytes,
+        }
+    }
+
+    fn prepare(
+        &self,
+        response: &mut HighCapacityRegistryGetChangesSinceResponse,
+    ) -> Option<Vec<u8>> {
+        self.pages.as_ref().map(|_| {
+            normalize_history_response(response);
+            response.encode_to_vec()
+        })
+    }
+
+    // Commit normalized bytes only after the entire page has passed family admission.
+    fn record(&mut self, through_version: u64, encoded: Option<Vec<u8>>) {
+        let (Some(pages), Some(encoded)) = (self.pages.as_mut(), encoded) else {
+            return;
+        };
+        let page_bytes = encoded.len().saturating_mul(2);
+        if pages.len() >= MAX_HISTORY_PAGES
+            || encoded.len() > MAX_HISTORY_PAGE_BYTES
+            || self.retained_bytes.saturating_add(page_bytes)
+                > usize::try_from(MAX_HISTORY_BYTES).expect("history byte ceiling fits usize")
+        {
+            self.pages = None;
+            self.retained_bytes = 0;
+            return;
+        }
+        pages.push(RegistryHistoryPage {
+            through_version,
+            response_hex: crate::hex::hex_bytes(&encoded).into(),
+        });
+        self.retained_bytes += page_bytes;
+    }
 }
 
 fn restore_checkpoint(
@@ -555,6 +580,26 @@ mod tests {
             version,
             deltas,
         }
+    }
+
+    #[test]
+    fn history_recording_stops_permanently_at_the_page_ceiling() {
+        let mut recording = RegistryHistoryRecording::new(Some(Vec::new()));
+        let mut page = response(
+            1,
+            vec![HighCapacityRegistryDelta {
+                key: b"canister_ranges_00".to_vec(),
+                values: vec![value(1)],
+            }],
+        );
+        let encoded = recording.prepare(&mut page);
+        recording.record(1, encoded);
+        let first = recording.pages.expect("recorded validated page").remove(0);
+        let mut resumed = RegistryHistoryRecording::new(Some(vec![first; MAX_HISTORY_PAGES]));
+        let encoded = resumed.prepare(&mut page);
+        resumed.record(2, encoded);
+        assert!(resumed.pages.is_none());
+        assert!(resumed.prepare(&mut page).is_none());
     }
 
     #[test]

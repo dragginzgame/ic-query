@@ -208,7 +208,7 @@ impl SnsNeuronDetail {
     }
 }
 
-pub(in crate::sns::report::model) fn neuron_policy_observations(
+pub(in crate::sns::report) fn neuron_policy_observations(
     permissions: &[SnsNeuronPermissionRow],
     has_pending_maturity_disbursement: bool,
 ) -> (SnsPolicyObservationStatus, SnsPolicyObservationStatus) {
