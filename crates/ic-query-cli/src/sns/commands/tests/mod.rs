@@ -6,8 +6,7 @@ use super::{
         SnsProposalsOptions, SnsRewardCheckpointOptions, SnsRewardDiffOptions,
     },
     spec::{
-        SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
-        SnsProposalTopicArg, SnsProposalsSortArg, sns_canister_command, sns_canister_list_command,
+        SnsListSortArg, SnsNeuronsSortArg, sns_canister_command, sns_canister_list_command,
         sns_command, sns_info_command, sns_list_command, sns_metrics_command,
         sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
         sns_neuron_command, sns_neuron_info_command, sns_neuron_list_command,
@@ -18,16 +17,13 @@ use super::{
         sns_swap_command, sns_token_command, sns_upgrade_command,
     },
 };
-use crate::{
-    cli::clap::parse_matches,
-    cli::common::{OutputFormat, SourceOutputOptions},
-};
+use crate::cli::common::{OutputFormat, SourceOutputOptions};
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SnsProposalSortDirection};
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 
 fn parse_test_matches(command: ClapCommand, args: &[&str]) -> Result<ArgMatches, SnsCommandError> {
-    parse_matches(command, args.iter().copied().map(std::ffi::OsString::from))
+    crate::cli::parse_test_args(command, args)
         .map_err(|error| SnsCommandError::Usage(error.to_string()))
 }
 

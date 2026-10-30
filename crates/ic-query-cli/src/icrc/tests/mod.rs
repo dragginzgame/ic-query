@@ -36,8 +36,7 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches) -> Options,
 ) -> Options {
-    let matches = parse_matches(command, args.iter().copied().map(std::ffi::OsString::from))
-        .expect("parse ICRC test options");
+    let matches = crate::cli::parse_test_args(command, args).expect("parse ICRC test options");
     from_matches(&matches)
 }
 

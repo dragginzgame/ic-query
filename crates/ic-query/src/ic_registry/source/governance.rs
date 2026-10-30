@@ -1,33 +1,27 @@
 use super::agent::{mainnet_agent, mainnet_governance_canister, mainnet_registry_canister};
+use crate::candid_call::{encode_request, query_encoded};
 use crate::ic_registry::{
     MainnetNodeProviderList, MainnetRegistryFetchRequest, RegistryFetchError,
     inventory::fetch_node_provider_node_counts, projection::node_provider_list_from_response,
     transport::get_latest_version, wire::ListNodeProvidersResponse,
 };
 
+crate::candid_call::impl_candid_call_error!(RegistryFetchError);
+
 pub async fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
 ) -> Result<MainnetNodeProviderList, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
     let governance_canister = mainnet_governance_canister()?;
-    let arg = ic_platform::candid::contract::encode_args(()).map_err(|err| {
-        RegistryFetchError::CandidEncode {
-            message: "list_node_providers",
-            reason: err.to_string(),
-        }
-    })?;
-    let bytes =
-        crate::agent_transport::query(&agent, &governance_canister, "list_node_providers", arg)
-            .await
-            .map_err(|err| RegistryFetchError::AgentCall {
-                method: "list_node_providers",
-                reason: err.to_string(),
-            })?;
-    let response = crate::candid_decode::decode_reply::<ListNodeProvidersResponse>(&bytes)
-        .map_err(|err| RegistryFetchError::CandidDecode {
-            message: "ListNodeProvidersResponse",
-            reason: err.to_string(),
-        })?;
+    let arg = encode_request::<_, RegistryFetchError>((), "list_node_providers")?;
+    let response = query_encoded::<ListNodeProvidersResponse, RegistryFetchError>(
+        &agent,
+        &governance_canister,
+        "list_node_providers",
+        "ListNodeProvidersResponse",
+        arg,
+    )
+    .await?;
     let registry_canister = mainnet_registry_canister()?;
     let registry_version = get_latest_version(&agent, &registry_canister).await?;
     let node_counts =

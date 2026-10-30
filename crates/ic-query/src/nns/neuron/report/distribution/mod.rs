@@ -231,7 +231,7 @@ pub fn build_nns_neuron_distribution_report(
         }
     })?;
 
-    aggregate_distribution(collection, neurons, expected, source)
+    aggregate_distribution(collection, neurons, source)
 }
 
 #[cfg(feature = "nns-host")]
@@ -244,25 +244,19 @@ pub(super) fn build_distribution_from_cache(
             reason: "complete collection has no concrete source provenance".to_string(),
         }
     })?;
-    aggregate_distribution(
-        collection,
-        cache.rows(),
-        collection.neurons_fetched(),
-        source,
-    )
+    aggregate_distribution(collection, cache.rows(), source)
 }
 
 fn aggregate_distribution(
     collection: &NnsNeuronCollectionState,
     neurons: &[NnsNeuronRow],
-    expected: u64,
     source: NnsGovernanceSourceProvenance,
 ) -> Result<NnsNeuronDistributionReport, NnsNeuronDistributionError> {
     let mut distribution = DistributionAccumulator::default();
     for neuron in neurons {
         distribution.observe(neuron)?;
     }
-    Ok(distribution.into_report(collection, expected, source))
+    Ok(distribution.into_report(collection, source))
 }
 
 /// Validate every distribution-report invariant available without source rows or live host calls.
@@ -576,9 +570,9 @@ impl DistributionAccumulator {
     fn into_report(
         self,
         collection: &NnsNeuronCollectionState,
-        collected_neuron_count: u64,
         source: NnsGovernanceSourceProvenance,
     ) -> NnsNeuronDistributionReport {
+        let collected_neuron_count = collection.neurons_fetched();
         NnsNeuronDistributionReport {
             schema_version: NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
             network: collection.network().to_string(),

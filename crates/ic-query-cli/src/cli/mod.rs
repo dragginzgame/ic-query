@@ -33,4 +33,6 @@ macro_rules! value_enum_with_conversion {
 pub(crate) use value_enum_with_conversion;
 
 #[cfg(test)]
+pub use tests::parse_test_args;
+#[cfg(test)]
 mod tests;

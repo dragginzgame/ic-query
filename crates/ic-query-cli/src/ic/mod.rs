@@ -72,11 +72,8 @@ fn parse_test_options<Options>(
     args: &[&str],
     from_matches: fn(&ArgMatches) -> Options,
 ) -> Result<Options, IcCommandError> {
-    let matches = crate::cli::clap::parse_matches(
-        command,
-        args.iter().copied().map(std::ffi::OsString::from),
-    )
-    .map_err(|error| IcCommandError::Usage(error.to_string()))?;
+    let matches = crate::cli::parse_test_args(command, args)
+        .map_err(|error| IcCommandError::Usage(error.to_string()))?;
     Ok(from_matches(&matches))
 }
 

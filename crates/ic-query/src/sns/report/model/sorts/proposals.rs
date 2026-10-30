@@ -245,13 +245,7 @@ impl SnsProposalTopicFilter {
     pub const fn topic_label(self) -> Option<&'static str> {
         match self {
             Self::Any => None,
-            Self::DaoCommunitySettings => Some(Self::DaoCommunitySettings.as_str()),
-            Self::SnsFrameworkManagement => Some(Self::SnsFrameworkManagement.as_str()),
-            Self::DappCanisterManagement => Some(Self::DappCanisterManagement.as_str()),
-            Self::ApplicationBusinessLogic => Some(Self::ApplicationBusinessLogic.as_str()),
-            Self::Governance => Some(Self::Governance.as_str()),
-            Self::TreasuryAssetManagement => Some(Self::TreasuryAssetManagement.as_str()),
-            Self::CriticalDappOperations => Some(Self::CriticalDappOperations.as_str()),
+            _ => Some(self.as_str()),
         }
     }
 }

@@ -13,7 +13,7 @@ use super::{
 };
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option},
-    common::{OutputFormat, SourceOutputOptions},
+    common::{OutputFormat, SourceOutputOptions, resolve_time_bounds},
 };
 use clap::ArgMatches;
 use ic_query::{
@@ -126,12 +126,13 @@ impl IcrcAnalyticsWindowOptions {
         default_window_secs: u64,
         minimum_default_start: u64,
     ) -> (u64, u64) {
-        let end = self.end_unix_secs.unwrap_or(now_unix_secs);
-        let start = self.start_unix_secs.unwrap_or_else(|| {
-            end.saturating_sub(default_window_secs)
-                .max(minimum_default_start)
-        });
-        (start, end)
+        resolve_time_bounds(
+            self.start_unix_secs,
+            self.end_unix_secs,
+            now_unix_secs,
+            default_window_secs,
+            minimum_default_start,
+        )
     }
 }
 

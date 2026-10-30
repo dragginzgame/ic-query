@@ -38,7 +38,6 @@ use super::{
         topology_summary_command, topology_versions_command,
     },
 };
-use crate::cli::clap::parse_matches;
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::nns::{
     data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
@@ -50,7 +49,7 @@ use ic_query::subnet_catalog::{
     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, GeographicScope, MAINNET_NETWORK, SubnetKind,
     SubnetSpecialization,
 };
-use std::{ffi::OsString, path::PathBuf};
+use std::path::PathBuf;
 
 fn parse_test_options<Options>(
     command: ClapCommand,
@@ -62,7 +61,7 @@ fn parse_test_options<Options>(
 }
 
 fn parse_test_matches(command: ClapCommand, args: &[&str]) -> Result<ArgMatches, NnsCommandError> {
-    parse_matches(command, args.iter().copied().map(OsString::from))
+    crate::cli::parse_test_args(command, args)
         .map_err(|error| NnsCommandError::Usage(error.to_string()))
 }
 

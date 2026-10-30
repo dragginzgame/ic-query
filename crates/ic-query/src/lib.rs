@@ -52,6 +52,7 @@ pub mod cache;
 mod cache_file;
 #[cfg(any(
     feature = "cloud-engine-host",
+    feature = "cmc-host",
     feature = "icrc-host",
     feature = "nns-host",
     feature = "sns-host"

@@ -2,6 +2,10 @@ use super::clap::{parse_matches, required_string, typed_option, value_arg};
 use clap::Command;
 use std::ffi::OsString;
 
+pub fn parse_test_args(command: Command, args: &[&str]) -> Result<clap::ArgMatches, clap::Error> {
+    parse_matches(command, args.iter().copied().map(OsString::from))
+}
+
 #[test]
 fn typed_helpers_read_values_from_one_clap_match_tree() {
     let command = Command::new("icq")

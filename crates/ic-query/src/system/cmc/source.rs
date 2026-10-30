@@ -10,6 +10,7 @@ use super::{
 };
 use crate::{
     agent::build_ic_agent,
+    candid_call::{encode_request, query_encoded},
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
 };
@@ -20,6 +21,8 @@ use ic_platform::cmc_types::IcpXdrConversionRateResponse;
 
 const GET_ICP_XDR_CONVERSION_RATE_METHOD: &str = "get_icp_xdr_conversion_rate";
 const ICP_XDR_CONVERSION_RATE_LABEL: &[u8] = b"ICP_XDR_CONVERSION_RATE";
+
+crate::candid_call::impl_candid_call_error!(CmcHostError);
 
 ///
 /// CmcSourceRequest
@@ -120,24 +123,15 @@ async fn fetch_live_certified_rate(
             reason: error.to_string(),
         }
     })?;
-    let arg = ic_platform::candid::contract::encode_args(()).map_err(|error| {
-        CmcHostError::CandidEncode {
-            message: "()",
-            reason: error.to_string(),
-        }
-    })?;
-    let bytes =
-        crate::agent_transport::query(&agent, &canister, GET_ICP_XDR_CONVERSION_RATE_METHOD, arg)
-            .await
-            .map_err(|error| CmcHostError::AgentCall {
-                method: GET_ICP_XDR_CONVERSION_RATE_METHOD,
-                reason: error.to_string(),
-            })?;
-    let response: IcpXdrConversionRateResponse = crate::candid_decode::decode_reply(&bytes)
-        .map_err(|error| CmcHostError::CandidDecode {
-            message: "IcpXdrConversionRateResponse",
-            reason: error.to_string(),
-        })?;
+    let arg = encode_request::<_, CmcHostError>((), "()")?;
+    let response = query_encoded::<IcpXdrConversionRateResponse, CmcHostError>(
+        &agent,
+        &canister,
+        GET_ICP_XDR_CONVERSION_RATE_METHOD,
+        "IcpXdrConversionRateResponse",
+        arg,
+    )
+    .await?;
     verified_certified_rate(&agent, &canister, response)
 }
 

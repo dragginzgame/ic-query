@@ -15,11 +15,11 @@ use crate::icrc::model::{
     IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionRow, IcrcError,
 };
 use ic_platform::agent::Agent;
-use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
+use ic_platform::candid::contract::{CandidType, Nat, Principal};
 
 const INDEX_ACCOUNT_TRANSACTIONS_METHOD: &str = "get_account_transactions";
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 struct IcrcIndexAccountTransactionsArgs {
     account: LedgerAccount,

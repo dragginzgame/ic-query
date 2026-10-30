@@ -6,6 +6,7 @@
 
 use crate::{
     cli::clap::{required_typed, string_option, typed_option},
+    cli::common::resolve_proposal_sort_direction,
     sns::commands::{
         SnsCommandError,
         options::lookup::SnsLookupOptions,
@@ -16,7 +17,10 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-use ic_query::sns::{SnsProposalSortDirection, SnsProposalsSort};
+use ic_query::sns::{
+    SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
+    SnsProposalTopicFilter, SnsProposalsSort,
+};
 
 ///
 /// SnsProposalsOptions
@@ -29,12 +33,12 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) lookup: SnsLookupOptions,
     pub(in crate::sns::commands) limit: u32,
     pub(in crate::sns::commands) before_proposal_id: Option<u64>,
-    pub(in crate::sns::commands) status: SnsProposalStatusArg,
-    pub(in crate::sns::commands) topic: SnsProposalTopicArg,
-    pub(in crate::sns::commands) eligibility: SnsProposalEligibilityArg,
+    pub(in crate::sns::commands) status: SnsProposalStatusFilter,
+    pub(in crate::sns::commands) topic: SnsProposalTopicFilter,
+    pub(in crate::sns::commands) eligibility: SnsProposalEligibilityFilter,
     pub(in crate::sns::commands) proposer_neuron_id: Option<String>,
     pub(in crate::sns::commands) query: Option<String>,
-    pub(in crate::sns::commands) sort: SnsProposalsSortArg,
+    pub(in crate::sns::commands) sort: SnsProposalsSort,
     pub(in crate::sns::commands) sort_direction: SnsProposalSortDirection,
     pub(in crate::sns::commands) verbose: bool,
 }
@@ -58,16 +62,26 @@ impl SnsProposalsOptions {
         matches: &ArgMatches,
         network: &str,
     ) -> Result<Self, SnsCommandError> {
-        let status = required_typed(matches, "status");
-        let sort = required_typed(matches, "sort");
-        let sort_direction = proposal_sort_direction(matches, sort)?;
+        let status = required_typed::<SnsProposalStatusArg>(matches, "status").into();
+        let sort = SnsProposalsSort::from(required_typed::<SnsProposalsSortArg>(matches, "sort"));
+        let sort_direction = resolve_proposal_sort_direction(
+            matches,
+            sort.uses_local_direction(),
+            sort.default_direction(),
+            (
+                SnsProposalSortDirection::Asc,
+                SnsProposalSortDirection::Desc,
+            ),
+            || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
+        )
+        .map_err(SnsCommandError::Usage)?;
         Ok(Self {
             lookup: SnsLookupOptions::from_matches(matches, network),
             limit: required_typed(matches, "limit"),
             before_proposal_id: typed_option::<u64>(matches, "before"),
             status,
-            topic: required_typed(matches, "topic"),
-            eligibility: required_typed(matches, "eligible"),
+            topic: required_typed::<SnsProposalTopicArg>(matches, "topic").into(),
+            eligibility: required_typed::<SnsProposalEligibilityArg>(matches, "eligible").into(),
             proposer_neuron_id: string_option(matches, "proposer"),
             query: string_option(matches, "query"),
             sort,
@@ -75,33 +89,6 @@ impl SnsProposalsOptions {
             verbose: matches.get_flag("verbose"),
         })
     }
-}
-
-fn proposal_sort_direction(
-    matches: &ArgMatches,
-    sort: SnsProposalsSortArg,
-) -> Result<SnsProposalSortDirection, SnsCommandError> {
-    if matches.get_flag("asc") {
-        return explicit_proposal_sort_direction(sort, SnsProposalSortDirection::Asc, "--asc");
-    }
-    if matches.get_flag("desc") {
-        return explicit_proposal_sort_direction(sort, SnsProposalSortDirection::Desc, "--desc");
-    }
-    Ok(SnsProposalsSort::from(sort).default_direction())
-}
-
-fn explicit_proposal_sort_direction(
-    sort: SnsProposalsSortArg,
-    direction: SnsProposalSortDirection,
-    flag: &'static str,
-) -> Result<SnsProposalSortDirection, SnsCommandError> {
-    if !SnsProposalsSort::from(sort).uses_local_direction() {
-        return Err(SnsCommandError::Usage(format!(
-            "{flag} requires --sort {}",
-            crate::cli::clap::value_names(SnsProposalsSortArg::Api)
-        )));
-    }
-    Ok(direction)
 }
 
 impl SnsProposalOptions {

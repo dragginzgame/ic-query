@@ -248,12 +248,11 @@ impl RewardHistoryOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::clap::{parse_matches, render_help};
+    use crate::cli::clap::render_help;
     use crate::cli::common::OutputFormat;
 
     fn options<T>(command: ClapCommand, args: &[&str], from: impl FnOnce(&ArgMatches) -> T) -> T {
-        let matches = parse_matches(command, args.iter().map(std::ffi::OsString::from))
-            .expect("valid options");
+        let matches = crate::cli::parse_test_args(command, args).expect("valid options");
         from(&matches)
     }
 

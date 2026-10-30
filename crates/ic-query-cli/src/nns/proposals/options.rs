@@ -7,16 +7,15 @@
 use crate::{
     cli::{
         clap::{required_typed, string_option, typed_option},
-        common::output_format,
+        common::{output_format, resolve_proposal_sort_direction},
     },
     nns::{
         NnsCommandError, OutputFormat,
         leaf::NnsCommonOptions,
         proposals::values::{
             NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_VERBOSE_FLAG,
-            NnsProposalListSortArg, NnsProposalRewardStatusArg, NnsProposalStatusArg,
-            NnsProposalTopicArg,
+            NNS_PROPOSAL_VERBOSE_FLAG, NnsProposalListSortArg, NnsProposalRewardStatusArg,
+            NnsProposalStatusArg, NnsProposalTopicArg,
         },
     },
 };
@@ -79,8 +78,19 @@ impl NnsProposalListOptions {
         network: &str,
     ) -> Result<Self, NnsCommandError> {
         let common = NnsCommonOptions::from_matches(matches, network);
-        let sort = required_typed::<NnsProposalListSortArg>(matches, "sort");
-        let sort_direction = proposal_sort_direction(matches, sort)?;
+        let sort =
+            NnsProposalListSort::from(required_typed::<NnsProposalListSortArg>(matches, "sort"));
+        let sort_direction = resolve_proposal_sort_direction(
+            matches,
+            sort.uses_local_direction(),
+            sort.default_direction(),
+            (
+                NnsProposalSortDirection::Asc,
+                NnsProposalSortDirection::Desc,
+            ),
+            || crate::cli::clap::value_names(NnsProposalListSortArg::Api),
+        )
+        .map_err(NnsCommandError::Usage)?;
         Ok(Self {
             common,
             limit: required_typed(matches, "limit"),
@@ -94,47 +104,11 @@ impl NnsProposalListOptions {
             topic: required_typed::<NnsProposalTopicArg>(matches, "topic").into(),
             proposer_neuron_id: typed_option(matches, "proposer"),
             query: string_option(matches, "query"),
-            sort: sort.into(),
+            sort,
             sort_direction,
             verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         })
     }
-}
-
-fn proposal_sort_direction(
-    matches: &ArgMatches,
-    sort: NnsProposalListSortArg,
-) -> Result<NnsProposalSortDirection, NnsCommandError> {
-    let sort = NnsProposalListSort::from(sort);
-    if matches.get_flag(NNS_PROPOSAL_SORT_ASC_LABEL) {
-        return explicit_proposal_sort_direction(
-            sort,
-            NnsProposalSortDirection::Asc,
-            NNS_PROPOSAL_SORT_ASC_LABEL,
-        );
-    }
-    if matches.get_flag(NNS_PROPOSAL_SORT_DESC_LABEL) {
-        return explicit_proposal_sort_direction(
-            sort,
-            NnsProposalSortDirection::Desc,
-            NNS_PROPOSAL_SORT_DESC_LABEL,
-        );
-    }
-    Ok(sort.default_direction())
-}
-
-fn explicit_proposal_sort_direction(
-    sort: NnsProposalListSort,
-    direction: NnsProposalSortDirection,
-    flag: &'static str,
-) -> Result<NnsProposalSortDirection, NnsCommandError> {
-    if !sort.uses_local_direction() {
-        return Err(NnsCommandError::Usage(format!(
-            "--{flag} requires --sort {}",
-            crate::cli::clap::value_names(NnsProposalListSortArg::Api)
-        )));
-    }
-    Ok(direction)
 }
 
 ///

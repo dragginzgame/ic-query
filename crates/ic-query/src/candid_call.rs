@@ -143,6 +143,7 @@ where
     test,
     any(
         feature = "cloud-engine-host",
+        feature = "cmc-host",
         feature = "nns-host",
         feature = "sns-host"
     )
@@ -159,6 +160,13 @@ mod tests {
     use crate::nns::governance::NnsGovernanceError as QueryError;
     #[cfg(all(not(feature = "nns-host"), feature = "sns-host"))]
     use crate::sns::SnsHostError as QueryError;
+    #[cfg(all(
+        not(feature = "nns-host"),
+        not(feature = "sns-host"),
+        not(feature = "cloud-engine-host"),
+        feature = "cmc-host"
+    ))]
+    use crate::system::cmc::CmcHostError as QueryError;
     use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
     use serde_cbor::Value;
     use std::{collections::BTreeMap, time::Duration};

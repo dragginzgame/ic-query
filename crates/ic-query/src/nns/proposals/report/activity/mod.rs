@@ -554,7 +554,7 @@ fn aggregate_activity(
             reason: "complete collection has no concrete source provenance".to_string(),
         }
     })?;
-    Ok(activity.into_report(request, collection, collection.proposals_fetched(), source))
+    Ok(activity.into_report(request, collection, source))
 }
 
 #[derive(Default)]
@@ -623,7 +623,6 @@ impl ActivityAccumulator {
         self,
         request: &NnsProposalActivityRequest,
         collection: &NnsProposalCollectionState,
-        collected_proposal_count: u64,
         source: NnsGovernanceSourceProvenance,
     ) -> NnsProposalActivityReport {
         NnsProposalActivityReport {
@@ -634,7 +633,7 @@ impl ActivityAccumulator {
             collection_started_at: collection.started_at().to_string(),
             collection_updated_at: collection.updated_at().to_string(),
             collection_page_count: collection.pages_fetched(),
-            collected_proposal_count,
+            collected_proposal_count: collection.proposals_fetched(),
             point_in_time_guaranteed: false,
             from_proposal_timestamp_seconds: request.from_proposal_timestamp_seconds,
             until_proposal_timestamp_seconds: request.until_proposal_timestamp_seconds,

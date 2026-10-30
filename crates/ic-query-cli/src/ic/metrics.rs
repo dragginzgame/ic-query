@@ -13,7 +13,7 @@ use crate::cli::{
     clap::{required_typed, typed_option, value_arg},
     common::{
         COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-        source_endpoint_arg, write_text_or_json,
+        resolve_time_bounds, source_endpoint_arg, write_text_or_json,
     },
 };
 use clap::{
@@ -42,10 +42,13 @@ raw value strings returned by this off-chain, non-certified API.";
 pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = MetricOptions::from_matches(matches);
     let now_unix_secs = current_unix_secs()?;
-    let end_unix_secs = options.end_unix_secs.unwrap_or(now_unix_secs);
-    let start_unix_secs = options
-        .start_unix_secs
-        .unwrap_or_else(|| end_unix_secs.saturating_sub(DEFAULT_IC_METRIC_WINDOW_SECS));
+    let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
+        options.start_unix_secs,
+        options.end_unix_secs,
+        now_unix_secs,
+        DEFAULT_IC_METRIC_WINDOW_SECS,
+        0,
+    );
     let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcMetricRequest::new(
         dashboard,

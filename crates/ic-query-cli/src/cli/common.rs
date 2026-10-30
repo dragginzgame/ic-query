@@ -127,6 +127,44 @@ where
     }
 }
 
+/// Resolve omitted bounds without altering explicitly supplied timestamps.
+pub fn resolve_time_bounds(
+    start: Option<u64>,
+    end: Option<u64>,
+    now_unix_secs: u64,
+    default_window_secs: u64,
+    minimum_default_start: u64,
+) -> (u64, u64) {
+    let end = end.unwrap_or(now_unix_secs);
+    let start = start.unwrap_or_else(|| {
+        end.saturating_sub(default_window_secs)
+            .max(minimum_default_start)
+    });
+    (start, end)
+}
+
+/// Admit shared direction flags while the family owns sort semantics and defaults.
+pub fn resolve_proposal_sort_direction<Direction: Copy>(
+    matches: &ArgMatches,
+    uses_local_direction: bool,
+    default_direction: Direction,
+    (asc, desc): (Direction, Direction),
+    local_sort_names: impl FnOnce() -> String,
+) -> Result<Direction, String> {
+    let explicit = if matches.get_flag("asc") {
+        Some(("asc", asc))
+    } else if matches.get_flag("desc") {
+        Some(("desc", desc))
+    } else {
+        None
+    };
+    match explicit {
+        Some((_, direction)) if uses_local_direction => Ok(direction),
+        Some((flag, _)) => Err(format!("--{flag} requires --sort {}", local_sort_names())),
+        None => Ok(default_direction),
+    }
+}
+
 pub fn write_text_or_json_verbose<T, E>(
     format: OutputFormat,
     report: &T,

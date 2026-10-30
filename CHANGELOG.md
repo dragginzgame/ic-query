@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.5]
+
+### 🧹 Cleanup
+
+- Reuse shared native query handling and simplify Registry relation counting
+  and Governance analytics assembly, preserving validation and diagnostics.
+- Consolidate CLI time-window defaults, proposal sort handling and test parsing;
+  narrow internal request code without changing commands or report formats.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.4] - 2026-10-30
 
 ### 🧹 Cleanup
