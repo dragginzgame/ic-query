@@ -7,6 +7,7 @@
 use super::SnsHostError;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
+    candid_call::encode_request,
     sns::report::{SnsSourceRequest, enforce_mainnet_network},
 };
 use ic_platform::agent::Agent;
@@ -27,12 +28,7 @@ where
     Arg: CandidType + Sync,
     Response: for<'de> Deserialize<'de> + CandidType,
 {
-    let arg = ic_platform::candid::contract::encode_one(arg).map_err(|err| {
-        SnsHostError::CandidEncode {
-            message: request_message,
-            reason: err.to_string(),
-        }
-    })?;
+    let arg = encode_request::<_, SnsHostError>((arg,), request_message)?;
     let bytes = agent
         .update(canister, method)
         .with_arg(arg)

@@ -5,7 +5,7 @@
 //! Boundary: owns ICRC-3 history traversal and wire-to-report conversion.
 
 use super::{super::tip_certificate::verified_tip_certificate_data, live_query_context};
-use crate::candid_call::{CandidCallError, query_canister, query_no_args};
+use crate::candid_call::{CandidCallError, encode_request, query_canister, query_no_args};
 use crate::decimal::is_unsigned_decimal;
 use crate::{
     hex::hex_bytes,
@@ -122,12 +122,7 @@ async fn query_archive_blocks(
             "archive reply byte budget exhausted",
         ));
     }
-    let arg = ic_platform::candid::contract::encode_one(&archive.args).map_err(|error| {
-        IcrcError::CandidEncode {
-            message: CONTEXT,
-            reason: error.to_string(),
-        }
-    })?;
+    let arg = encode_request::<_, IcrcError>((&archive.args,), CONTEXT)?;
     let bytes = crate::agent_transport::query(
         agent,
         &archive.callback.canister_id,

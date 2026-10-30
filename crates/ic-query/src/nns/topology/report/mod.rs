@@ -21,8 +21,6 @@ mod percent;
 #[cfg(feature = "nns-host")]
 mod providers;
 #[cfg(feature = "nns-host")]
-mod refresh;
-#[cfg(feature = "nns-host")]
 mod regions;
 #[cfg(feature = "nns-host")]
 mod registry_versions;
@@ -49,8 +47,6 @@ use coverage::topology_coverage_report_from_reports;
 use gaps::topology_gaps_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]
 use providers::topology_providers_report_from_reports;
-#[cfg(all(test, feature = "nns-host"))]
-use refresh::{NnsTopologyRefreshComponentReports, topology_refresh_report_from_reports};
 #[cfg(all(test, feature = "nns-host"))]
 use regions::topology_regions_report_from_report;
 #[cfg(all(test, feature = "nns-host"))]

@@ -12,7 +12,7 @@ use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 /// Empty record accepted by the bounded SNS swap query methods.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsSwapQueryRequest {}
 

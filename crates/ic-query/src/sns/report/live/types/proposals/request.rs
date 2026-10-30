@@ -16,7 +16,7 @@ use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 /// Candid request for a direct SNS governance proposal lookup.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetProposalRequest {
     pub(in crate::sns::report::live) proposal_id: Option<SnsProposalId>,
@@ -40,7 +40,7 @@ pub(in crate::sns::report::live) struct GetProposalResponse {
 /// Candid request for bounded SNS governance proposal listings.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListProposalsRequest {
     pub(in crate::sns::report::live) include_reward_status: Vec<i32>,

@@ -12,7 +12,7 @@ use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deseriali
 /// Empty Candid request for SNS Root inventory.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListSnsCanistersRequest {}
 
@@ -53,7 +53,7 @@ pub(in crate::sns::report::live) struct SnsRootExtensions {
 /// Candid request for SNS Root canister status summaries.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetSnsCanistersSummaryRequest {
     pub(in crate::sns::report::live) update_canister_list: Option<bool>,

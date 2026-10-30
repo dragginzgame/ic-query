@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.6]
+
+### 🧹 Cleanup
+
+- Simplify topology refresh assembly and share request encoding in specialized
+  SNS and ICRC adapters, preserving call order, validation and report formats.
+- Remove unused derives from outgoing SNS requests while retaining their
+  external Candid contracts.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.5] - 2026-10-30
 
 ### 🧹 Cleanup

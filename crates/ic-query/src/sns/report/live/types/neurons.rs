@@ -14,7 +14,7 @@ use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 /// Candid request for one exact SNS Governance neuron.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNeuronRequest {
     pub(in crate::sns::report::live) neuron_id: Option<SnsNeuronId>,
@@ -51,7 +51,7 @@ pub(in crate::sns::report::live) enum GetNeuronResult {
 /// Candid request for bounded SNS governance neuron listings.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct ListNeuronsRequest {
     pub(in crate::sns::report::live) of_principal: Option<Principal>,
