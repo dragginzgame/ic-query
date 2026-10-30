@@ -5,6 +5,23 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.78.0]
+
+### ⚠️ Breaking
+
+- Adopt Platform 0.11's public ledger types and canister runtime. Update custom
+  ICRC sources and rebuild canister runtime consumers against Platform 0.11.
+- Adopt IC Tooling 0.72's Host types. Consumers naming certificate errors or
+  ledger evidence types must align direct Host Tools dependencies to 0.72.
+
+### 🔧 Changed
+
+- Align Tooling 0.72.0, Platform 0.11.1, Metrics 0.21.0 and Wire 0.10.0 on one
+  Platform and Wire identity across native queries, metadata and probe tooling.
+  Preserve protocol frames, admission budgets and the Rust 1.91 requirement.
+
+Detailed release notes: [docs/changelog/0.78.md](docs/changelog/0.78.md)
+
 ## [0.77.0] - 2026-10-30
 
 ### ⚠️ Breaking

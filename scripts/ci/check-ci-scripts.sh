@@ -960,7 +960,7 @@ if [[ "$1" == tree ]]; then
   [[ "$*" != *"--package ic-query-cli"* ]] || package=ic-query-cli
   printf '%s v0.0.0\n' "$package"
   if [[ "$*" == *"--features canister"* ]]; then
-    printf '%s v0.9.1\n' ic-platform ic-platform-macros ic-platform-runtime-guard
+    printf '%s v0.11.1\n' ic-platform ic-platform-macros ic-platform-runtime-guard
   fi
   if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
     [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \

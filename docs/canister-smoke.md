@@ -455,8 +455,8 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Testkit retains its own older Platform dependency; no newer
-Platform limit/error values are passed across that version boundary.
+callers use Wire. Query and Testkit share Platform 0.11.1 and Wire 0.10.0,
+including their public limit, error and ledger-value identities.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
 direct Ciborium declaration or usage. Governance fixtures use Testkit's native
@@ -506,9 +506,9 @@ and ledger DTOs; every supported production graph rejects stable-memory storage.
 Platform now owns the non-cryptographic runtime adapters, call/response and
 error identities. Its `cdk` feature is Candid-free, while Query selects Candid
 separately for required external NNS methods. The full `ic-cdk` and its macros
-are excluded from production graphs. The canister graph has one Platform 0.9
+are excluded from production graphs. The canister graph has one Platform 0.11
 runtime owner, using its embedded executor and IC0 without either registry
-supplier. Embedders must rebuild all runtime consumers against Platform 0.9;
+supplier. Embedders must rebuild all runtime consumers against Platform 0.11;
 Query does not copy executor or callback implementations.
 The adapter retains explicit Candid unit arguments, bounded waits, raw replies,
 byte limits and replicated provenance. The owned probe's explicit Wire hooks

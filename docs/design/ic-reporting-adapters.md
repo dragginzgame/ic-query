@@ -43,15 +43,14 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.18.1 includes validated Serde transport for measurement aggregates,
+Metrics 0.21.0 includes validated Serde transport for measurement aggregates,
 scalar counters, summaries and fixed-bound histograms, with Wire metadata on
-native hosts. Query currently uses its percentage arithmetic and has no local
-aggregate/counter transport mirrors to
-replace. Dashboard observations and Governance metric payloads retain their
+native hosts. Query uses its checked measurement and percentage arithmetic in
+local report helpers. Dashboard observations and Governance metric payloads retain their
 source-specific report contracts. Native dependency graphs include Metrics' Wire
 metadata support; portable Wasm and canister graphs continue excluding Wire.
-Metrics is published from the IC Observability workspace; its package identity,
-arithmetic behavior and dependency boundaries remain unchanged.
+Metrics is published from the IC Observability workspace. Query retains its
+existing arithmetic behavior and native/Wasm feature boundaries.
 
 The private Registry adapter consumes Host's published protobuf projections and
 routing-shard checks directly. The `subnet-catalog-host` feature enables this
@@ -66,17 +65,22 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.9.1, Metrics 0.18.1,
-Host/Build/Testkit 0.70.5 and Wire 0.7.25.
+The current workspace minimums are Platform 0.11.1, Metrics 0.21.0,
+Host/Build/Testkit 0.72.0 and Wire 0.10.0. Direct Wire use belongs to probes and
+development fixtures and selects the core codec without its endpoint integration.
+Metrics and probe tooling select the same Wire 0.10 metadata and codec identity.
+Query keeps its arithmetic types private. Optional schemas for Platform-owned
+Principal/Account types belong to Wire's `platform-types` feature; Query's core
+codec selection does not require those schemas or endpoint integration.
 
-Platform 0.9 owns the selected ICRC DTO and callback Rust types. Custom
+Platform 0.11 owns the selected ICRC DTO and callback Rust types. Custom
 `IcrcTipCertificateSource` implementations use its `ICRC3DataCertificate`, rather
 than the registry ledger package's certificate type. External wire/Serde shapes
 and value hashes remain the protocol contracts; the Rust identity change selects
-Query 0.77. Released Host/Testkit 0.70.5 retain their own Platform 0.8 interfaces,
+Query 0.78. Host/Testkit 0.72.0 and Query select one Platform 0.11.1 supplier,
 including owned Registry Principals and ledger values. Query consumes those
-Host-owned values directly at their boundaries; upstream Agent/Candid/certificate
-identities remain shared across both selections.
+values directly at their boundaries; upstream Agent/Candid/certificate identities
+remain shared.
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.
 Query retains its existing byte, work, type-table and header budgets and reply
@@ -86,22 +90,22 @@ Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
 Testkit fixtures. External Agent, Candid, Principal and certificate identities
 remain shared across the selected packages. Query's canister runtime selects
-Platform 0.9's embedded IC0 and executor, with one Platform runtime owner and no
+Platform 0.11's embedded IC0 and executor, with one Platform runtime owner and no
 registry executor or IC0 package in the Wasm normal/build graph. Embedders must
-align every runtime consumer on Platform 0.9, including timer libraries when used.
-Platform 0.9.1 selects its singleton guard through executor/runtime features;
+align every runtime consumer on Platform 0.11, including timer libraries when used.
+Platform selects its singleton guard through executor/runtime features;
 portable and native-only Query graphs exclude that guard. Native facade use
 therefore does not exclude an unrelated executor from a consumer's wider graph.
-Public ledger and runtime handles have Platform 0.9 identity, requiring the Query
-0.77 minor cut. No dependency override, copied runtime or compatibility wrapper
+Public ledger and runtime handles have Platform 0.11 identity, requiring the Query
+0.78 minor cut. No dependency override, copied runtime or compatibility wrapper
 is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
 Host Tools' `ledger_evidence::LedgerTip`. Updating these package-owned Rust
-types from Host Tools 0.69 to 0.70 requires a Query minor release. Downstream
+types from Host Tools 0.70 to 0.72 requires a Query minor release. Downstream
 callers that name them must update their direct `ic-host-tools` dependency to
-0.70 as well. No serialized report or cache format changes.
+0.72 as well. No serialized report or cache format changes.
 
 Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
@@ -167,7 +171,7 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Its embedded executor and IC0 share the selected Platform 0.9 identity;
+graphs. Its embedded executor and IC0 share the selected Platform 0.11 identity;
 the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;

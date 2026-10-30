@@ -2,10 +2,12 @@ use super::*;
 #[cfg(feature = "ledger-evidence-host")]
 use ic_host_tools::ledger_evidence::{BlockEvidenceLimits, BoundedLedgerBlocks, LedgerBlock};
 #[cfg(feature = "ledger-evidence-host")]
-use ic_platform::candid::contract::Nat;
-#[cfg(feature = "ledger-evidence-host")]
 use ic_platform::certification::fork;
 use ic_platform::certification::{empty, labeled, leaf as tree_leaf};
+#[cfg(feature = "ledger-evidence-host")]
+use ic_platform::{candid::contract::Nat, icrc_ledger_types::Value};
+#[cfg(feature = "ledger-evidence-host")]
+use std::collections::BTreeMap;
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
     serde_cbor::to_vec(tree).unwrap()
@@ -158,7 +160,7 @@ fn tip_requires_exact_hash_and_canonical_bounded_index() {
 fn admitted_tip_connects_directly_to_the_host_chain_verifier() {
     let blocks = [LedgerBlock {
         id: Nat::from(0_u8),
-        block: serde_json::from_str(r#"{"Map":{}}"#).unwrap(),
+        block: Value::Map(BTreeMap::new()),
     }];
     let tree = fork(
         labeled(
