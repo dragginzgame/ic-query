@@ -81,6 +81,17 @@ pub fn token_summary_lines(token: &IcrcTokenData) -> Vec<String> {
     ]
 }
 
+pub fn append_token_metadata_tables(lines: &mut Vec<String>, token: &IcrcTokenData) {
+    if !token.supported_standards.is_empty() {
+        lines.push(String::new());
+        lines.push(render_standard_rows_table(&token.supported_standards));
+    }
+    if !token.metadata.is_empty() {
+        lines.push(String::new());
+        lines.push(render_metadata_rows_table(&token.metadata, token.decimals));
+    }
+}
+
 pub fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String {
     render(
         &["STANDARD", "URL"],
@@ -93,7 +104,7 @@ pub fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String 
     )
 }
 
-pub fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
+fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
     render(
         &["METADATA", "TYPE", "VALUE"],
         &rows

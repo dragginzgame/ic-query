@@ -62,9 +62,13 @@ async fn run_icrc_analytics(matches: &ArgMatches) -> Result<(), IcrcCommandError
         Some(("holder", matches)) => run_icrc_analytics_holder(matches).await,
         Some(("token-values", matches)) => run_icrc_analytics_token_values(matches).await,
         Some(("total-supply", matches)) => run_icrc_analytics_total_supply(matches).await,
-        Some(("transaction", matches)) => {
-            run_icrc_analytics_indexed_count(matches, IcIcrcIndexedCountKind::Transaction).await
-        }
+        Some(("transaction", matches)) => match matches.subcommand() {
+            Some(("count", matches)) => {
+                run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Transaction)
+                    .await
+            }
+            _ => unreachable!("clap requires a known ICRC indexed-count subcommand"),
+        },
         _ => unreachable!("clap requires a known ICRC analytics subcommand"),
     }
 }
@@ -137,16 +141,6 @@ async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), Icr
     );
     let report = build_icrc_token_value_report(&request).await?;
     write_text_or_json(format, &report, icrc_token_value_report_text)
-}
-
-async fn run_icrc_analytics_indexed_count(
-    matches: &ArgMatches,
-    kind: IcIcrcIndexedCountKind,
-) -> Result<(), IcrcCommandError> {
-    match matches.subcommand() {
-        Some(("count", matches)) => run_icrc_analytics_indexed_count_leaf(matches, kind).await,
-        _ => unreachable!("clap requires a known ICRC indexed-count subcommand"),
-    }
 }
 
 async fn run_icrc_analytics_indexed_count_leaf(

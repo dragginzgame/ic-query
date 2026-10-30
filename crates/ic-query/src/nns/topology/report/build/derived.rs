@@ -1,13 +1,11 @@
-use super::{
-    fetch_topology_inventory_reports, summary::build_nns_topology_summary_report_with_source,
-};
+use super::{fetch_full_topology_reports, summary::build_nns_topology_summary_report_with_source};
 use crate::nns::{
     LiveNnsSource,
     topology::report::{
         NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION, NnsTopologyCheckReport,
         NnsTopologyCoverageReport, NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
         NnsTopologyVersionsReport, check::topology_check_report_from_summary,
-        coverage::topology_coverage_report_from_reports, enforce_mainnet_network,
+        coverage::topology_coverage_report_from_reports,
         registry_versions::topology_registry_versions,
     },
 };
@@ -22,10 +20,7 @@ pub async fn build_nns_topology_versions_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyVersionsReport, NnsTopologyHostError> {
-    enforce_mainnet_network(&request.network)?;
-
-    let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
-    let reports = fetch_topology_inventory_reports(request, source).await?;
+    let (subnet_report, reports) = fetch_full_topology_reports(request, source).await?;
     let registry_versions = topology_registry_versions(&subnet_report, &reports);
 
     Ok(NnsTopologyVersionsReport {
@@ -47,11 +42,7 @@ pub async fn build_nns_topology_coverage_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
-    enforce_mainnet_network(&request.network)?;
-
-    // Preserve the acquisition and failure order shared by topology reads.
-    source.fetch_subnet_catalog_list_report(request).await?;
-    let reports = fetch_topology_inventory_reports(request, source).await?;
+    let (_, reports) = fetch_full_topology_reports(request, source).await?;
 
     Ok(topology_coverage_report_from_reports(
         request.network.clone(),

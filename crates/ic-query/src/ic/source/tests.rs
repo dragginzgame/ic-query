@@ -1,4 +1,17 @@
-use super::{IcHostError, validate_offset_page};
+use super::{IcHostError, validate_offset_page, validate_source_text};
+
+#[test]
+fn source_text_requires_visible_trimmed_bounded_content() {
+    for valid in ["a", "ab", "é"] {
+        validate_source_text("name", valid, 2).expect("bounded source text");
+    }
+    for invalid in ["", " ", " a", "a ", "abc", "a\n", "a\0", "éé"] {
+        assert!(matches!(
+            validate_source_text("name", invalid, 2),
+            Err(IcHostError::InvalidSourceData { .. })
+        ));
+    }
+}
 
 #[test]
 fn offset_pages_return_a_hint_only_for_nonempty_unfinished_pages() {

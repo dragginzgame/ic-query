@@ -34,7 +34,7 @@ pub fn is_canonical_lowercase_hex(value: &str) -> bool {
 
 #[cfg(any(test, feature = "sns-host", feature = "subnet-catalog-host"))]
 pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
-    is_lowercase_hex(value).then(|| decode_hex(value)).flatten()
+    decode_hex_pairs(value, false)
 }
 
 /// Decode even-length ASCII hexadecimal with either letter case.
@@ -45,12 +45,29 @@ pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
     feature = "subnet-catalog-host"
 ))]
 pub fn decode_hex(value: &str) -> Option<Vec<u8>> {
-    if !value.len().is_multiple_of(2) || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    decode_hex_pairs(value, true)
+}
+
+#[cfg(any(
+    test,
+    feature = "icrc-host",
+    feature = "sns-host",
+    feature = "subnet-catalog-host"
+))]
+fn decode_hex_pairs(value: &str, allow_uppercase: bool) -> Option<Vec<u8>> {
+    let (pairs, remainder) = value.as_bytes().as_chunks::<2>();
+    if !remainder.is_empty() {
         return None;
     }
-    (0..value.len())
-        .step_by(2)
-        .map(|index| u8::from_str_radix(&value[index..index + 2], 16).ok())
+    let nibble = |byte| match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' if allow_uppercase => Some(byte - b'A' + 10),
+        _ => None,
+    };
+    pairs
+        .iter()
+        .map(|pair| Some(nibble(pair[0])? * 16 + nibble(pair[1])?))
         .collect()
 }
 
@@ -155,5 +172,19 @@ mod tests {
         assert_eq!(decode_lowercase_hex("🦀"), None);
         assert_eq!(decode_lowercase_hex("+a"), None);
         assert_eq!(decode_lowercase_hex(" 0a"), None);
+    }
+
+    #[test]
+    fn hex_decoders_preserve_every_byte_and_their_case_rules() {
+        let bytes = (u8::MIN..=u8::MAX).collect::<Vec<_>>();
+        let lower = hex_bytes(&bytes);
+        assert_eq!(decode_lowercase_hex(&lower), Some(bytes.clone()));
+        assert_eq!(decode_hex(&lower), Some(bytes.clone()));
+        assert_eq!(decode_hex(&lower.to_ascii_uppercase()), Some(bytes));
+        assert_eq!(decode_hex("aBfF"), Some(vec![171, 255]));
+        assert_eq!(decode_hex(""), Some(Vec::new()));
+        for invalid in ["0", "0g", "aé0", "🦀", "+a", " 0a"] {
+            assert_eq!(decode_hex(invalid), None, "{invalid:?}");
+        }
     }
 }

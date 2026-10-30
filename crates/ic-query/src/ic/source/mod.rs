@@ -75,6 +75,23 @@ pub fn validate_dashboard_network(network: &str) -> Result<(), IcHostError> {
     })
 }
 
+pub fn validate_source_text(
+    field: &'static str,
+    value: &str,
+    max_bytes: usize,
+) -> Result<(), IcHostError> {
+    if value.is_empty()
+        || value.trim() != value
+        || value.len() > max_bytes
+        || value.chars().any(char::is_control)
+    {
+        return invalid_source(format!(
+            "{field} must be nonempty trimmed text of at most {max_bytes} bytes without control characters"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_provenance(
     expected: &IcSourceRequest,
     actual: &IcSourceRequest,

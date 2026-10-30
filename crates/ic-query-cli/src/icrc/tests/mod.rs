@@ -7,12 +7,10 @@ use super::commands::{
     icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
     icrc_account_transaction_command, icrc_account_transaction_list_command,
     icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
-    icrc_allowance_command, icrc_analytics_account_command, icrc_analytics_account_count_command,
-    icrc_analytics_account_info_command, icrc_analytics_account_list_command,
-    icrc_analytics_command, icrc_analytics_holder_command, icrc_analytics_holder_count_command,
+    icrc_allowance_command, icrc_analytics_account_info_command,
+    icrc_analytics_account_list_command, icrc_analytics_command,
     icrc_analytics_holder_list_command, icrc_analytics_token_values_command,
-    icrc_analytics_total_supply_command, icrc_analytics_transaction_command,
-    icrc_analytics_transaction_count_command, icrc_archives_command, icrc_balance_command,
+    icrc_analytics_total_supply_command, icrc_archives_command, icrc_balance_command,
     icrc_block_types_command, icrc_capabilities_command, icrc_index_command, icrc_ledger_command,
     icrc_tip_certificate_command, icrc_token_command, icrc_transactions_command,
 };
@@ -41,6 +39,17 @@ fn parse_test_options<Options>(
     let matches = parse_matches(command, args.iter().copied().map(std::ffi::OsString::from))
         .expect("parse ICRC test options");
     from_matches(&matches)
+}
+
+fn icrc_command_at(path: &[&str]) -> ClapCommand {
+    let mut command = icrc_command();
+    for name in path {
+        command = command
+            .find_subcommand(name)
+            .expect("ICRC command path")
+            .clone();
+    }
+    command
 }
 
 #[test]
@@ -389,13 +398,9 @@ fn analytics_token_value_options_parse_bounds_limit_and_shared_target() {
 
 #[test]
 fn analytics_indexed_count_options_reuse_the_shared_ledger_target() {
-    for command in [
-        icrc_analytics_account_count_command(),
-        icrc_analytics_holder_count_command(),
-        icrc_analytics_transaction_count_command(),
-    ] {
+    for entity in ["account", "holder", "transaction"] {
         let options = parse_test_options(
-            command,
+            icrc_command_at(&["analytics", entity, "count"]),
             &[
                 LEDGER_CANISTER_ID,
                 "--json",
@@ -601,23 +606,13 @@ fn usage_mentions_icrc_analytics_surface() {
     let analytics_account_info = render_help(icrc_analytics_account_info_command());
     let analytics_account_list = render_help(icrc_analytics_account_list_command());
     let analytics_holder_list = render_help(icrc_analytics_holder_list_command());
-    let count_usages = [
+    let count_usages = ["account", "holder", "transaction"].map(|entity| {
         (
-            "account",
-            render_help(icrc_analytics_account_command()),
-            render_help(icrc_analytics_account_count_command()),
-        ),
-        (
-            "holder",
-            render_help(icrc_analytics_holder_command()),
-            render_help(icrc_analytics_holder_count_command()),
-        ),
-        (
-            "transaction",
-            render_help(icrc_analytics_transaction_command()),
-            render_help(icrc_analytics_transaction_count_command()),
-        ),
-    ];
+            entity,
+            render_help(icrc_command_at(&["analytics", entity])),
+            render_help(icrc_command_at(&["analytics", entity, "count"])),
+        )
+    });
 
     for needle in [
         "account",

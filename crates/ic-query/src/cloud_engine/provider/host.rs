@@ -14,7 +14,7 @@ use super::{
 use crate::ic::{
     IcHostError, IcSourceRequest, LiveIcSource, canonical_request_principal, invalid_source,
     report_provenance, validate_canonical_principal, validate_dashboard_network,
-    validate_provenance,
+    validate_provenance, validate_source_text,
 };
 use std::collections::HashSet;
 
@@ -137,7 +137,7 @@ fn validate_complete_provider_resource(
 
 fn validate_provider(provider: &CloudEngineProviderRow) -> Result<(), IcHostError> {
     validate_canonical_principal("provider.principal_id", &provider.principal_id)?;
-    validate_text("provider.display_name", &provider.display_name, 256)?;
+    validate_source_text("provider.display_name", &provider.display_name, 256)?;
     validate_optional_text("provider.website", provider.website.as_deref(), 2_048)?;
     validate_optional_text("provider.logo_url", provider.logo_url.as_deref(), 2_048)?;
     validate_locations(
@@ -186,10 +186,10 @@ fn validate_locations(
     }
     let mut data_centers = HashSet::with_capacity(locations.len());
     for location in locations {
-        validate_text("location.dc_key", &location.dc_key, 64)?;
-        validate_text("location.display_name", &location.display_name, 256)?;
+        validate_source_text("location.dc_key", &location.dc_key, 64)?;
+        validate_source_text("location.display_name", &location.display_name, 256)?;
         validate_raw_label("location.owner", &location.owner, 256)?;
-        validate_text("location.region", &location.region, 512)?;
+        validate_source_text("location.region", &location.region, 512)?;
         if !location.latitude.is_finite() || !(-90.0..=90.0).contains(&location.latitude) {
             return invalid_source(format!(
                 "location {:?} latitude {} is outside the finite geographic range",
@@ -218,7 +218,7 @@ fn validate_optional_text(
     max_bytes: usize,
 ) -> Result<(), IcHostError> {
     if let Some(value) = value {
-        validate_text(field, value, max_bytes)?;
+        validate_source_text(field, value, max_bytes)?;
     }
     Ok(())
 }
@@ -231,19 +231,6 @@ fn validate_raw_label(
     if value.trim().is_empty() || value.len() > max_bytes || value.chars().any(char::is_control) {
         return invalid_source(format!(
             "{field} must contain visible text of at most {max_bytes} bytes without control characters"
-        ));
-    }
-    Ok(())
-}
-
-fn validate_text(field: &'static str, value: &str, max_bytes: usize) -> Result<(), IcHostError> {
-    if value.is_empty()
-        || value.len() > max_bytes
-        || value.trim() != value
-        || value.chars().any(char::is_control)
-    {
-        return invalid_source(format!(
-            "{field} must be nonempty trimmed text of at most {max_bytes} bytes without control characters"
         ));
     }
     Ok(())

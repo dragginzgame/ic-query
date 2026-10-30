@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.4]
+
+### 🧹 Cleanup
+
+- Simplify Registry replay coordination and catalog projection while preserving
+  atomic admission, evidence checks and report formats.
+- Consolidate cache naming, token text rendering, Dashboard validation and
+  topology acquisition; simplify ICRC dispatch and test the assembled CLI tree.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.3] - 2026-10-30
 
 ### 🧹 Cleanup

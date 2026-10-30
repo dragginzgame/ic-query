@@ -281,10 +281,12 @@ pub enum NnsRegistrySubnetCatalogProjectionError {
 pub fn project_nns_registry_subnet_catalog(
     session: &NnsRegistryReplaySession,
 ) -> Result<NnsRegistrySubnetCatalogProjection<'_>, NnsRegistrySubnetCatalogProjectionError> {
-    project_nns_registry_subnet_catalog_with_policy(session, true)
+    let mut projection = extract_registry_subnet_catalog(session, true)?;
+    canonicalize_subnet_catalog_content(&mut projection.subnets, &mut projection.routing_ranges)?;
+    Ok(projection)
 }
 
-fn project_nns_registry_subnet_catalog_with_policy(
+fn extract_registry_subnet_catalog(
     session: &NnsRegistryReplaySession,
     allow_legacy_routing: bool,
 ) -> Result<NnsRegistrySubnetCatalogProjection<'_>, NnsRegistrySubnetCatalogProjectionError> {
@@ -315,9 +317,8 @@ fn project_nns_registry_subnet_catalog_with_policy(
         let record = decode_required_record::<SubnetRecord>(state, &record_key, "SubnetRecord")?;
         subnets.push(subnet_info_from_record(&subnet_principal, &record));
     }
-    let mut routing_ranges = routing_ranges_from_table(&routing_table)
+    let routing_ranges = routing_ranges_from_table(&routing_table)
         .map_err(|error| invalid_record(ROUTING_TABLE_KEY, "RoutingTable", error))?;
-    canonicalize_subnet_catalog_content(&mut subnets, &mut routing_ranges)?;
 
     Ok(NnsRegistrySubnetCatalogProjection {
         session,
@@ -340,7 +341,7 @@ pub fn project_nns_certified_subnet_catalog<'a>(
 ) -> Result<NnsCertifiedSubnetCatalogAuthority<'a>, NnsRegistrySubnetCatalogProjectionError> {
     validate_archive_replay_alignment(archive)?;
     let freshness = validate_archive_certificate_freshness(archive, request)?;
-    let projection = project_nns_registry_subnet_catalog_with_policy(
+    let projection = extract_registry_subnet_catalog(
         archive.replay_session().replay_session(),
         request.version_policy == NnsCertifiedSubnetCatalogVersionPolicy::AllowHistoricalTarget,
     )?;

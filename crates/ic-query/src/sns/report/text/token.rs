@@ -7,9 +7,7 @@
 use crate::{
     sns::report::SnsTokenReport,
     text_value::optional_text,
-    token_metadata_text::{
-        render_metadata_rows_table, render_standard_rows_table, token_summary_lines,
-    },
+    token_metadata_text::{append_token_metadata_tables, token_summary_lines},
 };
 use ic_host_text::escape::terminal_text;
 
@@ -39,18 +37,6 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     if let Some(error) = report.ledger_index_error.as_deref() {
         lines.push(format!("ledger_index_error: {}", terminal_text(error)));
     }
-    if !report.token.supported_standards.is_empty() {
-        lines.push(String::new());
-        lines.push(render_standard_rows_table(
-            &report.token.supported_standards,
-        ));
-    }
-    if !report.token.metadata.is_empty() {
-        lines.push(String::new());
-        lines.push(render_metadata_rows_table(
-            &report.token.metadata,
-            report.token.decimals,
-        ));
-    }
+    append_token_metadata_tables(&mut lines, &report.token);
     lines.join("\n")
 }

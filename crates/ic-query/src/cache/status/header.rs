@@ -351,96 +351,67 @@ fn nns_component(component: &str) -> Option<&'static str> {
 }
 
 fn classify_cache_path(relative: &Path) -> CachePathInfo<'_> {
-    // An opaque component must not shift later components into a recognised cache shape.
-    let parts = relative
-        .components()
-        .map(|part| part.as_os_str().to_str())
-        .collect::<Option<Vec<_>>>()
-        .unwrap_or_default();
-    let (component, recovery_policy, stale_after_seconds, inspection) = match parts.as_slice() {
+    let parts = cache_path_parts(relative);
+    let (recovery_policy, stale_after_seconds, inspection) = match parts.as_slice() {
         ["nns", "ic", "subnet-catalog", "catalog.json"] => (
-            "nns/subnet-catalog".to_string(),
             Automatic,
             Some(DEFAULT_STALE_AFTER_SECONDS),
             CacheInspection::WholeDocument,
         ),
         ["nns", "ic", "subnet-topology", "report.json"] => (
-            "nns/subnet-topology".to_string(),
             Explicit,
             Some(DEFAULT_NNS_SUBNET_TOPOLOGY_STALE_AFTER_SECONDS),
             CacheInspection::WholeDocument,
         ),
         ["ic", "ic", "nodes", "operational-status", "full.json"] => (
-            "ic/nodes/operational-status".to_string(),
             Automatic,
             Some(DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS),
             CacheInspection::WholeDocument,
         ),
         ["sns", "ic", "catalog", "discovery", "full.json"] => (
-            "sns/catalog/discovery".to_string(),
             Automatic,
             Some(DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS),
             CacheInspection::WholeDocument,
         ),
-        ["nns", "ic", family @ "node", "nodes.json"]
-        | ["nns", "ic", family @ "node-provider", "providers.json"]
-        | ["nns", "ic", family @ "node-operator", "operators.json"]
-        | ["nns", "ic", family @ "data-center", "data-centers.json"] => (
-            nns_component(family).unwrap_or("nns").to_string(),
-            Automatic,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        ["sns", "ic", _, "proposals", "full.json"] => (
-            "sns/proposals".to_string(),
-            MissingOnly,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        ["nns", "ic", "subnet-catalog", "history.json"] => (
-            "nns/registry-history".to_string(),
-            Explicit,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        [
+        ["nns", "ic", "node", "nodes.json"]
+        | ["nns", "ic", "node-provider", "providers.json"]
+        | ["nns", "ic", "node-operator", "operators.json"]
+        | ["nns", "ic", "data-center", "data-centers.json"] => {
+            (Automatic, None, CacheInspection::HeaderPrefix)
+        }
+        ["sns", "ic", _, "proposals", "full.json"] => {
+            (MissingOnly, None, CacheInspection::HeaderPrefix)
+        }
+        ["nns", "ic", "subnet-catalog", "history.json"]
+        | [
             "nns",
             "ic",
             "governance",
-            collection @ ("proposals" | "neurons"),
+            "proposals" | "neurons",
             "full.json",
-        ] => (
-            format!("nns/governance/{collection}"),
-            Explicit,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        ["sns", "ic", _, "neurons", "full.json"] => (
-            "sns/neurons".to_string(),
-            Explicit,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        ["icrc", "ic", _, "transactions", "full.json"] => (
-            "icrc/transactions".to_string(),
-            Explicit,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
-        _ => (
-            component_for_path_parts(&parts),
-            Unknown,
-            None,
-            CacheInspection::HeaderPrefix,
-        ),
+        ]
+        | ["sns", "ic", _, "neurons", "full.json"]
+        | ["icrc", "ic", _, "transactions", "full.json"] => {
+            (Explicit, None, CacheInspection::HeaderPrefix)
+        }
+        _ => (Unknown, None, CacheInspection::HeaderPrefix),
     };
     CachePathInfo {
         relative,
-        component,
+        component: component_for_path_parts(&parts),
         recovery_policy,
         stale_after_seconds,
         inspection,
     }
+}
+
+fn cache_path_parts(relative: &Path) -> Vec<&str> {
+    // An opaque component must not shift later components into a recognised cache shape.
+    relative
+        .components()
+        .map(|part| part.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()
+        .unwrap_or_default()
 }
 
 fn component_for_path_parts(parts: &[&str]) -> String {
@@ -508,7 +479,7 @@ fn component(info: &CachePathInfo<'_>, header: &GenericCacheHeader) -> String {
 }
 
 pub(super) fn component_from_path(relative: &Path) -> String {
-    classify_cache_path(relative).component
+    component_for_path_parts(&cache_path_parts(relative))
 }
 
 #[cfg(test)]

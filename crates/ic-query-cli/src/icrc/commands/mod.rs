@@ -19,12 +19,9 @@ pub(in crate::icrc) use account::{
 };
 #[cfg(test)]
 pub(in crate::icrc) use analytics::{
-    command as icrc_analytics_command, icrc_analytics_account_command,
-    icrc_analytics_account_count_command, icrc_analytics_account_info_command,
-    icrc_analytics_account_list_command, icrc_analytics_holder_command,
-    icrc_analytics_holder_count_command, icrc_analytics_holder_list_command,
+    command as icrc_analytics_command, icrc_analytics_account_info_command,
+    icrc_analytics_account_list_command, icrc_analytics_holder_list_command,
     icrc_analytics_token_values_command, icrc_analytics_total_supply_command,
-    icrc_analytics_transaction_command, icrc_analytics_transaction_count_command,
 };
 #[cfg(test)]
 pub(in crate::icrc) use ledger::{

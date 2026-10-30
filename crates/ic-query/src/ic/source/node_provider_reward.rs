@@ -7,7 +7,7 @@
 use super::{
     inclusive_observation_count, invalid_request, invalid_source, report_provenance,
     validate_canonical_principal, validate_collection_end, validate_observation_timestamps,
-    validate_offset_page, validate_provenance,
+    validate_offset_page, validate_provenance, validate_source_text,
 };
 use crate::{
     hex::is_lowercase_hex_32_bytes,
@@ -209,8 +209,8 @@ fn validate_reward_row(row: &IcNodeProviderRewardRow) -> Result<(), IcHostError>
     if row.reward_timestamp_unix_secs == 0 {
         return invalid_source("node-provider reward timestamp must be positive");
     }
-    validate_text("reward.reward_mode", &row.reward_mode, 128)?;
-    validate_text(
+    validate_source_text("reward.reward_mode", &row.reward_mode, 128)?;
+    validate_source_text(
         "reward.dashboard_updated_at",
         &row.dashboard_updated_at,
         128,
@@ -242,19 +242,6 @@ fn validate_reward_row(row: &IcNodeProviderRewardRow) -> Result<(), IcHostError>
                 "reward XDR conversion-rate timestamp and value must both be present or absent",
             );
         }
-    }
-    Ok(())
-}
-
-fn validate_text(field: &'static str, value: &str, max_bytes: usize) -> Result<(), IcHostError> {
-    if value.trim().is_empty()
-        || value.trim() != value
-        || value.len() > max_bytes
-        || value.chars().any(char::is_control)
-    {
-        return invalid_source(format!(
-            "{field} must be nonempty trimmed text of at most {max_bytes} bytes without control characters"
-        ));
     }
     Ok(())
 }

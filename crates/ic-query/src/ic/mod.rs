@@ -123,6 +123,7 @@ pub use source::{
 pub(crate) use source::{
     canonical_request_principal, invalid_source, invalid_source_value, report_provenance,
     validate_canonical_principal, validate_dashboard_network, validate_provenance,
+    validate_source_text,
 };
 pub(crate) use text::dashboard_provenance_lines;
 pub use text::{

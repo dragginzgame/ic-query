@@ -34,7 +34,7 @@ pub(in crate::icrc) fn command() -> ClapCommand {
         .subcommand(icrc_analytics_transaction_command())
 }
 
-pub(in crate::icrc) fn icrc_analytics_account_command() -> ClapCommand {
+fn icrc_analytics_account_command() -> ClapCommand {
     ClapCommand::new("account")
         .bin_name("icq icrc analytics account")
         .about("Inspect indexed account analytics for one ICRC ledger")
@@ -43,12 +43,7 @@ pub(in crate::icrc) fn icrc_analytics_account_command() -> ClapCommand {
         .subcommand(icrc_analytics_account_list_command())
 }
 
-#[cfg(test)]
-pub(in crate::icrc) fn icrc_analytics_account_count_command() -> ClapCommand {
-    indexed_count_command("account", "accounts")
-}
-
-pub(in crate::icrc) fn icrc_analytics_holder_command() -> ClapCommand {
+fn icrc_analytics_holder_command() -> ClapCommand {
     ClapCommand::new("holder")
         .bin_name("icq icrc analytics holder")
         .about("Inspect indexed holder analytics for one ICRC ledger")
@@ -56,18 +51,8 @@ pub(in crate::icrc) fn icrc_analytics_holder_command() -> ClapCommand {
         .subcommand(icrc_analytics_holder_list_command())
 }
 
-#[cfg(test)]
-pub(in crate::icrc) fn icrc_analytics_holder_count_command() -> ClapCommand {
-    indexed_count_command("holder", "holders")
-}
-
-pub(in crate::icrc) fn icrc_analytics_transaction_command() -> ClapCommand {
+fn icrc_analytics_transaction_command() -> ClapCommand {
     indexed_count_namespace("transaction", "transactions")
-}
-
-#[cfg(test)]
-pub(in crate::icrc) fn icrc_analytics_transaction_count_command() -> ClapCommand {
-    indexed_count_command("transaction", "transactions")
 }
 
 pub(in crate::icrc) fn icrc_analytics_token_values_command() -> ClapCommand {

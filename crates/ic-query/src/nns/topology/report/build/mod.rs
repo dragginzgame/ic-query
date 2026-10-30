@@ -3,7 +3,10 @@ mod direct;
 mod refresh;
 mod summary;
 
-use super::{NnsTopologyHostError, NnsTopologySource, TopologyInventoryReports};
+use super::{
+    NnsTopologyHostError, NnsTopologySource, TopologyInventoryReports, enforce_mainnet_network,
+};
+use crate::{nns::topology::NnsTopologyReadRequest, subnet_catalog::SubnetCatalogListReport};
 
 pub use derived::{
     build_nns_topology_check_report, build_nns_topology_check_report_with_source,
@@ -31,4 +34,14 @@ async fn fetch_topology_inventory_reports(
         node_operator: source.fetch_node_operator_list_report(request).await?,
         data_center: source.fetch_data_center_list_report(request).await?,
     })
+}
+
+async fn fetch_full_topology_reports(
+    request: &NnsTopologyReadRequest,
+    source: &dyn NnsTopologySource,
+) -> Result<(SubnetCatalogListReport, TopologyInventoryReports), NnsTopologyHostError> {
+    enforce_mainnet_network(&request.network)?;
+    let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
+    Ok((subnet_report, reports))
 }

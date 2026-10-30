@@ -76,13 +76,7 @@ impl NnsRegistryReplaySessionLimits {
 pub struct NnsRegistryReplaySession {
     limits: NnsRegistryReplaySessionLimits,
     state: NnsRegistryReplayState,
-    selected_version: Option<u64>,
-    highest_certified_latest_version: Option<u64>,
-    root_key_digest: Option<String>,
-    source_endpoints: BTreeSet<String>,
-    minimum_certificate_time_nanos: Option<u64>,
-    maximum_certificate_time_nanos: Option<u64>,
-    evidence_chain_digest: Option<[u8; 32]>,
+    provenance: Option<SessionProvenance>,
     complete_state_digest: Option<[u8; 32]>,
     batch_count: u64,
     query_call_count: u64,
@@ -97,13 +91,7 @@ impl NnsRegistryReplaySession {
         Self {
             limits,
             state: NnsRegistryReplayState::new(),
-            selected_version: None,
-            highest_certified_latest_version: None,
-            root_key_digest: None,
-            source_endpoints: BTreeSet::new(),
-            minimum_certificate_time_nanos: None,
-            maximum_certificate_time_nanos: None,
-            evidence_chain_digest: None,
+            provenance: None,
             complete_state_digest: None,
             batch_count: 0,
             query_call_count: 0,
@@ -154,12 +142,12 @@ impl NnsRegistryReplaySession {
         if select_new_target && !self.is_complete() {
             return Err(
                 NnsRegistryReplayError::ArchiveExtensionRequiresCompleteSegment {
-                    selected_version: self.selected_version,
+                    selected_version: self.selected_version(),
                     through_version: self.state.through_version(),
                 },
             );
         }
-        if !select_new_target && let Some(selected_version) = self.selected_version {
+        if !select_new_target && let Some(selected_version) = self.selected_version() {
             if self.state.through_version() == selected_version {
                 return Err(NnsRegistryReplayError::SessionComplete { selected_version });
             }
@@ -170,11 +158,11 @@ impl NnsRegistryReplaySession {
                 });
             }
         }
-        if let Some(expected_root_key_digest) = &self.root_key_digest
-            && expected_root_key_digest != &report.certification.root_key_digest
+        if let Some(expected_root_key_digest) = self.root_key_digest()
+            && expected_root_key_digest != report.certification.root_key_digest
         {
             return Err(NnsRegistryReplayError::RootKeyDigestMismatch {
-                expected_root_key_digest: expected_root_key_digest.clone(),
+                expected_root_key_digest: expected_root_key_digest.to_string(),
                 actual_root_key_digest: report.certification.root_key_digest.clone(),
             });
         }
@@ -182,7 +170,7 @@ impl NnsRegistryReplaySession {
         let selected_version = if select_new_target {
             report.certified_latest_version
         } else {
-            self.selected_version
+            self.selected_version()
                 .unwrap_or(report.certified_latest_version)
         };
         enforce_session_limit(
@@ -190,34 +178,19 @@ impl NnsRegistryReplaySession {
             selected_version,
             self.limits.max_registry_versions,
         )?;
-        let candidate_batch_count = checked_add(self.batch_count, 1)?;
-        enforce_session_limit(
-            "batch count",
-            candidate_batch_count,
-            self.limits.max_batches,
-        )?;
-        let candidate_query_call_count =
-            checked_add(self.query_call_count, report.query_call_count)?;
-        enforce_session_limit(
-            "query call count",
-            candidate_query_call_count,
-            self.limits.max_query_calls,
-        )?;
-        let report_response_bytes =
-            u64::try_from(report.response_bytes).map_err(|_| NnsRegistryReplayError::Accounting)?;
-        let candidate_response_bytes = checked_add(self.response_bytes, report_response_bytes)?;
-        enforce_session_limit(
-            "response bytes",
-            candidate_response_bytes,
-            self.limits.max_response_bytes,
-        )?;
+        let (candidate_batch_count, candidate_query_call_count, candidate_response_bytes) = self
+            .candidate_accounting(
+                report.query_call_count,
+                u64::try_from(report.response_bytes)
+                    .map_err(|_| NnsRegistryReplayError::Accounting),
+            )?;
         let (_, batch_applied_mutation_count) =
             validated_batch_prefix_counts(report, selected_version)?;
         let batch_applied_mutation_count = u64::try_from(batch_applied_mutation_count)
             .map_err(|_| NnsRegistryReplayError::Accounting)?;
         let candidate_applied_mutation_count =
             checked_add(self.applied_mutation_count, batch_applied_mutation_count)?;
-        let candidate_provenance = self.candidate_provenance(report)?;
+        let candidate_provenance = self.candidate_provenance(report, selected_version)?;
 
         let progress = apply_validated_batch_through(
             &mut self.state,
@@ -226,15 +199,12 @@ impl NnsRegistryReplaySession {
             self.limits.state,
         )?;
         self.applied_mutation_count = candidate_applied_mutation_count;
-        self.selected_version = Some(selected_version);
-        self.highest_certified_latest_version = Some(
-            self.highest_certified_latest_version
-                .map_or(report.certified_latest_version, |version| {
-                    version.max(report.certified_latest_version)
-                }),
-        );
-        self.root_key_digest = Some(report.certification.root_key_digest.clone());
-        self.publish_provenance(candidate_provenance, selected_version);
+        self.provenance = Some(candidate_provenance);
+        self.complete_state_digest =
+            (self.state.through_version() == selected_version).then(|| {
+                replay_state_digest(&self.state)
+                    .expect("in-memory replay state fits the u64 hashing allowance")
+            });
         self.batch_count = candidate_batch_count;
         self.query_call_count = candidate_query_call_count;
         self.response_bytes = candidate_response_bytes;
@@ -244,37 +214,38 @@ impl NnsRegistryReplaySession {
     fn candidate_provenance(
         &self,
         report: &NnsCertifiedRegistryDeltaBatchReport,
-    ) -> Result<SessionProvenanceCandidate, NnsRegistryReplayError> {
-        let evidence_chain_digest = chained_evidence_digest(self.evidence_chain_digest, report)?;
-        let mut source_endpoints = self.source_endpoints.clone();
+        selected_version: u64,
+    ) -> Result<SessionProvenance, NnsRegistryReplayError> {
+        let evidence_chain_digest = chained_evidence_digest(self.evidence_chain_digest(), report)?;
+        let mut source_endpoints = self
+            .provenance
+            .as_ref()
+            .map_or_else(BTreeSet::new, |provenance| {
+                provenance.source_endpoints.clone()
+            });
         source_endpoints.insert(report.source_endpoint.clone());
         let certificate_time_nanos = report.certification.certificate_time_nanos;
-        Ok(SessionProvenanceCandidate {
+        Ok(SessionProvenance {
+            selected_version,
+            highest_certified_latest_version: self
+                .highest_certified_latest_version()
+                .map_or(report.certified_latest_version, |version| {
+                    version.max(report.certified_latest_version)
+                }),
+            root_key_digest: report.certification.root_key_digest.clone(),
             source_endpoints,
             minimum_certificate_time_nanos: self
-                .minimum_certificate_time_nanos
+                .minimum_certificate_time_nanos()
                 .map_or(certificate_time_nanos, |time| {
                     time.min(certificate_time_nanos)
                 }),
             maximum_certificate_time_nanos: self
-                .maximum_certificate_time_nanos
+                .maximum_certificate_time_nanos()
                 .map_or(certificate_time_nanos, |time| {
                     time.max(certificate_time_nanos)
                 }),
             evidence_chain_digest,
         })
-    }
-
-    fn publish_provenance(&mut self, candidate: SessionProvenanceCandidate, selected_version: u64) {
-        self.source_endpoints = candidate.source_endpoints;
-        self.minimum_certificate_time_nanos = Some(candidate.minimum_certificate_time_nanos);
-        self.maximum_certificate_time_nanos = Some(candidate.maximum_certificate_time_nanos);
-        self.evidence_chain_digest = Some(candidate.evidence_chain_digest);
-        self.complete_state_digest =
-            (self.state.through_version() == selected_version).then(|| {
-                replay_state_digest(&self.state)
-                    .expect("in-memory replay state fits the u64 hashing allowance")
-            });
     }
 
     pub(super) fn ensure_next_source_call_capacity(
@@ -308,26 +279,35 @@ impl NnsRegistryReplaySession {
         permit_completed_segment: bool,
     ) -> Result<(), NnsRegistryReplayError> {
         if !permit_completed_segment
-            && let Some(selected_version) = self.selected_version
+            && let Some(selected_version) = self.selected_version()
             && self.state.through_version() == selected_version
         {
             return Err(NnsRegistryReplayError::SessionComplete { selected_version });
         }
-        enforce_session_limit(
-            "batch count",
-            checked_add(self.batch_count, 1)?,
-            self.limits.max_batches,
-        )?;
+        self.candidate_accounting(maximum_batch_query_calls, Ok(maximum_batch_response_bytes))?;
+        Ok(())
+    }
+
+    fn candidate_accounting(
+        &self,
+        query_calls: u64,
+        response_bytes: Result<u64, NnsRegistryReplayError>,
+    ) -> Result<(u64, u64, u64), NnsRegistryReplayError> {
+        let batch_count = checked_add(self.batch_count, 1)?;
+        enforce_session_limit("batch count", batch_count, self.limits.max_batches)?;
+        let query_call_count = checked_add(self.query_call_count, query_calls)?;
         enforce_session_limit(
             "query call count",
-            checked_add(self.query_call_count, maximum_batch_query_calls)?,
+            query_call_count,
             self.limits.max_query_calls,
         )?;
+        let response_bytes = checked_add(self.response_bytes, response_bytes?)?;
         enforce_session_limit(
             "response bytes",
-            checked_add(self.response_bytes, maximum_batch_response_bytes)?,
+            response_bytes,
             self.limits.max_response_bytes,
-        )
+        )?;
+        Ok((batch_count, query_call_count, response_bytes))
     }
 
     /// Return the explicit limits governing this session.
@@ -351,42 +331,61 @@ impl NnsRegistryReplaySession {
     /// Return the current exact target selected by this replay or its latest archive segment.
     #[must_use]
     pub const fn selected_version(&self) -> Option<u64> {
-        self.selected_version
+        match &self.provenance {
+            Some(provenance) => Some(provenance.selected_version),
+            None => None,
+        }
     }
 
     /// Return the highest certified latest version observed without moving the target.
     #[must_use]
     pub const fn highest_certified_latest_version(&self) -> Option<u64> {
-        self.highest_certified_latest_version
+        match &self.provenance {
+            Some(provenance) => Some(provenance.highest_certified_latest_version),
+            None => None,
+        }
     }
 
     /// Return whether the selected exact target has been fully reconstructed.
     #[must_use]
     pub fn is_complete(&self) -> bool {
-        self.selected_version == Some(self.state.through_version())
+        self.selected_version() == Some(self.state.through_version())
     }
 
     /// Return the common root-key digest retained from admitted batches.
     #[must_use]
     pub fn root_key_digest(&self) -> Option<&str> {
-        self.root_key_digest.as_deref()
+        self.provenance
+            .as_ref()
+            .map(|provenance| provenance.root_key_digest.as_str())
     }
 
     /// Iterate distinct validated source endpoint strings in canonical order.
     pub fn source_endpoints(&self) -> impl ExactSizeIterator<Item = &str> {
-        self.source_endpoints.iter().map(String::as_str)
+        static EMPTY: BTreeSet<String> = BTreeSet::new();
+        self.provenance
+            .as_ref()
+            .map_or(&EMPTY, |provenance| &provenance.source_endpoints)
+            .iter()
+            .map(String::as_str)
     }
 
     /// Return the earliest certificate time retained from admitted reports.
     #[must_use]
     pub const fn minimum_certificate_time_nanos(&self) -> Option<u64> {
-        self.minimum_certificate_time_nanos
+        match &self.provenance {
+            Some(provenance) => Some(provenance.minimum_certificate_time_nanos),
+            None => None,
+        }
     }
 
     /// Return the latest certificate time retained from admitted reports.
     #[must_use]
     pub const fn maximum_certificate_time_nanos(&self) -> Option<u64> {
-        self.maximum_certificate_time_nanos
+        match &self.provenance {
+            Some(provenance) => Some(provenance.maximum_certificate_time_nanos),
+            None => None,
+        }
     }
 
     /// Return the domain-separated digest chain over every admitted validated report.
@@ -395,7 +394,10 @@ impl NnsRegistryReplaySession {
     /// not replace the source's responsibility to authenticate raw evidence.
     #[must_use]
     pub const fn evidence_chain_digest(&self) -> Option<[u8; 32]> {
-        self.evidence_chain_digest
+        match &self.provenance {
+            Some(provenance) => Some(provenance.evidence_chain_digest),
+            None => None,
+        }
     }
 
     /// Return the canonical reconstructed-state digest only after exact completion.
@@ -429,7 +431,11 @@ impl NnsRegistryReplaySession {
     }
 }
 
-struct SessionProvenanceCandidate {
+#[derive(Debug, Eq, PartialEq)]
+struct SessionProvenance {
+    selected_version: u64,
+    highest_certified_latest_version: u64,
+    root_key_digest: String,
     source_endpoints: BTreeSet<String>,
     minimum_certificate_time_nanos: u64,
     maximum_certificate_time_nanos: u64,

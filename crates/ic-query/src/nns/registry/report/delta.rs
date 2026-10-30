@@ -16,10 +16,7 @@ use super::{
     source::{NnsCertifiedRegistryDeltaSource, nns_certified_registry_delta_limits},
 };
 use crate::{
-    hex::{
-        decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex,
-        is_lowercase_hex_32_bytes,
-    },
+    hex::{decode_lowercase_hex, is_canonical_lowercase_hex, is_lowercase_hex_32_bytes},
     nns::LiveNnsSource,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
@@ -229,14 +226,9 @@ fn validate_chunk_evidence<'a>(
                 "chunk evidence must be unique and strictly ordered by SHA-256 digest",
             ));
         }
-        if !row.content_hex.len().is_multiple_of(2) || !is_lowercase_hex(&row.content_hex) {
-            return Err(invalid_source_data(
-                "chunk evidence content must be lowercase hexadecimal with an even length",
-            ));
-        }
         let content = decode_lowercase_hex(&row.content_hex).ok_or_else(|| {
             invalid_source_data(
-                "chunk evidence content could not be decoded as lowercase hexadecimal",
+                "chunk evidence content must be lowercase hexadecimal with an even length",
             )
         })?;
         if content.len() > report.limits.max_chunk_bytes {

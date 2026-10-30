@@ -19,7 +19,7 @@ use crate::{
     },
     text_value::{optional_text, truncate_text},
     token_metadata_text::{
-        render_metadata_rows_table, render_standard_rows_table, token_summary_lines,
+        append_token_metadata_tables, render_standard_rows_table, token_summary_lines,
     },
 };
 
@@ -37,14 +37,7 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
             terminal_text(&report.source_endpoint)
         ),
     ]);
-    push_table_section(
-        &mut lines,
-        &report.token.supported_standards,
-        render_standard_rows_table,
-    );
-    push_table_section(&mut lines, &report.token.metadata, |rows| {
-        render_metadata_rows_table(rows, report.token.decimals)
-    });
+    append_token_metadata_tables(&mut lines, &report.token);
     lines.join("\n")
 }
 
