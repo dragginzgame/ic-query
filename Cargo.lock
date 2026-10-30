@@ -1756,7 +1756,7 @@ checksum = "1a78cea72ba6d140b8c9e9319d7ba6b4968ae0dab93d1ff1d04b6f60d9c4fc90"
 
 [[package]]
 name = "ic-query"
-version = "0.77.0"
+version = "0.78.0"
 dependencies = [
  "futures",
  "futures-util",
@@ -1781,7 +1781,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.77.0"
+version = "0.78.0"
 dependencies = [
  "clap",
  "ic-build",
@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-testkit"
-version = "0.77.0"
+version = "0.78.0"
 dependencies = [
  "ic-host-artifacts",
  "ic-platform",
