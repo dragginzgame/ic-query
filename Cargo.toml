@@ -10,7 +10,7 @@ default-members = ["crates/ic-query", "crates/ic-query-cli"]
 resolver = "3"
 
 [workspace.package]
-version = "0.76.5"
+version = "0.76.6"
 edition = "2024"
 rust-version = "1.91.0"
 license = "MIT"
@@ -29,7 +29,7 @@ ic-host-text = "0.70.0"
 ic-host-tools = { version = "0.70.0", default-features = false }
 ic-metrics = "0.17.2"
 ic-platform = { version = "0.8.1", default-features = false, features = ["candid"] }
-ic-query = { path = "crates/ic-query", version = "0.76.5", default-features = false }
+ic-query = { path = "crates/ic-query", version = "0.76.6", default-features = false }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
