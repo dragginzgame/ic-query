@@ -506,8 +506,10 @@ and ledger DTOs; every supported production graph rejects stable-memory storage.
 Platform now owns the non-cryptographic runtime adapters, call/response and
 error identities. Its `cdk` feature is Candid-free, while Query selects Candid
 separately for required external NNS methods. The full `ic-cdk` and its macros
-are excluded from production graphs. There is one registry executor 2.0.0 and
-ic0 1.2.0 identity; Query does not copy executor or callback implementations.
+are excluded from production graphs. The canister graph has one Platform 0.9
+runtime owner, using its embedded executor and IC0 without either registry
+supplier. Embedders must rebuild all runtime consumers against Platform 0.9;
+Query does not copy executor or callback implementations.
 The adapter retains explicit Candid unit arguments, bounded waits, raw replies,
 byte limits and replicated provenance. The owned probe's explicit Wire hooks
 admit request length before copying and trap malformed requests before effects.

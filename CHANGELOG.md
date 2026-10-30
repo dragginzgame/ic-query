@@ -5,6 +5,26 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.77.0]
+
+### ⚠️ Breaking
+
+- Adopt Platform 0.9.1's public ledger types and embedded canister runtime. Update
+  Platform types used by custom ledger sources and rebuild canister runtime
+  consumers against 0.9; external protocol bytes and report/cache formats remain
+  unchanged.
+
+### 🔧 Changed
+
+- Adopt published IC Tooling 0.70.5, Wire 0.7.25 and Metrics 0.18.1, preserving
+  the Rust 1.91 requirement.
+- Scope the executor singleton guard to runtime features, allowing native-only
+  Platform uses alongside unrelated executors while preserving canister ownership.
+- Adopt Shared Tooling 0.27.11 for validation input checkpoints, Cargo graph
+  observations and reviewed code-hygiene guidance.
+
+Detailed release notes: [docs/changelog/0.77.md](docs/changelog/0.77.md)
+
 ## [0.76.6] - 2026-10-30
 
 ### 🧹 Cleanup

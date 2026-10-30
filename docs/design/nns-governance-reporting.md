@@ -64,15 +64,15 @@ Candid decode/skip/type-table/header budgets, and records the
 executing canister principal. Composite-query collection is not supported.
 Platform owns call submission, callbacks and executor state; Query owns the fixed
 Governance methods, external Candid and report validation. The selected Platform
-0.8.1 raw call API supplies this boundary; no Query execution wrapper is
-needed ([#108](https://github.com/dragginzgame/ic-query/issues/108)).
+0.9 raw call API and embedded executor supply this boundary; no Query execution
+wrapper is needed ([#108](https://github.com/dragginzgame/ic-query/issues/108)).
 The 8 MiB ceiling admits a returned byte vector before decoding; it does not bound
 Platform's runtime response allocation. The IC may reject a smaller response
 before delivering bytes. Raw rejection codes remain separate from Candid and
 size-validation errors, and an unknown execution outcome never authorizes retry.
 The decoder requires the report value and permits only budgeted Candid skipping
 of additional values; it does not impose exact single-argument arity.
-Platform 0.8.1 rejects external Candid beyond 16 constructed wire levels before
+Platform 0.9 rejects external Candid beyond 16 constructed wire levels before
 upstream decoding, including unused type definitions and skipped values
 ([Platform #73](https://github.com/dragginzgame/ic-platform/issues/73)). Query's
 shared decoder preserves that typed refusal and its existing reply-arity policy.

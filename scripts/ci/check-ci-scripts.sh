@@ -959,6 +959,9 @@ if [[ "$1" == tree ]]; then
   package=ic-query
   [[ "$*" != *"--package ic-query-cli"* ]] || package=ic-query-cli
   printf '%s v0.0.0\n' "$package"
+  if [[ "$*" == *"--features canister"* ]]; then
+    printf '%s v0.9.1\n' ic-platform ic-platform-macros ic-platform-runtime-guard
+  fi
   if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
     [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
     || "${FEATURE_TREE_SCOPE:-}" == host && "$*" == *"--features host"* \
@@ -1009,7 +1012,7 @@ for failed_command in check test tree; do
   fi
 done
 
-for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools candid_parser \
+for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools ic-platform-runtime-guard candid_parser \
   ic-host-tools/candid ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
   ic-host-artifacts/wasm; do
   scope=host
@@ -1049,6 +1052,23 @@ for scope in canister cli; do
     grep -Fq "forbidden $dependency:" "${feature_boundary_case}/tooling-refusal.log" \
       || fail "the $scope production graph lost the tooling diagnostic"
   done
+done
+
+# Query's canister graph has one Platform runtime owner.
+for dependency in ic-platform ic-platform-macros ic-platform-runtime-guard ic-cdk-executor ic0; do
+  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FEATURE_TREE_SCOPE=canister FEATURE_TREE_LINE="$dependency" \
+    TRACE_FILE="${feature_boundary_case}/trace" \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/runtime-refusal.log" 2>&1; then
+    fail "the canister graph accepted another runtime owner: $dependency"
+  fi
+  case "$dependency" in
+    ic-platform*) diagnostic="$dependency: expected 1 rendered package identities, observed 2" ;;
+    *) diagnostic="forbidden $dependency:" ;;
+  esac
+  grep -Fq "$diagnostic" "${feature_boundary_case}/runtime-refusal.log" \
+    || fail 'the canister graph lost its runtime ownership diagnostic'
 done
 
 # Metrics' standard transport metadata is native-only.

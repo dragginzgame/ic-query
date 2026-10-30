@@ -43,9 +43,10 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.17.2 includes validated Serde transport for measurement aggregates and
-scalar counters, with Wire metadata on native hosts. Query currently uses its
-percentage arithmetic and has no local aggregate/counter transport mirrors to
+Metrics 0.18.1 includes validated Serde transport for measurement aggregates,
+scalar counters, summaries and fixed-bound histograms, with Wire metadata on
+native hosts. Query currently uses its percentage arithmetic and has no local
+aggregate/counter transport mirrors to
 replace. Dashboard observations and Governance metric payloads retain their
 source-specific report contracts. Native dependency graphs include Metrics' Wire
 metadata support; portable Wasm and canister graphs continue excluding Wire.
@@ -65,16 +66,17 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.8.1, Metrics 0.17.2,
-Host/Build/Testkit 0.70.0 and Wire 0.7.22.
+The current workspace minimums are Platform 0.9.1, Metrics 0.18.1,
+Host/Build/Testkit 0.70.5 and Wire 0.7.25.
 
-Platform 0.8 owns the selected ICRC DTO and callback Rust types. Custom
+Platform 0.9 owns the selected ICRC DTO and callback Rust types. Custom
 `IcrcTipCertificateSource` implementations use its `ICRC3DataCertificate`, rather
 than the registry ledger package's certificate type. External wire/Serde shapes
 and value hashes remain the protocol contracts; the Rust identity change selects
-Query 0.76. Host/Testkit 0.70 share Platform 0.8.1, including owned Registry
-Principals and ledger values. The upstream Agent/Candid/certificate identities
-remain unchanged.
+Query 0.77. Released Host/Testkit 0.70.5 retain their own Platform 0.8 interfaces,
+including owned Registry Principals and ledger values. Query consumes those
+Host-owned values directly at their boundaries; upstream Agent/Candid/certificate
+identities remain shared across both selections.
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.
 Query retains its existing byte, work, type-table and header budgets and reply
@@ -83,9 +85,16 @@ deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
 Testkit fixtures. External Agent, Candid, Principal and certificate identities
-remain shared across the selected packages. Query's canister runtime
-retains executor 2.0.0 and ic0 1.2.0. No dependency override or copied runtime is
-used.
+remain shared across the selected packages. Query's canister runtime selects
+Platform 0.9's embedded IC0 and executor, with one Platform runtime owner and no
+registry executor or IC0 package in the Wasm normal/build graph. Embedders must
+align every runtime consumer on Platform 0.9, including timer libraries when used.
+Platform 0.9.1 selects its singleton guard through executor/runtime features;
+portable and native-only Query graphs exclude that guard. Native facade use
+therefore does not exclude an unrelated executor from a consumer's wider graph.
+Public ledger and runtime handles have Platform 0.9 identity, requiring the Query
+0.77 minor cut. No dependency override, copied runtime or compatibility wrapper
+is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
@@ -158,7 +167,8 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. The registry executor 2.0.0 and ic0 1.2.0 identities remain unchanged.
+graphs. Its embedded executor and IC0 share the selected Platform 0.9 identity;
+the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the

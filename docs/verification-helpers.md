@@ -483,6 +483,9 @@ and Make-execution observers in their own publication policy. Keep package
 selection, required remote-tag publication, registry choice, features, credentials
 and interruption reconciliation at that owner. Retain local source and identity
 rechecks after network observations; unknown registry state never admits upload.
+The optional [publication Make adapter](cargo-publication.md#opt-in-make-adapter)
+interprets a consumer-declared roster and `PACKAGE=` subset without moving those
+policy choices into Shared or duplicating Cargo dispatch in each consumer.
 
 IC Jobs owns its complete preflight under `scripts/release/`
 ([PR #67 — Own publication admission locally](https://github.com/dragginzgame/ic-jobs/pull/67)).

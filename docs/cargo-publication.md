@@ -6,6 +6,46 @@ command output and exit statuses. It never installs tools, discovers missing
 packages, retries an upload or decides whether a previous upload succeeded.
 The [release contract](releases.md) keeps publication separate from release.
 
+## Opt-in Make adapter
+
+Simple workspace publishers can declare their policy before including the common
+consumer entrypoint, instead of repeating selection and Cargo recipes:
+
+```make
+CARGO_PUBLISH_PACKAGES := example-library example-cli
+CARGO_PUBLISH_REGISTRY := crates-io
+CARGO_PUBLISH_VERIFY_TARGETS := publication-admission clippy
+include make/consumer.mk
+```
+
+This opts into `publish` and `publish-check`. Omission of `PACKAGE` selects the
+declared roster; `make publish PACKAGE=example-library` selects a subset. Only a
+command-line `PACKAGE` overrides the roster, so an unrelated file-level package
+default for development commands does not silently narrow publication. Empty,
+duplicate, malformed or undeclared selections refuse. Package eligibility and
+the default roster remain consumer policy; Shared only interprets the declaration.
+
+The adapter observes locked offline Cargo metadata, admits every declared package
+as a local publishable workspace member for the selected registry, and resolves
+each selected name to its exact stable version. It invokes the consumer's named
+validation targets in order, then delegates once to `run-cargo-publication.sh`.
+`publish-check` selects its `check` mode; `publish` selects upload mode. Neither
+command retries, discovers missing registry versions or uploads on release.
+
+`CARGO_PUBLISH_EVIDENCE_ROOT` defaults to `target/publication` and must be ignored
+by Git. Unique `selection.*` directories retain metadata, diagnostics, source and
+the admitted NUL-separated selectors. Attempts share that root's existing runner
+lock; a new selection never creates an independent lock namespace. Completed and
+failed evidence stays retained. The source commit is captured before validation
+and rechecked by the runner before dispatch; upload still requires clean source.
+
+Select `make/cargo-publication.mk` or `make/consumer.mk` through the exporter;
+their closure supplies the selection projector, adapter and attempt runner.
+The Make recipe owns no registry credentials or consumer tag/provenance policy.
+Consumers needing resume, registry reconciliation, custom Cargo options or
+stronger admission keep their own policy and may call the lower-level runner.
+Do not define competing local `publish` recipes when opting into this adapter.
+
 ## Calling contract
 
 Requires Bash 3.2, GNU Make, Git, Cargo, tee and standard Unix utilities. Select and qualify

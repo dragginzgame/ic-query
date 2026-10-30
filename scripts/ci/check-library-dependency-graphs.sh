@@ -17,6 +17,7 @@ forbidden_pure_library_dependencies=(
   clap
   futures-util
   ic-agent
+  ic-platform-runtime-guard
   ic-certification
   icrc-ledger-types
   ic-host-artifacts
@@ -42,6 +43,8 @@ forbidden_canister_dependencies=(
   futures-util
   ic-agent
   ic-certification
+  ic-cdk-executor
+  ic0
   icrc-ledger-types
   ic-host-artifacts
   ic-host-fs
@@ -61,6 +64,7 @@ forbidden_host_dependencies=(
   ic-host-tools/candid
   clap
   ic-host-process
+  ic-platform-runtime-guard
   ic-host-artifacts/archive
   ic-host-artifacts/gzip
   ic-host-artifacts/wasm
@@ -243,7 +247,10 @@ while IFS=$'	' read -r target feature _tests; do
         --package ic-query \
         --target wasm32-unknown-unknown \
         --no-default-features \
-        --features canister
+        --features canister \
+        --require ic-platform=1 \
+        --require ic-platform-macros=1 \
+        --require ic-platform-runtime-guard=1
       ;;
     native:host)
       check_feature_graph "ic-query --features host --no-default-features" host all \
@@ -321,4 +328,5 @@ done < "$repo_root/ci/library-feature-cases.tsv"
 # Metrics supplies native Wire metadata; Wasm production graphs exclude Wire above.
 check_tree_absent "ic-query-cli production dependencies" \
   "${forbidden_tooling_dependencies[@]}" \
+  ic-platform-runtime-guard \
   -- --package ic-query-cli
