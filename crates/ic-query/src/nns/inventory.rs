@@ -7,6 +7,7 @@
 use super::{
     NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest, NnsSourceRequest,
 };
+use crate::identifier_match::{IdentifierMatch, match_identifier};
 use crate::{
     HostCacheError, QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
@@ -285,30 +286,18 @@ pub(in crate::nns) fn resolve_nns_inventory_row<Row>(
             (!prefix.is_empty()).then_some(Cow::Borrowed(prefix.as_str()))
         }
     };
-    if let Some(exact) = exact
-        && let Some(index) = rows
-            .iter()
-            .position(|row| identifier(row) == exact.as_ref())
-    {
-        return Ok((index, exact_source.to_string()));
-    }
-
-    if prefix.is_empty() {
-        return Err(NnsInventoryResolveError::NotFound {
-            input: input.to_string(),
-        });
-    }
-    let matches = rows
-        .iter()
-        .enumerate()
-        .filter(|(_, row)| identifier(row).starts_with(&prefix))
-        .collect::<Vec<_>>();
-    match matches.as_slice() {
-        [(index, _)] => Ok((*index, format!("{exact_source}_prefix"))),
-        [] => Err(NnsInventoryResolveError::NotFound {
+    match match_identifier(
+        rows.iter().enumerate(),
+        |(_, row)| identifier(row),
+        exact.as_deref(),
+        &prefix,
+    ) {
+        IdentifierMatch::Exact((index, _)) => Ok((index, exact_source.to_string())),
+        IdentifierMatch::Prefix((index, _)) => Ok((index, format!("{exact_source}_prefix"))),
+        IdentifierMatch::Missing => Err(NnsInventoryResolveError::NotFound {
             input: input.to_string(),
         }),
-        _ => Err(NnsInventoryResolveError::Ambiguous {
+        IdentifierMatch::Ambiguous(matches) => Err(NnsInventoryResolveError::Ambiguous {
             prefix,
             matches: matches
                 .into_iter()

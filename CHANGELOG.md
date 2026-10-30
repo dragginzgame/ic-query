@@ -5,6 +5,17 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.76.2]
+
+### 🧹 Cleanup
+
+- Simplify report aggregation, identifier lookup and Governance cache validation
+  while preserving public APIs, overflow errors and report formats.
+- Reduce duplicate routing and SNS inventory work, share SNS text preambles,
+  and retain Governance smoke-test evidence through typed receipts.
+
+Detailed release notes: [docs/changelog/0.76.md](docs/changelog/0.76.md)
+
 ## [0.76.1] - 2026-10-29
 
 ### 🧹 Cleanup

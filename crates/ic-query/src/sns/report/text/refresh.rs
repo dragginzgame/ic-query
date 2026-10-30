@@ -4,6 +4,8 @@
 //! Does not own: refresh execution, cache writes, report construction, or JSON output.
 //! Boundary: formats complete SNS snapshot refresh results for humans.
 
+use crate::sns::report::text::common::sns_identity_lines;
+
 use ic_host_text::escape::terminal_text;
 
 use crate::{sns::report::SnsSnapshotRefreshReport, text_value::yes_no};
@@ -11,12 +13,14 @@ use crate::{sns::report::SnsSnapshotRefreshReport, text_value::yes_no};
 /// Render one complete SNS snapshot refresh result, including publication warnings.
 #[must_use]
 pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
-    [
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = sns_identity_lines(
+        &report.network,
+        report.id,
+        &report.name,
+        &report.root_canister_id,
+        &report.governance_canister_id,
+    );
+    lines.extend([
         format!("page_size: {}", report.page_size),
         format!("page_count: {}", report.page_count),
         format!("collection: {}", terminal_text(&report.collection)),
@@ -50,6 +54,6 @@ pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> St
             "source_endpoint: {}",
             terminal_text(&report.source_endpoint)
         ),
-    ]
-    .join("\n")
+    ]);
+    lines.join("\n")
 }

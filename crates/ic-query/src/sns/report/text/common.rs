@@ -19,6 +19,22 @@ use crate::{
 
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
+pub(in crate::sns::report::text) fn sns_identity_lines(
+    network: &str,
+    id: usize,
+    name: &str,
+    root_canister_id: &str,
+    governance_canister_id: &str,
+) -> Vec<String> {
+    vec![
+        format!("network: {}", terminal_text(network)),
+        format!("sns_id: {id}"),
+        format!("name: {}", terminal_text(name)),
+        format!("root_canister_id: {root_canister_id}"),
+        format!("governance_canister_id: {governance_canister_id}"),
+    ]
+}
+
 pub(in crate::sns::report::text) use crate::text_value::optional_text;
 
 pub(in crate::sns::report) fn optional_e8s_text(value: Option<u64>) -> String {

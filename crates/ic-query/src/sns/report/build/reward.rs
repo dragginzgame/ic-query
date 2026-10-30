@@ -19,9 +19,8 @@ use crate::sns::report::{
 use crate::{
     report::ReportDataSource,
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
-        SnsRewardCheckpointRow, SnsRewardCheckpointSummary, SnsRewardCollectionStatus,
-        SnsRewardEvent, SnsRunningVersionResponse, SnsSourceRequest,
+        MAINNET_SNS_WASM_CANISTER_ID, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
+        SnsRewardCollectionStatus,
     },
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
@@ -35,6 +34,10 @@ pub async fn build_sns_reward_checkpoint_report(
 }
 
 /// Build one SNS reward checkpoint through an explicit source adapter.
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep bracketed call order and final report projection together"
+)]
 pub async fn build_sns_reward_checkpoint_report_with_source(
     request: &SnsRewardCheckpointRequest,
     source: &dyn SnsRewardSource,
@@ -87,22 +90,71 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     let rows = collection.into_rows();
     let summary = recompute_reward_checkpoint_summary(&parameters_before, &rows)
         .map_err(invalid_checkpoint)?;
-    sns_reward_checkpoint_report_from_parts(SnsRewardCheckpointReportParts {
-        fetch_request: lookup.fetch_request,
-        sns: lookup.sns,
+    let client_query_count =
+        page_count
+            .checked_add(8)
+            .ok_or(SnsHostError::RewardCheckpointArithmetic {
+                field: "client_query_count",
+            })?;
+    let row_count = rows.len();
+    let report = SnsRewardCheckpointReport {
+        schema_version: SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
+        network: lookup.fetch_request.network,
+        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
+        source_endpoint: lookup.fetch_request.endpoint,
+        fetched_by: lookup.fetch_request.fetched_by,
+        id: lookup.sns.id,
+        name: lookup.sns.name,
+        root_canister_id: lookup.sns.canisters.root_canister_id,
+        governance_canister_id: lookup.sns.canisters.governance_canister_id,
+        ledger_canister_id: lookup.sns.canisters.ledger_canister_id,
+        swap_canister_id: lookup.sns.canisters.swap_canister_id,
+        index_canister_id: lookup.sns.canisters.index_canister_id,
+        data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: request.lookup.now_unix_secs,
+        collection_started_at: format_utc_timestamp_secs(request.lookup.now_unix_secs),
         collection_completed_at_unix_secs: completed_at,
+        collection_completed_at: format_utc_timestamp_secs(completed_at),
+        page_size: crate::sns::report::SNS_REWARD_CHECKPOINT_PAGE_SIZE,
         page_count,
+        row_count,
+        unique_neuron_id_count: row_count,
         collection_row_ceiling,
+        client_query_count,
+        collection_status: SnsRewardCollectionStatus::ApiExhaustedObserved,
+        point_in_time_guaranteed: false,
         parameters_before,
         parameters_after,
         reward_event_before,
         reward_event_after,
         running_version_before,
         running_version_after,
+        aggregate_maturity_e8s_equivalent: summary.aggregate_maturity_e8s_equivalent,
+        aggregate_staked_maturity_e8s_equivalent: summary.aggregate_staked_maturity_e8s_equivalent,
+        aggregate_combined_maturity_e8s_equivalent: summary
+            .aggregate_combined_maturity_e8s_equivalent,
+        permission_entry_count: summary.permission_entry_count,
+        unassessable_permission_code_count: summary.unassessable_permission_code_count,
+        pending_maturity_disbursement_count: summary.pending_maturity_disbursement_count,
+        auto_stake_maturity_enabled_count: summary.auto_stake_maturity_enabled_count,
+        auto_stake_maturity_disabled_count: summary.auto_stake_maturity_disabled_count,
+        auto_stake_maturity_unspecified_count: summary.auto_stake_maturity_unspecified_count,
+        manage_principals_grantable: summary.manage_principals_grantable,
+        maturity_mint_conversion_observed_disabled: summary
+            .maturity_mint_conversion_observed_disabled,
+        manual_maturity_staking_observed_disabled: summary
+            .manual_maturity_staking_observed_disabled,
+        maturity_conversion_policy_observed_status: summary
+            .maturity_conversion_policy_observed_status,
         rows,
-        summary,
-    })
+    };
+    report
+        .validate_collected_summary(&summary)
+        .map_err(|error| SnsHostError::InvalidSourceData {
+            capability: "SNS reward checkpoint",
+            reason: error.reason,
+        })?;
+    Ok(report)
 }
 
 async fn collect_reward_neurons(
@@ -207,104 +259,4 @@ fn invalid_checkpoint(reason: impl Into<String>) -> SnsHostError {
         capability: "SNS reward checkpoint",
         reason: reason.into(),
     }
-}
-
-///
-/// SnsRewardCheckpointReportParts
-///
-/// Validated collection inputs needed to assemble one reward checkpoint.
-///
-
-struct SnsRewardCheckpointReportParts {
-    fetch_request: SnsSourceRequest,
-    sns: MainnetSns,
-    collection_started_at_unix_secs: u64,
-    collection_completed_at_unix_secs: u64,
-    page_count: u32,
-    collection_row_ceiling: u64,
-    parameters_before: SnsGovernanceParameters,
-    parameters_after: SnsGovernanceParameters,
-    reward_event_before: SnsRewardEvent,
-    reward_event_after: SnsRewardEvent,
-    running_version_before: SnsRunningVersionResponse,
-    running_version_after: SnsRunningVersionResponse,
-    rows: Vec<SnsRewardCheckpointRow>,
-    summary: SnsRewardCheckpointSummary,
-}
-
-fn sns_reward_checkpoint_report_from_parts(
-    parts: SnsRewardCheckpointReportParts,
-) -> Result<SnsRewardCheckpointReport, SnsHostError> {
-    let client_query_count =
-        parts
-            .page_count
-            .checked_add(8)
-            .ok_or(SnsHostError::RewardCheckpointArithmetic {
-                field: "client_query_count",
-            })?;
-    let row_count = parts.rows.len();
-    let report = SnsRewardCheckpointReport {
-        schema_version: SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
-        network: parts.fetch_request.network,
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        source_endpoint: parts.fetch_request.endpoint,
-        fetched_by: parts.fetch_request.fetched_by,
-        id: parts.sns.id,
-        name: parts.sns.name,
-        root_canister_id: parts.sns.canisters.root_canister_id,
-        governance_canister_id: parts.sns.canisters.governance_canister_id,
-        ledger_canister_id: parts.sns.canisters.ledger_canister_id,
-        swap_canister_id: parts.sns.canisters.swap_canister_id,
-        index_canister_id: parts.sns.canisters.index_canister_id,
-        data_source: ReportDataSource::Live,
-        collection_started_at_unix_secs: parts.collection_started_at_unix_secs,
-        collection_started_at: format_utc_timestamp_secs(parts.collection_started_at_unix_secs),
-        collection_completed_at_unix_secs: parts.collection_completed_at_unix_secs,
-        collection_completed_at: format_utc_timestamp_secs(parts.collection_completed_at_unix_secs),
-        page_size: crate::sns::report::SNS_REWARD_CHECKPOINT_PAGE_SIZE,
-        page_count: parts.page_count,
-        row_count,
-        unique_neuron_id_count: row_count,
-        collection_row_ceiling: parts.collection_row_ceiling,
-        client_query_count,
-        collection_status: SnsRewardCollectionStatus::ApiExhaustedObserved,
-        point_in_time_guaranteed: false,
-        parameters_before: parts.parameters_before,
-        parameters_after: parts.parameters_after,
-        reward_event_before: parts.reward_event_before,
-        reward_event_after: parts.reward_event_after,
-        running_version_before: parts.running_version_before,
-        running_version_after: parts.running_version_after,
-        aggregate_maturity_e8s_equivalent: parts.summary.aggregate_maturity_e8s_equivalent,
-        aggregate_staked_maturity_e8s_equivalent: parts
-            .summary
-            .aggregate_staked_maturity_e8s_equivalent,
-        aggregate_combined_maturity_e8s_equivalent: parts
-            .summary
-            .aggregate_combined_maturity_e8s_equivalent,
-        permission_entry_count: parts.summary.permission_entry_count,
-        unassessable_permission_code_count: parts.summary.unassessable_permission_code_count,
-        pending_maturity_disbursement_count: parts.summary.pending_maturity_disbursement_count,
-        auto_stake_maturity_enabled_count: parts.summary.auto_stake_maturity_enabled_count,
-        auto_stake_maturity_disabled_count: parts.summary.auto_stake_maturity_disabled_count,
-        auto_stake_maturity_unspecified_count: parts.summary.auto_stake_maturity_unspecified_count,
-        manage_principals_grantable: parts.summary.manage_principals_grantable,
-        maturity_mint_conversion_observed_disabled: parts
-            .summary
-            .maturity_mint_conversion_observed_disabled,
-        manual_maturity_staking_observed_disabled: parts
-            .summary
-            .manual_maturity_staking_observed_disabled,
-        maturity_conversion_policy_observed_status: parts
-            .summary
-            .maturity_conversion_policy_observed_status,
-        rows: parts.rows,
-    };
-    report
-        .validate_collected_summary(&parts.summary)
-        .map_err(|error| SnsHostError::InvalidSourceData {
-            capability: "SNS reward checkpoint",
-            reason: error.reason,
-        })?;
-    Ok(report)
 }

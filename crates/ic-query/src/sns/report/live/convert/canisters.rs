@@ -221,7 +221,8 @@ fn push_many(
     canisters: &mut Vec<SnsCanisterRow>,
     gaps: &mut Vec<SnsCanisterGap>,
 ) {
-    let mut summaries_by_canister = BTreeMap::<String, Vec<CanisterSummary>>::new();
+    let mut summaries_by_canister =
+        BTreeMap::<String, (usize, Option<CanisterStatusResult>)>::new();
 
     for summary in summaries {
         let Some(summary_canister_id) = summary.canister_id.map(|value| value.to_text()) else {
@@ -235,15 +236,18 @@ fn push_many(
         };
         summaries_by_canister
             .entry(summary_canister_id)
-            .or_default()
-            .push(summary);
+            .and_modify(|(count, status)| {
+                *count += 1;
+                *status = None;
+            })
+            .or_insert((1, summary.status));
     }
 
     for inventory_canister_id in inventory_canister_ids
         .into_iter()
         .map(|value| value.to_text())
     {
-        let Some(mut summaries) = summaries_by_canister.remove(&inventory_canister_id) else {
+        let Some((count, status)) = summaries_by_canister.remove(&inventory_canister_id) else {
             canisters.push(canister_row(role, inventory_canister_id.clone(), None));
             gaps.push(gap(
                 SnsCanisterGapKind::SummaryMissing,
@@ -253,14 +257,13 @@ fn push_many(
             ));
             continue;
         };
-        if summaries.len() == 1 {
-            let summary = summaries.remove(0);
-            push_matched_summary(role, inventory_canister_id, summary.status, canisters, gaps);
+        if count == 1 {
+            push_matched_summary(role, inventory_canister_id, status, canisters, gaps);
             continue;
         }
 
         canisters.push(canister_row(role, inventory_canister_id.clone(), None));
-        for _ in 1..summaries.len() {
+        for _ in 1..count {
             gaps.push(gap(
                 SnsCanisterGapKind::DuplicateSummary,
                 role,
@@ -270,8 +273,8 @@ fn push_many(
         }
     }
 
-    for (summary_canister_id, summaries) in summaries_by_canister {
-        for _ in summaries {
+    for (summary_canister_id, (count, _)) in summaries_by_canister {
+        for _ in 0..count {
             gaps.push(gap(
                 SnsCanisterGapKind::SummaryNotInInventory,
                 role,

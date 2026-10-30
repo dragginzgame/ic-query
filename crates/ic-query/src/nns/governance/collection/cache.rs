@@ -6,7 +6,9 @@ use super::{
 };
 use crate::{
     HostCacheError,
-    cache::CacheValidationStatus,
+    cache::{
+        CacheCollectionCompleteness, CacheValidationStatus, validate_cache_collection_completeness,
+    },
     cache_file::open_managed_file,
     nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
@@ -170,23 +172,44 @@ impl NnsGovernanceCacheStatusReport {
 }
 
 // Both collection families persist the same snapshot identity and accounting contract.
-macro_rules! governance_snapshot_matches {
-    ($cache:expr, $state:expr, $rows:ident) => {{
+macro_rules! validate_governance_snapshot {
+    ($cache:expr, $state:expr, $rows:ident, $validate:path) => {{
         let cache = $cache;
         let state = $state;
-        let source = $crate::nns::governance::NnsGovernanceSourceProvenance::ReplicaQuery {
-            endpoint: cache.source_endpoint.clone(),
-            fetched_by: cache.fetched_by.clone(),
-        };
-        state.is_complete()
-            && state.network() == cache.network
-            && state.governance_canister_id() == cache.metadata.governance_canister_id
-            && state.source() == Some(&source)
-            && state.updated_at() == cache.fetched_at
-            && state.pages_fetched() == cache.completeness.page_count
-            && state.page_size() == cache.completeness.page_size
-            && state.$rows() == cache.completeness.row_count as u64
+        $validate(state)
+            .map_err(|error| error.to_string())
+            .and_then(|()| {
+                let source = $crate::nns::governance::NnsGovernanceSourceProvenance::ReplicaQuery {
+                    endpoint: cache.source_endpoint.clone(),
+                    fetched_by: cache.fetched_by.clone(),
+                };
+                if state.is_complete()
+                    && state.network() == cache.network
+                    && state.governance_canister_id() == cache.metadata.governance_canister_id
+                    && state.source() == Some(&source)
+                    && state.updated_at() == cache.fetched_at
+                    && state.pages_fetched() == cache.completeness.page_count
+                    && state.page_size() == cache.completeness.page_size
+                    && state.$rows() == cache.completeness.row_count as u64
+                {
+                    Ok(())
+                } else {
+                    Err("collection_state disagrees with snapshot identity, provenance, or completeness".to_string())
+                }
+            })
     }};
 }
 
-pub(in crate::nns) use governance_snapshot_matches;
+pub(in crate::nns) use validate_governance_snapshot;
+
+pub(in crate::nns) fn validate_governance_cache_completeness(
+    completeness: &CacheCollectionCompleteness,
+    row_count: usize,
+    point_in_time_error: &str,
+) -> Result<(), String> {
+    validate_cache_collection_completeness(completeness, row_count)?;
+    if completeness.point_in_time_guaranteed {
+        return Err(point_in_time_error.to_string());
+    }
+    Ok(())
+}

@@ -7,7 +7,10 @@
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 mod cache;
 pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
-pub(in crate::nns) use cache::{build_governance_cache_status_report, governance_snapshot_matches};
+pub(in crate::nns) use cache::{
+    build_governance_cache_status_report, validate_governance_cache_completeness,
+    validate_governance_snapshot,
+};
 
 mod refresh;
 pub(in crate::nns) use refresh::run_governance_snapshot_refresh;

@@ -5,6 +5,8 @@ mod attempt;
 mod build;
 mod command;
 mod protocol;
+mod receipt;
+use receipt::Receipt;
 
 #[cfg(test)]
 mod tests;
@@ -19,6 +21,7 @@ use command::CommandOptions;
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::path::canonicalize_allow_missing;
 use ic_platform::candid::contract::Principal;
+#[cfg(test)]
 use serde_json::{Value, json};
 use std::{
     env,
@@ -33,12 +36,6 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const GOVERNANCE: &str = "rrkah-fqaaa-aaaaa-aaaaq-cai";
-const KINDS: [&str; 4] = [
-    "economics",
-    "metrics",
-    "reward_event",
-    "maturity_modulation",
-];
 fn invalid(message: &str) -> Box<dyn Error> {
     io::Error::new(io::ErrorKind::InvalidData, message).into()
 }
@@ -154,13 +151,15 @@ impl AttemptOperations for Harness {
         )
     }
 
-    fn publish(&mut self, receipt: &Value) -> Result<()> {
+    fn publish(&mut self, receipt: &Receipt) -> Result<()> {
         attempt::save_receipt(&self.output, receipt)
     }
 
-    fn verify(&mut self, environment: &str, canister: &str, receipt: &mut Value) -> Result<()> {
-        let endpoint = receipt["api_endpoint"]
-            .as_str()
+    fn verify(&mut self, environment: &str, canister: &str, receipt: &mut Receipt) -> Result<()> {
+        let endpoint = receipt
+            .api_endpoint
+            .as_ref()
+            .and_then(serde_json::Value::as_str)
             .ok_or_else(|| invalid("missing api_endpoint"))?;
         let mut probe = protocol::AgentProbe::new(environment, endpoint, canister)?;
         let protocol = fs::read(self.root.join("tests/canister/probe-wire.json"))?;
@@ -248,11 +247,22 @@ fn execute(action: Action) -> Result<()> {
                 _ => unreachable!(),
             };
             harness.output = receipt_directory(&artifacts)?.join("receipt.json");
-            let mut receipt = json!({"schema_version":1, "status":"running", "environment":environment,
-                "evidence_scope":if environment == "local" { "local_nns" } else { "mainnet" },
-                "icp":command::run(&mut build::command(&harness.root, harness.root.join(".tools/ic/bin/icp"), &["--version"]), &CommandOptions::default())?,
-                "rustc":command::run(&mut build::command(&harness.root, "rustc", &["--version"]), &CommandOptions::default())?,
-                "started_at":attempt::utc_now()?, "point_in_time_guaranteed":false});
+            let mut receipt = Receipt::new(
+                environment,
+                command::run(
+                    &mut build::command(
+                        &harness.root,
+                        harness.root.join(".tools/ic/bin/icp"),
+                        &["--version"],
+                    ),
+                    &CommandOptions::default(),
+                )?,
+                command::run(
+                    &mut build::command(&harness.root, "rustc", &["--version"]),
+                    &CommandOptions::default(),
+                )?,
+                attempt::utc_now()?,
+            );
             println!("Receipt: {}", harness.output.display());
             attempt::run_attempt(&mut harness, environment, canister, &mut receipt)?;
         }

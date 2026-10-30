@@ -1,10 +1,11 @@
 //! Verification admission, durable checkpoints and owned runtime cleanup.
 
 use crate::{
-    GOVERNANCE, KINDS, Result,
+    GOVERNANCE, Result,
     command::{self, CommandFailure, CommandOptions, StderrMode},
     invalid,
     protocol::{self, Probe},
+    receipt::{NetworkCleanup, Phase, Receipt, ReportKind, ReportReceipt, Status},
 };
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::durable::{PublicationMode, WriteOptions, write_with};
@@ -21,7 +22,7 @@ pub fn utc_now() -> Result<String> {
     Ok(OffsetDateTime::now_utc().format(&Rfc3339)?)
 }
 
-pub fn save_receipt(path: &Path, receipt: &Value) -> Result<()> {
+pub fn save_receipt(path: &Path, receipt: &Receipt) -> Result<()> {
     write_with(
         path,
         WriteOptions {
@@ -91,17 +92,19 @@ pub fn deployed_canister(deployment: &Value) -> Result<String> {
 }
 
 pub fn checkpoint(
-    receipt: &mut Value,
-    phase: Option<&str>,
-    publish: &mut impl FnMut(&Value) -> Result<()>,
+    receipt: &mut Receipt,
+    phase: Option<Phase>,
+    publish: &mut impl FnMut(&Receipt) -> Result<()>,
 ) -> Result<()> {
-    if receipt["status"] == "running" && !matches!(phase, Some("stopping_network" | "finished")) {
+    if receipt.status == Status::Running
+        && !matches!(phase, Some(Phase::StoppingNetwork | Phase::Finished))
+    {
         command::check_interruption()?;
     }
     if let Some(phase) = phase {
-        receipt["phase"] = phase.into();
+        receipt.phase = Some(phase);
     }
-    receipt["updated_at"] = utc_now()?.into();
+    receipt.updated_at = Some(utc_now()?);
     publish(receipt)
 }
 
@@ -111,50 +114,64 @@ pub fn verify(
     wasm: &Path,
     protocol: &[u8],
     output: &Path,
-    receipt: &mut Value,
-    mut publish: impl FnMut(&Value) -> Result<()>,
+    receipt: &mut Receipt,
+    mut publish: impl FnMut(&Receipt) -> Result<()>,
 ) -> Result<()> {
-    receipt["canister_id"] = canister.into();
-    checkpoint(receipt, Some("checking_module"), &mut publish)?;
+    receipt.canister_id = Some(canister.to_string());
+    checkpoint(receipt, Some(Phase::CheckingModule), &mut publish)?;
     let before = probe.module_hash()?;
-    receipt["module_hash_before"] = before.clone().into();
+    receipt.module_hash_before = Some(before.clone());
     checkpoint(receipt, None, &mut publish)?;
     if before != Sha256Digest::compute(&protocol::read_wasm(wasm)?).to_string() {
         return Err(invalid(
             "deployed module hash differs from the locally built probe",
         ));
     }
-    checkpoint(receipt, Some("checking_protocol"), &mut publish)?;
+    checkpoint(receipt, Some(Phase::CheckingProtocol), &mut publish)?;
     let metadata = probe.metadata("ic-query:protocol")?;
     if metadata != protocol {
         return Err(invalid(
             "deployed Wire metadata differs from probe-wire.json",
         ));
     }
-    receipt["protocol_sha256"] = Sha256Digest::compute(&metadata).to_string().into();
-    checkpoint(receipt, Some("checking_build_metadata"), &mut publish)?;
-    receipt["build"] = serde_json::from_slice(&probe.metadata("ic-query:build")?)?;
-    receipt["reports"] = json!({});
+    receipt.protocol_sha256 = Some(Sha256Digest::compute(&metadata).to_string());
+    checkpoint(receipt, Some(Phase::CheckingBuildMetadata), &mut publish)?;
+    receipt.build = Some(serde_json::from_slice(&probe.metadata("ic-query:build")?)?);
+    receipt.reports = Some(std::collections::BTreeMap::new());
     checkpoint(receipt, None, &mut publish)?;
-    for kind in KINDS {
-        println!(
-            "Collecting {kind} ({})",
-            receipt["environment"].as_str().unwrap_or_default()
-        );
-        checkpoint(receipt, Some(&format!("collecting_{kind}")), &mut publish)?;
+    for report_kind in ReportKind::ALL {
+        let kind = report_kind.as_str();
+        println!("Collecting {kind} ({})", receipt.environment);
+        checkpoint(receipt, Some(Phase::Collecting(report_kind)), &mut publish)?;
         let reply = format!("{kind}.wire");
-        receipt["reports"][kind] = json!({"reply_file":reply});
+        receipt
+            .reports
+            .as_mut()
+            .expect("report collection started")
+            .insert(
+                report_kind,
+                ReportReceipt {
+                    reply_file: reply.clone(),
+                    report: None,
+                },
+            );
         checkpoint(receipt, None, &mut publish)?;
         let response =
             protocol::publish_reply(&output.with_file_name(&reply), &probe.report(kind)?)?;
-        checkpoint(receipt, Some(&format!("validating_{kind}")), &mut publish)?;
+        checkpoint(receipt, Some(Phase::Validating(report_kind)), &mut publish)?;
         let payload = serde_json::from_str(&response)?;
-        receipt["reports"][kind]["report"] = validate_report(kind, payload, canister)?;
-        checkpoint(receipt, Some(&format!("collected_{kind}")), &mut publish)?;
+        receipt
+            .reports
+            .as_mut()
+            .expect("report collection started")
+            .get_mut(&report_kind)
+            .expect("reply checkpoint exists")
+            .report = Some(validate_report(kind, payload, canister)?);
+        checkpoint(receipt, Some(Phase::Collected(report_kind)), &mut publish)?;
     }
-    checkpoint(receipt, Some("checking_final_module"), &mut publish)?;
+    checkpoint(receipt, Some(Phase::CheckingFinalModule), &mut publish)?;
     let after = probe.module_hash()?;
-    receipt["module_hash_after"] = after.clone().into();
+    receipt.module_hash_after = Some(after.clone());
     checkpoint(receipt, None, &mut publish)?;
     if before != after {
         return Err(invalid("probe module changed during collection"));
@@ -170,60 +187,57 @@ pub fn verify(
 
 pub trait AttemptOperations {
     fn icp(&mut self, args: &[&str], options: &CommandOptions<'_>) -> Result<String>;
-    fn publish(&mut self, receipt: &Value) -> Result<()>;
-    fn verify(&mut self, environment: &str, canister: &str, receipt: &mut Value) -> Result<()>;
+    fn publish(&mut self, receipt: &Receipt) -> Result<()>;
+    fn verify(&mut self, environment: &str, canister: &str, receipt: &mut Receipt) -> Result<()>;
 }
 
 fn attempt_checkpoint(
     operations: &mut impl AttemptOperations,
-    receipt: &mut Value,
-    phase: Option<&str>,
+    receipt: &mut Receipt,
+    phase: Option<Phase>,
 ) -> Result<()> {
     checkpoint(receipt, phase, &mut |receipt| operations.publish(receipt))
 }
 
-fn retain_failure(receipt: &mut Value, error: &(dyn std::error::Error + 'static)) {
-    receipt["status"] = "failed".into();
-    if receipt.get("failed_phase").is_none() {
-        receipt["failed_phase"] = receipt["phase"].clone();
+fn retain_failure(receipt: &mut Receipt, error: &(dyn std::error::Error + 'static)) {
+    receipt.status = Status::Failed;
+    if receipt.failed_phase.is_none() {
+        receipt.failed_phase = receipt.phase;
     }
-    receipt["error"] = error.to_string().into();
+    receipt.error = Some(error.to_string());
     let interrupted = error
         .downcast_ref::<CommandFailure>()
         .and_then(|error| error.interrupted)
         .or_else(command::interruption);
     if let Some(signal) = interrupted {
-        receipt["interrupted_by"] = command::signal_name(signal).into();
+        receipt.interrupted_by = Some(command::signal_name(signal).to_string());
     }
     if let Some(error) = error.downcast_ref::<CommandFailure>() {
-        for (key, bytes) in [
-            ("command_stdout", &error.stdout),
-            ("command_stderr", &error.stderr),
+        for (target, bytes) in [
+            (&mut receipt.command_stdout, &error.stdout),
+            (&mut receipt.command_stderr, &error.stderr),
         ] {
             if let Some(bytes) = bytes {
-                receipt[key] = String::from_utf8_lossy(bytes).into_owned().into();
+                *target = Some(String::from_utf8_lossy(bytes).into_owned());
             }
         }
         if !error.cleanup_errors.is_empty() {
-            receipt["command_cleanup_errors"] = json!(
+            receipt.command_cleanup_errors = Some(
                 error
                     .cleanup_errors
                     .iter()
                     .map(ToString::to_string)
-                    .collect::<Vec<_>>()
+                    .collect::<Vec<_>>(),
             );
         }
     }
 }
 
-fn retain_storage_failure(receipt: &mut Value, error: &dyn std::error::Error) {
-    if receipt.get("receipt_errors").is_none() {
-        receipt["receipt_errors"] = json!([]);
-    }
-    receipt["receipt_errors"]
-        .as_array_mut()
-        .expect("receipt error array")
-        .push(error.to_string().into());
+fn retain_storage_failure(receipt: &mut Receipt, error: &dyn std::error::Error) {
+    receipt
+        .storage_errors
+        .get_or_insert_with(Vec::new)
+        .push(error.to_string());
     eprintln!("Receipt publication failed: {error}");
 }
 
@@ -231,10 +245,10 @@ pub fn run_attempt(
     operations: &mut impl AttemptOperations,
     environment: &str,
     canister: &str,
-    receipt: &mut Value,
+    receipt: &mut Receipt,
 ) -> Result<()> {
     // No runtime is owned until startup is dispatched; an initial IO refusal ends here.
-    attempt_checkpoint(operations, receipt, Some("starting"))?;
+    attempt_checkpoint(operations, receipt, Some(Phase::Starting))?;
     let mut startup_attempted = false;
     let result = collect_attempt(
         operations,
@@ -252,9 +266,9 @@ pub fn run_attempt(
         }
     }
     if startup_attempted {
-        receipt["network_cleanup"] = "pending".into();
+        receipt.network_cleanup = Some(NetworkCleanup::Pending);
         let checkpoint_error =
-            attempt_checkpoint(operations, receipt, Some("stopping_network")).err();
+            attempt_checkpoint(operations, receipt, Some(Phase::StoppingNetwork)).err();
         if let Some(error) = &checkpoint_error {
             retain_storage_failure(receipt, error.as_ref());
         }
@@ -268,13 +282,17 @@ pub fn run_attempt(
                 ..Default::default()
             },
         );
-        receipt["network_cleanup"] = if stop.is_ok() { "stopped" } else { "failed" }.into();
+        receipt.network_cleanup = Some(if stop.is_ok() {
+            NetworkCleanup::Stopped
+        } else {
+            NetworkCleanup::Failed
+        });
         if let Some(error) = stop.err().or(checkpoint_error) {
-            receipt["status"] = "failed".into();
-            if receipt.get("failed_phase").is_none() {
-                receipt["failed_phase"] = receipt["phase"].clone();
+            receipt.status = Status::Failed;
+            if receipt.failed_phase.is_none() {
+                receipt.failed_phase = receipt.phase;
             }
-            receipt["cleanup_error"] = error.to_string().into();
+            receipt.cleanup_error = Some(error.to_string());
             if primary.is_none() {
                 primary = Some(error);
             }
@@ -286,11 +304,11 @@ pub fn run_attempt(
         retain_failure(receipt, error.as_ref());
         primary = Some(error);
     }
-    if verified && receipt["status"] == "running" {
-        receipt["status"] = "passed".into();
+    if verified && receipt.status == Status::Running {
+        receipt.status = Status::Passed;
     }
-    receipt["finished_at"] = utc_now()?.into();
-    if let Err(storage) = attempt_checkpoint(operations, receipt, Some("finished")) {
+    receipt.finished_at = Some(utc_now()?);
+    if let Err(storage) = attempt_checkpoint(operations, receipt, Some(Phase::Finished)) {
         if primary.is_none() {
             primary = Some(storage);
         } else {
@@ -304,11 +322,11 @@ fn collect_attempt(
     operations: &mut impl AttemptOperations,
     environment: &str,
     canister: &str,
-    receipt: &mut Value,
+    receipt: &mut Receipt,
     startup_attempted: &mut bool,
 ) -> Result<()> {
     let canister = if environment == "local" {
-        attempt_checkpoint(operations, receipt, Some("checking_network"))?;
+        attempt_checkpoint(operations, receipt, Some(Phase::CheckingNetwork))?;
         match operations.icp(
             &["network", "status", "local"],
             &CommandOptions {
@@ -328,7 +346,7 @@ fn collect_attempt(
                 }) => {}
             Err(error) => return Err(error),
         }
-        attempt_checkpoint(operations, receipt, Some("starting_network"))?;
+        attempt_checkpoint(operations, receipt, Some(Phase::StartingNetwork))?;
         *startup_attempted = true;
         operations.icp(
             &["network", "start", "local", "--background"],
@@ -339,24 +357,30 @@ fn collect_attempt(
                 ..Default::default()
             },
         )?;
-        attempt_checkpoint(operations, receipt, Some("reading_network"))?;
-        receipt["network"] = serde_json::from_str(&operations.icp(
+        attempt_checkpoint(operations, receipt, Some(Phase::ReadingNetwork))?;
+        let network: Value = serde_json::from_str(&operations.icp(
             &["network", "status", "local", "--json"],
             &CommandOptions::default(),
         )?)?;
-        receipt["api_endpoint"] = receipt["network"]["api_url"].clone();
-        if receipt["api_endpoint"].as_str().is_none() {
+        receipt.api_endpoint = Some(network["api_url"].clone());
+        receipt.network = Some(network);
+        if receipt
+            .api_endpoint
+            .as_ref()
+            .and_then(Value::as_str)
+            .is_none()
+        {
             return Err(invalid("network discovery omitted api_url"));
         }
-        attempt_checkpoint(operations, receipt, Some("deploying"))?;
+        attempt_checkpoint(operations, receipt, Some(Phase::Deploying))?;
         let deployment = serde_json::from_str(&operations.icp(
             &["deploy", "-e", "local", "--json"],
             &CommandOptions::default(),
         )?)?;
         deployed_canister(&deployment)?
     } else {
-        receipt["api_endpoint"] = "https://icp-api.io/".into();
-        attempt_checkpoint(operations, receipt, Some("building"))?;
+        receipt.api_endpoint = Some("https://icp-api.io/".into());
+        attempt_checkpoint(operations, receipt, Some(Phase::Building))?;
         operations.icp(
             &["build", "-e", environment],
             &CommandOptions {

@@ -173,11 +173,8 @@ pub fn canonicalize_subnet_catalog_content(
     let mut keyed_ranges = routing_ranges
         .drain(..)
         .map(|range| {
-            Ok::<_, CatalogError>((
-                principal_bytes(&range.start_canister_id, "start_canister_id")?,
-                principal_bytes(&range.end_canister_id, "end_canister_id")?,
-                range,
-            ))
+            let (start, end) = routing_range_bounds(&range)?;
+            Ok::<_, CatalogError>((start, end, range))
         })
         .collect::<Result<Vec<_>, _>>()?;
     keyed_ranges.sort_by(|left, right| {
@@ -190,17 +187,37 @@ pub fn canonicalize_subnet_catalog_content(
             &right.2.subnet_principal,
         )
     });
-    *routing_ranges = keyed_ranges
+    let (bounds, ranges): (Vec<_>, Vec<_>) = keyed_ranges
         .into_iter()
-        .map(|(_, _, range)| range)
-        .collect();
+        .map(|(start, end, range)| ((start, end), range))
+        .unzip();
+    *routing_ranges = ranges;
     apply_mainnet_classification_policy(subnets);
-    validate_subnet_catalog_content(subnets, routing_ranges)
+    validate_subnet_catalog_content_with_bounds(subnets, routing_ranges, bounds.into_iter().map(Ok))
 }
 
 fn validate_subnet_catalog_content(
     subnets: &[SubnetInfo],
     routing_ranges: &[RoutingRange],
+) -> Result<(), CatalogError> {
+    validate_subnet_catalog_content_with_bounds(
+        subnets,
+        routing_ranges,
+        routing_ranges.iter().map(routing_range_bounds),
+    )
+}
+
+fn routing_range_bounds(range: &RoutingRange) -> Result<(Vec<u8>, Vec<u8>), CatalogError> {
+    Ok((
+        principal_bytes(&range.start_canister_id, "start_canister_id")?,
+        principal_bytes(&range.end_canister_id, "end_canister_id")?,
+    ))
+}
+
+fn validate_subnet_catalog_content_with_bounds(
+    subnets: &[SubnetInfo],
+    routing_ranges: &[RoutingRange],
+    bounds: impl Iterator<Item = Result<(Vec<u8>, Vec<u8>), CatalogError>>,
 ) -> Result<(), CatalogError> {
     if subnets.is_empty() {
         return Err(CatalogError::EmptySubnets);
@@ -226,14 +243,13 @@ fn validate_subnet_catalog_content(
     }
 
     let mut validated_ranges = Vec::with_capacity(routing_ranges.len());
-    for range in routing_ranges {
+    for (range, bounds) in routing_ranges.iter().zip(bounds) {
         if !subnet_principals.contains(range.subnet_principal.as_str()) {
             return Err(CatalogError::UnknownRoutingSubnet {
                 subnet_principal: range.subnet_principal.clone(),
             });
         }
-        let start = principal_bytes(&range.start_canister_id, "start_canister_id")?;
-        let end = principal_bytes(&range.end_canister_id, "end_canister_id")?;
+        let (start, end) = bounds?;
         if start > end {
             return Err(CatalogError::InvalidRoutingRange {
                 subnet_principal: range.subnet_principal.clone(),

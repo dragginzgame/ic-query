@@ -14,17 +14,22 @@ pub(in crate::ic) fn node_status_group_counts<'a>(
 ) -> IcNodeStatusGroupCounts {
     let mut counts = IcNodeStatusGroupCounts::default();
     for node in nodes {
-        let status = node.operational_status();
-        increment_status(&mut counts.statuses, status);
-        increment_status(
-            assignment_bucket(&mut counts.assignment_statuses, node),
-            status,
-        );
+        observe_node_status(&mut counts, node);
     }
     counts
 }
 
+pub(super) fn observe_node_status(counts: &mut IcNodeStatusGroupCounts, node: &IcNodeStatusRow) {
+    let status = node.operational_status();
+    increment_status(&mut counts.statuses, status);
+    increment_status(
+        assignment_bucket(&mut counts.assignment_statuses, node),
+        status,
+    );
+}
+
 /// Count raw operational statuses without applying an assignment projection.
+#[cfg(feature = "dashboard-host")]
 pub fn node_status_counts<'a>(
     nodes: impl Iterator<Item = &'a IcNodeStatusRow>,
 ) -> IcNodeStatusCounts {

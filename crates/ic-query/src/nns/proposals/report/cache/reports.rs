@@ -16,7 +16,7 @@ use crate::nns::proposals::report::source::{
 };
 use crate::report::ReportProvenance;
 use crate::{
-    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
+    cache::CacheCollectionCompleteness,
     cache_file::LoadJsonCacheRequest,
     nns::{
         NnsGovernanceCacheRequest,
@@ -230,26 +230,21 @@ fn validate_nns_proposal_cache(
         path: path.to_path_buf(),
         reason,
     };
-    validate_cache_collection_completeness(&cache.completeness, cache.data.proposals.len())
-        .map_err(invalid)?;
-    if cache.completeness.point_in_time_guaranteed {
-        return Err(invalid(
-            "Governance proposal pagination cannot claim a point-in-time guarantee".to_string(),
-        ));
-    }
+    crate::nns::governance::collection::validate_governance_cache_completeness(
+        &cache.completeness,
+        cache.data.proposals.len(),
+        "Governance proposal pagination cannot claim a point-in-time guarantee",
+    )
+    .map_err(invalid)?;
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
     let state = &cache.data.collection_state;
-    validate_collection_state(state).map_err(|error| invalid(error.to_string()))?;
-    if !crate::nns::governance::collection::governance_snapshot_matches!(
+    crate::nns::governance::collection::validate_governance_snapshot!(
         cache,
         state,
-        proposals_fetched
-    ) {
-        return Err(invalid(
-            "collection_state disagrees with snapshot identity, provenance, or completeness"
-                .to_string(),
-        ));
-    }
+        proposals_fetched,
+        validate_collection_state
+    )
+    .map_err(invalid)?;
     let mut proposal_ids = HashSet::new();
     for proposal in &cache.data.proposals {
         let proposal_id = proposal

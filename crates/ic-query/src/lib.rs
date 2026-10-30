@@ -98,6 +98,7 @@ pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
 pub mod icrc;
+mod identifier_match;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "cmc-host",

@@ -6,11 +6,13 @@
 
 use super::{
     IcNodeCountComparison, IcNodeCountComparisonCounts, IcNodeProviderStatusReport,
-    IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusProjectionError, IcNodeStatusReport,
-    IcNodeStatusRow, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
-    IcSubnetStatusRow, node_status_group_counts, validate_canonical_node_status_rows,
-    validate_default_node_scope, validation::validate_node_status_observation,
+    IcNodeProviderStatusRow, IcNodeStatusCounts, IcNodeStatusGroupCounts,
+    IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow, IcNodeStatusSnapshot,
+    IcNodeStatusView, IcSubnetStatusReport, IcSubnetStatusRow, node_status_group_counts,
+    validate_canonical_node_status_rows, validate_default_node_scope,
+    validation::validate_node_status_observation,
 };
+use crate::identifier_match::{IdentifierMatch, match_identifier};
 use std::collections::BTreeMap;
 
 /// Project a node-level status report from one complete observed snapshot.
@@ -97,12 +99,7 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
         view: &IcNodeStatusView,
     ) -> Result<IcSubnetStatusReport, IcNodeStatusProjectionError> {
         let snapshot = self.snapshot;
-        let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
-        for node in &snapshot.nodes {
-            if let Some(subnet_id) = &node.subnet_id {
-                grouped.entry(subnet_id).or_default().push(node);
-            }
-        }
+        let grouped = group_nodes(&snapshot.nodes, |node| node.subnet_id.as_deref());
         let resolution = resolve_optional_target(
             "Subnet",
             view.target.as_deref(),
@@ -112,12 +109,16 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
         let subnet_count = grouped.len();
         let mut attention_subnet_count = 0;
         let mut subnets = Vec::new();
-        for (subnet_id, nodes) in grouped {
-            let statuses = super::counts::node_status_counts(nodes.iter().copied());
+        for (subnet_id, group) in grouped {
+            let statuses = group.counts.statuses;
             let requires_attention = statuses.non_up() > 0;
             attention_subnet_count += usize::from(requires_attention);
             if view_includes(view, resolution.as_ref(), subnet_id, requires_attention) {
-                subnets.push(subnet_row(subnet_id.to_string(), statuses, &nodes));
+                subnets.push(subnet_row(
+                    subnet_id.to_string(),
+                    statuses,
+                    group.non_up_nodes.into_iter().cloned().collect(),
+                ));
             }
         }
 
@@ -140,13 +141,7 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
         view: &IcNodeStatusView,
     ) -> Result<IcNodeProviderStatusReport, IcNodeStatusProjectionError> {
         let snapshot = self.snapshot;
-        let mut grouped = BTreeMap::<&str, Vec<&IcNodeStatusRow>>::new();
-        for node in &snapshot.nodes {
-            grouped
-                .entry(&node.node_provider_id)
-                .or_default()
-                .push(node);
-        }
+        let grouped = group_nodes(&snapshot.nodes, |node| Some(node.node_provider_id.as_str()));
         let resolution = resolve_optional_target(
             "node provider",
             view.target.as_deref(),
@@ -158,8 +153,8 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
         let mut up_comparisons = IcNodeCountComparisonCounts::default();
         let mut non_up_comparisons = IcNodeCountComparisonCounts::default();
         let mut providers = Vec::new();
-        for (node_provider_id, nodes) in grouped {
-            let counts = node_status_group_counts(nodes.iter().copied());
+        for (node_provider_id, group) in grouped {
+            let counts = group.counts;
             let assigned = &counts.assignment_statuses.assigned;
             let unassigned = &counts.assignment_statuses.unassigned;
             let unassigned_up_vs_assigned_up =
@@ -181,13 +176,11 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
             ) {
                 providers.push(IcNodeProviderStatusRow {
                     node_provider_id: node_provider_id.to_string(),
-                    node_provider_name: nodes
-                        .first()
-                        .map_or_else(String::new, |node| node.node_provider_name.clone()),
+                    node_provider_name: group.first.node_provider_name.clone(),
                     unassigned_up_vs_assigned_up,
                     unassigned_non_up_vs_assigned_non_up,
                     counts,
-                    non_up_nodes: non_up_nodes(&nodes),
+                    non_up_nodes: group.non_up_nodes.into_iter().cloned().collect(),
                 });
             }
         }
@@ -209,14 +202,13 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
     }
 }
 
-fn subnet_row(
+const fn subnet_row(
     subnet_id: String,
     statuses: IcNodeStatusCounts,
-    nodes: &[&IcNodeStatusRow],
+    non_up_nodes: Vec<IcNodeStatusRow>,
 ) -> IcSubnetStatusRow {
     let fault_tolerance_node_count = statuses.total.saturating_sub(1) / 3;
     let first_exceeding_count = fault_tolerance_node_count.saturating_add(1);
-    let non_up_nodes = non_up_nodes(nodes);
     IcSubnetStatusRow {
         subnet_id,
         additional_down_nodes_to_exceed_fault_tolerance: first_exceeding_count
@@ -232,12 +224,32 @@ fn subnet_row(
     }
 }
 
-fn non_up_nodes(nodes: &[&IcNodeStatusRow]) -> Vec<IcNodeStatusRow> {
-    nodes
-        .iter()
-        .filter(|node| node.is_non_up())
-        .map(|node| (*node).clone())
-        .collect()
+struct NodeStatusGroup<'a> {
+    first: &'a IcNodeStatusRow,
+    counts: IcNodeStatusGroupCounts,
+    non_up_nodes: Vec<&'a IcNodeStatusRow>,
+}
+
+fn group_nodes(
+    nodes: &[IcNodeStatusRow],
+    key: impl Fn(&IcNodeStatusRow) -> Option<&str>,
+) -> BTreeMap<&str, NodeStatusGroup<'_>> {
+    let mut groups = BTreeMap::new();
+    for node in nodes {
+        let Some(key) = key(node) else {
+            continue;
+        };
+        let group = groups.entry(key).or_insert_with(|| NodeStatusGroup {
+            first: node,
+            counts: IcNodeStatusGroupCounts::default(),
+            non_up_nodes: Vec::new(),
+        });
+        super::counts::observe_node_status(&mut group.counts, node);
+        if node.is_non_up() {
+            group.non_up_nodes.push(node);
+        }
+    }
+    groups
 }
 
 const fn increment_comparison(
@@ -308,28 +320,20 @@ fn resolve_optional_target<'a>(
     if target.is_empty() {
         return Err(IcNodeStatusProjectionError::EmptyTarget { kind });
     }
-    let mut matches = Vec::new();
-    for identifier in identifiers {
-        if identifier == target {
-            return Ok(Some(TargetResolution {
-                resolved: target.to_string(),
-                resolved_from: exact_label.to_string(),
-            }));
-        }
-        if identifier.starts_with(target) {
-            matches.push(identifier);
-        }
-    }
-    match matches.as_slice() {
-        [] => Err(IcNodeStatusProjectionError::UnknownTarget {
+    match match_identifier(identifiers, |value| value, Some(target), target) {
+        IdentifierMatch::Exact(resolved) => Ok(Some(TargetResolution {
+            resolved: resolved.to_string(),
+            resolved_from: exact_label.to_string(),
+        })),
+        IdentifierMatch::Prefix(resolved) => Ok(Some(TargetResolution {
+            resolved: resolved.to_string(),
+            resolved_from: format!("{exact_label}_prefix"),
+        })),
+        IdentifierMatch::Missing => Err(IcNodeStatusProjectionError::UnknownTarget {
             kind,
             target: target.to_string(),
         }),
-        [resolved] => Ok(Some(TargetResolution {
-            resolved: (*resolved).to_string(),
-            resolved_from: format!("{exact_label}_prefix"),
-        })),
-        _ => Err(IcNodeStatusProjectionError::AmbiguousTarget {
+        IdentifierMatch::Ambiguous(matches) => Err(IcNodeStatusProjectionError::AmbiguousTarget {
             kind,
             prefix: target.to_string(),
             matches: matches.into_iter().map(str::to_string).collect(),

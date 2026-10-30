@@ -4,6 +4,8 @@
 //! Does not own: proposal fetching, cache filtering, report construction, or JSON output.
 //! Boundary: formats live or cache-backed proposal rows for humans.
 
+use crate::sns::report::text::common::sns_identity_lines;
+
 use crate::sns::report::sns_proposal_action_label;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
@@ -24,12 +26,14 @@ use crate::{
 
 #[must_use]
 pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = sns_identity_lines(
+        &report.network,
+        report.id,
+        &report.name,
+        &report.root_canister_id,
+        &report.governance_canister_id,
+    );
+    lines.extend([
         format!("requested_limit: {}", report.requested_limit),
         format!(
             "before_proposal_id: {}",
@@ -49,7 +53,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("verbose: {}", yes_no(report.verbose)),
-    ];
+    ]);
     push_report_provenance_lines(
         &mut lines,
         report.data_source,

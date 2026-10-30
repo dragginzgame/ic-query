@@ -616,7 +616,7 @@ fn verify_fixture(
         calls: 0,
         invalid_kind,
     };
-    let mut receipt = json!({"status":"running", "environment":"local"});
+    let mut receipt = fixture_receipt();
     let output = directory.path().join("receipt.json");
     let result = attempt::verify(
         &mut probe,
@@ -627,7 +627,7 @@ fn verify_fixture(
         &mut receipt,
         |receipt| attempt::save_receipt(&output, receipt),
     );
-    (result, receipt)
+    (result, serde_json::to_value(receipt).unwrap())
 }
 
 #[test]
@@ -637,7 +637,8 @@ fn verification_preserves_reports_raw_replies_and_final_module_check() {
     result.unwrap();
     assert_eq!(receipt["reports"].as_object().unwrap().len(), 4);
     assert_eq!(receipt["module_hash_before"], receipt["module_hash_after"]);
-    for kind in KINDS {
+    for kind in receipt::ReportKind::ALL {
+        let kind = kind.as_str();
         let bytes = fs::read(directory.path().join(format!("{kind}.wire"))).unwrap();
         assert_eq!(
             serde_json::from_str::<Value>(&protocol::decode_reply(&bytes).unwrap()).unwrap(),
@@ -757,7 +758,8 @@ impl AttemptOperations for Operations {
             _ => panic!("unexpected fixture command {args:?}"),
         }
     }
-    fn publish(&mut self, receipt: &Value) -> Result<()> {
+    fn publish(&mut self, receipt: &Receipt) -> Result<()> {
+        let receipt = serde_json::to_value(receipt).unwrap();
         if self
             .storage_error
             .is_some_and(|phase| receipt["phase"] == phase)
@@ -770,9 +772,9 @@ impl AttemptOperations for Operations {
         self.saves.push(receipt.clone());
         Ok(())
     }
-    fn verify(&mut self, _environment: &str, canister: &str, receipt: &mut Value) -> Result<()> {
+    fn verify(&mut self, _environment: &str, canister: &str, receipt: &mut Receipt) -> Result<()> {
         assert_eq!(canister, "aaaaa-aa");
-        assert_eq!(receipt["status"], "running");
+        assert_eq!(receipt.status, receipt::Status::Running);
         self.verified = true;
         if self.verify_error {
             Err(invalid("verification failed"))
@@ -883,9 +885,9 @@ fn wasm_admission_rejects_malformed_and_oversized_files() {
 }
 
 fn run_fixture(operations: &mut Operations) -> (Result<()>, Value) {
-    let mut receipt = json!({"schema_version":1, "status":"running", "environment":"local"});
+    let mut receipt = fixture_receipt();
     let result = attempt::run_attempt(operations, "local", "probe", &mut receipt);
-    (result, receipt)
+    (result, serde_json::to_value(receipt).unwrap())
 }
 
 #[test]
@@ -1010,26 +1012,25 @@ fn storage_failure_cannot_skip_cleanup_or_replace_an_operation_error() {
 fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
     let directory = FixtureDirectory::new(&env::temp_dir(), "ic-query-smoke").unwrap();
     let path = directory.path().join("receipt.json");
-    let first = json!({
-        "schema_version":1,
-        "status":"running",
-        "raw_amount":serde_json::from_str::<Value>("184467440737095516160").unwrap(),
-        "padding":"x".repeat(32 * 1024),
-    });
+    let mut first = fixture_receipt();
+    first.build = Some(
+        json!({ "raw_amount":serde_json::from_str::<Value>("184467440737095516160").unwrap(), "padding":"x".repeat(32 * 1024) }),
+    );
+    first.api_endpoint = Some(json!(42));
     attempt::save_receipt(&path, &first).unwrap();
     assert_eq!(
         serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap(),
-        first
+        serde_json::to_value(&first).unwrap()
     );
     assert_eq!(
         fs::metadata(&path).unwrap().permissions().mode() & 0o777,
         0o600
     );
-    attempt::save_receipt(&path, &json!({"status":"passed"})).unwrap();
-    assert_eq!(
-        fs::read(&path).unwrap(),
-        b"{\n  \"status\": \"passed\"\n}\n"
-    );
+    let mut passed = fixture_receipt();
+    passed.status = receipt::Status::Passed;
+    attempt::save_receipt(&path, &passed).unwrap();
+    let expected = format!("{}\n", serde_json::to_string_pretty(&passed).unwrap());
+    assert_eq!(fs::read(&path).unwrap(), expected.as_bytes());
     let one = receipt_directory(directory.path()).unwrap();
     let two = receipt_directory(directory.path()).unwrap();
     assert_ne!(one, two);
@@ -1060,7 +1061,7 @@ fn receipts_are_atomic_private_and_each_attempt_has_a_fresh_directory() {
     for suffix in ["/", "/.", "//", "/./."] {
         let mut target = path.as_os_str().to_os_string();
         target.push(suffix);
-        let error = attempt::save_receipt(Path::new(&target), &json!({"status":"passed"}))
+        let error = attempt::save_receipt(Path::new(&target), &fixture_receipt())
             .expect_err("directory-required receipt target is refused");
         assert!(matches!(
             error.downcast_ref::<NamedWriteError<io::Error>>(),
@@ -1289,14 +1290,14 @@ fn process_fixture() {
         directory: PathBuf,
     }
     impl AttemptOperations for SignalOperations {
-        fn publish(&mut self, receipt: &Value) -> Result<()> {
+        fn publish(&mut self, receipt: &Receipt) -> Result<()> {
             attempt::save_receipt(&self.directory.join("receipt.json"), receipt)
         }
         fn verify(
             &mut self,
             _environment: &str,
             _canister: &str,
-            _receipt: &mut Value,
+            _receipt: &mut Receipt,
         ) -> Result<()> {
             panic!("interrupted startup cannot verify")
         }
@@ -1319,7 +1320,7 @@ fn process_fixture() {
             }
         }
     }
-    let mut receipt = json!({"schema_version":1,"status":"running","environment":"local"});
+    let mut receipt = fixture_receipt();
     let error = attempt::run_attempt(
         &mut SignalOperations { directory },
         "local",
@@ -1439,4 +1440,13 @@ fn escaped_descendant_output_pipes_do_not_extend_the_deadline() {
             .to_string()
             .contains("deadline")
     );
+}
+
+fn fixture_receipt() -> Receipt {
+    Receipt::new(
+        "local",
+        "fixture icp".to_string(),
+        "fixture rustc".to_string(),
+        "2026-10-29T00:00:00Z".to_string(),
+    )
 }

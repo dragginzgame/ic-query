@@ -203,7 +203,10 @@ impl Probe for AgentProbe {
     }
 
     fn report(&mut self, kind: &str) -> Result<Vec<u8>> {
-        if !crate::KINDS.contains(&kind) {
+        if !crate::receipt::ReportKind::ALL
+            .iter()
+            .any(|candidate| candidate.as_str() == kind)
+        {
             return Err(invalid("unknown Governance report kind"));
         }
         self.call(async {

@@ -13,6 +13,7 @@ use crate::nns::governance::{
     validate_governance_analytics_pages, validate_governance_collection_source,
     validate_governance_report_identity, validate_governance_time_interval,
 };
+use ic_metrics::{CheckedMeasurementAggregate, MeasurementRecordError};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
@@ -494,59 +495,15 @@ fn invalid_validation(reason: impl Into<String>) -> NnsNeuronDistributionValidat
     }
 }
 
-#[derive(Clone, Copy, Default)]
-struct DimensionAccumulator {
-    neuron_count: u64,
-    effective_stake_e8s: u64,
-}
-
-impl DimensionAccumulator {
-    fn observe(
-        &mut self,
-        effective_stake_e8s: u64,
-        count_field: &'static str,
-        stake_field: &'static str,
-    ) -> Result<(), NnsNeuronDistributionError> {
-        increment(&mut self.neuron_count, count_field)?;
-        add(
-            &mut self.effective_stake_e8s,
-            effective_stake_e8s,
-            stake_field,
-        )
-    }
-}
-
-#[derive(Default)]
-struct OptionalValueAccumulator {
-    reported_neuron_count: u64,
-    total_reported_value: u64,
-}
-
-impl OptionalValueAccumulator {
-    fn observe(
-        &mut self,
-        value: Option<u64>,
-        reported_field: &'static str,
-        total_field: &'static str,
-    ) -> Result<(), NnsNeuronDistributionError> {
-        if let Some(value) = value {
-            increment(&mut self.reported_neuron_count, reported_field)?;
-            add(&mut self.total_reported_value, value, total_field)
-        } else {
-            Ok(())
-        }
-    }
-}
-
 #[derive(Default)]
 struct DistributionAccumulator {
-    states: BTreeMap<i32, DimensionAccumulator>,
-    visibilities: BTreeMap<Option<i32>, DimensionAccumulator>,
-    neuron_types: BTreeMap<Option<i32>, DimensionAccumulator>,
-    total_effective_stake_e8s: u64,
-    staked_maturity: OptionalValueAccumulator,
-    deciding_voting_power: OptionalValueAccumulator,
-    potential_voting_power: OptionalValueAccumulator,
+    states: BTreeMap<i32, CheckedMeasurementAggregate>,
+    visibilities: BTreeMap<Option<i32>, CheckedMeasurementAggregate>,
+    neuron_types: BTreeMap<Option<i32>, CheckedMeasurementAggregate>,
+    total_effective_stake: CheckedMeasurementAggregate,
+    staked_maturity: CheckedMeasurementAggregate,
+    deciding_voting_power: CheckedMeasurementAggregate,
+    potential_voting_power: CheckedMeasurementAggregate,
     known_neuron_metadata_count: u64,
     neurons_fund_join_timestamp_present_count: u64,
     retrieved_timestamp_bounds: Option<(u64, u64)>,
@@ -554,43 +511,44 @@ struct DistributionAccumulator {
 
 impl DistributionAccumulator {
     fn observe(&mut self, neuron: &NnsNeuronRow) -> Result<(), NnsNeuronDistributionError> {
-        add(
-            &mut self.total_effective_stake_e8s,
-            neuron.stake_e8s,
+        record_distribution(
+            &mut self.total_effective_stake,
+            Some(neuron.stake_e8s),
+            "collected_neuron_count",
             "total_effective_stake_e8s",
         )?;
-        self.states.entry(neuron.state).or_default().observe(
-            neuron.stake_e8s,
+        record_distribution(
+            self.states.entry(neuron.state).or_default(),
+            Some(neuron.stake_e8s),
             "state_neuron_count",
             "state_effective_stake_e8s",
         )?;
-        self.visibilities
-            .entry(neuron.visibility)
-            .or_default()
-            .observe(
-                neuron.stake_e8s,
-                "visibility_neuron_count",
-                "visibility_effective_stake_e8s",
-            )?;
-        self.neuron_types
-            .entry(neuron.neuron_type)
-            .or_default()
-            .observe(
-                neuron.stake_e8s,
-                "neuron_type_neuron_count",
-                "neuron_type_effective_stake_e8s",
-            )?;
-        self.staked_maturity.observe(
+        record_distribution(
+            self.visibilities.entry(neuron.visibility).or_default(),
+            Some(neuron.stake_e8s),
+            "visibility_neuron_count",
+            "visibility_effective_stake_e8s",
+        )?;
+        record_distribution(
+            self.neuron_types.entry(neuron.neuron_type).or_default(),
+            Some(neuron.stake_e8s),
+            "neuron_type_neuron_count",
+            "neuron_type_effective_stake_e8s",
+        )?;
+        record_distribution(
+            &mut self.staked_maturity,
             neuron.staked_maturity_e8s_equivalent,
             "reported_staked_maturity_neuron_count",
             "total_reported_staked_maturity_e8s_equivalent",
         )?;
-        self.deciding_voting_power.observe(
+        record_distribution(
+            &mut self.deciding_voting_power,
             neuron.deciding_voting_power,
             "reported_deciding_voting_power_neuron_count",
             "total_reported_deciding_voting_power",
         )?;
-        self.potential_voting_power.observe(
+        record_distribution(
+            &mut self.potential_voting_power,
             neuron.potential_voting_power,
             "reported_potential_voting_power_neuron_count",
             "total_reported_potential_voting_power",
@@ -637,25 +595,19 @@ impl DistributionAccumulator {
             latest_retrieved_at_timestamp_seconds: self
                 .retrieved_timestamp_bounds
                 .map(|bounds| bounds.1),
-            total_effective_stake_e8s: self.total_effective_stake_e8s,
-            reported_staked_maturity_neuron_count: self.staked_maturity.reported_neuron_count,
+            total_effective_stake_e8s: distribution_total(self.total_effective_stake),
+            reported_staked_maturity_neuron_count: self.staked_maturity.samples(),
             unreported_staked_maturity_neuron_count: collected_neuron_count
-                - self.staked_maturity.reported_neuron_count,
-            total_reported_staked_maturity_e8s_equivalent: self
-                .staked_maturity
-                .total_reported_value,
-            reported_deciding_voting_power_neuron_count: self
-                .deciding_voting_power
-                .reported_neuron_count,
+                - self.staked_maturity.samples(),
+            total_reported_staked_maturity_e8s_equivalent: distribution_total(self.staked_maturity),
+            reported_deciding_voting_power_neuron_count: self.deciding_voting_power.samples(),
             unreported_deciding_voting_power_neuron_count: collected_neuron_count
-                - self.deciding_voting_power.reported_neuron_count,
-            total_reported_deciding_voting_power: self.deciding_voting_power.total_reported_value,
-            reported_potential_voting_power_neuron_count: self
-                .potential_voting_power
-                .reported_neuron_count,
+                - self.deciding_voting_power.samples(),
+            total_reported_deciding_voting_power: distribution_total(self.deciding_voting_power),
+            reported_potential_voting_power_neuron_count: self.potential_voting_power.samples(),
             unreported_potential_voting_power_neuron_count: collected_neuron_count
-                - self.potential_voting_power.reported_neuron_count,
-            total_reported_potential_voting_power: self.potential_voting_power.total_reported_value,
+                - self.potential_voting_power.samples(),
+            total_reported_potential_voting_power: distribution_total(self.potential_voting_power),
             known_neuron_metadata_count: self.known_neuron_metadata_count,
             neurons_fund_join_timestamp_present_count: self
                 .neurons_fund_join_timestamp_present_count,
@@ -665,8 +617,8 @@ impl DistributionAccumulator {
                 .map(|(state, distribution)| NnsNeuronStateDistribution {
                     state,
 
-                    neuron_count: distribution.neuron_count,
-                    effective_stake_e8s: distribution.effective_stake_e8s,
+                    neuron_count: distribution.samples(),
+                    effective_stake_e8s: distribution_total(distribution),
                 })
                 .collect(),
             visibility_distribution: self
@@ -676,8 +628,8 @@ impl DistributionAccumulator {
                     |(visibility, distribution)| NnsNeuronVisibilityDistribution {
                         visibility,
 
-                        neuron_count: distribution.neuron_count,
-                        effective_stake_e8s: distribution.effective_stake_e8s,
+                        neuron_count: distribution.samples(),
+                        effective_stake_e8s: distribution_total(distribution),
                     },
                 )
                 .collect(),
@@ -687,8 +639,8 @@ impl DistributionAccumulator {
                 .map(|(neuron_type, distribution)| NnsNeuronTypeDistribution {
                     neuron_type,
 
-                    neuron_count: distribution.neuron_count,
-                    effective_stake_e8s: distribution.effective_stake_e8s,
+                    neuron_count: distribution.samples(),
+                    effective_stake_e8s: distribution_total(distribution),
                 })
                 .collect(),
         }
@@ -702,11 +654,29 @@ fn increment(value: &mut u64, field: &'static str) -> Result<(), NnsNeuronDistri
     Ok(())
 }
 
-fn add(total: &mut u64, value: u64, field: &'static str) -> Result<(), NnsNeuronDistributionError> {
-    *total = total
-        .checked_add(value)
-        .ok_or(NnsNeuronDistributionError::AccountingOverflow { field })?;
+fn record_distribution(
+    values: &mut CheckedMeasurementAggregate,
+    value: Option<u64>,
+    count_field: &'static str,
+    total_field: &'static str,
+) -> Result<(), NnsNeuronDistributionError> {
+    if let Some(value) = value {
+        values.try_record(u128::from(value)).map_err(|error| {
+            NnsNeuronDistributionError::AccountingOverflow {
+                field: match error {
+                    MeasurementRecordError::Samples => count_field,
+                    MeasurementRecordError::Total => total_field,
+                },
+            }
+        })?;
+        u64::try_from(values.total())
+            .map_err(|_| NnsNeuronDistributionError::AccountingOverflow { field: total_field })?;
+    }
     Ok(())
+}
+
+fn distribution_total(values: CheckedMeasurementAggregate) -> u64 {
+    u64::try_from(values.total()).expect("distribution recording admits only native u64 totals")
 }
 
 #[cfg(test)]

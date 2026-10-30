@@ -4,6 +4,8 @@
 //! Does not own: parameter fetching, report construction, or JSON output.
 //! Boundary: groups governance parameter rows into a human-readable table.
 
+use crate::sns::report::text::common::sns_identity_lines;
+
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
     escape::terminal_text,
@@ -24,19 +26,21 @@ use crate::{
 
 #[must_use]
 pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = sns_identity_lines(
+        &report.network,
+        report.id,
+        &report.name,
+        &report.root_canister_id,
+        &report.governance_canister_id,
+    );
+    lines.extend([
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",
             terminal_text(&report.source_endpoint)
         ),
-    ];
+    ]);
     lines.push(String::new());
     lines.push(render(
         &["PARAMETER", "VALUE"],

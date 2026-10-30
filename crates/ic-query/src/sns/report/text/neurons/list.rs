@@ -4,6 +4,8 @@
 //! Does not own: neuron fetching, cache sorting, report construction, or JSON output.
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
+use crate::sns::report::text::common::sns_identity_lines;
+
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_text::{
@@ -25,19 +27,21 @@ use crate::{
 
 #[must_use]
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+    let mut lines = sns_identity_lines(
+        &report.network,
+        report.id,
+        &report.name,
+        &report.root_canister_id,
+        &report.governance_canister_id,
+    );
+    lines.extend([
         format!("requested_limit: {}", report.requested_limit),
         format!(
             "owner_principal_id: {}",
             optional_text(report.owner_principal_id.as_ref())
         ),
         format!("verbose: {}", yes_no(report.verbose)),
-    ];
+    ]);
     push_report_provenance_lines(
         &mut lines,
         report.data_source,

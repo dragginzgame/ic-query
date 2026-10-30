@@ -17,7 +17,7 @@ use crate::nns::neuron::report::source::{
     build_nns_neuron_list_report_with_source,
 };
 use crate::{
-    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
+    cache::CacheCollectionCompleteness,
     cache_file::LoadJsonCacheRequest,
     nns::{
         NnsGovernanceCacheRequest,
@@ -228,25 +228,20 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
         reason,
     };
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
-    validate_cache_collection_completeness(&cache.completeness, cache.data.neurons.len())
-        .map_err(invalid)?;
-    if cache.completeness.point_in_time_guaranteed {
-        return Err(invalid(
-            "point_in_time_guaranteed must be false for the Governance neuron index".to_string(),
-        ));
-    }
+    crate::nns::governance::collection::validate_governance_cache_completeness(
+        &cache.completeness,
+        cache.data.neurons.len(),
+        "point_in_time_guaranteed must be false for the Governance neuron index",
+    )
+    .map_err(invalid)?;
     let state = &cache.data.collection_state;
-    validate_collection_state(state).map_err(|error| invalid(error.to_string()))?;
-    if !crate::nns::governance::collection::governance_snapshot_matches!(
+    crate::nns::governance::collection::validate_governance_snapshot!(
         cache,
         state,
-        neurons_fetched
-    ) {
-        return Err(invalid(
-            "collection_state disagrees with snapshot identity, provenance, or completeness"
-                .to_string(),
-        ));
-    }
+        neurons_fetched,
+        validate_collection_state
+    )
+    .map_err(invalid)?;
     validate_neuron_rows(&cache.data.neurons).map_err(|error| invalid(error.to_string()))
 }
 
