@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::sns_swap_lifecycle_name;
 
 #[tokio::test(flavor = "current_thread")]
@@ -144,7 +145,7 @@ async fn sns_swap_rejects_a_custom_source_target_mismatch() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_swap_source_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-08-01T00:00:00Z",

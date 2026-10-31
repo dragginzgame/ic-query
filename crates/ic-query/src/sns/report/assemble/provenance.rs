@@ -4,11 +4,10 @@
 //! Does not own: cache loading, report DTOs, or text rendering.
 //! Boundary: projects admitted live and cached identity into report context.
 
+use crate::report::CollectionSourceRequest;
 use crate::{
     snapshot_cache::SnapshotEnvelope,
-    sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, SnsSourceRequest, cache_storage::SnsCacheMetadata,
-    },
+    sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, cache_storage::SnsCacheMetadata},
 };
 
 ///
@@ -52,7 +51,7 @@ impl SnsReportContext {
 
     /// Project the validated live source identity and collection provenance.
     pub(in crate::sns::report) fn from_live(
-        fetch_request: SnsSourceRequest,
+        fetch_request: CollectionSourceRequest,
         sns: MainnetSns,
     ) -> Self {
         Self {

@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, INDEX_A, SWAP_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
 
 ///
@@ -14,7 +15,7 @@ delegate_sns_discovery!(FixtureSnsSwapSource);
 impl SnsSwapSource for FixtureSnsSwapSource {
     fn fetch_sns_swap<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {
@@ -37,7 +38,7 @@ delegate_sns_discovery!(PartialFixtureSnsSwapSource);
 impl SnsSwapSource for PartialFixtureSnsSwapSource {
     fn fetch_sns_swap<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {
@@ -66,7 +67,7 @@ delegate_sns_discovery!(WrongTargetFixtureSnsSwapSource);
 impl SnsSwapSource for WrongTargetFixtureSnsSwapSource {
     fn fetch_sns_swap<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move { Ok(fixture_mainnet_sns_swap(INDEX_A)) })
@@ -88,7 +89,7 @@ delegate_sns_discovery!(MutatingFixtureSnsSwapSource);
 impl SnsSwapSource for MutatingFixtureSnsSwapSource {
     fn fetch_sns_swap<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {

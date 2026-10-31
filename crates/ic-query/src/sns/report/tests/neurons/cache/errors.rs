@@ -1,3 +1,4 @@
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
 use crate::test_support::temp_dir;
@@ -168,7 +169,7 @@ delegate_sns_discovery!(InvalidNeuronPageSource);
 impl SnsNeuronsSource for InvalidNeuronPageSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
@@ -178,7 +179,7 @@ impl SnsNeuronsSource for InvalidNeuronPageSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,

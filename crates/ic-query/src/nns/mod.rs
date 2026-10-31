@@ -40,4 +40,4 @@ pub use inventory_request::{
 #[cfg(feature = "nns-host")]
 pub use render::nns_inventory_refresh_report_text;
 #[cfg(feature = "subnet-catalog-host")]
-pub use source::{LiveNnsSource, NnsSourceRequest};
+pub use source::LiveNnsSource;

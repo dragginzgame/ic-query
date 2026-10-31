@@ -8,9 +8,10 @@ use crate::cli::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
+use ic_query::report::CollectionSourceRequest;
 use ic_query::system::cmc::{
-    CmcHostError, CmcSourceRequest, DEFAULT_CMC_SOURCE_ENDPOINT, build_cmc_cycles_report,
-    build_cmc_xdr_report, cmc_cycles_report_text, cmc_xdr_report_text,
+    CmcHostError, DEFAULT_CMC_SOURCE_ENDPOINT, build_cmc_cycles_report, build_cmc_xdr_report,
+    cmc_cycles_report_text, cmc_xdr_report_text,
 };
 use serde::Serialize;
 use std::io;
@@ -75,13 +76,13 @@ pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), Syst
 async fn run_report<Report>(
     matches: &ArgMatches,
     network: &str,
-    build: impl AsyncFn(&CmcSourceRequest) -> Result<Report, CmcHostError>,
+    build: impl AsyncFn(&CollectionSourceRequest) -> Result<Report, CmcHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), SystemCommandError>
 where
     Report: Serialize,
 {
-    let request = CmcSourceRequest::from_unix_secs(
+    let request = CollectionSourceRequest::from_unix_secs(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
         current_unix_secs()?,

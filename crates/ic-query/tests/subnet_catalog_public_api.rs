@@ -1,5 +1,5 @@
 #[cfg(feature = "subnet-catalog-host")]
-use ic_query::nns::NnsSourceRequest;
+use ic_query::report::CollectionSourceRequest;
 use ic_query::subnet_catalog::{
     CANISTER_RANGES_KEY_PREFIX, CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION,
     CatalogAssurance, CertifiedRegistryCatalogEvidence, ClassificationSource, GeographicScope,
@@ -296,7 +296,7 @@ async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
     impl SubnetCatalogSource for DetailedSource {
         fn fetch_catalog<'a>(
             &'a self,
-            _request: &'a NnsSourceRequest,
+            _request: &'a CollectionSourceRequest,
         ) -> SubnetCatalogSourceFuture<'a> {
             Box::pin(async {
                 Err(SubnetCatalogHostError::Catalog(
@@ -307,7 +307,7 @@ async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
 
         fn fetch_catalog_detailed<'a>(
             &'a self,
-            _request: &'a NnsSourceRequest,
+            _request: &'a CollectionSourceRequest,
         ) -> SubnetCatalogDetailedSourceFuture<'a> {
             Box::pin(async {
                 Err(SubnetCatalogSourceFailure::new(
@@ -348,7 +348,7 @@ async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
 #[cfg(feature = "subnet-catalog-host")]
 #[test]
 fn public_async_catalog_fetch_rejects_non_mainnet_without_live_io() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-06-26T00:00:00Z",
@@ -369,7 +369,10 @@ struct FixtureSubnetCatalogSource;
 
 #[cfg(feature = "subnet-catalog-host")]
 impl SubnetCatalogSource for FixtureSubnetCatalogSource {
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
             assert_eq!(request.endpoint, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT);
             assert_eq!(request.fetched_by, "ic-query");

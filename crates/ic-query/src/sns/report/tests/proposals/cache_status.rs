@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 
 #[tokio::test(flavor = "current_thread")]
@@ -25,7 +26,7 @@ delegate_sns_discovery!(PagedSnsProposalsSource);
 impl SnsProposalsSource for PagedSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -37,7 +38,7 @@ impl SnsProposalsSource for PagedSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -383,7 +384,7 @@ struct SecondSnsProposalsSource;
 impl SnsDiscoverySource for SecondSnsProposalsSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             UnsortedFixtureSnsDiscoverySource
@@ -394,7 +395,7 @@ impl SnsDiscoverySource for SecondSnsProposalsSource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -408,7 +409,7 @@ impl SnsDiscoverySource for SecondSnsProposalsSource {
 impl SnsProposalsSource for SecondSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -420,7 +421,7 @@ impl SnsProposalsSource for SecondSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         _limit: u32,
         before_proposal_id: Option<u64>,
@@ -486,7 +487,7 @@ delegate_sns_discovery!(UnorderedPagedProposalsSource);
 impl SnsProposalsSource for UnorderedPagedProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -498,7 +499,7 @@ impl SnsProposalsSource for UnorderedPagedProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,

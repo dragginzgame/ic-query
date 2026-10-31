@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, LEDGER_A, ROOT_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{source::SNS_METRICS_CALL_TYPE, tests::*};
 
 ///
@@ -14,7 +15,7 @@ delegate_sns_discovery!(FixtureSnsMetricsSource);
 impl SnsMetricsSource for FixtureSnsMetricsSource {
     fn fetch_sns_metrics<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         time_window_seconds: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
@@ -40,7 +41,7 @@ delegate_sns_discovery!(MutatingFixtureSnsMetricsSource);
 impl SnsMetricsSource for MutatingFixtureSnsMetricsSource {
     fn fetch_sns_metrics<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         time_window_seconds: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
@@ -63,14 +64,14 @@ pub(in crate::sns::report::tests) struct NoCallSnsMetricsSource;
 impl SnsDiscoverySource for NoCallSnsMetricsSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move { panic!("invalid metrics requests must fail before discovery") })
     }
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move { panic!("invalid metrics requests must fail before metadata") })
@@ -80,7 +81,7 @@ impl SnsDiscoverySource for NoCallSnsMetricsSource {
 impl SnsMetricsSource for NoCallSnsMetricsSource {
     fn fetch_sns_metrics<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _time_window_seconds: u64,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {

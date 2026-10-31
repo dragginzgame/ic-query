@@ -4,8 +4,9 @@
 //! Does not own: SNS lookup, report assembly, cache IO, or rendering.
 //! Boundary: performs one query plus one explicitly read-only ingress call.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
+    MainnetSns, MainnetSnsCanisterInventory, SnsCanisterMethod, SnsHostError,
     live::{
         convert::{mainnet_sns_canister_inventory, mainnet_sns_canister_inventory_without_health},
         query::{principal_from_text, sns_agent, update_canister},
@@ -18,7 +19,7 @@ use crate::sns::report::{
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_canisters(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
     let agent = sns_agent(source, request)?;

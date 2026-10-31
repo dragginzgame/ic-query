@@ -6,15 +6,16 @@
 use crate::icrc::ledger::{
     fetch_icrc1_token_metadata, index_principal_error_text, query_index_principal,
 };
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::live::query::{principal_from_text, sns_agent};
 use crate::sns::report::{
     SnsHostError,
-    source::{MainnetSns, MainnetSnsToken, SnsSourceRequest},
+    source::{MainnetSns, MainnetSnsToken},
 };
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_token(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsToken, SnsHostError> {
     let agent = sns_agent(source, request)?;

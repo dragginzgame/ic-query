@@ -4,9 +4,9 @@
 //! Does not own: command parsing, source fetching, or report assembly.
 //! Boundary: normalizes shared request fields before lookup/source calls.
 
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, enforce_mainnet_network,
-    source::SnsSourceRequest,
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
@@ -38,7 +38,7 @@ pub(in crate::sns::report) fn validate_sns_refresh_page_size(
 /// Build a live fetch request for an SNS list command.
 pub(in crate::sns::report) fn sns_list_fetch_request(
     request: &SnsListRequest,
-) -> Result<SnsSourceRequest, SnsHostError> {
+) -> Result<CollectionSourceRequest, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     Ok(fetch_request_from_parts(
         &request.network,
@@ -54,8 +54,8 @@ pub(super) fn fetch_request_from_parts(
     source_endpoint: &str,
     now_unix_secs: u64,
     fetched_by: String,
-) -> SnsSourceRequest {
-    SnsSourceRequest::new(
+) -> CollectionSourceRequest {
+    CollectionSourceRequest::new(
         network,
         source_endpoint,
         format_utc_timestamp_secs(now_unix_secs),

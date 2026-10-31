@@ -147,8 +147,6 @@
   "crates/ic-query/src/icrc/model/contracts/requests/ledger_history.rs::struct IcrcTransactionsRequest::a struct field::start",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcCapabilitiesData::a struct field::capabilities",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcCapabilitiesData::a struct field::supported_standards",
-  "crates/ic-query/src/icrc/model/data.rs::struct IcrcIndexData::a struct field::index_canister_id",
-  "crates/ic-query/src/icrc/model/data.rs::struct IcrcIndexData::a struct field::index_error",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::archive_follow_errors",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::archived_blocks",
   "crates/ic-query/src/icrc/model/data.rs::struct IcrcTransactionsData::a struct field::blocks",

@@ -5,13 +5,14 @@ use super::{
     nns_data_center_list_report_verbose_text, resolve_data_center,
 };
 use crate::ic_registry::MainnetDataCenter;
-use crate::nns::{LiveNnsSource, NnsSourceRequest};
+use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -131,7 +132,7 @@ struct FixtureDataCenterSource {
 impl NnsDataCenterSource for FixtureDataCenterSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
     {
         Box::pin(async move {

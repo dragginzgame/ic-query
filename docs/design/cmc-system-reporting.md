@@ -90,7 +90,7 @@ Its flattened Serde representation retains the top-level context, `rate` and
 
 ## Adapter and network contract
 
-`CmcSourceRequest` carries network, endpoint, collection timestamp, and
+`CollectionSourceRequest` carries network, endpoint, collection timestamp, and
 collector identity. `CmcSource` owns the one coherent certified-rate
 capability, and both report builders use it; there is no adapter per view.
 The cycles builder reuses the validated XDR-report builder before applying its

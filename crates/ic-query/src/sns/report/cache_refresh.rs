@@ -5,6 +5,7 @@
 //! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
 
 use crate::cache_file::write_managed_json_pretty_atomically;
+use crate::report::CollectionSourceRequest;
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
@@ -23,7 +24,7 @@ use crate::{
         cache_paths::sns_snapshot_cache_paths,
         cache_storage::{SnsCacheMetadata, SnsCacheStorageFamily},
         lookup::{resolve_sns_lookup, validate_sns_refresh_page_size},
-        source::{MainnetSns, SnsDiscoverySource, SnsSourceRequest},
+        source::{MainnetSns, SnsDiscoverySource},
     },
 };
 use std::marker::PhantomData;
@@ -38,7 +39,7 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Collection> {
     /// Family request that selected the SNS and cache root.
     pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
     /// Canonical source request shared by lookup and collection calls.
-    pub(in crate::sns::report) fetch_request: SnsSourceRequest,
+    pub(in crate::sns::report) fetch_request: CollectionSourceRequest,
     /// Resolved SNS identity and canister principals.
     pub(in crate::sns::report) sns: MainnetSns,
     /// Complete-cache, lock, and attempt paths for the family collection.

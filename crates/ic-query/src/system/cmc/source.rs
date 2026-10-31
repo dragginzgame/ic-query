@@ -8,13 +8,13 @@ use super::{
     CmcCertification, CmcCertifiedRate, CmcHostError, CmcIcpXdrConversionRate,
     MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     agent::build_ic_agent,
     candid_call::{encode_request, query_encoded},
     certification::{CertifiedDataError, authenticate_canister_hash_tree},
     hex::hex_bytes,
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{HashTree, LookupResult};
 use ic_platform::cmc_types::IcpXdrConversionRateResponse;
@@ -23,58 +23,6 @@ const GET_ICP_XDR_CONVERSION_RATE_METHOD: &str = "get_icp_xdr_conversion_rate";
 const ICP_XDR_CONVERSION_RATE_LABEL: &[u8] = b"ICP_XDR_CONVERSION_RATE";
 
 crate::candid_call::impl_candid_call_error!(CmcHostError);
-
-///
-/// CmcSourceRequest
-///
-/// Network and collection provenance for one direct CMC query.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CmcSourceRequest {
-    /// Network to query.
-    pub network: String,
-    /// Replica endpoint used for the query.
-    pub endpoint: String,
-    /// UTC collection timestamp recorded in the report.
-    pub fetched_at: String,
-    /// Collector identity recorded in the report.
-    pub fetched_by: String,
-}
-
-impl CmcSourceRequest {
-    /// Create source settings for one CMC query.
-    #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-
-    /// Create source settings from a Unix collection timestamp.
-    #[must_use]
-    pub fn from_unix_secs(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at_unix_secs: u64,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self::new(
-            network,
-            endpoint,
-            format_utc_timestamp_secs(fetched_at_unix_secs),
-            fetched_by,
-        )
-    }
-}
 
 ///
 /// CmcSource
@@ -86,7 +34,7 @@ pub trait CmcSource: Sync {
     /// Fetch and authenticate the native CMC ICP/XDR conversion rate.
     fn fetch_certified_icp_xdr_rate<'a>(
         &'a self,
-        request: &'a CmcSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>>;
 }
 
@@ -102,7 +50,7 @@ pub struct LiveCmcSource;
 impl CmcSource for LiveCmcSource {
     fn fetch_certified_icp_xdr_rate<'a>(
         &'a self,
-        request: &'a CmcSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
         Box::pin(async move {
             enforce_mainnet_network(&request.network)?;
@@ -112,7 +60,7 @@ impl CmcSource for LiveCmcSource {
 }
 
 async fn fetch_live_certified_rate(
-    request: &CmcSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<CmcCertifiedRate, CmcHostError> {
     let agent = build_ic_agent(&request.endpoint, |reason| CmcHostError::AgentBuild {
         endpoint: request.endpoint.clone(),

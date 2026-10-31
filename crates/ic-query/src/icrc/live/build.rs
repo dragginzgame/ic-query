@@ -235,15 +235,18 @@ pub async fn build_icrc_index_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcIndexSource,
 ) -> Result<IcrcIndexReport, IcrcError> {
-    let index = source.fetch_index(request).await?;
+    let (index_canister_id, index_error) = match source.fetch_index(request).await? {
+        crate::icrc::IcrcIndexData::Found(principal) => (Some(principal), None),
+        crate::icrc::IcrcIndexData::Unavailable(error) => (None, Some(error)),
+    };
     Ok(IcrcIndexReport {
         schema_version: ICRC_INDEX_REPORT_SCHEMA_VERSION,
         ledger_canister_id: request.ledger_canister_id.clone(),
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: ICRC_FETCHED_BY.to_string(),
-        index_canister_id: index.index_canister_id,
-        index_error: index.index_error,
+        index_canister_id,
+        index_error,
     })
 }
 

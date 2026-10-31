@@ -2,9 +2,10 @@ use super::{
     NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
     NnsDataCenterRow,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     ic_registry::{MainnetDataCenterList, fetch_mainnet_data_center_list},
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
 ///
@@ -16,14 +17,14 @@ use crate::{
 pub trait NnsDataCenterSource: Sync {
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>;
 }
 
 impl NnsDataCenterSource for LiveNnsSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
     {
         Box::pin(async move {

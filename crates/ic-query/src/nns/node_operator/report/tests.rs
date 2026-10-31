@@ -5,13 +5,14 @@ use super::{
     nns_node_operator_list_report_verbose_text, resolve_node_operator,
 };
 use crate::ic_registry::MainnetNodeOperator;
-use crate::nns::{LiveNnsSource, NnsSourceRequest};
+use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use crate::test_support::temp_dir;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_node_operator_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -132,7 +133,7 @@ struct FixtureNodeOperatorSource {
 impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
     {
         Box::pin(async move {

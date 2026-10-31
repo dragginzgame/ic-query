@@ -2,9 +2,10 @@ use super::{
     NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
     NnsSubnetTopologyHostError, NnsSubnetTopologyReport, NnsSubnetTopologyRow,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     ic_registry::{MainnetSubnetTopology, fetch_mainnet_subnet_topology},
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
@@ -18,14 +19,14 @@ pub trait NnsSubnetTopologySource: Sync {
     /// Fetch and join a complete topology report at one Registry version.
     fn fetch_subnet_topology_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>;
 }
 
 impl NnsSubnetTopologySource for LiveNnsSource {
     fn fetch_subnet_topology_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
     {
         Box::pin(async move {
@@ -41,8 +42,8 @@ pub(super) fn source_request(
     network: &str,
     endpoint: &str,
     now_unix_secs: u64,
-) -> NnsSourceRequest {
-    NnsSourceRequest::new(
+) -> CollectionSourceRequest {
+    CollectionSourceRequest::new(
         network,
         endpoint,
         format_utc_timestamp_secs(now_unix_secs),

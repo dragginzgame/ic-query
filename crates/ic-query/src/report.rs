@@ -1,9 +1,62 @@
-//! Shared report provenance classifications.
+//! Shared collection provenance and report classifications.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 #[cfg(any(feature = "nns-host", feature = "sns-host"))]
 use std::path::Path;
+
+///
+/// CollectionSourceRequest
+///
+/// Explicit network, endpoint and collection provenance shared by canister report sources.
+/// Source families retain their own network admission and transport policy.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CollectionSourceRequest {
+    /// Requested IC network identity.
+    pub network: String,
+    /// Explicit replica endpoint used for collection.
+    pub endpoint: String,
+    /// UTC collection timestamp recorded in the report.
+    pub fetched_at: String,
+    /// Collector identity recorded in the report.
+    pub fetched_by: String,
+}
+
+impl CollectionSourceRequest {
+    /// Construct source settings with explicit network and provenance.
+    #[must_use]
+    pub fn new(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at: impl Into<String>,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self {
+            network: network.into(),
+            endpoint: endpoint.into(),
+            fetched_at: fetched_at.into(),
+            fetched_by: fetched_by.into(),
+        }
+    }
+
+    /// Construct source settings from a caller-supplied Unix collection timestamp.
+    #[must_use]
+    pub fn from_unix_secs(
+        network: impl Into<String>,
+        endpoint: impl Into<String>,
+        fetched_at_unix_secs: u64,
+        fetched_by: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            network,
+            endpoint,
+            ic_host_text::timestamp::format_utc_timestamp_secs(fetched_at_unix_secs),
+            fetched_by,
+        )
+    }
+}
 
 /// Compare the endpoint and collection provenance echoed by a report source.
 #[cfg(any(feature = "cloud-engine-host", feature = "dashboard-host"))]

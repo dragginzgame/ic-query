@@ -25,8 +25,8 @@ use ic_query::{
         build_sns_params_report, build_sns_swap_report, build_sns_token_report,
         build_sns_upgrade_report, refresh_sns_catalog, sns_canister_report_text,
         sns_catalog_cache_path, sns_catalog_refresh_report_text, sns_info_report_text,
-        sns_list_report_text, sns_params_report_text, sns_swap_report_text, sns_token_report_text,
-        sns_upgrade_report_text,
+        sns_list_report_text_with_metadata_style, sns_params_report_text, sns_swap_report_text,
+        sns_token_report_text, sns_upgrade_report_text,
     },
 };
 use std::{
@@ -135,28 +135,15 @@ async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsComm
 }
 
 fn sns_list_cli_text(report: &SnsListReport) -> String {
-    let text = sns_list_report_text(report);
-    if io::stdout().is_terminal() && env::var_os("NO_COLOR").is_none() {
-        color_sns_metadata_statuses(&text)
-    } else {
-        text
-    }
-}
-
-fn color_sns_metadata_statuses(text: &str) -> String {
-    text.lines()
-        .map(|line| {
-            for (status, color) in [("ok", ANSI_GREEN), ("error", ANSI_RED)] {
-                if let Some(prefix) = line.strip_suffix(status)
-                    && prefix.ends_with("   ")
-                {
-                    return format!("{prefix}{color}{status}{ANSI_RESET}");
-                }
-            }
-            line.to_string()
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
+    let color = io::stdout().is_terminal() && env::var_os("NO_COLOR").is_none();
+    sns_list_report_text_with_metadata_style(report, |status, failed| {
+        if color {
+            let color = if failed { ANSI_RED } else { ANSI_GREEN };
+            format!("{color}{status}{ANSI_RESET}")
+        } else {
+            status.to_string()
+        }
+    })
 }
 
 async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
@@ -178,19 +165,4 @@ async fn run_sns_refresh(matches: &ArgMatches, network: &str) -> Result<(), SnsC
     });
     let report = refresh_sns_catalog(&request).await?;
     write_text_or_json(format, &report, sns_catalog_refresh_report_text)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::color_sns_metadata_statuses;
-
-    #[test]
-    fn sns_list_metadata_status_color_preserves_table_alignment() {
-        let text = "ID   NAME      METADATA\n--   -------   --------\n 1   Ready     ok\n 2   Failed    error";
-        let colored = color_sns_metadata_statuses(text);
-
-        assert!(colored.contains("Ready     \u{1b}[32mok\u{1b}[0m"));
-        assert!(colored.contains("Failed    \u{1b}[31merror\u{1b}[0m"));
-        assert!(colored.contains("NAME      METADATA"));
-    }
 }

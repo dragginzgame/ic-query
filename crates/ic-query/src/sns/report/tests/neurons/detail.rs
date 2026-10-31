@@ -1,3 +1,4 @@
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronDetail;
 use crate::sns::report::tests::{fixtures::*, *};
 
@@ -6,14 +7,14 @@ struct NoCallSnsNeuronSource;
 impl SnsDiscoverySource for NoCallSnsNeuronSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move { unreachable!("invalid neuron id must fail before discovery") })
     }
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move { unreachable!("invalid neuron id must fail before metadata") })
@@ -23,7 +24,7 @@ impl SnsDiscoverySource for NoCallSnsNeuronSource {
 impl SnsNeuronSource for NoCallSnsNeuronSource {
     fn fetch_sns_neuron<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _neuron_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
@@ -38,7 +39,7 @@ delegate_sns_discovery!(InvalidPolicySnsNeuronSource);
 impl SnsNeuronSource for InvalidPolicySnsNeuronSource {
     fn fetch_sns_neuron<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _neuron_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {

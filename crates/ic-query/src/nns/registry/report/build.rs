@@ -6,10 +6,11 @@ use super::{
     },
     source::{NnsRegistrySource, NnsRegistryVersionData},
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     certification::validate_certificate_time,
     hex::{HexEvidenceError, is_lowercase_hex_32_bytes, validate_nonempty_hex_evidence},
-    nns::{LiveNnsSource, NnsSourceRequest},
+    nns::LiveNnsSource,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
@@ -28,7 +29,7 @@ pub async fn build_nns_registry_version_report_with_source(
 ) -> Result<NnsRegistryVersionReport, NnsRegistryHostError> {
     enforce_mainnet_network(&request.network)?;
     let fetched_at = format_utc_timestamp_secs(request.now_unix_secs);
-    let fetch_request = NnsSourceRequest::new(
+    let fetch_request = CollectionSourceRequest::new(
         MAINNET_NETWORK,
         &request.source_endpoint,
         fetched_at,
@@ -41,7 +42,7 @@ pub async fn build_nns_registry_version_report_with_source(
 }
 
 fn validate_source_result(
-    request: &NnsSourceRequest,
+    request: &CollectionSourceRequest,
     version: &NnsRegistryVersionData,
 ) -> Result<(), NnsRegistryHostError> {
     for (field, expected, actual) in [

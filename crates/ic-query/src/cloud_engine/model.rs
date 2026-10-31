@@ -4,11 +4,11 @@
 //! Does not own: live transport, source validation, CLI parsing, or text rendering.
 //! Boundary: preserves raw control-plane identities, prices, timestamps, and authority limits.
 
+#[cfg(feature = "cloud-engine-host")]
+use crate::report::CollectionSourceRequest;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[cfg(feature = "cloud-engine-host")]
-use super::CloudEngineSourceRequest;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use crate::subnet_catalog::{
     CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope, SubnetKind,
@@ -302,7 +302,7 @@ pub struct CloudEngineListReport {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CloudEngineOperatorSourceData {
     /// Source provenance echoed by the adapter.
-    pub source: CloudEngineSourceRequest,
+    pub source: CollectionSourceRequest,
     /// Canonical Subnet principal looked up by the source.
     pub subnet_id: String,
     /// Per-engine operator canister principal when registered.
@@ -329,7 +329,7 @@ pub struct CloudEngineOperatorSourceData {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CloudEngineOperatorBindingSourceData {
     /// Source provenance echoed by the adapter.
-    pub source: CloudEngineSourceRequest,
+    pub source: CollectionSourceRequest,
     /// Canonical Subnet principal looked up by the source.
     pub subnet_id: String,
     /// Per-engine operator canister principal when registered.
@@ -348,7 +348,7 @@ pub struct CloudEngineOperatorBindingSourceData {
 #[derive(Clone, Debug, PartialEq)]
 pub struct CloudEnginePricesSourceData {
     /// Source provenance echoed by the adapter.
-    pub source: CloudEngineSourceRequest,
+    pub source: CollectionSourceRequest,
     /// Raw network-fee fraction returned by the control-plane canister.
     pub network_fee: f64,
     /// Raw public marketplace rows.

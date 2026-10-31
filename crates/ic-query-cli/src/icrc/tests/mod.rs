@@ -1,8 +1,10 @@
+use super::commands::options::{
+    analytics_account_info_request, analytics_account_list_request, analytics_holder_list_request,
+    analytics_token_value_request, analytics_total_supply_request,
+};
 use super::commands::{
     IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
-    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
-    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
     IcrcLedgerOptions, IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
     icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
     icrc_account_transaction_command, icrc_account_transaction_list_command,
@@ -292,7 +294,7 @@ fn tip_certificate_options_parse_through_clap() {
 
 #[test]
 fn analytics_total_supply_options_parse_bounds_endpoint_and_format() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_analytics_total_supply_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -306,34 +308,34 @@ fn analytics_total_supply_options_parse_bounds_endpoint_and_format() {
             "--source-endpoint",
             "https://example.com/api/v2",
         ],
-        IcrcAnalyticsTotalSupplyOptions::from_matches,
+        |matches| analytics_total_supply_request(matches, 1_785_801_600),
     );
 
-    assert_eq!(options.window.target.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.window.start_unix_secs, Some(1_785_542_400));
-    assert_eq!(options.window.end_unix_secs, Some(1_785_801_600));
-    assert_eq!(options.step_secs, 3_600);
-    assert_eq!(options.window.target.format, OutputFormat::Json);
+    assert_eq!(options.analytics.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.query.start_unix_secs, 1_785_542_400);
+    assert_eq!(options.query.end_unix_secs, 1_785_801_600);
+    assert_eq!(options.query.step_secs, 3_600);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(
-        options.window.target.source_endpoint,
+        options.analytics.dashboard.source_endpoint,
         "https://example.com/api/v2"
     );
 }
 
 #[test]
 fn analytics_total_supply_options_apply_bounded_defaults() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_analytics_total_supply_command(),
         &[LEDGER_CANISTER_ID],
-        IcrcAnalyticsTotalSupplyOptions::from_matches,
+        |matches| analytics_total_supply_request(matches, 1_785_801_600),
     );
 
-    assert_eq!(options.window.start_unix_secs, None);
-    assert_eq!(options.window.end_unix_secs, None);
-    assert_eq!(options.step_secs, 86_400);
-    assert_eq!(options.window.target.format, OutputFormat::Text);
+    assert_eq!(options.query.start_unix_secs, 1_785_801_600 - 30 * 86_400);
+    assert_eq!(options.query.end_unix_secs, 1_785_801_600);
+    assert_eq!(options.query.step_secs, 86_400);
+    assert_eq!(format, OutputFormat::Text);
     assert_eq!(
-        options.window.target.source_endpoint,
+        options.analytics.dashboard.source_endpoint,
         "https://icrc-api.internetcomputer.org/api/v2"
     );
 }
@@ -341,12 +343,12 @@ fn analytics_total_supply_options_apply_bounded_defaults() {
 #[test]
 fn analytics_total_supply_step_values_keep_the_official_discrete_set() {
     for (step, expected) in [("3600", 3_600), ("86400", 86_400)] {
-        let options = parse_test_options(
+        let (_, options) = parse_test_options(
             icrc_analytics_total_supply_command(),
             &[LEDGER_CANISTER_ID, "--step", step],
-            IcrcAnalyticsTotalSupplyOptions::from_matches,
+            |matches| analytics_total_supply_request(matches, 1_785_801_600),
         );
-        assert_eq!(options.step_secs, expected);
+        assert_eq!(options.query.step_secs, expected);
     }
     for step in ["7200", "0", "invalid"] {
         let error = icrc_analytics_total_supply_command()
@@ -358,7 +360,7 @@ fn analytics_total_supply_step_values_keep_the_official_discrete_set() {
 
 #[test]
 fn analytics_token_value_options_parse_bounds_limit_and_shared_target() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_analytics_token_values_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -372,27 +374,27 @@ fn analytics_token_value_options_parse_bounds_limit_and_shared_target() {
             "--source-endpoint",
             "https://example.com/api/v2",
         ],
-        IcrcAnalyticsTokenValueOptions::from_matches,
+        |matches| analytics_token_value_request(matches, 1_785_801_600),
     );
 
-    assert_eq!(options.window.target.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.window.start_unix_secs, Some(1_785_542_400));
-    assert_eq!(options.window.end_unix_secs, Some(1_785_628_800));
-    assert_eq!(options.limit, 100);
-    assert_eq!(options.window.target.format, OutputFormat::Json);
+    assert_eq!(options.analytics.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.query.start_unix_secs, 1_785_542_400);
+    assert_eq!(options.query.end_unix_secs, 1_785_628_800);
+    assert_eq!(options.query.limit, 100);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(
-        options.window.target.source_endpoint,
+        options.analytics.dashboard.source_endpoint,
         "https://example.com/api/v2"
     );
 
-    let defaults = parse_test_options(
+    let (_, defaults) = parse_test_options(
         icrc_analytics_token_values_command(),
         &[LEDGER_CANISTER_ID],
-        IcrcAnalyticsTokenValueOptions::from_matches,
+        |matches| analytics_token_value_request(matches, 1_785_801_600),
     );
-    assert_eq!(defaults.window.start_unix_secs, None);
-    assert_eq!(defaults.window.end_unix_secs, None);
-    assert_eq!(defaults.limit, DEFAULT_ICRC_TOKEN_VALUE_LIMIT);
+    assert_eq!(defaults.query.start_unix_secs, 1_785_801_600 - 86_400);
+    assert_eq!(defaults.query.end_unix_secs, 1_785_801_600);
+    assert_eq!(defaults.query.limit, DEFAULT_ICRC_TOKEN_VALUE_LIMIT);
 }
 
 #[test]
@@ -417,7 +419,7 @@ fn analytics_indexed_count_options_reuse_the_shared_ledger_target() {
 
 #[test]
 fn analytics_account_list_options_preserve_cursor_owner_and_descending_sort() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_analytics_account_list_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -430,18 +432,18 @@ fn analytics_account_list_options_preserve_cursor_owner_and_descending_sort() {
             "--sort-by=-balance",
             "--json",
         ],
-        IcrcAnalyticsAccountListOptions::from_matches,
+        |matches| analytics_account_list_request(matches, 1_785_801_600),
     );
 
-    assert_eq!(options.owner.as_deref(), Some(ACCOUNT_OWNER));
+    assert_eq!(options.query.owner.as_deref(), Some(ACCOUNT_OWNER));
     assert_eq!(
-        options.after.as_deref(),
+        options.query.after.as_deref(),
         Some("1668734888.0,hkmli-faaaa-aaaar-qb4ba-cai")
     );
-    assert_eq!(options.before, None);
-    assert_eq!(options.limit, 25);
-    assert_eq!(options.sort_by, IcIcrcAccountSort::BalanceDescending);
-    assert_eq!(options.target.format, OutputFormat::Json);
+    assert_eq!(options.query.before, None);
+    assert_eq!(options.query.limit, 25);
+    assert_eq!(options.query.sort_by, IcIcrcAccountSort::BalanceDescending);
+    assert_eq!(format, OutputFormat::Json);
 }
 
 #[test]
@@ -458,12 +460,12 @@ fn analytics_sort_values_preserve_official_spelling_and_reject_unknown_values() 
         "owner",
         "-owner",
     ] {
-        let options = parse_test_options(
+        let (_, options) = parse_test_options(
             icrc_analytics_account_list_command(),
             &[LEDGER_CANISTER_ID, "--sort-by", value],
-            IcrcAnalyticsAccountListOptions::from_matches,
+            |matches| analytics_account_list_request(matches, 1_785_801_600),
         );
-        assert_eq!(options.sort_by.as_api_value(), value);
+        assert_eq!(options.query.sort_by.as_api_value(), value);
     }
     for value in [
         "balance",
@@ -475,12 +477,12 @@ fn analytics_sort_values_preserve_official_spelling_and_reject_unknown_values() 
         "principal",
         "-principal",
     ] {
-        let options = parse_test_options(
+        let (_, options) = parse_test_options(
             icrc_analytics_holder_list_command(),
             &[LEDGER_CANISTER_ID, "--sort-by", value],
-            IcrcAnalyticsHolderListOptions::from_matches,
+            |matches| analytics_holder_list_request(matches, 1_785_801_600),
         );
-        assert_eq!(options.sort_by.as_api_value(), value);
+        assert_eq!(options.query.sort_by.as_api_value(), value);
     }
     for command in [
         icrc_analytics_account_list_command(),
@@ -497,24 +499,24 @@ fn analytics_sort_values_preserve_official_spelling_and_reject_unknown_values() 
 
 #[test]
 fn analytics_holder_list_and_account_info_options_use_operation_specific_contracts() {
-    let holder = parse_test_options(
+    let (_, holder) = parse_test_options(
         icrc_analytics_holder_list_command(),
         &[LEDGER_CANISTER_ID, "--before", "holder-cursor"],
-        IcrcAnalyticsHolderListOptions::from_matches,
+        |matches| analytics_holder_list_request(matches, 1_785_801_600),
     );
-    assert_eq!(holder.after, None);
-    assert_eq!(holder.before.as_deref(), Some("holder-cursor"));
-    assert_eq!(holder.limit, 20);
-    assert_eq!(holder.sort_by, IcIcrcHolderSort::Principal);
+    assert_eq!(holder.query.after, None);
+    assert_eq!(holder.query.before.as_deref(), Some("holder-cursor"));
+    assert_eq!(holder.query.limit, 20);
+    assert_eq!(holder.query.sort_by, IcIcrcHolderSort::Principal);
 
-    let info = parse_test_options(
+    let (_, info) = parse_test_options(
         icrc_analytics_account_info_command(),
         &[LEDGER_CANISTER_ID, ACCOUNT_OWNER],
-        IcrcAnalyticsAccountInfoOptions::from_matches,
+        |matches| analytics_account_info_request(matches, 1_785_801_600),
     );
     assert_eq!(info.account_id, ACCOUNT_OWNER);
     assert_eq!(
-        info.target.source_endpoint,
+        info.analytics.dashboard.source_endpoint,
         DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT
     );
 }

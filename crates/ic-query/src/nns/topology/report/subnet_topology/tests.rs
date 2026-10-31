@@ -1,9 +1,7 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::{
-    nns::{
-        NnsSourceRequest,
-        topology::report::subnet_topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-    },
+    nns::topology::report::subnet_topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
     test_support::temp_dir,
 };
@@ -192,7 +190,7 @@ impl FixtureSource {
 impl NnsSubnetTopologySource for FixtureSource {
     fn fetch_subnet_topology_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
     {
         Box::pin(async move {
@@ -213,7 +211,7 @@ struct InvalidFixtureSource;
 impl NnsSubnetTopologySource for InvalidFixtureSource {
     fn fetch_subnet_topology_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>>
     {
         Box::pin(async move {

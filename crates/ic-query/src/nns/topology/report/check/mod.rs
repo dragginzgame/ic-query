@@ -1,48 +1,52 @@
 //! Module: nns::topology::report::check
 //!
 //! Responsibility: build derived NNS topology check reports.
-//! Does not own: topology summary construction, text rendering, or cache IO.
-//! Boundary: turns summary metrics into status fields and consistency-check rows.
+//! Does not own: component collection, text rendering, or cache IO.
+//! Boundary: projects component evidence directly into status fields and consistency checks.
 
 use super::{
     NNS_TOPOLOGY_CHECK_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus, NnsTopologyCheckReport,
-    NnsTopologyCheckRow, NnsTopologySummaryReport, percent::coverage_percent_text,
+    NnsTopologyCheckRow, TopologyInventoryReports, coverage::topology_join_coverage_counts,
+    percent::coverage_percent_text, registry_versions::topology_registry_versions,
 };
 
-pub(super) fn topology_check_report_from_summary(
-    summary: NnsTopologySummaryReport,
+pub(super) fn topology_check_report_from_reports(
+    network: String,
+    source_endpoint: String,
+    subnet_report: crate::subnet_catalog::SubnetCatalogListReport,
+    reports: &TopologyInventoryReports,
 ) -> NnsTopologyCheckReport {
-    let registry_source_count = summary.registry_versions.len();
-    let registry_version_min = summary
-        .registry_versions
+    let registry_versions = topology_registry_versions(&subnet_report, reports);
+    let registry_source_count = registry_versions.len();
+    let registry_version_min = registry_versions
         .iter()
         .map(|row| row.registry_version)
         .min();
-    let registry_version_max = summary
-        .registry_versions
+    let registry_version_max = registry_versions
         .iter()
         .map(|row| row.registry_version)
         .max();
     let registry_versions_aligned = registry_version_min == registry_version_max;
-    let stale_source_count = summary
-        .registry_versions
+    let stale_source_count = registry_versions
         .iter()
         .filter(|row| row.stale == Some(true))
         .count();
-    let unknown_freshness_source_count = summary
-        .registry_versions
+    let unknown_freshness_source_count = registry_versions
         .iter()
         .filter(|row| row.stale.is_none())
         .count();
-    let (known_join_count, unknown_join_count) = summary.join_counts().into_iter().fold(
-        (0_usize, 0_usize),
-        |(known, unknown), (next_known, next_unknown)| {
-            (
-                known.saturating_add(next_known),
-                unknown.saturating_add(next_unknown),
-            )
-        },
-    );
+    let (known_join_count, unknown_join_count) = topology_join_coverage_counts(reports)
+        .join_counts()
+        .into_iter()
+        .fold(
+            (0_usize, 0_usize),
+            |(known, unknown), (next_known, next_unknown)| {
+                (
+                    known.saturating_add(next_known),
+                    unknown.saturating_add(next_unknown),
+                )
+            },
+        );
     let join_coverage = coverage_percent_text(known_join_count, unknown_join_count);
     let checks = vec![
         check_row(
@@ -58,7 +62,11 @@ pub(super) fn topology_check_report_from_summary(
         check_row(
             "cache_freshness",
             stale_source_count == 0 && unknown_freshness_source_count == 0,
-            cache_freshness_detail(stale_source_count, unknown_freshness_source_count, &summary),
+            cache_freshness_detail(
+                stale_source_count,
+                unknown_freshness_source_count,
+                &subnet_report,
+            ),
         ),
         check_row(
             "join_coverage",
@@ -74,8 +82,8 @@ pub(super) fn topology_check_report_from_summary(
 
     NnsTopologyCheckReport {
         schema_version: NNS_TOPOLOGY_CHECK_REPORT_SCHEMA_VERSION,
-        network: summary.network,
-        source_endpoint: summary.source_endpoint,
+        network,
+        source_endpoint,
         status,
         registry_source_count,
         registry_version_min,
@@ -83,8 +91,8 @@ pub(super) fn topology_check_report_from_summary(
         registry_versions_aligned,
         stale_source_count,
         unknown_freshness_source_count,
-        subnet_catalog_stale: summary.subnet_catalog_stale,
-        subnet_catalog_stale_reason: summary.subnet_catalog_stale_reason,
+        subnet_catalog_stale: subnet_report.catalog_stale,
+        subnet_catalog_stale_reason: subnet_report.stale_reason,
         known_join_count,
         unknown_join_count,
         join_coverage,
@@ -120,7 +128,7 @@ fn registry_version_detail(
 fn cache_freshness_detail(
     stale_source_count: usize,
     unknown_source_count: usize,
-    summary: &NnsTopologySummaryReport,
+    subnet_report: &crate::subnet_catalog::SubnetCatalogListReport,
 ) -> String {
     if stale_source_count == 0 && unknown_source_count == 0 {
         return "no stale topology sources".to_string();
@@ -128,10 +136,10 @@ fn cache_freshness_detail(
     if stale_source_count == 0 {
         return format!("{unknown_source_count} topology sources have no age policy");
     }
-    if summary.subnet_catalog_stale {
+    if subnet_report.catalog_stale {
         return format!(
             "{stale_source_count} stale source, {unknown_source_count} without an age policy; subnet catalog {}",
-            summary.subnet_catalog_stale_reason,
+            subnet_report.stale_reason,
         );
     }
     format!("{stale_source_count} stale source, {unknown_source_count} without an age policy")

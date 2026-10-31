@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::source::validate_sns_proposal_rows;
 use crate::{cache::CacheValidationStatus, test_support::temp_dir};
@@ -81,7 +82,7 @@ delegate_sns_discovery!(UnsortedSnsProposalsSource);
 impl SnsProposalsSource for UnsortedSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -98,7 +99,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,

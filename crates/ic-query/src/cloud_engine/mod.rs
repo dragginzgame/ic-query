@@ -64,10 +64,7 @@ pub use provider::{
     build_cloud_engine_provider_list_report_with_source,
 };
 #[cfg(feature = "cloud-engine-host")]
-pub use source::{
-    CloudEngineOperatorBindingSource, CloudEngineSource, CloudEngineSourceRequest,
-    LiveCloudEngineSource,
-};
+pub use source::{CloudEngineOperatorBindingSource, CloudEngineSource, LiveCloudEngineSource};
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 pub use text::cloud_engine_list_report_text;
 pub use text::{cloud_engine_operator_report_text, cloud_engine_prices_report_text};

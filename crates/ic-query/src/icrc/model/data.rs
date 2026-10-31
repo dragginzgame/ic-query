@@ -56,9 +56,11 @@ pub struct CachedIcrcAccountTransactionSnapshot {
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcIndexData {
-    pub index_canister_id: Option<String>,
-    pub index_error: Option<String>,
+pub enum IcrcIndexData {
+    /// Index principal returned by the ledger.
+    Found(String),
+    /// Ledger reported that index discovery is unavailable.
+    Unavailable(String),
 }
 
 ///

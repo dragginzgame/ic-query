@@ -1,4 +1,5 @@
 use super::sns::{FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, ROOT_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
 
 ///
@@ -14,7 +15,7 @@ delegate_sns_discovery!(FixtureSnsCanisterSource);
 impl SnsCanisterSource for FixtureSnsCanisterSource {
     fn fetch_sns_canisters<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
         Box::pin(async move {

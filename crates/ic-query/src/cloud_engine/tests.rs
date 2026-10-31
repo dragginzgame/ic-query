@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 #[cfg(feature = "subnet-catalog-host")]
 use crate::subnet_catalog::{
@@ -25,7 +26,7 @@ struct FixtureSource {
 }
 
 impl FixtureSource {
-    fn new(request: &CloudEngineSourceRequest) -> Self {
+    fn new(request: &CollectionSourceRequest) -> Self {
         Self {
             calls: Mutex::new(0),
             operator: operator_source(request),
@@ -37,7 +38,7 @@ impl FixtureSource {
 impl CloudEngineSource for FixtureSource {
     fn fetch_operator<'a>(
         &'a self,
-        _request: &'a CloudEngineSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _subnet_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>
     {
@@ -49,7 +50,7 @@ impl CloudEngineSource for FixtureSource {
 
     fn fetch_prices<'a>(
         &'a self,
-        _request: &'a CloudEngineSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
     {
         Box::pin(async move {
@@ -62,7 +63,7 @@ impl CloudEngineSource for FixtureSource {
 #[cfg(feature = "subnet-catalog-host")]
 struct BindingFixtureSource {
     calls: Mutex<usize>,
-    request: CloudEngineSourceRequest,
+    request: CollectionSourceRequest,
     query_call_count: usize,
     operator: String,
     failure: String,
@@ -72,7 +73,7 @@ struct BindingFixtureSource {
 impl CloudEngineOperatorBindingSource for BindingFixtureSource {
     fn fetch_operator_binding<'a>(
         &'a self,
-        _request: &'a CloudEngineSourceRequest,
+        _request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> crate::report::SourceFuture<
         'a,
@@ -465,7 +466,7 @@ async fn builders_reject_inconsistent_source_evidence() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_source_rejects_network_before_constructing_an_agent() {
-    let request = CloudEngineSourceRequest::new("local", "://invalid", FETCHED_AT, "test");
+    let request = CollectionSourceRequest::new("local", "://invalid", FETCHED_AT, "test");
     let error = LiveCloudEngineSource::default()
         .fetch_prices(&request)
         .await
@@ -478,7 +479,7 @@ async fn live_source_rejects_network_before_constructing_an_agent() {
 
 #[test]
 fn source_request_formats_unix_collection_time() {
-    let request = CloudEngineSourceRequest::from_unix_secs(
+    let request = CollectionSourceRequest::from_unix_secs(
         MAINNET_NETWORK,
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
         0,
@@ -487,8 +488,8 @@ fn source_request_formats_unix_collection_time() {
     assert_eq!(request.fetched_at, "1970-01-01T00:00:00Z");
 }
 
-fn request(network: &str) -> CloudEngineSourceRequest {
-    CloudEngineSourceRequest::new(
+fn request(network: &str) -> CollectionSourceRequest {
+    CollectionSourceRequest::new(
         network,
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
         FETCHED_AT,
@@ -496,7 +497,7 @@ fn request(network: &str) -> CloudEngineSourceRequest {
     )
 }
 
-fn operator_source(request: &CloudEngineSourceRequest) -> CloudEngineOperatorSourceData {
+fn operator_source(request: &CollectionSourceRequest) -> CloudEngineOperatorSourceData {
     CloudEngineOperatorSourceData {
         source: request.clone(),
         subnet_id: SUBNET_ID.to_string(),
@@ -509,7 +510,7 @@ fn operator_source(request: &CloudEngineSourceRequest) -> CloudEngineOperatorSou
     }
 }
 
-fn prices_source(request: &CloudEngineSourceRequest) -> CloudEnginePricesSourceData {
+fn prices_source(request: &CollectionSourceRequest) -> CloudEnginePricesSourceData {
     CloudEnginePricesSourceData {
         source: request.clone(),
         network_fee: 0.25,

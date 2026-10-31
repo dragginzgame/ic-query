@@ -21,7 +21,7 @@ pub use model::{
     CmcCertification, CmcCyclesReport, CmcIcpXdrConversionRate, CmcReportContext, CmcXdrReport,
 };
 #[cfg(feature = "cmc-host")]
-pub use source::{CmcSource, CmcSourceRequest, LiveCmcSource};
+pub use source::{CmcSource, LiveCmcSource};
 pub use text::{cmc_cycles_report_text, cmc_xdr_report_text};
 
 /// Mainnet Cycle Minting Canister principal.

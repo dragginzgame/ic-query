@@ -160,7 +160,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
 async fn collect_reward_neurons(
     request: &SnsRewardCheckpointRequest,
     source: &dyn SnsRewardSource,
-    source_request: &crate::sns::report::SnsSourceRequest,
+    source_request: &crate::report::CollectionSourceRequest,
     sns: &crate::sns::report::MainnetSns,
     collection_row_ceiling: u64,
 ) -> Result<SnsRewardCollectionState, SnsHostError> {

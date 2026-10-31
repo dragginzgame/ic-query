@@ -4,10 +4,9 @@
 //! Does not own: family row DTOs, source implementations, cache identity, or public errors.
 //! Boundary: one lifecycle and publication outcome serve node, provider, operator, and data-center reports.
 
-use super::{
-    NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest, NnsSourceRequest,
-};
+use super::{NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest};
 use crate::identifier_match::{IdentifierMatch, match_identifier};
+use crate::report::CollectionSourceRequest;
 use crate::{
     HostCacheError, QueryProgress, QueryProgressEvent,
     cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
@@ -144,7 +143,7 @@ pub(in crate::nns) trait NnsInventoryReport {
     }
 
     /// Validate source provenance against the exact request used for refresh.
-    fn validate_source(&self, request: &NnsSourceRequest) -> Result<(), String> {
+    fn validate_source(&self, request: &CollectionSourceRequest) -> Result<(), String> {
         self.validate()?;
         if self.network() != request.network {
             return Err(format!(
@@ -214,13 +213,13 @@ pub(in crate::nns) async fn refresh_nns_inventory_cache<Report, Error>(
     request: &NnsInventoryRefreshRequest,
     component_dir: &'static str,
     cache_file: &str,
-    fetch: impl AsyncFnOnce(&NnsSourceRequest) -> Result<Report, Error>,
+    fetch: impl AsyncFnOnce(&CollectionSourceRequest) -> Result<Report, Error>,
 ) -> Result<NnsInventoryRefreshReport, Error>
 where
     Report: NnsInventoryReport + Serialize,
     Error: From<HostCacheError> + NnsInventoryHostError,
 {
-    let source_request = NnsSourceRequest::new(
+    let source_request = CollectionSourceRequest::new(
         &request.cache.network,
         &request.source_endpoint,
         format_utc_timestamp_secs(request.now_unix_secs),

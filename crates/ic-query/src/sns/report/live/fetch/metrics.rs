@@ -4,8 +4,9 @@
 //! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
 //! Boundary: performs exactly one report-specific composite query.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsMetrics, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
+    MainnetSns, MainnetSnsMetrics, SnsCanisterMethod, SnsHostError,
     live::{
         convert::mainnet_sns_metrics,
         fetch::governance_canister,
@@ -17,7 +18,7 @@ use crate::sns::report::{
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metrics(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     time_window_seconds: u64,
 ) -> Result<MainnetSnsMetrics, SnsHostError> {

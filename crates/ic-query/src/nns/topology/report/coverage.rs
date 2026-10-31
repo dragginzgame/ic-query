@@ -58,6 +58,33 @@ pub(super) struct NnsTopologyJoinCoverageCounts {
     pub(super) node_operators_with_unknown_data_center_count: usize,
 }
 
+impl NnsTopologyJoinCoverageCounts {
+    pub(in crate::nns::topology::report) const fn join_counts(&self) -> [(usize, usize); 5] {
+        [
+            (
+                self.nodes_with_known_node_provider_count,
+                self.nodes_with_unknown_node_provider_count,
+            ),
+            (
+                self.nodes_with_known_node_operator_count,
+                self.nodes_with_unknown_node_operator_count,
+            ),
+            (
+                self.nodes_with_known_data_center_count,
+                self.nodes_with_unknown_data_center_count,
+            ),
+            (
+                self.node_operators_with_known_node_provider_count,
+                self.node_operators_with_unknown_node_provider_count,
+            ),
+            (
+                self.node_operators_with_known_data_center_count,
+                self.node_operators_with_unknown_data_center_count,
+            ),
+        ]
+    }
+}
+
 pub(super) fn topology_join_coverage_counts(
     reports: &TopologyInventoryReports,
 ) -> NnsTopologyJoinCoverageCounts {

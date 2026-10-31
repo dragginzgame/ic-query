@@ -777,7 +777,7 @@ focused CMC capability rather than adding one live adapter per report view.
 `ic_query::cloud_engine::LiveCloudEngineSource` similarly owns the separate
 control-plane authority.
 Native Registry and inventory capabilities share
-`ic_query::nns::NnsSourceRequest`; adding a new report in those families normally
+`ic_query::report::CollectionSourceRequest`; adding a new report in those families normally
 adds a capability implementation to that adapter instead of introducing
 another live-source type or another copy of the same provenance request. Direct
 Governance capabilities use `NnsGovernanceRequest`, selecting replica query
@@ -785,7 +785,7 @@ or replicated inter-canister collection, and return typed async source futures.
 `CanisterNnsSource` implements that seam under the `canister` feature on Wasm.
 `LiveSubnetCatalogSource` adds caller-owned progress and memory/disk history
 retention to the catalog source seam. SNS
-capabilities likewise share `SnsSourceRequest`, including explicit network and
+capabilities likewise share `CollectionSourceRequest`, including explicit network and
 collection provenance.
 
 Use a custom source when a downstream tool needs to read from a mirror,
@@ -793,8 +793,8 @@ fixture, proxy, or pre-collected snapshot while still using `ic-query` report
 assembly and text rendering:
 
 ```rust
+use ic_query::report::CollectionSourceRequest;
 use ic_query::nns::{
-    NnsSourceRequest,
     registry::{
         NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
         NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
@@ -809,7 +809,7 @@ struct FixtureRegistrySource {
 impl NnsRegistrySource for FixtureRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
         Box::pin(async move { Ok(self.version.clone()) })
     }
@@ -1211,13 +1211,14 @@ Native tools can query and verify the mainnet Cycle Minting Canister without
 spawning the CLI:
 
 ```rust
+use ic_query::report::CollectionSourceRequest;
 use ic_query::system::cmc::{
-    CmcHostError, CmcSourceRequest, DEFAULT_CMC_SOURCE_ENDPOINT,
+    CmcHostError, DEFAULT_CMC_SOURCE_ENDPOINT,
     build_cmc_cycles_report,
 };
 
 async fn cycles_per_icp(now_unix_secs: u64) -> Result<u128, CmcHostError> {
-    let request = CmcSourceRequest::from_unix_secs(
+    let request = CollectionSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CMC_SOURCE_ENDPOINT,
         now_unix_secs,

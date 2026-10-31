@@ -14,11 +14,11 @@ use super::{
         ListDomainsResult,
     },
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     candid_call::{encode_request, query_encoded},
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 
 const GET_ENGINE_OPERATOR_BY_SUBNET_METHOD: &str = "getEngineOperatorBySubnet";
@@ -30,58 +30,6 @@ const GET_NETWORK_FEE_METHOD: &str = "getNetworkFee";
 const LIST_MARKETPLACE_PRICES_METHOD: &str = "listMarketplacePrices";
 
 ///
-/// CloudEngineSourceRequest
-///
-/// Network and collection provenance for direct CloudEngine queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CloudEngineSourceRequest {
-    /// Network to query.
-    pub network: String,
-    /// Replica endpoint used for the queries.
-    pub endpoint: String,
-    /// UTC collection timestamp recorded in the report.
-    pub fetched_at: String,
-    /// Collector identity recorded in the report.
-    pub fetched_by: String,
-}
-
-impl CloudEngineSourceRequest {
-    /// Create source settings for one CloudEngine report.
-    #[must_use]
-    pub fn new(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at: impl Into<String>,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self {
-            network: network.into(),
-            endpoint: endpoint.into(),
-            fetched_at: fetched_at.into(),
-            fetched_by: fetched_by.into(),
-        }
-    }
-
-    /// Create source settings from a Unix collection timestamp.
-    #[must_use]
-    pub fn from_unix_secs(
-        network: impl Into<String>,
-        endpoint: impl Into<String>,
-        fetched_at_unix_secs: u64,
-        fetched_by: impl Into<String>,
-    ) -> Self {
-        Self::new(
-            network,
-            endpoint,
-            format_utc_timestamp_secs(fetched_at_unix_secs),
-            fetched_by,
-        )
-    }
-}
-
-///
 /// CloudEngineSource
 ///
 /// Source capabilities for public CloudEngine operator and marketplace data.
@@ -91,14 +39,14 @@ pub trait CloudEngineSource: Sync {
     /// Resolve one Subnet and fetch its public operator details when registered.
     fn fetch_operator<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>;
 
     /// Fetch the public network fee and complete bounded marketplace price response.
     fn fetch_prices<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>;
 }
 
@@ -112,7 +60,7 @@ pub trait CloudEngineOperatorBindingSource: Sync {
     /// Resolve exactly one Subnet through the CloudEngine control plane.
     fn fetch_operator_binding<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> crate::report::SourceFuture<
         'a,
@@ -134,7 +82,7 @@ pub struct LiveCloudEngineSource {
 impl CloudEngineSource for LiveCloudEngineSource {
     fn fetch_operator<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<CloudEngineOperatorSourceData, CloudEngineHostError>>
     {
@@ -147,7 +95,7 @@ impl CloudEngineSource for LiveCloudEngineSource {
 
     fn fetch_prices<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
     {
         Box::pin(async move {
@@ -160,7 +108,7 @@ impl CloudEngineSource for LiveCloudEngineSource {
 impl CloudEngineOperatorBindingSource for LiveCloudEngineSource {
     fn fetch_operator_binding<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> crate::report::SourceFuture<
         'a,
@@ -176,7 +124,7 @@ impl CloudEngineOperatorBindingSource for LiveCloudEngineSource {
 
 async fn fetch_live_operator_binding(
     source: &LiveCloudEngineSource,
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     subnet: Principal,
 ) -> Result<CloudEngineOperatorBindingSourceData, CloudEngineHostError> {
     let (agent, engine_canister) = live_agent_and_canister(source, request)?;
@@ -191,7 +139,7 @@ async fn fetch_live_operator_binding(
 
 async fn fetch_live_operator(
     source: &LiveCloudEngineSource,
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     subnet: Principal,
 ) -> Result<CloudEngineOperatorSourceData, CloudEngineHostError> {
     let (agent, engine_canister) = live_agent_and_canister(source, request)?;
@@ -279,7 +227,7 @@ async fn resolve_operator(
 
 async fn fetch_live_prices(
     source: &LiveCloudEngineSource,
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<CloudEnginePricesSourceData, CloudEngineHostError> {
     let (agent, engine_canister) = live_agent_and_canister(source, request)?;
     let empty_arg = encode_request::<_, CloudEngineHostError>((), "()")?;
@@ -313,7 +261,7 @@ async fn fetch_live_prices(
 
 fn live_agent_and_canister(
     source: &LiveCloudEngineSource,
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<(ic_platform::agent::Agent, Principal), CloudEngineHostError> {
     let agent = crate::agent::endpoint_agent(
         &source.agent,

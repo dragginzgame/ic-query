@@ -5,6 +5,7 @@
 //! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
 
 use crate::cache_file::{ManagedReadBudget, write_managed_json_pretty_atomically};
+use crate::report::CollectionSourceRequest;
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
@@ -15,8 +16,7 @@ use crate::{
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
-        cache_paths::sns_root_from_cache_path,
-        source::{MainnetSns, SnsSourceRequest},
+        cache_paths::sns_root_from_cache_path, source::MainnetSns,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -50,7 +50,7 @@ pub(in crate::sns::report) type SnsRefreshAttempt =
 pub(in crate::sns::report) struct SnsRefreshContext<'a> {
     pub(in crate::sns::report) path: &'a Path,
     pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
-    pub(in crate::sns::report) fetch_request: &'a SnsSourceRequest,
+    pub(in crate::sns::report) fetch_request: &'a CollectionSourceRequest,
     pub(in crate::sns::report) sns: &'a MainnetSns,
 }
 

@@ -176,8 +176,8 @@ forbidden_direct_sns_host_dependencies=(
 check_tree_absent() {
   local label="$1"
   shift
-  # Exclude the test-only Futures umbrella, stable memory and scoped tempfiles.
-  local -a rules=(--forbid futures --forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
+  # Exclude development-only codecs/executors, stable memory and scoped tempfiles.
+  local -a rules=(--forbid ic-wire --forbid futures --forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
   while [[ "$#" -gt 0 && "$1" != "--" ]]; do
     if [[ "$1" == */* ]]; then
       rules+=(--forbid-feature "$1")
@@ -232,7 +232,6 @@ while IFS=$'	' read -r target feature _tests; do
     wasm32-unknown-unknown:none)
       check_tree_absent "ic-query wasm32-unknown-unknown --no-default-features" \
         "${forbidden_pure_library_dependencies[@]}" \
-        ic-wire \
         -- \
         --package ic-query \
         --target wasm32-unknown-unknown \
@@ -242,7 +241,6 @@ while IFS=$'	' read -r target feature _tests; do
       check_tree_absent "ic-query wasm32-unknown-unknown --features canister" \
         "${forbidden_canister_dependencies[@]}" \
         "${forbidden_tooling_dependencies[@]}" \
-        ic-wire \
         -- \
         --package ic-query \
         --target wasm32-unknown-unknown \
@@ -325,7 +323,7 @@ while IFS=$'	' read -r target feature _tests; do
   esac
 done < "$repo_root/ci/library-feature-cases.tsv"
 
-# Metrics supplies native Wire metadata; Wasm production graphs exclude Wire above.
+# Metrics is arithmetic-only; Wire belongs to development probes and fixtures.
 check_tree_absent "ic-query-cli production dependencies" \
   "${forbidden_tooling_dependencies[@]}" \
   ic-platform-runtime-guard \

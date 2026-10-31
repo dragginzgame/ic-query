@@ -17,10 +17,11 @@ use ic_query::cloud_engine::{
 use ic_query::cloud_engine::{
     CloudEngineHostError, CloudEngineOperatorBindingSource, CloudEngineOperatorBindingSourceData,
     CloudEngineOperatorSourceData, CloudEnginePricesSourceData, CloudEngineSource,
-    CloudEngineSourceRequest, build_cloud_engine_operator_report_with_source,
-    build_cloud_engine_prices_report_with_source,
+    build_cloud_engine_operator_report_with_source, build_cloud_engine_prices_report_with_source,
 };
 use ic_query::ic::{IcDashboardReportProvenance, IcNodeStatusCounts};
+#[cfg(feature = "cloud-engine-host")]
+use ic_query::report::CollectionSourceRequest;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use ic_query::{
     cloud_engine::{
@@ -271,7 +272,7 @@ async fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
 #[cfg(feature = "cloud-engine-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn public_cloud_engine_host_api_accepts_a_custom_source() {
-    let request = CloudEngineSourceRequest::from_unix_secs(
+    let request = CollectionSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -295,7 +296,7 @@ async fn public_cloud_engine_host_api_accepts_a_custom_source() {
 fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
     let _: for<'a> fn(
         &'a SubnetCatalogListRequest,
-        &'a CloudEngineSourceRequest,
+        &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
         Result<CloudEngineListReport, CloudEngineHostError>,
@@ -390,7 +391,7 @@ impl CloudEngineNodeSource for ProviderFixture {
 impl CloudEngineSource for Fixture {
     fn fetch_operator<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> ic_query::report::SourceFuture<
         'a,
@@ -412,7 +413,7 @@ impl CloudEngineSource for Fixture {
 
     fn fetch_prices<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<CloudEnginePricesSourceData, CloudEngineHostError>>
     {
         Box::pin(async move {
@@ -430,7 +431,7 @@ impl CloudEngineSource for Fixture {
 impl CloudEngineOperatorBindingSource for Fixture {
     fn fetch_operator_binding<'a>(
         &'a self,
-        request: &'a CloudEngineSourceRequest,
+        request: &'a CollectionSourceRequest,
         subnet_id: &'a str,
     ) -> ic_query::report::SourceFuture<
         'a,

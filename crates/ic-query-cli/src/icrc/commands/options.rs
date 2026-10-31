@@ -1,8 +1,8 @@
 //! Module: icrc::commands::options
 //!
-//! Responsibility: parse Clap matches into typed ICRC command options.
+//! Responsibility: parse Clap matches into ICRC command options and public requests.
 //! Does not own: command dispatch, report construction, or output.
-//! Boundary: validates command arguments before dispatch constructs public requests.
+//! Boundary: carries parsed values into requests without report construction or IO.
 
 use super::sort::{IcrcAccountSortArg, IcrcAccountTransactionSortArg, IcrcHolderSortArg};
 use super::{
@@ -17,166 +17,116 @@ use crate::cli::{
 };
 use clap::ArgMatches;
 use ic_query::{
-    ic::{IcIcrcAccountSort, IcIcrcHolderSort},
+    ic::{
+        DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
+        IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest,
+        IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcTokenValueQuery,
+        IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
+        MIN_ICRC_ANALYTICS_TIMESTAMP,
+    },
     icrc::IcrcAccountTransactionSort,
 };
 
-///
-/// IcrcAnalyticsAccountListOptions
-///
-/// Clap-parsed bounds and sort for one official account-index page.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsAccountListOptions {
-    pub(in crate::icrc) target: IcrcLedgerOptions,
-    pub(in crate::icrc) owner: Option<String>,
-    pub(in crate::icrc) after: Option<String>,
-    pub(in crate::icrc) before: Option<String>,
-    pub(in crate::icrc) limit: u16,
-    pub(in crate::icrc) sort_by: IcIcrcAccountSort,
+pub(in crate::icrc) fn analytics_account_list_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcIcrcAccountListRequest) {
+    let (format, dashboard, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let mut query = IcIcrcAccountListQuery::new(
+        required_typed(matches, LIMIT_ARG),
+        required_typed::<IcrcAccountSortArg>(matches, SORT_BY_ARG).into(),
+    );
+    query.owner = string_option(matches, OWNER_ARG);
+    query.after = string_option(matches, AFTER_ARG);
+    query.before = string_option(matches, BEFORE_ARG);
+    (
+        format,
+        IcIcrcAccountListRequest::new(dashboard, ledger, query),
+    )
 }
 
-impl IcrcAnalyticsAccountListOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcLedgerOptions::from_matches(matches),
-            owner: string_option(matches, OWNER_ARG),
-            after: string_option(matches, AFTER_ARG),
-            before: string_option(matches, BEFORE_ARG),
-            limit: required_typed(matches, LIMIT_ARG),
-            sort_by: required_typed::<IcrcAccountSortArg>(matches, SORT_BY_ARG).into(),
-        }
-    }
+pub(in crate::icrc) fn analytics_account_info_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcIcrcAccountInfoRequest) {
+    let (format, dashboard, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    (
+        format,
+        IcIcrcAccountInfoRequest::new(dashboard, ledger, required_string(matches, ACCOUNT_ID_ARG)),
+    )
 }
 
-///
-/// IcrcAnalyticsAccountInfoOptions
-///
-/// Clap-parsed target for one exact official account-index lookup.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsAccountInfoOptions {
-    pub(in crate::icrc) target: IcrcLedgerOptions,
-    pub(in crate::icrc) account_id: String,
+pub(in crate::icrc) fn analytics_holder_list_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcIcrcHolderListRequest) {
+    let (format, dashboard, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let mut query = IcIcrcHolderListQuery::new(
+        required_typed(matches, LIMIT_ARG),
+        required_typed::<IcrcHolderSortArg>(matches, SORT_BY_ARG).into(),
+    );
+    query.after = string_option(matches, AFTER_ARG);
+    query.before = string_option(matches, BEFORE_ARG);
+    (
+        format,
+        IcIcrcHolderListRequest::new(dashboard, ledger, query),
+    )
 }
 
-impl IcrcAnalyticsAccountInfoOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcLedgerOptions::from_matches(matches),
-            account_id: required_string(matches, ACCOUNT_ID_ARG),
-        }
-    }
+pub(in crate::icrc) fn analytics_token_value_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcIcrcTokenValueRequest) {
+    let (format, dashboard, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let (start, end) = analytics_time_bounds(
+        matches,
+        now_unix_secs,
+        DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS,
+        0,
+    );
+    let query = IcIcrcTokenValueQuery::new(start, end, required_typed(matches, LIMIT_ARG));
+    (
+        format,
+        IcIcrcTokenValueRequest::new(dashboard, ledger, query),
+    )
 }
 
-///
-/// IcrcAnalyticsHolderListOptions
-///
-/// Clap-parsed bounds and sort for one official holder-index page.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsHolderListOptions {
-    pub(in crate::icrc) target: IcrcLedgerOptions,
-    pub(in crate::icrc) after: Option<String>,
-    pub(in crate::icrc) before: Option<String>,
-    pub(in crate::icrc) limit: u16,
-    pub(in crate::icrc) sort_by: IcIcrcHolderSort,
+pub(in crate::icrc) fn analytics_total_supply_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcIcrcTotalSupplyRequest) {
+    let (format, dashboard, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let (start, end) = analytics_time_bounds(
+        matches,
+        now_unix_secs,
+        DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
+        MIN_ICRC_ANALYTICS_TIMESTAMP,
+    );
+    let query = IcIcrcTotalSupplyQuery::new(start, end, required_typed(matches, STEP_ARG));
+    (
+        format,
+        IcIcrcTotalSupplyRequest::new(dashboard, ledger, query),
+    )
 }
 
-impl IcrcAnalyticsHolderListOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcLedgerOptions::from_matches(matches),
-            after: string_option(matches, AFTER_ARG),
-            before: string_option(matches, BEFORE_ARG),
-            limit: required_typed(matches, LIMIT_ARG),
-            sort_by: required_typed::<IcrcHolderSortArg>(matches, SORT_BY_ARG).into(),
-        }
-    }
-}
-
-///
-/// IcrcAnalyticsWindowOptions
-///
-/// Shared ledger target and optional time bounds for official ICRC analytics.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsWindowOptions {
-    pub(in crate::icrc) target: IcrcLedgerOptions,
-    pub(in crate::icrc) start_unix_secs: Option<u64>,
-    pub(in crate::icrc) end_unix_secs: Option<u64>,
-}
-
-impl IcrcAnalyticsWindowOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcLedgerOptions::from_matches(matches),
-            start_unix_secs: typed_option(matches, START_ARG),
-            end_unix_secs: typed_option(matches, END_ARG),
-        }
-    }
-
-    pub(in crate::icrc) fn resolve_bounds(
-        &self,
-        now_unix_secs: u64,
-        default_window_secs: u64,
-        minimum_default_start: u64,
-    ) -> (u64, u64) {
-        resolve_time_bounds(
-            self.start_unix_secs,
-            self.end_unix_secs,
-            now_unix_secs,
-            default_window_secs,
-            minimum_default_start,
-        )
-    }
-}
-
-///
-/// IcrcAnalyticsTotalSupplyOptions
-///
-/// Clap-parsed bounds plus the shared target for one official total-supply series.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsTotalSupplyOptions {
-    pub(in crate::icrc) window: IcrcAnalyticsWindowOptions,
-    pub(in crate::icrc) step_secs: u32,
-}
-
-impl IcrcAnalyticsTotalSupplyOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        let step_secs = required_typed(matches, STEP_ARG);
-        Self {
-            window: IcrcAnalyticsWindowOptions::from_matches(matches),
-            step_secs,
-        }
-    }
-}
-
-///
-/// IcrcAnalyticsTokenValueOptions
-///
-/// Clap-parsed time and row bounds for one official token-value series.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAnalyticsTokenValueOptions {
-    pub(in crate::icrc) window: IcrcAnalyticsWindowOptions,
-    pub(in crate::icrc) limit: u16,
-}
-
-impl IcrcAnalyticsTokenValueOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            window: IcrcAnalyticsWindowOptions::from_matches(matches),
-            limit: required_typed(matches, LIMIT_ARG),
-        }
-    }
+fn analytics_time_bounds(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+    default_window_secs: u64,
+    minimum_default_start: u64,
+) -> (u64, u64) {
+    resolve_time_bounds(
+        typed_option(matches, START_ARG),
+        typed_option(matches, END_ARG),
+        now_unix_secs,
+        default_window_secs,
+        minimum_default_start,
+    )
 }
 
 ///
@@ -418,23 +368,5 @@ mod tests {
         assert_eq!(request.source_endpoint, "https://example.com/api");
         assert_eq!(request.ledger_canister_id, "aaaaa-aa");
         assert_eq!(request.now_unix_secs, 123);
-    }
-
-    #[test]
-    fn analytics_defaults_clamp_only_the_implicit_start() {
-        let mut window = IcrcAnalyticsWindowOptions {
-            target: target(),
-            start_unix_secs: None,
-            end_unix_secs: None,
-        };
-        assert_eq!(window.resolve_bounds(100, 30, 0), (70, 100));
-        assert_eq!(window.resolve_bounds(10, 30, 0), (0, 10));
-        assert_eq!(window.resolve_bounds(100, 30, 80), (80, 100));
-        window.end_unix_secs = Some(90);
-        assert_eq!(window.resolve_bounds(100, 30, 0), (60, 90));
-        window.start_unix_secs = Some(5);
-        assert_eq!(window.resolve_bounds(100, 30, 80), (5, 90));
-        window.start_unix_secs = Some(110);
-        assert_eq!(window.resolve_bounds(100, 30, 80), (110, 90));
     }
 }

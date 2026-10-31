@@ -5,6 +5,7 @@
 //! Boundary: maps get_proposal Candid responses into source-layer proposal data.
 
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError,
@@ -14,13 +15,13 @@ use crate::sns::report::{
         query::sns_agent,
         types::{GetProposalRequest, GetProposalResponse, GetProposalResult, SnsProposalId},
     },
-    source::{MainnetSns, SnsSourceRequest},
+    source::MainnetSns,
 };
 
 /// Fetch one SNS governance proposal by id from a resolved governance canister.
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     proposal_id: u64,
 ) -> Result<SnsProposalRow, SnsHostError> {

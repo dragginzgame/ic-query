@@ -534,10 +534,9 @@ impl IcrcIndexSource for FixtureIcrcSource {
         _request: &'a IcrcLedgerRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<IcrcIndexData, IcrcError>> {
         Box::pin(async move {
-            Ok(IcrcIndexData {
-                index_canister_id: None,
-                index_error: None,
-            })
+            Ok(IcrcIndexData::Unavailable(
+                "index principal not set".to_string(),
+            ))
         })
     }
 }

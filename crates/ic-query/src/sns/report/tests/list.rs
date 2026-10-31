@@ -1,5 +1,6 @@
 use super::{fixtures::*, *};
 use crate::QueryProgressEvent;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::sns_swap_lifecycle_name;
 use crate::test_support::temp_dir;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
@@ -865,7 +866,8 @@ async fn unknown_lookup_does_not_request_metadata() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_discovery_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new("local", "not a valid endpoint", "timestamp", "test");
+    let request =
+        CollectionSourceRequest::new("local", "not a valid endpoint", "timestamp", "test");
 
     let inventory_error = LiveSnsSource::default()
         .fetch_sns_inventory(&request)
@@ -924,7 +926,7 @@ struct CountingDiscoverySource {
 impl SnsDiscoverySource for CountingDiscoverySource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             *self.inventory.lock().unwrap() += 1;
@@ -934,7 +936,7 @@ impl SnsDiscoverySource for CountingDiscoverySource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -949,7 +951,7 @@ impl SnsDiscoverySource for CountingDiscoverySource {
 impl SnsCatalogSource for CountingDiscoverySource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -964,7 +966,7 @@ impl SnsCatalogSource for CountingDiscoverySource {
 impl SnsDiscoverySource for MutatingInventorySource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             let mut inventory = FixtureSnsDiscoverySource
@@ -977,7 +979,7 @@ impl SnsDiscoverySource for MutatingInventorySource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -991,7 +993,7 @@ impl SnsDiscoverySource for MutatingInventorySource {
 impl SnsCatalogSource for MutatingInventorySource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -1007,14 +1009,14 @@ struct MutatingMetadataSource(fn(&mut Vec<MainnetSnsMetadata>));
 impl SnsDiscoverySource for MutatingMetadataSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move { FixtureSnsDiscoverySource.fetch_sns_inventory(request).await })
     }
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -1030,7 +1032,7 @@ impl SnsDiscoverySource for MutatingMetadataSource {
 impl SnsCatalogSource for MutatingMetadataSource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -1046,14 +1048,14 @@ struct MutatingLifecycleSource(fn(&mut Vec<MainnetSnsLifecycle>));
 impl SnsDiscoverySource for MutatingLifecycleSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move { FixtureSnsDiscoverySource.fetch_sns_inventory(request).await })
     }
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -1067,7 +1069,7 @@ impl SnsDiscoverySource for MutatingLifecycleSource {
 impl SnsCatalogSource for MutatingLifecycleSource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -1089,7 +1091,7 @@ struct RecordingDiscoverySource {
 impl SnsDiscoverySource for RecordingDiscoverySource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             UnsortedFixtureSnsDiscoverySource
@@ -1100,7 +1102,7 @@ impl SnsDiscoverySource for RecordingDiscoverySource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -1120,7 +1122,7 @@ impl SnsDiscoverySource for RecordingDiscoverySource {
 impl SnsCatalogSource for RecordingDiscoverySource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -1255,4 +1257,35 @@ fn lifecycle_query_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     lifecycles[0].lifecycle = None;
 
     lifecycles[0].lifecycle_error = Some("get_lifecycle: query rejected".to_string());
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn sns_list_metadata_styling_uses_row_status_and_preserves_escaped_layout() {
+    let mut report =
+        build_sns_list_report_with_source(&list_request(false), &FixtureSnsDiscoverySource)
+            .await
+            .expect("SNS report");
+    let mut ready = report.sns_instances[0].clone();
+    ready.id += 1;
+    report.sns_instances.push(ready);
+    report.sns_count = report.sns_instances.len();
+    report.catalog_sns_count = report.sns_count;
+    report.metadata_error_count = 1;
+    report.sns_instances[0].name = "error\n\u{1b}[31m".to_string();
+    report.sns_instances[0].metadata_error = Some("metadata unavailable".to_string());
+    let plain = sns_list_report_text(&report);
+    let mut statuses = Vec::new();
+    let styled = sns_list_report_text_with_metadata_style(&report, |status, failed| {
+        statuses.push((status.to_string(), failed));
+        format!("\u{1b}[{}m{status}\u{1b}[0m", if failed { 31 } else { 32 })
+    });
+    assert_eq!(statuses.len(), report.sns_instances.len());
+    assert_eq!(statuses[0], ("error".to_string(), true));
+    assert_eq!(statuses[1], ("ok".to_string(), false));
+    let stripped = styled
+        .replace("\u{1b}[31m", "")
+        .replace("\u{1b}[32m", "")
+        .replace("\u{1b}[0m", "");
+    assert_eq!(stripped, plain);
+    assert!(styled.contains("error\\n\\u{1b}[31m"));
 }

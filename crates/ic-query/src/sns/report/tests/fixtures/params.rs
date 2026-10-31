@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
 
 ///
@@ -14,7 +15,7 @@ delegate_sns_discovery!(FixtureSnsParamsSource);
 impl SnsParamsSource for FixtureSnsParamsSource {
     fn fetch_sns_params<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
         Box::pin(async move {

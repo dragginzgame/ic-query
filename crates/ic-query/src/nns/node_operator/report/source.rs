@@ -2,9 +2,10 @@ use super::{
     NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
     NnsNodeOperatorListReport, NnsNodeOperatorRow,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     ic_registry::{MainnetNodeOperatorList, fetch_mainnet_node_operator_list},
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
 ///
@@ -16,14 +17,14 @@ use crate::{
 pub trait NnsNodeOperatorSource: Sync {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>;
 }
 
 impl NnsNodeOperatorSource for LiveNnsSource {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
     {
         Box::pin(async move {

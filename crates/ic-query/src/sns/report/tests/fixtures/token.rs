@@ -1,5 +1,6 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, LEDGER_A};
 use crate::icrc::{IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
 
 ///
@@ -15,7 +16,7 @@ delegate_sns_discovery!(FixtureSnsTokenSource);
 impl SnsTokenSource for FixtureSnsTokenSource {
     fn fetch_sns_token<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
         Box::pin(async move {

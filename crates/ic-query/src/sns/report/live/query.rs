@@ -5,10 +5,10 @@
 //! Boundary: builds agents, parses principals, and maps query failures to typed errors.
 
 use super::SnsHostError;
+use crate::report::CollectionSourceRequest;
 use crate::{
-    agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-    candid_call::encode_request,
-    sns::report::{SnsSourceRequest, enforce_mainnet_network},
+    agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES, candid_call::encode_request,
+    sns::report::enforce_mainnet_network,
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
@@ -47,7 +47,7 @@ where
 /// Build an IC agent after enforcing one explicit SNS source request.
 pub(super) fn sns_agent<'a>(
     source: &'a crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<&'a Agent, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     crate::agent::endpoint_agent(

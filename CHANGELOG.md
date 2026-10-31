@@ -5,14 +5,33 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
-## [0.78.1]
+## [0.79.0]
+
+### ⚠️ Breaking
+
+- Adopt Platform 0.13's public ledger types and canister runtime. Update custom
+  ICRC sources and rebuild runtime consumers against Platform 0.13. External
+  protocol bytes and report/cache formats remain unchanged.
+
+- Custom NNS, SNS, CMC and CloudEngine sources now use
+  `report::CollectionSourceRequest`. ICRC index discovery returns an explicit
+  found/unavailable outcome. Update custom adapters to these shared contracts.
+- Topology coverage now reads only its four inventories; it no longer loads or
+  refreshes the Subnet Catalog. Other topology diagnostics retain their inputs.
 
 ### 🔧 Changed
 
-- Adopt IC Tooling 0.72.1 across Host, Build and Testkit, retaining aligned
-  Platform/Wire dependencies, public APIs and the Rust 1.91 requirement.
+- Adopt Metrics 0.22.0, Platform 0.13.0 and Wire 0.11.0 with IC Tooling 0.72.1.
+  Use arithmetic-only Metrics so production graphs exclude unused Wire metadata;
+  probes and fixtures retain the core Wire codec and the Rust 1.91 requirement.
 
-Detailed release notes: [docs/changelog/0.78.md](docs/changelog/0.78.md)
+### 🧹 Cleanup
+
+- Simplify topology check projection, ICRC command parsing, SNS cache loading,
+  routing validation and identifier resolution. Preserve report/cache formats
+  and apply SNS metadata colour from row state.
+
+Detailed release notes: [docs/changelog/0.79.md](docs/changelog/0.79.md)
 
 ## [0.78.0] - 2026-10-30
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub(super) const SUBNET_A: &str = "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae";
@@ -135,7 +136,10 @@ impl AgreementFixtureSource {
 }
 
 impl SubnetCatalogSource for AgreementFixtureSource {
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
             self.calls.fetch_add(1, Ordering::Relaxed);
             if request.endpoint == self.differing_endpoint
@@ -218,7 +222,10 @@ impl FixtureRefreshSource {
 }
 
 impl SubnetCatalogSource for FixtureRefreshSource {
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
             self.calls.fetch_add(1, Ordering::Relaxed);
             if self.fail {
@@ -288,14 +295,14 @@ impl DetailedFailureSource {
 impl SubnetCatalogSource for DetailedFailureSource {
     fn fetch_catalog<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move { Err(self.source_error()) })
     }
 
     fn fetch_catalog_detailed<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogDetailedSourceFuture<'a> {
         Box::pin(async move {
             Err(SubnetCatalogSourceFailure::new(

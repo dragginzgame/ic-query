@@ -5,15 +5,16 @@
 //! Boundary: retains NNS agent policy while sharing Candid query mechanics.
 
 use crate::nns::{
-    MAINNET_GOVERNANCE_CANISTER_ID, NnsSourceRequest,
+    MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceError},
 };
+use crate::report::CollectionSourceRequest;
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 pub async fn query_nns_governance<Arg, Response>(
     source: &crate::nns::LiveNnsSource,
-    request: &NnsSourceRequest,
+    request: &CollectionSourceRequest,
     method: &'static str,
     request_message: &'static str,
     response_message: &'static str,
@@ -30,7 +31,7 @@ where
 
 pub async fn query_nns_governance_no_args<Response>(
     source: &crate::nns::LiveNnsSource,
-    request: &NnsSourceRequest,
+    request: &CollectionSourceRequest,
     method: &'static str,
     response_message: &'static str,
 ) -> Result<Response, NnsGovernanceError>
@@ -44,7 +45,7 @@ where
 
 fn governance_target<'a>(
     source: &'a crate::nns::LiveNnsSource,
-    request: &NnsSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<(&'a Agent, Principal), NnsGovernanceError> {
     let agent = crate::agent::endpoint_agent(
         &source.agent,

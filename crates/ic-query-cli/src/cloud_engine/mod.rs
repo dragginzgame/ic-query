@@ -4,6 +4,7 @@
 //! Does not own: native transport, report construction, or text rendering.
 //! Boundary: exposes mainnet-only CloudEngine inventory and bounded public reports at the CLI root.
 
+use ic_query::report::CollectionSourceRequest;
 mod node;
 mod provider;
 
@@ -20,7 +21,7 @@ use crate::{
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::{
-    CloudEngineHostError, CloudEngineSourceRequest, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+    CloudEngineHostError, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
     build_cloud_engine_list_report_with_progress, build_cloud_engine_operator_report,
     build_cloud_engine_prices_report, cloud_engine_list_report_text,
     cloud_engine_operator_report_text, cloud_engine_prices_report_text,
@@ -154,7 +155,7 @@ async fn run_prices(matches: &ArgMatches, network: &str) -> Result<(), CloudEngi
 fn source_request(
     matches: &ArgMatches,
     network: &str,
-) -> Result<CloudEngineSourceRequest, CurrentUnixSecsError> {
+) -> Result<CollectionSourceRequest, CurrentUnixSecsError> {
     Ok(source_request_at(matches, network, current_unix_secs()?))
 }
 
@@ -162,8 +163,8 @@ fn source_request_at(
     matches: &ArgMatches,
     network: &str,
     fetched_at_unix_secs: u64,
-) -> CloudEngineSourceRequest {
-    CloudEngineSourceRequest::from_unix_secs(
+) -> CollectionSourceRequest {
+    CollectionSourceRequest::from_unix_secs(
         network,
         required_string(matches, SOURCE_ENDPOINT_ARG),
         fetched_at_unix_secs,

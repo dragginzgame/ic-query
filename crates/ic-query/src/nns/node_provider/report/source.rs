@@ -2,9 +2,10 @@ use super::{
     NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION, NnsNodeProviderHostError,
     NnsNodeProviderListReport, NnsNodeProviderRow,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     ic_registry::{MainnetNodeProviderList, fetch_mainnet_node_provider_list},
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
 ///
@@ -16,14 +17,14 @@ use crate::{
 pub trait NnsNodeProviderSource: Sync {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>;
 }
 
 impl NnsNodeProviderSource for LiveNnsSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
     {
         Box::pin(async move {

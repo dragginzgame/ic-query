@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, ROOT_A, fixture_sns_governance_parameters};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SNS_REWARD_CHECKPOINT_PAGE_SIZE;
 use crate::sns::report::tests::*;
 use std::{collections::VecDeque, sync::Mutex};
@@ -60,7 +61,7 @@ delegate_sns_discovery!(FixtureSnsRewardSource);
 impl SnsRewardSource for FixtureSnsRewardSource {
     fn fetch_sns_reward_running_version<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
         Box::pin(async move {
@@ -78,7 +79,7 @@ impl SnsRewardSource for FixtureSnsRewardSource {
 
     fn fetch_sns_reward_parameters<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
         Box::pin(async move {
@@ -96,7 +97,7 @@ impl SnsRewardSource for FixtureSnsRewardSource {
 
     fn fetch_sns_reward_event<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
         Box::pin(async move {
@@ -113,7 +114,7 @@ impl SnsRewardSource for FixtureSnsRewardSource {
 
     fn fetch_sns_reward_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         limit: u32,
         _start_page_at: Option<&'a SnsNeuronId>,

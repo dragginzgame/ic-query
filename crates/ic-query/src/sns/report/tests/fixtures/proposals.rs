@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::tests::*;
 
@@ -15,7 +16,7 @@ delegate_sns_discovery!(FixtureSnsProposalSource);
 impl SnsProposalSource for FixtureSnsProposalSource {
     fn fetch_sns_proposal<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         proposal_id: u64,
     ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
@@ -30,7 +31,7 @@ impl SnsProposalSource for FixtureSnsProposalSource {
 impl SnsProposalSource for NoLiveSnsProposalsSource {
     fn fetch_sns_proposal<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _proposal_id: u64,
     ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
@@ -51,7 +52,7 @@ delegate_sns_discovery!(FixtureSnsProposalsSource);
 impl SnsProposalsSource for FixtureSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -70,7 +71,7 @@ impl SnsProposalsSource for FixtureSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -95,14 +96,14 @@ pub(in crate::sns::report::tests) struct NoLiveSnsProposalsSource;
 impl SnsDiscoverySource for NoLiveSnsProposalsSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move { Err(no_live_error("fetch_sns_inventory")) })
     }
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move { Err(no_live_error("fetch_sns_metadata")) })
@@ -112,7 +113,7 @@ impl SnsDiscoverySource for NoLiveSnsProposalsSource {
 impl SnsProposalsSource for NoLiveSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -124,7 +125,7 @@ impl SnsProposalsSource for NoLiveSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,

@@ -1,6 +1,7 @@
 use super::{fixtures::*, *};
 use crate::cache_file::{CacheFileError, HostCacheError};
-use crate::nns::{LiveNnsSource, NnsSourceRequest};
+use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 use std::{
@@ -14,7 +15,7 @@ struct PendingSource;
 impl SubnetCatalogSource for PendingSource {
     fn fetch_catalog<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(std::future::pending())
     }
@@ -25,7 +26,7 @@ struct WrongEndpointSource;
 impl SubnetCatalogSource for WrongEndpointSource {
     fn fetch_catalog<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async { Ok(fixture_catalog()) })
     }
@@ -76,7 +77,7 @@ async fn refresh_exports_protect_a_live_sources_separate_history_root_before_col
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -95,7 +96,7 @@ async fn live_catalog_source_rejects_non_mainnet_before_agent_construction() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn public_async_catalog_fetch_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -440,7 +441,7 @@ async fn refresh_rechecks_output_aliases_after_source_collection() {
     impl SubnetCatalogSource for AliasingSource {
         fn fetch_catalog<'a>(
             &'a self,
-            request: &'a NnsSourceRequest,
+            request: &'a CollectionSourceRequest,
         ) -> SubnetCatalogSourceFuture<'a> {
             Box::pin(async move {
                 if self.hard_link {
@@ -632,7 +633,10 @@ async fn concurrent_endpoint_cancellation_preserves_cache_and_allows_immediate_r
         }
     }
     impl SubnetCatalogSource for TrackedSource {
-        fn fetch_catalog<'a>(&'a self, _: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+        fn fetch_catalog<'a>(
+            &'a self,
+            _: &'a CollectionSourceRequest,
+        ) -> SubnetCatalogSourceFuture<'a> {
             Box::pin(async move {
                 self.started.fetch_add(1, Ordering::SeqCst);
                 let _guard = Guard(&self.dropped);

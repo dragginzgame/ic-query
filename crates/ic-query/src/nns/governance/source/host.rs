@@ -6,7 +6,7 @@
 
 use super::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
 use crate::nns::{
-    LiveNnsSource, NnsSourceRequest,
+    LiveNnsSource,
     governance::{
         NnsGovernanceEconomics, NnsGovernanceError, NnsGovernanceMaturityModulation,
         NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,
@@ -17,6 +17,7 @@ use crate::nns::{
     },
     governance_query::{query_nns_governance, query_nns_governance_no_args},
 };
+use crate::report::CollectionSourceRequest;
 
 impl NnsGovernanceSource for LiveNnsSource {
     fn fetch_economics<'a>(
@@ -94,7 +95,7 @@ impl NnsGovernanceSource for LiveNnsSource {
 
 pub fn host_request(
     request: &NnsGovernanceRequest,
-) -> Result<(NnsSourceRequest, NnsGovernanceSourceProvenance), NnsGovernanceError> {
+) -> Result<(CollectionSourceRequest, NnsGovernanceSourceProvenance), NnsGovernanceError> {
     validate_governance_request(request)?;
     let NnsGovernanceSourceSelection::ReplicaQuery {
         endpoint,
@@ -106,7 +107,7 @@ pub fn host_request(
         });
     };
     let request =
-        NnsSourceRequest::new(&request.network, endpoint, &request.fetched_at, fetched_by);
+        CollectionSourceRequest::new(&request.network, endpoint, &request.fetched_at, fetched_by);
     let provenance = NnsGovernanceSourceProvenance::ReplicaQuery {
         endpoint: endpoint.clone(),
         fetched_by: fetched_by.clone(),

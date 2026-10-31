@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::test_support::temp_dir;
 
 pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
@@ -42,7 +43,7 @@ pub(super) struct FixtureNodeProviderSource {
 impl NnsNodeProviderSource for FixtureNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
     {
         Box::pin(async move {
@@ -83,7 +84,7 @@ pub(super) struct FailingNodeProviderSource;
 impl NnsNodeProviderSource for FailingNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        _request: &'a NnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
     {
         Box::pin(async move {

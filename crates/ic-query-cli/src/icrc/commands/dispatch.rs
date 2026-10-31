@@ -4,11 +4,14 @@
 //! Does not own: Clap command definitions, live calls, or report rendering.
 //! Boundary: converts one composed parse tree into public requests and one output.
 
+use super::options::{
+    analytics_account_info_request, analytics_account_list_request, analytics_holder_list_request,
+    analytics_token_value_request, analytics_total_supply_request,
+};
+
 use super::{
     IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
-    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
-    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
     IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 use crate::{
@@ -19,15 +22,11 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::ic::{
-    DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
-    IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest,
-    IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcIndexedCountKind,
-    IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueRequest,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest, MIN_ICRC_ANALYTICS_TIMESTAMP,
-    build_icrc_account_info_report, build_icrc_account_list_report, build_icrc_holder_list_report,
-    build_icrc_indexed_count_report, build_icrc_token_value_report, build_icrc_total_supply_report,
-    icrc_account_info_report_text, icrc_account_list_report_text, icrc_holder_list_report_text,
-    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
+    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, build_icrc_account_info_report,
+    build_icrc_account_list_report, build_icrc_holder_list_report, build_icrc_indexed_count_report,
+    build_icrc_token_value_report, build_icrc_total_supply_report, icrc_account_info_report_text,
+    icrc_account_list_report_text, icrc_holder_list_report_text, icrc_indexed_count_report_text,
+    icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 use ic_query::icrc::{
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
@@ -79,25 +78,12 @@ async fn run_icrc_analytics_account(matches: &ArgMatches) -> Result<(), IcrcComm
             run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Account).await
         }
         Some(("info", matches)) => {
-            let options = IcrcAnalyticsAccountInfoOptions::from_matches(matches);
-            let target = options.target;
-            let (format, dashboard, ledger_canister_id) =
-                target.into_dashboard_request(current_unix_secs()?);
-            let request =
-                IcIcrcAccountInfoRequest::new(dashboard, ledger_canister_id, options.account_id);
+            let (format, request) = analytics_account_info_request(matches, current_unix_secs()?);
             let report = build_icrc_account_info_report(&request).await?;
             write_text_or_json(format, &report, icrc_account_info_report_text)
         }
         Some(("list", matches)) => {
-            let options = IcrcAnalyticsAccountListOptions::from_matches(matches);
-            let target = options.target;
-            let mut query = IcIcrcAccountListQuery::new(options.limit, options.sort_by);
-            query.owner = options.owner;
-            query.after = options.after;
-            query.before = options.before;
-            let (format, dashboard, ledger_canister_id) =
-                target.into_dashboard_request(current_unix_secs()?);
-            let request = IcIcrcAccountListRequest::new(dashboard, ledger_canister_id, query);
+            let (format, request) = analytics_account_list_request(matches, current_unix_secs()?);
             let report = build_icrc_account_list_report(&request).await?;
             write_text_or_json(format, &report, icrc_account_list_report_text)
         }
@@ -111,14 +97,7 @@ async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcComma
             run_icrc_analytics_indexed_count_leaf(matches, IcIcrcIndexedCountKind::Holder).await
         }
         Some(("list", matches)) => {
-            let options = IcrcAnalyticsHolderListOptions::from_matches(matches);
-            let target = options.target;
-            let mut query = IcIcrcHolderListQuery::new(options.limit, options.sort_by);
-            query.after = options.after;
-            query.before = options.before;
-            let (format, dashboard, ledger_canister_id) =
-                target.into_dashboard_request(current_unix_secs()?);
-            let request = IcIcrcHolderListRequest::new(dashboard, ledger_canister_id, query);
+            let (format, request) = analytics_holder_list_request(matches, current_unix_secs()?);
             let report = build_icrc_holder_list_report(&request).await?;
             write_text_or_json(format, &report, icrc_holder_list_report_text)
         }
@@ -127,18 +106,7 @@ async fn run_icrc_analytics_holder(matches: &ArgMatches) -> Result<(), IcrcComma
 }
 
 async fn run_icrc_analytics_token_values(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
-    let options = IcrcAnalyticsTokenValueOptions::from_matches(matches);
-    let window = options.window;
-    let now_unix_secs = current_unix_secs()?;
-    let (start_unix_secs, end_unix_secs) =
-        window.resolve_bounds(now_unix_secs, DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, 0);
-    let target = window.target;
-    let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
-    let request = IcIcrcTokenValueRequest::new(
-        dashboard,
-        ledger_canister_id,
-        IcIcrcTokenValueQuery::new(start_unix_secs, end_unix_secs, options.limit),
-    );
+    let (format, request) = analytics_token_value_request(matches, current_unix_secs()?);
     let report = build_icrc_token_value_report(&request).await?;
     write_text_or_json(format, &report, icrc_token_value_report_text)
 }
@@ -156,21 +124,7 @@ async fn run_icrc_analytics_indexed_count_leaf(
 }
 
 async fn run_icrc_analytics_total_supply(matches: &ArgMatches) -> Result<(), IcrcCommandError> {
-    let options = IcrcAnalyticsTotalSupplyOptions::from_matches(matches);
-    let window = options.window;
-    let now_unix_secs = current_unix_secs()?;
-    let (start_unix_secs, end_unix_secs) = window.resolve_bounds(
-        now_unix_secs,
-        DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
-        MIN_ICRC_ANALYTICS_TIMESTAMP,
-    );
-    let target = window.target;
-    let (format, dashboard, ledger_canister_id) = target.into_dashboard_request(now_unix_secs);
-    let request = IcIcrcTotalSupplyRequest::new(
-        dashboard,
-        ledger_canister_id,
-        IcIcrcTotalSupplyQuery::new(start_unix_secs, end_unix_secs, options.step_secs),
-    );
+    let (format, request) = analytics_total_supply_request(matches, current_unix_secs()?);
     let report = build_icrc_total_supply_report(&request).await?;
     write_text_or_json(format, &report, icrc_total_supply_report_text)
 }

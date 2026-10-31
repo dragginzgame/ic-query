@@ -5,6 +5,7 @@
 //! Boundary: builds list_proposals requests and maps responses into source models.
 
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError, SnsProposalTopicFilter,
@@ -16,13 +17,13 @@ use crate::sns::report::{
             ListProposalsRequest, ListProposalsResponse, SnsProposalId, SnsTopic, SnsTopicSelector,
         },
     },
-    source::{MainnetSns, SnsSourceRequest},
+    source::MainnetSns,
 };
 
 /// Fetch a bounded SNS governance proposal listing from one resolved SNS.
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposals(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,
@@ -57,7 +58,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposals(
 /// Fetch one unfiltered proposal page for complete snapshot refresh.
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_proposal_page(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     before_proposal_id: Option<u64>,

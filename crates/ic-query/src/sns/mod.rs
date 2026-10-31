@@ -26,11 +26,11 @@ pub use report::{
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     build_sns_reward_diff_report, sns_canister_report_text, sns_info_report_text,
-    sns_list_report_text, sns_metrics_report_text, sns_neuron_detail_report_text,
-    sns_neuron_permission_name, sns_params_report_text, sns_proposal_report_text,
-    sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
-    sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
-    validate_sns_reward_checkpoint_report,
+    sns_list_report_text, sns_list_report_text_with_metadata_style, sns_metrics_report_text,
+    sns_neuron_detail_report_text, sns_neuron_permission_name, sns_params_report_text,
+    sns_proposal_report_text, sns_proposals_report_text, sns_reward_checkpoint_report_text,
+    sns_reward_diff_report_text, sns_swap_report_text, sns_token_report_text,
+    sns_upgrade_report_text, validate_sns_reward_checkpoint_report,
 };
 
 #[cfg(feature = "sns-host")]
@@ -44,8 +44,8 @@ pub use report::{
     SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
     SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource,
     SnsProposalSource, SnsProposalsSource, SnsRefreshAttemptStatus, SnsRewardCheckpointRequest,
-    SnsRewardSource, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSourceRequest,
-    SnsSwapSource, SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
+    SnsRewardSource, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSwapSource,
+    SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
     build_sns_canister_report_with_source, build_sns_info_report,
     build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
     build_sns_list_report_from_cache_or_refresh,

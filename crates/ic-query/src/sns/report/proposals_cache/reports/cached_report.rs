@@ -7,6 +7,7 @@
 use crate::report::ReportProvenance;
 use crate::{
     QueryProgress, QueryProgressEvent,
+    cache_file::{CacheRefreshReason, load_or_refresh_cache},
     sns::report::{
         SnsHostError, SnsProposalsReport, SnsProposalsRequest, SnsSnapshotRefreshRequest,
         assemble::{SnsReportContext, sns_proposals_report_from_parts},
@@ -50,23 +51,31 @@ async fn load_or_refresh_sns_proposals_cache(
             &request.lookup.input,
         )
     };
-    let path = match load() {
-        Ok(cache) => return Ok(cache),
-        Err(SnsHostError::MissingProposalsCache { path }) => path,
-        Err(error) => return Err(error),
-    };
-    progress.report(QueryProgressEvent::CacheRefresh {
-        component: "SNS proposals".to_string(),
-        path,
-        source_endpoint: request.lookup.source_endpoint.clone(),
-    });
-    refresh_sns_proposals_cache_with_source_and_progress(
-        &proposals_refresh_request_from_list_request(request, cache_root),
-        source,
-        progress,
+    load_or_refresh_cache(
+        load,
+        |_| false,
+        |error| match error {
+            SnsHostError::MissingProposalsCache { path } => Ok(CacheRefreshReason::Missing(path)),
+            error => Err(error),
+        },
+        async |reason| {
+            if let CacheRefreshReason::Missing(path) = reason {
+                progress.report(QueryProgressEvent::CacheRefresh {
+                    component: "SNS proposals".to_string(),
+                    path,
+                    source_endpoint: request.lookup.source_endpoint.clone(),
+                });
+            }
+            refresh_sns_proposals_cache_with_source_and_progress(
+                &proposals_refresh_request_from_list_request(request, cache_root),
+                source,
+                progress,
+            )
+            .await?;
+            Ok(())
+        },
     )
-    .await?;
-    load()
+    .await
 }
 
 fn proposals_refresh_request_from_list_request(

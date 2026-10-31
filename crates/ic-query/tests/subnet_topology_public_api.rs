@@ -36,6 +36,7 @@ fn public_subnet_topology_model_is_constructible_and_validatable_without_host() 
 #[cfg(feature = "nns-topology-host")]
 mod host {
     use super::*;
+    use ic_query::nns::LiveNnsSource;
     use ic_query::nns::topology::{
         CachedNnsSubnetTopologyReport, NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
         NnsSubnetTopologyRefreshRequest, NnsSubnetTopologySource, load_cached_nns_subnet_topology,
@@ -43,12 +44,12 @@ mod host {
         nns_subnet_topology_cache_path, nns_subnet_topology_freshness,
         refresh_nns_subnet_topology_with_source,
     };
-    use ic_query::nns::{LiveNnsSource, NnsSourceRequest};
+    use ic_query::report::CollectionSourceRequest;
     use std::fs;
 
     #[tokio::test(flavor = "current_thread")]
     async fn public_live_source_rejects_non_mainnet_before_agent_construction() {
-        let request = NnsSourceRequest::new(
+        let request = CollectionSourceRequest::new(
             "local",
             "not a valid replica endpoint",
             "2026-07-29T00:00:00Z",
@@ -114,7 +115,7 @@ mod host {
     impl NnsSubnetTopologySource for FixtureSource {
         fn fetch_subnet_topology_report<'a>(
             &'a self,
-            request: &'a NnsSourceRequest,
+            request: &'a CollectionSourceRequest,
         ) -> ic_query::report::SourceFuture<
             'a,
             Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError>,

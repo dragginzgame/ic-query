@@ -156,11 +156,11 @@ pub use source::{
     MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
     MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
     SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsRewardSource, SnsSourceRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource,
+    SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
-    sns_canister_report_text, sns_info_report_text, sns_list_report_text, sns_metrics_report_text,
+    sns_canister_report_text, sns_info_report_text, sns_list_report_text,
+    sns_list_report_text_with_metadata_style, sns_metrics_report_text,
     sns_neuron_detail_report_text, sns_params_report_text, sns_proposal_report_text,
     sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
     sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,

@@ -4,7 +4,8 @@
 //! Does not own: live transport, lookup parsing, report assembly, or rendering.
 //! Boundary: validates discovery provenance and exact enrichment target coverage before joining.
 
-use super::{SnsSourceRequest, validation::SnsSourceValidator};
+use super::validation::SnsSourceValidator;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsCanisters, SnsHostError};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -150,7 +151,7 @@ pub(in crate::sns::report) struct JoinedMainnetSnsInventory {
 }
 
 pub(in crate::sns::report) fn validate_mainnet_sns_inventory(
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     inventory: &MainnetSnsInventory,
 ) -> Result<(), SnsHostError> {
     INVENTORY_VALIDATOR.exact("network", &request.network, &inventory.network)?;

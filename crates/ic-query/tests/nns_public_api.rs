@@ -2,6 +2,8 @@
 use ic_query::nns::governance::{NnsGovernanceRefreshReport, nns_governance_refresh_report_text};
 #[cfg(feature = "nns-host")]
 use ic_query::nns::{NnsInventoryRefreshReport, nns_inventory_refresh_report_text};
+#[cfg(feature = "nns-host")]
+use ic_query::report::CollectionSourceRequest;
 use std::future::Future;
 
 #[cfg(feature = "nns-host")]
@@ -180,7 +182,6 @@ use ic_query::nns::topology::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::{
     NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsInventoryRefreshRequest,
-    NnsSourceRequest,
 };
 use ic_query::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
 use ic_query::report::{ReportDataSource, ReportResultScope};
@@ -1521,7 +1522,7 @@ struct FixtureNnsRegistrySource;
 impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
     {
         Box::pin(async move {
@@ -2464,7 +2465,7 @@ struct FixtureNnsNodeSource;
 impl NnsNodeSource for FixtureNnsNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
         Box::pin(async move {
             assert_inventory_source_request(
@@ -2490,7 +2491,7 @@ struct FixtureNnsDataCenterSource;
 impl NnsDataCenterSource for FixtureNnsDataCenterSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
     {
         Box::pin(async move {
@@ -2517,7 +2518,7 @@ struct FixtureNnsNodeProviderSource;
 impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
         Result<NnsNodeProviderListReport, NnsNodeProviderHostError>,
@@ -2546,7 +2547,7 @@ struct FixtureNnsNodeOperatorSource;
 impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<
         'a,
         Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>,

@@ -8,8 +8,8 @@
 use super::{
     CLOUD_ENGINE_AUTHORITY, CLOUD_ENGINE_REPORT_SCHEMA_VERSION, CloudEngineHostError,
     CloudEngineListReport, CloudEngineListRow, CloudEngineOperatorBindingSource,
-    CloudEngineOperatorBindingSourceData, CloudEngineSourceRequest, LiveCloudEngineSource,
-    MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_LIST_ROWS,
+    CloudEngineOperatorBindingSourceData, LiveCloudEngineSource, MAINNET_CLOUD_ENGINE_CANISTER_ID,
+    MAX_CLOUD_ENGINE_LIST_ROWS,
     build::{
         invalid_source, validate_canonical_principal, validate_principal_match,
         validate_source_request,
@@ -17,6 +17,7 @@ use super::{
     enforce_mainnet_network,
 };
 use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSource,
     SubnetKind, build_subnet_catalog_list_report_with_source_and_progress,
@@ -30,7 +31,7 @@ const MAX_LOOKUP_ERROR_BYTES: usize = 4_096;
 /// Build a bounded CloudEngine inventory using the Registry catalog and live control plane.
 pub async fn build_cloud_engine_list_report(
     catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
     build_cloud_engine_list_report_with_sources(
         catalog_request,
@@ -44,7 +45,7 @@ pub async fn build_cloud_engine_list_report(
 /// Build a CloudEngine inventory while reporting authorized catalog refreshes.
 pub async fn build_cloud_engine_list_report_with_progress(
     catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
     build_cloud_engine_list_report_with_sources_and_progress(
@@ -60,7 +61,7 @@ pub async fn build_cloud_engine_list_report_with_progress(
 /// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
 pub async fn build_cloud_engine_list_report_with_sources(
     catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     catalog_source: &dyn SubnetCatalogSource,
     binding_source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
@@ -77,7 +78,7 @@ pub async fn build_cloud_engine_list_report_with_sources(
 /// Build a CloudEngine inventory with caller-owned sources and progress sink.
 pub async fn build_cloud_engine_list_report_with_sources_and_progress(
     catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     catalog_source: &dyn SubnetCatalogSource,
     binding_source: &dyn CloudEngineOperatorBindingSource,
     progress: &mut (dyn QueryProgress + Send),
@@ -102,7 +103,7 @@ pub async fn build_cloud_engine_list_report_with_sources_and_progress(
 }
 
 pub(super) async fn build_cloud_engine_list_report_from_catalog_with_source(
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     catalog: SubnetCatalogListReport,
     source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
@@ -131,7 +132,7 @@ pub(super) async fn build_cloud_engine_list_report_from_catalog_with_source(
 }
 
 async fn collect_binding_rows(
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     catalog: &SubnetCatalogListReport,
     source: &dyn CloudEngineOperatorBindingSource,
 ) -> Result<Vec<CloudEngineListRow>, CloudEngineHostError> {
@@ -170,7 +171,7 @@ async fn collect_binding_rows(
 }
 
 fn assemble_report(
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
     catalog: SubnetCatalogListReport,
     cloud_engines: Vec<CloudEngineListRow>,
 ) -> CloudEngineListReport {
@@ -225,7 +226,7 @@ fn assemble_report(
 
 fn validate_requests(
     catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CloudEngineSourceRequest,
+    control_plane_request: &CollectionSourceRequest,
 ) -> Result<(), CloudEngineHostError> {
     enforce_mainnet_network(&control_plane_request.network)?;
     if catalog_request.cache.network != control_plane_request.network {
@@ -271,7 +272,7 @@ fn validate_catalog_rows(catalog: &SubnetCatalogListReport) -> Result<(), CloudE
 }
 
 fn validate_binding_source(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     subnet_id: &str,
     source: &CloudEngineOperatorBindingSourceData,
 ) -> Result<Option<Principal>, CloudEngineHostError> {

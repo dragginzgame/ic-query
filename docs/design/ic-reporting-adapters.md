@@ -43,14 +43,13 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.21.0 includes validated Serde transport for measurement aggregates,
-scalar counters, summaries and fixed-bound histograms, with Wire metadata on
-native hosts. Query uses its checked measurement and percentage arithmetic in
-local report helpers. Dashboard observations and Governance metric payloads retain their
-source-specific report contracts. Native dependency graphs include Metrics' Wire
-metadata support; portable Wasm and canister graphs continue excluding Wire.
-Metrics is published from the IC Observability workspace. Query retains its
-existing arithmetic behavior and native/Wasm feature boundaries.
+Metrics 0.22.0 keeps arithmetic and validated Serde transport available without
+native Wire metadata. Query disables defaults because its checked measurement
+and percentage arithmetic is private implementation detail. Dashboard observations
+and Governance metric payloads retain their source-specific report contracts.
+Production native, portable and canister graphs exclude Wire; development probes
+and fixtures select Wire's core codec explicitly. Metrics is published from the
+IC Observability workspace. Arithmetic behavior and report formats are unchanged.
 
 The private Registry adapter consumes Host's published protobuf projections and
 routing-shard checks directly. The `subnet-catalog-host` feature enables this
@@ -65,22 +64,22 @@ Query selects their coordinated published packages through the workspace catalog
 and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
-The current workspace minimums are Platform 0.11.1, Metrics 0.21.0,
-Host/Build/Testkit 0.72.1 and Wire 0.10.0. Direct Wire use belongs to probes and
-development fixtures and selects the core codec without its endpoint integration.
-Metrics and probe tooling select the same Wire 0.10 metadata and codec identity.
-Query keeps its arithmetic types private. Optional schemas for Platform-owned
-Principal/Account types belong to Wire's `platform-types` feature; Query's core
-codec selection does not require those schemas or endpoint integration.
+The current workspace minimums are Platform 0.13.0, Metrics 0.22.0,
+Host/Build/Testkit 0.72.1 and Wire 0.11.0. Direct Wire use belongs to probes and
+development fixtures and selects the core codec without endpoint or schema
+integration. Optional schemas for Platform-owned Principal/Account types belong
+to Wire's `platform-types` feature. Wire 0.11 targets Platform 0.12 for those
+optional integrations; applications selecting them must coordinate their runtime
+and type suppliers separately from Query's Platform 0.13 boundary.
 
-Platform 0.11 owns the selected ICRC DTO and callback Rust types. Custom
+Platform 0.13 owns the selected ICRC DTO and callback Rust types. Custom
 `IcrcTipCertificateSource` implementations use its `ICRC3DataCertificate`, rather
 than the registry ledger package's certificate type. External wire/Serde shapes
 and value hashes remain the protocol contracts; the Rust identity change selects
-Query 0.78. Host/Testkit 0.72.1 and Query select one Platform 0.11.1 supplier,
-including owned Registry Principals and ledger values. Query consumes those
-values directly at their boundaries; upstream Agent/Candid/certificate identities
-remain shared.
+Query 0.79. Host/Testkit 0.72.1 retain Platform 0.11 for native Registry Principals
+and ledger values. Query consumes Host-owned values at those boundaries while
+its own public ledger types use Platform 0.13. Upstream Agent/Candid/certificate
+identities remain shared.
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.
 Query retains its existing byte, work, type-table and header budgets and reply
@@ -90,15 +89,16 @@ Query does not use the Candid frontend compiler exports retired by
 Platform 0.7. Required external Candid parsing and type checking remain in
 Testkit fixtures. External Agent, Candid, Principal and certificate identities
 remain shared across the selected packages. Query's canister runtime selects
-Platform 0.11's embedded IC0 and executor, with one Platform runtime owner and no
+Platform 0.13's embedded IC0 and executor, with one Platform runtime owner and no
 registry executor or IC0 package in the Wasm normal/build graph. Embedders must
-align every runtime consumer on Platform 0.11, including timer libraries when used.
+align every runtime consumer on Platform 0.13, including timer libraries when used.
 Platform selects its singleton guard through executor/runtime features;
 portable and native-only Query graphs exclude that guard. Native facade use
 therefore does not exclude an unrelated executor from a consumer's wider graph.
-Public ledger and runtime handles have Platform 0.11 identity, requiring the Query
-0.78 minor cut. No dependency override, copied runtime or compatibility wrapper
-is used in Query.
+Public ledger and runtime handles have Platform 0.13 identity, requiring the Query
+0.79 minor cut. Platform 0.13 removes its generic gzip facade; Query already uses
+Host Artifacts at that boundary and enables no Platform gzip feature. No
+dependency override, copied runtime or compatibility wrapper is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
@@ -171,7 +171,7 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Its embedded executor and IC0 share the selected Platform 0.11 identity;
+graphs. Its embedded executor and IC0 share the selected Platform 0.13 identity;
 the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
@@ -244,8 +244,8 @@ Report families continue to own small source capability traits. A custom
 adapter implements only the capabilities it can supply, while the built-in
 adapter implements all capabilities supported for its authority. Identical
 network and collection provenance use a shared source request instead of
-per-report request DTOs. Native Registry and inventory capabilities use
-`ic_query::nns::NnsSourceRequest`. Registry-derived NNS inventory operations
+per-report request DTOs. Native NNS, SNS, CMC and CloudEngine capabilities use
+`ic_query::report::CollectionSourceRequest`; network admission remains family-owned. Registry-derived NNS inventory operations
 share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
 `NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Their refreshes
 return `NnsInventoryRefreshReport` with explicit collection identity, row count,
@@ -276,7 +276,7 @@ transport-aware `NnsGovernanceRequest`; its portable async sources select
 replica-query or replicated inter-canister collection. `LiveNnsSource` and
 `CanisterNnsSource` implement the native and Wasm canister transports. These
 remain live point-value reports rather than creating another collection cache.
-SNS capabilities share `SnsSourceRequest`, including explicit network and
+SNS capabilities share `CollectionSourceRequest`, including explicit network and
 collection provenance. Targeted live-capable requests compose a `SnsLookupRequest`
 for network, endpoint, caller clock and target. Builders borrow that scope;
 cache-only and whole-SNS list requests keep their distinct acquisition inputs. Complete neuron/proposal refreshes accept one
@@ -344,7 +344,7 @@ Certified IC state remains a distinct authority on `LiveIcStateSource`.
 `IcApiBoundaryNodeSource` returns one complete authenticated
 `api_boundary_nodes` subtree with its certificate time; it does not share the
 Dashboard request/provenance DTO or make Dashboard data certified.
-Certified CMC views share one `CmcSourceRequest` and one `CmcSource`
+Certified CMC views share one `CollectionSourceRequest` and one `CmcSource`
 capability on `LiveCmcSource`. The `xdr` and `cycles` reports are projections
 of the same authenticated native rate rather than separate remote-method
 adapters.
@@ -844,3 +844,12 @@ validation contract.
 - authenticated mutation or management-canister operations;
 - merging Dashboard analytics into exact Registry evidence;
 - compatibility aliases for replaced pre-1.0 adapter names.
+
+ICRC-106 source discovery returns `IcrcIndexData::Found(principal)` or
+`IcrcIndexData::Unavailable(reason)`. Transport failures remain the outer
+`IcrcError`. The report projects the outcome to the existing optional
+`index_canister_id` and `index_error` JSON fields.
+
+SNS list text accepts a metadata-cell style callback after Host escaping and
+alignment. The callback receives the typed row's metadata failure state; the CLI
+owns terminal detection, `NO_COLOR` and ANSI selection.

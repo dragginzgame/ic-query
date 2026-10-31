@@ -101,7 +101,7 @@ optional health fields. Cycle-balance status must match the raw `cycles` value,
 and a health-query gap cannot coexist with returned canister status or
 health-response relation gaps.
 
-`SnsSourceRequest` carries network, endpoint, collection timestamp, and
+`CollectionSourceRequest` carries network, endpoint, collection timestamp, and
 collector. Direct built-in source calls reject a non-`ic` network before
 constructing an agent.
 

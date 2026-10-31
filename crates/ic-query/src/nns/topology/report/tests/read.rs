@@ -49,7 +49,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
                         .map(|_| ())
                 })
             },
-            all,
+            inventory,
         ),
         (
             |r, s| {

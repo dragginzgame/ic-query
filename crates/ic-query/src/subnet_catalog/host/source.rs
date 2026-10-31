@@ -2,11 +2,12 @@ use super::{
     SubnetCatalogHostError, SubnetCatalogSourceFailure, SubnetCatalogSubject,
     failure::subject_from_catalog_error,
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     hex::hex_bytes,
     http_endpoint::parse_http_endpoint,
     ic_registry::fetch_mainnet_subnet_catalog_async,
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
     subnet_catalog::{
         CatalogAssurance, CatalogValidationContext, MAINNET_REGISTRY_CANISTER_ID,
         MAX_SUBNET_CATALOG_AGREEMENT_ENDPOINTS, MIN_SUBNET_CATALOG_AGREEMENT_ENDPOINTS,
@@ -130,7 +131,7 @@ impl CatalogSourceSelection {
 
 /// Fetch one live mainnet catalog without creating a Tokio runtime or helper thread.
 pub async fn fetch_subnet_catalog_async(
-    request: &NnsSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<RawSubnetCatalog, SubnetCatalogHostError> {
     let fetch_request = mainnet_registry_fetch_request(request, |network| {
         SubnetCatalogHostError::UnsupportedNetwork { network }
@@ -152,12 +153,15 @@ pub trait SubnetCatalogSource: Send + Sync {
     }
 
     /// Fetch one complete single-endpoint snapshot on the caller's async runtime.
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a>;
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a>;
 
     /// Fetch a snapshot while retaining typed failure provenance when the source can provide it.
     fn fetch_catalog_detailed<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogDetailedSourceFuture<'a> {
         let future = self.fetch_catalog(request);
         Box::pin(async move {
@@ -215,7 +219,10 @@ impl SubnetCatalogSource for LiveSubnetCatalogSource {
         self.acquisition.history_cache_paths()
     }
 
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(async move {
             self.fetch_catalog_detailed(request)
                 .await
@@ -225,7 +232,7 @@ impl SubnetCatalogSource for LiveSubnetCatalogSource {
 
     fn fetch_catalog_detailed<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogDetailedSourceFuture<'a> {
         Box::pin(async move {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
@@ -260,13 +267,16 @@ impl SubnetCatalogSource for LiveSubnetCatalogSource {
 }
 
 impl SubnetCatalogSource for LiveNnsSource {
-    fn fetch_catalog<'a>(&'a self, request: &'a NnsSourceRequest) -> SubnetCatalogSourceFuture<'a> {
+    fn fetch_catalog<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SubnetCatalogSourceFuture<'a> {
         Box::pin(fetch_subnet_catalog_async(request))
     }
 
     fn fetch_catalog_detailed<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> SubnetCatalogDetailedSourceFuture<'a> {
         Box::pin(async move {
             LiveSubnetCatalogSource::default()
@@ -295,7 +305,7 @@ pub(super) async fn collect_subnet_catalog_detailed(
     // Owned futures are dropped with this collection; no detached tasks outlive the lock.
     // Buffered preserves canonical endpoint order for validation and failure selection.
     let mut collections = stream::iter(endpoints.clone().into_iter().map(|endpoint| async move {
-        let request = NnsSourceRequest::new(network, &endpoint, fetched_at, fetched_by);
+        let request = CollectionSourceRequest::new(network, &endpoint, fetched_at, fetched_by);
         (endpoint, source.fetch_catalog_detailed(&request).await)
     }))
     .buffered(2);

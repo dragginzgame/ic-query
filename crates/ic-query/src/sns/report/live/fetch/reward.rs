@@ -6,9 +6,10 @@
 
 use super::governance_canister;
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MainnetSns, MainnetSnsRewardNeuronPage, SNS_REWARD_CHECKPOINT_PAGE_SIZE, SnsCanisterMethod,
-    SnsHostError, SnsNeuronId, SnsRewardEvent, SnsSourceRequest,
+    SnsHostError, SnsNeuronId, SnsRewardEvent,
     live::{
         convert::sns_reward_checkpoint_row,
         query::sns_agent,
@@ -19,7 +20,7 @@ use crate::sns::report::{
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_event(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<SnsRewardEvent, SnsHostError> {
     let agent = sns_agent(source, request)?;
@@ -38,7 +39,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_event(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_reward_neuron_page(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     start_page_at: Option<&SnsNeuronId>,

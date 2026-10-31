@@ -1,3 +1,4 @@
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
 
@@ -8,7 +9,7 @@ delegate_sns_discovery!(InvalidBoundedSnsNeuronsSource);
 impl SnsNeuronsSource for InvalidBoundedSnsNeuronsSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
@@ -24,7 +25,7 @@ impl SnsNeuronsSource for InvalidBoundedSnsNeuronsSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _start_page_at: Option<&'a SnsNeuronId>,

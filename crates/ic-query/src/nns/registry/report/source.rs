@@ -9,6 +9,7 @@ use super::{
         NnsRegistryCertification,
     },
 };
+use crate::report::CollectionSourceRequest;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
     ic_registry::{
@@ -21,7 +22,7 @@ use crate::{
         MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES, MainnetRegistryVersion,
         fetch_mainnet_certified_registry_delta_batch_async, fetch_mainnet_registry_version,
     },
-    nns::{LiveNnsSource, NnsSourceRequest, source::mainnet_registry_fetch_request},
+    nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
@@ -76,14 +77,14 @@ impl From<MainnetRegistryVersion> for NnsRegistryVersionData {
 pub trait NnsRegistrySource: Sync {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>;
 }
 
 impl NnsRegistrySource for LiveNnsSource {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
         Box::pin(async move {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
@@ -126,7 +127,7 @@ impl NnsCertifiedRegistryDeltaSource for LiveNnsSource {
         request: &'a NnsCertifiedRegistryDeltaBatchRequest,
     ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
         Box::pin(async move {
-            let source_request = NnsSourceRequest::from_unix_secs(
+            let source_request = CollectionSourceRequest::from_unix_secs(
                 &request.network,
                 &request.source_endpoint,
                 request.now_unix_secs,

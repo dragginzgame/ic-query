@@ -1,11 +1,11 @@
-use super::{fetch_full_topology_reports, summary::build_nns_topology_summary_report_with_source};
+use super::{fetch_full_topology_reports, fetch_topology_inventory_reports};
 use crate::nns::{
     LiveNnsSource,
     topology::report::{
         NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION, NnsTopologyCheckReport,
         NnsTopologyCoverageReport, NnsTopologyHostError, NnsTopologyReadRequest, NnsTopologySource,
-        NnsTopologyVersionsReport, check::topology_check_report_from_summary,
-        coverage::topology_coverage_report_from_reports,
+        NnsTopologyVersionsReport, check::topology_check_report_from_reports,
+        coverage::topology_coverage_report_from_reports, enforce_mainnet_network,
         registry_versions::topology_registry_versions,
     },
 };
@@ -42,7 +42,8 @@ pub async fn build_nns_topology_coverage_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCoverageReport, NnsTopologyHostError> {
-    let (_, reports) = fetch_full_topology_reports(request, source).await?;
+    enforce_mainnet_network(&request.network)?;
+    let reports = fetch_topology_inventory_reports(request, source).await?;
 
     Ok(topology_coverage_report_from_reports(
         request.network.clone(),
@@ -61,7 +62,11 @@ pub async fn build_nns_topology_check_report_with_source(
     request: &NnsTopologyReadRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<NnsTopologyCheckReport, NnsTopologyHostError> {
-    let summary = build_nns_topology_summary_report_with_source(request, source).await?;
-
-    Ok(topology_check_report_from_summary(summary))
+    let (subnet_report, reports) = fetch_full_topology_reports(request, source).await?;
+    Ok(topology_check_report_from_reports(
+        request.network.clone(),
+        request.source_endpoint.clone(),
+        subnet_report,
+        &reports,
+    ))
 }

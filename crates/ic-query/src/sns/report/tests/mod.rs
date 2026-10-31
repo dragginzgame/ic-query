@@ -5,14 +5,14 @@ macro_rules! delegate_sns_discovery {
         impl SnsDiscoverySource for $source {
             fn fetch_sns_inventory<'a>(
                 &'a self,
-                request: &'a SnsSourceRequest,
+                request: &'a $crate::report::CollectionSourceRequest,
             ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
                 FixtureSnsDiscoverySource.fetch_sns_inventory(request)
             }
 
             fn fetch_sns_metadata<'a>(
                 &'a self,
-                request: &'a SnsSourceRequest,
+                request: &'a $crate::report::CollectionSourceRequest,
                 targets: &'a [MainnetSnsCanisters],
             ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>>
             {

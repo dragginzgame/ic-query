@@ -4,6 +4,7 @@
 //! Does not own: lookup resolution, cache storage, sorting, or rendering.
 //! Boundary: queries bounded and paged neuron data for live reports and refreshes.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     SnsCanisterMethod, SnsHostError, SnsNeuronDetail, SnsNeuronRow,
     live::{
@@ -16,14 +17,14 @@ use crate::sns::report::{
         },
     },
     source::{
-        MainnetSns, MainnetSnsNeuronPage, SnsNeuronId, SnsSourceRequest, sns_neuron_id_from_text,
+        MainnetSns, MainnetSnsNeuronPage, SnsNeuronId, sns_neuron_id_from_text,
         validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
     },
 };
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neurons(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     owner_principal_id: Option<&str>,
@@ -35,7 +36,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neurons(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     neuron_id: &str,
 ) -> Result<SnsNeuronDetail, SnsHostError> {
@@ -73,7 +74,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_neuron_page(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
     limit: u32,
     start_page_at: Option<&SnsNeuronId>,

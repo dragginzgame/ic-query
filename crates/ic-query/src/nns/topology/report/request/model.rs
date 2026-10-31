@@ -35,8 +35,8 @@ impl NnsTopologyReadRequest {
 impl NnsTopologyReadRequest {
     /// Derive caller-clock provenance for a live collection; cached reports retain their original provenance.
     #[must_use]
-    pub fn source_request(&self) -> crate::nns::NnsSourceRequest {
-        crate::nns::NnsSourceRequest::new(
+    pub fn source_request(&self) -> crate::report::CollectionSourceRequest {
+        crate::report::CollectionSourceRequest::new(
             &self.network,
             &self.source_endpoint,
             ic_host_text::timestamp::format_utc_timestamp_secs(self.now_unix_secs),

@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, ROOT_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
 use crate::sns::report::{SnsNeuronDetail, SnsNeuronRow};
 
@@ -18,7 +19,7 @@ delegate_sns_discovery!(FixtureSnsNeuronSource);
 impl SnsNeuronSource for FixtureSnsNeuronSource {
     fn fetch_sns_neuron<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
     ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
@@ -92,7 +93,7 @@ delegate_sns_discovery!(FixtureSnsNeuronsSource);
 impl SnsNeuronsSource for FixtureSnsNeuronsSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
@@ -120,7 +121,7 @@ impl SnsNeuronsSource for FixtureSnsNeuronsSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
@@ -167,7 +168,7 @@ delegate_sns_discovery!(PagedFixtureSnsNeuronsSource);
 impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
@@ -179,7 +180,7 @@ impl SnsNeuronsSource for PagedFixtureSnsNeuronsSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
@@ -221,7 +222,7 @@ pub(in crate::sns::report::tests) struct NoLiveSnsNeuronsSource;
 impl SnsDiscoverySource for NoLiveSnsNeuronsSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             unreachable!("cache-backed neuron report should not fetch SNS inventory")
@@ -230,7 +231,7 @@ impl SnsDiscoverySource for NoLiveSnsNeuronsSource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _targets: &'a [MainnetSnsCanisters],
     ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(
@@ -242,7 +243,7 @@ impl SnsDiscoverySource for NoLiveSnsNeuronsSource {
 impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
@@ -254,7 +255,7 @@ impl SnsNeuronsSource for NoLiveSnsNeuronsSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _start_page_at: Option<&'a SnsNeuronId>,

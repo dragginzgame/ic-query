@@ -1,3 +1,4 @@
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::source::validate_mainnet_sns_neuron;
 use crate::sns::report::tests::{fixtures::*, *};
 
@@ -184,7 +185,7 @@ async fn reward_checkpoint_rejects_invalid_request_before_source_access() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_reward_source_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-08-03T00:00:00Z",

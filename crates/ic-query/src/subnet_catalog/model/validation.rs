@@ -34,7 +34,7 @@ use crate::{
 use ic_host_artifacts::artifact::Sha256Digest;
 #[cfg(feature = "subnet-catalog-host")]
 use std::collections::BTreeMap;
-use std::{cmp::Ordering, collections::BTreeSet};
+use std::{borrow::Borrow, cmp::Ordering, collections::BTreeSet};
 
 impl RawSubnetCatalog {
     /// Build, canonicalize, classify, and seal one uncertified mainnet source snapshot.
@@ -170,59 +170,59 @@ pub fn canonicalize_subnet_catalog_content(
     routing_ranges: &mut Vec<RoutingRange>,
 ) -> Result<(), CatalogError> {
     subnets.sort_by(|left, right| left.subnet_principal.cmp(&right.subnet_principal));
-    let mut keyed_ranges = routing_ranges
+    let mut ranges = routing_ranges
         .drain(..)
-        .map(|range| {
-            let (start, end) = routing_range_bounds(&range)?;
-            Ok::<_, CatalogError>((start, end, range))
-        })
+        .map(ParsedRoutingRange::parse)
         .collect::<Result<Vec<_>, _>>()?;
-    keyed_ranges.sort_by(|left, right| {
-        compare_routing_keys(
-            &left.0,
-            &left.1,
-            &left.2.subnet_principal,
-            &right.0,
-            &right.1,
-            &right.2.subnet_principal,
-        )
-    });
-    let (bounds, ranges): (Vec<_>, Vec<_>) = keyed_ranges
-        .into_iter()
-        .map(|(start, end, range)| ((start, end), range))
-        .unzip();
-    *routing_ranges = ranges;
+    ranges.sort_by(|left, right| left.key().cmp(&right.key()));
     apply_mainnet_classification_policy(subnets);
-    validate_subnet_catalog_content_with_bounds(subnets, routing_ranges, bounds.into_iter().map(Ok))
+    let validation = validate_parsed_catalog_content(subnets, &ranges);
+    *routing_ranges = ranges.into_iter().map(|range| range.range).collect();
+    validation
+}
+
+struct ParsedRoutingRange<Range> {
+    range: Range,
+    start: Vec<u8>,
+    end: Vec<u8>,
+}
+
+impl<Range: Borrow<RoutingRange>> ParsedRoutingRange<Range> {
+    fn parse(range: Range) -> Result<Self, CatalogError> {
+        let row = range.borrow();
+        let start = principal_bytes(&row.start_canister_id, "start_canister_id")?;
+        let end = principal_bytes(&row.end_canister_id, "end_canister_id")?;
+        Ok(Self { range, start, end })
+    }
+
+    fn key(&self) -> (&[u8], &[u8], &str) {
+        (
+            &self.start,
+            &self.end,
+            &self.range.borrow().subnet_principal,
+        )
+    }
 }
 
 fn validate_subnet_catalog_content(
     subnets: &[SubnetInfo],
     routing_ranges: &[RoutingRange],
 ) -> Result<(), CatalogError> {
-    validate_subnet_catalog_content_with_bounds(
-        subnets,
-        routing_ranges,
-        routing_ranges.iter().map(routing_range_bounds),
-    )
+    let ranges = routing_ranges
+        .iter()
+        .map(ParsedRoutingRange::parse)
+        .collect::<Result<Vec<_>, _>>()?;
+    validate_parsed_catalog_content(subnets, &ranges)
 }
 
-fn routing_range_bounds(range: &RoutingRange) -> Result<(Vec<u8>, Vec<u8>), CatalogError> {
-    Ok((
-        principal_bytes(&range.start_canister_id, "start_canister_id")?,
-        principal_bytes(&range.end_canister_id, "end_canister_id")?,
-    ))
-}
-
-fn validate_subnet_catalog_content_with_bounds(
+fn validate_parsed_catalog_content<Range: Borrow<RoutingRange>>(
     subnets: &[SubnetInfo],
-    routing_ranges: &[RoutingRange],
-    bounds: impl Iterator<Item = Result<(Vec<u8>, Vec<u8>), CatalogError>>,
+    ranges: &[ParsedRoutingRange<Range>],
 ) -> Result<(), CatalogError> {
     if subnets.is_empty() {
         return Err(CatalogError::EmptySubnets);
     }
-    if routing_ranges.is_empty() {
+    if ranges.is_empty() {
         return Err(CatalogError::EmptyRoutingRanges);
     }
     let mut subnet_principals = BTreeSet::new();
@@ -242,48 +242,38 @@ fn validate_subnet_catalog_content_with_bounds(
         validate_raw_subnet_classification(subnet)?;
     }
 
-    let mut validated_ranges = Vec::with_capacity(routing_ranges.len());
-    for (range, bounds) in routing_ranges.iter().zip(bounds) {
+    for parsed in ranges {
+        let range = parsed.range.borrow();
         if !subnet_principals.contains(range.subnet_principal.as_str()) {
             return Err(CatalogError::UnknownRoutingSubnet {
                 subnet_principal: range.subnet_principal.clone(),
             });
         }
-        let (start, end) = bounds?;
-        if start > end {
+        if parsed.start > parsed.end {
             return Err(CatalogError::InvalidRoutingRange {
                 subnet_principal: range.subnet_principal.clone(),
                 start_canister_id: range.start_canister_id.clone(),
                 end_canister_id: range.end_canister_id.clone(),
             });
         }
-        validated_ranges.push((range, start, end));
     }
-    for pair in validated_ranges.windows(2) {
-        let (first, first_start, first_end) = &pair[0];
-        let (second, second_start, second_end) = &pair[1];
-        if compare_routing_keys(
-            first_start,
-            first_end,
-            &first.subnet_principal,
-            second_start,
-            second_end,
-            &second.subnet_principal,
-        ) != Ordering::Less
-        {
+    for pair in ranges.windows(2) {
+        let [first, second] = pair else {
+            unreachable!("two adjacent routing ranges")
+        };
+        if first.key().cmp(&second.key()) != Ordering::Less {
             return Err(CatalogError::NonCanonicalRoutingOrder {
-                previous: Box::new((*first).clone()),
-                current: Box::new((*second).clone()),
+                previous: Box::new(first.range.borrow().clone()),
+                current: Box::new(second.range.borrow().clone()),
             });
         }
-        if second_start <= first_end {
+        if second.start <= first.end {
             return Err(CatalogError::OverlappingRoutingRanges {
-                first: Box::new((*first).clone()),
-                second: Box::new((*second).clone()),
+                first: Box::new(first.range.borrow().clone()),
+                second: Box::new(second.range.borrow().clone()),
             });
         }
     }
-
     Ok(())
 }
 
@@ -999,18 +989,4 @@ fn validate_agreement_digest(raw: &RawSubnetCatalog) -> Result<(), CatalogError>
         });
     }
     Ok(())
-}
-
-fn compare_routing_keys(
-    left_start: &[u8],
-    left_end: &[u8],
-    left_subnet: &str,
-    right_start: &[u8],
-    right_end: &[u8],
-    right_subnet: &str,
-) -> Ordering {
-    left_start
-        .cmp(right_start)
-        .then_with(|| left_end.cmp(right_end))
-        .then_with(|| left_subnet.cmp(right_subnet))
 }

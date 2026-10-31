@@ -1,3 +1,5 @@
+#[cfg(feature = "cmc-host")]
+use ic_query::report::CollectionSourceRequest;
 use ic_query::system::cmc::{
     CYCLES_PER_XDR, CmcCertification, CmcCyclesReport, CmcIcpXdrConversionRate, CmcReportContext,
     CmcXdrReport, DEFAULT_CMC_SOURCE_ENDPOINT, MAINNET_CMC_CANISTER_ID, cmc_cycles_report_text,
@@ -5,8 +7,8 @@ use ic_query::system::cmc::{
 };
 #[cfg(feature = "cmc-host")]
 use ic_query::system::cmc::{
-    CmcCertifiedRate, CmcHostError, CmcSource, CmcSourceRequest,
-    build_cmc_cycles_report_with_source, build_cmc_xdr_report_with_source,
+    CmcCertifiedRate, CmcHostError, CmcSource, build_cmc_cycles_report_with_source,
+    build_cmc_xdr_report_with_source,
 };
 
 #[test]
@@ -48,7 +50,7 @@ fn public_cmc_reports_are_constructible_serializable_and_renderable() {
 #[cfg(feature = "cmc-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn public_cmc_host_api_accepts_a_custom_source() {
-    let request = CmcSourceRequest::from_unix_secs(
+    let request = CollectionSourceRequest::from_unix_secs(
         "ic",
         DEFAULT_CMC_SOURCE_ENDPOINT,
         1_700_000_000,
@@ -73,7 +75,7 @@ struct FixtureCmcSource;
 impl CmcSource for FixtureCmcSource {
     fn fetch_certified_icp_xdr_rate<'a>(
         &'a self,
-        _request: &'a CmcSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
         Box::pin(async move {
             Ok(CmcCertifiedRate {

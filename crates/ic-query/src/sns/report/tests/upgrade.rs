@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
@@ -73,7 +74,7 @@ async fn sns_upgrade_retains_next_version_failure_as_a_typed_gap() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_upgrade_source_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-08-01T00:00:00Z",

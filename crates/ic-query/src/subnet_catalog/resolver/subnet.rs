@@ -41,7 +41,11 @@ impl RawSubnetCatalog {
         Ok(self.resolved_subnet(input_principal, subnet))
     }
 
-    fn resolved_subnet(&self, input_principal: &str, subnet: &SubnetInfo) -> ResolvedSubnet {
+    pub(super) fn resolved_subnet(
+        &self,
+        input_principal: &str,
+        subnet: &SubnetInfo,
+    ) -> ResolvedSubnet {
         ResolvedSubnet {
             input_principal: input_principal.to_string(),
             resolved_as: ResolvedSubnetSubject::Subnet,

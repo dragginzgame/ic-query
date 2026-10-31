@@ -1,6 +1,6 @@
 use super::*;
 use super::{ClassificationSource, GeographicScope, SubnetSpecialization};
-use crate::nns::NnsSourceRequest;
+
 use crate::test_support::temp_dir;
 use std::{
     fs,

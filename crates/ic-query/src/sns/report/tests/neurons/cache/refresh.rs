@@ -1,3 +1,4 @@
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
 use crate::test_support::temp_dir;
 use crate::{
@@ -114,7 +115,7 @@ delegate_sns_discovery!(ExclusiveNeuronPagesSource);
 impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _owner_principal_id: Option<&'a str>,
@@ -124,7 +125,7 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,

@@ -1,4 +1,5 @@
 use super::{FixtureSnsDiscoverySource, GOVERNANCE_A};
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{source::*, tests::*};
 
 ///
@@ -14,7 +15,7 @@ delegate_sns_discovery!(FixtureSnsUpgradeSource);
 impl SnsUpgradeSource for FixtureSnsUpgradeSource {
     fn fetch_sns_upgrade<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
         Box::pin(async move {
@@ -39,7 +40,7 @@ delegate_sns_discovery!(MutatingFixtureSnsUpgradeSource);
 impl SnsUpgradeSource for MutatingFixtureSnsUpgradeSource {
     fn fetch_sns_upgrade<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
         Box::pin(async move {

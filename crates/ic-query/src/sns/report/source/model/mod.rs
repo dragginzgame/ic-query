@@ -5,7 +5,6 @@
 //! Boundary: re-exports source-layer data passed from fetchers to builders.
 
 mod canisters;
-mod fetch;
 pub(in crate::sns::report) mod list;
 mod metrics;
 mod neurons;
@@ -20,7 +19,7 @@ pub use canisters::MainnetSnsCanisterInventory;
 pub(in crate::sns::report) use canisters::{
     SNS_CANISTER_HEALTH_CALL_TYPE, canonicalize_mainnet_sns_canister_inventory,
 };
-pub use fetch::SnsSourceRequest;
+
 pub(in crate::sns::report) use list::{
     JoinedMainnetSnsInventory, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
     validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,

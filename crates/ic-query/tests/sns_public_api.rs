@@ -3,6 +3,8 @@ use ic_query::HostCacheError;
 #[cfg(feature = "sns-host")]
 use ic_query::icrc::IcrcTokenData;
 use ic_query::icrc::{IcrcMetadataValueKind, IcrcTokenMetadataRow, IcrcTokenStandardRow};
+#[cfg(feature = "sns-host")]
+use ic_query::report::CollectionSourceRequest;
 use ic_query::report::ReportDataSource;
 use ic_query::sns::MainnetSnsMetrics;
 use ic_query::sns::MainnetSnsSwap;
@@ -43,12 +45,12 @@ use ic_query::sns::{
     SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
     SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource,
     SnsProposalSource, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
-    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSourceRequest, SnsSwapSource,
-    SnsTokenSource, SnsUpgradeSource, build_sns_canister_report,
-    build_sns_canister_report_with_source, build_sns_info_report,
-    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
-    build_sns_list_report_from_cache_or_refresh, build_sns_list_report_with_source,
-    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
+    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource, build_sns_canister_report, build_sns_canister_report_with_source,
+    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
+    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
+    build_sns_list_report_with_source, build_sns_metrics_report,
+    build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
     build_sns_neuron_detail_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
@@ -1134,7 +1136,7 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
 #[tokio::test(flavor = "current_thread")]
 async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
-    let source_request = SnsSourceRequest::new(
+    let source_request = CollectionSourceRequest::new(
         "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         SAMPLE_SNS_FETCHED_AT,
@@ -1598,7 +1600,7 @@ struct FixtureSnsSource;
 impl SnsDiscoverySource for FixtureSnsSource {
     fn fetch_sns_inventory<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>> {
         Box::pin(async move {
             assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
@@ -1608,7 +1610,7 @@ impl SnsDiscoverySource for FixtureSnsSource {
 
     fn fetch_sns_metadata<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> ic_query::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>> {
         Box::pin(async move {
@@ -1631,7 +1633,7 @@ impl SnsDiscoverySource for FixtureSnsSource {
 impl SnsCatalogSource for FixtureSnsSource {
     fn fetch_sns_lifecycles<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         targets: &'a [MainnetSnsCanisters],
     ) -> ic_query::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
         Box::pin(async move {
@@ -1653,7 +1655,7 @@ impl SnsCatalogSource for FixtureSnsSource {
 impl SnsCanisterSource for FixtureSnsSource {
     fn fetch_sns_canisters<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
         Box::pin(async move {
@@ -1685,7 +1687,7 @@ impl SnsCanisterSource for FixtureSnsSource {
 impl SnsTokenSource for FixtureSnsSource {
     fn fetch_sns_token<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
         Box::pin(async move {
@@ -1699,7 +1701,7 @@ impl SnsTokenSource for FixtureSnsSource {
 impl SnsParamsSource for FixtureSnsSource {
     fn fetch_sns_params<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
         Box::pin(async move {
@@ -1716,7 +1718,7 @@ impl SnsParamsSource for FixtureSnsSource {
 impl SnsMetricsSource for FixtureSnsSource {
     fn fetch_sns_metrics<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         time_window_seconds: u64,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
@@ -1734,7 +1736,7 @@ impl SnsMetricsSource for FixtureSnsSource {
 impl SnsSwapSource for FixtureSnsSource {
     fn fetch_sns_swap<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
         Box::pin(async move {
@@ -1748,7 +1750,7 @@ impl SnsSwapSource for FixtureSnsSource {
 impl SnsUpgradeSource for FixtureSnsSource {
     fn fetch_sns_upgrade<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
         Box::pin(async move {
@@ -1765,7 +1767,7 @@ impl SnsUpgradeSource for FixtureSnsSource {
 impl SnsProposalSource for FixtureSnsSource {
     fn fetch_sns_proposal<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         proposal_id: u64,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
@@ -1784,7 +1786,7 @@ impl SnsProposalSource for FixtureSnsSource {
 impl SnsProposalsSource for FixtureSnsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -1806,7 +1808,7 @@ impl SnsProposalsSource for FixtureSnsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         before_proposal_id: Option<u64>,
@@ -1827,7 +1829,7 @@ impl SnsProposalsSource for FixtureSnsSource {
 impl SnsNeuronSource for FixtureSnsSource {
     fn fetch_sns_neuron<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         neuron_id: &'a str,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
@@ -1846,7 +1848,7 @@ impl SnsNeuronSource for FixtureSnsSource {
 impl SnsNeuronsSource for FixtureSnsSource {
     fn fetch_sns_neurons<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         owner_principal_id: Option<&'a str>,
@@ -1864,7 +1866,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
 
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
@@ -1892,7 +1894,7 @@ impl SnsNeuronsSource for FixtureSnsSource {
 impl SnsRewardSource for FixtureSnsSource {
     fn fetch_sns_reward_running_version<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
         Box::pin(async move {
@@ -1905,7 +1907,7 @@ impl SnsRewardSource for FixtureSnsSource {
 
     fn fetch_sns_reward_parameters<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
         Box::pin(async move {
@@ -1920,7 +1922,7 @@ impl SnsRewardSource for FixtureSnsSource {
 
     fn fetch_sns_reward_event<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
     ) -> ic_query::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
         Box::pin(async move { Ok(sample_sns_reward_checkpoint_report().reward_event_after) })
@@ -1928,7 +1930,7 @@ impl SnsRewardSource for FixtureSnsSource {
 
     fn fetch_sns_reward_neuron_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
@@ -1961,7 +1963,7 @@ fn neuron_source_cache_root() -> PathBuf {
 }
 
 #[cfg(feature = "sns-host")]
-fn sample_mainnet_sns_inventory(request: &SnsSourceRequest) -> MainnetSnsInventory {
+fn sample_mainnet_sns_inventory(request: &CollectionSourceRequest) -> MainnetSnsInventory {
     MainnetSnsInventory {
         network: "ic".to_string(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),

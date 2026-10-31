@@ -6,24 +6,25 @@
 
 use super::{
     CMC_REPORT_SCHEMA_VERSION, CYCLES_PER_XDR, CmcCertifiedRate, CmcCyclesReport, CmcHostError,
-    CmcReportContext, CmcSource, CmcSourceRequest, CmcXdrReport, ICP_XDR_PERMYRIAD_DENOMINATOR,
-    LiveCmcSource, MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
+    CmcReportContext, CmcSource, CmcXdrReport, ICP_XDR_PERMYRIAD_DENOMINATOR, LiveCmcSource,
+    MAINNET_CMC_CANISTER_ID, enforce_mainnet_network,
 };
 use crate::hex::{HexEvidenceError, validate_nonempty_hex_evidence};
+use crate::report::CollectionSourceRequest;
 
 const CYCLES_PER_ICP_FORMULA: &str = "xdr_permyriad_per_icp * cycles_per_xdr / 10000";
 const CYCLES_PER_XDR_SOURCE: &str = "ic_protocol_constant";
 
 /// Build one live certified CMC ICP/XDR conversion-rate report.
 pub async fn build_cmc_xdr_report(
-    request: &CmcSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<CmcXdrReport, CmcHostError> {
     build_cmc_xdr_report_with_source(request, &LiveCmcSource).await
 }
 
 /// Build one certified CMC ICP/XDR report from a custom source.
 pub async fn build_cmc_xdr_report_with_source(
-    request: &CmcSourceRequest,
+    request: &CollectionSourceRequest,
     source: &dyn CmcSource,
 ) -> Result<CmcXdrReport, CmcHostError> {
     enforce_mainnet_network(&request.network)?;
@@ -38,14 +39,14 @@ pub async fn build_cmc_xdr_report_with_source(
 
 /// Build one live cycles conversion report from the certified CMC ICP/XDR rate.
 pub async fn build_cmc_cycles_report(
-    request: &CmcSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<CmcCyclesReport, CmcHostError> {
     build_cmc_cycles_report_with_source(request, &LiveCmcSource).await
 }
 
 /// Build one cycles conversion report from a custom certified CMC source.
 pub async fn build_cmc_cycles_report_with_source(
-    request: &CmcSourceRequest,
+    request: &CollectionSourceRequest,
     source: &dyn CmcSource,
 ) -> Result<CmcCyclesReport, CmcHostError> {
     let certified = build_cmc_xdr_report_with_source(request, source).await?;
@@ -60,7 +61,7 @@ pub async fn build_cmc_cycles_report_with_source(
     })
 }
 
-fn report_context(request: &CmcSourceRequest) -> CmcReportContext {
+fn report_context(request: &CollectionSourceRequest) -> CmcReportContext {
     CmcReportContext {
         schema_version: CMC_REPORT_SCHEMA_VERSION,
         network: request.network.clone(),

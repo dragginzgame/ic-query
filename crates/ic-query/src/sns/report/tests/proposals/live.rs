@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsProposalRow;
 
 struct InvalidSnsProposalSource;
@@ -8,7 +9,7 @@ delegate_sns_discovery!(InvalidSnsProposalSource);
 impl SnsProposalSource for InvalidSnsProposalSource {
     fn fetch_sns_proposal<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _proposal_id: u64,
     ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
@@ -27,7 +28,7 @@ delegate_sns_discovery!(InvalidSnsProposalsSource);
 impl SnsProposalsSource for InvalidSnsProposalsSource {
     fn fetch_sns_proposals<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,
@@ -42,7 +43,7 @@ impl SnsProposalsSource for InvalidSnsProposalsSource {
 
     fn fetch_sns_proposal_page<'a>(
         &'a self,
-        _request: &'a SnsSourceRequest,
+        _request: &'a CollectionSourceRequest,
         _sns: &'a MainnetSns,
         _limit: u32,
         _before_proposal_id: Option<u64>,

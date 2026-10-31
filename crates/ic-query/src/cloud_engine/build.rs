@@ -8,11 +8,12 @@ use super::{
     CLOUD_ENGINE_AUTHORITY, CLOUD_ENGINE_REPORT_SCHEMA_VERSION, CloudEngineHostError,
     CloudEngineOperatorReport, CloudEngineOperatorSourceData, CloudEnginePriceRow,
     CloudEnginePricesReport, CloudEnginePricesSourceData, CloudEngineReportContext,
-    CloudEngineSource, CloudEngineSourceRequest, LiveCloudEngineSource,
-    MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
-    MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS, enforce_mainnet_network,
+    CloudEngineSource, LiveCloudEngineSource, MAINNET_CLOUD_ENGINE_CANISTER_ID,
+    MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS, MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_PRICE_ROWS,
+    enforce_mainnet_network,
 };
 use crate::decimal::{compare_canonical_unsigned_decimal, is_canonical_unsigned_decimal};
+use crate::report::CollectionSourceRequest;
 use ic_platform::candid::contract::Principal;
 use std::cmp::Ordering;
 
@@ -21,7 +22,7 @@ const MAX_DOMAIN_BYTES: usize = 253;
 
 /// Build one live CloudEngine operator report for a Subnet principal.
 pub async fn build_cloud_engine_operator_report(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     subnet_id: &str,
 ) -> Result<CloudEngineOperatorReport, CloudEngineHostError> {
     build_cloud_engine_operator_report_with_source(
@@ -34,7 +35,7 @@ pub async fn build_cloud_engine_operator_report(
 
 /// Build one CloudEngine operator report from a custom source.
 pub async fn build_cloud_engine_operator_report_with_source(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     subnet_id: &str,
     source: &dyn CloudEngineSource,
 ) -> Result<CloudEngineOperatorReport, CloudEngineHostError> {
@@ -60,14 +61,14 @@ pub async fn build_cloud_engine_operator_report_with_source(
 
 /// Build one live bounded CloudEngine marketplace report.
 pub async fn build_cloud_engine_prices_report(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<CloudEnginePricesReport, CloudEngineHostError> {
     build_cloud_engine_prices_report_with_source(request, &LiveCloudEngineSource::default()).await
 }
 
 /// Build one bounded CloudEngine marketplace report from a custom source.
 pub async fn build_cloud_engine_prices_report_with_source(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     source: &dyn CloudEngineSource,
 ) -> Result<CloudEnginePricesReport, CloudEngineHostError> {
     enforce_mainnet_network(&request.network)?;
@@ -84,7 +85,7 @@ pub async fn build_cloud_engine_prices_report_with_source(
 }
 
 fn report_context(
-    request: &CloudEngineSourceRequest,
+    request: &CollectionSourceRequest,
     query_call_count: usize,
 ) -> CloudEngineReportContext {
     CloudEngineReportContext {
@@ -102,8 +103,8 @@ fn report_context(
 }
 
 pub(super) fn validate_source_request(
-    expected: &CloudEngineSourceRequest,
-    actual: &CloudEngineSourceRequest,
+    expected: &CollectionSourceRequest,
+    actual: &CollectionSourceRequest,
 ) -> Result<(), CloudEngineHostError> {
     if actual.network != expected.network {
         return invalid_source(format!(

@@ -33,7 +33,7 @@ pub use canisters::sns_canister_report_text;
 #[cfg(all(test, feature = "sns-host"))]
 pub(super) use common::optional_e8s_text;
 pub use info::sns_info_report_text;
-pub use list::sns_list_report_text;
+pub use list::{sns_list_report_text, sns_list_report_text_with_metadata_style};
 pub use metrics::sns_metrics_report_text;
 pub use neuron::sns_neuron_detail_report_text;
 #[cfg(feature = "sns-host")]

@@ -51,6 +51,7 @@ fn registry_certification() -> NnsRegistryCertification {
 
 #[cfg(feature = "host")]
 mod host {
+    use ic_query::report::CollectionSourceRequest;
     use ic_query::{
         QueryProgress, QueryProgressEvent, QueryProgressState,
         icrc::{
@@ -72,10 +73,7 @@ mod host {
             NnsSubnetTopologyCacheRequest, NnsSubnetTopologyHostError,
             NnsSubnetTopologyRefreshRequest, refresh_nns_subnet_topology,
         },
-        nns::{
-            NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest,
-            NnsSourceRequest,
-        },
+        nns::{NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest},
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
             SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection, SnsProposalsReport,
@@ -298,7 +296,7 @@ mod host {
     impl NnsRegistrySource for FixtureRegistrySource {
         fn fetch_registry_version<'a>(
             &'a self,
-            request: &'a NnsSourceRequest,
+            request: &'a CollectionSourceRequest,
         ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
         {
             Box::pin(async move {

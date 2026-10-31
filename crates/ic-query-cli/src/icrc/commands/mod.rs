@@ -8,7 +8,7 @@ mod account;
 mod analytics;
 mod dispatch;
 mod ledger;
-mod options;
+pub(in crate::icrc) mod options;
 mod sort;
 #[cfg(test)]
 pub(in crate::icrc) use account::{
@@ -33,9 +33,7 @@ pub(in crate::icrc) use ledger::{
 pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{
     IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcAnalyticsAccountInfoOptions,
-    IcrcAnalyticsAccountListOptions, IcrcAnalyticsHolderListOptions,
-    IcrcAnalyticsTokenValueOptions, IcrcAnalyticsTotalSupplyOptions, IcrcArchivesOptions,
+    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
     IcrcLedgerOptions, IcrcTransactionsOptions,
 };
 

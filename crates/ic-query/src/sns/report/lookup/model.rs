@@ -4,7 +4,8 @@
 //! Does not own: lookup parsing, live source fetching, or report assembly.
 //! Boundary: carries one resolved SNS identity and fetch context to builders.
 
-use crate::sns::report::source::{MainnetSns, SnsSourceRequest};
+use crate::report::CollectionSourceRequest;
+use crate::sns::report::source::MainnetSns;
 
 ///
 /// SnsLookup
@@ -13,6 +14,6 @@ use crate::sns::report::source::{MainnetSns, SnsSourceRequest};
 ///
 
 pub(in crate::sns::report) struct SnsLookup {
-    pub(in crate::sns::report) fetch_request: SnsSourceRequest,
+    pub(in crate::sns::report) fetch_request: CollectionSourceRequest,
     pub(in crate::sns::report) sns: MainnetSns,
 }

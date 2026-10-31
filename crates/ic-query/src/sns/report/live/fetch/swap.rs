@@ -4,9 +4,9 @@
 //! Does not own: SNS lookup, source validation, report assembly, cache IO, or rendering.
 //! Boundary: attempts exactly three small public queries and retains component failures as gaps.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
-    MainnetSns, MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSourceRequest,
-    SnsSwapComponent, SnsSwapQueryGap,
+    MainnetSns, MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSwapComponent, SnsSwapQueryGap,
     live::{
         convert::{sns_swap_derived_state, sns_swap_lifecycle, sns_swap_sale_parameters},
         query::{principal_from_text, sns_agent},
@@ -21,7 +21,7 @@ use ic_platform::{agent::Agent, candid::contract::Principal};
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_swap(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsSwap, SnsHostError> {
     let agent = sns_agent(source, request)?;

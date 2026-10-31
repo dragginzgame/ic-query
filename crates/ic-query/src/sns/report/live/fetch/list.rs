@@ -4,6 +4,7 @@
 //! Does not own: report assembly, command parsing, cache IO, or rendering.
 //! Boundary: keeps SNS-W inventory separate from bounded Governance metadata and Swap lifecycle queries.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::live::{
     convert::{mainnet_sns_canisters_from_deployed_sns, mainnet_sns_metadata_from_response},
     query::{principal_from_text, sns_agent},
@@ -14,7 +15,7 @@ use crate::sns::report::live::{
 };
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, SNS_METADATA_CONCURRENCY, SnsCanisterMethod, SnsHostError,
-    SnsSourceRequest, enforce_mainnet_network,
+    enforce_mainnet_network,
     source::{MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata},
 };
 use crate::subnet_catalog::MAINNET_NETWORK;
@@ -26,7 +27,7 @@ use std::future::Future;
 use crate::sns::report::MainnetSnsCanisters;
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
 ) -> Result<MainnetSnsInventory, SnsHostError> {
     let agent = sns_agent(source, request)?;
     let sns_wasm_canister =
@@ -44,7 +45,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_inventory(
 }
 
 fn mainnet_sns_inventory_from_response(
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     response: ListDeployedSnsesResponse,
 ) -> Result<MainnetSnsInventory, SnsHostError> {
     let sns_instances = response
@@ -64,7 +65,7 @@ fn mainnet_sns_inventory_from_response(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     targets: &[MainnetSnsCanisters],
 ) -> Result<Vec<MainnetSnsMetadata>, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
@@ -102,7 +103,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycles(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     targets: &[MainnetSnsCanisters],
 ) -> Result<Vec<MainnetSnsLifecycle>, SnsHostError> {
     enforce_mainnet_network(&request.network)?;

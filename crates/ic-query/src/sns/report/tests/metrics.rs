@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
@@ -76,7 +77,7 @@ async fn sns_metrics_rejects_invalid_windows_before_source_access() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_metrics_source_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-08-01T00:00:00Z",
@@ -96,7 +97,7 @@ async fn live_sns_metrics_source_rejects_non_mainnet_before_agent_construction()
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_metrics_source_rejects_invalid_window_before_agent_construction() {
     let request =
-        SnsSourceRequest::new("ic", "not a valid endpoint", "2026-08-01T00:00:00Z", "test");
+        CollectionSourceRequest::new("ic", "not a valid endpoint", "2026-08-01T00:00:00Z", "test");
     let error = LiveSnsSource::default()
         .fetch_sns_metrics(&request, &fixture_sns_a(), 0)
         .await

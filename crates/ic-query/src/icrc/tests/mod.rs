@@ -153,10 +153,7 @@ impl IcrcIndexSource for FixtureIcrcSource {
             assert_eq!(request.ledger_canister_id, LEDGER_CANISTER_ID);
             assert_eq!(request.source_endpoint, SOURCE_ENDPOINT);
 
-            Ok(IcrcIndexData {
-                index_canister_id: Some(INDEX_CANISTER_ID.to_string()),
-                index_error: None,
-            })
+            Ok(IcrcIndexData::Found(INDEX_CANISTER_ID.to_string()))
         })
     }
 }
@@ -1352,10 +1349,9 @@ async fn index_report_renders_index_error_when_not_set() {
             _request: &'a IcrcLedgerRequest,
         ) -> crate::report::SourceFuture<'a, Result<IcrcIndexData, IcrcError>> {
             Box::pin(async move {
-                Ok(IcrcIndexData {
-                    index_canister_id: None,
-                    index_error: Some("index principal not set".to_string()),
-                })
+                Ok(IcrcIndexData::Unavailable(
+                    "index principal not set".to_string(),
+                ))
             })
         }
     }

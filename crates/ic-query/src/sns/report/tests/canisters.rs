@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
@@ -47,7 +48,7 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_sns_canister_source_rejects_non_mainnet_before_agent_construction() {
-    let request = SnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid endpoint",
         "2026-07-30T00:00:00Z",
@@ -145,7 +146,7 @@ delegate_sns_discovery!(MutatingSnsCanisterSource);
 impl SnsCanisterSource for MutatingSnsCanisterSource {
     fn fetch_sns_canisters<'a>(
         &'a self,
-        request: &'a SnsSourceRequest,
+        request: &'a CollectionSourceRequest,
         sns: &'a MainnetSns,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
         Box::pin(async move {

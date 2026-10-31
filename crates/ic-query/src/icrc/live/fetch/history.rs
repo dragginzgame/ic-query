@@ -50,14 +50,8 @@ pub(in crate::icrc::live) async fn fetch_index_async(
     let result = query_index_principal::<IcrcError>(&agent, &ledger_canister).await?;
 
     Ok(match result {
-        Ok(principal) => IcrcIndexData {
-            index_canister_id: Some(principal.to_text()),
-            index_error: None,
-        },
-        Err(error) => IcrcIndexData {
-            index_canister_id: None,
-            index_error: Some(index_principal_error_text(error)),
-        },
+        Ok(principal) => IcrcIndexData::Found(principal.to_text()),
+        Err(error) => IcrcIndexData::Unavailable(index_principal_error_text(error)),
     })
 }
 

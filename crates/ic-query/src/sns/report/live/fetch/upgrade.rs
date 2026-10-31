@@ -4,9 +4,10 @@
 //! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
 //! Boundary: performs exactly two bounded native queries and retains only next-version failure.
 use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsCanisterMethod, SnsHostError,
-    SnsRunningVersionResponse, SnsSourceRequest, SnsUpgradeQueryGap,
+    SnsRunningVersionResponse, SnsUpgradeQueryGap,
     live::{
         convert::{sns_pending_upgrade, sns_running_version_response, sns_version},
         query::{principal_from_text, sns_agent},
@@ -21,7 +22,7 @@ use ic_platform::candid::contract::Principal;
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<MainnetSnsUpgrade, SnsHostError> {
     let agent = sns_agent(source, request)?;
@@ -86,7 +87,7 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
 
 pub(in crate::sns::report::live) async fn fetch_mainnet_sns_running_version(
     source: &crate::sns::LiveSnsSource,
-    request: &SnsSourceRequest,
+    request: &CollectionSourceRequest,
     sns: &MainnetSns,
 ) -> Result<SnsRunningVersionResponse, SnsHostError> {
     let agent = sns_agent(source, request)?;

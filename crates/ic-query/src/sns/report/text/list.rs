@@ -17,6 +17,19 @@ use crate::text_value::yes_no;
 
 #[must_use]
 pub fn sns_list_report_text(report: &SnsListReport) -> String {
+    sns_list_report_text_with_metadata_style(report, |status, _| status.to_string())
+}
+
+/// Render an SNS list with caller-selected styling for its metadata status cells.
+///
+/// The callback receives the status label and whether metadata collection failed.
+/// It may add trusted styling, such as ANSI colours, after escaping and alignment.
+/// The caller owns terminal policy; this renderer never selects an output sink.
+#[must_use]
+pub fn sns_list_report_text_with_metadata_style(
+    report: &SnsListReport,
+    mut style: impl FnMut(&str, bool) -> String,
+) -> String {
     let mut lines = Vec::new();
     lines.push(format!("network: {}", terminal_text(&report.network)));
     lines.push(format!(
@@ -47,7 +60,7 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
     ));
     if !report.sns_instances.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        let table = render(
             &[
                 "ID",
                 "NAME",
@@ -92,7 +105,28 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
                 Alignment::Left,
             ],
             REPORT_TABLE_OPTIONS,
-        ));
+        );
+        // Host escapes cell newlines, so each data line corresponds to one known row.
+        lines.push(
+            table
+                .lines()
+                .take(2)
+                .map(str::to_string)
+                .chain(
+                    table
+                        .lines()
+                        .skip(2)
+                        .zip(&report.sns_instances)
+                        .map(|(line, sns)| {
+                            let failed = sns.metadata_error.is_some();
+                            let status = metadata_status(sns.metadata_error.as_deref());
+                            let prefix = &line[..line.len() - status.len()];
+                            format!("{prefix}{}", style(status, failed))
+                        }),
+                )
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
     }
     lines.join("\n")
 }

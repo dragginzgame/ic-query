@@ -5,7 +5,8 @@ use super::{
     nns_node_list_report_text, nns_node_list_report_verbose_text, resolve_node,
 };
 use crate::ic_registry::MainnetNode;
-use crate::nns::{LiveNnsSource, NnsSourceRequest};
+use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind};
 use crate::test_support::temp_dir;
 use std::fs;
@@ -78,7 +79,7 @@ async fn node_authority_refusal_never_announces_or_calls_a_source() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_node_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -344,7 +345,7 @@ struct InvalidNodeSource;
 impl NnsNodeSource for InvalidNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
         Box::pin(async move {
             let mut report = node_report_fixture();
@@ -359,7 +360,7 @@ impl NnsNodeSource for InvalidNodeSource {
 impl NnsNodeSource for FixtureNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
         Box::pin(async move {
             let nodes = self

@@ -1,7 +1,7 @@
 use super::{ResolveAs, ResolvedSubnet};
 use crate::identifier_match::{IdentifierMatch, match_identifier};
 use crate::subnet_catalog::{CatalogError, RawSubnetCatalog, parse_principal};
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 impl RawSubnetCatalog {
     /// Resolve an exact principal or a unique cached subnet principal prefix.
@@ -27,14 +27,20 @@ impl RawSubnetCatalog {
             return Err(CatalogError::PrincipalPrefixNotFound { prefix });
         }
 
-        let identifiers = self
-            .subnets
-            .iter()
-            .filter(|_| forced != Some(ResolveAs::Canister))
-            .map(|subnet| subnet.subnet_principal.as_str())
-            .collect::<BTreeSet<_>>();
-        let matched = match match_identifier(identifiers.into_iter(), |value| value, None, &prefix)
-        {
+        let mut identifiers = BTreeMap::new();
+        if forced != Some(ResolveAs::Canister) {
+            for subnet in &self.subnets {
+                identifiers
+                    .entry(subnet.subnet_principal.as_str())
+                    .or_insert(subnet);
+            }
+        }
+        let matched = match match_identifier(
+            identifiers.into_values(),
+            |subnet| subnet.subnet_principal.as_str(),
+            None,
+            &prefix,
+        ) {
             IdentifierMatch::Prefix(subnet) => subnet,
             IdentifierMatch::Missing => {
                 return Err(CatalogError::PrincipalPrefixNotFound { prefix });
@@ -44,7 +50,7 @@ impl RawSubnetCatalog {
                     prefix,
                     matches: matches
                         .into_iter()
-                        .map(|subnet| format!("subnet:{subnet}"))
+                        .map(|subnet| format!("subnet:{}", subnet.subnet_principal))
                         .collect(),
                 });
             }
@@ -52,7 +58,7 @@ impl RawSubnetCatalog {
                 unreachable!("prefix lookup supplies no exact identifier")
             }
         };
-        let mut resolved = self.resolve_known_subnet(matched)?;
+        let mut resolved = self.resolved_subnet(&matched.subnet_principal, matched);
         resolved.input_principal = input.to_string();
         resolved.resolved_from = "subnet_principal_prefix".to_string();
         Ok(resolved)

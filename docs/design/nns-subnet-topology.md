@@ -13,7 +13,7 @@ Subnet-oriented topology snapshot. Each `NnsSubnetTopologyRow` contains the
 raw Registry `SubnetKind`, total assigned node count, and canonically ordered
 `NnsSubnetNodeProviderRow` values with per-provider node counts.
 
-The live source accepts the shared `ic_query::nns::NnsSourceRequest`, rejects
+The live source accepts the shared `ic_query::report::CollectionSourceRequest`, rejects
 non-mainnet requests before
 agent construction, resolves the latest Registry version exactly once, then
 reads the Subnet list, Subnet records, assigned node records, and node-operator
@@ -108,9 +108,11 @@ one node-kind pass, preserving all four classifications including unknown.
 Diagnostic builders share one sequential collector for node, provider,
 operator, and data-center inventories. Summary and versions read the Subnet
 Catalog first; versions projects the same five provenance rows directly
-without constructing summary counts or relation indexes. Coverage and check
-retain their full-summary dependency, and capacity and regions read only their
-required component. Every read stops at the first component failure.
+without constructing summary counts or relation indexes. Coverage reads only the four inventories and does not depend on the Subnet
+Catalog. Check retains all five component inputs and projects version, freshness
+and relation evidence directly without constructing a summary report. Capacity
+and regions read only their required component. Every read stops at the first
+component failure.
 
 ## Canonical topology request boundary
 

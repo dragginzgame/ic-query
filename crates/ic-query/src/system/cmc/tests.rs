@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use std::sync::Mutex;
 
@@ -19,7 +20,7 @@ impl FixtureCmcSource {
 impl CmcSource for FixtureCmcSource {
     fn fetch_certified_icp_xdr_rate<'a>(
         &'a self,
-        _request: &'a CmcSourceRequest,
+        _request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
         Box::pin(async move {
             *self.calls.lock().unwrap() += 1;
@@ -79,7 +80,7 @@ async fn cycles_report_uses_the_exact_protocol_conversion() {
 #[tokio::test(flavor = "current_thread")]
 async fn builders_reject_non_mainnet_before_invoking_a_source() {
     type Build = for<'a> fn(
-        &'a CmcSourceRequest,
+        &'a CollectionSourceRequest,
         &'a dyn CmcSource,
     ) -> crate::report::SourceFuture<'a, Result<(), CmcHostError>>;
     let builders: [Build; 2] = [
@@ -114,7 +115,7 @@ async fn builders_reject_non_mainnet_before_invoking_a_source() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn public_live_source_rejects_non_mainnet_before_agent_construction() {
-    let request = CmcSourceRequest::new("local", "://invalid endpoint", FETCHED_AT, "test");
+    let request = CollectionSourceRequest::new("local", "://invalid endpoint", FETCHED_AT, "test");
     let error = LiveCmcSource
         .fetch_certified_icp_xdr_rate(&request)
         .await
@@ -133,7 +134,7 @@ async fn builders_reject_invalid_custom_certification_evidence() {
     impl CmcSource for InvalidSource {
         fn fetch_certified_icp_xdr_rate<'a>(
             &'a self,
-            _request: &'a CmcSourceRequest,
+            _request: &'a CollectionSourceRequest,
         ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
             Box::pin(async move {
                 let mut certified = certified_rate();
@@ -161,7 +162,7 @@ async fn builders_reject_inconsistent_custom_evidence_lengths() {
     impl CmcSource for InvalidSource {
         fn fetch_certified_icp_xdr_rate<'a>(
             &'a self,
-            _request: &'a CmcSourceRequest,
+            _request: &'a CollectionSourceRequest,
         ) -> crate::report::SourceFuture<'a, Result<CmcCertifiedRate, CmcHostError>> {
             Box::pin(async move {
                 let mut certified = certified_rate();
@@ -184,14 +185,18 @@ async fn builders_reject_inconsistent_custom_evidence_lengths() {
 
 #[test]
 fn source_request_formats_unix_collection_time() {
-    let request =
-        CmcSourceRequest::from_unix_secs(MAINNET_NETWORK, DEFAULT_CMC_SOURCE_ENDPOINT, 0, "test");
+    let request = CollectionSourceRequest::from_unix_secs(
+        MAINNET_NETWORK,
+        DEFAULT_CMC_SOURCE_ENDPOINT,
+        0,
+        "test",
+    );
 
     assert_eq!(request.fetched_at, "1970-01-01T00:00:00Z");
 }
 
-fn request(network: &str) -> CmcSourceRequest {
-    CmcSourceRequest::new(network, DEFAULT_CMC_SOURCE_ENDPOINT, FETCHED_AT, "test")
+fn request(network: &str) -> CollectionSourceRequest {
+    CollectionSourceRequest::new(network, DEFAULT_CMC_SOURCE_ENDPOINT, FETCHED_AT, "test")
 }
 
 fn certified_rate() -> CmcCertifiedRate {

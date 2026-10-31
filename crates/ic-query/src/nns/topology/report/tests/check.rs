@@ -2,7 +2,7 @@ use super::{fixtures::*, *};
 
 #[test]
 fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
-    let summary = topology_summary_report_from_reports(
+    let report = topology_check_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
@@ -13,8 +13,6 @@ fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
             data_center: data_center_report_fixture(),
         },
     );
-
-    let report = topology_check_report_from_summary(summary);
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
@@ -31,7 +29,7 @@ fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
 
 #[test]
 fn topology_check_text_renders_check_table() {
-    let summary = topology_summary_report_from_reports(
+    let report = topology_check_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
@@ -42,7 +40,6 @@ fn topology_check_text_renders_check_table() {
             data_center: data_center_report_fixture(),
         },
     );
-    let report = topology_check_report_from_summary(summary);
 
     let text = nns_topology_check_report_text(&report);
 

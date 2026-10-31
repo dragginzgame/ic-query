@@ -10,14 +10,15 @@ use super::{
     fetch_nns_certified_registry_delta_batch_with_source_async, nns_registry_version_report_text,
     validate_nns_certified_registry_delta_batch,
 };
-use crate::nns::{LiveNnsSource, NnsSourceRequest};
+use crate::nns::LiveNnsSource;
+use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_registry_source_rejects_non_mainnet_before_agent_construction() {
-    let request = NnsSourceRequest::new(
+    let request = CollectionSourceRequest::new(
         "local",
         "not a valid replica endpoint",
         "2026-07-29T00:00:00Z",
@@ -368,7 +369,7 @@ struct FixtureNnsRegistrySource;
 impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
         Box::pin(async move {
             Ok(NnsRegistryVersionData {
@@ -389,7 +390,7 @@ struct MismatchedNnsRegistrySource;
 impl NnsRegistrySource for MismatchedNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
         Box::pin(async move {
             Ok(NnsRegistryVersionData {
@@ -410,7 +411,7 @@ struct UnverifiedNnsRegistrySource;
 impl NnsRegistrySource for UnverifiedNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
-        request: &'a NnsSourceRequest,
+        request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
         Box::pin(async move {
             let mut evidence = certification(1_780_531_200);
