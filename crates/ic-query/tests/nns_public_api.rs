@@ -134,8 +134,7 @@ use ic_query::nns::registry::{
     NnsCertifiedSubnetCatalogVersionPolicy, NnsRegistryHostError, NnsRegistryReplayError,
     NnsRegistryReplayLimits, NnsRegistryReplaySession, NnsRegistryReplaySessionLimits,
     NnsRegistryReplayState, NnsRegistrySource, NnsRegistrySubnetCatalogProjectionError,
-    NnsRegistryVersionData, apply_nns_certified_registry_delta_batch,
-    bootstrap_nns_certified_registry_archive_async,
+    apply_nns_certified_registry_delta_batch, bootstrap_nns_certified_registry_archive_async,
     bootstrap_nns_certified_registry_archive_with_source_async,
     bootstrap_nns_certified_registry_async, bootstrap_nns_certified_registry_with_source_async,
     build_nns_registry_version_report_with_source, cleanup_nns_certified_registry_archive,
@@ -1524,14 +1523,16 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
-    {
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<ic_query::nns::registry::NnsRegistryVersionData, NnsRegistryHostError>,
+    > {
         Box::pin(async move {
             assert_eq!(request.endpoint, "https://icp-api.io");
             assert_eq!(request.fetched_by, "ic-query");
             assert_ne!(request.fetched_at, "");
 
-            Ok(NnsRegistryVersionData {
+            Ok(ic_query::nns::registry::NnsRegistryVersionData {
                 network: "ic".to_string(),
                 registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
                 registry_version: 42,
@@ -2065,12 +2066,7 @@ fn public_nns_node_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: info_request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        node_principal: node.node_principal,
-        node_operator_principal: node.node_operator_principal,
-        node_provider_principal: node.node_provider_principal,
-        subnet_principal: node.subnet_principal,
-        subnet_kind: node.subnet_kind,
-        data_center_id: node.data_center_id,
+        node,
     };
 
     let info_text = nns_node_info_report_text(&info_report);
@@ -2119,14 +2115,7 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: info_request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        data_center_id: data_center.data_center_id,
-        region: data_center.region,
-        owner: data_center.owner,
-        latitude: data_center.latitude,
-        longitude: data_center.longitude,
-        node_operator_count: data_center.node_operator_count,
-        node_provider_count: data_center.node_provider_count,
-        node_count: data_center.node_count,
+        data_center,
     };
 
     let info_text = nns_data_center_info_report_text(&info);
@@ -2177,10 +2166,7 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: info_request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        node_provider_principal: provider.node_provider_principal,
-        name: provider.name,
-        node_count: provider.node_count,
-        reward_account_hex: provider.reward_account_hex,
+        node_provider: provider,
     };
 
     let info_text = nns_node_provider_info_report_text(&info);
@@ -2229,11 +2215,7 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: info_request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        node_operator_principal: operator.node_operator_principal,
-        node_provider_principal: operator.node_provider_principal,
-        node_allowance: operator.node_allowance,
-        data_center_id: operator.data_center_id,
-        node_count: operator.node_count,
+        node_operator: operator,
     };
 
     let info_text = nns_node_operator_info_report_text(&info);
@@ -2304,7 +2286,7 @@ async fn assert_public_nns_node_custom_source_api(root: &Path) {
 
     assert_eq!(node_list.node_count, 1);
     assert_eq!(
-        node_info.node_principal,
+        node_info.node.node_principal,
         sample_nns_node_row().node_principal
     );
     assert_eq!(node_refresh.row_count, 1);
@@ -2353,7 +2335,7 @@ async fn assert_public_nns_data_center_custom_source_api(root: &Path) {
 
     assert_eq!(data_center_list.data_center_count, 1);
     assert_eq!(
-        data_center_info.data_center_id,
+        data_center_info.data_center.data_center_id,
         sample_nns_data_center_row().data_center_id
     );
     assert_eq!(data_center_refresh.row_count, 1);
@@ -2402,7 +2384,7 @@ async fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
 
     assert_eq!(node_provider_list.node_provider_count, 1);
     assert_eq!(
-        node_provider_info.node_provider_principal,
+        node_provider_info.node_provider.node_provider_principal,
         sample_nns_node_provider_row().node_provider_principal
     );
     assert_eq!(node_provider_refresh.row_count, 1);
@@ -2451,7 +2433,7 @@ async fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
 
     assert_eq!(node_operator_list.node_operator_count, 1);
     assert_eq!(
-        node_operator_info.node_operator_principal,
+        node_operator_info.node_operator.node_operator_principal,
         sample_nns_node_operator_row().node_operator_principal
     );
     assert_eq!(node_operator_refresh.row_count, 1);
@@ -3072,6 +3054,7 @@ impl NnsTopologySource for FixtureNnsTopologySource {
             let mut report = sample_subnet_catalog_list_report();
             report.network.clone_from(&request.cache.network);
             report
+                .metadata
                 .fetched_at
                 .clone_from(&request.source_request().fetched_at);
             Ok(report)
@@ -3639,7 +3622,10 @@ async fn assert_public_nns_node_host_api(root: &Path) {
             .with_dry_run(true);
 
     assert_eq!(list.node_count, 1);
-    assert_eq!(info.node_principal, sample_nns_node_row().node_principal);
+    assert_eq!(
+        info.node.node_principal,
+        sample_nns_node_row().node_principal
+    );
     assert!(nns_node_cache_path(root, "ic").is_file());
     assert!(nns_node_refresh_lock_path(root, "ic").ends_with("refresh.lock"));
     assert!(nns_inventory_refresh_report_text(&refresh).contains("row_count: 1"));
@@ -3678,7 +3664,7 @@ async fn assert_public_nns_data_center_host_api(root: &Path) {
 
     assert_eq!(list.data_center_count, 1);
     assert_eq!(
-        info.data_center_id,
+        info.data_center.data_center_id,
         sample_nns_data_center_row().data_center_id
     );
     assert!(nns_data_center_cache_path(root, "ic").is_file());
@@ -3719,7 +3705,7 @@ async fn assert_public_nns_node_provider_host_api(root: &Path) {
 
     assert_eq!(list.node_provider_count, 1);
     assert_eq!(
-        info.node_provider_principal,
+        info.node_provider.node_provider_principal,
         sample_nns_node_provider_row().node_provider_principal
     );
     assert!(nns_node_provider_cache_path(root, "ic").is_file());
@@ -3760,7 +3746,7 @@ async fn assert_public_nns_node_operator_host_api(root: &Path) {
 
     assert_eq!(list.node_operator_count, 1);
     assert_eq!(
-        info.node_operator_principal,
+        info.node_operator.node_operator_principal,
         sample_nns_node_operator_row().node_operator_principal
     );
     assert!(nns_node_operator_cache_path(root, "ic").is_file());
@@ -3832,24 +3818,27 @@ fn sample_subnet_catalog_list_report() -> SubnetCatalogListReport {
         network: "ic".to_string(),
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         catalog_schema_version: ic_query::subnet_catalog::CATALOG_SCHEMA_VERSION,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        assurance: CatalogAssurance::UncertifiedQuery,
-        source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
-        agreement_digest: None,
-        registry_query_call_count: 5,
-        routing_source: ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
-        registry_records: Vec::new(),
-        catalog_digest: "00".repeat(32),
+        metadata: ic_query::subnet_catalog::SubnetCatalogReportMetadata {
+            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            registry_version: 42,
+            assurance: CatalogAssurance::UncertifiedQuery,
+            source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+            agreement_digest: None,
+            registry_query_call_count: 5,
+            routing_source:
+                ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
+            catalog_digest: "00".repeat(32),
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            resolver_backend: "local-nns-subnet-catalog".to_string(),
+            collector_version: "test".to_string(),
+            classification_schema_version: 1,
+            classification_policy_digest: "00".repeat(32),
+            resolver_schema_version: 1,
+        },
         cache_disposition: CacheDisposition::CacheHit,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
         catalog_stale: false,
         stale_reason: "fresh".to_string(),
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
-        collector_version: "test".to_string(),
-        classification_schema_version: 1,
-        classification_policy_digest: "00".repeat(32),
-        resolver_schema_version: 1,
         subnets: vec![sample_subnet_catalog_row()],
     }
 }
@@ -3862,22 +3851,25 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
         catalog_path: "/cache/nns/ic/subnet-catalog/catalog.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/subnet-catalog/refresh.lock".to_string(),
         output_path: None,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        assurance: CatalogAssurance::UncertifiedQuery,
-        source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
-        agreement_digest: None,
-        registry_query_call_count: 5,
-        routing_source: ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
-        registry_records: Vec::new(),
-        catalog_digest: "00".repeat(32),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        metadata: ic_query::subnet_catalog::SubnetCatalogReportMetadata {
+            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            registry_version: 42,
+            assurance: CatalogAssurance::UncertifiedQuery,
+            source_endpoints: vec![DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT.to_string()],
+            agreement_digest: None,
+            registry_query_call_count: 5,
+            routing_source:
+                ic_query::subnet_catalog::SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
+            catalog_digest: "00".repeat(32),
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            collector_version: "test".to_string(),
+            classification_schema_version: 1,
+            classification_policy_digest: "00".repeat(32),
+            resolver_schema_version: 1,
+            resolver_backend: "local-nns-subnet-catalog".to_string(),
+        },
         fetched_by: "ic-query".to_string(),
-        collector_version: "test".to_string(),
-        classification_schema_version: 1,
-        classification_policy_digest: "00".repeat(32),
-        resolver_schema_version: 1,
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
         dry_run: true,
         wrote_catalog: false,
         replaced_existing_catalog: true,

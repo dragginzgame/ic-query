@@ -4,11 +4,9 @@ use super::*;
 fn sns_neurons_rejects_invalid_clap_values() {
     for neuron_id in ["01", &"AB".repeat(32), &"gg".repeat(32)] {
         assert!(matches!(
-            parse_test_options(
-                sns_neuron_info_command(),
-                &["1", neuron_id],
-                SnsNeuronOptions::from_matches,
-            ),
+            parse_test_options(sns_neuron_info_command(), &["1", neuron_id], |m, n| {
+                neuron_request(m, n, 1_780_531_200)
+            },),
             Err(SnsCommandError::Usage(_))
         ));
     }
@@ -25,18 +23,20 @@ fn sns_neurons_rejects_invalid_clap_values() {
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        parse_fallible_test_options(
-            sns_neuron_list_command(),
-            &["1", "--limit", "0"],
-            SnsNeuronsOptions::from_matches,
-        ),
+        parse_fallible_test_options(sns_neuron_list_command(), &["1", "--limit", "0"], |m, n| {
+            neurons_request(m, n, 1_780_531_200, || {
+                Ok(std::path::PathBuf::from("fixture-cache"))
+            })
+        },),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
         parse_fallible_test_options(
             sns_neuron_list_command(),
             &["1", "--limit", "101"],
-            SnsNeuronsOptions::from_matches,
+            |m, n| neurons_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -44,7 +44,9 @@ fn sns_neurons_rejects_invalid_clap_values() {
         parse_fallible_test_options(
             sns_neuron_list_command(),
             &["1", "--owner", "not-a-principal"],
-            SnsNeuronsOptions::from_matches,
+            |m, n| neurons_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -58,7 +60,9 @@ fn sns_neurons_rejects_invalid_clap_values() {
                 "--sort",
                 "stake",
             ],
-            SnsNeuronsOptions::from_matches,
+            |m, n| neurons_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -86,7 +90,9 @@ fn sns_proposals_reject_invalid_clap_values() {
         parse_fallible_test_options(
             sns_proposal_list_command(),
             &["be2us-64aaa-aaaaa-qaabq-cai", "--limit", "101"],
-            SnsProposalsOptions::from_matches,
+            |m, n| proposals_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -94,7 +100,9 @@ fn sns_proposals_reject_invalid_clap_values() {
         parse_fallible_test_options(
             sns_proposal_list_command(),
             &["be2us-64aaa-aaaaa-qaabq-cai", "--status", "not-a-status"],
-            SnsProposalsOptions::from_matches,
+            |m, n| proposals_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -102,7 +110,9 @@ fn sns_proposals_reject_invalid_clap_values() {
         parse_fallible_test_options(
             sns_proposal_list_command(),
             &["be2us-64aaa-aaaaa-qaabq-cai", "--topic", "not-a-topic"],
-            SnsProposalsOptions::from_matches,
+            |m, n| proposals_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -110,16 +120,18 @@ fn sns_proposals_reject_invalid_clap_values() {
         parse_fallible_test_options(
             sns_proposal_list_command(),
             &["be2us-64aaa-aaaaa-qaabq-cai", "--asc"],
-            SnsProposalsOptions::from_matches,
+            |m, n| proposals_request(m, n, 1_780_531_200, || Ok(std::path::PathBuf::from(
+                "fixture-cache"
+            ))),
         ),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        parse_test_options(
-            sns_proposal_info_command(),
-            &["1", "0"],
-            SnsProposalOptions::from_matches,
-        ),
+        parse_fallible_test_options(sns_proposal_info_command(), &["1", "0"], |m, n| {
+            proposal_request(m, n, 1_780_531_200, || {
+                Ok(std::path::PathBuf::from("fixture-cache"))
+            })
+        },),
         Err(SnsCommandError::Usage(_))
     ));
 }
@@ -128,11 +140,9 @@ fn sns_proposals_reject_invalid_clap_values() {
 fn sns_metrics_rejects_invalid_or_excessive_windows() {
     for value in ["0", "1.5h", "366d"] {
         assert!(matches!(
-            parse_test_options(
-                sns_metrics_command(),
-                &["1", "--window", value],
-                SnsMetricsOptions::from_matches,
-            ),
+            parse_test_options(sns_metrics_command(), &["1", "--window", value], |m, n| {
+                metrics_request(m, n, 1_780_531_200)
+            },),
             Err(SnsCommandError::Usage(_))
         ));
     }

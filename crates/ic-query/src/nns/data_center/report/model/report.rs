@@ -65,12 +65,7 @@ pub struct NnsDataCenterInfoReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub data_center_id: String,
-    pub region: String,
-    pub owner: String,
-    pub latitude: Option<f32>,
-    pub longitude: Option<f32>,
-    pub node_operator_count: u32,
-    pub node_provider_count: u32,
-    pub node_count: u32,
+    /// Resolved inventory row.
+    #[serde(flatten)]
+    pub data_center: NnsDataCenterRow,
 }

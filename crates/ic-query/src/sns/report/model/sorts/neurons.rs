@@ -5,37 +5,33 @@
 //! Boundary: names supported report-level sorting for SNS neuron listings.
 
 ///
-/// SnsNeuronsSort
+/// SnsNeuronsCacheSort
 ///
 /// Report-model sort selector for SNS neuron listings.
 ///
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum SnsNeuronsSort {
+pub enum SnsNeuronsCacheSort {
+    /// Ascending canonical neuron identity.
     #[default]
-    Api,
     Id,
+    /// Descending cached stake, then ascending identity.
     Stake,
+    /// Descending maturity, then ascending identity.
     Maturity,
+    /// Descending creation time, then ascending identity.
     Created,
 }
 
-impl SnsNeuronsSort {
+impl SnsNeuronsCacheSort {
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Api => "api",
             Self::Id => "id",
             Self::Stake => "stake",
             Self::Maturity => "maturity",
             Self::Created => "created",
         }
-    }
-
-    /// Return whether this sort requires a complete local snapshot.
-    #[must_use]
-    pub const fn uses_cache(self) -> bool {
-        !matches!(self, Self::Api)
     }
 }

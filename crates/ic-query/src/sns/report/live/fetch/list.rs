@@ -86,18 +86,16 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metadata_row(
 ) -> Result<MainnetSnsMetadata, SnsHostError> {
     let governance_canister =
         principal_from_text(&sns.governance_canister_id, "governance_canister_id")?;
-    let (metadata, metadata_error) =
-        match fetch_governance_metadata(agent, &governance_canister).await {
-            Ok(metadata) => (metadata, None),
-            Err(err) => match bounded_query_error_summary(&err) {
-                Some(summary) => (GetMetadataResponse::default(), Some(summary)),
-                None => return Err(err),
-            },
-        };
+    let outcome = match fetch_governance_metadata(agent, &governance_canister).await {
+        Ok(metadata) => Ok(metadata),
+        Err(error) => match bounded_query_error_summary(&error) {
+            Some(summary) => Err(summary),
+            None => return Err(error),
+        },
+    };
     Ok(mainnet_sns_metadata_from_response(
         sns.root_canister_id.clone(),
-        metadata,
-        metadata_error,
+        outcome,
     ))
 }
 
@@ -124,26 +122,18 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_lifecycle_row(
 ) -> Result<MainnetSnsLifecycle, SnsHostError> {
     let swap_canister = principal_from_text(&sns.swap_canister_id, "swap_canister_id")?;
     let result = super::swap::query_lifecycle(agent, &swap_canister).await;
-    let (lifecycle, lifecycle_error) = match result {
-        Ok(response) => response.lifecycle.map_or_else(
-            || {
-                (
-                    None,
-                    Some("get_lifecycle: missing lifecycle value".to_string()),
-                )
-            },
-            |lifecycle| (Some(lifecycle), None),
-        ),
+    let outcome = match result {
+        Ok(response) => response
+            .lifecycle
+            .ok_or_else(|| "get_lifecycle: missing lifecycle value".to_string()),
         Err(error) => match bounded_query_error_summary(&error) {
-            Some(summary) => (None, Some(summary)),
+            Some(summary) => Err(summary),
             None => return Err(error),
         },
     };
     Ok(MainnetSnsLifecycle {
         root_canister_id: sns.root_canister_id.clone(),
-        lifecycle,
-
-        lifecycle_error,
+        outcome,
     })
 }
 

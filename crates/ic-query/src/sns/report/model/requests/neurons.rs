@@ -5,7 +5,7 @@
 //! Boundary: carries validated neuron inputs into SNS report builders.
 
 use super::lookup::SnsLookupRequest;
-use crate::sns::report::SnsNeuronsSort;
+use crate::sns::report::SnsNeuronsCacheSort;
 use std::path::PathBuf;
 
 ///
@@ -34,60 +34,87 @@ impl SnsNeuronRequest {
 }
 
 ///
+/// SnsNeuronCollection
+///
+/// Acquisition inputs for a bounded live page or a view over a complete cache.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SnsNeuronCollection {
+    /// One live API page, optionally scoped to a permission owner.
+    Live {
+        /// Optional principal whose permissions select the page.
+        owner_principal_id: Option<String>,
+    },
+    /// A whole-collection cache view with local ordering.
+    Cached {
+        /// Caller-selected managed cache root.
+        cache_root: PathBuf,
+        /// Ordering applied after loading the complete snapshot.
+        sort: SnsNeuronsCacheSort,
+    },
+}
+
+impl SnsNeuronCollection {
+    pub(in crate::sns::report) const fn sort_label(&self) -> &'static str {
+        match self {
+            Self::Live { .. } => "api",
+            Self::Cached { sort, .. } => sort.as_str(),
+        }
+    }
+}
+
+///
 /// SnsNeuronsRequest
 ///
-/// Request accepted by the SNS neuron listing report builder.
+/// A bounded live neuron page or a view over a complete neuron cache.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronsRequest {
-    /// SNS target, explicit endpoint, network and caller clock.
+    /// Explicit target, endpoint, network and caller clock.
     pub lookup: SnsLookupRequest,
-    /// Maximum rows in the requested view; does not change snapshot identity.
+    /// Maximum displayed rows; does not change snapshot identity.
     pub limit: u32,
-    /// Optional principal whose neuron permissions select a targeted live view.
-    pub owner_principal_id: Option<String>,
-    /// Ordering of displayed neurons; does not change the collected snapshot.
-    pub sort: SnsNeuronsSort,
-    /// Caller-selected root for confined managed cache files.
-    pub cache_root: Option<PathBuf>,
-    /// Include additional human-facing neuron detail in text output.
+    /// Inputs specific to the selected acquisition route.
+    pub collection: SnsNeuronCollection,
+    /// Include additional human-facing detail.
     pub verbose: bool,
 }
 
 impl SnsNeuronsRequest {
-    /// Construct neuron query settings using the caller clock.
+    /// Request one live API page with optional owner filtering.
     #[must_use]
-    pub fn new(lookup: SnsLookupRequest, limit: u32) -> Self {
+    pub const fn live(
+        lookup: SnsLookupRequest,
+        limit: u32,
+        owner_principal_id: Option<String>,
+    ) -> Self {
         Self {
             lookup,
             limit,
-            owner_principal_id: None,
-            sort: SnsNeuronsSort::default(),
-            cache_root: None,
+            collection: SnsNeuronCollection::Live { owner_principal_id },
             verbose: false,
         }
     }
 
-    /// Select a targeted owner-permission neuron query.
+    /// Request a locally ordered view of a complete snapshot.
     #[must_use]
-    pub fn with_owner_principal_id(mut self, owner_principal_id: impl Into<String>) -> Self {
-        self.owner_principal_id = Some(owner_principal_id.into());
-        self
-    }
-
-    /// Select view ordering without changing snapshot identity.
-    #[must_use]
-    pub const fn with_sort(mut self, sort: SnsNeuronsSort) -> Self {
-        self.sort = sort;
-        self
-    }
-
-    /// Enable reading the complete neuron cache beneath this root.
-    #[must_use]
-    pub fn with_cache_root(mut self, cache_root: impl Into<PathBuf>) -> Self {
-        self.cache_root = Some(cache_root.into());
-        self
+    pub fn cached(
+        lookup: SnsLookupRequest,
+        limit: u32,
+        cache_root: impl Into<PathBuf>,
+        sort: SnsNeuronsCacheSort,
+    ) -> Self {
+        Self {
+            lookup,
+            limit,
+            collection: SnsNeuronCollection::Cached {
+                cache_root: cache_root.into(),
+                sort,
+            },
+            verbose: false,
+        }
     }
 
     /// Select detailed text rendering.

@@ -457,7 +457,7 @@ only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-w
 Platform owns required external Candid decoding; the private probe and native
 callers use Wire. Query and Testkit share Platform 0.15.2 and canonical Types
 0.15.1. External Candid/PocketIC Principal values retain their explicit boundary;
-the probe protocol uses Wire 0.13.0.
+the probe protocol uses Wire 0.13.1.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
 direct Ciborium declaration or usage. Governance fixtures use Testkit's native

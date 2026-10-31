@@ -14,17 +14,15 @@ use crate::sns::report::{
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     request: &SnsNeuronsRequest,
+    cache_root: &std::path::Path,
+    sort: crate::sns::SnsNeuronsCacheSort,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    let cache_root = request
-        .cache_root
-        .as_ref()
-        .ok_or(SnsHostError::MissingCacheRoot)?;
     let (cache_path, mut cache) = load_sns_cache_for_root::<SnsNeuronsCacheCollection>(
         cache_root,
         &request.lookup.network,
         &request.lookup.input,
     )?;
-    sort_sns_neurons(&mut cache.data.neurons, request.sort);
+    sort_sns_neurons(&mut cache.data.neurons, sort);
     let total_neuron_count = cache.data.neurons.len();
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     cache.data.neurons.truncate(limit);

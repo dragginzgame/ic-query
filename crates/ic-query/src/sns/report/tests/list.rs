@@ -494,7 +494,6 @@ async fn sns_list_report_rejects_inexact_metadata_results() {
         (empty_metadata_error, "metadata_error"),
         (untrimmed_metadata_name, "surrounding whitespace"),
         (untrimmed_metadata_error, "surrounding whitespace"),
-        (contradictory_metadata_result, "both payload fields"),
     ] {
         let source = MutatingMetadataSource(mutate);
         for error in [
@@ -528,15 +527,6 @@ async fn sns_list_report_rejects_inexact_lifecycle_results() {
         (invalidate_lifecycle_root, "is invalid"),
         (empty_lifecycle_error, "lifecycle_error"),
         (untrimmed_lifecycle_error, "surrounding whitespace"),
-        (contradictory_lifecycle_result, "both value fields"),
-        (
-            |rows| {
-                rows[0].lifecycle = None;
-
-                rows[0].lifecycle_error = None;
-            },
-            "neither a value nor lifecycle_error",
-        ),
     ] {
         let error = build_sns_list_report_with_source(
             &list_request(false),
@@ -559,7 +549,7 @@ async fn sns_list_report_rejects_inexact_lifecycle_results() {
 async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let root = temp_dir("ic-query-sns-unknown-lifecycle");
     let source = MutatingLifecycleSource(|rows| {
-        rows[0].lifecycle = Some(99);
+        rows[0].outcome = Ok(99);
     });
     let request = list_request(false).with_all_lifecycles(true);
     let live = build_sns_list_report_with_source(&request, &source)
@@ -585,7 +575,7 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     let original = fs::read(&path).expect("read published snapshot");
     let invalid_source = MutatingLifecycleSource(|rows| {
-        rows[0].lifecycle = None;
+        rows[0].outcome = Err(" ".to_string());
     });
     let mut stale_request = request;
     stale_request.now_unix_secs += DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS + 1;
@@ -1173,28 +1163,17 @@ fn invalidate_metadata_root(metadata: &mut Vec<MainnetSnsMetadata>) {
 
 #[expect(clippy::ptr_arg, reason = "shared metadata mutation fixture signature")]
 fn empty_metadata_error(metadata: &mut Vec<MainnetSnsMetadata>) {
-    metadata[0].name = None;
-    metadata[0].description = None;
-    metadata[0].url = None;
-    metadata[0].metadata_error = Some("  ".to_string());
+    metadata[0].outcome = Err("  ".to_string());
 }
 
 #[expect(clippy::ptr_arg, reason = "shared metadata mutation fixture signature")]
 fn untrimmed_metadata_name(metadata: &mut Vec<MainnetSnsMetadata>) {
-    metadata[0].name = Some(" Fixture SNS ".to_string());
+    metadata[0].outcome.as_mut().unwrap().name = Some(" Fixture SNS ".to_string());
 }
 
 #[expect(clippy::ptr_arg, reason = "shared metadata mutation fixture signature")]
 fn untrimmed_metadata_error(metadata: &mut Vec<MainnetSnsMetadata>) {
-    metadata[0].name = None;
-    metadata[0].description = None;
-    metadata[0].url = None;
-    metadata[0].metadata_error = Some(" fixture failure ".to_string());
-}
-
-#[expect(clippy::ptr_arg, reason = "shared metadata mutation fixture signature")]
-fn contradictory_metadata_result(metadata: &mut Vec<MainnetSnsMetadata>) {
-    metadata[0].metadata_error = Some("fixture failure".to_string());
+    metadata[0].outcome = Err(" fixture failure ".to_string());
 }
 
 fn remove_lifecycle(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
@@ -1226,9 +1205,7 @@ fn invalidate_lifecycle_root(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     reason = "shared lifecycle mutation fixture signature"
 )]
 fn empty_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
-    lifecycles[0].lifecycle = None;
-
-    lifecycles[0].lifecycle_error = Some("  ".to_string());
+    lifecycles[0].outcome = Err("  ".to_string());
 }
 
 #[expect(
@@ -1236,17 +1213,7 @@ fn empty_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     reason = "shared lifecycle mutation fixture signature"
 )]
 fn untrimmed_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
-    lifecycles[0].lifecycle = None;
-
-    lifecycles[0].lifecycle_error = Some(" query rejected ".to_string());
-}
-
-#[expect(
-    clippy::ptr_arg,
-    reason = "shared lifecycle mutation fixture signature"
-)]
-fn contradictory_lifecycle_result(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
-    lifecycles[0].lifecycle_error = Some("query rejected".to_string());
+    lifecycles[0].outcome = Err(" query rejected ".to_string());
 }
 
 #[expect(
@@ -1254,9 +1221,7 @@ fn contradictory_lifecycle_result(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     reason = "shared lifecycle mutation fixture signature"
 )]
 fn lifecycle_query_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
-    lifecycles[0].lifecycle = None;
-
-    lifecycles[0].lifecycle_error = Some("get_lifecycle: query rejected".to_string());
+    lifecycles[0].outcome = Err("get_lifecycle: query rejected".to_string());
 }
 
 #[tokio::test(flavor = "current_thread")]

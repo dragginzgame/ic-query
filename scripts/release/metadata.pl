@@ -5,6 +5,7 @@ use warnings;
 use File::Basename qw(dirname);
 use File::Path qw(make_path);
 use File::Temp qw(tempfile);
+use JSON::PP qw(encode_json);
 
 # Consumer-owned metadata transformations; no dependency resolution or Git effects.
 sub read_file {
@@ -90,12 +91,19 @@ sub expected {
         binmode $manifest or die "cannot select manifest byte mode: $!\n";
         print {$manifest} $text or die "cannot retain manifest input: $!\n";
         close $manifest or die "cannot close manifest input: $!\n";
+        my ($selection, $selection_path) = tempfile('ic-query-render-selection.XXXXXX', TMPDIR => 1, UNLINK => 1);
+        print {$selection} encode_json({
+            version => 'workspace',
+            dependencies => [map {
+                { alias => $_, previous => $previous, next => $version }
+            } qw(ic-query ic-query-cli ic-query-testkit)],
+        }) or die "cannot retain manifest selection: $!\n";
+        close $selection or die "cannot close manifest selection: $!\n";
         open my $renderer, '-|', $editor, '--max-input-bytes', $max_bytes,
-            'manifest', $manifest_path, $previous, $version or die "cannot run IC Build manifest editor: $!\n";
+            'group-manifest', $manifest_path, $previous, $version, $selection_path
+            or die "cannot run IC Build manifest editor: $!\n";
         $text = do { local $/; <$renderer> };
         close $renderer or die "workspace version rendering failed\n";
-        my $count = $text =~ s/(^ic-query = \{ path = "crates\/ic-query", version = ")\Q$previous\E(")/$1$version$2/m;
-        $count == 1 or die "missing owned workspace dependency version\n";
     } elsif ($path eq 'Cargo.lock') {
         open my $lock, '-|', $editor, '--max-input-bytes', $max_bytes,
             'lock', "$evidence/before/$path", $previous, $version, 'ic-query', 'ic-query-cli', 'ic-query-testkit'

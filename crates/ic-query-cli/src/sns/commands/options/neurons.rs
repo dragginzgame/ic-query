@@ -1,91 +1,67 @@
-//! Module: sns::commands::options::neurons
-//!
-//! Responsibility: parse SNS neuron list, refresh, and cache options.
-//! Does not own: neuron cache policy, live governance reads, or reports.
-//! Boundary: validates clap matches into neuron command request inputs.
+//! Parse SNS neuron commands directly into acquisition-specific report requests.
 
 use crate::{
-    cli::clap::{required_string, required_typed, typed_option},
-    sns::commands::{SnsCommandError, options::lookup::SnsLookupOptions, spec::SnsNeuronsSortArg},
+    cli::{
+        clap::{required_string, required_typed, typed_option},
+        common::OutputFormat,
+    },
+    sns::commands::{SnsCommandError, options::SnsLookupOptions, spec::SnsNeuronsSortArg},
 };
 use clap::ArgMatches;
 use ic_platform::candid::contract::Principal;
-use ic_query::sns::SnsNeuronsSort;
+use ic_query::sns::{SnsNeuronRequest, SnsNeuronsCacheSort, SnsNeuronsRequest};
+use std::path::PathBuf;
 
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;
 
-///
-/// SnsNeuronOptions
-///
-/// Parsed options accepted by `icq sns neuron info`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsNeuronOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) neuron_id: String,
+pub(in crate::sns::commands) fn neuron_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+) -> (OutputFormat, SnsNeuronRequest) {
+    let (format, lookup) =
+        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    (
+        format,
+        SnsNeuronRequest::new(lookup, required_string(matches, "neuron-id")),
+    )
 }
 
-///
-/// SnsNeuronsOptions
-///
-/// Parsed options accepted by `icq sns neuron list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsNeuronsOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) limit: u32,
-    pub(in crate::sns::commands) owner_principal_id: Option<String>,
-    pub(in crate::sns::commands) sort: SnsNeuronsSortArg,
-    pub(in crate::sns::commands) verbose: bool,
-}
-
-impl SnsNeuronsOptions {
-    pub(in crate::sns::commands) fn from_matches(
-        matches: &ArgMatches,
-        network: &str,
-    ) -> Result<Self, SnsCommandError> {
-        let options = Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
-            limit: required_typed(matches, "limit"),
-            owner_principal_id: typed_option::<Principal>(matches, "owner")
-                .map(|principal| principal.to_text()),
-            sort: required_typed(matches, "sort"),
-            verbose: matches.get_flag("verbose"),
-        };
-        options.validate()?;
-        Ok(options)
-    }
-
-    fn validate(&self) -> Result<(), SnsCommandError> {
-        let uses_cache = SnsNeuronsSort::from(self.sort).uses_cache();
-        if !uses_cache && self.limit > SNS_NEURONS_LIVE_MAX_LIMIT {
+pub(in crate::sns::commands) fn neurons_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+    cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
+) -> Result<(OutputFormat, SnsNeuronsRequest), SnsCommandError> {
+    let (format, lookup) =
+        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let limit = required_typed(matches, "limit");
+    let owner_principal_id =
+        typed_option::<Principal>(matches, "owner").map(|principal| principal.to_text());
+    let cache_sort = match required_typed(matches, "sort") {
+        SnsNeuronsSortArg::Api => None,
+        SnsNeuronsSortArg::Id => Some(SnsNeuronsCacheSort::Id),
+        SnsNeuronsSortArg::Stake => Some(SnsNeuronsCacheSort::Stake),
+        SnsNeuronsSortArg::Maturity => Some(SnsNeuronsCacheSort::Maturity),
+        SnsNeuronsSortArg::Created => Some(SnsNeuronsCacheSort::Created),
+    };
+    let request = if let Some(sort) = cache_sort {
+        if owner_principal_id.is_some() {
+            return Err(SnsCommandError::Usage("`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string()));
+        }
+        Principal::from_text(&lookup.input).map_err(|_| {
+            SnsCommandError::Usage(
+                "cached neuron views require an SNS root canister principal".to_string(),
+            )
+        })?;
+        SnsNeuronsRequest::cached(lookup, limit, cache_root()?, sort)
+    } else {
+        if limit > SNS_NEURONS_LIVE_MAX_LIMIT {
             return Err(SnsCommandError::Usage(format!(
                 "`icq sns neuron list --sort api` can request at most {SNS_NEURONS_LIVE_MAX_LIMIT} live neurons at a time; refresh the cache and use `--sort <id|stake|maturity|created>` for larger limits"
             )));
         }
-        if uses_cache && self.owner_principal_id.is_some() {
-            return Err(SnsCommandError::Usage(
-                "`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string(),
-            ));
-        }
-        if uses_cache {
-            Principal::from_text(&self.lookup.input).map_err(|_| {
-                SnsCommandError::Usage(
-                    "cached neuron views require an SNS root canister principal".to_string(),
-                )
-            })?;
-        }
-        Ok(())
-    }
-}
-
-impl SnsNeuronOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
-            neuron_id: required_string(matches, "neuron-id"),
-        }
-    }
+        SnsNeuronsRequest::live(lookup, limit, owner_principal_id)
+    };
+    Ok((format, request.with_verbose(matches.get_flag("verbose"))))
 }

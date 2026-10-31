@@ -29,7 +29,7 @@ pub(in crate::sns::report) use metrics::{
     validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
 #[cfg(feature = "sns-host")]
-pub use neurons::{SnsNeuronRequest, SnsNeuronsRequest};
+pub use neurons::{SnsNeuronCollection, SnsNeuronRequest, SnsNeuronsRequest};
 pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
 #[cfg(feature = "sns-host")]
 pub use refresh::SnsSnapshotRefreshRequest;

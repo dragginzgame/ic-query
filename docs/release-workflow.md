@@ -51,6 +51,8 @@ Query selects
 an 8 MiB per-document allowance in Make, retains authenticated source bytes and
 before/after candidates, and owns its exact file set, local dependency projection,
 changelog finalization, source/index admission and interruption reconciliation.
+Build projects all three root catalog versions, including unused CLI/Testkit
+entries, together with the workspace version.
 Direct metadata-fixture callers supply `CARGO_RELEASE_METADATA_EDITOR` and
 `CARGO_RELEASE_METADATA_MAX_BYTES` explicitly. No renderer performs Git effects,
 network access or installation. The retired Perl editors are no longer selected.

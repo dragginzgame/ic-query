@@ -15,15 +15,15 @@ pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) ->
     ));
     lines.push(format!(
         "node_provider_principal: {}",
-        report.node_provider_principal
+        report.node_provider.node_provider_principal
     ));
     lines.push(format!(
         "node_count: {}",
-        optional_node_count_text(report.node_count)
+        optional_node_count_text(report.node_provider.node_count)
     ));
     lines.push(format!(
         "reward_account_hex: {}",
-        text_or_dash(report.reward_account_hex.as_deref())
+        text_or_dash(report.node_provider.reward_account_hex.as_deref())
     ));
     lines.push(format!(
         "governance_canister_id: {}",

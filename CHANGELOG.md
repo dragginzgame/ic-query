@@ -5,6 +5,34 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.80.0]
+
+### ⚠️ Breaking
+
+- Select explicit live or cached SNS neuron requests and success/failure SNS
+  enrichment outcomes. Update custom sources and callers to the new contracts.
+- Read inventory detail rows, catalog metadata, ICRC history payloads and
+  refresh-attempt status through their shared records. JSON fields, text output,
+  protocol bytes and schema-1 caches remain unchanged.
+
+### 🧹 Cleanup
+
+- Remove repeated CLI request plumbing, Registry evidence conversions and report
+  field copies. Share SNS context rendering and validated refresh-status projection.
+
+### 🔧 Changed
+
+- Require Build/Foundation Host 0.73.2, Host Tools/Testkit 0.75.1 and Wire
+  0.13.1. Testkit now shares Query's Metrics 0.24 line.
+  These dependency updates preserve protocol bytes, cache formats and Rust 1.91.
+
+### 🩹 Fixed
+
+- Keep all local crate catalog versions aligned during release preparation,
+  including unused CLI and Testkit entries, through Build's manifest renderer.
+
+Detailed release notes: [docs/changelog/0.80.md](docs/changelog/0.80.md)
+
 ## [0.79.0] - 2026-10-31
 
 ### ⚠️ Breaking

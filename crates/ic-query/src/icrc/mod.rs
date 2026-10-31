@@ -55,7 +55,7 @@ pub use model::normalize_subaccount_hex;
 #[cfg(feature = "icrc-host")]
 pub use model::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcCapabilitiesData, IcrcTransactionsData,
+    IcrcCapabilitiesData,
 };
 pub use model::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
@@ -71,8 +71,8 @@ pub use model::{
     IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus,
     IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexReport, IcrcLedgerRequest,
     IcrcMetadataValueKind, IcrcTipCertificateReport, IcrcTokenData, IcrcTokenMetadataRow,
-    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsReport,
-    IcrcTransactionsRequest,
+    IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData,
+    IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 pub use text::{
     icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,

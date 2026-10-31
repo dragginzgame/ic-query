@@ -151,19 +151,25 @@ fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &
 fn attempt_lines(attempt: &SnsRefreshAttemptStatus) -> [String; 9] {
     [
         "latest_attempt:".to_string(),
-        format!("  status: {}", attempt.status),
-        format!("  started_at: {}", terminal_text(&attempt.started_at)),
-        format!("  updated_at: {}", terminal_text(&attempt.updated_at)),
-        format!("  page_size: {}", attempt.page_size),
-        format!("  pages_fetched: {}", attempt.pages_fetched),
-        format!("  rows_fetched: {}", attempt.rows_fetched),
+        format!("  status: {}", attempt.lifecycle.status),
+        format!(
+            "  started_at: {}",
+            terminal_text(&attempt.lifecycle.started_at)
+        ),
+        format!(
+            "  updated_at: {}",
+            terminal_text(&attempt.lifecycle.updated_at)
+        ),
+        format!("  page_size: {}", attempt.lifecycle.page_size),
+        format!("  pages_fetched: {}", attempt.lifecycle.pages_fetched),
+        format!("  rows_fetched: {}", attempt.lifecycle.rows_fetched),
         format!(
             "  last_cursor: {}",
-            optional_text(attempt.last_cursor.as_ref())
+            optional_text(attempt.lifecycle.last_cursor.as_ref())
         ),
         format!(
             "  last_error: {}",
-            optional_text(attempt.last_error.as_ref())
+            optional_text(attempt.lifecycle.last_error.as_ref())
         ),
     ]
 }

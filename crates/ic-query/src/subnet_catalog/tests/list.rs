@@ -122,7 +122,10 @@ async fn list_report_loads_cached_catalog_and_caps_ranges() {
     let _ = fs::remove_dir_all(root);
     assert_eq!(report.subnets.len(), 2);
     assert_eq!(report.cache_disposition, CacheDisposition::CacheHit);
-    assert_eq!(report.assurance, CatalogAssurance::UncertifiedQuery);
+    assert_eq!(
+        report.metadata.assurance,
+        CatalogAssurance::UncertifiedQuery
+    );
     assert_eq!(report.subnets[0].range_count, 2);
     assert_eq!(report.subnets[0].ranges_shown, 1);
     assert!(text.contains("SUBNET"));
@@ -190,7 +193,7 @@ async fn list_report_refreshes_missing_catalog() {
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
 
     let _ = fs::remove_dir_all(root);
-    assert_eq!(report.registry_version, 987_654);
+    assert_eq!(report.metadata.registry_version, 987_654);
     assert_eq!(report.cache_disposition, CacheDisposition::RefreshedMissing);
     assert_eq!(cached.catalog.provenance().registry_version, 987_654);
 }
@@ -218,7 +221,7 @@ async fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
             .await
             .expect("invalid catalog refreshes");
 
-    assert_eq!(report.registry_version, 987_654);
+    assert_eq!(report.metadata.registry_version, 987_654);
     assert_eq!(report.cache_disposition, CacheDisposition::RefreshedInvalid);
     assert_ne!(
         fs::read_to_string(path).expect("refreshed catalog"),

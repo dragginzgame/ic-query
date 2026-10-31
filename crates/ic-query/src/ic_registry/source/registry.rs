@@ -1,9 +1,9 @@
 use super::agent::{mainnet_agent, mainnet_registry_canister};
+use crate::nns::registry::NnsRegistryVersionData;
 use crate::{
     certification::{CertifiedDataError, validate_certificate_time},
     ic_registry::{
-        MainnetRegistryCertification, MainnetRegistryFetchRequest, MainnetRegistryVersion,
-        RegistryFetchError,
+        MainnetRegistryFetchRequest, RegistryFetchError,
         model::CertifiedRegistryDeltaBatch,
         transport::{get_certified_changes_since, get_certified_latest_version},
     },
@@ -13,19 +13,19 @@ use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_sec
 
 pub async fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
-) -> Result<MainnetRegistryVersion, RegistryFetchError> {
+) -> Result<NnsRegistryVersionData, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
     let registry_canister = mainnet_registry_canister()?;
     let certified = get_certified_latest_version(&agent, &registry_canister).await?;
     validate_live_certificate_time(request, certified.certificate_time_nanos)?;
-    Ok(MainnetRegistryVersion {
+    Ok(NnsRegistryVersionData {
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         registry_version: certified.registry_version,
         fetched_at: request.fetched_at.clone(),
         fetched_by: request.fetched_by.clone(),
         source_endpoint: request.endpoint.clone(),
-        certification: MainnetRegistryCertification {
+        certification: crate::nns::registry::NnsRegistryCertification {
             certificate_verified: true,
             certificate_time_nanos: certified.certificate_time_nanos,
             certificate_time: format_utc_timestamp_secs(

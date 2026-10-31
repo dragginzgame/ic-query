@@ -65,15 +65,8 @@ pub(super) fn read_refresh_attempt_status(
     .map(|attempt| {
         validate_attempt(path, request, &attempt)?;
         Ok(IcrcAccountTransactionRefreshAttemptStatus {
-            status: attempt.status,
-            started_at: attempt.started_at,
-            updated_at: attempt.updated_at,
-            index_canister_id: attempt.metadata.index_canister_id,
-            page_size: attempt.page_size,
-            pages_fetched: attempt.pages_fetched,
-            rows_fetched: attempt.rows_fetched,
-            last_cursor: attempt.last_cursor,
-            last_error: attempt.last_error,
+            index_canister_id: attempt.metadata.index_canister_id.clone(),
+            lifecycle: attempt.into(),
         })
     })
     .transpose()

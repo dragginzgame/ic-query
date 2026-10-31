@@ -120,10 +120,7 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
         fetched_at: report.fetched_at,
         source_endpoint: report.source_endpoint,
         fetched_by: report.fetched_by,
-        node_provider_principal: provider.node_provider_principal,
-        name: provider.name,
-        node_count: provider.node_count,
-        reward_account_hex: provider.reward_account_hex,
+        node_provider: provider,
     })
 }
 

@@ -38,7 +38,9 @@ impl SnsNeuronsSource for InvalidBoundedSnsNeuronsSource {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     let mut request = neurons_request("1");
-    request.owner_principal_id = Some(GOVERNANCE_A.to_string());
+    request.collection = crate::sns::SnsNeuronCollection::Live {
+        owner_principal_id: Some(GOVERNANCE_A.to_string()),
+    };
 
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
         .await
@@ -103,7 +105,9 @@ fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
     let mut request = neurons_request("1");
-    request.owner_principal_id = Some(GOVERNANCE_A.to_string());
+    request.collection = crate::sns::SnsNeuronCollection::Live {
+        owner_principal_id: Some(GOVERNANCE_A.to_string()),
+    };
 
     let error = build_sns_neurons_report_with_source(&request, &InvalidBoundedSnsNeuronsSource)
         .await
@@ -121,7 +125,9 @@ async fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
     let mut request = neurons_request("1");
-    request.owner_principal_id = Some(GOVERNANCE_A.to_string());
+    request.collection = crate::sns::SnsNeuronCollection::Live {
+        owner_principal_id: Some(GOVERNANCE_A.to_string()),
+    };
     request.verbose = true;
 
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)

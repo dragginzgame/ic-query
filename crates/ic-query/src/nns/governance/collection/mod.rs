@@ -192,32 +192,6 @@ impl NnsGovernanceRefreshReport {
 }
 
 ///
-/// NnsGovernanceRefreshAttemptStatus
-///
-/// Serializable lifecycle evidence for an NNS Governance collection refresh.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsGovernanceRefreshAttemptStatus {
-    /// Attempt lifecycle status.
-    pub status: CacheRefreshAttemptStatus,
-    /// Attempt start timestamp.
-    pub started_at: String,
-    /// Latest attempt update timestamp.
-    pub updated_at: String,
-    /// Requested page size.
-    pub page_size: u32,
-    /// Successfully retained pages.
-    pub pages_fetched: u32,
-    /// Successfully retained rows.
-    pub rows_fetched: usize,
-    /// Latest exclusive cursor.
-    pub last_cursor: Option<String>,
-    /// Latest terminal error.
-    pub last_error: Option<String>,
-}
-
-///
 /// NnsGovernanceCacheMetadata
 ///
 /// Shared flattened provenance for an NNS Governance snapshot or attempt.
@@ -270,23 +244,6 @@ pub(in crate::nns) fn validate_governance_cache_metadata(
     ))
 }
 
-/// Project a stored refresh attempt into its report-safe lifecycle fields.
-#[must_use]
-pub(in crate::nns) fn governance_refresh_attempt_status<Metadata>(
-    attempt: SnapshotRefreshAttempt<Metadata>,
-) -> NnsGovernanceRefreshAttemptStatus {
-    NnsGovernanceRefreshAttemptStatus {
-        status: attempt.status,
-        started_at: attempt.started_at,
-        updated_at: attempt.updated_at,
-        page_size: attempt.page_size,
-        pages_fetched: attempt.pages_fetched,
-        rows_fetched: attempt.rows_fetched,
-        last_cursor: attempt.last_cursor,
-        last_error: attempt.last_error,
-    }
-}
-
 /// Strictly read and validate one NNS Governance refresh-attempt sidecar.
 pub(in crate::nns) fn read_governance_refresh_attempt(
     cache_root: &Path,
@@ -324,9 +281,9 @@ pub(in crate::nns) fn read_governance_refresh_attempt_status(
     path: &Path,
     expected_network: &str,
     cache_component: &'static str,
-) -> Result<Option<NnsGovernanceRefreshAttemptStatus>, NnsGovernanceAttemptReadError> {
+) -> Result<Option<crate::cache::SnapshotRefreshAttemptStatus>, NnsGovernanceAttemptReadError> {
     read_governance_refresh_attempt(cache_root, path, expected_network, cache_component)
-        .map(|attempt| attempt.map(governance_refresh_attempt_status))
+        .map(|attempt| attempt.map(Into::into))
 }
 
 /// Construct and write one validated-shape NNS Governance refresh-attempt sidecar.

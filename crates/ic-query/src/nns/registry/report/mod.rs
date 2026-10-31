@@ -31,12 +31,12 @@ pub use model::{
     NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
     NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use source::{
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistrySource,
-    NnsRegistryVersionData, nns_certified_registry_delta_limits,
+    nns_certified_registry_delta_limits,
 };
 pub use text::nns_registry_version_report_text;
 

@@ -1,6 +1,5 @@
 //! Human-facing publication outcomes for complete NNS Governance snapshots.
 
-use crate::nns::NnsGovernanceRefreshAttemptStatus;
 use crate::nns::governance::{NnsGovernanceCacheStatusReport, NnsGovernanceRefreshReport};
 use crate::text_value::yes_no;
 use ic_host_text::escape::terminal_text;
@@ -104,7 +103,7 @@ pub fn nns_governance_cache_status_report_text(report: &NnsGovernanceCacheStatus
     lines.join("\n")
 }
 
-fn attempt_lines(attempt: Option<&NnsGovernanceRefreshAttemptStatus>) -> Vec<String> {
+fn attempt_lines(attempt: Option<&crate::cache::SnapshotRefreshAttemptStatus>) -> Vec<String> {
     let Some(attempt) = attempt else {
         return vec!["latest_attempt: -".to_string()];
     };

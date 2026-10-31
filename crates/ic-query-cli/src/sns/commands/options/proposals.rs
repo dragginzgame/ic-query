@@ -4,6 +4,7 @@
 //! Does not own: proposal command specs, proposal cache policy, or reports.
 //! Boundary: validates clap matches into proposal command request inputs.
 
+use crate::cli::common::OutputFormat;
 use crate::{
     cli::clap::{required_typed, string_option, typed_option},
     cli::common::resolve_proposal_sort_direction,
@@ -17,64 +18,32 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-use ic_query::report::SortDirection;
-use ic_query::sns::{
-    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
-};
+use ic_query::sns::{SnsProposalRequest, SnsProposalsRequest, SnsProposalsSort};
+use std::path::PathBuf;
 
-///
-/// SnsProposalsOptions
-///
-/// Parsed options accepted by `icq sns proposal list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsProposalsOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) limit: u32,
-    pub(in crate::sns::commands) before_proposal_id: Option<u64>,
-    pub(in crate::sns::commands) status: SnsProposalStatusFilter,
-    pub(in crate::sns::commands) topic: SnsProposalTopicFilter,
-    pub(in crate::sns::commands) eligibility: SnsProposalEligibilityFilter,
-    pub(in crate::sns::commands) proposer_neuron_id: Option<String>,
-    pub(in crate::sns::commands) query: Option<String>,
-    pub(in crate::sns::commands) sort: SnsProposalsSort,
-    pub(in crate::sns::commands) sort_direction: SortDirection,
-    pub(in crate::sns::commands) verbose: bool,
-}
-
-///
-/// SnsProposalOptions
-///
-/// Parsed options accepted by `icq sns proposal info`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsProposalOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) proposal_id: u64,
-    pub(in crate::sns::commands) verbose: bool,
-    pub(in crate::sns::commands) show_ballots: bool,
-}
-
-impl SnsProposalsOptions {
-    pub(in crate::sns::commands) fn from_matches(
-        matches: &ArgMatches,
-        network: &str,
-    ) -> Result<Self, SnsCommandError> {
-        let status = required_typed::<SnsProposalStatusArg>(matches, "status").into();
-        let sort = SnsProposalsSort::from(required_typed::<SnsProposalsSortArg>(matches, "sort"));
-        let sort_direction = resolve_proposal_sort_direction(
-            matches,
-            sort.uses_local_direction(),
-            sort.default_direction(),
-            || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
-        )
-        .map_err(SnsCommandError::Usage)?;
-        Ok(Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
+pub(in crate::sns::commands) fn proposals_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+    cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
+) -> Result<(OutputFormat, SnsProposalsRequest), SnsCommandError> {
+    let status = required_typed::<SnsProposalStatusArg>(matches, "status").into();
+    let sort = SnsProposalsSort::from(required_typed::<SnsProposalsSortArg>(matches, "sort"));
+    let sort_direction = resolve_proposal_sort_direction(
+        matches,
+        sort.uses_local_direction(),
+        sort.default_direction(),
+        || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
+    )
+    .map_err(SnsCommandError::Usage)?;
+    let (format, lookup) =
+        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    Ok((
+        format,
+        SnsProposalsRequest {
+            lookup,
             limit: required_typed(matches, "limit"),
-            before_proposal_id: typed_option::<u64>(matches, "before"),
+            before_proposal_id: typed_option(matches, "before"),
             status,
             topic: required_typed::<SnsProposalTopicArg>(matches, "topic").into(),
             eligibility: required_typed::<SnsProposalEligibilityArg>(matches, "eligible").into(),
@@ -82,18 +51,32 @@ impl SnsProposalsOptions {
             query: string_option(matches, "query"),
             sort,
             sort_direction,
+            cache_root: Some(cache_root()?),
             verbose: matches.get_flag("verbose"),
-        })
-    }
+        },
+    ))
 }
 
-impl SnsProposalOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
+pub(in crate::sns::commands) fn proposal_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+    cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
+) -> Result<(OutputFormat, SnsProposalRequest), SnsCommandError> {
+    let (format, lookup) =
+        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
+        .ok()
+        .map(|_| cache_root())
+        .transpose()?;
+    Ok((
+        format,
+        SnsProposalRequest {
+            lookup,
             proposal_id: required_typed(matches, "proposal-id"),
+            cache_root,
             verbose: matches.get_flag("verbose"),
             show_ballots: matches.get_flag("ballots"),
-        }
-    }
+        },
+    ))
 }

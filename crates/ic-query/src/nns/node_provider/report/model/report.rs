@@ -73,8 +73,7 @@ pub struct NnsNodeProviderInfoReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub node_provider_principal: String,
-    pub name: Option<String>,
-    pub node_count: Option<u32>,
-    pub reward_account_hex: Option<String>,
+    /// Resolved inventory row.
+    #[serde(flatten)]
+    pub node_provider: NnsNodeProviderRow,
 }

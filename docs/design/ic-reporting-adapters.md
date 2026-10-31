@@ -39,6 +39,12 @@ Dependencies own the reusable mechanisms beneath that policy:
 | Measurement arithmetic | `ic-metrics` | Report-specific interpretation and display policy |
 | Developer tooling implementation | Reviewed Shared Tooling snapshot | Local Make/CI wiring, selected catalogs, release adapters and product qualification |
 
+Shared report records preserve flattened JSON while giving Rust callers one owner
+for inventory detail rows, catalog collection metadata, ICRC history payloads and
+refresh-attempt lifecycle fields. Registry collection returns the portable NNS
+version/evidence contract directly. SNS enrichment sources carry success or bounded
+failure outcomes; joined catalogs retain their existing persisted shape and validation.
+
 The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
@@ -65,10 +71,10 @@ released from integration (Host Tools and Testkit). Query selects their publishe
 packages through one root catalog and lockfile while retaining Rust 1.91.
 
 The current workspace minimums are Platform 0.15.2, Metrics 0.24.0,
-Foundation 0.73.1, integration 0.75.0 and Wire 0.13.0. Platform, Host Tools and
+Foundation 0.73.2, integration 0.75.1 and Wire 0.13.1. Platform, Host Tools and
 Testkit share one Platform identity and its canonical `ic-platform-types` 0.15.1
-supplier. Testkit privately retains arithmetic-only Metrics 0.23.2; Query's
-production graph uses 0.24.0. Direct Wire use belongs to probes and development
+supplier. Query and Testkit share arithmetic-only Metrics 0.24; the lockfile
+contains one Metrics identity. Direct Wire use belongs to probes and development
 fixtures, selecting its core codec. Optional Principal/Account schemas belong
 to Wire's `platform-types` feature; endpoint integration is separately supplied
 by `ic-wire-endpoint`. Query selects neither integration.
@@ -280,7 +286,9 @@ cache-only and whole-SNS list requests keep their distinct acquisition inputs. C
 `collection` and `row_count` identify the published data. Separate collectors
 own cursor and page validation; the common lifecycle owns publication and
 attempt-finalization evidence. Shared neuron report assembly receives explicit
-live owner scope or cached whole-collection totals before view limits. Complete catalog enrichment uses `SnsCatalogSource` to
+live owner scope or cached whole-collection totals before view limits. Neuron
+requests carry explicit live or cached acquisition inputs; only live requests
+accept an owner, while cached requests require their root and local sort. Complete catalog enrichment uses `SnsCatalogSource` to
 add exact-target Swap lifecycles to `SnsDiscoverySource` inventory and
 Governance metadata. SNS Root inventory and health use one
 `SnsCanisterSource` capability on `LiveSnsSource` rather than separate

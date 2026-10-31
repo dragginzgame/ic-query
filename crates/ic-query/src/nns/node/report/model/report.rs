@@ -64,10 +64,7 @@ pub struct NnsNodeInfoReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub node_principal: String,
-    pub node_operator_principal: String,
-    pub node_provider_principal: String,
-    pub subnet_principal: String,
-    pub subnet_kind: SubnetKind,
-    pub data_center_id: String,
+    /// Resolved inventory row.
+    #[serde(flatten)]
+    pub node: NnsNodeRow,
 }

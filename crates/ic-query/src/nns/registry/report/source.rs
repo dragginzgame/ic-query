@@ -9,6 +9,7 @@ use super::{
         NnsRegistryCertification,
     },
 };
+use crate::nns::registry::NnsRegistryVersionData;
 use crate::report::CollectionSourceRequest;
 use crate::{
     agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES,
@@ -19,54 +20,13 @@ use crate::{
         MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS,
         MAX_CERTIFIED_DELTA_VALUE_BYTES, MAX_CERTIFIED_DELTA_VERSIONS, MAX_REGISTRY_CHUNK_BYTES,
         MAX_REGISTRY_CHUNK_REFERENCES, MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
-        MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES, MainnetRegistryVersion,
-        fetch_mainnet_certified_registry_delta_batch_async, fetch_mainnet_registry_version,
+        MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES, fetch_mainnet_certified_registry_delta_batch_async,
+        fetch_mainnet_registry_version,
     },
     nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
-
-///
-/// NnsRegistryVersionData
-///
-/// Source-layer NNS registry version result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NnsRegistryVersionData {
-    pub network: String,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub fetched_by: String,
-    pub source_endpoint: String,
-    /// Authenticated evidence for the certified latest version.
-    pub certification: NnsRegistryCertification,
-}
-
-impl From<MainnetRegistryVersion> for NnsRegistryVersionData {
-    fn from(version: MainnetRegistryVersion) -> Self {
-        Self {
-            network: version.network,
-            registry_canister_id: version.registry_canister_id,
-            registry_version: version.registry_version,
-            fetched_at: version.fetched_at,
-            fetched_by: version.fetched_by,
-            source_endpoint: version.source_endpoint,
-            certification: NnsRegistryCertification {
-                certificate_verified: version.certification.certificate_verified,
-                certificate_time_nanos: version.certification.certificate_time_nanos,
-                certificate_time: version.certification.certificate_time,
-                root_key_digest: version.certification.root_key_digest,
-                certificate_hex: version.certification.certificate_hex,
-                certificate_bytes: version.certification.certificate_bytes,
-                hash_tree_hex: version.certification.hash_tree_hex,
-                hash_tree_bytes: version.certification.hash_tree_bytes,
-            },
-        }
-    }
-}
 
 ///
 /// NnsRegistrySource
@@ -90,7 +50,7 @@ impl NnsRegistrySource for LiveNnsSource {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
                 NnsRegistryHostError::UnsupportedNetwork { network }
             })?;
-            Ok(fetch_mainnet_registry_version(&fetch_request).await?.into())
+            Ok(fetch_mainnet_registry_version(&fetch_request).await?)
         })
     }
 }

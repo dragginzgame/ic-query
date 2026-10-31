@@ -5,11 +5,8 @@
 //! Boundary: formats raw neuron, permission, disbursement, and followee evidence.
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::{Alignment, render};
 use ic_host_text::timestamp::format_utc_timestamp_secs;
-use ic_host_text::{
-    escape::terminal_text,
-    table::{Alignment, render},
-};
 
 use crate::{
     sns::report::{
@@ -34,15 +31,8 @@ pub fn sns_neuron_detail_report_text(report: &SnsNeuronDetailReport) -> String {
 fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
     let detail = &report.detail;
     let neuron = &detail.neuron;
-    vec![
-        format!("network: {}", terminal_text(&report.context.network)),
-        format!("sns_id: {}", report.context.id),
-        format!("name: {}", terminal_text(&report.context.name)),
-        format!("root_canister_id: {}", report.context.root_canister_id),
-        format!(
-            "governance_canister_id: {}",
-            report.context.governance_canister_id
-        ),
+    let mut lines = crate::sns::report::text::common::sns_identity_lines(&report.context);
+    lines.extend([
         format!("neuron_id: {}", report.neuron_id),
         format!("data_source: {}", report.data_source),
         format!(
@@ -100,16 +90,11 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
             "topic_following_entry_count: {}",
             detail.topic_followees.as_ref().map_or(0, Vec::len)
         ),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
-        ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-    ]
+    ]);
+    lines.extend(crate::sns::report::text::common::sns_collection_lines(
+        &report.context,
+    ));
+    lines
 }
 
 fn permission_table(detail: &SnsNeuronDetail) -> Option<String> {

@@ -420,3 +420,29 @@ mod tests {
         }
     }
 }
+
+///
+/// SnapshotRefreshAttemptStatus
+///
+/// Report-safe lifecycle evidence projected after a family validates its attempt sidecar.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnapshotRefreshAttemptStatus {
+    /// Current lifecycle status.
+    pub status: CacheRefreshAttemptStatus,
+    /// Attempt start timestamp.
+    pub started_at: String,
+    /// Latest attempt update timestamp.
+    pub updated_at: String,
+    /// Requested page size.
+    pub page_size: u32,
+    /// Successfully retained pages.
+    pub pages_fetched: u32,
+    /// Successfully retained rows.
+    pub rows_fetched: usize,
+    /// Latest exclusive cursor.
+    pub last_cursor: Option<String>,
+    /// Terminal failure evidence.
+    pub last_error: Option<String>,
+}

@@ -4,7 +4,7 @@ use super::{
         NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION, NnsRegistryVersionReport,
         NnsRegistryVersionRequest,
     },
-    source::{NnsRegistrySource, NnsRegistryVersionData},
+    source::NnsRegistrySource,
 };
 use crate::report::CollectionSourceRequest;
 use crate::{
@@ -43,7 +43,7 @@ pub async fn build_nns_registry_version_report_with_source(
 
 fn validate_source_result(
     request: &CollectionSourceRequest,
-    version: &NnsRegistryVersionData,
+    version: &crate::nns::registry::NnsRegistryVersionData,
 ) -> Result<(), NnsRegistryHostError> {
     for (field, expected, actual) in [
         (
@@ -153,7 +153,7 @@ fn invalid_source_data(reason: impl Into<String>) -> NnsRegistryHostError {
 }
 
 fn registry_version_report_from_version(
-    version: NnsRegistryVersionData,
+    version: crate::nns::registry::NnsRegistryVersionData,
 ) -> NnsRegistryVersionReport {
     NnsRegistryVersionReport {
         schema_version: NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION,

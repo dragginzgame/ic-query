@@ -63,7 +63,7 @@ pub(crate) use principal::{parse_principal, principal_bytes};
 pub use report::{
     CatalogStaleStatus, SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
-    SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
+    SubnetCatalogReportMetadata, SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
     build_subnet_catalog_info_report_with_progress, build_subnet_catalog_info_report_with_source,
     build_subnet_catalog_info_report_with_source_and_progress, build_subnet_catalog_list_report,
     build_subnet_catalog_list_report_with_progress, build_subnet_catalog_list_report_with_source,

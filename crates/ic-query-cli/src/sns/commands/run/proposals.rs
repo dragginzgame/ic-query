@@ -10,17 +10,17 @@ use crate::{
     progress::StderrQueryProgress,
     sns::commands::{
         SnsCommandError,
-        options::{SnsProposalOptions, SnsProposalsOptions},
+        options::{proposal_request, proposals_request},
     },
     storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsProposalRequest, SnsProposalsRequest, build_sns_proposal_report,
-    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    build_sns_proposals_report_with_progress, refresh_sns_proposals_cache_with_progress,
-    sns_proposal_report_text, sns_proposals_cache_list_report_text,
-    sns_proposals_cache_status_report_text, sns_proposals_report_text,
+    build_sns_proposal_report, build_sns_proposals_cache_list_report,
+    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
+    refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
+    sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
+    sns_proposals_report_text,
 };
 pub(super) async fn run_sns_proposal(
     matches: &ArgMatches,
@@ -39,45 +39,15 @@ pub(super) async fn run_sns_proposal(
 }
 
 async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsProposalOptions::from_matches(matches, network);
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
-        .ok()
-        .map(|_| cache_root())
-        .transpose()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let request = SnsProposalRequest {
-        lookup,
-        proposal_id: options.proposal_id,
-        cache_root,
-        verbose: options.verbose,
-        show_ballots: options.show_ballots,
-    };
+    let (format, request) =
+        proposal_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let report = build_sns_proposal_report(&request).await?;
     write_text_or_json(format, &report, sns_proposal_report_text)
 }
 
 async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsProposalsOptions::from_matches(matches, network)?;
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let cache_root = cache_root()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let request = SnsProposalsRequest {
-        lookup,
-        limit: options.limit,
-        before_proposal_id: options.before_proposal_id,
-        status: options.status,
-        topic: options.topic,
-        eligibility: options.eligibility,
-        proposer_neuron_id: options.proposer_neuron_id,
-        query: options.query,
-        sort: options.sort,
-        sort_direction: options.sort_direction,
-        cache_root: Some(cache_root),
-        verbose: options.verbose,
-    };
+    let (format, request) =
+        proposals_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let mut progress = StderrQueryProgress::new();
     let report = build_sns_proposals_report_with_progress(&request, &mut progress).await?;
     write_text_or_json(format, &report, sns_proposals_report_text)

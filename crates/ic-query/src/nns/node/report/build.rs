@@ -117,12 +117,7 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
         fetched_at: report.fetched_at,
         source_endpoint: report.source_endpoint,
         fetched_by: report.fetched_by,
-        node_principal: node.node_principal,
-        node_operator_principal: node.node_operator_principal,
-        node_provider_principal: node.node_provider_principal,
-        subnet_principal: node.subnet_principal,
-        subnet_kind: node.subnet_kind,
-        data_center_id: node.data_center_id,
+        node,
     })
 }
 

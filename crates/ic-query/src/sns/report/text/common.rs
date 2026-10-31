@@ -20,6 +20,18 @@ use crate::{
 const COMPACT_NEURON_ID_CHARS: usize = 8;
 
 pub(in crate::sns::report::text) fn sns_identity_lines(
+    context: &crate::sns::SnsReportContext,
+) -> Vec<String> {
+    sns_identity_fields_lines(
+        &context.network,
+        context.id,
+        &context.name,
+        &context.root_canister_id,
+        &context.governance_canister_id,
+    )
+}
+
+pub(in crate::sns::report::text) fn sns_identity_fields_lines(
     network: &str,
     id: usize,
     name: &str,
@@ -32,6 +44,19 @@ pub(in crate::sns::report::text) fn sns_identity_lines(
         format!("name: {}", terminal_text(name)),
         format!("root_canister_id: {root_canister_id}"),
         format!("governance_canister_id: {governance_canister_id}"),
+    ]
+}
+
+pub(in crate::sns::report::text) fn sns_collection_lines(
+    context: &crate::sns::SnsReportContext,
+) -> [String; 3] {
+    [
+        format!("sns_wasm_canister_id: {}", context.sns_wasm_canister_id),
+        format!("fetched_at: {}", terminal_text(&context.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            terminal_text(&context.source_endpoint)
+        ),
     ]
 }
 

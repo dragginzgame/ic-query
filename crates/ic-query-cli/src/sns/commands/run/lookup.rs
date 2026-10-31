@@ -8,25 +8,19 @@ use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
     sns::commands::{
         SnsCommandError,
-        options::{SnsLookupOptions, SnsMetricsOptions},
+        options::{SnsLookupOptions, metrics_request},
     },
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsHostError, SnsLookupRequest, SnsMetricsRequest, build_sns_metrics_report,
-    sns_metrics_report_text,
+    SnsHostError, SnsLookupRequest, build_sns_metrics_report, sns_metrics_report_text,
 };
 use serde::Serialize;
 pub(super) async fn run_sns_metrics(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let options = SnsMetricsOptions::from_matches(matches, network);
-    let time_window_seconds = options.time_window_seconds;
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let request = SnsMetricsRequest::new(lookup).with_time_window_seconds(time_window_seconds);
+    let (format, request) = metrics_request(matches, network, current_unix_secs()?);
     let report = build_sns_metrics_report(&request).await?;
     write_text_or_json(format, &report, sns_metrics_report_text)
 }

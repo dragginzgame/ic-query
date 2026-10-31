@@ -127,9 +127,9 @@ pub(in crate::sns::report) use model::{
 #[cfg(feature = "sns-host")]
 pub use model::{
     SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
-    SnsCacheSummary, SnsHostError, SnsNeuronRequest, SnsNeuronsReport, SnsNeuronsRequest,
-    SnsNeuronsSort, SnsRefreshAttemptStatus, SnsRewardCheckpointRequest, SnsSnapshotRefreshReport,
-    SnsSnapshotRefreshRequest,
+    SnsCacheSummary, SnsHostError, SnsNeuronCollection, SnsNeuronRequest, SnsNeuronsCacheSort,
+    SnsNeuronsReport, SnsNeuronsRequest, SnsRefreshAttemptStatus, SnsRewardCheckpointRequest,
+    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
 };
 #[cfg(feature = "sns-host")]
 pub use neurons_cache::{
@@ -153,10 +153,11 @@ pub use reward_diff::build_sns_reward_diff_report;
 #[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsMetadata, MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource,
+    SnsMetricsSource, SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource,
+    SnsProposalSource, SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text,

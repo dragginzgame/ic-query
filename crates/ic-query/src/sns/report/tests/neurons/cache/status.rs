@@ -116,7 +116,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         list.caches[0]
             .latest_attempt
             .as_ref()
-            .map(|attempt| attempt.status.as_str()),
+            .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
     assert!(list_text.contains("cache_count: 1"));
@@ -156,7 +156,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         status
             .latest_attempt
             .as_ref()
-            .map(|attempt| attempt.status.as_str()),
+            .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
     assert!(status_text.contains("found: yes"));
@@ -314,14 +314,14 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
         status
             .latest_attempt
             .as_ref()
-            .map(|attempt| attempt.status.as_str()),
+            .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("failed")
     );
     assert_eq!(
         status
             .latest_attempt
             .as_ref()
-            .map(|attempt| attempt.rows_fetched),
+            .map(|attempt| attempt.lifecycle.rows_fetched),
         Some(2)
     );
     assert!(status_text.contains("found: no"));

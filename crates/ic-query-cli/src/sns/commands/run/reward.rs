@@ -6,16 +6,12 @@
 
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
-    sns::commands::{
-        SnsCommandError,
-        options::{SnsRewardCheckpointOptions, SnsRewardDiffOptions},
-    },
+    sns::commands::{SnsCommandError, options::reward_checkpoint_request},
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsRewardCheckpointRequest, build_sns_reward_checkpoint_report,
-    build_sns_reward_diff_report_from_paths, sns_reward_checkpoint_report_text,
-    sns_reward_diff_report_text,
+    build_sns_reward_checkpoint_report, build_sns_reward_diff_report_from_paths,
+    sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
 };
 
 pub(super) async fn run_sns_reward(
@@ -38,23 +34,21 @@ pub(super) async fn run_sns_reward(
 }
 
 fn run_sns_reward_diff(matches: &ArgMatches) -> Result<(), SnsCommandError> {
-    let options = SnsRewardDiffOptions::from_matches(matches);
-    let report = build_sns_reward_diff_report_from_paths(
-        &options.before_checkpoint,
-        &options.after_checkpoint,
-    )?;
-    write_text_or_json(options.format, &report, sns_reward_diff_report_text)
+    let before: std::path::PathBuf = crate::cli::clap::required_typed(matches, "before-checkpoint");
+    let after: std::path::PathBuf = crate::cli::clap::required_typed(matches, "after-checkpoint");
+    let report = build_sns_reward_diff_report_from_paths(&before, &after)?;
+    write_text_or_json(
+        crate::cli::common::output_format(matches),
+        &report,
+        sns_reward_diff_report_text,
+    )
 }
 
 async fn run_sns_reward_checkpoint(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let options = SnsRewardCheckpointOptions::from_matches(matches, network);
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let request = SnsRewardCheckpointRequest::new(lookup).with_max_pages(options.max_pages);
+    let (format, request) = reward_checkpoint_request(matches, network, current_unix_secs()?);
     let report = build_sns_reward_checkpoint_report(&request).await?;
     write_text_or_json(format, &report, sns_reward_checkpoint_report_text)
 }

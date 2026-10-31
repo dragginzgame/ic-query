@@ -119,11 +119,7 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
         fetched_at: report.fetched_at,
         source_endpoint: report.source_endpoint,
         fetched_by: report.fetched_by,
-        node_operator_principal: operator.node_operator_principal,
-        node_provider_principal: operator.node_provider_principal,
-        node_allowance: operator.node_allowance,
-        data_center_id: operator.data_center_id,
-        node_count: operator.node_count,
+        node_operator: operator,
     })
 }
 

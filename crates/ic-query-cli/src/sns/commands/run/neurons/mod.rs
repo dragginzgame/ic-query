@@ -10,20 +10,18 @@ use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
     sns::commands::{
         SnsCommandError,
-        options::{SnsNeuronOptions, SnsNeuronsOptions},
-        spec::SnsNeuronsSortArg,
+        options::{neuron_request, neurons_request},
     },
     storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::sns::{
-    SnsNeuronRequest, SnsNeuronsRequest, SnsNeuronsSort, build_sns_neuron_detail_report,
-    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-    build_sns_neurons_report, refresh_sns_neurons_cache_with_progress,
-    sns_neuron_detail_report_text, sns_neurons_cache_list_report_text,
-    sns_neurons_cache_status_report_text, sns_neurons_report_text,
+    build_sns_neuron_detail_report, build_sns_neurons_cache_list_report,
+    build_sns_neurons_cache_status_report, build_sns_neurons_report,
+    refresh_sns_neurons_cache_with_progress, sns_neuron_detail_report_text,
+    sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
+    sns_neurons_report_text,
 };
-use std::path::PathBuf;
 
 pub(super) async fn run_sns_neuron(
     matches: &ArgMatches,
@@ -60,39 +58,14 @@ fn run_sns_neuron_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCo
 }
 
 async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsNeuronOptions::from_matches(matches, network);
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let request = SnsNeuronRequest {
-        lookup,
-        neuron_id: options.neuron_id,
-    };
+    let (format, request) = neuron_request(matches, network, current_unix_secs()?);
     let report = build_sns_neuron_detail_report(&request).await?;
     write_text_or_json(format, &report, sns_neuron_detail_report_text)
 }
 
 async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsNeuronsOptions::from_matches(matches, network)?;
-    let lookup = options.lookup;
-    let now_unix_secs = current_unix_secs()?;
-    let (format, lookup) = lookup.into_request(now_unix_secs);
-    let cache_root = cache_root_for_sort(options.sort)?;
-    let request = SnsNeuronsRequest {
-        lookup,
-        limit: options.limit,
-        owner_principal_id: options.owner_principal_id,
-        sort: options.sort.into(),
-        cache_root,
-        verbose: options.verbose,
-    };
+    let (format, request) =
+        neurons_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let report = build_sns_neurons_report(&request).await?;
     write_text_or_json(format, &report, sns_neurons_report_text)
-}
-
-fn cache_root_for_sort(sort: SnsNeuronsSortArg) -> Result<Option<PathBuf>, SnsCommandError> {
-    if SnsNeuronsSort::from(sort).uses_cache() {
-        return Ok(Some(cache_root()?));
-    }
-    Ok(None)
 }

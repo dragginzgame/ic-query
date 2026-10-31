@@ -84,7 +84,7 @@ impl SnsDiscoverySource for UnsortedFixtureSnsDiscoverySource {
                 .map(|target| {
                     let mut metadata = fixture_metadata(target, None);
                     if target.root_canister_id == ROOT_A {
-                        metadata.name = Some("A Name".to_string());
+                        metadata.outcome.as_mut().unwrap().name = Some("A Name".to_string());
                     }
                     metadata
                 })
@@ -218,10 +218,7 @@ fn fixture_metadata(
     if let Some(metadata_error) = metadata_error {
         return MainnetSnsMetadata {
             root_canister_id: target.root_canister_id.clone(),
-            name: None,
-            description: None,
-            url: None,
-            metadata_error: Some(metadata_error.to_string()),
+            outcome: Err(metadata_error.to_string()),
         };
     }
     let (name, description, url) = if target.root_canister_id == ROOT_A {
@@ -235,10 +232,11 @@ fn fixture_metadata(
     };
     MainnetSnsMetadata {
         root_canister_id: target.root_canister_id.clone(),
-        name: Some(name.unwrap().to_string()),
-        description: description.map(str::to_string),
-        url: url.map(str::to_string),
-        metadata_error: None,
+        outcome: Ok(crate::sns::MainnetSnsMetadataFields {
+            name: Some(name.unwrap().to_string()),
+            description: description.map(str::to_string),
+            url: url.map(str::to_string),
+        }),
     }
 }
 
@@ -252,9 +250,7 @@ fn fixture_lifecycles(
             let lifecycle = lifecycle(target);
             MainnetSnsLifecycle {
                 root_canister_id: target.root_canister_id.clone(),
-                lifecycle: Some(lifecycle),
-
-                lifecycle_error: None,
+                outcome: Ok(lifecycle),
             }
         })
         .collect()

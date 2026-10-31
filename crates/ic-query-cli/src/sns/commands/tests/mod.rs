@@ -1,20 +1,20 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsCacheStatusOptions, SnsListOptions, SnsLookupOptions, SnsMetricsOptions,
-        SnsNeuronOptions, SnsNeuronsOptions, SnsPagedRefreshOptions, SnsProposalOptions,
-        SnsProposalsOptions, SnsRewardCheckpointOptions, SnsRewardDiffOptions,
+        SnsCacheStatusOptions, SnsListOptions, SnsLookupOptions, SnsPagedRefreshOptions,
+        metrics_request, neuron_request, neurons_request, proposal_request, proposals_request,
+        reward_checkpoint_request,
     },
     spec::{
-        SnsListSortArg, SnsNeuronsSortArg, sns_canister_command, sns_canister_list_command,
-        sns_command, sns_info_command, sns_list_command, sns_metrics_command,
-        sns_neuron_cache_command, sns_neuron_cache_list_command, sns_neuron_cache_status_command,
-        sns_neuron_command, sns_neuron_info_command, sns_neuron_list_command,
-        sns_neuron_refresh_command, sns_parameters_command, sns_proposal_cache_list_command,
-        sns_proposal_cache_status_command, sns_proposal_command, sns_proposal_info_command,
-        sns_proposal_list_command, sns_proposal_refresh_command, sns_refresh_command,
-        sns_reward_checkpoint_command, sns_reward_command, sns_reward_diff_command,
-        sns_swap_command, sns_token_command, sns_upgrade_command,
+        SnsListSortArg, sns_canister_command, sns_canister_list_command, sns_command,
+        sns_info_command, sns_list_command, sns_metrics_command, sns_neuron_cache_command,
+        sns_neuron_cache_list_command, sns_neuron_cache_status_command, sns_neuron_command,
+        sns_neuron_info_command, sns_neuron_list_command, sns_neuron_refresh_command,
+        sns_parameters_command, sns_proposal_cache_list_command, sns_proposal_cache_status_command,
+        sns_proposal_command, sns_proposal_info_command, sns_proposal_list_command,
+        sns_proposal_refresh_command, sns_refresh_command, sns_reward_checkpoint_command,
+        sns_reward_command, sns_reward_diff_command, sns_swap_command, sns_token_command,
+        sns_upgrade_command,
     },
 };
 use crate::cli::common::{OutputFormat, SourceOutputOptions};

@@ -265,11 +265,7 @@ pub async fn build_icrc_transactions_report_with_source(
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
         follow_archives: request.follow_archives,
-        log_length: transactions.log_length,
-        blocks: transactions.blocks,
-        archived_blocks: transactions.archived_blocks,
-        followed_archive_blocks: transactions.followed_archive_blocks,
-        archive_follow_errors: transactions.archive_follow_errors,
+        transactions,
     })
 }
 

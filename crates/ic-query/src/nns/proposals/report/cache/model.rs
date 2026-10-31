@@ -6,7 +6,6 @@
 
 use crate::{
     nns::{
-        NnsGovernanceRefreshAttemptStatus,
         governance::{NnsGovernanceCacheMetadata, NnsGovernanceCacheSummary},
         proposals::report::{collection::NnsProposalCollectionState, model::NnsProposalRow},
     },
@@ -40,7 +39,7 @@ pub struct NnsProposalCacheListReport {
     /// Expected refresh-attempt sidecar path.
     pub refresh_attempt_path: String,
     /// Latest readable attempt for this single expected snapshot.
-    pub latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
+    pub latest_attempt: Option<crate::cache::SnapshotRefreshAttemptStatus>,
 }
 
 ///

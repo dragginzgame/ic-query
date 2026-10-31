@@ -26,13 +26,7 @@ use crate::{
 
 #[must_use]
 pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
-    let mut lines = sns_identity_lines(
-        &report.context.network,
-        report.context.id,
-        &report.context.name,
-        &report.context.root_canister_id,
-        &report.context.governance_canister_id,
-    );
+    let mut lines = sns_identity_lines(&report.context);
     lines.extend([
         format!("requested_limit: {}", report.requested_limit),
         format!(
@@ -60,18 +54,10 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         report.cache_path.as_deref(),
         report.cache_complete,
     );
-    lines.extend([
-        format!("proposal_count: {}", report.proposal_count),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
-        ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-    ]);
+    lines.extend([format!("proposal_count: {}", report.proposal_count)]);
+    lines.extend(crate::sns::report::text::common::sns_collection_lines(
+        &report.context,
+    ));
     if !report.proposals.is_empty() {
         lines.push(String::new());
         lines.push(render(

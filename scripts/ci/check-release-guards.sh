@@ -299,6 +299,8 @@ new_fixture() {
 version = "0.46.5"
 [workspace.dependencies]
 ic-query = { path = "crates/ic-query", version = "0.46.5", default-features = false }
+ic-query-cli = { path = "crates/ic-query-cli", version = "0.46.5" }
+ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.46.5" }
 MANIFEST
   cat > Cargo.lock <<'LOCK'
 version = 4

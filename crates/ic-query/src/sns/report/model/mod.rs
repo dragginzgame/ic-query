@@ -47,15 +47,15 @@ pub use requests::{
 };
 #[cfg(feature = "sns-host")]
 pub use requests::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronRequest, SnsNeuronsRequest,
-    SnsRewardCheckpointRequest, SnsSnapshotRefreshRequest,
+    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronCollection, SnsNeuronRequest,
+    SnsNeuronsRequest, SnsRewardCheckpointRequest, SnsSnapshotRefreshRequest,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use requests::{
     validate_sns_metrics_request, validate_sns_metrics_time_window,
 };
 #[cfg(feature = "sns-host")]
-pub use sorts::SnsNeuronsSort;
+pub use sorts::SnsNeuronsCacheSort;
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,

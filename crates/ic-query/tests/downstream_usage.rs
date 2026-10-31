@@ -64,9 +64,8 @@ mod host {
         },
         nns::proposals::{NnsProposalHostError, refresh_nns_proposal_cache_with_progress},
         nns::registry::{
-            NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
-            NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
-            nns_registry_version_report_text,
+            NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionRequest,
+            build_nns_registry_version_report_with_source, nns_registry_version_report_text,
         },
         nns::topology::{
             CachedNnsSubnetTopologyReport, DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT,
@@ -76,7 +75,7 @@ mod host {
         nns::{NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest},
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
-            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsReport, SnsProposalsRequest,
+            SnsNeuronsCacheSort, SnsNeuronsRequest, SnsProposalsReport, SnsProposalsRequest,
             SnsProposalsSort, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
             build_sns_metrics_report, build_sns_neurons_cache_status_report,
             build_sns_neurons_report, build_sns_proposals_cache_status_report,
@@ -260,7 +259,7 @@ mod host {
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
-        let request = SnsNeuronsRequest::new(
+        let request = SnsNeuronsRequest::cached(
             ic_query::sns::SnsLookupRequest::new(
                 "ic",
                 DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -268,9 +267,9 @@ mod host {
                 sns_input,
             ),
             500,
-        )
-        .with_cache_root(cache_root)
-        .with_sort(SnsNeuronsSort::Stake);
+            cache_root,
+            SnsNeuronsCacheSort::Stake,
+        );
 
         let report = build_sns_neurons_report(&request).await?;
         Ok(sns_neurons_report_text(&report))
@@ -296,10 +295,12 @@ mod host {
         fn fetch_registry_version<'a>(
             &'a self,
             request: &'a CollectionSourceRequest,
-        ) -> ic_query::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>>
-        {
+        ) -> ic_query::report::SourceFuture<
+            'a,
+            Result<ic_query::nns::registry::NnsRegistryVersionData, NnsRegistryHostError>,
+        > {
             Box::pin(async move {
-                Ok(NnsRegistryVersionData {
+                Ok(ic_query::nns::registry::NnsRegistryVersionData {
                     network: "ic".to_string(),
                     registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
                     registry_version: 42,

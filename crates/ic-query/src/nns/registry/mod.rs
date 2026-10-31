@@ -47,15 +47,15 @@ pub use report::{
     NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
     NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
     NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionData,
+    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use report::{
     NnsAuthenticatedRegistryDeltaBatch, NnsCertifiedRegistryDeltaSource,
     NnsCertifiedRegistryDeltaSourceFuture, NnsRegistryHostError, NnsRegistrySource,
-    NnsRegistryVersionData, build_nns_registry_version_report,
-    build_nns_registry_version_report_with_source, fetch_nns_certified_registry_delta_batch_async,
+    build_nns_registry_version_report, build_nns_registry_version_report_with_source,
+    fetch_nns_certified_registry_delta_batch_async,
     fetch_nns_certified_registry_delta_batch_with_source_async,
     nns_certified_registry_delta_limits, reauthenticate_nns_certified_registry_delta_batch,
     validate_nns_certified_registry_delta_batch,

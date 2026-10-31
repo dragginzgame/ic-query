@@ -24,11 +24,14 @@ async fn node_provider_info_resolves_exact_principal() {
     assert_eq!(report.input, "ryjl3-tyaaa-aaaaa-aaaba-cai");
     assert_eq!(report.resolved_from, "node_provider_principal");
     assert_eq!(
-        report.node_provider_principal,
+        report.node_provider.node_provider_principal,
         "ryjl3-tyaaa-aaaaa-aaaba-cai"
     );
-    assert_eq!(report.node_count, Some(13));
-    assert_eq!(report.reward_account_hex.as_deref(), Some("abcd"));
+    assert_eq!(report.node_provider.node_count, Some(13));
+    assert_eq!(
+        report.node_provider.reward_account_hex.as_deref(),
+        Some("abcd")
+    );
 }
 
 #[test]

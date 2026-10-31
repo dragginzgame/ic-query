@@ -11,7 +11,7 @@ mod proposals;
 
 pub use list::SnsListSort;
 #[cfg(feature = "sns-host")]
-pub use neurons::SnsNeuronsSort;
+pub use neurons::SnsNeuronsCacheSort;
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,

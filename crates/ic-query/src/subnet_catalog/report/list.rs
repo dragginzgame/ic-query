@@ -91,13 +91,18 @@ pub async fn build_subnet_catalog_list_report_with_source_and_progress(
         })
         .collect();
 
-    Ok(
-        super::catalog_report!(SubnetCatalogListReport, cached, stale, {
-            schema_version: SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION,
-            network: cached.catalog.provenance().network.clone(),
-            subnets,
-        }),
-    )
+    Ok(SubnetCatalogListReport {
+        metadata: super::SubnetCatalogReportMetadata::from_catalog(&cached.catalog),
+        cache_disposition: cached.disposition,
+        catalog_schema_version: cached.catalog.raw().catalog_schema_version,
+        catalog_path: cached.path.display().to_string(),
+        catalog_stale: stale.catalog_stale,
+        stale_reason: stale.stale_reason,
+
+        schema_version: SUBNET_CATALOG_LIST_REPORT_SCHEMA_VERSION,
+        network: cached.catalog.provenance().network.clone(),
+        subnets,
+    })
 }
 
 fn subnet_matches_filters(subnet: &SubnetInfo, filters: SubnetCatalogFilters) -> bool {

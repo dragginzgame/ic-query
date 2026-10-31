@@ -24,12 +24,12 @@ pub use contracts::{
     IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
     IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
     IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport,
-    IcrcTransactionBlockRow, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport, IcrcTransactionsRequest,
 };
 #[cfg(feature = "icrc-host")]
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcCapabilitiesData, IcrcTransactionsData,
+    IcrcCapabilitiesData,
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;

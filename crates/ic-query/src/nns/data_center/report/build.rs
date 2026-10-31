@@ -116,14 +116,7 @@ pub async fn build_nns_data_center_info_report_with_source_and_progress(
         fetched_at: report.fetched_at,
         source_endpoint: report.source_endpoint,
         fetched_by: report.fetched_by,
-        data_center_id: data_center.data_center_id,
-        region: data_center.region,
-        owner: data_center.owner,
-        latitude: data_center.latitude,
-        longitude: data_center.longitude,
-        node_operator_count: data_center.node_operator_count,
-        node_provider_count: data_center.node_provider_count,
-        node_count: data_center.node_count,
+        data_center,
     })
 }
 

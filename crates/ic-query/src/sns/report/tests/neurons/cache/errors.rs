@@ -25,8 +25,10 @@ async fn sns_neurons_refresh_rejects_invalid_public_page_size() {
 async fn sns_neurons_cached_sort_requires_existing_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-missing-cache");
     let mut request = neurons_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.sort = SnsNeuronsSort::Stake;
+    request.collection = crate::sns::SnsNeuronCollection::Cached {
+        cache_root: root.clone(),
+        sort: SnsNeuronsCacheSort::Stake,
+    };
 
     let err = build_sns_neurons_report_with_source(&request, &NoLiveSnsNeuronsSource)
         .await
@@ -94,8 +96,10 @@ async fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
     .expect("write cache");
 
     let mut cached_request = neurons_request(ROOT_A);
-    cached_request.cache_root = Some(root.clone());
-    cached_request.sort = SnsNeuronsSort::Stake;
+    cached_request.collection = crate::sns::SnsNeuronCollection::Cached {
+        cache_root: root.clone(),
+        sort: SnsNeuronsCacheSort::Stake,
+    };
     let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect_err("unsupported schema rejected");
@@ -131,8 +135,10 @@ async fn sns_neurons_cached_sort_rejects_snapshot_identity_mismatch() {
     .expect("write cache");
 
     let mut cached_request = neurons_request(ROOT_A);
-    cached_request.cache_root = Some(root.clone());
-    cached_request.sort = SnsNeuronsSort::Stake;
+    cached_request.collection = crate::sns::SnsNeuronCollection::Cached {
+        cache_root: root.clone(),
+        sort: SnsNeuronsCacheSort::Stake,
+    };
     let err = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect_err("identity mismatch rejected");

@@ -908,39 +908,43 @@ fn public_icrc_transactions_api_is_constructible_and_renderable_without_host() {
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
         follow_archives: request.follow_archives,
-        log_length: Some("1000".to_string()),
-        blocks: vec![IcrcTransactionBlockRow {
-            index: "100".to_string(),
-            block_type: Some("1xfer".to_string()),
-            transaction_kind: Some("1xfer".to_string()),
-            timestamp_unix_nanos: Some("1700000000123456789".to_string()),
-            amount_base_units: Some("100000000".to_string()),
-            raw_block: json!({"Map": {"btype": {"Text": "1xfer"}}}),
-        }],
-        archived_blocks: vec![IcrcArchivedBlocksRow {
-            callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-            callback_method: "icrc3_get_blocks".to_string(),
-            ranges: vec![archive_range_row()],
-        }],
-        followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
-            archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-            callback_method: "icrc3_get_blocks".to_string(),
-            index: "0".to_string(),
-            block_type: Some("1mint".to_string()),
-            transaction_kind: Some("1mint".to_string()),
-            timestamp_unix_nanos: Some("1699999999123456789".to_string()),
-            amount_base_units: Some("50000000".to_string()),
-            raw_block: json!({"Map": {"btype": {"Text": "1mint"}}}),
-        }],
-        archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
-            callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
-            callback_method: "icrc3_get_blocks".to_string(),
-            ranges: vec![IcrcArchivedRangeRow {
-                start: "200".to_string(),
-                length: "10".to_string(),
+        transactions: ic_query::icrc::IcrcTransactionsData {
+            log_length: Some("1000".to_string()),
+            blocks: vec![IcrcTransactionBlockRow {
+                index: "100".to_string(),
+                block_type: Some("1xfer".to_string()),
+                transaction_kind: Some("1xfer".to_string()),
+                timestamp_unix_nanos: Some("1700000000123456789".to_string()),
+                amount_base_units: Some("100000000".to_string()),
+                raw_block: json!({"Map": {"btype": {"Text": "1xfer"}}}),
             }],
-            error: "archive query failed".to_string(),
-        }],
+            archived_blocks: vec![IcrcArchivedBlocksRow {
+                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                callback_method: "icrc3_get_blocks".to_string(),
+                ranges: vec![archive_range_row()],
+            }],
+            followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
+                archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                callback_method: "icrc3_get_blocks".to_string(),
+                block: ic_query::icrc::IcrcTransactionBlockRow {
+                    index: "0".to_string(),
+                    block_type: Some("1mint".to_string()),
+                    transaction_kind: Some("1mint".to_string()),
+                    timestamp_unix_nanos: Some("1699999999123456789".to_string()),
+                    amount_base_units: Some("50000000".to_string()),
+                    raw_block: json!({"Map": {"btype": {"Text": "1mint"}}}),
+                },
+            }],
+            archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
+                callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
+                callback_method: "icrc3_get_blocks".to_string(),
+                ranges: vec![IcrcArchivedRangeRow {
+                    start: "200".to_string(),
+                    length: "10".to_string(),
+                }],
+                error: "archive query failed".to_string(),
+            }],
+        },
     };
 
     let text = icrc_transactions_report_text(&report);

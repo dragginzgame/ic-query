@@ -85,9 +85,12 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
 fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoReport) {
     lines.push(format!(
         "registry_canister_id: {}",
-        report.registry_canister_id
+        report.metadata.registry_canister_id
     ));
-    lines.push(format!("registry_version: {}", report.registry_version));
+    lines.push(format!(
+        "registry_version: {}",
+        report.metadata.registry_version
+    ));
     super::append_catalog_authority!(lines, report);
     lines.push(format!(
         "catalog_schema_version: {}",
@@ -97,7 +100,10 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
         "catalog_path: {}",
         terminal_text(&report.catalog_path)
     ));
-    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
+    lines.push(format!(
+        "fetched_at: {}",
+        terminal_text(&report.metadata.fetched_at)
+    ));
     lines.push(format!("catalog_stale: {}", yes_no(report.catalog_stale)));
     lines.push(format!(
         "stale_reason: {}",

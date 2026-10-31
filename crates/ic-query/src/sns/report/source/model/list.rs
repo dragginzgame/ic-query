@@ -85,14 +85,24 @@ pub struct MainnetSnsInventory {
 pub struct MainnetSnsMetadata {
     /// Root canister identity that keys this metadata result to inventory.
     pub root_canister_id: String,
-    /// Optional SNS name returned by Governance.
+    /// Optional metadata fields on success, or bounded query failure evidence.
+    pub outcome: Result<MainnetSnsMetadataFields, String>,
+}
+
+///
+/// MainnetSnsMetadataFields
+///
+/// Optional fields returned by a successful Governance metadata query.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MainnetSnsMetadataFields {
+    /// Optional project name.
     pub name: Option<String>,
-    /// Optional SNS description returned by Governance.
+    /// Optional project description.
     pub description: Option<String>,
-    /// Optional SNS project URL returned by Governance.
+    /// Optional project URL.
     pub url: Option<String>,
-    /// Compact metadata query failure retained instead of dropping the SNS row.
-    pub metadata_error: Option<String>,
 }
 
 ///
@@ -105,10 +115,8 @@ pub struct MainnetSnsMetadata {
 pub struct MainnetSnsLifecycle {
     /// Root canister identity that keys this result to the deployed-SNS inventory.
     pub root_canister_id: String,
-    /// Native Swap lifecycle discriminant.
-    pub lifecycle: Option<i32>,
-    /// Bounded lifecycle query failure retained instead of dropping the SNS row.
-    pub lifecycle_error: Option<String>,
+    /// Raw lifecycle code on success, or bounded query failure evidence.
+    pub outcome: Result<i32, String>,
 }
 
 ///
@@ -291,9 +299,10 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
         let lifecycle = lifecycle_by_root
             .remove(&sns.canisters.root_canister_id)
             .expect("exact lifecycle validation requires every inventory root");
-        sns.lifecycle = lifecycle.lifecycle;
-
-        sns.lifecycle_error = lifecycle.lifecycle_error;
+        (sns.lifecycle, sns.lifecycle_error) = match lifecycle.outcome {
+            Ok(value) => (Some(value), None),
+            Err(error) => (None, Some(error)),
+        };
     }
     Ok(())
 }
@@ -311,25 +320,21 @@ fn index_mainnet_sns_metadata(
         EnrichmentKind::Metadata,
         |row| &row.root_canister_id,
         |row| {
-            for (field, value) in [
-                ("name", row.name.as_deref()),
-                ("description", row.description.as_deref()),
-                ("url", row.url.as_deref()),
-            ] {
-                validate_optional_metadata_text(&row.root_canister_id, field, value)?;
-            }
-            if let Some(error) = row.metadata_error.as_deref() {
-                EnrichmentKind::Metadata.validate_text(
+            match &row.outcome {
+                Ok(fields) => {
+                    for (field, value) in [
+                        ("name", fields.name.as_deref()),
+                        ("description", fields.description.as_deref()),
+                        ("url", fields.url.as_deref()),
+                    ] {
+                        validate_optional_metadata_text(&row.root_canister_id, field, value)?;
+                    }
+                }
+                Err(error) => EnrichmentKind::Metadata.validate_text(
                     &row.root_canister_id,
                     "metadata_error",
                     error,
-                )?;
-                if row.name.is_some() || row.description.is_some() || row.url.is_some() {
-                    return Err(METADATA_VALIDATOR.invalid(format!(
-                        "metadata for {} contains both payload fields and metadata_error",
-                        row.root_canister_id
-                    )));
-                }
+                )?,
             }
             Ok(())
         },
@@ -349,11 +354,13 @@ fn index_mainnet_sns_lifecycles(
         EnrichmentKind::Lifecycle,
         |row| &row.root_canister_id,
         |row| {
-            validate_lifecycle_fields(
-                &row.root_canister_id,
-                row.lifecycle,
-                row.lifecycle_error.as_deref(),
-            )?;
+            if let Err(error) = &row.outcome {
+                EnrichmentKind::Lifecycle.validate_text(
+                    &row.root_canister_id,
+                    "lifecycle_error",
+                    error,
+                )?;
+            }
             Ok(())
         },
     )
@@ -426,7 +433,18 @@ fn validate_optional_metadata_text(
 }
 
 fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetadata) -> MainnetSns {
-    let name = metadata.name.unwrap_or_else(|| {
+    let (fields, metadata_error) = match metadata.outcome {
+        Ok(fields) => (fields, None),
+        Err(error) => (
+            MainnetSnsMetadataFields {
+                name: None,
+                description: None,
+                url: None,
+            },
+            Some(error),
+        ),
+    };
+    let name = fields.name.unwrap_or_else(|| {
         format!(
             "unnamed-{}",
             canisters
@@ -439,10 +457,10 @@ fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetada
     MainnetSns {
         id: 0,
         name,
-        description: metadata.description,
-        url: metadata.url,
+        description: fields.description,
+        url: fields.url,
         canisters,
-        metadata_error: metadata.metadata_error,
+        metadata_error,
         lifecycle: None,
 
         lifecycle_error: None,

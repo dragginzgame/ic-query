@@ -251,9 +251,6 @@ pub enum SnsHostError {
     #[error("invalid SNS refresh page size {page_size}; expected 1..={max_page_size}")]
     InvalidRefreshPageSize { page_size: u32, max_page_size: u32 },
 
-    #[error("SNS cache root is required for cache-backed neuron reports")]
-    MissingCacheRoot,
-
     #[error("unsupported SNS proposal view: {reason}")]
     UnsupportedProposalView { reason: String },
 

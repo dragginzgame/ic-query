@@ -4,8 +4,6 @@
 //! Does not own: proposal fetching, cache lookup, report construction, or JSON output.
 //! Boundary: formats one proposal DTO and optional ballot table for humans.
 
-use ic_host_text::escape::terminal_text;
-
 use super::{
     SNS_PROPOSAL_DETAIL_TEXT_LIMIT,
     detail::{proposal_ballot_table, proposal_detail_lines},
@@ -17,36 +15,21 @@ use crate::{
 
 #[must_use]
 pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
-    let mut lines = vec![
-        format!("network: {}", terminal_text(&report.context.network)),
-        format!("sns_id: {}", report.context.id),
-        format!("name: {}", terminal_text(&report.context.name)),
-        format!("root_canister_id: {}", report.context.root_canister_id),
-        format!(
-            "governance_canister_id: {}",
-            report.context.governance_canister_id
-        ),
+    let mut lines = crate::sns::report::text::common::sns_identity_lines(&report.context);
+    lines.extend([
         format!("proposal_id: {}", report.proposal_id),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("show_ballots: {}", yes_no(report.show_ballots)),
-    ];
+    ]);
     push_report_provenance_lines(
         &mut lines,
         report.data_source,
         report.cache_path.as_deref(),
         report.cache_complete,
     );
-    lines.extend([
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
-        ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-    ]);
+    lines.extend(crate::sns::report::text::common::sns_collection_lines(
+        &report.context,
+    ));
     lines.push(String::new());
     lines.push("proposal:".to_string());
     let detail_limit = (!report.verbose).then_some(SNS_PROPOSAL_DETAIL_TEXT_LIMIT);

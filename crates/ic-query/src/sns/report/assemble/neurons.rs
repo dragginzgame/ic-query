@@ -26,7 +26,7 @@ pub(in crate::sns::report) fn sns_neurons_report_from_rows(
         owner_principal_id,
         verbose: request.verbose,
         data_source: provenance.data_source,
-        sort: request.sort.as_str().to_string(),
+        sort: request.collection.sort_label().to_string(),
         cache_path: provenance.cache_path,
         cache_complete: provenance.cache_complete,
         total_neuron_count,

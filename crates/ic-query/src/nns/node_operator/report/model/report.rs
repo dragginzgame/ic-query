@@ -62,9 +62,7 @@ pub struct NnsNodeOperatorInfoReport {
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,
-    pub node_operator_principal: String,
-    pub node_provider_principal: String,
-    pub node_allowance: u64,
-    pub data_center_id: String,
-    pub node_count: Option<u32>,
+    /// Resolved inventory row.
+    #[serde(flatten)]
+    pub node_operator: NnsNodeOperatorRow,
 }

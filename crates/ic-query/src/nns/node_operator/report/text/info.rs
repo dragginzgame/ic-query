@@ -12,20 +12,20 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
         format!("resolved_from: {}", terminal_text(&report.resolved_from)),
         format!(
             "node_operator_principal: {}",
-            report.node_operator_principal
+            report.node_operator.node_operator_principal
         ),
         format!(
             "node_provider_principal: {}",
-            report.node_provider_principal
+            report.node_operator.node_provider_principal
         ),
         format!(
             "node_count: {}",
-            optional_node_count_text(report.node_count)
+            optional_node_count_text(report.node_operator.node_count)
         ),
-        format!("node_allowance: {}", report.node_allowance),
+        format!("node_allowance: {}", report.node_operator.node_allowance),
         format!(
             "data_center_id: {}",
-            text_or_dash(Some(&report.data_center_id))
+            text_or_dash(Some(&report.node_operator.data_center_id))
         ),
     ];
     lines.extend(crate::nns::render::registry_provenance_lines(

@@ -2,8 +2,8 @@
 
 use crate::cli::value_enum_with_conversion;
 use ic_query::sns::{
-    SnsListSort, SnsNeuronsSort, SnsProposalEligibilityFilter, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsListSort, SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter,
+    SnsProposalsSort,
 };
 
 value_enum_with_conversion! {
@@ -20,21 +20,20 @@ value_enum_with_conversion! {
     }
 }
 
-value_enum_with_conversion! {
-    ///
-    /// SnsNeuronsSortArg
-    ///
-    /// Command-local clap value accepted by `icq sns neuron list <SNS> --sort`.
-    ///
+///
+/// SnsNeuronsSortArg
+///
+/// CLI selector for live API ordering or a locally ordered complete cache.
+///
 
-    pub(in crate::sns::commands) enum SnsNeuronsSortArg => SnsNeuronsSort {
-        #[default]
-        Api,
-        Id,
-        Stake,
-        Maturity,
-        Created,
-    }
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, clap::ValueEnum)]
+pub(in crate::sns::commands) enum SnsNeuronsSortArg {
+    #[default]
+    Api,
+    Id,
+    Stake,
+    Maturity,
+    Created,
 }
 
 value_enum_with_conversion! {

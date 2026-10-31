@@ -14,8 +14,8 @@ pub(super) fn topology_registry_versions(
     let mut rows = Vec::with_capacity(5);
     rows.push(registry_version_row(
         "subnet_catalog",
-        subnet_report.registry_version,
-        &subnet_report.fetched_at,
+        subnet_report.metadata.registry_version,
+        &subnet_report.metadata.fetched_at,
         "-",
         Some(subnet_report.catalog_stale),
     ));

@@ -5,17 +5,19 @@ use ic_query::sns::{
     SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 
-fn parse_proposals(args: &[&str]) -> Result<SnsProposalsOptions, SnsCommandError> {
-    parse_fallible_test_options(
-        sns_proposal_list_command(),
-        args,
-        SnsProposalsOptions::from_matches,
-    )
+fn parse_proposals(
+    args: &[&str],
+) -> Result<(OutputFormat, ic_query::sns::SnsProposalsRequest), SnsCommandError> {
+    parse_fallible_test_options(sns_proposal_list_command(), args, |m, n| {
+        proposals_request(m, n, 1_780_531_200, || {
+            Ok(std::path::PathBuf::from("fixture-cache"))
+        })
+    })
 }
 
 #[test]
 fn sns_proposals_parses_filters_and_json_format() {
-    let options = parse_proposals(&[
+    let (format, options) = parse_proposals(&[
         "be2us-64aaa-aaaaa-qaabq-cai",
         "--json",
         "--source-endpoint",
@@ -43,7 +45,7 @@ fn sns_proposals_parses_filters_and_json_format() {
 
     assert_eq!(options.lookup.input, "be2us-64aaa-aaaaa-qaabq-cai");
     assert_eq!(options.lookup.network, "ic");
-    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
     assert_eq!(options.limit, 50);
     assert_eq!(options.before_proposal_id, Some(100));
@@ -59,62 +61,67 @@ fn sns_proposals_parses_filters_and_json_format() {
 
 #[test]
 fn sns_proposals_parses_local_sort_defaults_and_directions() {
-    let title = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "title"])
+    let (_, title) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "title"])
         .expect("parse title proposal sort");
 
     assert_eq!(title.sort, SnsProposalsSort::Title);
     assert_eq!(title.sort_direction, SortDirection::Asc);
 
-    let action = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "action"])
+    let (_, action) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "action"])
         .expect("parse action proposal sort");
 
     assert_eq!(action.sort, SnsProposalsSort::Action);
     assert_eq!(action.sort_direction, SortDirection::Asc);
 
-    let status = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "status"])
+    let (_, status) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "status"])
         .expect("parse status proposal sort");
 
     assert_eq!(status.sort, SnsProposalsSort::Status);
     assert_eq!(status.sort_direction, SortDirection::Asc);
 
-    let topic = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "topic"])
+    let (_, topic) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "topic"])
         .expect("parse topic proposal sort");
 
     assert_eq!(topic.sort, SnsProposalsSort::Topic);
     assert_eq!(topic.sort_direction, SortDirection::Asc);
 
-    let proposer = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "proposer"])
+    let (_, proposer) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "proposer"])
         .expect("parse proposer proposal sort");
 
     assert_eq!(proposer.sort, SnsProposalsSort::Proposer);
     assert_eq!(proposer.sort_direction, SortDirection::Asc);
 
-    let title_desc = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "title", "--desc"])
-        .expect("parse descending title proposal sort");
+    let (_, title_desc) =
+        parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "title", "--desc"])
+            .expect("parse descending title proposal sort");
 
     assert_eq!(title_desc.sort, SnsProposalsSort::Title);
     assert_eq!(title_desc.sort_direction, SortDirection::Desc);
 
-    let total_votes = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "total-votes"])
-        .expect("parse total-votes proposal sort");
+    let (_, total_votes) =
+        parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "total-votes"])
+            .expect("parse total-votes proposal sort");
 
     assert_eq!(total_votes.sort, SnsProposalsSort::TotalVotes);
     assert_eq!(total_votes.sort_direction, SortDirection::Desc);
 
-    let reject_cost = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reject-cost"])
-        .expect("parse reject-cost proposal sort");
+    let (_, reject_cost) =
+        parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reject-cost"])
+            .expect("parse reject-cost proposal sort");
 
     assert_eq!(reject_cost.sort, SnsProposalsSort::RejectCost);
     assert_eq!(reject_cost.sort_direction, SortDirection::Desc);
 
-    let reward_round = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reward-round"])
-        .expect("parse reward-round proposal sort");
+    let (_, reward_round) =
+        parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reward-round"])
+            .expect("parse reward-round proposal sort");
 
     assert_eq!(reward_round.sort, SnsProposalsSort::RewardRound);
     assert_eq!(reward_round.sort_direction, SortDirection::Desc);
 
-    let ballots = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "ballots", "--asc"])
-        .expect("parse ballots proposal sort");
+    let (_, ballots) =
+        parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "ballots", "--asc"])
+            .expect("parse ballots proposal sort");
 
     assert_eq!(ballots.sort, SnsProposalsSort::Ballots);
     assert_eq!(ballots.sort_direction, SortDirection::Asc);
@@ -122,25 +129,25 @@ fn sns_proposals_parses_local_sort_defaults_and_directions() {
 
 #[test]
 fn sns_proposals_parses_extended_local_sort_values() {
-    let action_id = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "action-id"])
+    let (_, action_id) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "action-id"])
         .expect("parse action-id proposal sort");
 
     assert_eq!(action_id.sort, SnsProposalsSort::ActionId);
     assert_eq!(action_id.sort_direction, SortDirection::Desc);
 
-    let tally_time = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "tally-time"])
+    let (_, tally_time) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "tally-time"])
         .expect("parse tally-time proposal sort");
 
     assert_eq!(tally_time.sort, SnsProposalsSort::TallyTime);
     assert_eq!(tally_time.sort_direction, SortDirection::Desc);
 
-    let eligible = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "eligible"])
+    let (_, eligible) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "eligible"])
         .expect("parse eligible proposal sort");
 
     assert_eq!(eligible.sort, SnsProposalsSort::Eligible);
     assert_eq!(eligible.sort_direction, SortDirection::Desc);
 
-    let reward_end = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reward-end"])
+    let (_, reward_end) = parse_proposals(&["be2us-64aaa-aaaaa-qaabq-cai", "--sort", "reward-end"])
         .expect("parse reward-end proposal sort");
 
     assert_eq!(reward_end.sort, SnsProposalsSort::RewardEnd);
@@ -157,7 +164,7 @@ fn sns_proposals_rejects_explicit_direction_for_api_sort() {
 
 #[test]
 fn sns_proposal_parses_id_and_json_format() {
-    let options = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_proposal_info_command(),
         &[
             "1",
@@ -168,13 +175,17 @@ fn sns_proposal_parses_id_and_json_format() {
             "--ballots",
             "--verbose",
         ],
-        SnsProposalOptions::from_matches,
+        |m, n| {
+            proposal_request(m, n, 1_780_531_200, || {
+                panic!("numeric SNS lookup must not resolve a cache root")
+            })
+        },
     )
     .expect("parse proposal");
 
     assert_eq!(options.lookup.input, "1");
     assert_eq!(options.lookup.network, "ic");
-    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
     assert_eq!(options.proposal_id, 42);
     assert!(options.show_ballots);

@@ -15,7 +15,7 @@ pub(super) use list::SnsListOptions;
 pub(super) use lookup::{
     SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, cache_list_request,
 };
-pub(super) use metrics::SnsMetricsOptions;
-pub(super) use neurons::{SnsNeuronOptions, SnsNeuronsOptions};
-pub(super) use proposals::{SnsProposalOptions, SnsProposalsOptions};
-pub(super) use reward::{SnsRewardCheckpointOptions, SnsRewardDiffOptions};
+pub(super) use metrics::metrics_request;
+pub(super) use neurons::{neuron_request, neurons_request};
+pub(super) use proposals::{proposal_request, proposals_request};
+pub(super) use reward::reward_checkpoint_request;

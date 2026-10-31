@@ -48,9 +48,9 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
     lines.push(format!(
         "catalog: {} version {} stale {} assurance {} cache {}",
         terminal_text(&report.network),
-        report.registry_version,
+        report.metadata.registry_version,
         yes_no(report.catalog_stale),
-        report.assurance.as_str(),
+        report.metadata.assurance.as_str(),
         report.cache_disposition.as_str(),
     ));
     if rows.is_empty() {

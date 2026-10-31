@@ -30,15 +30,15 @@ pub(in crate::sns::report::live) fn mainnet_sns_canisters_from_deployed_sns(
 /// Convert one Governance metadata response into a keyed source result.
 pub(in crate::sns::report::live) fn mainnet_sns_metadata_from_response(
     root_canister_id: String,
-    metadata: GetMetadataResponse,
-    metadata_error: Option<String>,
+    outcome: Result<GetMetadataResponse, String>,
 ) -> MainnetSnsMetadata {
     MainnetSnsMetadata {
         root_canister_id,
-        name: clean_optional_text(metadata.name),
-        description: clean_optional_text(metadata.description),
-        url: clean_optional_text(metadata.url),
-        metadata_error,
+        outcome: outcome.map(|metadata| crate::sns::MainnetSnsMetadataFields {
+            name: clean_optional_text(metadata.name),
+            description: clean_optional_text(metadata.description),
+            url: clean_optional_text(metadata.url),
+        }),
     }
 }
 

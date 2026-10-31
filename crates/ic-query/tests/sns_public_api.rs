@@ -44,7 +44,7 @@ use ic_query::sns::{
     SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
     SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource, SnsDiscoverySource,
     SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
-    SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSort, SnsNeuronsSource, SnsParamsSource,
+    SnsNeuronsCacheSort, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSource, SnsParamsSource,
     SnsProposalSource, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
     SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSwapSource, SnsTokenSource,
     SnsUpgradeSource, build_sns_canister_report, build_sns_canister_report_with_source,
@@ -1284,7 +1284,7 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
     assert_eq!(detail.detail.permissions.len(), 1);
 
     let report = build_sns_neurons_report_with_source(
-        &SnsNeuronsRequest::new(
+        &SnsNeuronsRequest::live(
             ic_query::sns::SnsLookupRequest::new(
                 "ic",
                 DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -1292,8 +1292,8 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
                 "1",
             ),
             50,
-        )
-        .with_owner_principal_id(SAMPLE_SNS_GOVERNANCE_CANISTER_ID),
+            Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()),
+        ),
         &source,
     )
     .await?;
@@ -1366,7 +1366,7 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
     assert_eq!(detail.neuron_id, SAMPLE_SNS_NEURON_ID);
 
     let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
-    let request = SnsNeuronsRequest::new(
+    let request = SnsNeuronsRequest::cached(
         ic_query::sns::SnsLookupRequest::new(
             "ic",
             DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -1374,17 +1374,16 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
             SAMPLE_SNS_ROOT_CANISTER_ID,
         ),
         50,
+        cache_root.clone(),
+        SnsNeuronsCacheSort::Stake,
     )
-    .with_owner_principal_id("aaaaa-aa")
-    .with_sort(SnsNeuronsSort::Stake)
-    .with_cache_root(cache_root.clone())
     .with_verbose(true);
 
     assert_eq!(request.lookup.input, SAMPLE_SNS_ROOT_CANISTER_ID);
     assert_eq!(request.limit, 50);
-    assert_eq!(request.owner_principal_id.as_deref(), Some("aaaaa-aa"));
-    assert_eq!(request.sort, SnsNeuronsSort::Stake);
-    assert_eq!(request.cache_root.as_deref(), Some(cache_root.as_path()));
+    assert!(
+        matches!(&request.collection, ic_query::sns::SnsNeuronCollection::Cached { cache_root: root, sort: SnsNeuronsCacheSort::Stake } if root == &cache_root)
+    );
     assert!(request.verbose);
 }
 
@@ -1642,10 +1641,11 @@ impl SnsDiscoverySource for FixtureSnsSource {
                 .iter()
                 .map(|target| MainnetSnsMetadata {
                     root_canister_id: target.root_canister_id.clone(),
-                    name: Some("Example SNS".to_string()),
-                    description: Some("Example description".to_string()),
-                    url: Some("https://example.com/sns".to_string()),
-                    metadata_error: None,
+                    outcome: Ok(ic_query::sns::MainnetSnsMetadataFields {
+                        name: Some("Example SNS".to_string()),
+                        description: Some("Example description".to_string()),
+                        url: Some("https://example.com/sns".to_string()),
+                    }),
                 })
                 .collect())
         })
@@ -1665,9 +1665,7 @@ impl SnsCatalogSource for FixtureSnsSource {
                 .iter()
                 .map(|target| MainnetSnsLifecycle {
                     root_canister_id: target.root_canister_id.clone(),
-                    lifecycle: Some(3),
-
-                    lifecycle_error: None,
+                    outcome: Ok(3),
                 })
                 .collect())
         })
@@ -2190,7 +2188,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
         owner_principal_id: None,
         verbose: false,
         data_source: ReportDataSource::Live,
-        sort: SnsNeuronsSort::Api.as_str().to_string(),
+        sort: "api".to_string(),
         cache_path: None,
         cache_complete: None,
         total_neuron_count: 1,

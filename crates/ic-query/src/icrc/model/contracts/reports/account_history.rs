@@ -4,7 +4,7 @@
 //! Does not own: ledger-wide history, requests, live transport, cache mechanics, or rendering.
 //! Boundary: owns the stable JSON and persisted snapshot shapes for indexed account history.
 
-use crate::cache::{CacheCollectionCompleteness, CacheRefreshAttemptStatus, CacheValidationStatus};
+use crate::cache::{CacheCollectionCompleteness, CacheValidationStatus};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -290,24 +290,11 @@ pub struct IcrcAccountTransactionCacheSummary {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAccountTransactionRefreshAttemptStatus {
-    /// Stable attempt lifecycle status.
-    pub status: CacheRefreshAttemptStatus,
-    /// Attempt start timestamp.
-    pub started_at: String,
-    /// Last attempt update timestamp.
-    pub updated_at: String,
     /// Explicit or resolved index canister recorded by the attempt.
     pub index_canister_id: Option<String>,
-    /// Maximum transactions requested per source page.
-    pub page_size: u32,
-    /// Successfully collected pages.
-    pub pages_fetched: u32,
-    /// Rows retained before the latest update.
-    pub rows_fetched: usize,
-    /// Last exclusive cursor when present.
-    pub last_cursor: Option<String>,
-    /// Final failure text when the attempt failed.
-    pub last_error: Option<String>,
+    /// Validated shared lifecycle evidence.
+    #[serde(flatten)]
+    pub lifecycle: crate::cache::SnapshotRefreshAttemptStatus,
 }
 
 ///

@@ -4,7 +4,7 @@
 //! Does not own: live calls, report construction, source validation, or JSON output.
 //! Boundary: labels Governance and SNS-W evidence precisely and preserves query gaps.
 
-use crate::sns::report::text::common::sns_identity_lines;
+use crate::sns::report::text::common::sns_identity_fields_lines;
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
@@ -20,7 +20,7 @@ use crate::{
 /// Render one SNS upgrade report as human-facing text.
 #[must_use]
 pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
-    let mut lines = sns_identity_lines(
+    let mut lines = sns_identity_fields_lines(
         &report.network,
         report.id,
         &report.name,

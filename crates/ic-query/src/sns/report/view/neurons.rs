@@ -4,19 +4,23 @@
 //! Does not own: neuron fetching, cache loading, report assembly, or text rendering.
 //! Boundary: sorts neuron rows without changing cache identity.
 
-use crate::sns::report::{SnsNeuronRow, SnsNeuronsSort};
+use crate::sns::report::{SnsNeuronRow, SnsNeuronsCacheSort};
 
-pub(in crate::sns::report) fn sort_sns_neurons(neurons: &mut [SnsNeuronRow], sort: SnsNeuronsSort) {
+pub(in crate::sns::report) fn sort_sns_neurons(
+    neurons: &mut [SnsNeuronRow],
+    sort: SnsNeuronsCacheSort,
+) {
     match sort {
-        SnsNeuronsSort::Api => {}
-        SnsNeuronsSort::Id => neurons.sort_by(|left, right| left.neuron_id.cmp(&right.neuron_id)),
-        SnsNeuronsSort::Stake => {
+        SnsNeuronsCacheSort::Id => {
+            neurons.sort_by(|left, right| left.neuron_id.cmp(&right.neuron_id));
+        }
+        SnsNeuronsCacheSort::Stake => {
             sort_by_descending_value(neurons, |neuron| neuron.cached_neuron_stake_e8s);
         }
-        SnsNeuronsSort::Maturity => {
+        SnsNeuronsCacheSort::Maturity => {
             sort_by_descending_value(neurons, |neuron| neuron.maturity_e8s_equivalent);
         }
-        SnsNeuronsSort::Created => {
+        SnsNeuronsCacheSort::Created => {
             sort_by_descending_value(neurons, |neuron| neuron.created_timestamp_seconds);
         }
     }

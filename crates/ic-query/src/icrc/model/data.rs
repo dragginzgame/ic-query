@@ -5,10 +5,7 @@
 //! Boundary: carries raw source results into report assembly without display conversion.
 
 use super::IcrcTokenStandardRow;
-use super::contracts::{
-    IcrcAccountTransactionRow, IcrcArchiveFollowErrorRow, IcrcArchivedBlocksRow, IcrcCapabilityRow,
-    IcrcFollowedArchiveBlockRow, IcrcTransactionBlockRow,
-};
+use super::contracts::{IcrcAccountTransactionRow, IcrcCapabilityRow};
 use std::path::PathBuf;
 
 ///
@@ -47,23 +44,6 @@ pub struct CachedIcrcAccountTransactionSnapshot {
     pub path: PathBuf,
     /// Validated complete snapshot.
     pub snapshot: super::contracts::IcrcAccountTransactionSnapshot,
-}
-
-///
-/// IcrcTransactionsData
-///
-/// Source-layer ICRC-3 block history result from a ledger canister.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IcrcTransactionsData {
-    /// Total number of blocks as a decimal natural, or unknown for custom sources.
-    /// Returned blocks and archive ranges must stay below this length when known.
-    pub log_length: Option<String>,
-    pub blocks: Vec<IcrcTransactionBlockRow>,
-    pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
-    pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
-    pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
 }
 
 ///

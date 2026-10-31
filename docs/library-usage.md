@@ -1665,7 +1665,7 @@ any other snapshot shape is rejected and requires an explicit refresh.
 use std::path::Path;
 
 use ic_query::sns::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsSort,
+    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsCacheSort,
     SnsProposalsRequest, SnsProposalsSort, build_sns_neurons_report,
     build_sns_proposals_report, sns_neurons_report_text, sns_proposals_report_text,
 };
@@ -1697,7 +1697,7 @@ async fn render_cached_sns_neurons(
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
-    let request = SnsNeuronsRequest::new(
+    let request = SnsNeuronsRequest::cached(
         ic_query::sns::SnsLookupRequest::new(
             "ic",
             DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -1705,9 +1705,9 @@ async fn render_cached_sns_neurons(
             sns_input,
         ),
         500,
-    )
-    .with_cache_root(cache_root)
-    .with_sort(SnsNeuronsSort::Stake);
+        cache_root,
+        SnsNeuronsCacheSort::Stake,
+    );
 
     let report = build_sns_neurons_report(&request).await?;
     Ok(sns_neurons_report_text(&report))

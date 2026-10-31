@@ -5,7 +5,7 @@
 //! Boundary: validates generic refresh-attempt JSON through cache-file primitives.
 
 use crate::{
-    cache::CacheRefreshAttemptStatus,
+    cache::{CacheRefreshAttemptStatus, SnapshotRefreshAttemptStatus},
     cache_file::{
         BoundedManagedFileReadError, CacheFileError, ManagedReadBudget, read_bounded_managed_file,
     },
@@ -102,6 +102,21 @@ pub struct SnapshotRefreshAttempt<Metadata> {
     pub rows_fetched: usize,
     pub last_cursor: Option<String>,
     pub last_error: Option<String>,
+}
+
+impl<Metadata> From<SnapshotRefreshAttempt<Metadata>> for SnapshotRefreshAttemptStatus {
+    fn from(attempt: SnapshotRefreshAttempt<Metadata>) -> Self {
+        Self {
+            status: attempt.status,
+            started_at: attempt.started_at,
+            updated_at: attempt.updated_at,
+            page_size: attempt.page_size,
+            pages_fetched: attempt.pages_fetched,
+            rows_fetched: attempt.rows_fetched,
+            last_cursor: attempt.last_cursor,
+            last_error: attempt.last_error,
+        }
+    }
 }
 
 impl<Metadata> From<SnapshotRefreshAttempt<Metadata>> for SnapshotRefreshProgress {

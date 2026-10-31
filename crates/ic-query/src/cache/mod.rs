@@ -12,6 +12,7 @@ pub use model::{
     CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy,
     CacheRefreshAttemptStatus, CacheRefreshLockStatus, CacheRefreshLockStatusRow,
     CacheStatusReport, CacheStatusRequest, CacheStatusRow, CacheValidationStatus,
+    SnapshotRefreshAttemptStatus,
 };
 #[cfg(feature = "host")]
 pub use status::{CacheStatusError, build_cache_status_report};

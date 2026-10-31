@@ -270,7 +270,7 @@ pub(in crate::icrc::live) fn validate_transactions_data(
     // Disjoint validated ranges already exclude resident ids from archive rows.
     let mut followed_ids = BTreeSet::new();
     for block in &data.followed_archive_blocks {
-        let id = parse(&block.index)?;
+        let id = parse(&block.block.index)?;
         let in_range = callback_ranges
             .get(&(
                 block.archive_canister_id.as_str(),
@@ -491,12 +491,7 @@ fn followed_archive_block_row_from_wire(
     IcrcFollowedArchiveBlockRow {
         archive_canister_id: archive_canister_id.to_string(),
         callback_method: callback_method.to_string(),
-        index: summary.index,
-        block_type: summary.block_type,
-        transaction_kind: summary.transaction_kind,
-        timestamp_unix_nanos: summary.timestamp_unix_nanos,
-        amount_base_units: summary.amount_base_units,
-        raw_block: summary.raw_block,
+        block: summary,
     }
 }
 
@@ -656,7 +651,7 @@ mod tests {
         );
         assert_eq!(data.log_length.as_deref(), Some("18446744073709551616"));
         assert_eq!(data.blocks[0].index, "1000");
-        assert_eq!(data.followed_archive_blocks[0].index, "1001");
+        assert_eq!(data.followed_archive_blocks[0].block.index, "1001");
         assert_eq!(data.archived_blocks[0].ranges[0].start, "1001");
         assert_eq!(data.archived_blocks[0].ranges[0].length, "1000");
         assert_eq!(
@@ -831,7 +826,7 @@ mod tests {
     async fn follows_the_supplied_query_callback_method_and_arguments() {
         let followed = follow_callback_fixture(&[12]).await;
         assert!(followed.errors.is_empty(), "{:?}", followed.errors);
-        assert_eq!(followed.blocks[0].index, "12");
+        assert_eq!(followed.blocks[0].block.index, "12");
         assert_eq!(followed.blocks[0].callback_method, "read_archive_page");
     }
 

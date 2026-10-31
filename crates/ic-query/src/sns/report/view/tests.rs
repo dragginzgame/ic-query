@@ -15,7 +15,7 @@ use super::{
 use crate::report::SortDirection;
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow,
-    SnsNeuronsSort, SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalRow,
+    SnsNeuronsCacheSort, SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalRow,
     SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsSort,
     source::MainnetSns,
 };
@@ -299,11 +299,10 @@ fn neuron_sorts_preserve_direction_and_ascending_id_tiebreakers() {
         neuron_row("dd", 0, 0, 2),
     ];
     for (sort, expected) in [
-        (SnsNeuronsSort::Api, vec!["bb", "aa", "cc", "dd"]),
-        (SnsNeuronsSort::Id, vec!["aa", "bb", "cc", "dd"]),
-        (SnsNeuronsSort::Stake, vec!["cc", "aa", "bb", "dd"]),
-        (SnsNeuronsSort::Maturity, vec!["aa", "bb", "cc", "dd"]),
-        (SnsNeuronsSort::Created, vec!["cc", "aa", "dd", "bb"]),
+        (SnsNeuronsCacheSort::Id, vec!["aa", "bb", "cc", "dd"]),
+        (SnsNeuronsCacheSort::Stake, vec!["cc", "aa", "bb", "dd"]),
+        (SnsNeuronsCacheSort::Maturity, vec!["aa", "bb", "cc", "dd"]),
+        (SnsNeuronsCacheSort::Created, vec!["cc", "aa", "dd", "bb"]),
     ] {
         let mut sorted = neurons.clone();
         sort_sns_neurons(&mut sorted, sort);

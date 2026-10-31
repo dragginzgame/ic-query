@@ -2,7 +2,7 @@
 
 use super::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata, NnsGovernanceCacheRequest,
-    NnsGovernanceRefreshAttemptStatus, read_governance_refresh_attempt_status,
+    read_governance_refresh_attempt_status,
 };
 use crate::{
     HostCacheError,
@@ -140,7 +140,7 @@ pub struct NnsGovernanceCacheStatusReport {
     /// Expected independent refresh-attempt path.
     pub refresh_attempt_path: String,
     /// Latest valid refresh-attempt evidence, independent of the last complete cache.
-    pub latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
+    pub latest_attempt: Option<crate::cache::SnapshotRefreshAttemptStatus>,
 }
 
 impl NnsGovernanceCacheStatusReport {
@@ -150,7 +150,7 @@ impl NnsGovernanceCacheStatusReport {
         collection: &str,
         paths: &SnapshotJsonPaths,
         cache: Option<NnsGovernanceCacheSummary>,
-        latest_attempt: Option<NnsGovernanceRefreshAttemptStatus>,
+        latest_attempt: Option<crate::cache::SnapshotRefreshAttemptStatus>,
     ) -> Self {
         Self {
             schema_version: 1,

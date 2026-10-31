@@ -8,8 +8,6 @@ mod node;
 mod node_operator;
 #[cfg(feature = "nns-host")]
 mod node_provider;
-#[cfg(feature = "certified-subnet-catalog-host")]
-mod registry;
 mod request;
 #[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
@@ -29,8 +27,6 @@ pub use node::{MainnetNode, MainnetNodeList};
 pub use node_operator::{MainnetNodeOperator, MainnetNodeOperatorList};
 #[cfg(feature = "nns-host")]
 pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use registry::{MainnetRegistryCertification, MainnetRegistryVersion};
 pub use request::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-topology-host")]
 pub use subnet_topology::{

@@ -340,3 +340,27 @@ pub struct NnsCertifiedRegistryPrecondition {
     /// Required version of the Registry key.
     pub expected_version: u64,
 }
+
+///
+/// NnsRegistryVersionData
+///
+/// Source-layer NNS registry version result.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct NnsRegistryVersionData {
+    /// Canonical network identity.
+    pub network: String,
+    /// Registry canister supplying this version.
+    pub registry_canister_id: String,
+    /// Authenticated Registry version.
+    pub registry_version: u64,
+    /// Caller-selected collection time in UTC.
+    pub fetched_at: String,
+    /// Collector identity.
+    pub fetched_by: String,
+    /// Explicit replica endpoint.
+    pub source_endpoint: String,
+    /// Authenticated evidence for the certified latest version.
+    pub certification: NnsRegistryCertification,
+}

@@ -30,6 +30,7 @@ cd "$work_dir/repository"
 mkdir -p scripts/release scripts/ci make "$work_dir/bin"
 bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
   Makefile scripts/release/adapter.sh
+cp "$repo_root/Cargo.toml" "$repo_root/Cargo.lock" .
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -105,6 +106,8 @@ for package in ic-query ic-query-cli ic-query-testkit; do
     /^version = / && name == package { print $2 }
   ' Cargo.lock)"
   [[ "$selected_version" == "$RELEASE_VERSION" ]] || fail "workspace lock version differs: $package"
+  catalog_version="$(PACKAGE="$package" "$YQ" -er '.workspace.dependencies[strenv(PACKAGE)].version' Cargo.toml)"
+  [[ "$catalog_version" == "$RELEASE_VERSION" ]] || fail "workspace catalog version differs: $package"
 done
 perl scripts/release/metadata.pl check "$evidence"
 mkdir -p "$work_dir/prepared/docs/changelog"

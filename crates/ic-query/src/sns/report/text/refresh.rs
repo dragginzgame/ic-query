@@ -4,7 +4,7 @@
 //! Does not own: refresh execution, cache writes, report construction, or JSON output.
 //! Boundary: formats complete SNS snapshot refresh results for humans.
 
-use crate::sns::report::text::common::sns_identity_lines;
+use crate::sns::report::text::common::sns_identity_fields_lines;
 
 use ic_host_text::escape::terminal_text;
 
@@ -13,7 +13,7 @@ use crate::{sns::report::SnsSnapshotRefreshReport, text_value::yes_no};
 /// Render one complete SNS snapshot refresh result, including publication warnings.
 #[must_use]
 pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
-    let mut lines = sns_identity_lines(
+    let mut lines = sns_identity_fields_lines(
         &report.network,
         report.id,
         &report.name,

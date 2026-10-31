@@ -7,10 +7,7 @@
 use crate::sns::report::text::common::sns_identity_lines;
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
-use ic_host_text::{
-    escape::terminal_text,
-    table::{Alignment, render},
-};
+use ic_host_text::table::{Alignment, render};
 
 use crate::{
     sns::report::{
@@ -26,24 +23,10 @@ use crate::{
 
 #[must_use]
 pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
-    let mut lines = sns_identity_lines(
-        &report.context.network,
-        report.context.id,
-        &report.context.name,
-        &report.context.root_canister_id,
-        &report.context.governance_canister_id,
-    );
-    lines.extend([
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
-        ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-    ]);
+    let mut lines = sns_identity_lines(&report.context);
+    lines.extend(crate::sns::report::text::common::sns_collection_lines(
+        &report.context,
+    ));
     lines.push(String::new());
     lines.push(render(
         &["PARAMETER", "VALUE"],

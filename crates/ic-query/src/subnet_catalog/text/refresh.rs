@@ -12,12 +12,16 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
             "refresh_lock_path: {}",
             terminal_text(&report.refresh_lock_path)
         ),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("assurance: {}", report.assurance.as_str()),
+        format!(
+            "registry_canister_id: {}",
+            report.metadata.registry_canister_id
+        ),
+        format!("registry_version: {}", report.metadata.registry_version),
+        format!("assurance: {}", report.metadata.assurance.as_str()),
         format!(
             "source_endpoints: {}",
             report
+                .metadata
                 .source_endpoints
                 .iter()
                 .map(|endpoint| terminal_text(endpoint))
@@ -26,36 +30,42 @@ pub fn subnet_catalog_refresh_report_text(report: &SubnetCatalogRefreshReport) -
         ),
         format!(
             "agreement_digest: {}",
-            report.agreement_digest.as_deref().unwrap_or("-")
+            report.metadata.agreement_digest.as_deref().unwrap_or("-")
         ),
         format!(
             "registry_query_call_count: {}",
-            report.registry_query_call_count
+            report.metadata.registry_query_call_count
         ),
-        format!("routing_source: {}", report.routing_source.as_str()),
-        format!("registry_record_count: {}", report.registry_records.len()),
-        format!("catalog_digest: {}", report.catalog_digest),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "routing_source: {}",
+            report.metadata.routing_source.as_str()
+        ),
+        format!(
+            "registry_record_count: {}",
+            report.metadata.registry_records.len()
+        ),
+        format!("catalog_digest: {}", report.metadata.catalog_digest),
+        format!("fetched_at: {}", terminal_text(&report.metadata.fetched_at)),
         format!("fetched_by: {}", terminal_text(&report.fetched_by)),
         format!(
             "collector_version: {}",
-            terminal_text(&report.collector_version)
+            terminal_text(&report.metadata.collector_version)
         ),
         format!(
             "classification_schema_version: {}",
-            report.classification_schema_version
+            report.metadata.classification_schema_version
         ),
         format!(
             "classification_policy_digest: {}",
-            report.classification_policy_digest
+            report.metadata.classification_policy_digest
         ),
         format!(
             "resolver_schema_version: {}",
-            report.resolver_schema_version
+            report.metadata.resolver_schema_version
         ),
         format!(
             "resolver_backend: {}",
-            terminal_text(&report.resolver_backend)
+            terminal_text(&report.metadata.resolver_backend)
         ),
         format!("dry_run: {}", yes_no(report.dry_run)),
         format!("wrote_catalog: {}", yes_no(report.wrote_catalog)),

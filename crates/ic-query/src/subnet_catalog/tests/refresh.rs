@@ -140,15 +140,21 @@ async fn refresh_writes_catalog_atomically_and_removes_lock() {
     let _ = fs::remove_dir_all(root);
     assert!(report.wrote_catalog);
     assert!(!report.replaced_existing_catalog);
-    assert_eq!(report.registry_version, 987_654);
-    assert_eq!(report.assurance, CatalogAssurance::UncertifiedQuery);
-    assert!(report.agreement_digest.is_none());
-    assert_eq!(report.registry_query_call_count, 5);
+    assert_eq!(report.metadata.registry_version, 987_654);
     assert_eq!(
-        report.source_endpoints,
+        report.metadata.assurance,
+        CatalogAssurance::UncertifiedQuery
+    );
+    assert!(report.metadata.agreement_digest.is_none());
+    assert_eq!(report.metadata.registry_query_call_count, 5);
+    assert_eq!(
+        report.metadata.source_endpoints,
         vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()]
     );
-    assert_eq!(report.catalog_digest, cached.catalog.raw().catalog_digest);
+    assert_eq!(
+        report.metadata.catalog_digest,
+        cached.catalog.raw().catalog_digest
+    );
     assert_eq!(cached.catalog.provenance().registry_version, 987_654);
     assert!(!lock_path.exists());
 }
@@ -169,22 +175,28 @@ fn async_multi_endpoint_refresh_publishes_matching_agreement_evidence() {
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("agreement cache");
 
     assert_eq!(source.call_count(), 2);
-    assert_eq!(report.assurance, CatalogAssurance::MultiEndpointAgreement);
     assert_eq!(
-        report.source_endpoints,
+        report.metadata.assurance,
+        CatalogAssurance::MultiEndpointAgreement
+    );
+    assert_eq!(
+        report.metadata.source_endpoints,
         vec![alpha.to_string(), beta.to_string()]
     );
-    assert_eq!(report.registry_query_call_count, 10);
-    assert_eq!(report.registry_records.len(), 8);
-    assert!(report.registry_records.iter().all(|evidence| {
-        evidence.requested_registry_version == report.registry_version
-            && report.source_endpoints.contains(&evidence.source_endpoint)
+    assert_eq!(report.metadata.registry_query_call_count, 10);
+    assert_eq!(report.metadata.registry_records.len(), 8);
+    assert!(report.metadata.registry_records.iter().all(|evidence| {
+        evidence.requested_registry_version == report.metadata.registry_version
+            && report
+                .metadata
+                .source_endpoints
+                .contains(&evidence.source_endpoint)
     }));
     assert_eq!(
-        report.agreement_digest,
+        report.metadata.agreement_digest,
         cached.catalog.provenance().agreement_digest
     );
-    assert!(report.agreement_digest.is_some());
+    assert!(report.metadata.agreement_digest.is_some());
     assert_eq!(
         cached.catalog.provenance().assurance,
         CatalogAssurance::MultiEndpointAgreement

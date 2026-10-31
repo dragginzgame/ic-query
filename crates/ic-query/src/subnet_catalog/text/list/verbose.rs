@@ -36,8 +36,8 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
                     .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
                 yes_no(subnet.charges_apply_by_default).to_string(),
                 subnet.range_count.to_string(),
-                report.registry_version.to_string(),
-                report.fetched_at.clone(),
+                report.metadata.registry_version.to_string(),
+                report.metadata.fetched_at.clone(),
                 yes_no(report.catalog_stale).to_string(),
             ]
         })

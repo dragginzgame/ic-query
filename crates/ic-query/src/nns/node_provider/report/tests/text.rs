@@ -62,10 +62,12 @@ fn node_provider_info_text_renders_detail_lines() {
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         fetched_by: "test".to_string(),
-        node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-        name: None,
-        node_count: None,
-        reward_account_hex: Some("abcd".to_string()),
+        node_provider: crate::nns::node_provider::NnsNodeProviderRow {
+            node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+            name: None,
+            node_count: None,
+            reward_account_hex: Some("abcd".to_string()),
+        },
     };
 
     let text = nns_node_provider_info_report_text(&report);

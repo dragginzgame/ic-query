@@ -21,8 +21,8 @@ pub(in crate::sns::report) use model::{
 };
 pub use model::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsNeuronId,
+    MainnetSnsMetadata, MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
+    MainnetSnsToken, MainnetSnsUpgrade, SnsNeuronId,
 };
 pub use traits::{
     SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronSource,

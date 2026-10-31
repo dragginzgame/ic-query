@@ -5,7 +5,7 @@ use super::{
     NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
     NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryHostError,
-    NnsRegistrySource, NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    NnsRegistrySource, NnsRegistryVersionReport, NnsRegistryVersionRequest,
     build_nns_registry_version_report_with_source,
     fetch_nns_certified_registry_delta_batch_with_source_async, nns_registry_version_report_text,
     validate_nns_certified_registry_delta_batch,
@@ -370,9 +370,12 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::registry::NnsRegistryVersionData, NnsRegistryHostError>,
+    > {
         Box::pin(async move {
-            Ok(NnsRegistryVersionData {
+            Ok(crate::nns::registry::NnsRegistryVersionData {
                 network: MAINNET_NETWORK.to_string(),
                 registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
                 registry_version: 42,
@@ -391,9 +394,12 @@ impl NnsRegistrySource for MismatchedNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::registry::NnsRegistryVersionData, NnsRegistryHostError>,
+    > {
         Box::pin(async move {
-            Ok(NnsRegistryVersionData {
+            Ok(crate::nns::registry::NnsRegistryVersionData {
                 network: request.network.clone(),
                 registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
                 registry_version: 42,
@@ -412,11 +418,14 @@ impl NnsRegistrySource for UnverifiedNnsRegistrySource {
     fn fetch_registry_version<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsRegistryVersionData, NnsRegistryHostError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::registry::NnsRegistryVersionData, NnsRegistryHostError>,
+    > {
         Box::pin(async move {
             let mut evidence = certification(1_780_531_200);
             evidence.certificate_verified = false;
-            Ok(NnsRegistryVersionData {
+            Ok(crate::nns::registry::NnsRegistryVersionData {
                 network: request.network.clone(),
                 registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
                 registry_version: 42,

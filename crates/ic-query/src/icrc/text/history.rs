@@ -44,16 +44,22 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
         format!("requested_start: {}", report.requested_start),
         format!("requested_limit: {}", report.requested_limit),
         format!("follow_archives: {}", report.follow_archives),
-        format!("log_length: {}", optional_text(report.log_length.as_ref())),
-        format!("returned_blocks: {}", report.blocks.len()),
-        format!("archived_callbacks: {}", report.archived_blocks.len()),
+        format!(
+            "log_length: {}",
+            optional_text(report.transactions.log_length.as_ref())
+        ),
+        format!("returned_blocks: {}", report.transactions.blocks.len()),
+        format!(
+            "archived_callbacks: {}",
+            report.transactions.archived_blocks.len()
+        ),
         format!(
             "followed_archive_blocks: {}",
-            report.followed_archive_blocks.len()
+            report.transactions.followed_archive_blocks.len()
         ),
         format!(
             "archive_follow_errors: {}",
-            report.archive_follow_errors.len()
+            report.transactions.archive_follow_errors.len()
         ),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
@@ -61,20 +67,24 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
             terminal_text(&report.source_endpoint)
         ),
     ];
-    push_table_section(&mut lines, &report.blocks, render_transaction_blocks_table);
     push_table_section(
         &mut lines,
-        &report.followed_archive_blocks,
+        &report.transactions.blocks,
+        render_transaction_blocks_table,
+    );
+    push_table_section(
+        &mut lines,
+        &report.transactions.followed_archive_blocks,
         render_followed_archive_blocks_table,
     );
     push_table_section(
         &mut lines,
-        &report.archived_blocks,
+        &report.transactions.archived_blocks,
         render_archive_callbacks_table,
     );
     push_table_section(
         &mut lines,
-        &report.archive_follow_errors,
+        &report.transactions.archive_follow_errors,
         render_archive_follow_errors_table,
     );
     lines.join("\n")
@@ -257,11 +267,11 @@ fn transaction_block_cells(block: &IcrcTransactionBlockRow) -> [String; 5] {
 
 fn followed_archive_block_cells(block: &IcrcFollowedArchiveBlockRow) -> [String; 5] {
     block_summary_cells(
-        &block.index,
-        block.block_type.as_ref(),
-        block.transaction_kind.as_ref(),
-        block.timestamp_unix_nanos.as_ref(),
-        block.amount_base_units.as_ref(),
+        &block.block.index,
+        block.block.block_type.as_ref(),
+        block.block.transaction_kind.as_ref(),
+        block.block.timestamp_unix_nanos.as_ref(),
+        block.block.amount_base_units.as_ref(),
     )
 }
 

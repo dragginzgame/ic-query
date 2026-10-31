@@ -339,23 +339,29 @@ pub fn icrc_account_transaction_cache_status_report_text(
     }
     if let Some(attempt) = report.latest_attempt.as_ref() {
         lines.extend([
-            format!("latest_attempt_status: {}", attempt.status),
-            format!("latest_attempt_started_at: {}", attempt.started_at),
-            format!("latest_attempt_updated_at: {}", attempt.updated_at),
+            format!("latest_attempt_status: {}", attempt.lifecycle.status),
+            format!(
+                "latest_attempt_started_at: {}",
+                attempt.lifecycle.started_at
+            ),
+            format!(
+                "latest_attempt_updated_at: {}",
+                attempt.lifecycle.updated_at
+            ),
             format!(
                 "latest_attempt_index_canister_id: {}",
                 optional_text(attempt.index_canister_id.as_ref())
             ),
-            format!("latest_attempt_page_size: {}", attempt.page_size),
-            format!("latest_attempt_pages: {}", attempt.pages_fetched),
-            format!("latest_attempt_rows: {}", attempt.rows_fetched),
+            format!("latest_attempt_page_size: {}", attempt.lifecycle.page_size),
+            format!("latest_attempt_pages: {}", attempt.lifecycle.pages_fetched),
+            format!("latest_attempt_rows: {}", attempt.lifecycle.rows_fetched),
             format!(
                 "latest_attempt_cursor: {}",
-                optional_text(attempt.last_cursor.as_ref())
+                optional_text(attempt.lifecycle.last_cursor.as_ref())
             ),
             format!(
                 "latest_attempt_error: {}",
-                optional_text(attempt.last_error.as_ref())
+                optional_text(attempt.lifecycle.last_error.as_ref())
             ),
         ]);
     }

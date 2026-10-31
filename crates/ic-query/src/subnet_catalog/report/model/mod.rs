@@ -9,3 +9,6 @@ pub use list::{
 };
 pub use refresh::SubnetCatalogRefreshReport;
 pub use stale::CatalogStaleStatus;
+
+mod metadata;
+pub use metadata::SubnetCatalogReportMetadata;

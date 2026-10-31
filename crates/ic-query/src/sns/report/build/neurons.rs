@@ -7,7 +7,7 @@
 use crate::report::ReportProvenance;
 use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
+    SnsHostError, SnsNeuronCollection, SnsNeuronsReport, SnsNeuronsRequest,
     assemble::sns_neurons_report_from_rows,
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
@@ -25,9 +25,12 @@ pub async fn build_sns_neurons_report_with_source(
     request: &SnsNeuronsRequest,
     source: &dyn SnsNeuronsSource,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    if request.sort.uses_cache() {
-        return neurons_cache::build_sns_neurons_report_from_cache(request);
-    }
+    let owner_principal_id = match &request.collection {
+        SnsNeuronCollection::Cached { cache_root, sort } => {
+            return neurons_cache::build_sns_neurons_report_from_cache(request, cache_root, *sort);
+        }
+        SnsNeuronCollection::Live { owner_principal_id } => owner_principal_id,
+    };
 
     let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let neurons = source
@@ -35,7 +38,7 @@ pub async fn build_sns_neurons_report_with_source(
             &lookup.fetch_request,
             &lookup.sns,
             request.limit,
-            request.owner_principal_id.as_deref(),
+            owner_principal_id.as_deref(),
         )
         .await?;
     validate_mainnet_sns_neurons(&neurons, request.limit)?;
@@ -44,7 +47,7 @@ pub async fn build_sns_neurons_report_with_source(
         request,
         SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         ReportProvenance::live(),
-        request.owner_principal_id.clone(),
+        owner_principal_id.clone(),
         total_neuron_count,
         neurons,
     ))

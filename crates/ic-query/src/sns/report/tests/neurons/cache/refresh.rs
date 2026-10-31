@@ -51,11 +51,12 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     );
 
     let mut cached_request = neurons_request(ROOT_A);
-    cached_request.cache_root = Some(root.clone());
-    cached_request.sort = SnsNeuronsSort::Stake;
+    cached_request.collection = crate::sns::SnsNeuronCollection::Cached {
+        cache_root: root.clone(),
+        sort: SnsNeuronsCacheSort::Stake,
+    };
     cached_request.limit = 2;
     cached_request.verbose = true;
-    cached_request.owner_principal_id = Some(GOVERNANCE_A.to_string());
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect("cached neurons report");
@@ -197,8 +198,10 @@ async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
         .expect_err("incomplete refresh");
 
     let mut cached_request = neurons_request(ROOT_A);
-    cached_request.cache_root = Some(root.clone());
-    cached_request.sort = SnsNeuronsSort::Stake;
+    cached_request.collection = crate::sns::SnsNeuronCollection::Cached {
+        cache_root: root.clone(),
+        sort: SnsNeuronsCacheSort::Stake,
+    };
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect("previous complete cache remains usable");

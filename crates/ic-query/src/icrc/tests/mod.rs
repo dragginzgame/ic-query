@@ -221,22 +221,24 @@ impl IcrcTransactionsSource for FixtureIcrcSource {
                 followed_archive_blocks: vec![IcrcFollowedArchiveBlockRow {
                     archive_canister_id: ARCHIVE_CANISTER_ID.to_string(),
                     callback_method: "icrc3_get_blocks".to_string(),
-                    index: "102".to_string(),
-                    block_type: Some("1mint".to_string()),
-                    transaction_kind: Some("1mint".to_string()),
-                    timestamp_unix_nanos: Some("1699999999123456789".to_string()),
-                    amount_base_units: Some("987654321".to_string()),
-                    raw_block: json!({
-                        "Map": {
-                            "btype": { "Text": "1mint" },
-                            "ts": { "Nat": "1699999999123456789" },
-                            "tx": {
-                                "Map": {
-                                    "amt": { "Nat": "987654321" }
+                    block: crate::icrc::IcrcTransactionBlockRow {
+                        index: "102".to_string(),
+                        block_type: Some("1mint".to_string()),
+                        transaction_kind: Some("1mint".to_string()),
+                        timestamp_unix_nanos: Some("1699999999123456789".to_string()),
+                        amount_base_units: Some("987654321".to_string()),
+                        raw_block: json!({
+                            "Map": {
+                                "btype": { "Text": "1mint" },
+                                "ts": { "Nat": "1699999999123456789" },
+                                "tx": {
+                                    "Map": {
+                                        "amt": { "Nat": "987654321" }
+                                    }
                                 }
                             }
-                        }
-                    }),
+                        }),
+                    },
                 }],
                 archive_follow_errors: vec![IcrcArchiveFollowErrorRow {
                     callback_canister_id: ARCHIVE_CANISTER_ID.to_string(),
@@ -1041,7 +1043,7 @@ async fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_ro
         let mut data = original.clone();
         match case {
             0 => data.archived_blocks[0].ranges[0].start = "99".into(),
-            1 => data.followed_archive_blocks[0].index = "103".into(),
+            1 => data.followed_archive_blocks[0].block.index = "103".into(),
             2 => data.blocks[0].index = "not-decimal".into(),
             3 => data
                 .followed_archive_blocks
@@ -1052,10 +1054,10 @@ async fn transaction_report_rejects_invalid_custom_source_ranges_and_followed_ro
             7 => data.log_length = Some("102".into()),
             8 => data.log_length = Some("not-decimal".into()),
             9 => data.blocks.push(data.blocks[0].clone()),
-            10 => data.followed_archive_blocks[0].index = data.blocks[0].index.clone(),
+            10 => data.followed_archive_blocks[0].block.index = data.blocks[0].index.clone(),
             11 => {
                 let mut duplicate = data.followed_archive_blocks[0].clone();
-                duplicate.index.insert(0, '0');
+                duplicate.block.index.insert(0, '0');
                 data.followed_archive_blocks.push(duplicate);
             }
             _ => unreachable!(),
@@ -1114,11 +1116,11 @@ async fn transactions_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.requested_start, "100");
     assert_eq!(report.requested_limit, 3);
-    assert_eq!(report.log_length.as_deref(), Some("1000"));
-    assert_eq!(report.blocks.len(), 2);
-    assert_eq!(report.archived_blocks.len(), 1);
-    assert_eq!(report.followed_archive_blocks.len(), 1);
-    assert_eq!(report.archive_follow_errors.len(), 1);
+    assert_eq!(report.transactions.log_length.as_deref(), Some("1000"));
+    assert_eq!(report.transactions.blocks.len(), 2);
+    assert_eq!(report.transactions.archived_blocks.len(), 1);
+    assert_eq!(report.transactions.followed_archive_blocks.len(), 1);
+    assert_eq!(report.transactions.archive_follow_errors.len(), 1);
 
     let text = icrc_transactions_report_text(&report);
     assert!(text.contains("requested_start: 100"));

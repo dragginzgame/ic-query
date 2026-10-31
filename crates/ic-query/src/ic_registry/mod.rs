@@ -36,8 +36,6 @@ pub use model::{
     MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
     MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
 };
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use model::{MainnetRegistryCertification, MainnetRegistryVersion};
 #[cfg(feature = "nns-topology-host")]
 pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,

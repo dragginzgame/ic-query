@@ -137,11 +137,11 @@ async fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(info_report.subnet_principal, SUBNET_A);
-    assert_eq!(info_report.registry_query_call_count, 5);
-    assert!(info_report.agreement_digest.is_none());
+    assert_eq!(info_report.metadata.registry_query_call_count, 5);
+    assert!(info_report.metadata.agreement_digest.is_none());
     assert!(info_text.contains("resolved_as: canister"));
     assert_eq!(row.subnet_principal, SUBNET_A);
-    assert_eq!(list_report.registry_query_call_count, 5);
+    assert_eq!(list_report.metadata.registry_query_call_count, 5);
     assert_eq!(row.ranges_shown, 1);
     assert!(list_text.contains("catalog: ic version 123456 stale no"));
     assert!(list_verbose_text.contains(CANISTER_A));
@@ -160,7 +160,7 @@ async fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
         &FixtureSubnetCatalogSource,
     ))
     .expect("public async refresh");
-    assert_eq!(async_refresh.registry_query_call_count, 5);
+    assert_eq!(async_refresh.metadata.registry_query_call_count, 5);
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -492,22 +492,24 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
             .display()
             .to_string(),
         output_path: None,
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 123_456,
-        assurance: CatalogAssurance::UncertifiedQuery,
-        source_endpoints: vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()],
-        agreement_digest: None,
-        registry_query_call_count: 5,
-        routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
-        registry_records: Vec::new(),
-        catalog_digest: "00".repeat(32),
-        fetched_at: "2026-06-26T00:00:00Z".to_string(),
+        metadata: ic_query::subnet_catalog::SubnetCatalogReportMetadata {
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 123_456,
+            assurance: CatalogAssurance::UncertifiedQuery,
+            source_endpoints: vec![DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT.to_string()],
+            agreement_digest: None,
+            registry_query_call_count: 5,
+            routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
+            registry_records: Vec::new(),
+            catalog_digest: "00".repeat(32),
+            fetched_at: "2026-06-26T00:00:00Z".to_string(),
+            collector_version: "test".to_string(),
+            classification_schema_version: 1,
+            classification_policy_digest: "00".repeat(32),
+            resolver_schema_version: 1,
+            resolver_backend: "local-nns-subnet-catalog".to_string(),
+        },
         fetched_by: "fixture".to_string(),
-        collector_version: "test".to_string(),
-        classification_schema_version: 1,
-        classification_policy_digest: "00".repeat(32),
-        resolver_schema_version: 1,
-        resolver_backend: "local-nns-subnet-catalog".to_string(),
         dry_run: true,
         wrote_catalog: false,
         replaced_existing_catalog: true,

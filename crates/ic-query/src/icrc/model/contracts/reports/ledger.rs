@@ -44,6 +44,27 @@ pub struct IcrcIndexReport {
 }
 
 ///
+/// IcrcTransactionsData
+///
+/// Source-layer ICRC-3 block history result from a ledger canister.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcTransactionsData {
+    /// Total number of blocks as a decimal natural, or unknown for custom sources.
+    /// Returned blocks and archive ranges must stay below this length when known.
+    pub log_length: Option<String>,
+    /// Blocks returned directly by the ledger.
+    pub blocks: Vec<IcrcTransactionBlockRow>,
+    /// Archive referrals returned for the requested page.
+    pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
+    /// Blocks retained from successful archive callbacks.
+    pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
+    /// Bounded failures retained while following archive callbacks.
+    pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
+}
+
+///
 /// IcrcTransactionsReport
 ///
 /// Serializable report for a generic ICRC ledger transaction/block history page.
@@ -59,11 +80,9 @@ pub struct IcrcTransactionsReport {
     pub requested_start: String,
     pub requested_limit: u32,
     pub follow_archives: bool,
-    pub log_length: Option<String>,
-    pub blocks: Vec<IcrcTransactionBlockRow>,
-    pub archived_blocks: Vec<IcrcArchivedBlocksRow>,
-    pub followed_archive_blocks: Vec<IcrcFollowedArchiveBlockRow>,
-    pub archive_follow_errors: Vec<IcrcArchiveFollowErrorRow>,
+    /// Canonical history payload.
+    #[serde(flatten)]
+    pub transactions: IcrcTransactionsData,
 }
 
 ///
@@ -231,12 +250,9 @@ pub struct IcrcArchivedRangeRow {
 pub struct IcrcFollowedArchiveBlockRow {
     pub archive_canister_id: String,
     pub callback_method: String,
-    pub index: String,
-    pub block_type: Option<String>,
-    pub transaction_kind: Option<String>,
-    pub timestamp_unix_nanos: Option<String>,
-    pub amount_base_units: Option<String>,
-    pub raw_block: JsonValue,
+    /// Canonical block summary and raw evidence.
+    #[serde(flatten)]
+    pub block: IcrcTransactionBlockRow,
 }
 
 #[cfg(test)]

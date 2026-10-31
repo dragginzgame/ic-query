@@ -126,9 +126,9 @@ pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsR
             input.to_string(),
         ),
         limit: 10,
-        owner_principal_id: None,
-        sort: SnsNeuronsSort::Api,
-        cache_root: None,
+        collection: crate::sns::SnsNeuronCollection::Live {
+            owner_principal_id: None,
+        },
         verbose: false,
     }
 }

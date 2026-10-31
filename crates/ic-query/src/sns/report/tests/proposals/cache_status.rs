@@ -89,7 +89,7 @@ async fn sns_proposals_failed_refresh_preserves_page_progress() {
         status
             .latest_attempt
             .as_ref()
-            .map(|attempt| attempt.status.as_str()),
+            .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("failed")
     );
     assert!(status.expected_cache_path.is_some());
@@ -171,7 +171,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
             .cache
             .as_ref()
             .and_then(|cache| cache.latest_attempt.as_ref())
-            .map(|attempt| attempt.status.as_str()),
+            .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
     assert!(text.contains("found: yes"));

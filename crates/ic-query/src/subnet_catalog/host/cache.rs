@@ -545,7 +545,7 @@ async fn refresh_then_load_detailed(
     };
     load_cached_with_disposition_detailed(request, disposition).map_err(|mut failure| {
         if failure.registry_version.is_none() {
-            failure.registry_version = Some(refresh.registry_version);
+            failure.registry_version = Some(refresh.metadata.registry_version);
         }
         post_refresh_load_failure(request, trigger, failure)
     })

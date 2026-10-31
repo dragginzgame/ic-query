@@ -96,6 +96,7 @@ async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
             .latest_attempt
             .as_ref()
             .expect("refresh attempt")
+            .lifecycle
             .status,
         CacheRefreshAttemptStatus::Complete
     );
@@ -142,10 +143,10 @@ async fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evide
         CacheValidationStatus::Valid
     );
     let attempt = status.latest_attempt.expect("failed attempt");
-    assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
-    assert_eq!(attempt.pages_fetched, 2);
-    assert_eq!(attempt.rows_fetched, 100);
-    assert_eq!(attempt.last_cursor.as_deref(), Some("50"));
+    assert_eq!(attempt.lifecycle.status, CacheRefreshAttemptStatus::Failed);
+    assert_eq!(attempt.lifecycle.pages_fetched, 2);
+    assert_eq!(attempt.lifecycle.rows_fetched, 100);
+    assert_eq!(attempt.lifecycle.last_cursor.as_deref(), Some("50"));
     assert_eq!(
         attempt.index_canister_id.as_deref(),
         Some(INDEX_CANISTER_ID)
@@ -191,10 +192,13 @@ async fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
             CacheValidationStatus::Valid
         );
         let attempt = status.latest_attempt.unwrap();
-        assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
-        assert_eq!(attempt.pages_fetched, 1);
-        assert_eq!(attempt.rows_fetched, ids.len());
-        assert_eq!(attempt.last_cursor.as_deref(), ids.last().copied());
+        assert_eq!(attempt.lifecycle.status, CacheRefreshAttemptStatus::Failed);
+        assert_eq!(attempt.lifecycle.pages_fetched, 1);
+        assert_eq!(attempt.lifecycle.rows_fetched, ids.len());
+        assert_eq!(
+            attempt.lifecycle.last_cursor.as_deref(),
+            ids.last().copied()
+        );
     }
     fs::remove_dir_all(root).unwrap();
 }
@@ -336,10 +340,10 @@ async fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
             CacheValidationStatus::Valid
         );
         let attempt = status.latest_attempt.unwrap();
-        assert_eq!(attempt.status, CacheRefreshAttemptStatus::Failed);
-        assert_eq!(attempt.pages_fetched, page_count);
-        assert_eq!(attempt.rows_fetched, 2);
-        assert_eq!(attempt.last_cursor.as_deref(), Some("6"));
+        assert_eq!(attempt.lifecycle.status, CacheRefreshAttemptStatus::Failed);
+        assert_eq!(attempt.lifecycle.pages_fetched, page_count);
+        assert_eq!(attempt.lifecycle.rows_fetched, 2);
+        assert_eq!(attempt.lifecycle.last_cursor.as_deref(), Some("6"));
     }
 
     let mut source = SuccessSource::new(vec![row("7"), row("6")]);
@@ -510,7 +514,7 @@ async fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
         CacheValidationStatus::Valid
     );
     assert_eq!(
-        status.latest_attempt.unwrap().status,
+        status.latest_attempt.unwrap().lifecycle.status,
         CacheRefreshAttemptStatus::Failed
     );
     fs::remove_dir_all(root).unwrap();
