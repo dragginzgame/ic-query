@@ -66,7 +66,7 @@ and lockfile with the existing Rust 1.91 floor; these package names remain
 separate dependency and feature boundaries.
 
 The current workspace minimums are Platform 0.11.1, Metrics 0.21.0,
-Host/Build/Testkit 0.72.0 and Wire 0.10.0. Direct Wire use belongs to probes and
+Host/Build/Testkit 0.72.1 and Wire 0.10.0. Direct Wire use belongs to probes and
 development fixtures and selects the core codec without its endpoint integration.
 Metrics and probe tooling select the same Wire 0.10 metadata and codec identity.
 Query keeps its arithmetic types private. Optional schemas for Platform-owned
@@ -77,7 +77,7 @@ Platform 0.11 owns the selected ICRC DTO and callback Rust types. Custom
 `IcrcTipCertificateSource` implementations use its `ICRC3DataCertificate`, rather
 than the registry ledger package's certificate type. External wire/Serde shapes
 and value hashes remain the protocol contracts; the Rust identity change selects
-Query 0.78. Host/Testkit 0.72.0 and Query select one Platform 0.11.1 supplier,
+Query 0.78. Host/Testkit 0.72.1 and Query select one Platform 0.11.1 supplier,
 including owned Registry Principals and ledger values. Query consumes those
 values directly at their boundaries; upstream Agent/Candid/certificate identities
 remain shared.

@@ -5,6 +5,15 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.78.1]
+
+### 🔧 Changed
+
+- Adopt IC Tooling 0.72.1 across Host, Build and Testkit, retaining aligned
+  Platform/Wire dependencies, public APIs and the Rust 1.91 requirement.
+
+Detailed release notes: [docs/changelog/0.78.md](docs/changelog/0.78.md)
+
 ## [0.78.0] - 2026-10-30
 
 ### ⚠️ Breaking
