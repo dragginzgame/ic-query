@@ -49,6 +49,9 @@ capability gaps through issues and improvements in IC Observability.
   typed error when callers can recover.
 - Non-trivial private logic explains intent, invariants, or phase boundaries.
   Do not restate the next line or preserve stale implementation history.
+- Configuration comments explain non-obvious choices, constraints or exceptions.
+  Self-explanatory lint names and levels need no running commentary. Avoid a
+  paragraph per lint or generic rationales repeated across a configuration table.
 - Module-level documentation should identify responsibility and what the module
   deliberately does not own.
 
@@ -151,15 +154,17 @@ or section banners.
 - Where a warning depends on configuration, first narrow the scope or use
   `cfg_attr` to express the applicable expectation. Retain an `allow` only when
   an expectation cannot faithfully cover the maintained configurations; record
-  that specific limitation alongside the suppression, using `reason` for Rust
-  attributes. Convenience or a copied existing allowance is not a justification.
+  that specific limitation using `reason` for Rust attributes. For configuration
+  settings, explain non-obvious limitations once at their shared scope instead of
+  repeating them per entry. Convenience or a copied existing allowance is not a justification.
 - Keep `unfulfilled_lint_expectations` enabled. Remove obsolete suppressions
   when the warning disappears instead of suppressing the unfulfilled expectation
   or changing it back to `allow`.
 - Cargo lint tables and command-line lint levels do not support `expect`.
   Review their `allow` entries for relocation to source-level expectations;
-  keep any necessary configuration-level allowance documented with its scope
-  and reason. Use supported configuration syntax.
+  retain justified configuration-level choices without requiring an inline comment
+  for every lint. Comment only where a non-obvious scope, constraint or exception
+  helps maintainers; use supported configuration syntax.
 
 See the [Rust lint expectation contract](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-expect-attribute)
 and [Cargo lint configuration](https://doc.rust-lang.org/cargo/reference/manifest.html#the-lints-section).

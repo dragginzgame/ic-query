@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/check-make-execution.sh
+# Shared companions: scripts/ci/check-make-execution.sh scripts/ci/cargo-publication-paths.sh
 set -euo pipefail
 
 # Execute one caller-admitted Cargo publication, retaining intent and results.
@@ -20,6 +20,8 @@ path_ok "$self"
 self="$(CDPATH='' cd -P -- "${self%/*}" && printf '%s/.' "$PWD")"
 self="${self%/.}"
 path_ok "$self"
+# shellcheck source=scripts/ci/cargo-publication-paths.sh
+source "$self/cargo-publication-paths.sh"
 bash "$self/check-make-execution.sh"
 cwd="$(CDPATH='' cd -P -- . && printf '%s/.' "$PWD")"
 cwd="${cwd%/.}"
@@ -53,15 +55,7 @@ while [[ $# -gt 0 ]]; do
             arguments+=(--package "$1"); shift ;;
         --manifest-path|--target-dir)
             [[ $# -gt 0 && -n "$1" && "$1" != -* ]] || fail 'missing path option value'
-            path_ok "$1"
-            # Resolve an existing directory without losing forbidden path bytes.
-            directory="$1"; [[ "$option" != --manifest-path ]] || directory="$(dirname -- "$1")"
-            resolved="$(CDPATH='' cd -P -- "$directory" && printf '%s/.' "$PWD")"
-            path_ok "$resolved"
-            if [[ "$option" == --manifest-path ]]; then
-                [[ -f "$1" && ! -L "$1" ]] || fail 'manifest must be a regular source file'
-                [[ "${resolved%/.}/" == "$checkout/"* ]] || fail 'manifest is outside the selected checkout'
-            fi
+            publication_path_option "$option" "$1" "$checkout"
             arguments+=("$option" "$1"); shift ;;
         --features)
             [[ $# -gt 0 && -n "$1" && "$1" != -* && "$1" != *$'\n'* && "$1" != *$'\r'* ]] || fail 'missing or invalid feature selection'

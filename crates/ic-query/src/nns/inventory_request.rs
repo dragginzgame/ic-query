@@ -56,6 +56,20 @@ impl NnsInventoryListRequest {
     }
 }
 
+#[cfg(feature = "nns-host")]
+impl NnsInventoryListRequest {
+    /// Derive live collection provenance; cached reports retain their stored provenance.
+    #[must_use]
+    pub fn source_request(&self) -> crate::report::CollectionSourceRequest {
+        crate::report::CollectionSourceRequest::from_unix_secs(
+            &self.cache.network,
+            &self.source_endpoint,
+            self.now_unix_secs,
+            "ic-query",
+        )
+    }
+}
+
 ///
 /// NnsInventoryInfoRequest
 ///

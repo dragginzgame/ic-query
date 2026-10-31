@@ -5,10 +5,7 @@
 //! Boundary: resolves id/root against raw SNS-W inventory before targeted metadata enrichment.
 
 use crate::sns::report::MainnetSnsCanisters;
-use crate::sns::report::lookup::{
-    model::SnsLookup,
-    request::{fetch_request_from_parts, parse_sns_root_canister_input},
-};
+use crate::sns::report::lookup::{model::SnsLookup, request::parse_sns_root_canister_input};
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{
@@ -22,11 +19,11 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
     source: &dyn SnsDiscoverySource,
 ) -> Result<SnsLookup, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    let fetch_request = fetch_request_from_parts(
+    let fetch_request = crate::report::CollectionSourceRequest::from_unix_secs(
         &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
-        "ic-query".to_string(),
+        "ic-query",
     );
     let mut inventory = source.fetch_sns_inventory(&fetch_request).await?;
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;

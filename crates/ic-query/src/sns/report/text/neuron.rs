@@ -35,11 +35,14 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
     let detail = &report.detail;
     let neuron = &detail.neuron;
     vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
-        format!("governance_canister_id: {}", report.governance_canister_id),
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
+        format!(
+            "governance_canister_id: {}",
+            report.context.governance_canister_id
+        ),
         format!("neuron_id: {}", report.neuron_id),
         format!("data_source: {}", report.data_source),
         format!(
@@ -97,11 +100,14 @@ fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
             "topic_following_entry_count: {}",
             detail.topic_followees.as_ref().map_or(0, Vec::len)
         ),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
     ]
 }

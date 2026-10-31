@@ -19,17 +19,23 @@ homepage = "https://github.com/dragginzgame/ic-query"
 repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
+# Query
+# Changelog : CHANGELOG.md
+ic-query = { path = "crates/ic-query", version = "0.78.0", default-features = false }
+ic-query-cli = { path = "crates/ic-query-cli", version = "0.78.0" }
+# Tests and tooling only
+ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.78.0" }
+
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.72.1", default-features = false }
-ic-host-fs = { version = "0.72.1", default-features = false }
-ic-host-http = { version = "0.72.1", default-features = false }
-ic-host-text = "0.72.1"
-ic-host-tools = { version = "0.72.1", default-features = false }
-ic-metrics = { version = "0.22.0", default-features = false }
-ic-platform = { version = "0.13.0", default-features = false, features = ["candid"] }
-ic-query = { path = "crates/ic-query", version = "0.78.0", default-features = false }
+ic-host-artifacts = { version = "0.73.1", default-features = false }
+ic-host-fs = { version = "0.73.1", default-features = false }
+ic-host-http = { version = "0.73.1", default-features = false }
+ic-host-text = "0.73.1"
+ic-host-tools = { version = "0.75.0", default-features = false }
+ic-metrics = { version = "0.24.0", default-features = false }
+ic-platform = { version = "0.15.2", default-features = false, features = ["candid"] }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
@@ -40,10 +46,10 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.72.1"
-ic-host-process = { version = "0.72.1", default-features = false }
-ic-testkit = "0.72.1"
-ic-wire = "0.11.0"
+ic-build = "0.73.1"
+ic-host-process = { version = "0.73.1", default-features = false }
+ic-testkit = "0.75.0"
+ic-wire = "0.13.0"
 libc = "0.2"
 serde_cbor = "0.11.2"
 time = { version = "0.3", features = ["formatting"] }
@@ -53,7 +59,6 @@ all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 
-# always warn
 missing_const_for_fn = "warn"
 must_use_candidate = "warn"
 redundant_clone = "warn"

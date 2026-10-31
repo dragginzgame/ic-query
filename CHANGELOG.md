@@ -9,9 +9,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ### ⚠️ Breaking
 
-- Adopt Platform 0.13's public ledger types and canister runtime. Update custom
-  ICRC sources and rebuild runtime consumers against Platform 0.13. External
+- Adopt Platform 0.15.2's public ledger types and canister runtime. Update custom
+  ICRC sources and rebuild runtime consumers against Platform 0.15. External
   protocol bytes and report/cache formats remain unchanged.
+- Adopt Host Tools 0.75 public certificate error and ledger-evidence types;
+  typed consumers must align their direct Host Tools dependency.
 
 - Custom NNS, SNS, CMC and CloudEngine sources now use
   `report::CollectionSourceRequest`. ICRC index discovery returns an explicit
@@ -19,22 +21,37 @@ crate follows [Semantic Versioning](https://semver.org/).
 - Topology coverage now reads only its four inventories; it no longer loads or
   refreshes the Subnet Catalog. Other topology diagnostics retain their inputs.
 
+- SNS governance reports compose identity and provenance as `context`; topology
+  summary and coverage compose counters as `join_coverage`. Topology reads now
+  accept `nns::NnsInventoryListRequest`, and proposal requests share
+  `report::SortDirection`. Custom SNS token sources select one `ledger_index`
+  discovery outcome. JSON fields, CLI behavior and schema-1 caches are unchanged.
+
 ### 🔧 Changed
 
-- Adopt Metrics 0.22.0, Platform 0.13.0 and Wire 0.11.0 with IC Tooling 0.72.1.
-  Use arithmetic-only Metrics so production graphs exclude unused Wire metadata;
-  probes and fixtures retain the core Wire codec and the Rust 1.91 requirement.
+- Adopt Metrics 0.24.0, Wire 0.13.0, Host/Build 0.73.1 and Host Tools/Testkit
+  0.75.0. Keep arithmetic-only Metrics and Wire-free production graphs; retain
+  explicit core codecs for probes and fixtures and the Rust 1.91 requirement.
+- Refresh Shared Tooling to revision `f4f4316` (0.27.22) through its exporter,
+  including the complete root crate catalog and current release adapters. Query
+  retains its coordinated versioning and maintainer-owned release execution.
 
 ### 🩹 Fixed
 
 - Match internal helper gates to their consumers so focused Subnet Catalog and
   topology builds compile without unused-code warnings.
+- Update native graph fixtures to enforce the current Wire-free production
+  contract alongside portable and canister fixtures.
 
 ### 🧹 Cleanup
 
 - Simplify topology check projection, ICRC command parsing, SNS cache loading,
   routing validation and identifier resolution. Preserve report/cache formats
   and apply SNS metadata colour from row state.
+
+- Remove native ICRC parsing intermediates, repeated SNS provenance construction,
+  one-use proposal sort labels and thin inventory resolver modules. Carry reward
+  checkpoint assessment and recomputed evidence together through reconciliation.
 
 Detailed release notes: [docs/changelog/0.79.md](docs/changelog/0.79.md)
 

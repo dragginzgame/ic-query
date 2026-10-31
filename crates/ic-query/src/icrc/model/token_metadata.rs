@@ -125,3 +125,17 @@ mod tests {
         }
     }
 }
+
+///
+/// IcrcIndexData
+///
+/// Source-layer ICRC-106 index discovery result.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IcrcIndexData {
+    /// Index principal returned by the ledger.
+    Found(String),
+    /// Index discovery is unavailable; source families own transport-error policy.
+    Unavailable(String),
+}

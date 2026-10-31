@@ -43,26 +43,5 @@ fn render_coverage_count_table(report: &NnsTopologyCoverageReport) -> String {
 }
 
 fn render_coverage_join_coverage_table(report: &NnsTopologyCoverageReport) -> String {
-    render_join_coverage_table([
-        (
-            report.nodes_with_known_node_provider_count,
-            report.nodes_with_unknown_node_provider_count,
-        ),
-        (
-            report.nodes_with_known_node_operator_count,
-            report.nodes_with_unknown_node_operator_count,
-        ),
-        (
-            report.nodes_with_known_data_center_count,
-            report.nodes_with_unknown_data_center_count,
-        ),
-        (
-            report.node_operators_with_known_node_provider_count,
-            report.node_operators_with_unknown_node_provider_count,
-        ),
-        (
-            report.node_operators_with_known_data_center_count,
-            report.node_operators_with_unknown_data_center_count,
-        ),
-    ])
+    render_join_coverage_table(report.join_coverage.join_counts())
 }

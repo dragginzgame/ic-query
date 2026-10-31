@@ -19,7 +19,7 @@ use super::{
 };
 use crate::cli::common::{OutputFormat, SourceOutputOptions};
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SnsProposalSortDirection};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 
 fn parse_test_matches(command: ClapCommand, args: &[&str]) -> Result<ArgMatches, SnsCommandError> {

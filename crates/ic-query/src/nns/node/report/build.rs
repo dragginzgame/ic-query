@@ -1,10 +1,13 @@
+use crate::nns::inventory::{
+    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
+};
+
 use super::{
     NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsNodeHostError,
     NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
     cache::{load_cached_nns_node_report, nns_node_cache_path},
     filters::filter_node_list_report,
     refresh::refresh_nns_node_report_with_source,
-    resolve::resolve_node,
     source::NnsNodeSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -120,5 +123,24 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
         subnet_principal: node.subnet_principal,
         subnet_kind: node.subnet_kind,
         data_center_id: node.data_center_id,
+    })
+}
+
+pub(super) fn resolve_node(
+    report: &NnsNodeListReport,
+    input: &str,
+) -> Result<(usize, String), NnsNodeHostError> {
+    resolve_nns_inventory_row(
+        &report.nodes,
+        |row| row.node_principal.as_str(),
+        input,
+        NnsInventoryInputKind::Principal,
+        "node_principal",
+    )
+    .map_err(|error| match error {
+        NnsInventoryResolveError::NotFound { input } => NnsNodeHostError::NodeNotFound { input },
+        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
+            NnsNodeHostError::AmbiguousNodePrefix { prefix, matches }
+        }
     })
 }

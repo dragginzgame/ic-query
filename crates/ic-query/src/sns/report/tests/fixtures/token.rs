@@ -1,4 +1,4 @@
-use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, INDEX_A, LEDGER_A};
+use super::{FixtureSnsDiscoverySource, GOVERNANCE_A, LEDGER_A};
 use crate::icrc::{IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow};
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::tests::*;
@@ -9,7 +9,9 @@ use crate::sns::report::tests::*;
 /// Successful SNS ledger token source used by report tests.
 ///
 
-pub(in crate::sns::report::tests) struct FixtureSnsTokenSource;
+pub(in crate::sns::report::tests) struct FixtureSnsTokenSource(
+    pub(in crate::sns::report::tests) crate::icrc::IcrcIndexData,
+);
 
 delegate_sns_discovery!(FixtureSnsTokenSource);
 
@@ -63,8 +65,7 @@ impl SnsTokenSource for FixtureSnsTokenSource {
                         },
                     ],
                 },
-                ledger_index_canister_id: Some(INDEX_A.to_string()),
-                ledger_index_error: None,
+                ledger_index: self.0.clone(),
             })
         })
     }

@@ -50,20 +50,6 @@ pub struct CachedIcrcAccountTransactionSnapshot {
 }
 
 ///
-/// IcrcIndexData
-///
-/// Source-layer ICRC-106 index discovery result.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum IcrcIndexData {
-    /// Index principal returned by the ledger.
-    Found(String),
-    /// Ledger reported that index discovery is unavailable.
-    Unavailable(String),
-}
-
-///
 /// IcrcTransactionsData
 ///
 /// Source-layer ICRC-3 block history result from a ledger canister.

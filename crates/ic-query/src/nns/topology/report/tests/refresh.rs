@@ -75,7 +75,7 @@ async fn topology_refresh_stops_at_the_first_source_failure() {
         assert_eq!(*source.calls.lock().unwrap(), components[..=index]);
     }
     let mut request = request;
-    request.read.network = "local".to_string();
+    request.read.cache.network = "local".to_string();
     let source = RecordingTopologySource::default();
     assert!(
         matches!(refresh_nns_topology_report_with_source(&request, &source).await,

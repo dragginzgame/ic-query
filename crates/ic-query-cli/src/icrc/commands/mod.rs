@@ -31,11 +31,7 @@ pub(in crate::icrc) use ledger::{
 };
 
 pub use dispatch::run_matches;
-pub(in crate::icrc) use options::{
-    IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
-    IcrcLedgerOptions, IcrcTransactionsOptions,
-};
+pub(in crate::icrc) use options::{IcrcAccountOptions, IcrcLedgerOptions};
 
 use crate::cli::{
     clap::value_arg,

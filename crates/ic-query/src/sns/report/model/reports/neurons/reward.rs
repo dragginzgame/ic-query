@@ -261,30 +261,53 @@ pub fn validate_sns_reward_checkpoint_report(
     report: &SnsRewardCheckpointReport,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
     validate_checkpoint_evidence(report)?;
-    assess_checkpoint_summary(report).0
+    let summary = recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows)
+        .map_err(invalid_validation)?;
+    validate_checkpoint_summary(report, &summary)
+}
+
+///
+/// RewardCheckpointAssessment
+///
+/// Validation outcome retaining recomputed evidence from rejected checkpoints.
+///
+
+pub(in crate::sns::report) enum RewardCheckpointAssessment {
+    Valid(SnsRewardCheckpointSummary),
+    Invalid {
+        error: SnsRewardCheckpointValidationError,
+        summary: Option<SnsRewardCheckpointSummary>,
+    },
+}
+
+impl RewardCheckpointAssessment {
+    pub(in crate::sns::report) const fn summary(&self) -> Option<&SnsRewardCheckpointSummary> {
+        match self {
+            Self::Valid(summary) => Some(summary),
+            Self::Invalid { summary, .. } => summary.as_ref(),
+        }
+    }
 }
 
 /// Retain recomputed evidence even when checkpoint validation fails during reconciliation.
 pub(in crate::sns::report) fn assess_reward_checkpoint(
     report: &SnsRewardCheckpointReport,
-) -> (
-    Result<(), SnsRewardCheckpointValidationError>,
-    Option<SnsRewardCheckpointSummary>,
-) {
+) -> RewardCheckpointAssessment {
     let evidence = validate_checkpoint_evidence(report);
-    let (summary_validation, summary) = assess_checkpoint_summary(report);
-    (evidence.and(summary_validation), summary)
-}
-
-fn assess_checkpoint_summary(
-    report: &SnsRewardCheckpointReport,
-) -> (
-    Result<(), SnsRewardCheckpointValidationError>,
-    Option<SnsRewardCheckpointSummary>,
-) {
     match recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows) {
-        Ok(summary) => (validate_checkpoint_summary(report, &summary), Some(summary)),
-        Err(reason) => (Err(invalid_validation(reason)), None),
+        Ok(summary) => {
+            match evidence.and_then(|()| validate_checkpoint_summary(report, &summary)) {
+                Ok(()) => RewardCheckpointAssessment::Valid(summary),
+                Err(error) => RewardCheckpointAssessment::Invalid {
+                    error,
+                    summary: Some(summary),
+                },
+            }
+        }
+        Err(reason) => RewardCheckpointAssessment::Invalid {
+            error: evidence.err().unwrap_or_else(|| invalid_validation(reason)),
+            summary: None,
+        },
     }
 }
 

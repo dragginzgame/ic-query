@@ -29,7 +29,7 @@ pub use contracts::{
 #[cfg(feature = "icrc-host")]
 pub use data::{
     CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
-    IcrcCapabilitiesData, IcrcIndexData, IcrcTransactionsData,
+    IcrcCapabilitiesData, IcrcTransactionsData,
 };
 pub use error::{IcrcAccountTransactionError, IcrcError};
 pub use subaccount::normalize_subaccount_hex;
@@ -39,5 +39,5 @@ pub(in crate::icrc) use subaccount::{
 };
 
 pub use token_metadata::{
-    IcrcMetadataValueKind, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow,
+    IcrcIndexData, IcrcMetadataValueKind, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow,
 };

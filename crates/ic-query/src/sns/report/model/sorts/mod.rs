@@ -21,6 +21,5 @@ pub(in crate::sns::report) use proposals::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
 pub use proposals::{
-    SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };

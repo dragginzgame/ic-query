@@ -1,13 +1,11 @@
-use crate::{nns::NnsInventoryCacheRequest, subnet_catalog::SubnetCatalogCacheRequest};
+use crate::nns::NnsInventoryListRequest;
+use crate::subnet_catalog::SubnetCatalogCacheRequest;
 
 pub(in crate::nns::topology::report) fn subnet_catalog_cache_request(
-    request: &super::model::NnsTopologyReadRequest,
+    request: &NnsInventoryListRequest,
 ) -> SubnetCatalogCacheRequest {
-    SubnetCatalogCacheRequest::new(request.cache_root.as_path(), request.network.as_str())
-}
-
-pub(in crate::nns::topology::report) fn inventory_cache_request(
-    request: &super::model::NnsTopologyReadRequest,
-) -> NnsInventoryCacheRequest {
-    NnsInventoryCacheRequest::new(request.cache_root.as_path(), request.network.as_str())
+    SubnetCatalogCacheRequest::new(
+        request.cache.cache_root.as_path(),
+        request.cache.network.as_str(),
+    )
 }

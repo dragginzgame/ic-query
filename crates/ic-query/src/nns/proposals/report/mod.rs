@@ -50,8 +50,8 @@ pub use error::NnsProposalHostError;
 pub use model::{
     NnsProposalBallotRow, NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort,
     NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
-    NnsProposalRow, NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-    NnsProposalTally, NnsProposalTopic, NnsProposalTopicFilter,
+    NnsProposalRow, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
+    NnsProposalTopicFilter,
 };
 pub use source::{
     NnsProposalSource, NnsProposalSourceFuture, build_nns_proposal_list_report_with_source,

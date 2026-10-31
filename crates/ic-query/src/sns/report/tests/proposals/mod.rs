@@ -1,5 +1,6 @@
 use super::{fixtures::*, *};
 use crate::report::CollectionSourceRequest;
+use crate::report::SortDirection;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::source::validate_sns_proposal_rows;
 use crate::{cache::CacheValidationStatus, test_support::temp_dir};
@@ -181,7 +182,7 @@ fn proposal_ids(report: &SnsProposalsReport) -> Vec<u64> {
 
 async fn assert_cached_proposal_sort(
     sort: SnsProposalsSort,
-    direction: SnsProposalSortDirection,
+    direction: SortDirection,
     expected_proposal_ids: &[u64],
 ) {
     let root = temp_dir(&format!("ic-query-sns-proposals-sort-{}", sort.as_str()));

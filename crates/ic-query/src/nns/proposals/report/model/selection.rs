@@ -4,6 +4,7 @@
 //! Does not own: request DTOs, serialized report DTOs, or report rendering.
 //! Boundary: keeps public selection types and their canonical labels/codes together.
 
+use crate::report::SortDirection;
 use serde::{Deserialize, Serialize};
 
 macro_rules! governance_code_enum {
@@ -42,31 +43,6 @@ macro_rules! governance_code_enum {
         }
     };
 }
-
-pub(in crate::nns) const NNS_PROPOSAL_SORT_API_LABEL: &str = "api";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_ID_LABEL: &str = "id";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_STATUS_LABEL: &str = "status";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL: &str = "reward-status";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TOPIC_LABEL: &str = "topic";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_PROPOSER_LABEL: &str = "proposer";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TITLE_LABEL: &str = "title";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_ACTION_LABEL: &str = "action";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_YES_LABEL: &str = "yes";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_NO_LABEL: &str = "no";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL: &str = "total-votes";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_TALLY_TIME_LABEL: &str = "tally-time";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_VOTING_POWER_LABEL: &str = "voting-power";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_BALLOTS_LABEL: &str = "ballots";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_REJECT_COST_LABEL: &str = "reject-cost";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_REWARD_ROUND_LABEL: &str = "reward-round";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_PROPOSED_LABEL: &str = "proposed";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_DEADLINE_LABEL: &str = "deadline";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_DECIDED_LABEL: &str = "decided";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_EXECUTED_LABEL: &str = "executed";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_FAILED_LABEL: &str = "failed";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_ASC_LABEL: &str = "asc";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_DESC_LABEL: &str = "desc";
-pub(in crate::nns) const NNS_PROPOSAL_SORT_NONE_LABEL: &str = "none";
 
 governance_code_enum! {
     ///
@@ -220,41 +196,41 @@ impl NnsProposalListSort {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Api => NNS_PROPOSAL_SORT_API_LABEL,
-            Self::Id => NNS_PROPOSAL_SORT_ID_LABEL,
-            Self::Status => NNS_PROPOSAL_SORT_STATUS_LABEL,
-            Self::RewardStatus => NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
-            Self::Topic => NNS_PROPOSAL_SORT_TOPIC_LABEL,
-            Self::Proposer => NNS_PROPOSAL_SORT_PROPOSER_LABEL,
-            Self::Title => NNS_PROPOSAL_SORT_TITLE_LABEL,
-            Self::Action => NNS_PROPOSAL_SORT_ACTION_LABEL,
-            Self::Yes => NNS_PROPOSAL_SORT_YES_LABEL,
-            Self::No => NNS_PROPOSAL_SORT_NO_LABEL,
-            Self::TotalVotes => NNS_PROPOSAL_SORT_TOTAL_VOTES_LABEL,
-            Self::TallyTime => NNS_PROPOSAL_SORT_TALLY_TIME_LABEL,
-            Self::VotingPower => NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
-            Self::Ballots => NNS_PROPOSAL_SORT_BALLOTS_LABEL,
-            Self::RejectCost => NNS_PROPOSAL_SORT_REJECT_COST_LABEL,
-            Self::RewardRound => NNS_PROPOSAL_SORT_REWARD_ROUND_LABEL,
-            Self::Proposed => NNS_PROPOSAL_SORT_PROPOSED_LABEL,
-            Self::Deadline => NNS_PROPOSAL_SORT_DEADLINE_LABEL,
-            Self::Decided => NNS_PROPOSAL_SORT_DECIDED_LABEL,
-            Self::Executed => NNS_PROPOSAL_SORT_EXECUTED_LABEL,
-            Self::Failed => NNS_PROPOSAL_SORT_FAILED_LABEL,
+            Self::Api => "api",
+            Self::Id => "id",
+            Self::Status => "status",
+            Self::RewardStatus => "reward-status",
+            Self::Topic => "topic",
+            Self::Proposer => "proposer",
+            Self::Title => "title",
+            Self::Action => "action",
+            Self::Yes => "yes",
+            Self::No => "no",
+            Self::TotalVotes => "total-votes",
+            Self::TallyTime => "tally-time",
+            Self::VotingPower => "voting-power",
+            Self::Ballots => "ballots",
+            Self::RejectCost => "reject-cost",
+            Self::RewardRound => "reward-round",
+            Self::Proposed => "proposed",
+            Self::Deadline => "deadline",
+            Self::Decided => "decided",
+            Self::Executed => "executed",
+            Self::Failed => "failed",
         }
     }
 
     /// Return the default direction for this sort key.
     #[must_use]
-    pub const fn default_direction(self) -> NnsProposalSortDirection {
+    pub const fn default_direction(self) -> SortDirection {
         match self {
             Self::Status
             | Self::RewardStatus
             | Self::Topic
             | Self::Proposer
             | Self::Title
-            | Self::Action => NnsProposalSortDirection::Asc,
-            _ => NnsProposalSortDirection::Desc,
+            | Self::Action => SortDirection::Asc,
+            _ => SortDirection::Desc,
         }
     }
 
@@ -266,36 +242,10 @@ impl NnsProposalListSort {
 
     /// Return `none` for API order or the selected local direction label.
     #[must_use]
-    pub const fn direction_label(self, direction: NnsProposalSortDirection) -> &'static str {
+    pub const fn direction_label(self, direction: SortDirection) -> &'static str {
         match self {
-            Self::Api => NNS_PROPOSAL_SORT_NONE_LABEL,
+            Self::Api => "none",
             _ => direction.as_str(),
-        }
-    }
-}
-
-///
-/// NnsProposalSortDirection
-///
-/// Report-model direction selector for local NNS proposal sorting.
-///
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum NnsProposalSortDirection {
-    /// Order local sort values from lowest to highest.
-    Asc,
-    /// Order local sort values from highest to lowest.
-    #[default]
-    Desc,
-}
-
-impl NnsProposalSortDirection {
-    /// Return the canonical filter or sort label used in reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Asc => NNS_PROPOSAL_SORT_ASC_LABEL,
-            Self::Desc => NNS_PROPOSAL_SORT_DESC_LABEL,
         }
     }
 }

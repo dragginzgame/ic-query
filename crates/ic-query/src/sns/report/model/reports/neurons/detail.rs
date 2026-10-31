@@ -5,6 +5,7 @@
 //! Boundary: preserves variable-size native neuron evidence outside fixed-size list caches.
 
 use super::SnsNeuronRow;
+use crate::sns::report::SnsReportContext;
 use crate::{hex::is_lowercase_hex_32_bytes, report::ReportDataSource};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::collections::HashSet;
@@ -275,24 +276,9 @@ pub(in crate::sns::report::model) const fn permission_code_is_assessable(code: i
 pub struct SnsNeuronDetailReport {
     /// Report schema version.
     pub schema_version: u32,
-    /// Requested IC network identity.
-    pub network: String,
-    /// SNS-W canister used for targeted discovery.
-    pub sns_wasm_canister_id: String,
-    /// Collection timestamp in UTC.
-    pub fetched_at: String,
-    /// IC API endpoint used for discovery and Governance calls.
-    pub source_endpoint: String,
-    /// Collector identity recorded in report provenance.
-    pub fetched_by: String,
-    /// Current SNS-W list position retained as display metadata.
-    pub id: usize,
-    /// Current SNS name retained as display metadata.
-    pub name: String,
-    /// Stable SNS Root canister identity.
-    pub root_canister_id: String,
-    /// Stable SNS Governance canister identity.
-    pub governance_canister_id: String,
+    /// SNS identity and provenance, serialized as flat report fields.
+    #[serde(flatten)]
+    pub context: SnsReportContext,
     /// Exact requested neuron identifier.
     pub neuron_id: String,
     /// Explicit report data source; exact detail reports are live-only.

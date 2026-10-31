@@ -1071,22 +1071,16 @@ for dependency in ic-platform ic-platform-macros ic-platform-runtime-guard ic-cd
     || fail 'the canister graph lost its runtime ownership diagnostic'
 done
 
-# Metrics' standard transport metadata is native-only.
-TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
-  FEATURE_TREE_SCOPE=cli FEATURE_TREE_LINE=ic-wire \
-  TRACE_FILE="${feature_boundary_case}/trace" \
-  bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
-    >"${feature_boundary_case}/native-wire.log" 2>&1 \
-    || fail "the native CLI graph rejected Metrics' Wire dependency"
-for scope in wasm canister; do
+# Production reports use arithmetic-only Metrics; Wire belongs to development fixtures.
+for scope in cli host wasm canister; do
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE=ic-wire \
     TRACE_FILE="${feature_boundary_case}/trace" \
     bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
-      >"${feature_boundary_case}/wasm-wire-refusal.log" 2>&1; then
-    fail "the $scope production graph accepted native Wire metadata"
+      >"${feature_boundary_case}/wire-refusal.log" 2>&1; then
+    fail "the $scope production graph accepted Wire metadata"
   fi
-  grep -Fq 'forbidden ic-wire:' "${feature_boundary_case}/wasm-wire-refusal.log" \
+  grep -Fq 'forbidden ic-wire:' "${feature_boundary_case}/wire-refusal.log" \
     || fail "the $scope production graph lost its Wire diagnostic"
 done
 

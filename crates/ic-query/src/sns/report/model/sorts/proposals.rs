@@ -4,6 +4,8 @@
 //! Does not own: CLI parsing, live proposal request transport, or rendering.
 //! Boundary: names report-level view options for proposal lists.
 
+use crate::report::SortDirection;
+
 pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_ADOPTED_CODE: i32 = 3;
 pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_EXECUTED_CODE: i32 = 4;
 pub(in crate::sns::report) const SNS_PROPOSAL_STATUS_FAILED_CODE: i32 = 5;
@@ -73,12 +75,12 @@ impl SnsProposalsSort {
 
     /// Return the natural default direction for this local sort value.
     #[must_use]
-    pub const fn default_direction(self) -> SnsProposalSortDirection {
+    pub const fn default_direction(self) -> SortDirection {
         match self {
             Self::Status | Self::Topic | Self::Proposer | Self::Title | Self::Action => {
-                SnsProposalSortDirection::Asc
+                SortDirection::Asc
             }
-            _ => SnsProposalSortDirection::Desc,
+            _ => SortDirection::Desc,
         }
     }
 
@@ -90,34 +92,10 @@ impl SnsProposalsSort {
 
     /// Return the stable direction label used in text and JSON reports.
     #[must_use]
-    pub const fn direction_label(self, direction: SnsProposalSortDirection) -> &'static str {
+    pub const fn direction_label(self, direction: SortDirection) -> &'static str {
         match self {
             Self::Api => "none",
             _ => direction.as_str(),
-        }
-    }
-}
-
-///
-/// SnsProposalSortDirection
-///
-/// Report-model direction selector for local SNS proposal sorting.
-///
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum SnsProposalSortDirection {
-    Asc,
-    #[default]
-    Desc,
-}
-
-impl SnsProposalSortDirection {
-    /// Return the stable label used in text and JSON reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Asc => "asc",
-            Self::Desc => "desc",
         }
     }
 }

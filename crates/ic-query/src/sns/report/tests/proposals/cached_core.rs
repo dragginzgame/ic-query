@@ -14,7 +14,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
         .await
         .expect("cached proposal detail");
 
-    assert_eq!(report.id, 1);
+    assert_eq!(report.context.id, 1);
     assert_eq!(report.proposal_id, 42);
     assert_eq!(report.proposal.proposal_id, 42);
     assert_eq!(report.proposal.title, "Fixture proposal");
@@ -150,7 +150,7 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
 
     assert_eq!(second.proposal_count, 1);
     assert_eq!(second.proposals[0].proposal_id, 42);
-    assert_eq!(second.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
+    assert_eq!(second.context.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
     assert_eq!(second.data_source.as_str(), "cache");
     assert_eq!(second.cache_complete, Some(true));
     assert_eq!(second.cache_path, first.cache_path);

@@ -1,6 +1,7 @@
 use super::*;
 use crate::cli::clap::render_help;
 use crate::cli::common::NetworkOutputOptions;
+use ic_query::report::SortDirection;
 
 #[test]
 fn nns_proposal_activity_parses_cache_only_window_and_json() {
@@ -52,7 +53,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.proposer_neuron_id, None);
     assert_eq!(defaults.query, None);
     assert_eq!(defaults.sort, NnsProposalListSort::Api);
-    assert_eq!(defaults.sort_direction, NnsProposalSortDirection::Desc);
+    assert_eq!(defaults.sort_direction, SortDirection::Desc);
     assert_eq!(defaults.status.as_str(), "any");
     assert_eq!(defaults.reward_status.as_str(), "any");
     assert_eq!(defaults.topic.as_str(), "any");
@@ -101,7 +102,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(options.proposer_neuron_id, Some(123_456_789));
     assert_eq!(options.query.as_deref(), Some("subnet"));
     assert_eq!(options.sort, NnsProposalListSort::Title);
-    assert_eq!(options.sort_direction, NnsProposalSortDirection::Asc);
+    assert_eq!(options.sort_direction, SortDirection::Asc);
     assert_eq!(options.status.as_str(), "executed");
     assert_eq!(options.reward_status.as_str(), "settled");
     assert_eq!(options.topic.as_str(), "governance");
@@ -125,35 +126,26 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
         parse_list_options(&["--sort", "reward-status"]).expect("parse reward-status sort");
 
     assert_eq!(reward_status_sort.sort, NnsProposalListSort::RewardStatus);
-    assert_eq!(
-        reward_status_sort.sort_direction,
-        NnsProposalSortDirection::Asc
-    );
+    assert_eq!(reward_status_sort.sort_direction, SortDirection::Asc);
     assert_eq!(reward_status_sort.sort.as_str(), "reward-status");
 
     let deadline_sort = parse_list_options(&["--sort", "deadline"]).expect("parse deadline sort");
 
     assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
-    assert_eq!(deadline_sort.sort_direction, NnsProposalSortDirection::Desc);
+    assert_eq!(deadline_sort.sort_direction, SortDirection::Desc);
 
     let tally_time_sort =
         parse_list_options(&["--sort", "tally-time"]).expect("parse tally-time sort");
 
     assert_eq!(tally_time_sort.sort, NnsProposalListSort::TallyTime);
-    assert_eq!(
-        tally_time_sort.sort_direction,
-        NnsProposalSortDirection::Desc
-    );
+    assert_eq!(tally_time_sort.sort_direction, SortDirection::Desc);
     assert_eq!(tally_time_sort.sort.as_str(), "tally-time");
 
     let voting_power_sort =
         parse_list_options(&["--sort", "voting-power"]).expect("parse voting-power sort");
 
     assert_eq!(voting_power_sort.sort, NnsProposalListSort::VotingPower);
-    assert_eq!(
-        voting_power_sort.sort_direction,
-        NnsProposalSortDirection::Desc
-    );
+    assert_eq!(voting_power_sort.sort_direction, SortDirection::Desc);
 }
 
 #[test]

@@ -5,15 +5,14 @@ use crate::{
     nns::{NnsCommandError, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;
-use ic_query::nns::topology::{self, NnsTopologyHostError};
+use ic_query::nns::NnsInventoryListRequest;
+use ic_query::nns::topology::NnsTopologyHostError;
 use serde::Serialize;
 
 pub(super) async fn run_topology_read<Report>(
     matches: &ArgMatches,
     network: &str,
-    build_report: impl AsyncFn(
-        &topology::NnsTopologyReadRequest,
-    ) -> Result<Report, NnsTopologyHostError>,
+    build_report: impl AsyncFn(&NnsInventoryListRequest) -> Result<Report, NnsTopologyHostError>,
     render_text: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where
@@ -22,9 +21,8 @@ where
     let options = NnsCommonOptions::from_matches(matches, network);
     let format = options.format;
     let cache_root = cache_root()?;
-    let request = topology::NnsTopologyReadRequest::new(
-        cache_root,
-        options.network,
+    let request = NnsInventoryListRequest::new(
+        ic_query::nns::NnsInventoryCacheRequest::new(cache_root, options.network),
         options.source_endpoint,
         current_unix_secs()?,
     );

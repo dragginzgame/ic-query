@@ -90,12 +90,13 @@ pub use model::{
     NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
     NnsTopologyCapacityStatus, NnsTopologyCheckReport, NnsTopologyCheckRow,
     NnsTopologyCoverageReport, NnsTopologyGapRelationKind, NnsTopologyGapRow,
-    NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyProviderRow,
-    NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
-    NnsTopologyRefreshRow, NnsTopologyRegionRow, NnsTopologyRegionsReport,
-    NnsTopologyRegistryVersionRow, NnsTopologySummaryReport, NnsTopologyVersionsReport,
+    NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyJoinCoverageCounts,
+    NnsTopologyProviderRow, NnsTopologyProviderStatus, NnsTopologyProvidersReport,
+    NnsTopologyRefreshReport, NnsTopologyRefreshRow, NnsTopologyRegionRow,
+    NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
+    NnsTopologyVersionsReport,
 };
-pub use request::{NnsTopologyReadRequest, NnsTopologyRefreshRequest};
+pub use request::NnsTopologyRefreshRequest;
 #[cfg(feature = "nns-host")]
 pub use source::{NnsTopologyRefreshSource, NnsTopologySource};
 #[cfg(feature = "nns-topology-host")]

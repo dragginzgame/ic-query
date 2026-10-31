@@ -9,6 +9,7 @@ use super::{
 };
 use crate::nns::governance::nns_governance_refresh_report_text;
 use crate::nns::governance::{NnsGovernanceNeuronId, NnsGovernanceProposalId};
+use crate::report::SortDirection;
 use crate::{
     HostCacheError,
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -26,9 +27,8 @@ use crate::{
             cache::paths::nns_proposal_cache_paths,
             model::{
                 NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
-                NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter,
-                NnsProposalTopic, NnsProposalTopicFilter,
-                selection::{NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL},
+                NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTopic,
+                NnsProposalTopicFilter,
             },
             source::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info},
             text::{nns_proposal_list_report_text, nns_proposal_report_text},
@@ -555,7 +555,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         proposer_neuron_id: Some(99),
         query: Some("PrOpOsAl 1".to_string()),
         sort: NnsProposalListSort::Title,
-        sort_direction: NnsProposalSortDirection::Asc,
+        sort_direction: SortDirection::Asc,
         verbose: false,
     };
     let report = build_nns_proposal_list_report_from_cache(&request, &root)
@@ -574,8 +574,8 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.query_filter.as_deref(), Some("PrOpOsAl 1"));
-    assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
-    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.sort, "title");
+    assert_eq!(report.sort_direction, "asc");
     assert_eq!(report.result_scope.as_str(), "complete-cache");
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(1));
@@ -589,7 +589,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let mut request = request;
     request.query = None;
     request.sort = NnsProposalListSort::Id;
-    request.sort_direction = NnsProposalSortDirection::Desc;
+    request.sort_direction = SortDirection::Desc;
     let report = build_nns_proposal_list_report_from_cache(&request, &root)
         .expect("cache lookup")
         .expect("cached list report");
@@ -598,7 +598,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.requested_limit, 1);
     assert_eq!(report.before_proposal_id, Some(3));
 
-    request.sort_direction = NnsProposalSortDirection::Asc;
+    request.sort_direction = SortDirection::Asc;
     let report = build_nns_proposal_list_report_from_cache(&request, &root)
         .expect("cache lookup")
         .expect("cached list report");
@@ -619,7 +619,7 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
         proposer_neuron_id: None,
         query: None,
         sort: NnsProposalListSort::Api,
-        sort_direction: NnsProposalSortDirection::Desc,
+        sort_direction: SortDirection::Desc,
         verbose: false,
     };
     let detail_request = NnsProposalRequest {

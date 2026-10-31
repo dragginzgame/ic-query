@@ -5,6 +5,7 @@
 //! Boundary: preserves resolved SNS identity with governance parameters.
 
 use super::governance::SnsGovernanceParameters;
+use crate::sns::report::SnsReportContext;
 use serde::Serialize;
 
 ///
@@ -16,14 +17,8 @@ use serde::Serialize;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsParamsReport {
     pub schema_version: u32,
-    pub network: String,
-    pub sns_wasm_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
-    pub id: usize,
-    pub name: String,
-    pub root_canister_id: String,
-    pub governance_canister_id: String,
+    /// SNS identity and provenance, serialized as flat report fields.
+    #[serde(flatten)]
+    pub context: SnsReportContext,
     pub parameters: SnsGovernanceParameters,
 }

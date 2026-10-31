@@ -6,8 +6,6 @@ mod model;
 #[cfg(feature = "nns-host")]
 mod refresh;
 #[cfg(feature = "nns-host")]
-mod resolve;
-#[cfg(feature = "nns-host")]
 mod source;
 mod text;
 
@@ -16,6 +14,8 @@ use crate::nns::NnsInventoryRefreshRequest;
 #[cfg(feature = "nns-host")]
 use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
 
+#[cfg(all(test, feature = "nns-host"))]
+use build::resolve_data_center;
 #[cfg(feature = "nns-host")]
 pub use build::{
     build_nns_data_center_info_report, build_nns_data_center_info_report_with_progress,
@@ -28,8 +28,6 @@ pub use build::{
 pub use cache::{nns_data_center_cache_path, nns_data_center_refresh_lock_path};
 #[cfg(feature = "nns-host")]
 pub use refresh::{refresh_nns_data_center_report, refresh_nns_data_center_report_with_source};
-#[cfg(all(test, feature = "nns-host"))]
-use resolve::resolve_data_center;
 #[cfg(feature = "nns-host")]
 pub use source::NnsDataCenterSource;
 

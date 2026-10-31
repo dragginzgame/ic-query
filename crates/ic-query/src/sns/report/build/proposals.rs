@@ -5,15 +5,14 @@
 //! Boundary: routes cache-backed requests through cache reports and live reads through sources.
 
 use crate::report::ReportProvenance;
+use crate::sns::report::SnsReportContext;
 use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
     sns::report::{
         SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
         SnsProposalsReport, SnsProposalsRequest,
-        assemble::{
-            SnsReportContext, sns_proposal_report_from_parts, sns_proposals_report_from_parts,
-        },
+        assemble::{sns_proposal_report_from_parts, sns_proposals_report_from_parts},
         enforce_mainnet_network,
         live::LiveSnsSource,
         lookup::resolve_sns_lookup,

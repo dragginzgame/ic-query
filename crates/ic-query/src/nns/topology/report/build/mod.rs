@@ -1,3 +1,4 @@
+use crate::nns::NnsInventoryListRequest;
 mod derived;
 mod direct;
 mod refresh;
@@ -6,7 +7,7 @@ mod summary;
 use super::{
     NnsTopologyHostError, NnsTopologySource, TopologyInventoryReports, enforce_mainnet_network,
 };
-use crate::{nns::topology::NnsTopologyReadRequest, subnet_catalog::SubnetCatalogListReport};
+use crate::subnet_catalog::SubnetCatalogListReport;
 
 pub use derived::{
     build_nns_topology_check_report, build_nns_topology_check_report_with_source,
@@ -25,7 +26,7 @@ pub use summary::{
 };
 
 async fn fetch_topology_inventory_reports(
-    request: &crate::nns::topology::NnsTopologyReadRequest,
+    request: &NnsInventoryListRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<TopologyInventoryReports, NnsTopologyHostError> {
     Ok(TopologyInventoryReports {
@@ -37,10 +38,10 @@ async fn fetch_topology_inventory_reports(
 }
 
 async fn fetch_full_topology_reports(
-    request: &NnsTopologyReadRequest,
+    request: &NnsInventoryListRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<(SubnetCatalogListReport, TopologyInventoryReports), NnsTopologyHostError> {
-    enforce_mainnet_network(&request.network)?;
+    enforce_mainnet_network(&request.cache.network)?;
     let subnet_report = source.fetch_subnet_catalog_list_report(request).await?;
     let reports = fetch_topology_inventory_reports(request, source).await?;
     Ok((subnet_report, reports))

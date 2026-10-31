@@ -3,6 +3,7 @@
 //! Responsibility: fetch SNS ledger token metadata.
 //! Does not own: lookup resolution, report assembly, amount formatting, or rendering.
 //! Boundary: queries one resolved SNS ledger for ICRC metadata and index details.
+use crate::icrc::IcrcIndexData;
 use crate::icrc::ledger::{
     fetch_icrc1_token_metadata, index_principal_error_text, query_index_principal,
 };
@@ -26,16 +27,14 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_token(
         &ledger_canister,
     ))
     .await?;
-    let (ledger_index_canister_id, ledger_index_error) =
-        match query_index_principal::<SnsHostError>(agent, &ledger_canister).await {
-            Ok(Ok(principal)) => (Some(principal.to_text()), None),
-            Ok(Err(error)) => (None, Some(index_principal_error_text(error))),
-            Err(error) => (None, Some(error.to_string())),
-        };
+    let ledger_index = match query_index_principal::<SnsHostError>(agent, &ledger_canister).await {
+        Ok(Ok(principal)) => IcrcIndexData::Found(principal.to_text()),
+        Ok(Err(error)) => IcrcIndexData::Unavailable(index_principal_error_text(error)),
+        Err(error) => IcrcIndexData::Unavailable(error.to_string()),
+    };
 
     Ok(MainnetSnsToken {
         token,
-        ledger_index_canister_id,
-        ledger_index_error,
+        ledger_index,
     })
 }

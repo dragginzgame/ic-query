@@ -113,10 +113,10 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     let text = sns_proposal_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PROPOSAL_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.name, "Fixture SNS");
-    assert_eq!(report.root_canister_id, ROOT_A);
-    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.name, "Fixture SNS");
+    assert_eq!(report.context.root_canister_id, ROOT_A);
+    assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.proposal_id, 42);
     assert!(report.show_ballots);
     assert_eq!(report.proposal.proposal_id, 42);
@@ -170,10 +170,10 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     let text = sns_proposals_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PROPOSALS_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.name, "Fixture SNS");
-    assert_eq!(report.root_canister_id, ROOT_A);
-    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.name, "Fixture SNS");
+    assert_eq!(report.context.root_canister_id, ROOT_A);
+    assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.before_proposal_id, Some(99));
     assert_eq!(report.status_filter, "open");

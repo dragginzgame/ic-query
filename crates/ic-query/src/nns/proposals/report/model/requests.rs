@@ -5,10 +5,11 @@
 //! Boundary: captures caller intent before source and report assembly.
 
 use super::selection::{
-    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalSortDirection,
-    NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalStatusFilter,
+    NnsProposalTopicFilter,
 };
 use crate::nns::governance::NnsGovernanceRequest;
+use crate::report::SortDirection;
 
 ///
 /// NnsProposalListRequest
@@ -37,7 +38,7 @@ pub struct NnsProposalListRequest {
     /// Requested API order or local proposal sort key.
     pub sort: NnsProposalListSort,
     /// Direction for local sorts; ignored when preserving API order.
-    pub sort_direction: NnsProposalSortDirection,
+    pub sort_direction: SortDirection,
     /// Whether the text renderer includes expanded proposal fields.
     pub verbose: bool,
 }
@@ -56,7 +57,7 @@ impl NnsProposalListRequest {
             proposer_neuron_id: None,
             query: None,
             sort: NnsProposalListSort::default(),
-            sort_direction: NnsProposalSortDirection::default(),
+            sort_direction: SortDirection::default(),
             verbose: false,
         }
     }
@@ -116,7 +117,7 @@ impl NnsProposalListRequest {
 
     /// Override the direction used by local sorting.
     #[must_use]
-    pub const fn with_sort_direction(mut self, sort_direction: NnsProposalSortDirection) -> Self {
+    pub const fn with_sort_direction(mut self, sort_direction: SortDirection) -> Self {
         self.sort_direction = sort_direction;
         self
     }

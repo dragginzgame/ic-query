@@ -63,20 +63,7 @@ pub(super) fn topology_summary_report_from_reports(
         node_provider_count: reports.node_provider.node_provider_count,
         node_operator_count: reports.node_operator.node_operator_count,
         data_center_count: reports.data_center.data_center_count,
-        nodes_with_known_node_provider_count: coverage.nodes_with_known_node_provider_count,
-        nodes_with_unknown_node_provider_count: coverage.nodes_with_unknown_node_provider_count,
-        nodes_with_known_node_operator_count: coverage.nodes_with_known_node_operator_count,
-        nodes_with_unknown_node_operator_count: coverage.nodes_with_unknown_node_operator_count,
-        nodes_with_known_data_center_count: coverage.nodes_with_known_data_center_count,
-        nodes_with_unknown_data_center_count: coverage.nodes_with_unknown_data_center_count,
-        node_operators_with_known_node_provider_count: coverage
-            .node_operators_with_known_node_provider_count,
-        node_operators_with_unknown_node_provider_count: coverage
-            .node_operators_with_unknown_node_provider_count,
-        node_operators_with_known_data_center_count: coverage
-            .node_operators_with_known_data_center_count,
-        node_operators_with_unknown_data_center_count: coverage
-            .node_operators_with_unknown_data_center_count,
+        join_coverage: coverage,
         subnet_catalog_stale: subnet_report.catalog_stale,
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         registry_versions,

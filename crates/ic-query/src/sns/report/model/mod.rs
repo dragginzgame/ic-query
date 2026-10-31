@@ -11,7 +11,7 @@ pub(in crate::sns::report) mod reports;
 mod requests;
 mod sorts;
 
-pub use identity::MainnetSnsCanisters;
+pub use identity::{MainnetSnsCanisters, SnsReportContext};
 
 #[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;
@@ -65,8 +65,8 @@ pub(in crate::sns::report) use sorts::{
     SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
 };
 pub use sorts::{
-    SnsListSort, SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsListSort, SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter,
+    SnsProposalsSort,
 };
 
 pub(in crate::sns::report) use reports::{sns_proposal_action_label, sns_proposal_vote_label};

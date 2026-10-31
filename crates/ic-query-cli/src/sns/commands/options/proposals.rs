@@ -17,9 +17,9 @@ use crate::{
     },
 };
 use clap::ArgMatches;
+use ic_query::report::SortDirection;
 use ic_query::sns::{
-    SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 
 ///
@@ -39,7 +39,7 @@ pub(in crate::sns::commands) struct SnsProposalsOptions {
     pub(in crate::sns::commands) proposer_neuron_id: Option<String>,
     pub(in crate::sns::commands) query: Option<String>,
     pub(in crate::sns::commands) sort: SnsProposalsSort,
-    pub(in crate::sns::commands) sort_direction: SnsProposalSortDirection,
+    pub(in crate::sns::commands) sort_direction: SortDirection,
     pub(in crate::sns::commands) verbose: bool,
 }
 
@@ -68,10 +68,6 @@ impl SnsProposalsOptions {
             matches,
             sort.uses_local_direction(),
             sort.default_direction(),
-            (
-                SnsProposalSortDirection::Asc,
-                SnsProposalSortDirection::Desc,
-            ),
             || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
         )
         .map_err(SnsCommandError::Usage)?;

@@ -14,7 +14,6 @@ pub use reports::{
 };
 pub use requests::{NnsProposalListRequest, NnsProposalRequest};
 pub use selection::{
-    NnsProposalListSort, NnsProposalRewardStatus, NnsProposalRewardStatusFilter,
-    NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTopic,
-    NnsProposalTopicFilter,
+    NnsProposalListSort, NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalStatus,
+    NnsProposalStatusFilter, NnsProposalTopic, NnsProposalTopicFilter,
 };

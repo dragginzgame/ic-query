@@ -10,10 +10,10 @@ async fn sns_params_resolves_list_id_and_renders_governance_parameters() {
     let text = sns_params_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PARAMS_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.name, "Fixture SNS");
-    assert_eq!(report.root_canister_id, ROOT_A);
-    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.name, "Fixture SNS");
+    assert_eq!(report.context.root_canister_id, ROOT_A);
+    assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(
         report.parameters.neuron_minimum_stake_e8s,
         Some(100_000_000)

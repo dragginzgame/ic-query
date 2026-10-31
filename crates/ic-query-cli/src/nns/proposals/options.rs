@@ -22,8 +22,9 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::nns::proposals::{
     NnsProposalActivityRequest, NnsProposalListSort, NnsProposalRewardStatusFilter,
-    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
+use ic_query::report::SortDirection;
 
 ///
 /// NnsProposalActivityOptions
@@ -68,7 +69,7 @@ pub(in crate::nns) struct NnsProposalListOptions {
     pub(in crate::nns) proposer_neuron_id: Option<u64>,
     pub(in crate::nns) query: Option<String>,
     pub(in crate::nns) sort: NnsProposalListSort,
-    pub(in crate::nns) sort_direction: NnsProposalSortDirection,
+    pub(in crate::nns) sort_direction: SortDirection,
     pub(in crate::nns) verbose: bool,
 }
 
@@ -84,10 +85,6 @@ impl NnsProposalListOptions {
             matches,
             sort.uses_local_direction(),
             sort.default_direction(),
-            (
-                NnsProposalSortDirection::Asc,
-                NnsProposalSortDirection::Desc,
-            ),
             || crate::cli::clap::value_names(NnsProposalListSortArg::Api),
         )
         .map_err(NnsCommandError::Usage)?;

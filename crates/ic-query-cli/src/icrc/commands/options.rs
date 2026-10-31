@@ -24,7 +24,11 @@ use ic_query::{
         IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
         MIN_ICRC_ANALYTICS_TIMESTAMP,
     },
-    icrc::IcrcAccountTransactionSort,
+    icrc::{
+        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
+        IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest,
+        IcrcAllowanceRequest, IcrcArchivesRequest, IcrcTransactionsRequest,
+    },
 };
 
 pub(in crate::icrc) fn analytics_account_list_request(
@@ -201,152 +205,124 @@ impl IcrcAccountOptions {
             subaccount_hex: string_option(matches, SUBACCOUNT_ARG),
         }
     }
+
+    pub(in crate::icrc) fn into_cache_request(
+        self,
+        cache_root: std::path::PathBuf,
+    ) -> (OutputFormat, IcrcAccountTransactionCacheRequest) {
+        (
+            self.ledger.format,
+            IcrcAccountTransactionCacheRequest {
+                cache_root,
+                source_endpoint: self.ledger.source_endpoint,
+                ledger_canister_id: self.ledger.ledger_canister_id,
+                account_owner: self.account_owner,
+                subaccount_hex: self.subaccount_hex,
+            },
+        )
+    }
 }
 
-///
-/// IcrcAllowanceOptions
-///
-/// Clap-parsed options for generic ICRC allowance queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAllowanceOptions {
-    pub(in crate::icrc) ledger: IcrcLedgerOptions,
-    pub(in crate::icrc) account_owner: String,
-    pub(in crate::icrc) account_subaccount_hex: Option<String>,
-    pub(in crate::icrc) spender_owner: String,
-    pub(in crate::icrc) spender_subaccount_hex: Option<String>,
-}
-
-impl IcrcAllowanceOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            ledger: IcrcLedgerOptions::from_matches(matches),
+pub(in crate::icrc) fn allowance_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcrcAllowanceRequest) {
+    let (format, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_ledger_request(now_unix_secs);
+    (
+        format,
+        IcrcAllowanceRequest {
+            ledger,
             account_owner: required_string(matches, OWNER_PRINCIPAL_ARG),
             account_subaccount_hex: string_option(matches, OWNER_SUBACCOUNT_ARG),
             spender_owner: required_string(matches, SPENDER_PRINCIPAL_ARG),
             spender_subaccount_hex: string_option(matches, SPENDER_SUBACCOUNT_ARG),
-        }
-    }
+        },
+    )
 }
 
-///
-/// IcrcAccountTransactionPageOptions
-///
-/// Clap-parsed options for one live ICRC index account-history page.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAccountTransactionPageOptions {
-    pub(in crate::icrc) target: IcrcAccountOptions,
-    pub(in crate::icrc) index_canister_id: Option<String>,
-    pub(in crate::icrc) start: Option<String>,
-    pub(in crate::icrc) limit: u32,
-}
-
-impl IcrcAccountTransactionPageOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcAccountOptions::from_matches(matches),
+pub(in crate::icrc) fn account_transaction_page_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcrcAccountTransactionPageRequest) {
+    let target = IcrcAccountOptions::from_matches(matches);
+    let (format, ledger) = target.ledger.into_ledger_request(now_unix_secs);
+    (
+        format,
+        IcrcAccountTransactionPageRequest {
+            ledger,
             index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
+            account_owner: target.account_owner,
+            subaccount_hex: target.subaccount_hex,
             start: string_option(matches, START_ARG),
             limit: required_typed(matches, LIMIT_ARG),
-        }
-    }
+        },
+    )
 }
 
-///
-/// IcrcAccountTransactionListOptions
-///
-/// Clap-parsed options for a cache-only ICRC account transaction list.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAccountTransactionListOptions {
-    pub(in crate::icrc) target: IcrcAccountOptions,
-    pub(in crate::icrc) limit: u32,
-    pub(in crate::icrc) sort: IcrcAccountTransactionSort,
-}
-
-impl IcrcAccountTransactionListOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcAccountOptions::from_matches(matches),
+pub(in crate::icrc) fn account_transaction_list_request(
+    matches: &ArgMatches,
+    cache_root: std::path::PathBuf,
+) -> (OutputFormat, IcrcAccountTransactionListRequest) {
+    let (format, cache) = IcrcAccountOptions::from_matches(matches).into_cache_request(cache_root);
+    (
+        format,
+        IcrcAccountTransactionListRequest {
+            cache,
             limit: required_typed(matches, LIMIT_ARG),
             sort: required_typed::<IcrcAccountTransactionSortArg>(matches, SORT_ARG).into(),
-        }
-    }
+        },
+    )
 }
 
-///
-/// IcrcAccountTransactionRefreshOptions
-///
-/// Clap-parsed options for a forced complete ICRC account-history refresh.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcAccountTransactionRefreshOptions {
-    pub(in crate::icrc) target: IcrcAccountOptions,
-    pub(in crate::icrc) index_canister_id: Option<String>,
-    pub(in crate::icrc) page_size: u32,
-    pub(in crate::icrc) max_pages: Option<u32>,
-}
-
-impl IcrcAccountTransactionRefreshOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            target: IcrcAccountOptions::from_matches(matches),
+pub(in crate::icrc) fn account_transaction_refresh_request(
+    matches: &ArgMatches,
+    cache_root: std::path::PathBuf,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcrcAccountTransactionRefreshRequest) {
+    let (format, cache) = IcrcAccountOptions::from_matches(matches).into_cache_request(cache_root);
+    (
+        format,
+        IcrcAccountTransactionRefreshRequest {
+            cache,
+            now_unix_secs,
             index_canister_id: string_option(matches, INDEX_CANISTER_ID_ARG),
             page_size: required_typed(matches, PAGE_SIZE_ARG),
             max_pages: typed_option(matches, MAX_PAGES_ARG),
-        }
-    }
+        },
+    )
 }
 
-///
-/// IcrcTransactionsOptions
-///
-/// Clap-parsed options for generic ICRC transaction history queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcTransactionsOptions {
-    pub(in crate::icrc) ledger: IcrcLedgerOptions,
-    pub(in crate::icrc) start: u64,
-    pub(in crate::icrc) limit: u32,
-    pub(in crate::icrc) follow_archives: bool,
-}
-
-impl IcrcTransactionsOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            ledger: IcrcLedgerOptions::from_matches(matches),
+pub(in crate::icrc) fn transactions_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcrcTransactionsRequest) {
+    let (format, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_ledger_request(now_unix_secs);
+    (
+        format,
+        IcrcTransactionsRequest {
+            ledger,
             start: required_typed(matches, START_ARG),
             limit: required_typed(matches, LIMIT_ARG),
             follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
-        }
-    }
+        },
+    )
 }
 
-///
-/// IcrcArchivesOptions
-///
-/// Clap-parsed options for generic ICRC-3 archive range queries.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::icrc) struct IcrcArchivesOptions {
-    pub(in crate::icrc) ledger: IcrcLedgerOptions,
-    pub(in crate::icrc) from_canister_id: Option<String>,
-}
-
-impl IcrcArchivesOptions {
-    pub(in crate::icrc) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            ledger: IcrcLedgerOptions::from_matches(matches),
+pub(in crate::icrc) fn archives_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcrcArchivesRequest) {
+    let (format, ledger) =
+        IcrcLedgerOptions::from_matches(matches).into_ledger_request(now_unix_secs);
+    (
+        format,
+        IcrcArchivesRequest {
+            ledger,
             from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),
-        }
-    }
+        },
+    )
 }
 
 #[cfg(test)]

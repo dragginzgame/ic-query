@@ -22,7 +22,7 @@ pub async fn refresh_nns_topology_report_with_source(
     request: &NnsTopologyRefreshRequest,
     source: &dyn NnsTopologyRefreshSource,
 ) -> Result<NnsTopologyRefreshReport, NnsTopologyHostError> {
-    enforce_mainnet_network(request.read.network.as_str())?;
+    enforce_mainnet_network(request.read.cache.network.as_str())?;
 
     let subnet_report = source.refresh_subnet_catalog_report(request).await?;
     let node_report = source.refresh_node_report(request).await?;
@@ -47,7 +47,7 @@ pub async fn refresh_nns_topology_report_with_source(
     ];
     Ok(NnsTopologyRefreshReport {
         schema_version: NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION,
-        network: request.read.network.clone(),
+        network: request.read.cache.network.clone(),
         source_endpoint: request.read.source_endpoint.clone(),
         dry_run: request.dry_run,
         component_count: components.len(),

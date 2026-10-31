@@ -8,7 +8,6 @@ use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     SNS_REFRESH_MAX_PAGE_SIZE, SnsHostError, SnsListRequest, enforce_mainnet_network,
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 use ic_platform::candid::contract::Principal;
 
@@ -40,25 +39,10 @@ pub(in crate::sns::report) fn sns_list_fetch_request(
     request: &SnsListRequest,
 ) -> Result<CollectionSourceRequest, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
-    Ok(fetch_request_from_parts(
+    Ok(CollectionSourceRequest::from_unix_secs(
         &request.network,
         &request.source_endpoint,
         request.now_unix_secs,
-        "ic-query".to_string(),
+        "ic-query",
     ))
-}
-
-/// Build a live fetch request from already-validated source fields.
-pub(super) fn fetch_request_from_parts(
-    network: &str,
-    source_endpoint: &str,
-    now_unix_secs: u64,
-    fetched_by: String,
-) -> CollectionSourceRequest {
-    CollectionSourceRequest::new(
-        network,
-        source_endpoint,
-        format_utc_timestamp_secs(now_unix_secs),
-        fetched_by,
-    )
 }

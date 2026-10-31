@@ -51,7 +51,7 @@ fn registry_certification() -> NnsRegistryCertification {
 
 #[cfg(feature = "host")]
 mod host {
-    use ic_query::report::CollectionSourceRequest;
+    use ic_query::report::{CollectionSourceRequest, SortDirection};
     use ic_query::{
         QueryProgress, QueryProgressEvent, QueryProgressState,
         icrc::{
@@ -76,14 +76,13 @@ mod host {
         nns::{NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest},
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
-            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalSortDirection, SnsProposalsReport,
-            SnsProposalsRequest, SnsProposalsSort, SnsSnapshotRefreshReport,
-            SnsSnapshotRefreshRequest, build_sns_metrics_report,
-            build_sns_neurons_cache_status_report, build_sns_neurons_report,
-            build_sns_proposals_cache_status_report, build_sns_proposals_report,
-            build_sns_proposals_report_with_progress, refresh_sns_neurons_cache_with_progress,
-            refresh_sns_proposals_cache_with_progress, sns_metrics_report_text,
-            sns_neurons_cache_status_report_text, sns_neurons_report_text,
+            SnsNeuronsRequest, SnsNeuronsSort, SnsProposalsReport, SnsProposalsRequest,
+            SnsProposalsSort, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
+            build_sns_metrics_report, build_sns_neurons_cache_status_report,
+            build_sns_neurons_report, build_sns_proposals_cache_status_report,
+            build_sns_proposals_report, build_sns_proposals_report_with_progress,
+            refresh_sns_neurons_cache_with_progress, refresh_sns_proposals_cache_with_progress,
+            sns_metrics_report_text, sns_neurons_cache_status_report_text, sns_neurons_report_text,
             sns_proposals_cache_status_report_text, sns_proposals_report_text,
         },
         subnet_catalog::{
@@ -222,7 +221,7 @@ mod host {
         )
         .with_cache_root(cache_root)
         .with_sort(SnsProposalsSort::Created)
-        .with_sort_direction(SnsProposalSortDirection::Desc);
+        .with_sort_direction(SortDirection::Desc);
 
         let report = build_sns_proposals_report(&request).await?;
         Ok(sns_proposals_report_text(&report))

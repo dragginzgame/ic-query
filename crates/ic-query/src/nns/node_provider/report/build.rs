@@ -1,9 +1,12 @@
+use crate::nns::inventory::{
+    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
+};
+
 use super::{
     NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
     NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::{load_cached_nns_node_provider_report, nns_node_provider_cache_path},
     refresh::refresh_nns_node_provider_report_with_source,
-    resolve::resolve_node_provider,
     source::NnsNodeProviderSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -121,5 +124,26 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
         name: provider.name,
         node_count: provider.node_count,
         reward_account_hex: provider.reward_account_hex,
+    })
+}
+
+pub(super) fn resolve_node_provider(
+    report: &NnsNodeProviderListReport,
+    input: &str,
+) -> Result<(usize, String), NnsNodeProviderHostError> {
+    resolve_nns_inventory_row(
+        &report.node_providers,
+        |row| row.node_provider_principal.as_str(),
+        input,
+        NnsInventoryInputKind::Principal,
+        "node_provider_principal",
+    )
+    .map_err(|error| match error {
+        NnsInventoryResolveError::NotFound { input } => {
+            NnsNodeProviderHostError::NodeProviderNotFound { input }
+        }
+        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
+            NnsNodeProviderHostError::AmbiguousNodeProviderPrefix { prefix, matches }
+        }
     })
 }

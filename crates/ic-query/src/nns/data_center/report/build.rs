@@ -1,9 +1,12 @@
+use crate::nns::inventory::{
+    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
+};
+
 use super::{
     NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterInfoReport,
     NnsDataCenterListReport, NnsInventoryInfoRequest, NnsInventoryListRequest,
     cache::{load_cached_nns_data_center_report, nns_data_center_cache_path},
     refresh::refresh_nns_data_center_report_with_source,
-    resolve::resolve_data_center,
     source::NnsDataCenterSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -121,5 +124,26 @@ pub async fn build_nns_data_center_info_report_with_source_and_progress(
         node_operator_count: data_center.node_operator_count,
         node_provider_count: data_center.node_provider_count,
         node_count: data_center.node_count,
+    })
+}
+
+pub(super) fn resolve_data_center(
+    report: &NnsDataCenterListReport,
+    input: &str,
+) -> Result<(usize, String), NnsDataCenterHostError> {
+    resolve_nns_inventory_row(
+        &report.data_centers,
+        |row| row.data_center_id.as_str(),
+        input,
+        NnsInventoryInputKind::Text,
+        "data_center_id",
+    )
+    .map_err(|error| match error {
+        NnsInventoryResolveError::NotFound { input } => {
+            NnsDataCenterHostError::DataCenterNotFound { input }
+        }
+        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
+            NnsDataCenterHostError::AmbiguousDataCenterPrefix { prefix, matches }
+        }
     })
 }

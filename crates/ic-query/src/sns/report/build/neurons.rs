@@ -5,9 +5,10 @@
 //! Boundary: routes cache-backed sorts to cache reports or live API reads to assembly.
 
 use crate::report::ReportProvenance;
+use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::{SnsReportContext, sns_neurons_report_from_rows},
+    assemble::sns_neurons_report_from_rows,
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     neurons_cache,

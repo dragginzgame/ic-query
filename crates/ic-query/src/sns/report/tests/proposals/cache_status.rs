@@ -472,8 +472,8 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
             build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
                 .await
                 .expect("read second SNS from cache");
-        assert_eq!(report.id, refresh.id);
-        assert_eq!(report.root_canister_id, ROOT_B);
+        assert_eq!(report.context.id, refresh.id);
+        assert_eq!(report.context.root_canister_id, ROOT_B);
         let _ = fs::remove_dir_all(root);
     }
 }

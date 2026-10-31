@@ -1,11 +1,11 @@
 use super::commands::options::{
-    analytics_account_info_request, analytics_account_list_request, analytics_holder_list_request,
-    analytics_token_value_request, analytics_total_supply_request,
+    account_transaction_list_request, account_transaction_page_request,
+    account_transaction_refresh_request, allowance_request, analytics_account_info_request,
+    analytics_account_list_request, analytics_holder_list_request, analytics_token_value_request,
+    analytics_total_supply_request, archives_request, transactions_request,
 };
 use super::commands::{
-    IcrcAccountOptions, IcrcAccountTransactionListOptions, IcrcAccountTransactionPageOptions,
-    IcrcAccountTransactionRefreshOptions, IcrcAllowanceOptions, IcrcArchivesOptions,
-    IcrcLedgerOptions, IcrcTransactionsOptions, command as icrc_command, icrc_account_command,
+    IcrcAccountOptions, IcrcLedgerOptions, command as icrc_command, icrc_account_command,
     icrc_account_transaction_cache_command, icrc_account_transaction_cache_status_command,
     icrc_account_transaction_command, icrc_account_transaction_list_command,
     icrc_account_transaction_page_command, icrc_account_transaction_refresh_command,
@@ -105,7 +105,7 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
 
 #[test]
 fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
-    let options = parse_test_options(
+    let (_, options) = parse_test_options(
         icrc_allowance_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -116,9 +116,10 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
             "--spender-subaccount",
             SUBACCOUNT,
         ],
-        IcrcAllowanceOptions::from_matches,
+        |matches| allowance_request(matches, 123),
     );
 
+    assert_eq!(options.ledger.now_unix_secs, 123);
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
     assert_eq!(options.spender_owner, ACCOUNT_OWNER);
     assert_eq!(options.account_subaccount_hex.as_deref(), Some(SUBACCOUNT));
@@ -127,7 +128,7 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
 
 #[test]
 fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_account_transaction_page_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -144,25 +145,25 @@ fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
             "--source-endpoint",
             SOURCE_ENDPOINT,
         ],
-        IcrcAccountTransactionPageOptions::from_matches,
+        |matches| account_transaction_page_request(matches, 123),
     );
 
-    assert_eq!(options.target.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(
         options.index_canister_id.as_deref(),
         Some(INDEX_CANISTER_ID)
     );
-    assert_eq!(options.target.account_owner, ACCOUNT_OWNER);
-    assert_eq!(options.target.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+    assert_eq!(options.account_owner, ACCOUNT_OWNER);
+    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
     assert_eq!(options.start.as_deref(), Some("18446744073709551616"));
     assert_eq!(options.limit, 42);
-    assert_eq!(options.target.ledger.format, OutputFormat::Json);
-    assert_eq!(options.target.ledger.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(format, OutputFormat::Json);
+    assert_eq!(options.ledger.source_endpoint, SOURCE_ENDPOINT);
 }
 
 #[test]
 fn account_transaction_list_options_parse_cache_view() {
-    let options = parse_test_options(
+    let (_, options) = parse_test_options(
         icrc_account_transaction_list_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -172,16 +173,17 @@ fn account_transaction_list_options_parse_cache_view() {
             "--sort",
             "oldest",
         ],
-        IcrcAccountTransactionListOptions::from_matches,
+        |matches| account_transaction_list_request(matches, "/cache".into()),
     );
 
+    assert_eq!(options.cache.cache_root, std::path::PathBuf::from("/cache"));
     assert_eq!(options.limit, 250);
     assert_eq!(options.sort, IcrcAccountTransactionSort::Oldest);
 }
 
 #[test]
 fn account_transaction_refresh_options_parse_collection_bounds() {
-    let options = parse_test_options(
+    let (_, options) = parse_test_options(
         icrc_account_transaction_refresh_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -193,9 +195,11 @@ fn account_transaction_refresh_options_parse_collection_bounds() {
             "--max-pages",
             "20",
         ],
-        IcrcAccountTransactionRefreshOptions::from_matches,
+        |matches| account_transaction_refresh_request(matches, "/cache".into(), 123),
     );
 
+    assert_eq!(options.cache.cache_root, std::path::PathBuf::from("/cache"));
+    assert_eq!(options.now_unix_secs, 123);
     assert_eq!(options.page_size, 100);
     assert_eq!(options.max_pages, Some(20));
     assert_eq!(
@@ -236,7 +240,7 @@ fn index_options_parse_through_clap() {
 
 #[test]
 fn transactions_options_parse_through_clap() {
-    let options = parse_test_options(
+    let (_, options) = parse_test_options(
         icrc_transactions_command(),
         &[
             LEDGER_CANISTER_ID,
@@ -246,7 +250,7 @@ fn transactions_options_parse_through_clap() {
             "42",
             "--follow-archives",
         ],
-        IcrcTransactionsOptions::from_matches,
+        |matches| transactions_request(matches, 123),
     );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
@@ -269,15 +273,15 @@ fn block_types_options_parse_through_clap() {
 
 #[test]
 fn archives_options_parse_through_clap() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         icrc_archives_command(),
         &[LEDGER_CANISTER_ID, "--from", INDEX_CANISTER_ID, "--json"],
-        IcrcArchivesOptions::from_matches,
+        |matches| archives_request(matches, 123),
     );
 
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.from_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
-    assert_eq!(options.ledger.format, OutputFormat::Json);
+    assert_eq!(format, OutputFormat::Json);
 }
 
 #[test]

@@ -1,12 +1,15 @@
 use super::{fixtures::*, *};
+use crate::icrc::IcrcIndexData;
 use ic_platform::icrc_ledger_types::MetadataValue;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() {
-    let mut report =
-        build_sns_token_report_with_source(&token_request("1"), &FixtureSnsTokenSource)
-            .await
-            .expect("sns token report");
+    let mut report = build_sns_token_report_with_source(
+        &token_request("1"),
+        &FixtureSnsTokenSource(IcrcIndexData::Found(INDEX_A.to_string())),
+    )
+    .await
+    .expect("sns token report");
     let raw = "界 e\u{301}\u{202e}\u{2028}\u{2029}\u{2069}\u{009b}\u{1b}[31m";
     report.token.token_symbol = raw.to_string();
     report.token.metadata[0].value = serde_json::json!(raw);
@@ -28,9 +31,12 @@ async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() 
 async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     let request = token_request("1");
 
-    let report = build_sns_token_report_with_source(&request, &FixtureSnsTokenSource)
-        .await
-        .expect("sns token report");
+    let report = build_sns_token_report_with_source(
+        &request,
+        &FixtureSnsTokenSource(IcrcIndexData::Found(INDEX_A.to_string())),
+    )
+    .await
+    .expect("sns token report");
     let text = sns_token_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize SNS token report");
 
@@ -104,4 +110,22 @@ fn sns_token_empty_logo_metadata_remains_raw() {
 
     assert_eq!(row.value_type, IcrcMetadataValueKind::Text);
     assert_eq!(row.value, serde_json::json!(" "));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn sns_token_retains_metadata_when_ledger_index_discovery_is_unavailable() {
+    let error = "ledger index discovery request timed out";
+    let report = build_sns_token_report_with_source(
+        &token_request("1"),
+        &FixtureSnsTokenSource(IcrcIndexData::Unavailable(error.to_string())),
+    )
+    .await
+    .expect("metadata survives index discovery failure");
+    assert_eq!(report.token.token_symbol, "FIX");
+    assert_eq!(report.sns_index_canister_id, INDEX_A);
+    assert_eq!(report.ledger_index_canister_id, None);
+    assert_eq!(report.ledger_index_error.as_deref(), Some(error));
+    let json = serde_json::to_value(&report).unwrap();
+    assert_eq!(json["ledger_index_canister_id"], serde_json::Value::Null);
+    assert_eq!(json["ledger_index_error"], error);
 }

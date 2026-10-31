@@ -12,7 +12,7 @@ pub(super) use commands::{
 #[cfg(test)]
 pub(super) use ic_query::nns::proposals::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalListSort, NnsProposalRewardStatusFilter,
-    NnsProposalSortDirection, NnsProposalStatusFilter, NnsProposalTopicFilter,
+    NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
 #[cfg(test)]
 pub(super) use options::{NnsProposalActivityOptions, NnsProposalListOptions, NnsProposalOptions};

@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::nns::NnsInventoryListRequest;
 use crate::subnet_catalog::SubnetKind;
 use crate::test_support::temp_dir;
 
@@ -29,16 +30,42 @@ fn topology_summary_counts_existing_reports() {
     assert_eq!(report.node_provider_count, 1);
     assert_eq!(report.node_operator_count, 2);
     assert_eq!(report.data_center_count, 1);
-    assert_eq!(report.nodes_with_known_node_provider_count, 2);
-    assert_eq!(report.nodes_with_unknown_node_provider_count, 1);
-    assert_eq!(report.nodes_with_known_node_operator_count, 2);
-    assert_eq!(report.nodes_with_unknown_node_operator_count, 1);
-    assert_eq!(report.nodes_with_known_data_center_count, 2);
-    assert_eq!(report.nodes_with_unknown_data_center_count, 1);
-    assert_eq!(report.node_operators_with_known_node_provider_count, 1);
-    assert_eq!(report.node_operators_with_unknown_node_provider_count, 1);
-    assert_eq!(report.node_operators_with_known_data_center_count, 1);
-    assert_eq!(report.node_operators_with_unknown_data_center_count, 1);
+    assert_eq!(report.join_coverage.nodes_with_known_node_provider_count, 2);
+    assert_eq!(
+        report.join_coverage.nodes_with_unknown_node_provider_count,
+        1
+    );
+    assert_eq!(report.join_coverage.nodes_with_known_node_operator_count, 2);
+    assert_eq!(
+        report.join_coverage.nodes_with_unknown_node_operator_count,
+        1
+    );
+    assert_eq!(report.join_coverage.nodes_with_known_data_center_count, 2);
+    assert_eq!(report.join_coverage.nodes_with_unknown_data_center_count, 1);
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_known_node_provider_count,
+        1
+    );
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_unknown_node_provider_count,
+        1
+    );
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_known_data_center_count,
+        1
+    );
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_unknown_data_center_count,
+        1
+    );
     assert_eq!(report.registry_versions.len(), 5);
 }
 
@@ -146,9 +173,11 @@ fn topology_summary_text_renders_count_and_version_tables() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn topology_summary_rejects_local_network_with_topology_hint() {
-    let request = NnsTopologyReadRequest {
-        cache_root: temp_dir("ic-query-topology-local-network"),
-        network: "local".to_string(),
+    let request = NnsInventoryListRequest {
+        cache: crate::nns::NnsInventoryCacheRequest::new(
+            temp_dir("ic-query-topology-local-network"),
+            "local",
+        ),
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
     };

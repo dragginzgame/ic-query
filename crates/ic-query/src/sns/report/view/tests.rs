@@ -12,11 +12,12 @@ use super::{
     proposal_matches_before, proposal_matches_status, proposal_matches_topic,
     sort_mainnet_sns_instances, sort_sns_neurons,
 };
+use crate::report::SortDirection;
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsListSort, SnsNeuronRow,
     SnsNeuronsSort, SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalRow,
-    SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalsSort, source::MainnetSns,
+    SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter, SnsProposalsSort,
+    source::MainnetSns,
 };
 
 #[test]
@@ -27,11 +28,7 @@ fn proposal_id_sort_orders_newest_id_first() {
         proposal_row(1, 200),
     ];
 
-    sort_sns_proposal_rows(
-        &mut proposals,
-        SnsProposalsSort::Id,
-        SnsProposalSortDirection::Desc,
-    );
+    sort_sns_proposal_rows(&mut proposals, SnsProposalsSort::Id, SortDirection::Desc);
 
     assert_eq!(proposal_ids(&proposals), vec![10, 2, 1]);
 }
@@ -47,7 +44,7 @@ fn proposal_decided_sort_orders_newest_decision_first_and_open_last() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Decided,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -62,11 +59,7 @@ fn proposal_status_sort_orders_lifecycle_states_first() {
         proposal_with_decision_state_and_id(9, SnsProposalDecisionState::Decided),
     ];
 
-    sort_sns_proposal_rows(
-        &mut proposals,
-        SnsProposalsSort::Status,
-        SnsProposalSortDirection::Asc,
-    );
+    sort_sns_proposal_rows(&mut proposals, SnsProposalsSort::Status, SortDirection::Asc);
 
     assert_eq!(proposal_ids(&proposals), vec![10, 9, 2, 1]);
 }
@@ -82,7 +75,7 @@ fn proposal_proposer_sort_orders_present_ids_before_missing_ids() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Proposer,
-        SnsProposalSortDirection::Asc,
+        SortDirection::Asc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -96,11 +89,7 @@ fn proposal_topic_sort_orders_present_labels_before_missing_labels() {
         proposal_row_with_topic(1, Some("application-business-logic")),
     ];
 
-    sort_sns_proposal_rows(
-        &mut proposals,
-        SnsProposalsSort::Topic,
-        SnsProposalSortDirection::Asc,
-    );
+    sort_sns_proposal_rows(&mut proposals, SnsProposalsSort::Topic, SortDirection::Asc);
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
 }
@@ -116,7 +105,7 @@ fn proposal_decided_ascending_sort_orders_oldest_decision_first_and_open_last() 
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Decided,
-        SnsProposalSortDirection::Asc,
+        SortDirection::Asc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![2, 1, 10]);
@@ -133,7 +122,7 @@ fn proposal_executed_sort_orders_newest_execution_first_and_unexecuted_last() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Executed,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -150,7 +139,7 @@ fn proposal_failed_sort_orders_newest_failure_first_and_non_failed_last() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Failed,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -164,11 +153,7 @@ fn proposal_title_sort_orders_case_insensitive_with_id_tiebreaker() {
         proposal_row_with_title(1, "Alpha"),
     ];
 
-    sort_sns_proposal_rows(
-        &mut proposals,
-        SnsProposalsSort::Title,
-        SnsProposalSortDirection::Asc,
-    );
+    sort_sns_proposal_rows(&mut proposals, SnsProposalsSort::Title, SortDirection::Asc);
 
     assert_eq!(proposal_ids(&proposals), vec![1, 10, 2]);
 }
@@ -184,7 +169,7 @@ fn proposal_action_sort_orders_descending_with_id_tiebreaker() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Action,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![10, 2, 1]);
@@ -201,7 +186,7 @@ fn proposal_total_votes_sort_orders_highest_tally_first() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::TotalVotes,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -218,7 +203,7 @@ fn proposal_tally_time_sort_orders_newest_tally_first() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::TallyTime,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![1, 2, 10]);
@@ -232,11 +217,7 @@ fn proposal_yes_sort_orders_ascending_with_id_tiebreaker() {
         proposal_row_with_tally(1, Some((300, 50, 60, 110))),
     ];
 
-    sort_sns_proposal_rows(
-        &mut proposals,
-        SnsProposalsSort::Yes,
-        SnsProposalSortDirection::Asc,
-    );
+    sort_sns_proposal_rows(&mut proposals, SnsProposalsSort::Yes, SortDirection::Asc);
 
     assert_eq!(proposal_ids(&proposals), vec![2, 10, 1]);
 }
@@ -252,7 +233,7 @@ fn proposal_ballots_sort_orders_highest_count_first() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::Ballots,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![10, 1, 2]);
@@ -269,7 +250,7 @@ fn proposal_reject_cost_sort_orders_lowest_cost_first_when_ascending() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::RejectCost,
-        SnsProposalSortDirection::Asc,
+        SortDirection::Asc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![10, 1, 2]);
@@ -286,7 +267,7 @@ fn proposal_reward_round_sort_orders_highest_round_first() {
     sort_sns_proposal_rows(
         &mut proposals,
         SnsProposalsSort::RewardRound,
-        SnsProposalSortDirection::Desc,
+        SortDirection::Desc,
     );
 
     assert_eq!(proposal_ids(&proposals), vec![10, 1, 2]);

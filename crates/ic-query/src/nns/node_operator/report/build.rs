@@ -1,9 +1,12 @@
+use crate::nns::inventory::{
+    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
+};
+
 use super::{
     NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
     NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
     cache::{load_cached_nns_node_operator_report, nns_node_operator_cache_path},
     refresh::refresh_nns_node_operator_report_with_source,
-    resolve::resolve_node_operator,
     source::NnsNodeOperatorSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -121,5 +124,26 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
         node_allowance: operator.node_allowance,
         data_center_id: operator.data_center_id,
         node_count: operator.node_count,
+    })
+}
+
+pub(super) fn resolve_node_operator(
+    report: &NnsNodeOperatorListReport,
+    input: &str,
+) -> Result<(usize, String), NnsNodeOperatorHostError> {
+    resolve_nns_inventory_row(
+        &report.node_operators,
+        |row| row.node_operator_principal.as_str(),
+        input,
+        NnsInventoryInputKind::Principal,
+        "node_operator_principal",
+    )
+    .map_err(|error| match error {
+        NnsInventoryResolveError::NotFound { input } => {
+            NnsNodeOperatorHostError::NodeOperatorNotFound { input }
+        }
+        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
+            NnsNodeOperatorHostError::AmbiguousNodeOperatorPrefix { prefix, matches }
+        }
     })
 }

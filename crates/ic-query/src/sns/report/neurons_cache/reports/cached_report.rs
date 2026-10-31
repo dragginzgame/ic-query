@@ -5,11 +5,10 @@
 //! Boundary: applies view sorting/limit over one complete cached neuron snapshot.
 
 use crate::report::ReportProvenance;
+use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
-    SnsHostError, SnsNeuronsReport, SnsNeuronsRequest,
-    assemble::{SnsReportContext, sns_neurons_report_from_rows},
-    cache_storage::load_sns_cache_for_root,
-    neurons_cache::paths::SnsNeuronsCacheCollection,
+    SnsHostError, SnsNeuronsReport, SnsNeuronsRequest, assemble::sns_neurons_report_from_rows,
+    cache_storage::load_sns_cache_for_root, neurons_cache::paths::SnsNeuronsCacheCollection,
     view::sort_sns_neurons,
 };
 

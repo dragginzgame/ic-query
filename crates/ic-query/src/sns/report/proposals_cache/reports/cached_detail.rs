@@ -5,9 +5,10 @@
 //! Boundary: returns an optional report so callers can fall back to live lookup.
 
 use crate::report::ReportProvenance;
+use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
     SnsHostError, SnsProposalReport, SnsProposalRequest,
-    assemble::{SnsReportContext, sns_proposal_report_from_parts},
+    assemble::sns_proposal_report_from_parts,
     cache_storage::load_sns_cache_for_root,
     proposals_cache::{model::SnsProposalsCache, paths::SnsProposalsCacheCollection},
 };

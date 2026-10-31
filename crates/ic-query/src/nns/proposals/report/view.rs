@@ -6,10 +6,11 @@
 
 use super::model::{
     NnsProposalListRequest, NnsProposalListSort, NnsProposalRewardStatus, NnsProposalRow,
-    NnsProposalSortDirection, NnsProposalStatus, NnsProposalTopic, NnsProposalTopicFilter,
+    NnsProposalStatus, NnsProposalTopic, NnsProposalTopicFilter,
 };
 #[cfg(feature = "nns-host")]
 use super::model::{NnsProposalRewardStatusFilter, NnsProposalStatusFilter};
+use crate::report::SortDirection;
 use crate::{
     report_sort::{ReportSortKey, compare_optional_ord},
     text_search::optional_text_contains_lowercase_query,
@@ -95,9 +96,9 @@ pub(in crate::nns::proposals::report) fn proposal_matches_query(
 pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
     proposals: &mut [NnsProposalRow],
     sort: NnsProposalListSort,
-    direction: NnsProposalSortDirection,
+    direction: SortDirection,
 ) {
-    let descending = matches!(direction, NnsProposalSortDirection::Desc);
+    let descending = matches!(direction, SortDirection::Desc);
     let key: ReportSortKey<NnsProposalRow> = match sort {
         NnsProposalListSort::Api => return,
         NnsProposalListSort::Status => ReportSortKey::Text(|proposal: &NnsProposalRow| {

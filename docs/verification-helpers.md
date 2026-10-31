@@ -805,6 +805,12 @@ canonical decimal component ordering. It rejects malformed stable identities
 before output and uses no floating-point or shell-integer arithmetic. The release
 finalizer rejects non-increasing previous/target pairs itself.
 
+Approved independently versioned groups use
+[`cargo-release-group.sh`](releases.md#explicit-cargo-release-groups).
+Its complete locked member/lock admission is also used by `--cargo-inheritance`
+before accepting literal package versions. A group declaration alone never
+suppresses inheritance, dependency pinning or graph failures.
+
 ## Downloaded failure-evidence verification
 
 The optional host-side `failure_evidence.py` provides non-extracting archive

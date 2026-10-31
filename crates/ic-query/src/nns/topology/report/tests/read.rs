@@ -1,4 +1,5 @@
 use super::{fixtures::*, *};
+use crate::nns::NnsInventoryListRequest;
 use crate::nns::node::NnsNodeHostError;
 
 #[tokio::test(flavor = "current_thread")]
@@ -8,7 +9,7 @@ use crate::nns::node::NnsNodeHostError;
 )]
 async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failure() {
     type Build = for<'a> fn(
-        &'a NnsTopologyReadRequest,
+        &'a NnsInventoryListRequest,
         &'a dyn NnsTopologySource,
     )
         -> crate::report::SourceFuture<'a, Result<(), NnsTopologyHostError>>;
@@ -126,7 +127,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
         }
 
         let mut request = request;
-        request.network = "local".to_string();
+        request.cache.network = "local".to_string();
         let source = RecordingTopologySource::default();
         assert!(matches!(
             build(&request, &source).await,

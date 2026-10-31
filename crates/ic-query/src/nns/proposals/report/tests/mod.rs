@@ -3,15 +3,8 @@ use super::{
     NNS_PROPOSAL_REPORT_SCHEMA_VERSION, NnsProposalError,
     model::{
         NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
-        NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow,
-        NnsProposalSortDirection, NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTopic,
-        NnsProposalTopicFilter,
-        selection::{
-            NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DEADLINE_LABEL,
-            NNS_PROPOSAL_SORT_DESC_LABEL, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL,
-            NNS_PROPOSAL_SORT_TALLY_TIME_LABEL, NNS_PROPOSAL_SORT_TITLE_LABEL,
-            NNS_PROPOSAL_SORT_VOTING_POWER_LABEL,
-        },
+        NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatus,
+        NnsProposalStatusFilter, NnsProposalTopic, NnsProposalTopicFilter,
     },
     source::{
         NnsProposalSource, NnsProposalSourceFuture,

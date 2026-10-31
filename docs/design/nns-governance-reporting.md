@@ -72,7 +72,7 @@ before delivering bytes. Raw rejection codes remain separate from Candid and
 size-validation errors, and an unknown execution outcome never authorizes retry.
 The decoder requires the report value and permits only budgeted Candid skipping
 of additional values; it does not impose exact single-argument arity.
-Platform 0.13 rejects external Candid beyond 16 constructed wire levels before
+Platform 0.15 rejects external Candid beyond 16 constructed wire levels before
 upstream decoding, including unused type definitions and skipped values
 ([Platform #73](https://github.com/dragginzgame/ic-platform/issues/73)). Query's
 shared decoder preserves that typed refusal and its existing reply-arity policy.

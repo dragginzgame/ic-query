@@ -5,9 +5,9 @@
 //! Boundary: carries validated proposal inputs into SNS report builders.
 
 use super::lookup::SnsLookupRequest;
+use crate::report::SortDirection;
 use crate::sns::report::{
-    SnsProposalEligibilityFilter, SnsProposalSortDirection, SnsProposalStatusFilter,
-    SnsProposalTopicFilter, SnsProposalsSort,
+    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
 };
 use std::path::PathBuf;
 
@@ -76,7 +76,7 @@ pub struct SnsProposalsRequest {
     pub proposer_neuron_id: Option<String>,
     pub query: Option<String>,
     pub sort: SnsProposalsSort,
-    pub sort_direction: SnsProposalSortDirection,
+    pub sort_direction: SortDirection,
     pub cache_root: Option<PathBuf>,
     pub verbose: bool,
 }
@@ -94,7 +94,7 @@ impl SnsProposalsRequest {
             proposer_neuron_id: None,
             query: None,
             sort: SnsProposalsSort::default(),
-            sort_direction: SnsProposalSortDirection::default(),
+            sort_direction: SortDirection::default(),
             cache_root: None,
             verbose: false,
         }
@@ -144,7 +144,7 @@ impl SnsProposalsRequest {
     }
 
     #[must_use]
-    pub const fn with_sort_direction(mut self, sort_direction: SnsProposalSortDirection) -> Self {
+    pub const fn with_sort_direction(mut self, sort_direction: SortDirection) -> Self {
         self.sort_direction = sort_direction;
         self
     }

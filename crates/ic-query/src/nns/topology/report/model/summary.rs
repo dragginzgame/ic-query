@@ -1,3 +1,4 @@
+use super::NnsTopologyJoinCoverageCounts;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -25,46 +26,12 @@ pub struct NnsTopologySummaryReport {
     pub node_provider_count: usize,
     pub node_operator_count: usize,
     pub data_center_count: usize,
-    pub nodes_with_known_node_provider_count: usize,
-    pub nodes_with_unknown_node_provider_count: usize,
-    pub nodes_with_known_node_operator_count: usize,
-    pub nodes_with_unknown_node_operator_count: usize,
-    pub nodes_with_known_data_center_count: usize,
-    pub nodes_with_unknown_data_center_count: usize,
-    pub node_operators_with_known_node_provider_count: usize,
-    pub node_operators_with_unknown_node_provider_count: usize,
-    pub node_operators_with_known_data_center_count: usize,
-    pub node_operators_with_unknown_data_center_count: usize,
+    /// Registry relation coverage, serialized as flat report counts.
+    #[serde(flatten)]
+    pub join_coverage: NnsTopologyJoinCoverageCounts,
     pub subnet_catalog_stale: bool,
     pub subnet_catalog_stale_reason: String,
     pub registry_versions: Vec<NnsTopologyRegistryVersionRow>,
-}
-
-impl NnsTopologySummaryReport {
-    pub(in crate::nns::topology::report) const fn join_counts(&self) -> [(usize, usize); 5] {
-        [
-            (
-                self.nodes_with_known_node_provider_count,
-                self.nodes_with_unknown_node_provider_count,
-            ),
-            (
-                self.nodes_with_known_node_operator_count,
-                self.nodes_with_unknown_node_operator_count,
-            ),
-            (
-                self.nodes_with_known_data_center_count,
-                self.nodes_with_unknown_data_center_count,
-            ),
-            (
-                self.node_operators_with_known_node_provider_count,
-                self.node_operators_with_unknown_node_provider_count,
-            ),
-            (
-                self.node_operators_with_known_data_center_count,
-                self.node_operators_with_unknown_data_center_count,
-            ),
-        ]
-    }
 }
 
 ///

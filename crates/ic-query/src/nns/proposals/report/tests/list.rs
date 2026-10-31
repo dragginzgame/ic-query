@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::SortDirection;
 
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
@@ -39,7 +40,7 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         proposer_neuron_id: Some(99),
         query: None,
         sort: NnsProposalListSort::Title,
-        sort_direction: NnsProposalSortDirection::Asc,
+        sort_direction: SortDirection::Asc,
         verbose: true,
     };
 
@@ -65,8 +66,8 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(report.query_filter, None);
-    assert_eq!(report.sort, NNS_PROPOSAL_SORT_TITLE_LABEL);
-    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.sort, "title");
+    assert_eq!(report.sort_direction, "asc");
     assert_eq!(report.result_scope.as_str(), "bounded-live");
     assert_eq!(report.data_source.as_str(), "live");
     assert!(report.cache_path.is_none());

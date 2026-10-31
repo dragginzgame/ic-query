@@ -1,4 +1,5 @@
 use super::*;
+use crate::report::SortDirection;
 
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_list_report_sorts_by_reward_status_text() {
@@ -49,7 +50,7 @@ async fn nns_proposal_list_report_sorts_by_reward_status_text() {
         proposer_neuron_id: None,
         query: None,
         sort: NnsProposalListSort::RewardStatus,
-        sort_direction: NnsProposalSortDirection::Asc,
+        sort_direction: SortDirection::Asc,
         verbose: false,
     };
 
@@ -57,8 +58,8 @@ async fn nns_proposal_list_report_sorts_by_reward_status_text() {
         .await
         .expect("build reward-status sorted report");
 
-    assert_eq!(report.sort, NNS_PROPOSAL_SORT_REWARD_STATUS_LABEL);
-    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_ASC_LABEL);
+    assert_eq!(report.sort, "reward-status");
+    assert_eq!(report.sort_direction, "asc");
     assert_eq!(proposal_ids(&report), vec![102, 103, 101]);
 }
 
@@ -88,8 +89,8 @@ async fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
     .await
     .expect("build deadline sorted report");
 
-    assert_eq!(deadline_report.sort, NNS_PROPOSAL_SORT_DEADLINE_LABEL);
-    assert_eq!(deadline_report.sort_direction, NNS_PROPOSAL_SORT_DESC_LABEL);
+    assert_eq!(deadline_report.sort, "deadline");
+    assert_eq!(deadline_report.sort_direction, "desc");
     assert_eq!(proposal_ids(&deadline_report), vec![101, 103, 102]);
 
     let voting_power_report = build_nns_proposal_list_report_with_source(
@@ -99,14 +100,8 @@ async fn nns_proposal_list_report_sorts_by_deadline_and_voting_power() {
     .await
     .expect("build voting-power sorted report");
 
-    assert_eq!(
-        voting_power_report.sort,
-        NNS_PROPOSAL_SORT_VOTING_POWER_LABEL
-    );
-    assert_eq!(
-        voting_power_report.sort_direction,
-        NNS_PROPOSAL_SORT_DESC_LABEL
-    );
+    assert_eq!(voting_power_report.sort, "voting-power");
+    assert_eq!(voting_power_report.sort_direction, "desc");
     assert_eq!(proposal_ids(&voting_power_report), vec![102, 101, 103]);
 }
 
@@ -136,7 +131,7 @@ async fn nns_proposal_list_report_sorts_by_tally_time() {
     .await
     .expect("build tally-time sorted report");
 
-    assert_eq!(report.sort, NNS_PROPOSAL_SORT_TALLY_TIME_LABEL);
-    assert_eq!(report.sort_direction, NNS_PROPOSAL_SORT_DESC_LABEL);
+    assert_eq!(report.sort, "tally-time");
+    assert_eq!(report.sort_direction, "desc");
     assert_eq!(proposal_ids(&report), vec![101, 103, 102]);
 }

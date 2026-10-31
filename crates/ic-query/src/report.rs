@@ -58,6 +58,32 @@ impl CollectionSourceRequest {
     }
 }
 
+///
+/// SortDirection
+///
+/// Direction shared by local report sorts; each sort key owns its default.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SortDirection {
+    /// Order values from lowest to highest.
+    Asc,
+    /// Order values from highest to lowest.
+    #[default]
+    Desc,
+}
+
+impl SortDirection {
+    /// Return the stable report label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Asc => "asc",
+            Self::Desc => "desc",
+        }
+    }
+}
+
 /// Compare the endpoint and collection provenance echoed by a report source.
 #[cfg(any(feature = "cloud-engine-host", feature = "dashboard-host"))]
 pub(crate) fn source_provenance_mismatch(

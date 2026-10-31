@@ -19,10 +19,23 @@ fn topology_coverage_report_counts_inventory_relations() {
     assert_eq!(report.node_operator_count, 2);
     assert_eq!(report.node_provider_count, 1);
     assert_eq!(report.data_center_count, 1);
-    assert_eq!(report.nodes_with_known_node_provider_count, 2);
-    assert_eq!(report.nodes_with_unknown_node_provider_count, 1);
-    assert_eq!(report.node_operators_with_known_data_center_count, 1);
-    assert_eq!(report.node_operators_with_unknown_data_center_count, 1);
+    assert_eq!(report.join_coverage.nodes_with_known_node_provider_count, 2);
+    assert_eq!(
+        report.join_coverage.nodes_with_unknown_node_provider_count,
+        1
+    );
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_known_data_center_count,
+        1
+    );
+    assert_eq!(
+        report
+            .join_coverage
+            .node_operators_with_unknown_data_center_count,
+        1
+    );
 }
 
 #[test]

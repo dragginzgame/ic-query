@@ -4,12 +4,13 @@
 //! Does not own: proposal fetching, cache scope/limits, report assembly, or text rendering.
 //! Boundary: projects already-collected proposal rows without changing cache identity.
 
+use crate::report::SortDirection;
 use crate::sns::report::sns_proposal_action_label;
 
 use crate::sns::report::{
     SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE, SnsProposalDecisionState,
-    SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalSortDirection,
-    SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsRequest, SnsProposalsSort,
+    SnsProposalEligibilityFilter, SnsProposalRow, SnsProposalStatusFilter, SnsProposalTopicFilter,
+    SnsProposalsRequest, SnsProposalsSort,
 };
 use crate::{
     report_sort::{ReportSortKey, compare_ascii_case_insensitive_text, compare_ord},
@@ -110,9 +111,9 @@ pub(in crate::sns::report) fn proposal_matches_query(
 pub(in crate::sns::report) fn sort_sns_proposal_rows(
     proposals: &mut [SnsProposalRow],
     sort: SnsProposalsSort,
-    direction: SnsProposalSortDirection,
+    direction: SortDirection,
 ) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
+    let descending = matches!(direction, SortDirection::Desc);
     let by_id = |left: &SnsProposalRow, right: &SnsProposalRow| {
         compare_ord(left.proposal_id, right.proposal_id, descending)
     };
@@ -183,8 +184,8 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
     key.sort(proposals, descending, by_id);
 }
 
-fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDirection) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
+fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SortDirection) {
+    let descending = matches!(direction, SortDirection::Desc);
     proposals.sort_by(|left, right| {
         compare_ascii_case_insensitive_text(
             sns_proposal_action_label(left.action_id).as_ref(),
@@ -197,10 +198,10 @@ fn sort_by_action(proposals: &mut [SnsProposalRow], direction: SnsProposalSortDi
 
 fn sort_by_key<Key: Ord>(
     proposals: &mut [SnsProposalRow],
-    direction: SnsProposalSortDirection,
+    direction: SortDirection,
     key: impl Fn(&SnsProposalRow) -> Key,
 ) {
-    let descending = matches!(direction, SnsProposalSortDirection::Desc);
+    let descending = matches!(direction, SortDirection::Desc);
     proposals.sort_by(|left, right| {
         compare_ord(key(left), key(right), descending)
             .then_with(|| compare_ord(left.proposal_id, right.proposal_id, descending))

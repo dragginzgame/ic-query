@@ -1,4 +1,5 @@
 use super::NEURON_A;
+use crate::report::SortDirection;
 use crate::sns::report::tests::*;
 use std::path::Path;
 
@@ -93,7 +94,7 @@ pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsPropos
         proposer_neuron_id: None,
         query: None,
         sort: SnsProposalsSort::Api,
-        sort_direction: SnsProposalSortDirection::Desc,
+        sort_direction: SortDirection::Desc,
         cache_root: None,
         verbose: false,
     }

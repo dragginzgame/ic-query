@@ -116,10 +116,12 @@ component failure.
 
 ## Canonical topology request boundary
 
-Topology source capabilities accept the same `NnsTopologyReadRequest` and
+Topology source capabilities accept the same `nns::NnsInventoryListRequest` and
 `NnsTopologyRefreshRequest` passed to report builders. Refresh settings compose
-one `read` scope plus dry-run policy. Source callbacks receive
+one inventory `read` scope plus dry-run policy. Source callbacks receive
 the caller's scope directly rather than a reconstructed source DTO. Native
 adapters retain each component's cache policy and diagnostic request order.
 `read.source_request()` derives caller-clock live provenance through the existing
-NNS source contract; a cached component retains its stored timestamp and collector.
+collection provenance contract; a cached component retains its stored timestamp and collector.
+Summary and coverage compose `NnsTopologyJoinCoverageCounts` as `join_coverage`;
+Serde flattens its ten counters into the existing report JSON fields.

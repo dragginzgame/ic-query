@@ -10,23 +10,7 @@ use crate::{
     sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, cache_storage::SnsCacheMetadata},
 };
 
-///
-/// SnsReportContext
-///
-/// Validated identity and acquisition metadata shared by SNS list and detail reports.
-///
-
-pub(in crate::sns::report) struct SnsReportContext {
-    pub(in crate::sns::report) network: String,
-    pub(in crate::sns::report) sns_wasm_canister_id: String,
-    pub(in crate::sns::report) fetched_at: String,
-    pub(in crate::sns::report) source_endpoint: String,
-    pub(in crate::sns::report) fetched_by: String,
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) name: String,
-    pub(in crate::sns::report) root_canister_id: String,
-    pub(in crate::sns::report) governance_canister_id: String,
-}
+use crate::sns::report::SnsReportContext;
 
 impl SnsReportContext {
     /// Consume admitted snapshot identity and return its separately owned rows.

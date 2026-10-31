@@ -9,7 +9,7 @@ use crate::sns::report::{
     SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
     SnsRewardDiffReport, SnsRewardDiffRow,
-    model::reports::neurons::reward::assess_reward_checkpoint,
+    model::reports::neurons::reward::{RewardCheckpointAssessment, assess_reward_checkpoint},
 };
 
 /// Build one local reward diff from two untrusted in-memory checkpoints.
@@ -19,34 +19,42 @@ pub fn build_sns_reward_diff_report(
     after: &SnsRewardCheckpointReport,
 ) -> SnsRewardDiffReport {
     let mut reasons = Vec::new();
-    let (before_valid, before_summary) = validate_checkpoint(
-        before,
-        SnsRewardDiffInvalidReasonKind::BeforeCheckpointInvalid,
-        &mut reasons,
-    );
-    let (after_valid, after_summary) = validate_checkpoint(
-        after,
-        SnsRewardDiffInvalidReasonKind::AfterCheckpointInvalid,
-        &mut reasons,
-    );
+    let before_assessment = assess_reward_checkpoint(before);
+    let after_assessment = assess_reward_checkpoint(after);
+    for (assessment, kind) in [
+        (
+            &before_assessment,
+            SnsRewardDiffInvalidReasonKind::BeforeCheckpointInvalid,
+        ),
+        (
+            &after_assessment,
+            SnsRewardDiffInvalidReasonKind::AfterCheckpointInvalid,
+        ),
+    ] {
+        if let RewardCheckpointAssessment::Invalid { error, .. } = assessment {
+            reasons.push(reason(kind, None, &error.reason));
+        }
+    }
+    let before_summary = before_assessment.summary();
+    let after_summary = after_assessment.summary();
     validate_target_identity(before, after, &mut reasons);
     validate_checkpoint_order(before, after, &mut reasons);
     validate_reward_continuity(before, after, &mut reasons);
 
-    validate_policy("before", before_summary.as_ref(), &mut reasons);
-    validate_policy("after", after_summary.as_ref(), &mut reasons);
+    validate_policy("before", before_summary, &mut reasons);
+    validate_policy("after", after_summary, &mut reasons);
 
-    let mut rows = if before_valid && after_valid {
+    let mut rows = if matches!(before_assessment, RewardCheckpointAssessment::Valid(_))
+        && matches!(after_assessment, RewardCheckpointAssessment::Valid(_))
+    {
         join_reward_rows(before, after, &mut reasons)
     } else {
         Vec::new()
     };
-    let aggregate_before = before_summary
-        .as_ref()
-        .map(|summary| summary.aggregate_combined_maturity_e8s_equivalent);
-    let aggregate_after = after_summary
-        .as_ref()
-        .map(|summary| summary.aggregate_combined_maturity_e8s_equivalent);
+    let aggregate_before =
+        before_summary.map(|summary| summary.aggregate_combined_maturity_e8s_equivalent);
+    let aggregate_after =
+        after_summary.map(|summary| summary.aggregate_combined_maturity_e8s_equivalent);
     let aggregate_delta = aggregate_delta(aggregate_before, aggregate_after);
     let summed_neuron_delta = sum_neuron_deltas(&rows, &mut reasons);
     let distributed = after.reward_event_after.distributed_e8s_equivalent;
@@ -81,29 +89,13 @@ pub fn build_sns_reward_diff_report(
         aggregate_reconciled,
         per_neuron_reconciled,
         before_policy_status: before_summary
-            .as_ref()
             .map(|summary| summary.maturity_conversion_policy_observed_status),
         after_policy_status: after_summary
-            .as_ref()
             .map(|summary| summary.maturity_conversion_policy_observed_status),
         allocation_status,
         invalid_reasons: reasons,
         rows,
         checkpoint_content_authenticated: false,
-    }
-}
-
-fn validate_checkpoint(
-    report: &SnsRewardCheckpointReport,
-    kind: SnsRewardDiffInvalidReasonKind,
-    reasons: &mut Vec<SnsRewardDiffInvalidReason>,
-) -> (bool, Option<SnsRewardCheckpointSummary>) {
-    let (validation, summary) = assess_reward_checkpoint(report);
-    if let Err(error) = validation {
-        reasons.push(reason(kind, None, error.reason));
-        (false, summary)
-    } else {
-        (true, summary)
     }
 }
 

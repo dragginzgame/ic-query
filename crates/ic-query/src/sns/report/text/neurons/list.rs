@@ -28,11 +28,11 @@ use crate::{
 #[must_use]
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
     let mut lines = sns_identity_lines(
-        &report.network,
-        report.id,
-        &report.name,
-        &report.root_canister_id,
-        &report.governance_canister_id,
+        &report.context.network,
+        report.context.id,
+        &report.context.name,
+        &report.context.root_canister_id,
+        &report.context.governance_canister_id,
     );
     lines.extend([
         format!("requested_limit: {}", report.requested_limit),
@@ -52,11 +52,14 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
         format!("sort: {}", report.sort),
         format!("total_neuron_count: {}", report.total_neuron_count),
         format!("neuron_count: {}", report.neuron_count),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
     ]);
     if !report.neurons.is_empty() {

@@ -695,8 +695,8 @@ SNS info, token, parameter, swap, upgrade, and Root-canister builders share
 `SnsLookupRequest`; the bounded Governance metrics builder uses
 `SnsMetricsRequest` because its proposal-count window is part of collection
 intent. All read-only NNS topology builders share
-`NnsTopologyReadRequest`; Registry-derived NNS
-inventory families share the `NnsInventory*Request` contracts; SNS neuron and
+`nns::NnsInventoryListRequest`, including its nested `cache` scope;
+Registry-derived NNS inventory families share the `NnsInventory*Request` contracts; SNS neuron and
 proposal cache inspection shares the `SnsCache*` request and report contracts
 plus `SnsRefreshAttemptStatus`; the joined discovery catalog uses
 `SnsCatalogCacheRequest` and `SnsCatalogRefreshRequest`; complete NNS
@@ -708,6 +708,15 @@ reports share the transport-aware `NnsGovernanceRequest` and one portable async
 simple ledger-wide ICRC metadata and capability builders share
 `IcrcLedgerRequest`. There are no per-report aliases for those canonical
 types.
+Governance parameter, proposal and neuron envelopes carry their common identity
+and provenance in `SnsReportContext` through `report.context`. Topology summary
+and coverage expose their counters through `report.join_coverage`. Both are
+flattened by Serde, so the JSON field names and schema 1 remain unchanged.
+NNS and SNS proposal requests use `report::SortDirection`; each family's sort
+key retains its own default direction. `MainnetSnsToken::ledger_index` uses
+`icrc::IcrcIndexData::Found` or `Unavailable`, retaining SNS discovery failures
+as nonfatal evidence while ICRC transport errors remain fatal.
+
 The `downstream_usage` integration test type-checks representative examples
 below; other examples show the same public request and report APIs.
 
@@ -1657,7 +1666,7 @@ use std::path::Path;
 
 use ic_query::sns::{
     DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsSort,
-    SnsProposalSortDirection, SnsProposalsRequest, SnsProposalsSort, build_sns_neurons_report,
+    SnsProposalsRequest, SnsProposalsSort, build_sns_neurons_report,
     build_sns_proposals_report, sns_neurons_report_text, sns_proposals_report_text,
 };
 
@@ -1677,7 +1686,7 @@ async fn render_recent_sns_proposals(
     )
     .with_cache_root(cache_root)
     .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(SnsProposalSortDirection::Desc);
+    .with_sort_direction(ic_query::report::SortDirection::Desc);
 
     let report = build_sns_proposals_report(&request).await?;
     Ok(sns_proposals_report_text(&report))

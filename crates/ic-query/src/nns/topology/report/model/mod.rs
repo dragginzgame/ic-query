@@ -11,7 +11,7 @@ mod versions;
 
 pub use capacity::{NnsTopologyCapacityReport, NnsTopologyCapacityRow};
 pub use check::{NnsTopologyCheckReport, NnsTopologyCheckRow};
-pub use coverage::NnsTopologyCoverageReport;
+pub use coverage::{NnsTopologyCoverageReport, NnsTopologyJoinCoverageCounts};
 pub use gaps::{
     NnsTopologyGapRelationKind, NnsTopologyGapRow, NnsTopologyGapSubjectKind, NnsTopologyGapsReport,
 };

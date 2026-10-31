@@ -6,6 +6,7 @@ use ic_query::icrc::{IcrcMetadataValueKind, IcrcTokenMetadataRow, IcrcTokenStand
 #[cfg(feature = "sns-host")]
 use ic_query::report::CollectionSourceRequest;
 use ic_query::report::ReportDataSource;
+use ic_query::report::SortDirection;
 use ic_query::sns::MainnetSnsMetrics;
 use ic_query::sns::MainnetSnsSwap;
 use ic_query::sns::{
@@ -20,12 +21,12 @@ use ic_query::sns::{
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
     SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalSortDirection, SnsProposalStatusFilter, SnsProposalTally,
-    SnsProposalTopicFilter, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCollectionStatus,
+    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     build_sns_reward_diff_report, sns_canister_report_text, sns_info_report_text,
@@ -146,7 +147,7 @@ fn public_sns_request_constructors_set_expected_fields() {
     .with_proposer_neuron_id("010203")
     .with_query("upgrade")
     .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(SnsProposalSortDirection::Asc)
+    .with_sort_direction(SortDirection::Asc)
     .with_verbose(true);
     assert_eq!(proposals.limit, 25);
     assert_eq!(proposals.before_proposal_id, Some(100));
@@ -156,7 +157,7 @@ fn public_sns_request_constructors_set_expected_fields() {
     assert_eq!(proposals.proposer_neuron_id.as_deref(), Some("010203"));
     assert_eq!(proposals.query.as_deref(), Some("upgrade"));
     assert_eq!(proposals.sort, SnsProposalsSort::Created);
-    assert_eq!(proposals.sort_direction, SnsProposalSortDirection::Asc);
+    assert_eq!(proposals.sort_direction, SortDirection::Asc);
     assert!(proposals.verbose);
 }
 
@@ -164,15 +165,18 @@ fn public_sns_request_constructors_set_expected_fields() {
 fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
     let report = SnsNeuronDetailReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: "ic".to_string(),
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        },
+
         neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
         data_source: ReportDataSource::Live,
         detail: sample_sns_neuron_detail(),
@@ -185,10 +189,20 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
         SnsPolicyObservationStatus::Violated
     );
     assert!(sns_neuron_detail_report_text(&report).contains("7:merge_maturity"));
+    let value = serde_json::to_value(&report).expect("detail JSON");
+    assert_eq!(value["neuron_id"], SAMPLE_SNS_NEURON_ID);
+    assert_eq!(value["network"], "ic");
     assert_eq!(
-        serde_json::to_value(&report).expect("detail JSON")["neuron_id"],
-        SAMPLE_SNS_NEURON_ID
+        value["governance_canister_id"],
+        SAMPLE_SNS_GOVERNANCE_CANISTER_ID
     );
+    assert_eq!(value.get("context"), None);
+    let decoded: SnsNeuronDetailReport =
+        serde_json::from_value(value.clone()).expect("detail round trip");
+    assert_eq!(decoded, report);
+    let mut invalid = value;
+    invalid["unexpected"] = serde_json::json!(true);
+    assert!(serde_json::from_value::<SnsNeuronDetailReport>(invalid).is_err());
 }
 
 #[test]
@@ -798,15 +812,18 @@ fn public_sns_params_api_is_constructible_and_renderable() {
 
     let report = SnsParamsReport {
         schema_version: 1,
-        network: request.network,
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: request.network,
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
+            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        },
+
         parameters: sample_sns_governance_parameters(),
     };
 
@@ -967,7 +984,7 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         proposer_neuron_id: Some("010203".to_string()),
         query: Some("upgrade".to_string()),
         sort: SnsProposalsSort::Created,
-        sort_direction: SnsProposalSortDirection::Desc,
+        sort_direction: SortDirection::Desc,
         cache_root: None,
         verbose: true,
     };
@@ -977,15 +994,18 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
 
     let report = SnsProposalsReport {
         schema_version: 1,
-        network: request.lookup.network,
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.lookup.source_endpoint,
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: request.lookup.network,
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: request.lookup.source_endpoint,
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
+            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        },
+
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),
@@ -1048,15 +1068,18 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 
     let report = SnsProposalReport {
         schema_version: 1,
-        network: request.lookup.network,
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.lookup.source_endpoint,
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-        governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: request.lookup.network,
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: request.lookup.source_endpoint,
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
+            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+        },
+
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
@@ -2001,8 +2024,9 @@ fn sample_mainnet_sns_token() -> MainnetSnsToken {
                 value: json!("EXT"),
             }],
         },
-        ledger_index_canister_id: Some(SAMPLE_SNS_INDEX_CANISTER_ID.to_string()),
-        ledger_index_error: None,
+        ledger_index: ic_query::icrc::IcrcIndexData::Found(
+            SAMPLE_SNS_INDEX_CANISTER_ID.to_string(),
+        ),
     }
 }
 
@@ -2150,15 +2174,18 @@ fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
 fn sample_sns_neurons_report() -> SnsNeuronsReport {
     SnsNeuronsReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: "ic".to_string(),
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        },
+
         requested_limit: 1,
         owner_principal_id: None,
         verbose: false,

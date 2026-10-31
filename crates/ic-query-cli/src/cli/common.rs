@@ -144,17 +144,16 @@ pub fn resolve_time_bounds(
 }
 
 /// Admit shared direction flags while the family owns sort semantics and defaults.
-pub fn resolve_proposal_sort_direction<Direction: Copy>(
+pub fn resolve_proposal_sort_direction(
     matches: &ArgMatches,
     uses_local_direction: bool,
-    default_direction: Direction,
-    (asc, desc): (Direction, Direction),
+    default_direction: ic_query::report::SortDirection,
     local_sort_names: impl FnOnce() -> String,
-) -> Result<Direction, String> {
+) -> Result<ic_query::report::SortDirection, String> {
     let explicit = if matches.get_flag("asc") {
-        Some(("asc", asc))
+        Some(("asc", ic_query::report::SortDirection::Asc))
     } else if matches.get_flag("desc") {
-        Some(("desc", desc))
+        Some(("desc", ic_query::report::SortDirection::Desc))
     } else {
         None
     };

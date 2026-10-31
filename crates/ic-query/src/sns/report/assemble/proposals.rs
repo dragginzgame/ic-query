@@ -4,8 +4,8 @@
 //! Does not own: proposal fetching, cache loading, view filtering/sorting, or rendering.
 //! Boundary: maps resolved proposal rows and provenance into serializable report DTOs.
 
-use super::SnsReportContext;
 use crate::report::ReportProvenance;
+use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
     SNS_PROPOSAL_REPORT_SCHEMA_VERSION, SNS_PROPOSALS_REPORT_SCHEMA_VERSION, SnsProposalReport,
     SnsProposalRequest, SnsProposalRow, SnsProposalsReport, SnsProposalsRequest,
@@ -20,15 +20,7 @@ pub(in crate::sns::report) fn sns_proposal_report_from_parts(
 ) -> SnsProposalReport {
     SnsProposalReport {
         schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-        network: context.network,
-        sns_wasm_canister_id: context.sns_wasm_canister_id,
-        fetched_at: context.fetched_at,
-        source_endpoint: context.source_endpoint,
-        fetched_by: context.fetched_by,
-        id: context.id,
-        name: context.name,
-        root_canister_id: context.root_canister_id,
-        governance_canister_id: context.governance_canister_id,
+        context,
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
@@ -49,15 +41,7 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     let proposal_count = proposals.len();
     SnsProposalsReport {
         schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
-        network: context.network,
-        sns_wasm_canister_id: context.sns_wasm_canister_id,
-        fetched_at: context.fetched_at,
-        source_endpoint: context.source_endpoint,
-        fetched_by: context.fetched_by,
-        id: context.id,
-        name: context.name,
-        root_canister_id: context.root_canister_id,
-        governance_canister_id: context.governance_canister_id,
+        context,
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),

@@ -1,4 +1,4 @@
-use super::cache::{inventory_cache_request, subnet_catalog_cache_request};
+use super::cache::subnet_catalog_cache_request;
 use crate::{
     nns::NnsInventoryRefreshRequest,
     subnet_catalog::{CatalogSourceSelection, SubnetCatalogRefreshRequest},
@@ -19,7 +19,7 @@ pub(in crate::nns::topology::report) fn inventory_refresh_request(
     request: &super::model::NnsTopologyRefreshRequest,
 ) -> NnsInventoryRefreshRequest {
     NnsInventoryRefreshRequest::new(
-        inventory_cache_request(&request.read),
+        request.read.cache.clone(),
         request.read.source_endpoint.as_str(),
         request.read.now_unix_secs,
     )
