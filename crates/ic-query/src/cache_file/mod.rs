@@ -51,7 +51,7 @@ pub use confined::write_managed_file_atomically;
     feature = "sns-host"
 ))]
 pub use confined::{ManagedReadBudget, read_opened_file_bounded};
-#[cfg(feature = "subnet-catalog-host")]
+#[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_identity;
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use write::canonical_json_matches;

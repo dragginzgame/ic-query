@@ -38,12 +38,7 @@ pub fn decode_lowercase_hex(value: &str) -> Option<Vec<u8>> {
 }
 
 /// Decode even-length ASCII hexadecimal with either letter case.
-#[cfg(any(
-    test,
-    feature = "icrc-host",
-    feature = "sns-host",
-    feature = "subnet-catalog-host"
-))]
+#[cfg(any(test, feature = "icrc-host"))]
 pub fn decode_hex(value: &str) -> Option<Vec<u8>> {
     decode_hex_pairs(value, true)
 }

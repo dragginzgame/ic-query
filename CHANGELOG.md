@@ -25,6 +25,11 @@ crate follows [Semantic Versioning](https://semver.org/).
   Use arithmetic-only Metrics so production graphs exclude unused Wire metadata;
   probes and fixtures retain the core Wire codec and the Rust 1.91 requirement.
 
+### 🩹 Fixed
+
+- Match internal helper gates to their consumers so focused Subnet Catalog and
+  topology builds compile without unused-code warnings.
+
 ### 🧹 Cleanup
 
 - Simplify topology check projection, ICRC command parsing, SNS cache loading,
