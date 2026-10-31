@@ -1710,18 +1710,18 @@ dependencies = [
 
 [[package]]
 name = "ic-metrics"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70544c4dc1ae7697e22f2a3dd23a96de8fbcd722e7c320d72fda0c7760c2b9c6"
+checksum = "744346d56fe0994acc3b39aed3e2139c62f91d4924d0b466a19cbb375c3d66ad"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "ic-platform"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "213f5c314af4d94f4f3236534e10c8f3c8639d143c81be4af612bd732990cc37"
+checksum = "4b6912ffa33536abf388c40e9b32e36b2c3498b2846ee88951365bd1d7ee200b"
 dependencies = [
  "candid",
  "candid_parser",
@@ -1748,9 +1748,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-macros"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecb0f90530e4fb05428932d256cc62d71f4d98f6342ef9c103844d7f52f4f6cd"
+checksum = "c45b557958f0f359b8c64f10e8476a21f3e8cb1c36f9bf4ef9ea32f4954d2366"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1759,9 +1759,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-runtime-guard"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a77e6645992b36642c4c1563d93ac35ffa0e4b095aa4f8d7ecd3722f75e5587c"
+checksum = "34d0c2cda9fee3984746f300ae720710d4eb077df801ab77ca170c70bad1ea25"
 
 [[package]]
 name = "ic-platform-types"
@@ -1788,7 +1788,7 @@ dependencies = [
  "ic-host-process",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics 0.24.0",
+ "ic-metrics 0.24.1",
  "ic-platform",
  "ic-wire",
  "prost",

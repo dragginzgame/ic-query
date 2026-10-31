@@ -42,6 +42,8 @@ crate follows [Semantic Versioning](https://semver.org/).
   topology builds compile without unused-code warnings.
 - Update native graph fixtures to enforce the current Wire-free production
   contract alongside portable and canister fixtures.
+- Copy shared helper dependencies into isolated publication fixtures through
+  the companion-aware fixture preparer.
 
 ### 🧹 Cleanup
 

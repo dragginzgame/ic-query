@@ -22,14 +22,21 @@ fail() {
   exit 1
 }
 
+prepare_publish_fixture() {
+  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$1" \
+    scripts/release/publish-workspace.sh \
+    scripts/ci/check-crates-io-version.sh \
+    scripts/ci/read-cargo-workspace-version.sh \
+    scripts/ci/run-cargo-publication.sh
+}
+
 publish_case="${work_dir}/publish"
 mkdir -p "${publish_case}/bin" "${publish_case}/state" "${publish_case}/source/scripts/ci" "${publish_case}/source/scripts/release"
 current_version="$(bash "$repo_root/scripts/ci/read-cargo-workspace-version.sh" --stable "$repo_root/Cargo.toml")"
 # Keep Cargo validation real without referencing absent production members.
 printf '[workspace.package]\nversion = "%s"\n' \
   "$current_version" > "$publish_case/source/Cargo.toml"
-cp "$repo_root/scripts/ci/"{check-crates-io-version.sh,read-cargo-workspace-version.sh,run-cargo-publication.sh,check-make-execution.sh} "$publish_case/source/scripts/ci/"
-cp "$repo_root/scripts/release/publish-workspace.sh" "$publish_case/source/scripts/release/"
+prepare_publish_fixture "$publish_case/source"
 cat > "$publish_case/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -267,9 +274,7 @@ make_case="${work_dir}/make-publish"
 mkdir -p "${make_case}/bin" "${make_case}/scripts/release" "${make_case}/scripts/ci"
 printf '[fixture]\nversion = "9.9.9"\n[workspace.package]\nversion = "%s"\n' \
   "${current_version}" > "${make_case}/Cargo.toml"
-cp "${repo_root}/scripts/ci/"{check-crates-io-version.sh,read-cargo-workspace-version.sh,run-cargo-publication.sh,check-make-execution.sh} "${make_case}/scripts/ci/"
-ln -s "${repo_root}/scripts/release/publish-workspace.sh" \
-  "${make_case}/scripts/release/publish-workspace.sh"
+prepare_publish_fixture "$make_case"
 cat > "${make_case}/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
