@@ -13,18 +13,18 @@ mod reward;
 use crate::{
     cli::common::{SourceOutputOptions, current_unix_secs, write_text_or_json},
     progress::StderrQueryProgress,
-    sns::commands::{SnsCommandError, options::SnsListOptions, spec::sns_command},
+    sns::commands::{SnsCommandError, options::list_request, spec::sns_command},
     storage::cache_root,
 };
 use clap::ArgMatches;
 use ic_query::{
     QueryProgress, QueryProgressEvent,
     sns::{
-        SnsCatalogRefreshRequest, SnsListReport, SnsListRequest, build_sns_canister_report,
-        build_sns_info_report, build_sns_list_report_from_cache_or_refresh,
-        build_sns_params_report, build_sns_swap_report, build_sns_token_report,
-        build_sns_upgrade_report, refresh_sns_catalog, sns_canister_report_text,
-        sns_catalog_cache_path, sns_catalog_refresh_report_text, sns_info_report_text,
+        SnsCatalogRefreshRequest, SnsListReport, build_sns_canister_report, build_sns_info_report,
+        build_sns_list_report_from_cache_or_refresh, build_sns_params_report,
+        build_sns_swap_report, build_sns_token_report, build_sns_upgrade_report,
+        refresh_sns_catalog, sns_canister_report_text, sns_catalog_cache_path,
+        sns_catalog_refresh_report_text, sns_info_report_text,
         sns_list_report_text_with_metadata_style, sns_params_report_text, sns_swap_report_text,
         sns_token_report_text, sns_upgrade_report_text,
     },
@@ -117,16 +117,7 @@ pub async fn run_matches(
 }
 
 async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let options = SnsListOptions::from_matches(matches, network);
-    let format = options.format;
-    let request = SnsListRequest {
-        network: options.network,
-        source_endpoint: options.source_endpoint,
-        now_unix_secs: current_unix_secs()?,
-        all_lifecycles: options.all_lifecycles,
-        verbose: options.verbose,
-        sort: options.sort.into(),
-    };
+    let (format, request) = list_request(matches, network, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
     let report =
         build_sns_list_report_from_cache_or_refresh(&request, &cache_root()?, &mut progress)

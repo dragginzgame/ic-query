@@ -31,7 +31,7 @@ pub use chunk::{
 pub(super) use codec::decode_message;
 pub(in crate::ic_registry) use key_family::get_registry_key_family_counted;
 #[cfg(feature = "nns-topology-host")]
-pub(super) use value::get_registry_value;
+pub(super) use value::get_registry_record;
 pub(super) use value::get_registry_versioned_value_counted;
 #[cfg(all(test, feature = "nns-host"))]
 pub(super) use value::registry_value_content_from_response;

@@ -15,7 +15,7 @@ pub fn nns_topology_coverage_report_text(report: &NnsTopologyCoverageReport) -> 
     let lines = [
         render_coverage_count_table(report),
         String::new(),
-        render_coverage_join_coverage_table(report),
+        render_join_coverage_table(&report.join_coverage),
     ];
     lines.join("\n")
 }
@@ -40,8 +40,4 @@ fn render_coverage_count_table(report: &NnsTopologyCoverageReport) -> String {
     ];
     let alignments = [Alignment::Left, Alignment::Right];
     render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
-}
-
-fn render_coverage_join_coverage_table(report: &NnsTopologyCoverageReport) -> String {
-    render_join_coverage_table(&report.join_coverage)
 }

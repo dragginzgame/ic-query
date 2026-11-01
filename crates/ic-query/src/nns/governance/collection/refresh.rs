@@ -8,7 +8,7 @@ use super::{
 use crate::{
     HostCacheError,
     cache::CacheCollectionCompleteness,
-    cache_file::write_managed_json_pretty_atomically,
+    cache_file::write_collection_snapshot,
     snapshot_cache::{
         LockedSnapshotRefreshRequest, SnapshotEnvelope, SnapshotJsonPaths, SnapshotRefreshProgress,
         publish_snapshot_with_attempt, run_snapshot_refresh_with_attempts,
@@ -67,20 +67,13 @@ impl GovernanceSnapshotRefreshContext<'_> {
         };
         let attempt_finalization_error = publish_snapshot_with_attempt(
             || {
-                write_managed_json_pretty_atomically(
+                write_collection_snapshot(
+                    self.component,
                     &self.request.cache_root,
                     &self.paths.snapshot_path,
                     &cache,
-                    crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
-                    |path, source| {
-                        Error::from(HostCacheError::serialize_cache(
-                            self.component,
-                            path,
-                            source,
-                        ))
-                    },
-                    |source| Error::from(HostCacheError::operation(self.component, source)),
                 )
+                .map_err(Error::from)
             },
             || {
                 write_complete_governance_refresh_attempt(

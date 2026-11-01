@@ -4,7 +4,6 @@
 //! Does not own: Dashboard collection, cache policy, report projection, or rendering.
 //! Boundary: adds the same status operation beneath node, Subnet, and provider nouns.
 
-#[cfg(test)]
 use crate::cli::common::OutputFormat;
 use crate::storage::cache_root;
 use crate::{
@@ -25,6 +24,8 @@ use ic_query::ic::{
     build_ic_subnet_status_report, ic_node_provider_status_report_text, ic_node_status_report_text,
     ic_subnet_status_report_text,
 };
+
+use std::path::PathBuf;
 
 const ALL_ARG: &str = "all";
 const REFRESH_ARG: &str = "refresh";
@@ -119,57 +120,40 @@ pub(in crate::nns) async fn run(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    let options = OperationalStatusOptions::from_matches(matches);
-    let view = IcNodeStatusView {
-        target: options.target,
-        include_all: options.include_all,
-    };
-    let request = IcNodeStatusReadRequest::new(
-        cache_root()?,
-        network,
-        options.source.source_endpoint,
-        current_unix_secs()?,
-    )
-    .with_view(view)
-    .with_force_refresh(options.force_refresh);
+    let (format, request) = status_request(matches, network, cache_root()?, current_unix_secs()?);
     let mut progress = StderrQueryProgress::new();
 
     match subject {
         OperationalStatusSubject::Node => {
             let report = build_ic_node_status_report(&request, &mut progress).await?;
-            write_text_or_json(options.source.format, &report, ic_node_status_report_text)
+            write_text_or_json(format, &report, ic_node_status_report_text)
         }
         OperationalStatusSubject::NodeProvider => {
             let report = build_ic_node_provider_status_report(&request, &mut progress).await?;
-            write_text_or_json(
-                options.source.format,
-                &report,
-                ic_node_provider_status_report_text,
-            )
+            write_text_or_json(format, &report, ic_node_provider_status_report_text)
         }
         OperationalStatusSubject::Subnet => {
             let report = build_ic_subnet_status_report(&request, &mut progress).await?;
-            write_text_or_json(options.source.format, &report, ic_subnet_status_report_text)
+            write_text_or_json(format, &report, ic_subnet_status_report_text)
         }
     }
 }
 
-struct OperationalStatusOptions {
-    source: SourceOutputOptions,
-    target: Option<String>,
-    include_all: bool,
-    force_refresh: bool,
-}
-
-impl OperationalStatusOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            source: SourceOutputOptions::from_matches(matches),
-            target: string_option(matches, TARGET_ARG),
-            include_all: matches.get_flag(ALL_ARG),
-            force_refresh: matches.get_flag(REFRESH_ARG),
-        }
-    }
+fn status_request(
+    matches: &ArgMatches,
+    network: &str,
+    cache_root: PathBuf,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcNodeStatusReadRequest) {
+    let source = SourceOutputOptions::from_matches(matches);
+    let request =
+        IcNodeStatusReadRequest::new(cache_root, network, source.source_endpoint, now_unix_secs)
+            .with_view(IcNodeStatusView {
+                target: string_option(matches, TARGET_ARG),
+                include_all: matches.get_flag(ALL_ARG),
+            })
+            .with_force_refresh(matches.get_flag(REFRESH_ARG));
+    (source.format, request)
 }
 
 #[cfg(test)]
@@ -208,14 +192,15 @@ mod tests {
             ],
         )
         .expect("parse status options");
-        let options = OperationalStatusOptions::from_matches(&matches);
+        let (format, request) =
+            status_request(&matches, "ic", PathBuf::from("/cache"), 1_780_531_200);
 
-        assert_eq!(options.target.as_deref(), Some("tdb26"));
-        assert_eq!(options.source.format, OutputFormat::Json);
-        assert!(options.include_all);
-        assert!(options.force_refresh);
+        assert_eq!(request.view.target.as_deref(), Some("tdb26"));
+        assert_eq!(format, OutputFormat::Json);
+        assert!(request.view.include_all);
+        assert!(request.force_refresh);
         assert_eq!(
-            options.source.source_endpoint,
+            request.refresh.source_endpoint,
             "https://example.test/api/v3"
         );
     }

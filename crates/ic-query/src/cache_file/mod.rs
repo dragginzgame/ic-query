@@ -110,3 +110,6 @@ pub use write::validate_output_path;
 pub use write::{RefreshCacheWriteRequest, write_json_refresh_outputs};
 #[cfg(feature = "nns-host")]
 pub use write::{RefreshCacheWriteResult, write_json_refresh_cache};
+
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub use write::write_collection_snapshot;

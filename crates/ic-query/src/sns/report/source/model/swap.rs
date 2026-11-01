@@ -6,7 +6,6 @@
 
 use super::validation::SnsSourceValidator;
 use crate::sns::report::{MainnetSnsSwap, SnsCanisterMethod, SnsHostError, SnsSwapComponent};
-use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_SWAP_QUERY_COUNT: usize = 3;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS swap");
@@ -55,13 +54,14 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
     }
 
     swap.gaps.sort_by_key(|gap| gap.component);
-    let mut gap_components = BTreeSet::new();
+    let mut previous_component = None;
     for gap in &swap.gaps {
-        if !gap_components.insert(gap.component) {
+        if previous_component == Some(gap.component) {
             return Err(
                 VALIDATOR.invalid(format!("duplicate {} query gap", gap.component.as_str()))
             );
         }
+        previous_component = Some(gap.component);
         let expected_method = sns_swap_component_method(gap.component);
         if gap.method != expected_method {
             return Err(VALIDATOR.invalid(format!(
@@ -79,22 +79,27 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_swap(
         }
     }
 
+    let has_gap = |component| {
+        swap.gaps
+            .binary_search_by_key(&component, |gap| gap.component)
+            .is_ok()
+    };
     validate_component_result(
         SnsSwapComponent::Lifecycle,
         swap.lifecycle.is_some(),
-        gap_components.contains(&SnsSwapComponent::Lifecycle),
+        has_gap(SnsSwapComponent::Lifecycle),
         false,
     )?;
     validate_component_result(
         SnsSwapComponent::SaleParameters,
         swap.sale_parameters.is_some(),
-        gap_components.contains(&SnsSwapComponent::SaleParameters),
+        has_gap(SnsSwapComponent::SaleParameters),
         true,
     )?;
     validate_component_result(
         SnsSwapComponent::DerivedState,
         swap.derived_state.is_some(),
-        gap_components.contains(&SnsSwapComponent::DerivedState),
+        has_gap(SnsSwapComponent::DerivedState),
         false,
     )?;
     Ok(())

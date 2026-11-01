@@ -93,6 +93,24 @@ where
     .map_err(write_error)
 }
 
+/// Publish a complete collection using its shared byte ceiling and owner-labelled errors.
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub fn write_collection_snapshot<T: Serialize>(
+    component: &'static str,
+    cache_root: &Path,
+    path: &Path,
+    value: &T,
+) -> Result<(), crate::cache_file::HostCacheError> {
+    write_managed_json_pretty_atomically(
+        cache_root,
+        path,
+        value,
+        crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
+        |path, source| crate::cache_file::HostCacheError::serialize_cache(component, path, source),
+        |source| crate::cache_file::HostCacheError::operation(component, source),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

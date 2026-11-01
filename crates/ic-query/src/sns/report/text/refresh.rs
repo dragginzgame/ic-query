@@ -13,6 +13,8 @@ use crate::{sns::report::SnsSnapshotRefreshReport, text_value::yes_no};
 /// Render one complete SNS snapshot refresh result, including publication warnings.
 #[must_use]
 pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
+    let [attempt_finalized, attempt_finalization_error] =
+        crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
     let mut lines = sns_identity_fields_lines(
         &report.network,
         report.id,
@@ -31,14 +33,8 @@ pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> St
             "replaced_existing_cache: {}",
             yes_no(report.replaced_existing_cache)
         ),
-        format!(
-            "attempt_finalized: {}",
-            yes_no(report.attempt_finalization_error.is_none())
-        ),
-        format!(
-            "attempt_finalization_error: {}",
-            terminal_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
-        ),
+        attempt_finalized,
+        attempt_finalization_error,
         format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_lock_path: {}",

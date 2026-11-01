@@ -15,16 +15,17 @@ use ic_platform::agent::Agent;
 use prost::Message;
 
 #[cfg(feature = "nns-topology-host")]
-pub(in crate::ic_registry) async fn get_registry_value(
+pub(in crate::ic_registry) async fn get_registry_record<T: Message + Default>(
     agent: &Agent,
     registry_canister: &ic_platform::candid::contract::Principal,
     key: &str,
     version: u64,
-) -> Result<Vec<u8>, RegistryFetchError> {
-    get_registry_versioned_value_inner(agent, registry_canister, key, version, None)
+    message: &'static str,
+) -> Result<T, RegistryFetchError> {
+    let value = get_registry_versioned_value_inner(agent, registry_canister, key, version, None)
         .await
-        .map(|value| value.value)
-        .map_err(|failure| failure.source)
+        .map_err(|failure| failure.source)?;
+    decode_message(message, &value.value)
 }
 
 pub(in crate::ic_registry) async fn get_registry_versioned_value_counted(

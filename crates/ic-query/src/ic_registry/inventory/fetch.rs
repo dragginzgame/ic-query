@@ -12,7 +12,7 @@ use crate::ic_registry::{
         node_operator_references,
     },
     subnet_record_key,
-    transport::{decode_message, get_registry_value},
+    transport::get_registry_record,
 };
 use futures_util::{StreamExt, TryStreamExt, stream};
 use ic_host_tools::registry::proto::{
@@ -52,46 +52,21 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
     registry_version: u64,
     scope: RegistryRelationInventoryScope,
 ) -> Result<RegistryRelationInventory, RegistryFetchError> {
-    let subnet_list_bytes =
-        get_registry_value(agent, registry_canister, SUBNET_LIST_KEY, registry_version).await?;
-    let subnet_list = decode_message::<SubnetListRecord>("SubnetListRecord", &subnet_list_bytes)?;
-    if subnet_list.subnets.is_empty() {
-        return Err(RegistryFetchError::EmptySubnetList);
-    }
-
-    let subnet_principals = subnet_list
-        .subnets
-        .iter()
-        .map(|subnet_raw| principal_text_from_raw(subnet_raw, "subnet_list.subnets"))
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut unique_subnet_principals = BTreeSet::new();
-    for subnet_principal in &subnet_principals {
-        if !unique_subnet_principals.insert(subnet_principal.clone()) {
-            return Err(RegistryFetchError::DuplicateSubnetPrincipal {
-                subnet_principal: subnet_principal.clone(),
-            });
-        }
-    }
-    let subnet_records = stream::iter(subnet_principals)
-        .map(|subnet_principal| async move {
-            let key = subnet_record_key(&subnet_principal);
-            let record_bytes =
-                get_registry_value(agent, registry_canister, &key, registry_version).await?;
-            let record = decode_message::<SubnetRecord>("SubnetRecord", &record_bytes)?;
-            Ok::<_, RegistryFetchError>((subnet_principal, record))
-        })
-        .buffer_unordered(INVENTORY_FETCH_CONCURRENCY)
-        .try_collect::<BTreeMap<_, _>>()
-        .await?;
+    let subnet_records = fetch_subnet_records(agent, registry_canister, registry_version).await?;
 
     let node_principals = assigned_node_principals_from_subnets(&subnet_records)?;
     let node_records = stream::iter(node_principals.iter().cloned())
         .map(|node_principal| async move {
             let key = node_record_key(&node_principal);
-            let record_bytes = get_registry_value(agent, registry_canister, &key, registry_version)
-                .await
-                .map_err(|error| translate_missing_node_record(&node_principal, error))?;
-            let record = decode_message::<NodeRecord>("NodeRecord", &record_bytes)?;
+            let record = get_registry_record::<NodeRecord>(
+                agent,
+                registry_canister,
+                &key,
+                registry_version,
+                "NodeRecord",
+            )
+            .await
+            .map_err(|error| translate_missing_node_record(&node_principal, error))?;
             Ok::<_, RegistryFetchError>((node_principal, record))
         })
         .buffer_unordered(INVENTORY_FETCH_CONCURRENCY)
@@ -105,18 +80,21 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         .map(
             |(node_operator_principal, referencing_node_principals)| async move {
                 let key = node_operator_record_key(&node_operator_principal);
-                let record_bytes =
-                    get_registry_value(agent, registry_canister, &key, registry_version)
-                        .await
-                        .map_err(|error| {
-                            translate_missing_node_operator_record(
-                                &node_operator_principal,
-                                &referencing_node_principals,
-                                error,
-                            )
-                        })?;
-                let record =
-                    decode_message::<NodeOperatorRecord>("NodeOperatorRecord", &record_bytes)?;
+                let record = get_registry_record::<NodeOperatorRecord>(
+                    agent,
+                    registry_canister,
+                    &key,
+                    registry_version,
+                    "NodeOperatorRecord",
+                )
+                .await
+                .map_err(|error| {
+                    translate_missing_node_operator_record(
+                        &node_operator_principal,
+                        &referencing_node_principals,
+                        error,
+                    )
+                })?;
                 Ok::<_, RegistryFetchError>((node_operator_principal, record))
             },
         )
@@ -148,6 +126,54 @@ pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
         #[cfg(feature = "nns-host")]
         data_center_records,
     })
+}
+
+async fn fetch_subnet_records(
+    agent: &Agent,
+    registry_canister: &Principal,
+    registry_version: u64,
+) -> Result<BTreeMap<String, SubnetRecord>, RegistryFetchError> {
+    let subnet_list = get_registry_record::<SubnetListRecord>(
+        agent,
+        registry_canister,
+        SUBNET_LIST_KEY,
+        registry_version,
+        "SubnetListRecord",
+    )
+    .await?;
+    if subnet_list.subnets.is_empty() {
+        return Err(RegistryFetchError::EmptySubnetList);
+    }
+
+    let subnet_principals = subnet_list
+        .subnets
+        .iter()
+        .map(|subnet_raw| principal_text_from_raw(subnet_raw, "subnet_list.subnets"))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut unique_subnet_principals = BTreeSet::new();
+    for subnet_principal in &subnet_principals {
+        if !unique_subnet_principals.insert(subnet_principal.clone()) {
+            return Err(RegistryFetchError::DuplicateSubnetPrincipal {
+                subnet_principal: subnet_principal.clone(),
+            });
+        }
+    }
+    stream::iter(subnet_principals)
+        .map(|subnet_principal| async move {
+            let key = subnet_record_key(&subnet_principal);
+            let record = get_registry_record::<SubnetRecord>(
+                agent,
+                registry_canister,
+                &key,
+                registry_version,
+                "SubnetRecord",
+            )
+            .await?;
+            Ok::<_, RegistryFetchError>((subnet_principal, record))
+        })
+        .buffer_unordered(INVENTORY_FETCH_CONCURRENCY)
+        .try_collect::<BTreeMap<_, _>>()
+        .await
 }
 
 fn translate_missing_node_record(

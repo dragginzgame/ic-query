@@ -26,20 +26,22 @@ pub fn subnet_catalog_list_report_verbose_text(report: &SubnetCatalogListReport)
         .subnets
         .iter()
         .map(|subnet| {
+            let [
+                kind,
+                specialization,
+                geographic_scope,
+                node_count,
+                charges,
+                range_count,
+            ] = super::subnet_cells(subnet);
             [
                 subnet.subnet_principal.clone(),
-                subnet.classification.subnet_kind.as_str().to_string(),
-                subnet
-                    .classification
-                    .subnet_specialization
-                    .as_str()
-                    .to_string(),
-                subnet.classification.geographic_scope.as_str().to_string(),
-                subnet
-                    .node_count
-                    .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
-                yes_no(subnet.charges_apply_by_default).to_string(),
-                subnet.range_count.to_string(),
+                kind,
+                specialization,
+                geographic_scope,
+                node_count,
+                charges,
+                range_count,
                 report.metadata.registry_version.to_string(),
                 report.metadata.fetched_at.clone(),
                 yes_no(report.catalog_stale).to_string(),

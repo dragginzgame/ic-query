@@ -188,17 +188,17 @@ pub(super) fn cache_status_row(
 ) -> Result<CacheStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
     let info = classify_cache_path(relative);
-    let relative_path = relative.display().to_string();
+    let mut row = info.status_row(
+        info.component.clone(),
+        path,
+        relative.display().to_string(),
+        0,
+    );
     let Some(file) = open_managed_file(root, path)? else {
-        return Ok(invalid_row(
-            &info,
-            path,
-            relative_path,
-            0,
-            Some("cache file disappeared during inspection".to_string()),
-        ));
+        row.inspection_error = Some("cache file disappeared during inspection".to_string());
+        return Ok(row);
     };
-    let size_bytes = file
+    row.size_bytes = file
         .metadata()
         .map_err(|source| CacheFileError::OpenManagedPath {
             root: root.to_path_buf(),
@@ -206,77 +206,58 @@ pub(super) fn cache_status_row(
             source,
         })?
         .len();
-    let header = budget
-        .inspect_stream(file, path, |reader| {
-            read_cache_header(&info, reader, size_bytes, MAX_CACHE_INSPECTION_BYTES)
-        })?
-        .map_err(|error| error.to_string());
-    let Ok(header) = header else {
-        return Ok(invalid_row(
-            &info,
-            path,
-            relative_path,
-            size_bytes,
-            header.err(),
-        ));
+    let header = budget.inspect_stream(file, path, |reader| {
+        read_cache_header(&info, reader, row.size_bytes, MAX_CACHE_INSPECTION_BYTES)
+    })?;
+    let header = match header {
+        Ok(header) => header,
+        Err(error) => {
+            row.inspection_error = Some(error.to_string());
+            return Ok(row);
+        }
     };
-    let fetched_at = header
+    if let (Some(domain), Some(entity), Some(collection)) = (
+        header.fields.domain.as_deref(),
+        header.fields.entity.as_deref(),
+        header.fields.collection.as_deref(),
+    ) {
+        row.component = format!("{domain}/{entity}/{collection}");
+    }
+    row.header_status = CacheHeaderStatus::Readable;
+    row.schema_version = Some(header.schema_version);
+    row.network = header.fields.network;
+    row.fetched_at = header
         .fields
         .fetched_at
-        .clone()
-        .or_else(|| header.fields.collection_completed_at.clone());
-    let Some(fetched_at_text) = fetched_at else {
-        return Ok(unknown_age_row(
-            &info,
-            path,
-            relative_path,
-            size_bytes,
-            header,
-            None,
-            "cache has no fetched_at or collection_completed_at timestamp".to_string(),
-        ));
-    };
-    let Some(fetched_at_unix_secs) = parse_utc_timestamp_secs(&fetched_at_text) else {
-        return Ok(unknown_age_row(
-            &info,
-            path,
-            relative_path,
-            size_bytes,
-            header,
-            Some(fetched_at_text),
-            "cache timestamp is not canonical UTC".to_string(),
-        ));
-    };
-    let Some(age_seconds) = now_unix_secs.checked_sub(fetched_at_unix_secs) else {
-        return Ok(unknown_age_row(
-            &info,
-            path,
-            relative_path,
-            size_bytes,
-            header,
-            Some(fetched_at_text),
-            "cache timestamp is in the future".to_string(),
-        ));
-    };
-    let age_status = info
-        .stale_after_seconds
-        .map_or(CacheAgeStatus::Unmanaged, |threshold| {
-            if age_seconds > threshold {
-                CacheAgeStatus::Stale
-            } else {
-                CacheAgeStatus::Fresh
-            }
+        .or(header.fields.collection_completed_at);
+    let age = row
+        .fetched_at
+        .as_deref()
+        .ok_or("cache has no fetched_at or collection_completed_at timestamp")
+        .and_then(|text| {
+            parse_utc_timestamp_secs(text).ok_or("cache timestamp is not canonical UTC")
+        })
+        .and_then(|timestamp| {
+            now_unix_secs
+                .checked_sub(timestamp)
+                .ok_or("cache timestamp is in the future")
         });
-    let component = component(&info, &header);
-    Ok(CacheStatusRow {
-        header_status: CacheHeaderStatus::Readable,
-        age_status,
-        schema_version: Some(header.schema_version),
-        network: header.fields.network,
-        fetched_at: Some(fetched_at_text),
-        age_seconds: Some(age_seconds),
-        ..info.status_row(component, path, relative_path, size_bytes)
-    })
+    match age {
+        Ok(age_seconds) => {
+            row.age_seconds = Some(age_seconds);
+            row.age_status =
+                info.stale_after_seconds
+                    .map_or(CacheAgeStatus::Unmanaged, |threshold| {
+                        if age_seconds > threshold {
+                            CacheAgeStatus::Stale
+                        } else {
+                            CacheAgeStatus::Fresh
+                        }
+                    });
+        }
+        Err(error) => row.inspection_error = Some(error.to_string()),
+    }
+    Ok(row)
 }
 
 fn read_cache_header(
@@ -429,52 +410,6 @@ fn component_for_path_parts(parts: &[&str]) -> String {
         ["sns", _, _, collection, ..] => format!("sns/{collection}"),
         ["icrc", _, _, collection, ..] => format!("icrc/{collection}"),
         _ => parts.first().copied().unwrap_or("unknown").to_string(),
-    }
-}
-
-fn invalid_row(
-    info: &CachePathInfo<'_>,
-    path: &Path,
-    relative_path: String,
-    size_bytes: u64,
-    error: Option<String>,
-) -> CacheStatusRow {
-    CacheStatusRow {
-        inspection_error: error,
-        ..info.status_row(info.component.clone(), path, relative_path, size_bytes)
-    }
-}
-
-fn unknown_age_row(
-    info: &CachePathInfo<'_>,
-    path: &Path,
-    relative_path: String,
-    size_bytes: u64,
-    header: GenericCacheHeader,
-    fetched_at: Option<String>,
-    error: String,
-) -> CacheStatusRow {
-    let component = component(info, &header);
-    CacheStatusRow {
-        header_status: CacheHeaderStatus::Readable,
-        schema_version: Some(header.schema_version),
-        network: header.fields.network,
-        fetched_at,
-        inspection_error: Some(error),
-        ..info.status_row(component, path, relative_path, size_bytes)
-    }
-}
-
-fn component(info: &CachePathInfo<'_>, header: &GenericCacheHeader) -> String {
-    match (
-        header.fields.domain.as_deref(),
-        header.fields.entity.as_deref(),
-        header.fields.collection.as_deref(),
-    ) {
-        (Some(domain), Some(entity), Some(collection)) => {
-            format!("{domain}/{entity}/{collection}")
-        }
-        _ => info.component.clone(),
     }
 }
 

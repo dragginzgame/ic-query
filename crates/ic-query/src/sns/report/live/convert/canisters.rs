@@ -51,25 +51,33 @@ fn project_inventory(
             }),
         ),
     };
-    let singleton_health = health.as_mut().map(|health| {
-        [
-            health.root.take(),
-            health.governance.take(),
-            health.ledger.take(),
-            health.swap.take(),
-            health.index.take(),
-        ]
-    });
-    for ((role, canister_id), summary) in [
-        (SnsCanisterRole::Root, inventory.root),
-        (SnsCanisterRole::Governance, inventory.governance),
-        (SnsCanisterRole::Ledger, inventory.ledger),
-        (SnsCanisterRole::Swap, inventory.swap),
-        (SnsCanisterRole::Index, inventory.index),
-    ]
-    .into_iter()
-    .zip(singleton_health.unwrap_or_default())
-    {
+    for (role, canister_id, summary) in [
+        (
+            SnsCanisterRole::Root,
+            inventory.root,
+            health.as_mut().and_then(|health| health.root.take()),
+        ),
+        (
+            SnsCanisterRole::Governance,
+            inventory.governance,
+            health.as_mut().and_then(|health| health.governance.take()),
+        ),
+        (
+            SnsCanisterRole::Ledger,
+            inventory.ledger,
+            health.as_mut().and_then(|health| health.ledger.take()),
+        ),
+        (
+            SnsCanisterRole::Swap,
+            inventory.swap,
+            health.as_mut().and_then(|health| health.swap.take()),
+        ),
+        (
+            SnsCanisterRole::Index,
+            inventory.index,
+            health.as_mut().and_then(|health| health.index.take()),
+        ),
+    ] {
         if health.is_some() {
             push_singleton(role, canister_id, summary, &mut canisters, &mut gaps);
         } else {

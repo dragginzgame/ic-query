@@ -13,31 +13,20 @@ use crate::{
 };
 use clap::ArgMatches;
 
-///
-/// SnsListOptions
-///
-/// Parsed options accepted by `icq sns list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsListOptions {
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-    pub(in crate::sns::commands) source_endpoint: String,
-    pub(in crate::sns::commands) all_lifecycles: bool,
-    pub(in crate::sns::commands) verbose: bool,
-    pub(in crate::sns::commands) sort: SnsListSortArg,
-}
-
-impl SnsListOptions {
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
+pub(in crate::sns::commands) fn list_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+) -> (OutputFormat, ic_query::sns::SnsListRequest) {
+    (
+        output_format(matches),
+        ic_query::sns::SnsListRequest {
             network: network.to_string(),
-            format: output_format(matches),
             source_endpoint: required_string(matches, "source-endpoint"),
+            now_unix_secs,
             all_lifecycles: matches.get_flag("all"),
             verbose: matches.get_flag("verbose"),
-            sort: required_typed(matches, "sort"),
-        }
-    }
+            sort: required_typed::<SnsListSortArg>(matches, "sort").into(),
+        },
+    )
 }

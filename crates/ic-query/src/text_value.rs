@@ -50,3 +50,15 @@ pub fn push_titled_table_section(lines: &mut Vec<String>, title: &str, table: Op
     lines.push(title.to_string());
     lines.push(table.unwrap_or_else(|| "-".to_string()));
 }
+
+/// Render the finalization outcome of a successfully published collection snapshot.
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+pub fn refresh_finalization_lines(error: Option<&str>) -> [String; 2] {
+    [
+        format!("attempt_finalized: {}", yes_no(error.is_none())),
+        format!(
+            "attempt_finalization_error: {}",
+            terminal_text(error.unwrap_or("-"))
+        ),
+    ]
+}

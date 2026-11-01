@@ -9,7 +9,6 @@ use crate::{
     hex::is_lowercase_hex_32_bytes,
     sns::report::{MainnetSnsMetrics, SnsCanisterCallType, SnsCanisterMethod, SnsHostError},
 };
-use std::collections::BTreeSet;
 
 pub(in crate::sns::report) const SNS_METRICS_CALL_TYPE: SnsCanisterCallType =
     SnsCanisterCallType::CompositeQuery;
@@ -61,11 +60,12 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_metrics(
     }
 
     metrics.treasury_metrics.sort_by_key(|row| row.treasury);
-    let mut treasury_codes = BTreeSet::new();
+    let mut previous_treasury = None;
     for row in &metrics.treasury_metrics {
-        if !treasury_codes.insert(row.treasury) {
+        if previous_treasury == Some(row.treasury) {
             return Err(VALIDATOR.invalid(format!("duplicate treasury code {}", row.treasury)));
         }
+        previous_treasury = Some(row.treasury);
         validate_optional_text("treasury name", row.name.as_deref())?;
         validate_optional_principal("ledger_canister_id", row.ledger_canister_id.as_deref())?;
         validate_optional_principal("account_owner", row.account_owner.as_deref())?;

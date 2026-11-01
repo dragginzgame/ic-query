@@ -193,6 +193,75 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
 }
 
 #[test]
+fn status_keeps_header_identity_when_age_is_unavailable() {
+    let root = temp_dir("ic-query-status-age-evidence");
+    let now = parse_utc_timestamp_secs("2026-08-04T00:00:00Z").unwrap();
+    for (name, fetched_at, completed_at) in [
+        ("missing", None, None),
+        ("malformed", Some("not-a-timestamp"), None),
+        ("future", Some("2026-08-05T00:00:00Z"), None),
+        ("completion", None, Some("2026-08-03T00:00:00Z")),
+        ("preferred", Some(""), Some("2026-08-03T00:00:00Z")),
+    ] {
+        let relative = format!("unmanaged/{name}/full.json");
+        let mut contents = serde_json::json!({
+            "schema_version": 1, "network": "ic",
+            "domain": "fixture", "entity": "entity", "collection": "rows",
+        });
+        if let Some(timestamp) = fetched_at {
+            contents["fetched_at"] = timestamp.into();
+        }
+        if let Some(timestamp) = completed_at {
+            contents["collection_completed_at"] = timestamp.into();
+        }
+        write_cache(&root, &root.join(&relative), &contents.to_string());
+    }
+    let report = build_cache_status_report(&CacheStatusRequest::new(&root, now)).unwrap();
+    assert_eq!(report.cache_count, 5);
+    for row in &report.caches {
+        assert_eq!(row.header_status, CacheHeaderStatus::Readable);
+        assert_eq!(row.schema_version, Some(1));
+        assert_eq!(row.network.as_deref(), Some("ic"));
+        assert_eq!(row.component, "fixture/entity/rows");
+        assert_eq!(row.recovery_policy, CacheRecoveryPolicy::Unknown);
+        let (fetched_at, age, error) = match row.relative_path.as_str() {
+            "unmanaged/missing/full.json" => (
+                None,
+                None,
+                Some("cache has no fetched_at or collection_completed_at timestamp"),
+            ),
+            "unmanaged/malformed/full.json" => (
+                Some("not-a-timestamp"),
+                None,
+                Some("cache timestamp is not canonical UTC"),
+            ),
+            "unmanaged/future/full.json" => (
+                Some("2026-08-05T00:00:00Z"),
+                None,
+                Some("cache timestamp is in the future"),
+            ),
+            "unmanaged/completion/full.json" => (Some("2026-08-03T00:00:00Z"), Some(86_400), None),
+            "unmanaged/preferred/full.json" => {
+                (Some(""), None, Some("cache timestamp is not canonical UTC"))
+            }
+            _ => panic!("unexpected fixture cache"),
+        };
+        assert_eq!(row.fetched_at.as_deref(), fetched_at);
+        assert_eq!(row.age_seconds, age);
+        assert_eq!(row.inspection_error.as_deref(), error);
+        assert_eq!(
+            row.age_status,
+            if age.is_some() {
+                CacheAgeStatus::Unmanaged
+            } else {
+                CacheAgeStatus::Unknown
+            }
+        );
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn status_reports_active_available_and_invalid_coordination_files() {
     let root = temp_dir("ic-query-refresh-lock-status");
     let active_lock = root.join("nns/ic/node/refresh.lock");

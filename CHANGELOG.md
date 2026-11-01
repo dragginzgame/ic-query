@@ -5,6 +5,16 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.81.1]
+
+### 🧹 Cleanup
+
+- Simplify cache inspection, collection publication, Registry record reads and
+  report formatting. Remove redundant CLI parsing and uniqueness state while
+  preserving public Rust APIs, JSON fields, CLI output and schema-1 caches.
+
+Detailed release notes: [docs/changelog/0.81.md](docs/changelog/0.81.md)
+
 ## [0.81.0] - 2026-11-01
 
 ### ⚠️ Breaking

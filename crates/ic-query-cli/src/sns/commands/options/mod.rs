@@ -11,7 +11,7 @@ mod neurons;
 mod proposals;
 mod reward;
 
-pub(super) use list::SnsListOptions;
+pub(super) use list::list_request;
 pub(super) use lookup::{
     SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, cache_list_request,
 };

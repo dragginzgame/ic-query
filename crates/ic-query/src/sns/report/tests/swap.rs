@@ -174,6 +174,7 @@ async fn sns_swap_rejects_invalid_custom_source_evidence() {
         (claim_atomic_snapshot, "point-in-time guarantee"),
         (negative_derived_rate, "finite non-negative"),
         (value_and_gap_for_component, "both a value and a query gap"),
+        (duplicate_component_gap, "duplicate lifecycle query gap"),
     ] {
         let error = build_sns_swap_report_with_source(
             &swap_request("1"),
@@ -240,4 +241,14 @@ fn fail_all_components(swap: &mut MainnetSnsSwap) {
             reason: "fixture derived state failure".to_string(),
         },
     ];
+}
+
+fn duplicate_component_gap(swap: &mut MainnetSnsSwap) {
+    swap.lifecycle = None;
+    let gap = SnsSwapQueryGap {
+        component: SnsSwapComponent::Lifecycle,
+        method: SnsCanisterMethod::GetLifecycle,
+        reason: "fixture lifecycle unavailable".to_string(),
+    };
+    swap.gaps = vec![gap.clone(), gap];
 }

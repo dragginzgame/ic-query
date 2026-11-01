@@ -27,3 +27,6 @@ pub use output::{validate_output_path, write_text_output};
 pub use refresh::{RefreshCacheWriteRequest, write_json_refresh_outputs};
 #[cfg(feature = "nns-host")]
 pub use refresh::{RefreshCacheWriteResult, write_json_refresh_cache};
+
+#[cfg(any(feature = "icrc-host", feature = "nns-host", feature = "sns-host"))]
+pub use json::write_collection_snapshot;

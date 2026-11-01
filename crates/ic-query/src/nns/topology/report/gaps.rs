@@ -7,11 +7,12 @@
 use super::{
     NNS_TOPOLOGY_GAPS_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus, NnsTopologyGapsReport,
 };
-use super::{TopologyInventoryReports, relations::TopologyRelationIndex};
-use crate::nns::{
-    node::NnsNodeRow,
-    node_operator::NnsNodeOperatorRow,
-    topology::report::{NnsTopologyGapRelationKind, NnsTopologyGapRow, NnsTopologyGapSubjectKind},
+use super::{
+    TopologyInventoryReports,
+    relations::{TopologyRelation, TopologyRelationIndex},
+};
+use crate::nns::topology::report::{
+    NnsTopologyGapRelationKind, NnsTopologyGapRow, NnsTopologyGapSubjectKind,
 };
 
 pub(super) fn topology_gaps_report_from_reports(
@@ -24,11 +25,23 @@ pub(super) fn topology_gaps_report_from_reports(
         &reports.node_operator,
         &reports.data_center,
     );
-    let mut gaps = collect_node_gaps(&reports.node.nodes, &index);
-    gaps.extend(collect_node_operator_gaps(
-        &reports.node_operator.node_operators,
-        &index,
-    ));
+    let mut gaps = Vec::new();
+    for node in &reports.node.nodes {
+        append_missing_relations(
+            &mut gaps,
+            NnsTopologyGapSubjectKind::Node,
+            &node.node_principal,
+            index.node_relations(node),
+        );
+    }
+    for operator in &reports.node_operator.node_operators {
+        append_missing_relations(
+            &mut gaps,
+            NnsTopologyGapSubjectKind::NodeOperator,
+            &operator.node_operator_principal,
+            index.operator_relations(operator),
+        );
+    }
     sort_gap_rows(&mut gaps);
 
     let gap_count = gaps.len();
@@ -44,44 +57,20 @@ pub(super) fn topology_gaps_report_from_reports(
     }
 }
 
-fn collect_node_gaps(
-    nodes: &[NnsNodeRow],
-    index: &TopologyRelationIndex<'_>,
-) -> Vec<NnsTopologyGapRow> {
-    let mut gaps = Vec::new();
-    for node in nodes {
-        for relation in index.node_relations(node) {
-            if !relation.known {
-                gaps.push(topology_gap_row(
-                    NnsTopologyGapSubjectKind::Node,
-                    &node.node_principal,
-                    relation.kind,
-                    relation.referenced_id,
-                ));
-            }
-        }
-    }
-    gaps
-}
-
-fn collect_node_operator_gaps(
-    operators: &[NnsNodeOperatorRow],
-    index: &TopologyRelationIndex<'_>,
-) -> Vec<NnsTopologyGapRow> {
-    let mut gaps = Vec::new();
-    for operator in operators {
-        for relation in index.operator_relations(operator) {
-            if !relation.known {
-                gaps.push(topology_gap_row(
-                    NnsTopologyGapSubjectKind::NodeOperator,
-                    &operator.node_operator_principal,
-                    relation.kind,
-                    relation.referenced_id,
-                ));
-            }
-        }
-    }
-    gaps
+fn append_missing_relations<'a>(
+    gaps: &mut Vec<NnsTopologyGapRow>,
+    subject_kind: NnsTopologyGapSubjectKind,
+    subject: &str,
+    relations: impl IntoIterator<Item = TopologyRelation<'a>>,
+) {
+    gaps.extend(
+        relations
+            .into_iter()
+            .filter(|relation| !relation.known)
+            .map(|relation| {
+                topology_gap_row(subject_kind, subject, relation.kind, relation.referenced_id)
+            }),
+    );
 }
 
 fn sort_gap_rows(gaps: &mut [NnsTopologyGapRow]) {

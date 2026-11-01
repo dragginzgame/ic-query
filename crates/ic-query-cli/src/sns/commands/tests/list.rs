@@ -2,16 +2,19 @@ use super::*;
 
 #[test]
 fn sns_list_parses_defaults_and_json_format() {
-    let defaults = parse_test_options(sns_list_command(), &[], SnsListOptions::from_matches)
-        .expect("parse defaults");
+    let (format, defaults) = parse_test_options(sns_list_command(), &[], |matches, network| {
+        list_request(matches, network, 1_780_531_200)
+    })
+    .expect("parse defaults");
     assert_eq!(defaults.network, "ic");
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.now_unix_secs, 1_780_531_200);
+    assert_eq!(format, OutputFormat::Text);
     assert_eq!(defaults.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-    assert_eq!(defaults.sort, SnsListSortArg::Id);
+    assert_eq!(defaults.sort, SnsListSortArg::Id.into());
     assert!(!defaults.all_lifecycles);
     assert!(!defaults.verbose);
 
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         sns_list_command(),
         &[
             "--json",
@@ -22,13 +25,13 @@ fn sns_list_parses_defaults_and_json_format() {
             "name",
             "--verbose",
         ],
-        SnsListOptions::from_matches,
+        |matches, network| list_request(matches, network, 1_780_531_200),
     )
     .expect("parse list");
 
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
-    assert_eq!(options.sort, SnsListSortArg::Name);
+    assert_eq!(options.sort, SnsListSortArg::Name.into());
     assert!(options.all_lifecycles);
     assert!(options.verbose);
 }

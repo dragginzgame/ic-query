@@ -7,6 +7,8 @@ use ic_host_text::escape::terminal_text;
 /// Render one complete NNS Governance snapshot refresh report.
 #[must_use]
 pub fn nns_governance_refresh_report_text(report: &NnsGovernanceRefreshReport) -> String {
+    let [attempt_finalized, attempt_finalization_error] =
+        crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
     [
         format!("network: {}", terminal_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
@@ -24,14 +26,8 @@ pub fn nns_governance_refresh_report_text(report: &NnsGovernanceRefreshReport) -
             "replaced_existing_cache: {}",
             yes_no(report.replaced_existing_cache)
         ),
-        format!(
-            "attempt_finalized: {}",
-            yes_no(report.attempt_finalization_error.is_none())
-        ),
-        format!(
-            "attempt_finalization_error: {}",
-            terminal_text(report.attempt_finalization_error.as_deref().unwrap_or("-"))
-        ),
+        attempt_finalized,
+        attempt_finalization_error,
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
             "source_endpoint: {}",

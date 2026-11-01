@@ -1,7 +1,7 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsCacheStatusOptions, SnsListOptions, SnsLookupOptions, SnsPagedRefreshOptions,
+        SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, list_request,
         metrics_request, neuron_request, neurons_request, proposal_request, proposals_request,
         reward_checkpoint_request,
     },

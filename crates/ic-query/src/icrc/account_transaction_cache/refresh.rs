@@ -12,7 +12,7 @@ use super::{
         normalize_cache_request, snapshot_is_stale, validate_collection_timestamps,
     },
 };
-use crate::cache_file::write_managed_json_pretty_atomically;
+use crate::cache_file::write_collection_snapshot;
 use crate::{
     HostCacheError, QueryProgress,
     cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
@@ -252,21 +252,13 @@ fn publish_complete_snapshot(
     let transaction_count = snapshot.transactions.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(
         || {
-            write_managed_json_pretty_atomically(
+            write_collection_snapshot(
+                ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
                 &request.cache.cache_root,
                 &paths.snapshot_path,
                 &snapshot,
-                crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
-                |path, source| {
-                    HostCacheError::serialize_cache(
-                        ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
-                        path,
-                        source,
-                    )
-                    .into()
-                },
-                cache_operation_error,
             )
+            .map_err(IcrcAccountTransactionError::from)
         },
         || {
             write_complete_attempt(
