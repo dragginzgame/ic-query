@@ -21,12 +21,8 @@ pub struct CertifiedRegistryDeltaBatch {
     pub(crate) chunk_response_bytes: usize,
     pub(crate) more_available: bool,
     pub(crate) certified_response_bytes: usize,
-    pub(crate) certificate_time_nanos: u64,
-    pub(crate) root_key_digest: String,
-    pub(crate) certificate_hex: String,
-    pub(crate) certificate_bytes: usize,
-    pub(crate) hash_tree_hex: String,
-    pub(crate) hash_tree_bytes: usize,
+    /// Certificate and witness evidence established by authentication.
+    pub(crate) certification: crate::nns::registry::NnsRegistryCertification,
 }
 
 ///
@@ -44,12 +40,8 @@ pub struct AuthenticatedRegistryDeltaWitness {
     pub(crate) inline_value_bytes: usize,
     pub(crate) chunk_reference_count: usize,
     pub(crate) more_available: bool,
-    pub(crate) certificate_time_nanos: u64,
-    pub(crate) root_key_digest: String,
-    pub(crate) certificate_hex: String,
-    pub(crate) certificate_bytes: usize,
-    pub(crate) hash_tree_hex: String,
-    pub(crate) hash_tree_bytes: usize,
+    /// Certificate and witness evidence established by authentication.
+    pub(crate) certification: crate::nns::registry::NnsRegistryCertification,
 }
 
 ///

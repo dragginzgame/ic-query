@@ -123,6 +123,32 @@ impl NnsGovernanceSourceProvenance {
 }
 
 ///
+/// NnsGovernanceAnalyticsContext
+///
+/// Complete-collection identity and provenance shared by proposal and neuron analytics.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+pub struct NnsGovernanceAnalyticsContext {
+    /// Report schema version.
+    pub schema_version: u32,
+    /// Network identity retained by the complete collection.
+    pub network: String,
+    /// Fixed NNS Governance canister principal retained by the collection.
+    pub governance_canister_id: String,
+    /// Concrete transport and collector provenance retained by the collection.
+    pub source: NnsGovernanceSourceProvenance,
+    /// Caller-supplied time attached to collection creation.
+    pub collection_started_at: String,
+    /// Caller-supplied time attached to the final admitted page.
+    pub collection_updated_at: String,
+    /// Number of admitted source pages in the complete collection.
+    pub collection_page_count: u32,
+    /// Whether the sequential collection is guaranteed to represent one point in time.
+    pub point_in_time_guaranteed: bool,
+}
+
+///
 /// NnsGovernanceReportContext
 ///
 /// Shared context embedded in every direct NNS Governance report.

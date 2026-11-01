@@ -50,10 +50,10 @@ pub fn sns_swap_report_text(report: &SnsSwapReport) -> String {
 
 fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
     vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
         format!("swap_canister_id: {}", report.swap.swap_canister_id),
         format!("component_query_count: {}", report.component_query_count),
         format!(
@@ -77,11 +77,14 @@ fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
             "derived_state_method: {}",
             report.swap.derived_state_method.as_str()
         ),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
     ]
 }

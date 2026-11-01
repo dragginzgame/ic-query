@@ -24,12 +24,14 @@ fn render_registry_version() -> String {
 
     let report = NnsRegistryVersionReport {
         schema_version: 1,
-        network: request.network,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "my-tool".to_string(),
+        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
+            network: request.network,
+            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+            registry_version: 42,
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: "my-tool".to_string(),
+        },
         certification: registry_certification(),
     };
 
@@ -301,12 +303,14 @@ mod host {
         > {
             Box::pin(async move {
                 Ok(ic_query::nns::registry::NnsRegistryVersionData {
-                    network: "ic".to_string(),
-                    registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-                    registry_version: 42,
-                    fetched_at: request.fetched_at.clone(),
-                    fetched_by: request.fetched_by.clone(),
-                    source_endpoint: request.endpoint.clone(),
+                    provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
+                        network: "ic".to_string(),
+                        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+                        registry_version: 42,
+                        fetched_at: request.fetched_at.clone(),
+                        source_endpoint: request.endpoint.clone(),
+                        fetched_by: request.fetched_by.clone(),
+                    },
                     certification: super::registry_certification(),
                 })
             })

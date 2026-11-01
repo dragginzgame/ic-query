@@ -10,10 +10,10 @@ const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[test]
 fn report_rejects_reversed_collection_timestamps() {
     let mut report = fixture_activity_report();
-    report.collection_started_at = "2026-01-02T00:00:00Z".to_string();
-    report.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
+    report.context.collection_started_at = "2026-01-02T00:00:00Z".to_string();
+    report.context.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
     assert!(validate_nns_proposal_activity_report(&report).is_err());
-    report.collection_updated_at = report.collection_started_at.clone();
+    report.context.collection_updated_at = report.context.collection_started_at.clone();
     validate_nns_proposal_activity_report(&report).unwrap();
 }
 
@@ -33,15 +33,15 @@ fn complete_activity_is_canonical_and_input_order_independent() {
     )
     .expect("complete activity report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, "ic");
+    assert_eq!(report.context.schema_version, 1);
+    assert_eq!(report.context.network, "ic");
     assert_eq!(
-        report.governance_canister_id,
+        report.context.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert_eq!(report.collection_page_count, 1);
+    assert_eq!(report.context.collection_page_count, 1);
     assert_eq!(report.collected_proposal_count, 3);
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.context.point_in_time_guaranteed);
     assert_eq!(report.included_proposal_count, 3);
     assert_eq!(report.excluded_before_from_count, 0);
     assert_eq!(report.excluded_at_or_after_until_count, 0);
@@ -111,39 +111,48 @@ fn serialized_activity_report_round_trips_through_pure_validation() {
 
     validate_nns_proposal_activity_report(&restored).expect("validate restored activity report");
     assert_eq!(restored, report);
+    let json = serde_json::to_value(&report).expect("analytics JSON");
+    let context = serde_json::to_value(&report.context).expect("analytics context JSON");
+    for (key, value) in context.as_object().unwrap() {
+        assert_eq!(
+            json.get(key),
+            Some(value),
+            "flat analytics context field {key}"
+        );
+    }
 }
 
 #[test]
 fn retained_activity_validation_rejects_header_and_selection_corruption() {
     let mut report = fixture_activity_report();
-    report.schema_version = 2;
+    report.context.schema_version = 2;
     assert_invalid_report(&report, "schema version");
 
     let mut report = fixture_activity_report();
-    report.network = "local".to_string();
+    report.context.network = "local".to_string();
     assert_invalid_report(&report, "network");
 
     let mut report = fixture_activity_report();
-    report.governance_canister_id = "aaaaa-aa".to_string();
+    report.context.governance_canister_id = "aaaaa-aa".to_string();
     assert_invalid_report(&report, "governance_canister_id");
 
     let mut report = fixture_activity_report();
-    report.collection_page_count = 0;
+    report.context.collection_page_count = 0;
     assert_invalid_report(&report, "at least one collection page");
 
     let mut report = fixture_activity_report();
-    report.point_in_time_guaranteed = true;
+    report.context.point_in_time_guaranteed = true;
     assert_invalid_report(&report, "point-in-time");
 
     let mut report = fixture_activity_report();
-    report.source = NnsGovernanceSourceProvenance::ReplicaQuery {
+    report.context.source = NnsGovernanceSourceProvenance::ReplicaQuery {
         endpoint: "not-an-endpoint".to_string(),
         fetched_by: "fixture".to_string(),
     };
     assert_invalid_report(&report, "invalid collection source");
 
     let mut report = fixture_activity_report();
-    report.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+    report.context.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
         collector_canister_id: "not-a-principal".to_string(),
     };
     assert_invalid_report(&report, "invalid collection provenance");
@@ -455,14 +464,14 @@ fn activity_collection_pages_require_rows_from_preceding_full_pages() {
         &[],
     )
     .expect("one exhausted empty page is valid");
-    report.collection_page_count = 100;
+    report.context.collection_page_count = 100;
     assert_invalid_report(&report, "requires at least 99 collected proposals");
 
     let mut report = fixture_activity_report();
-    report.collection_page_count =
+    report.context.collection_page_count =
         u32::try_from(report.collected_proposal_count + 1).expect("small fixture");
     validate_nns_proposal_activity_report(&report).expect("full pages followed by one empty page");
-    report.collection_page_count += 1;
+    report.context.collection_page_count += 1;
     assert_invalid_report(&report, "requires at least");
 }
 

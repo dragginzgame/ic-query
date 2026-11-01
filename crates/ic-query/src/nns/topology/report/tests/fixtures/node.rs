@@ -1,7 +1,7 @@
 use crate::nns::NnsInventoryRefreshReport;
 use crate::{
     nns::node::{NnsNodeListReport, NnsNodeRow},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
+    subnet_catalog::SubnetKind,
 };
 
 pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture()
@@ -9,14 +9,7 @@ pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture()
     NnsInventoryRefreshReport {
         schema_version: 1,
         collection: "nodes".to_string(),
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 43,
-            fetched_at: "2026-06-04T00:01:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(43, "2026-06-04T00:01:00Z"),
         cache_path: "/cache/nns/ic/node/nodes.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node/refresh.lock".to_string(),
         output_path: None,
@@ -40,14 +33,7 @@ pub(in crate::nns::topology::report::tests) fn dry_run_node_refresh_report_fixtu
 pub(in crate::nns::topology::report::tests) fn node_report_fixture() -> NnsNodeListReport {
     NnsNodeListReport {
         schema_version: 1,
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 43,
-            fetched_at: "2026-06-04T00:01:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(43, "2026-06-04T00:01:00Z"),
         node_count: 3,
         nodes: vec![
             node_row(

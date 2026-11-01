@@ -135,32 +135,32 @@ fn validate_authenticated_metadata(
     )?;
     authenticated_equal(
         "certificate_time_nanos",
-        &witness.certificate_time_nanos,
+        &witness.certification.certificate_time_nanos,
         &report.certification.certificate_time_nanos,
     )?;
     authenticated_equal(
         "root_key_digest",
-        &witness.root_key_digest,
+        &witness.certification.root_key_digest,
         &report.certification.root_key_digest,
     )?;
     authenticated_equal(
         "certificate_hex",
-        &witness.certificate_hex,
+        &witness.certification.certificate_hex,
         &report.certification.certificate_hex,
     )?;
     authenticated_equal(
         "certificate_bytes",
-        &witness.certificate_bytes,
+        &witness.certification.certificate_bytes,
         &report.certification.certificate_bytes,
     )?;
     authenticated_equal(
         "hash_tree_hex",
-        &witness.hash_tree_hex,
+        &witness.certification.hash_tree_hex,
         &report.certification.hash_tree_hex,
     )?;
     authenticated_equal(
         "hash_tree_bytes",
-        &witness.hash_tree_bytes,
+        &witness.certification.hash_tree_bytes,
         &report.certification.hash_tree_bytes,
     )?;
     authenticated_equal(

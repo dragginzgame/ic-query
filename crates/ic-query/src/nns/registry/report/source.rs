@@ -6,7 +6,6 @@ use super::{
         NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
         NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
         NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding,
-        NnsRegistryCertification,
     },
 };
 use crate::nns::registry::NnsRegistryVersionData;
@@ -121,7 +120,6 @@ fn report_from_live_batch(
             content_hex: crate::hex::hex_bytes(&row.content),
         })
         .collect();
-    let certificate_time = format_utc_timestamp_secs(batch.certificate_time_nanos / 1_000_000_000);
     let chunk_query_call_count = u64::try_from(batch.chunk_query_call_count).map_err(|_| {
         NnsRegistryHostError::InvalidSourceData {
             reason: "chunk query call count exceeds u64".to_string(),
@@ -167,16 +165,7 @@ fn report_from_live_batch(
         limits: nns_certified_registry_delta_limits(),
         versions,
         chunk_evidence,
-        certification: NnsRegistryCertification {
-            certificate_verified: true,
-            certificate_time_nanos: batch.certificate_time_nanos,
-            certificate_time,
-            root_key_digest: batch.root_key_digest,
-            certificate_hex: batch.certificate_hex,
-            certificate_bytes: batch.certificate_bytes,
-            hash_tree_hex: batch.hash_tree_hex,
-            hash_tree_bytes: batch.hash_tree_bytes,
-        },
+        certification: batch.certification,
     })
 }
 

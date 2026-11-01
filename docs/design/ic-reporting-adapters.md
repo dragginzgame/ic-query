@@ -50,11 +50,18 @@ boundaries. See the [0.81 consumer update](../changelog/0.81.md).
 
 Registry collection returns the portable NNS version/evidence contract directly.
 Native node, operator and data-center projections carry their canonical NNS rows
-into report envelopes. Sources, list/detail reports and refresh outcomes share
+into report envelopes. Sources, list/detail reports, refresh outcomes and Registry version reports share
 `NnsRegistryInventoryProvenance` through `provenance`, flattened in JSON;
 provider-name enrichment remains a separate NNS projection. SNS Root reports
 carry their portable `MainnetSnsCanisterInventory` payload through `inventory`,
 also flattened in JSON. Host canonicalization remains independent of rendering.
+SNS Root, metrics, token and swap reports share `SnsInstanceContext` through
+`context`; Governance envelopes compose it as `SnsReportContext.instance` beside
+the Governance principal. NNS proposal activity and neuron distribution carry
+`NnsGovernanceAnalyticsContext` directly into validation. These context records
+remain flattened in JSON; see the [0.84 Rust consumer update](../changelog/0.84.md).
+Registry authentication carries its existing certificate record through private
+version/witness/batch results without rebuilding its evidence fields.
 SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
 retain their persisted shape and validation.
 
@@ -62,7 +69,7 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.24.0 keeps arithmetic and validated Serde transport available without
+Metrics 0.25.1 keeps arithmetic and validated Serde transport available without
 native Wire metadata. Query disables defaults because its checked measurement
 and percentage arithmetic is private implementation detail. Dashboard observations
 and Governance metric payloads retain their source-specific report contracts.
@@ -79,26 +86,27 @@ complete routing coverage; those policies and the report/cache contracts remain
 Query-owned.
 
 Host, Build and Testkit are published from the consolidated IC Tooling repository.
-Foundation (Host Artifacts, FS, HTTP, Process, Text and Build) is independently
-released from integration (Host Tools and Testkit). Query selects their published
+Foundation (Host Artifacts, FS, HTTP, Process, Text and Build), Host Tools and
+Testkit are released as three independent groups. Query selects their published
 packages through one root catalog and lockfile while retaining Rust 1.91.
 
-The current workspace minimums are Platform 0.16.0, Metrics 0.24.0,
-Foundation 0.73.5, integration 0.76.1 and Wire 0.13.3. Platform, Host Tools and
-Testkit share one Platform identity and its canonical `ic-platform-types` 0.15.1
-supplier. Query and Testkit share arithmetic-only Metrics 0.24; the lockfile
-contains one Metrics identity. Direct Wire use belongs to probes and development
-fixtures, selecting its core codec. Optional Principal/Account schemas belong
-to Wire's `platform-types` feature; endpoint integration is separately supplied
+The current workspace minimums are Platform 0.17.0, Metrics 0.25.1,
+Foundation 0.73.6, Host Tools 0.77.0, Testkit 0.78.0 and Wire 0.14.2. Platform,
+Host Tools and Testkit share one Platform identity and its canonical
+`ic-platform-types` 0.16.0 supplier. Query and Testkit share one arithmetic-only Metrics 0.25 identity;
+no Metrics types cross Query's public boundary. Direct Wire use belongs to probes
+and development fixtures, selecting its core codec. Optional Principal/Account
+schemas belong to Wire's `platform-types` feature; endpoint integration is separately supplied
 by `ic-wire-endpoint`. Query selects neither integration.
 
 Platform's root Principal is its canonical owned type. Required external Candid
 contracts and Agent/PocketIC calls retain the explicit external Principal from
 `candid::contract::Principal`. Query's existing conversions preserve raw identity
 bytes when crossing Host Registry helper and external protocol boundaries.
-Platform's ICRC DTO and runtime handles have the 0.16 Rust identity. Custom
-`IcrcTipCertificateSource` implementations return that version's
-`ICRC3DataCertificate`; runtime consumers rebuild against the same Platform line.
+Platform 0.17 supplies the current ICRC DTOs; canister runtime handles belong to
+canonical Runtime 0.17.1. Custom `IcrcTipCertificateSource` implementations return
+Platform 0.17's `ICRC3DataCertificate`; runtime consumers align on the canonical
+Runtime owner.
 
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
 before upstream decoding, including unused type definitions and skipped values.
@@ -108,18 +116,19 @@ deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by Platform 0.7.
 Required external Candid parsing and type checking remain in Testkit fixtures.
 External Agent and Candid identities remain shared. Query's canister
-runtime selects Platform 0.16's embedded IC0 and executor, with one runtime owner
-and no registry executor or IC0 package in the Wasm normal/build graph. Embedders
-align their runtime suppliers, including timer/endpoint integrations, on this line.
+runtime selects Platform 0.17's delegated canonical Runtime 0.17.1 IC0 and
+executor, with one runtime owner and no registry executor or IC0 package in the
+Wasm normal/build graph. Embedders align their runtime suppliers, including
+timer/endpoint integrations, on this Runtime owner.
 The singleton guard is selected only through executor/runtime features; portable
 and native-only Query graphs exclude it. No dependency override, copied runtime
 or compatibility wrapper is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
-Host Tools' `ledger_evidence::LedgerTip`. Adopting Host Tools 0.76 and Platform
-0.16 public identities requires the pending Query 0.82 minor release. Callers
-naming these Host types align their direct `ic-host-tools` dependency to 0.76.
+Host Tools' `ledger_evidence::LedgerTip`. Adopting Host Tools 0.77 and Platform
+0.17 public identities requires the pending Query 0.84 minor release. Callers
+naming these Host types align their direct `ic-host-tools` dependency to 0.77.
 Serialized reports and schema-1 caches remain unchanged.
 
 Managed cache operations use published Host FS `capability::Directory` and
@@ -186,8 +195,8 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Its embedded executor and IC0 share the selected Platform 0.16 identity;
-the canister graph excludes their former registry suppliers.
+graphs. Platform 0.17 delegates executor and IC0 ownership to canonical Runtime
+0.17.1; the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the

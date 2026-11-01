@@ -455,9 +455,9 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query and Testkit share Platform 0.15.2 and canonical Types
-0.15.1. External Candid/PocketIC Principal values retain their explicit boundary;
-the probe protocol uses Wire 0.13.1.
+callers use Wire. Query and Testkit share Platform 0.17.0 and canonical Types
+0.16.0. External Candid/PocketIC Principal values retain their explicit boundary;
+the probe protocol uses Wire 0.14.2.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
 direct Ciborium declaration or usage. Governance fixtures use Testkit's native
@@ -487,7 +487,7 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.4.0. Its source and feature
+The selected published `ic-platform` release is 0.17.0. Its source and feature
 contracts were inspected from the downloaded registry package; sibling source
 is not substituted. Runtime calls and canister identity use Platform's owned
 Principal. Required external Candid DTOs and native Agent inputs retain the
@@ -507,10 +507,10 @@ and ledger DTOs; every supported production graph rejects stable-memory storage.
 Platform now owns the non-cryptographic runtime adapters, call/response and
 error identities. Its `cdk` feature is Candid-free, while Query selects Candid
 separately for required external NNS methods. The full `ic-cdk` and its macros
-are excluded from production graphs. The canister graph has one Platform 0.15
-runtime owner, using its embedded executor and IC0 without either registry
-supplier. Embedders must rebuild all runtime consumers against Platform 0.15;
-Query does not copy executor or callback implementations.
+are excluded from production graphs. Platform 0.17 delegates the canister
+executor and IC0 to one canonical Runtime 0.17.1 owner without either registry
+supplier. Embedders must align runtime consumers on that Runtime owner; Query
+does not copy executor or callback implementations.
 The adapter retains explicit Candid unit arguments, bounded waits, raw replies,
 byte limits and replicated provenance. The owned probe's explicit Wire hooks
 admit request length before copying and trap malformed requests before effects.

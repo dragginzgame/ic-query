@@ -29,7 +29,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(refresh_json["schema_version"], 1);
     assert_eq!(refresh_json["collection"], "neurons");
     assert_eq!(refresh_json["row_count"], refresh.row_count);
-    assert_eq!(refresh.context.id, 1);
+    assert_eq!(refresh.context.instance.id, 1);
     assert_eq!(refresh.page_count, 3);
     assert_eq!(refresh.row_count, 3);
 
@@ -103,7 +103,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(attempt["pages_fetched"], 3);
     assert_eq!(attempt["rows_fetched"], 3);
     assert_eq!(attempt["last_cursor"], "03".repeat(32));
-    assert_eq!(attempt["metadata"]["id"], refresh.context.id);
+    assert_eq!(attempt["metadata"]["id"], refresh.context.instance.id);
     assert_eq!(attempt["metadata"]["root_canister_id"], ROOT_A);
 
     let _ = fs::remove_dir_all(root);

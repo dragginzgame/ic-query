@@ -98,24 +98,11 @@ pub struct NnsProposalDayCount {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsProposalActivityReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Network identity retained by the complete collection.
-    pub network: String,
-    /// Fixed NNS Governance canister principal retained by the collection.
-    pub governance_canister_id: String,
-    /// Concrete transport and collector provenance retained by the collection.
-    pub source: NnsGovernanceSourceProvenance,
-    /// Caller-supplied time attached to collection creation.
-    pub collection_started_at: String,
-    /// Caller-supplied time attached to the final admitted page.
-    pub collection_updated_at: String,
-    /// Number of admitted source pages in the complete collection.
-    pub collection_page_count: u32,
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub context: crate::nns::governance::NnsGovernanceAnalyticsContext,
     /// Number of admitted proposal rows in the complete collection.
     pub collected_proposal_count: u64,
-    /// Whether the sequential collection is guaranteed to represent one point in time.
-    pub point_in_time_guaranteed: bool,
     /// Inclusive lower proposal-creation timestamp bound requested by the caller.
     pub from_proposal_timestamp_seconds: Option<u64>,
     /// Exclusive upper proposal-creation timestamp bound requested by the caller.
@@ -263,23 +250,15 @@ pub fn validate_nns_proposal_activity_report(
 fn validate_activity_header(
     report: &NnsProposalActivityReport,
 ) -> Result<(), NnsProposalActivityValidationError> {
-    crate::nns::governance::GovernanceAnalyticsHeader {
-        schema_version: report.schema_version,
-        network: &report.network,
-        governance_canister_id: &report.governance_canister_id,
-        source: &report.source,
-        collection_started_at: &report.collection_started_at,
-        collection_updated_at: &report.collection_updated_at,
-        collection_page_count: report.collection_page_count,
-        collected_row_count: report.collected_proposal_count,
-        point_in_time_guaranteed: report.point_in_time_guaranteed,
-    }
-    .validate(
-        NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
-        ("activity", "proposals"),
-        "sequential proposal activity cannot claim a point-in-time snapshot",
-    )
-    .map_err(invalid_validation)
+    report
+        .context
+        .validate(
+            NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
+            report.collected_proposal_count,
+            ("activity", "proposals"),
+            "sequential proposal activity cannot claim a point-in-time snapshot",
+        )
+        .map_err(invalid_validation)
 }
 
 fn validate_activity_selection(
@@ -609,15 +588,17 @@ impl ActivityAccumulator {
         source: NnsGovernanceSourceProvenance,
     ) -> NnsProposalActivityReport {
         NnsProposalActivityReport {
-            schema_version: NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
-            network: collection.network().to_string(),
-            governance_canister_id: collection.governance_canister_id().to_string(),
-            source,
-            collection_started_at: collection.started_at().to_string(),
-            collection_updated_at: collection.updated_at().to_string(),
-            collection_page_count: collection.pages_fetched(),
+            context: crate::nns::governance::NnsGovernanceAnalyticsContext {
+                schema_version: NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
+                network: collection.network().to_string(),
+                governance_canister_id: collection.governance_canister_id().to_string(),
+                source,
+                collection_started_at: collection.started_at().to_string(),
+                collection_updated_at: collection.updated_at().to_string(),
+                collection_page_count: collection.pages_fetched(),
+                point_in_time_guaranteed: false,
+            },
             collected_proposal_count: collection.proposals_fetched(),
-            point_in_time_guaranteed: false,
             from_proposal_timestamp_seconds: request.from_proposal_timestamp_seconds,
             until_proposal_timestamp_seconds: request.until_proposal_timestamp_seconds,
             included_proposal_count: self.included_proposal_count,

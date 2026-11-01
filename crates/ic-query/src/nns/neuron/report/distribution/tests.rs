@@ -11,10 +11,10 @@ const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[test]
 fn report_rejects_reversed_collection_timestamps() {
     let mut report = fixture_distribution_report();
-    report.collection_started_at = "2026-01-02T00:00:00Z".to_string();
-    report.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
+    report.context.collection_started_at = "2026-01-02T00:00:00Z".to_string();
+    report.context.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
     assert!(validate_nns_neuron_distribution_report(&report).is_err());
-    report.collection_updated_at = report.collection_started_at.clone();
+    report.context.collection_updated_at = report.context.collection_started_at.clone();
     validate_nns_neuron_distribution_report(&report).unwrap();
 }
 
@@ -24,15 +24,15 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
     let report = build_nns_neuron_distribution_report(&complete_collection(4), &neurons)
         .expect("complete neuron distribution");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, MAINNET_NETWORK);
+    assert_eq!(report.context.schema_version, 1);
+    assert_eq!(report.context.network, MAINNET_NETWORK);
     assert_eq!(
-        report.governance_canister_id,
+        report.context.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert_eq!(report.collection_page_count, 1);
+    assert_eq!(report.context.collection_page_count, 1);
     assert_eq!(report.collected_neuron_count, 4);
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.context.point_in_time_guaranteed);
     assert_eq!(report.earliest_retrieved_at_timestamp_seconds, Some(100));
     assert_eq!(report.latest_retrieved_at_timestamp_seconds, Some(120));
     assert_eq!(report.total_effective_stake_e8s, 1_000);
@@ -221,6 +221,15 @@ fn serialized_distribution_round_trips_and_text_separates_sections() {
 
     validate_nns_neuron_distribution_report(&restored).expect("validate restored distribution");
     assert_eq!(restored, report);
+    let json = serde_json::to_value(&report).expect("analytics JSON");
+    let context = serde_json::to_value(&report.context).expect("analytics context JSON");
+    for (key, value) in context.as_object().unwrap() {
+        assert_eq!(
+            json.get(key),
+            Some(value),
+            "flat analytics context field {key}"
+        );
+    }
     let json = serde_json::to_value(&report).expect("distribution JSON");
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["source"]["source_transport"], "replica_query");
@@ -248,28 +257,28 @@ fn serialized_distribution_round_trips_and_text_separates_sections() {
 #[test]
 fn retained_distribution_validation_rejects_corruption() {
     let mut report = fixture_distribution_report();
-    report.schema_version = 2;
+    report.context.schema_version = 2;
     assert_invalid_report(&report, "schema version");
 
     let mut report = fixture_distribution_report();
-    report.point_in_time_guaranteed = true;
+    report.context.point_in_time_guaranteed = true;
     assert_invalid_report(&report, "point-in-time");
 
     let mut report = fixture_distribution_report();
-    report.source = NnsGovernanceSourceProvenance::ReplicaQuery {
+    report.context.source = NnsGovernanceSourceProvenance::ReplicaQuery {
         endpoint: "invalid".to_string(),
         fetched_by: "fixture".to_string(),
     };
     assert_invalid_report(&report, "invalid collection source");
 
     let mut report = fixture_distribution_report();
-    report.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+    report.context.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
         collector_canister_id: "not-a-principal".to_string(),
     };
     assert_invalid_report(&report, "invalid collection provenance");
 
     let mut report = fixture_distribution_report();
-    report.collection_page_count = 6;
+    report.context.collection_page_count = 6;
     assert_invalid_report(&report, "requires at least 5 collected neurons");
 
     let mut report = fixture_distribution_report();

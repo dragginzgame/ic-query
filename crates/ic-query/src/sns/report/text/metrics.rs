@@ -21,10 +21,10 @@ use crate::{
 #[must_use]
 pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
         format!(
             "governance_canister_id: {}",
             report.metrics.governance_canister_id
@@ -64,13 +64,16 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
             optional_u64_text(report.metrics.genesis_timestamp_seconds)
         ),
         format!("treasury_metric_count: {}", report.treasury_metric_count),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
-        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
+        format!("fetched_by: {}", terminal_text(&report.context.fetched_by)),
         String::new(),
         "treasury_metrics:".to_string(),
         treasury_metrics_text(&report.metrics.treasury_metrics),

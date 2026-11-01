@@ -65,7 +65,7 @@ async fn exact_neuron_detail_preserves_native_permission_and_disbursement_eviden
         SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION
     );
     assert_eq!(report.neuron_id, NEURON_A);
-    assert_eq!(report.context.root_canister_id, ROOT_A);
+    assert_eq!(report.context.instance.root_canister_id, ROOT_A);
     assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.detail.neuron.neuron_id, NEURON_A);

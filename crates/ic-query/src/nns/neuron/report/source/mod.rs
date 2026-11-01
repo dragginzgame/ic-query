@@ -28,7 +28,10 @@ use super::{
 ))]
 use super::{
     model::{NnsKnownNeuronData, NnsNeuronBallotRow},
-    wire::{GetNeuronIndexRequestWire, GetNeuronIndexResultWire, NeuronInfoWire},
+    wire::{
+        GetNeuronIndexRequestWire, GetNeuronIndexResultWire, GetNeuronInfoResultWire,
+        NeuronInfoWire,
+    },
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -398,6 +401,19 @@ fn neuron_page_from_wire(
         neurons,
         next_start_neuron_id,
     })
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn neuron_row_from_response(
+    result: GetNeuronInfoResultWire,
+    neuron_id: u64,
+) -> Result<NnsNeuronRow, NnsNeuronError> {
+    let wire =
+        governance_result(result).map_err(|error| map_neuron_info_error(error, neuron_id))?;
+    neuron_row_from_wire(*wire)
 }
 
 #[cfg(test)]

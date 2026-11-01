@@ -30,7 +30,10 @@ use super::{
 ))]
 use super::{
     model::{NnsProposalBallotRow, NnsProposalTally},
-    wire::{NnsGovernanceBallot, NnsListProposalInfoRequest, NnsProposalInfo},
+    wire::{
+        NnsGovernanceBallot, NnsListProposalInfoRequest, NnsListProposalInfoResponse,
+        NnsProposalInfo,
+    },
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
@@ -280,4 +283,29 @@ fn proposal_page_request(
         include_status: status.governance_status_code().into_iter().collect(),
         return_self_describing_action: Some(false),
     }
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn proposal_rows_from_response(response: NnsListProposalInfoResponse) -> Vec<NnsProposalRow> {
+    response
+        .proposal_info
+        .into_iter()
+        .map(nns_proposal_row_from_info)
+        .collect()
+}
+
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+fn proposal_row_from_response(
+    proposal: Option<NnsProposalInfo>,
+    proposal_id: u64,
+) -> Result<NnsProposalRow, NnsProposalError> {
+    proposal
+        .ok_or(NnsProposalError::ProposalNotFound { proposal_id })
+        .map(nns_proposal_row_from_info)
 }

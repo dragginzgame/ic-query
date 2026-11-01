@@ -249,22 +249,9 @@ pub struct MainnetSnsCanisterInventory {
 pub struct SnsCanisterReport {
     /// Report schema version.
     pub schema_version: u32,
-    /// Requested IC network identity.
-    pub network: String,
-    /// Mainnet SNS-W canister used to resolve the SNS.
-    pub sns_wasm_canister_id: String,
-    /// Collection timestamp in UTC.
-    pub fetched_at: String,
-    /// IC API endpoint used for SNS-W and Root calls.
-    pub source_endpoint: String,
-    /// Collector identity recorded by the source request.
-    pub fetched_by: String,
-    /// SNS-W list id assigned to this deployed SNS.
-    pub id: usize,
-    /// SNS name resolved during discovery.
-    pub name: String,
-    /// Root canister queried for inventory and health.
-    pub root_canister_id: String,
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub context: crate::sns::SnsInstanceContext,
     /// Canonical Root inventory and health evidence, flattened in JSON.
     #[serde(flatten)]
     pub inventory: MainnetSnsCanisterInventory,

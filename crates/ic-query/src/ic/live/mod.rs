@@ -179,3 +179,13 @@ fn append_time_window(
     pairs.append_pair("start", &start.to_string());
     pairs.append_pair("end", &end.to_string());
 }
+
+fn append_time_series(
+    pairs: &mut url::form_urlencoded::Serializer<'_, url::UrlQuery<'_>>,
+    start: u64,
+    end: u64,
+    step: u32,
+) {
+    append_time_window(pairs, start, end);
+    pairs.append_pair("step", &step.to_string());
+}

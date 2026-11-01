@@ -41,9 +41,9 @@ async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     let json = serde_json::to_value(&report).expect("serialize SNS token report");
 
     assert_eq!(report.schema_version, SNS_TOKEN_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.name, "Fixture SNS");
-    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.name, "Fixture SNS");
+    assert_eq!(report.context.root_canister_id, ROOT_A);
     assert_eq!(report.ledger_canister_id, LEDGER_A);
     assert_eq!(report.sns_index_canister_id, INDEX_A);
     assert_eq!(

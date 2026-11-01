@@ -5,7 +5,8 @@
 //! Boundary: maps shared canister transport responses into proposal source data.
 
 use super::{
-    NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info, proposal_page_request,
+    NnsProposalSource, NnsProposalSourceFuture, proposal_page_request, proposal_row_from_response,
+    proposal_rows_from_response,
 };
 use crate::nns::{
     governance::{
@@ -13,7 +14,6 @@ use crate::nns::{
         canister_provenance,
     },
     proposals::report::{
-        NnsProposalError,
         model::{NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatusFilter},
         wire::{NnsListProposalInfoResponse, NnsProposalInfo},
     },
@@ -38,11 +38,7 @@ impl NnsProposalSource for CanisterNnsSource {
             )
             .await?;
             Ok(NnsGovernanceSourceData::new(
-                response
-                    .proposal_info
-                    .into_iter()
-                    .map(nns_proposal_row_from_info)
-                    .collect(),
+                proposal_rows_from_response(response),
                 provenance,
             ))
         })
@@ -62,9 +58,8 @@ impl NnsProposalSource for CanisterNnsSource {
                 &proposal_id,
             )
             .await?;
-            let proposal = proposal.ok_or(NnsProposalError::ProposalNotFound { proposal_id })?;
             Ok(NnsGovernanceSourceData::new(
-                nns_proposal_row_from_info(proposal),
+                proposal_row_from_response(proposal, proposal_id)?,
                 provenance,
             ))
         })

@@ -10,7 +10,7 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     let text = sns_swap_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_SWAP_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
+    assert_eq!(report.context.id, 1);
     assert_eq!(report.swap.swap_canister_id, SWAP_A);
     assert_eq!(report.component_query_count, 3);
     assert_eq!(report.successful_component_query_count, 3);

@@ -47,17 +47,11 @@ struct CachePathInfo<'path> {
 }
 
 impl CachePathInfo<'_> {
-    fn status_row(
-        &self,
-        component: String,
-        path: &Path,
-        relative_path: String,
-        size_bytes: u64,
-    ) -> CacheStatusRow {
+    fn status_row(&self, path: &Path) -> CacheStatusRow {
         CacheStatusRow {
-            component,
+            component: self.component.clone(),
             cache_path: path.display().to_string(),
-            relative_path,
+            relative_path: self.relative.display().to_string(),
             header_status: CacheHeaderStatus::Invalid,
             age_status: CacheAgeStatus::Unknown,
             recovery_policy: self.recovery_policy,
@@ -66,7 +60,7 @@ impl CachePathInfo<'_> {
             fetched_at: None,
             age_seconds: None,
             stale_after_seconds: self.stale_after_seconds,
-            size_bytes,
+            size_bytes: 0,
             inspection_error: None,
         }
     }
@@ -188,12 +182,7 @@ pub(super) fn cache_status_row(
 ) -> Result<CacheStatusRow, CacheFileError> {
     let relative = path.strip_prefix(root).unwrap_or(path);
     let info = classify_cache_path(relative);
-    let mut row = info.status_row(
-        info.component.clone(),
-        path,
-        relative.display().to_string(),
-        0,
-    );
+    let mut row = info.status_row(path);
     let Some(file) = open_managed_file(root, path)? else {
         row.inspection_error = Some("cache file disappeared during inspection".to_string());
         return Ok(row);

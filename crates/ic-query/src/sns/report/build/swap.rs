@@ -5,9 +5,9 @@
 //! Boundary: resolves SNS identity, validates one source result, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, SNS_SWAP_QUERY_COUNT, SNS_SWAP_REPORT_SCHEMA_VERSION,
-    SnsHostError, SnsLookupRequest, SnsSwapReport, SnsSwapSource, live::LiveSnsSource,
-    lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_swap,
+    SNS_SWAP_QUERY_COUNT, SNS_SWAP_REPORT_SCHEMA_VERSION, SnsHostError, SnsLookupRequest,
+    SnsSwapReport, SnsSwapSource, live::LiveSnsSource, lookup::resolve_sns_lookup,
+    source::canonicalize_mainnet_sns_swap,
 };
 
 /// Build a live bounded swap report for one deployed SNS.
@@ -30,14 +30,12 @@ pub async fn build_sns_swap_report_with_source(
     let component_gap_count = swap.gaps.len();
     Ok(SnsSwapReport {
         schema_version: SNS_SWAP_REPORT_SCHEMA_VERSION,
-        network: lookup.fetch_request.network,
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: lookup.fetch_request.fetched_at,
-        source_endpoint: lookup.fetch_request.endpoint,
-        fetched_by: lookup.fetch_request.fetched_by,
-        id: lookup.sns.id,
-        name: lookup.sns.name,
-        root_canister_id: lookup.sns.canisters.root_canister_id,
+        context: crate::sns::SnsInstanceContext::from_live(
+            lookup.fetch_request,
+            lookup.sns.id,
+            lookup.sns.name,
+            lookup.sns.canisters.root_canister_id,
+        ),
         component_query_count: SNS_SWAP_QUERY_COUNT,
         successful_component_query_count: SNS_SWAP_QUERY_COUNT - component_gap_count,
         component_gap_count,

@@ -114,12 +114,12 @@ where
             refresh_lock_path: &paths.refresh_lock_path,
         },
         |source| Error::from(HostCacheError::operation(component, source)),
-        async |state| {
+        async |replaced_existing_snapshot| {
             let context = GovernanceSnapshotRefreshContext {
                 request,
                 paths,
                 component,
-                replaced_existing_cache: state.replaced_existing_snapshot,
+                replaced_existing_cache: replaced_existing_snapshot,
             };
             run_snapshot_refresh_with_attempts(
                 || {

@@ -751,7 +751,7 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             refresh_lock_path: &lock_path,
         },
         identity_cache_error,
-        async |state| {
+        async |replaced_existing_snapshot| {
             assert!(lock_path.is_file());
             let competing = with_locked_snapshot_refresh(
                 LockedSnapshotRefreshRequest {
@@ -767,7 +767,7 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
                 competing,
                 Err::<(), _>(CacheFileError::RefreshAlreadyInProgress { .. })
             ));
-            observed.borrow_mut().push(state.replaced_existing_snapshot);
+            observed.borrow_mut().push(replaced_existing_snapshot);
             crate::cache_file::write_managed_text_atomically(&root, &snapshot_path, "{}")
                 .expect("write snapshot during refresh");
             Ok(())
@@ -783,8 +783,8 @@ async fn locked_snapshot_refresh_creates_parent_tracks_replacement_and_releases_
             refresh_lock_path: &lock_path,
         },
         identity_cache_error,
-        async |state| {
-            observed.borrow_mut().push(state.replaced_existing_snapshot);
+        async |replaced_existing_snapshot| {
+            observed.borrow_mut().push(replaced_existing_snapshot);
             Ok(())
         },
     )

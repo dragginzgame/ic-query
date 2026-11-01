@@ -102,7 +102,7 @@ async fn refresh_normalized_account_transactions(
             refresh_lock_path: &paths.refresh_lock_path,
         },
         cache_operation_error,
-        async |state| {
+        async |replaced_existing_snapshot| {
             run_snapshot_refresh_with_attempts(
                 || write_starting_attempt(&paths.refresh_attempt_path, request),
                 async || {
@@ -112,7 +112,7 @@ async fn refresh_normalized_account_transactions(
                     publish_complete_snapshot(
                         request,
                         paths,
-                        state.replaced_existing_snapshot,
+                        replaced_existing_snapshot,
                         complete,
                         collection_started.elapsed(),
                     )

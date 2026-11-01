@@ -40,18 +40,8 @@ const SHA_256_BYTES: usize = 32;
 pub(in crate::ic_registry) struct CertifiedRegistryVersion {
     /// Authenticated Registry version.
     pub(in crate::ic_registry) registry_version: u64,
-    /// Certificate time in nanoseconds since the Unix epoch.
-    pub(in crate::ic_registry) certificate_time_nanos: u64,
-    /// SHA-256 digest of the trusted DER root key.
-    pub(in crate::ic_registry) root_key_digest: String,
-    /// Raw CBOR certificate as lowercase hexadecimal.
-    pub(in crate::ic_registry) certificate_hex: String,
-    /// Raw certificate byte count.
-    pub(in crate::ic_registry) certificate_bytes: usize,
-    /// Encoded protobuf witness as lowercase hexadecimal.
-    pub(in crate::ic_registry) hash_tree_hex: String,
-    /// Encoded protobuf witness byte count.
-    pub(in crate::ic_registry) hash_tree_bytes: usize,
+    /// Certificate and witness evidence established by authentication.
+    pub(in crate::ic_registry) certification: crate::nns::registry::NnsRegistryCertification,
 }
 
 ///
@@ -62,12 +52,8 @@ pub(in crate::ic_registry) struct CertifiedRegistryVersion {
 
 pub(super) struct AuthenticatedRegistryResponse {
     pub(super) hash_tree: HashTree,
-    pub(super) certificate_time_nanos: u64,
-    pub(super) root_key_digest: String,
-    pub(super) certificate_hex: String,
-    pub(super) certificate_bytes: usize,
-    pub(super) hash_tree_hex: String,
-    pub(super) hash_tree_bytes: usize,
+    /// Certificate and witness evidence established by authentication.
+    pub(super) certification: crate::nns::registry::NnsRegistryCertification,
 }
 
 pub(in crate::ic_registry) async fn get_certified_latest_version(
@@ -109,12 +95,7 @@ fn verified_certified_registry_version(
 
     Ok(CertifiedRegistryVersion {
         registry_version,
-        certificate_time_nanos: authenticated.certificate_time_nanos,
-        root_key_digest: authenticated.root_key_digest,
-        certificate_hex: authenticated.certificate_hex,
-        certificate_bytes: authenticated.certificate_bytes,
-        hash_tree_hex: authenticated.hash_tree_hex,
-        hash_tree_bytes: authenticated.hash_tree_bytes,
+        certification: authenticated.certification,
     })
 }
 
@@ -156,12 +137,18 @@ pub(super) fn authenticate_registry_response(
 
     Ok(AuthenticatedRegistryResponse {
         hash_tree,
-        certificate_time_nanos,
-        root_key_digest: Sha256Digest::compute(&agent.read_root_key()).to_string(),
-        certificate_hex: hex_bytes(&response.certificate),
-        certificate_bytes: response.certificate.len(),
-        hash_tree_hex: hex_bytes(&encoded_hash_tree),
-        hash_tree_bytes: encoded_hash_tree.len(),
+        certification: crate::nns::registry::NnsRegistryCertification {
+            certificate_verified: true,
+            certificate_time: ic_host_text::timestamp::format_utc_timestamp_secs(
+                certificate_time_nanos / 1_000_000_000,
+            ),
+            certificate_time_nanos,
+            root_key_digest: Sha256Digest::compute(&agent.read_root_key()).to_string(),
+            certificate_hex: hex_bytes(&response.certificate),
+            certificate_bytes: response.certificate.len(),
+            hash_tree_hex: hex_bytes(&encoded_hash_tree),
+            hash_tree_bytes: encoded_hash_tree.len(),
+        },
     })
 }
 

@@ -442,11 +442,11 @@ fn assert_public_nns_proposal_activity(
     )
     .expect("portable proposal activity report");
     assert_eq!(
-        activity.schema_version,
+        activity.context.schema_version,
         NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION
     );
     assert_eq!(activity.included_proposal_count, 3);
-    assert!(!activity.point_in_time_guaranteed);
+    assert!(!activity.context.point_in_time_guaranteed);
     let _: &[NnsProposalTopicCount] = &activity.topic_counts;
     let _: &[NnsProposalStatusCount] = &activity.status_counts;
     let _: &[NnsProposalRewardStatusCount] = &activity.reward_status_counts;
@@ -930,12 +930,12 @@ fn assert_public_nns_neuron_distribution(
         build_nns_neuron_distribution_report(state, &neurons)
             .expect("portable public-neuron distribution");
     assert_eq!(
-        distribution.schema_version,
+        distribution.context.schema_version,
         NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION
     );
     assert_eq!(distribution.collected_neuron_count, 3);
     assert_eq!(distribution.total_effective_stake_e8s, 300_000_000);
-    assert!(!distribution.point_in_time_guaranteed);
+    assert!(!distribution.context.point_in_time_guaranteed);
     let _: &[NnsNeuronStateDistribution] = &distribution.state_distribution;
     let _: &[NnsNeuronVisibilityDistribution] = &distribution.visibility_distribution;
     let _: &[NnsNeuronTypeDistribution] = &distribution.neuron_type_distribution;
@@ -1260,16 +1260,29 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
 
     let report = NnsRegistryVersionReport {
         schema_version: 1,
-        network: request.network,
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        registry_version: 42,
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
+        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
+            network: request.network,
+            source_endpoint: request.source_endpoint,
+            ..sample_registry_provenance()
+        },
         certification: public_registry_certification(),
     };
 
     let text = nns_registry_version_report_text(&report);
+    let json = serde_json::to_value(&report).expect("Registry version JSON");
+    for (key, value) in serde_json::to_value(&report.provenance)
+        .unwrap()
+        .as_object()
+        .unwrap()
+    {
+        assert_eq!(
+            json.get(key),
+            Some(value),
+            "flat Registry provenance field {key}"
+        );
+    }
+    let decoded: NnsRegistryVersionReport = serde_json::from_value(json).unwrap();
+    assert_eq!(decoded, report);
 
     assert!(text.contains("network: ic"));
     assert!(text.contains("registry_version: 42"));
@@ -1509,10 +1522,13 @@ async fn public_nns_registry_host_api_accepts_custom_source_adapter() {
         .await
         .expect("registry version report");
 
-    assert_eq!(report.network, "ic");
-    assert_eq!(report.registry_canister_id, "rwlgt-iiaaa-aaaaa-aaaaa-cai");
-    assert_eq!(report.registry_version, 42);
-    assert_eq!(report.source_endpoint, "https://icp-api.io");
+    assert_eq!(report.provenance.network, "ic");
+    assert_eq!(
+        report.provenance.registry_canister_id,
+        "rwlgt-iiaaa-aaaaa-aaaaa-cai"
+    );
+    assert_eq!(report.provenance.registry_version, 42);
+    assert_eq!(report.provenance.source_endpoint, "https://icp-api.io");
 }
 
 #[cfg(feature = "nns-host")]
@@ -1533,12 +1549,12 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
             assert_ne!(request.fetched_at, "");
 
             Ok(ic_query::nns::registry::NnsRegistryVersionData {
-                network: "ic".to_string(),
-                registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-                registry_version: 42,
-                fetched_at: request.fetched_at.clone(),
-                fetched_by: request.fetched_by.clone(),
-                source_endpoint: request.endpoint.clone(),
+                provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
+                    fetched_at: request.fetched_at.clone(),
+                    source_endpoint: request.endpoint.clone(),
+                    fetched_by: request.fetched_by.clone(),
+                    ..sample_registry_provenance()
+                },
                 certification: public_registry_certification(),
             })
         })
@@ -2034,11 +2050,8 @@ fn public_nns_node_api_is_constructible_and_renderable() {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: list_request.inventory.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: list_request.inventory.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node_count: 1,
         nodes: vec![node.clone()],
@@ -2064,11 +2077,8 @@ fn public_nns_node_api_is_constructible_and_renderable() {
         resolved_from: "node_principal".to_string(),
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: info_request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: info_request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node,
     };
@@ -2088,11 +2098,8 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         data_center_count: 1,
         data_centers: vec![data_center.clone()],
@@ -2117,11 +2124,8 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
         resolved_from: "data_center_id".to_string(),
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: info_request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: info_request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         data_center,
     };
@@ -2141,11 +2145,8 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         node_provider_count: 1,
@@ -2171,11 +2172,8 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
         resolved_from: "node_provider_principal".to_string(),
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: info_request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: info_request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         node_provider: provider,
@@ -2196,11 +2194,8 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node_operator_count: 1,
         node_operators: vec![operator.clone()],
@@ -2225,11 +2220,8 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
         resolved_from: "node_operator_principal".to_string(),
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
             network: info_request.cache.network,
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: info_request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node_operator: operator,
     };
@@ -3950,12 +3942,8 @@ fn sample_nns_node_list_report() -> NnsNodeListReport {
     NnsNodeListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: DEFAULT_NNS_NODE_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node_count: 1,
         nodes: vec![node],
@@ -3968,12 +3956,8 @@ fn sample_nns_data_center_list_report() -> NnsDataCenterListReport {
     NnsDataCenterListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         data_center_count: 1,
         data_centers: vec![data_center],
@@ -3986,12 +3970,8 @@ fn sample_nns_node_provider_list_report() -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         node_provider_count: 1,
@@ -4005,12 +3985,8 @@ fn sample_nns_node_operator_list_report() -> NnsNodeOperatorListReport {
     NnsNodeOperatorListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         node_operator_count: 1,
         node_operators: vec![operator],
@@ -4029,12 +4005,8 @@ fn sample_nns_inventory_refresh_report(
         schema_version: 1,
         collection: collection.to_string(),
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: "ic".to_string(),
-            registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-            registry_version: 42,
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: source_endpoint.to_string(),
-            fetched_by: "ic-query".to_string(),
+            ..sample_registry_provenance()
         },
         cache_path: cache_path.display().to_string(),
         refresh_lock_path: refresh_lock_path.display().to_string(),
@@ -4240,4 +4212,15 @@ fn public_inventory_lists_round_trip_flat_provenance_and_reject_unknown_fields()
     check(sample_nns_data_center_list_report());
     check(sample_nns_node_provider_list_report());
     check(sample_nns_node_operator_list_report());
+}
+
+fn sample_registry_provenance() -> ic_query::nns::registry::NnsRegistryInventoryProvenance {
+    ic_query::nns::registry::NnsRegistryInventoryProvenance {
+        network: "ic".to_string(),
+        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
+        registry_version: 42,
+        fetched_at: "2023-11-14T22:13:20Z".to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "ic-query".to_string(),
+    }
 }

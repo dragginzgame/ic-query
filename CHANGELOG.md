@@ -5,6 +5,37 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.84.0]
+
+### ⚠️ Breaking
+
+- Adopt Platform 0.17, Host Tools 0.77 and Testkit 0.78. Align direct dependencies
+  and rebuild callers using Principal, certificate, ledger, PocketIC or canister
+  runtime types. External protocol bytes and schema-1 caches are unchanged.
+
+- Read shared SNS identity through `context` on Root, metrics, token and swap
+  reports, and through `context.instance` on Governance report envelopes.
+- Read NNS analytics collection metadata through `context` and Registry version
+  metadata through `provenance`. Update Rust callers and fixtures; JSON fields,
+  human text, schema-1 caches and external protocol bytes remain unchanged.
+
+### 🧹 Cleanup
+
+- Carry Registry certificate evidence intact, share native/Wasm reply
+  interpretation and time-series URL writing, and simplify cache-status and
+  refresh plumbing. Consolidate NNS fixtures and compact-principal rendering.
+
+### ⬆️ Dependencies
+
+- Align Query and Testkit on arithmetic-only Metrics 0.25.1, preserving report
+  calculations and formats.
+
+- Adopt Build/Host Foundation 0.73.6, canonical Types 0.16.0 and Runtime 0.17.1
+  through Platform 0.17. Adopt Wire/Derive 0.14.2 for development protocols,
+  preserving their bytes and budgets. Keep Rust 1.91 and PocketIC server 16.1.0.
+
+Detailed release notes: [docs/changelog/0.84.md](docs/changelog/0.84.md)
+
 ## [0.83.0] - 2026-11-01
 
 ### ⚠️ Breaking

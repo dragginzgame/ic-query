@@ -10,8 +10,8 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     let text = sns_canister_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_CANISTER_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.root_canister_id, ROOT_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.root_canister_id, ROOT_A);
     assert_eq!(
         report.inventory.inventory_method,
         SnsCanisterMethod::ListSnsCanisters

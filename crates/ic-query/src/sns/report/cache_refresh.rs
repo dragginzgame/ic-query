@@ -91,13 +91,13 @@ where
             refresh_lock_path: &paths.refresh_lock_path,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
-        async |refresh_state| {
+        async |replaced_existing_snapshot| {
             let context = SnsSnapshotRefreshContext {
                 request,
                 fetch_request: lookup.fetch_request,
                 sns: lookup.sns,
                 paths: &paths,
-                replaced_existing_cache: refresh_state.replaced_existing_snapshot,
+                replaced_existing_cache: replaced_existing_snapshot,
                 collection: PhantomData,
             };
             run_snapshot_refresh_with_attempts(

@@ -261,14 +261,14 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
     );
     assert_eq!(report.collected_neuron_count, 3);
     assert_eq!(report.total_effective_stake_e8s, 600_000_000);
-    assert_eq!(report.collection_page_count, 2);
-    assert_eq!(report.collection_started_at, "2023-11-14T22:13:20Z");
-    assert_eq!(report.collection_updated_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.context.collection_page_count, 2);
+    assert_eq!(report.context.collection_started_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.context.collection_updated_at, "2023-11-14T22:13:20Z");
     assert_eq!(
-        report.source,
+        report.context.source,
         fixture_source_data(&governance_request(1_700_000_000), ()).provenance
     );
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.context.point_in_time_guaranteed);
     assert_eq!(fs::read(&path).unwrap(), original);
     fs::remove_dir_all(root).expect("remove fixture");
 }

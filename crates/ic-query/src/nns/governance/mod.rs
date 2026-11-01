@@ -35,14 +35,14 @@ pub use collection::{
 };
 pub use error::NnsGovernanceError;
 pub use model::{
-    NnsGovernanceCollectionStatus, NnsGovernanceDecimal, NnsGovernanceEconomics,
-    NnsGovernanceEconomicsReport, NnsGovernanceExecutionAssurance, NnsGovernanceMaturityModulation,
-    NnsGovernanceMaturityModulationReport, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
-    NnsGovernanceMetricsReport, NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage,
-    NnsGovernanceProposalId, NnsGovernanceReportContext, NnsGovernanceRewardEvent,
-    NnsGovernanceRewardEventReport, NnsGovernanceSourceProvenance, NnsGovernanceVote,
-    NnsNeuronsFundEconomics, NnsNeuronsFundMatchedFundingCurveCoefficients,
-    NnsVotingPowerEconomics,
+    NnsGovernanceAnalyticsContext, NnsGovernanceCollectionStatus, NnsGovernanceDecimal,
+    NnsGovernanceEconomics, NnsGovernanceEconomicsReport, NnsGovernanceExecutionAssurance,
+    NnsGovernanceMaturityModulation, NnsGovernanceMaturityModulationReport,
+    NnsGovernanceMetricBucket, NnsGovernanceMetrics, NnsGovernanceMetricsReport,
+    NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage, NnsGovernanceProposalId,
+    NnsGovernanceReportContext, NnsGovernanceRewardEvent, NnsGovernanceRewardEventReport,
+    NnsGovernanceSourceProvenance, NnsGovernanceVote, NnsNeuronsFundEconomics,
+    NnsNeuronsFundMatchedFundingCurveCoefficients, NnsVotingPowerEconomics,
 };
 pub(in crate::nns) use model::{
     deserialize_code_label, native_code_classification, native_optional_code_classification,
@@ -67,7 +67,7 @@ pub use text::{
 };
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
-pub(in crate::nns) use validation::{GovernanceAnalyticsHeader, validate_governance_continuation};
+pub(in crate::nns) use validation::validate_governance_continuation;
 pub(crate) use validation::{
     advance_collection_counts, collection_lifecycle_matches, collection_status_after_page,
     validate_governance_collection_identity, validate_governance_collection_page_bounds,

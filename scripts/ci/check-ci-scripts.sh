@@ -960,7 +960,8 @@ if [[ "$1" == tree ]]; then
   [[ "$*" != *"--package ic-query-cli"* ]] || package=ic-query-cli
   printf '%s v0.0.0\n' "$package"
   if [[ "$*" == *"--features canister"* ]]; then
-    printf '%s v0.12.0\n' ic-platform ic-platform-macros ic-platform-runtime-guard
+    printf '%s v0.17.0\n' ic-platform
+    printf '%s v0.17.1\n' ic-platform-macros ic-platform-runtime ic-platform-runtime-guard
   fi
   if [[ -n "${FEATURE_TREE_LINE:-}" ]] && \
     [[ "${FEATURE_TREE_SCOPE:-}" == pure && "$*" != *"--features"* \
@@ -1012,7 +1013,7 @@ for failed_command in check test tree; do
   fi
 done
 
-for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools ic-platform-runtime-guard candid_parser \
+for dependency in ic-host-artifacts ic-host-fs ic-host-process ic-host-tools ic-platform-runtime ic-platform-runtime-guard candid_parser \
   ic-host-tools/candid ic-host-tools/ic-interface ic-host-artifacts/archive ic-host-artifacts/gzip \
   ic-host-artifacts/wasm; do
   scope=host
@@ -1055,7 +1056,7 @@ for scope in canister cli; do
 done
 
 # Query's canister graph has one Platform runtime owner.
-for dependency in ic-platform ic-platform-macros ic-platform-runtime-guard ic-cdk-executor ic0; do
+for dependency in ic-platform ic-platform-macros ic-platform-runtime ic-platform-runtime-guard ic-cdk-executor ic0; do
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE=canister FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \

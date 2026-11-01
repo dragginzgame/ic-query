@@ -26,17 +26,6 @@ pub struct LockedSnapshotRefreshRequest<'a> {
     pub refresh_lock_path: &'a Path,
 }
 
-///
-/// LockedSnapshotRefreshState
-///
-/// State derived after acquiring the snapshot refresh lock.
-///
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LockedSnapshotRefreshState {
-    pub replaced_existing_snapshot: bool,
-}
-
 #[expect(
     clippy::future_not_send,
     reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
@@ -44,7 +33,7 @@ pub struct LockedSnapshotRefreshState {
 pub async fn with_locked_snapshot_refresh<T, Error>(
     request: LockedSnapshotRefreshRequest<'_>,
     cache_error: impl Fn(CacheFileError) -> Error,
-    action: impl AsyncFnOnce(LockedSnapshotRefreshState) -> Result<T, Error>,
+    action: impl AsyncFnOnce(bool) -> Result<T, Error>,
 ) -> Result<T, Error> {
     create_managed_parent_directory(request.cache_root, request.snapshot_path)
         .map_err(&cache_error)?;
@@ -55,14 +44,10 @@ pub async fn with_locked_snapshot_refresh<T, Error>(
         },
         &cache_error,
         async || {
-            let state = LockedSnapshotRefreshState {
-                replaced_existing_snapshot: managed_file_exists(
-                    request.cache_root,
-                    request.snapshot_path,
-                )
-                .map_err(&cache_error)?,
-            };
-            action(state).await
+            let replaced_existing_snapshot =
+                managed_file_exists(request.cache_root, request.snapshot_path)
+                    .map_err(&cache_error)?;
+            action(replaced_existing_snapshot).await
         },
     )
     .await

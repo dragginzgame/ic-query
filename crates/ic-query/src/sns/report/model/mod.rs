@@ -11,7 +11,7 @@ pub(in crate::sns::report) mod reports;
 mod requests;
 mod sorts;
 
-pub use identity::{MainnetSnsCanisters, SnsReportContext};
+pub use identity::{MainnetSnsCanisters, SnsInstanceContext, SnsReportContext};
 
 #[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;

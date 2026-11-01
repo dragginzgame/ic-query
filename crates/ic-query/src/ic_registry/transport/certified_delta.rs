@@ -111,12 +111,7 @@ pub(in crate::ic_registry) async fn get_certified_changes_since(
         chunk_response_bytes,
         more_available: witness.more_available,
         certified_response_bytes: response_bytes,
-        certificate_time_nanos: witness.certificate_time_nanos,
-        root_key_digest: witness.root_key_digest,
-        certificate_hex: witness.certificate_hex,
-        certificate_bytes: witness.certificate_bytes,
-        hash_tree_hex: witness.hash_tree_hex,
-        hash_tree_bytes: witness.hash_tree_bytes,
+        certification: witness.certification,
     })
 }
 
@@ -170,12 +165,7 @@ fn authenticate_delta_response(
         inline_value_bytes: validated.inline_value_bytes,
         chunk_reference_count: validated.chunk_reference_count,
         more_available: validated.more_available,
-        certificate_time_nanos: authenticated.certificate_time_nanos,
-        root_key_digest: authenticated.root_key_digest,
-        certificate_hex: authenticated.certificate_hex,
-        certificate_bytes: authenticated.certificate_bytes,
-        hash_tree_hex: authenticated.hash_tree_hex,
-        hash_tree_bytes: authenticated.hash_tree_bytes,
+        certification: authenticated.certification,
     })
 }
 

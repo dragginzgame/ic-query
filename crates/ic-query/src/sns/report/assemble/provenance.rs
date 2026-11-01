@@ -10,7 +10,7 @@ use crate::{
     sns::report::{MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, cache_storage::SnsCacheMetadata},
 };
 
-use crate::sns::report::SnsReportContext;
+use crate::sns::report::{SnsInstanceContext, SnsReportContext};
 
 impl SnsReportContext {
     /// Consume admitted snapshot identity and return its separately owned rows.
@@ -19,14 +19,16 @@ impl SnsReportContext {
     ) -> (Self, Data) {
         (
             Self {
-                network: cache.network,
-                sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
-                fetched_at: cache.fetched_at,
-                source_endpoint: cache.source_endpoint,
-                fetched_by: cache.fetched_by,
-                id: cache.metadata.id,
-                name: cache.metadata.name,
-                root_canister_id: cache.metadata.root_canister_id,
+                instance: SnsInstanceContext {
+                    network: cache.network,
+                    sns_wasm_canister_id: cache.metadata.sns_wasm_canister_id,
+                    fetched_at: cache.fetched_at,
+                    source_endpoint: cache.source_endpoint,
+                    fetched_by: cache.fetched_by,
+                    id: cache.metadata.id,
+                    name: cache.metadata.name,
+                    root_canister_id: cache.metadata.root_canister_id,
+                },
                 governance_canister_id: cache.metadata.governance_canister_id,
             },
             cache.data,
@@ -39,15 +41,33 @@ impl SnsReportContext {
         sns: MainnetSns,
     ) -> Self {
         Self {
+            instance: SnsInstanceContext::from_live(
+                fetch_request,
+                sns.id,
+                sns.name,
+                sns.canisters.root_canister_id,
+            ),
+            governance_canister_id: sns.canisters.governance_canister_id,
+        }
+    }
+}
+
+impl SnsInstanceContext {
+    pub(in crate::sns::report) fn from_live(
+        fetch_request: CollectionSourceRequest,
+        id: usize,
+        name: String,
+        root_canister_id: String,
+    ) -> Self {
+        Self {
             network: fetch_request.network,
             sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
             fetched_at: fetch_request.fetched_at,
             source_endpoint: fetch_request.endpoint,
             fetched_by: fetch_request.fetched_by,
-            id: sns.id,
-            name: sns.name,
-            root_canister_id: sns.canisters.root_canister_id,
-            governance_canister_id: sns.canisters.governance_canister_id,
+            id,
+            name,
+            root_canister_id,
         }
     }
 }

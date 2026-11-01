@@ -76,24 +76,11 @@ pub struct NnsNeuronTypeDistribution {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronDistributionReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Network identity retained by the complete collection.
-    pub network: String,
-    /// Fixed NNS Governance canister principal retained by the collection.
-    pub governance_canister_id: String,
-    /// Concrete transport and collector provenance retained by the collection.
-    pub source: NnsGovernanceSourceProvenance,
-    /// Caller-supplied time attached to collection creation.
-    pub collection_started_at: String,
-    /// Caller-supplied time attached to the final admitted page.
-    pub collection_updated_at: String,
-    /// Number of admitted source pages in the complete collection.
-    pub collection_page_count: u32,
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub context: crate::nns::governance::NnsGovernanceAnalyticsContext,
     /// Number of admitted public neuron rows in the complete collection.
     pub collected_neuron_count: u64,
-    /// Whether the sequential collection is guaranteed to represent one point in time.
-    pub point_in_time_guaranteed: bool,
     /// Earliest raw Governance retrieval timestamp among collected rows.
     pub earliest_retrieved_at_timestamp_seconds: Option<u64>,
     /// Latest raw Governance retrieval timestamp among collected rows.
@@ -293,23 +280,15 @@ pub fn validate_nns_neuron_distribution_report(
 fn validate_distribution_header(
     report: &NnsNeuronDistributionReport,
 ) -> Result<(), NnsNeuronDistributionValidationError> {
-    crate::nns::governance::GovernanceAnalyticsHeader {
-        schema_version: report.schema_version,
-        network: &report.network,
-        governance_canister_id: &report.governance_canister_id,
-        source: &report.source,
-        collection_started_at: &report.collection_started_at,
-        collection_updated_at: &report.collection_updated_at,
-        collection_page_count: report.collection_page_count,
-        collected_row_count: report.collected_neuron_count,
-        point_in_time_guaranteed: report.point_in_time_guaranteed,
-    }
-    .validate(
-        NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
-        ("distribution", "neurons"),
-        "sequential public-neuron collection cannot claim a point-in-time snapshot",
-    )
-    .map_err(invalid_validation)?;
+    report
+        .context
+        .validate(
+            NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
+            report.collected_neuron_count,
+            ("distribution", "neurons"),
+            "sequential public-neuron collection cannot claim a point-in-time snapshot",
+        )
+        .map_err(invalid_validation)?;
     validate_retrieval_range(report)
 }
 
@@ -558,15 +537,17 @@ impl DistributionAccumulator {
     ) -> NnsNeuronDistributionReport {
         let collected_neuron_count = collection.neurons_fetched();
         NnsNeuronDistributionReport {
-            schema_version: NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
-            network: collection.network().to_string(),
-            governance_canister_id: collection.governance_canister_id().to_string(),
-            source,
-            collection_started_at: collection.started_at().to_string(),
-            collection_updated_at: collection.updated_at().to_string(),
-            collection_page_count: collection.pages_fetched(),
+            context: crate::nns::governance::NnsGovernanceAnalyticsContext {
+                schema_version: NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
+                network: collection.network().to_string(),
+                governance_canister_id: collection.governance_canister_id().to_string(),
+                source,
+                collection_started_at: collection.started_at().to_string(),
+                collection_updated_at: collection.updated_at().to_string(),
+                collection_page_count: collection.pages_fetched(),
+                point_in_time_guaranteed: false,
+            },
             collected_neuron_count,
-            point_in_time_guaranteed: false,
             earliest_retrieved_at_timestamp_seconds: self
                 .retrieved_timestamp_bounds
                 .map(|bounds| bounds.0),

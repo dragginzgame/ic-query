@@ -188,8 +188,9 @@ qualification remains distinct from source review or Linux-only evidence.
   Platform's `cdk` feature and entrypoint generator; do not declare Candid, CDK
   or either macro package directly. Native Testkit fixtures use Platform for
   required external Candid protocols and Wire for owned RPCs. Preserve the published
-  runtime semantics and Platform 0.16's embedded executor/ic0 identities; align
-  canister runtime consumers on that Platform line without a second executor.
+  runtime semantics and Platform 0.17's canonical Runtime 0.17.1 executor/ic0
+  identities; align canister runtime consumers on that Runtime owner without
+  a second executor.
 
 - Prefer `ic-agent` for IC protocol calls whenever it supplies the required
   capability, including development and verification tooling. Use typed Candid

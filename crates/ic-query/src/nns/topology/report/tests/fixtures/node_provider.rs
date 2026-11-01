@@ -1,22 +1,12 @@
 use crate::nns::NnsInventoryRefreshReport;
-use crate::{
-    nns::node_provider::{NnsNodeProviderListReport, NnsNodeProviderRow},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
-};
+use crate::nns::node_provider::{NnsNodeProviderListReport, NnsNodeProviderRow};
 
 pub(in crate::nns::topology::report::tests) fn node_provider_refresh_report_fixture()
 -> NnsInventoryRefreshReport {
     NnsInventoryRefreshReport {
         schema_version: 1,
         collection: "node_providers".to_string(),
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 44,
-            fetched_at: "2026-06-04T00:02:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(44, "2026-06-04T00:02:00Z"),
         cache_path: "/cache/nns/ic/node-provider/providers.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node-provider/refresh.lock".to_string(),
         output_path: None,
@@ -41,14 +31,7 @@ pub(in crate::nns::topology::report::tests) fn node_provider_report_fixture()
 -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
         schema_version: 1,
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 44,
-            fetched_at: "2026-06-04T00:02:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(44, "2026-06-04T00:02:00Z"),
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         node_provider_count: 1,
         node_providers: vec![NnsNodeProviderRow {

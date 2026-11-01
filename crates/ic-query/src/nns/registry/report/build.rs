@@ -49,27 +49,27 @@ fn validate_source_result(
         (
             "network",
             request.network.as_str(),
-            version.network.as_str(),
+            version.provenance.network.as_str(),
         ),
         (
             "registry_canister_id",
             MAINNET_REGISTRY_CANISTER_ID,
-            version.registry_canister_id.as_str(),
+            version.provenance.registry_canister_id.as_str(),
         ),
         (
             "fetched_at",
             request.fetched_at.as_str(),
-            version.fetched_at.as_str(),
+            version.provenance.fetched_at.as_str(),
         ),
         (
             "source_endpoint",
             request.endpoint.as_str(),
-            version.source_endpoint.as_str(),
+            version.provenance.source_endpoint.as_str(),
         ),
         (
             "fetched_by",
             request.fetched_by.as_str(),
-            version.fetched_by.as_str(),
+            version.provenance.fetched_by.as_str(),
         ),
     ] {
         if expected != actual {
@@ -157,12 +157,7 @@ fn registry_version_report_from_version(
 ) -> NnsRegistryVersionReport {
     NnsRegistryVersionReport {
         schema_version: NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION,
-        network: version.network,
-        registry_canister_id: version.registry_canister_id,
-        registry_version: version.registry_version,
-        fetched_at: version.fetched_at,
-        source_endpoint: version.source_endpoint,
-        fetched_by: version.fetched_by,
+        provenance: version.provenance,
         certification: version.certification,
     }
 }

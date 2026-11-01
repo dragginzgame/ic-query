@@ -1,6 +1,6 @@
 use ic_host_text::escape::terminal_text;
 
-use crate::subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal};
+use crate::subnet_catalog::{SubnetCatalogListReport, text::compact_principal};
 
 pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
     append_formatted_range_lines(report, lines, |value| terminal_text(value).into_owned());

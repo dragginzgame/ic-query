@@ -40,12 +40,15 @@ pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> St
         ),
         format!(
             "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
+            report.context.instance.sns_wasm_canister_id
         ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
+        format!(
+            "fetched_at: {}",
+            terminal_text(&report.context.instance.fetched_at)
+        ),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
+            terminal_text(&report.context.instance.source_endpoint)
         ),
     ]);
     lines.join("\n")

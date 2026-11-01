@@ -188,7 +188,7 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
             refresh_lock_path: &paths.refresh_lock_path,
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
-        async |state| {
+        async |replaced_existing_snapshot| {
             let IcNodeStatusSnapshot {
                 observation,
                 nodes,
@@ -227,7 +227,7 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
                 fetched_by: cache.fetched_by,
                 cache_path: paths.snapshot_path.display().to_string(),
                 refresh_lock_path: paths.refresh_lock_path.display().to_string(),
-                replaced_existing_cache: state.replaced_existing_snapshot,
+                replaced_existing_cache: replaced_existing_snapshot,
                 node_count,
                 counts,
             })

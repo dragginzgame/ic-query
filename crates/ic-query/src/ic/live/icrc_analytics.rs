@@ -119,8 +119,12 @@ fn total_supply_url(
     let mut url = ledger_resource_url(endpoint, ledger_canister_id, &["total-supply"])?;
     {
         let mut pairs = url.query_pairs_mut();
-        super::append_time_window(&mut pairs, query.start_unix_secs, query.end_unix_secs);
-        pairs.append_pair("step", &query.step_secs.to_string());
+        super::append_time_series(
+            &mut pairs,
+            query.start_unix_secs,
+            query.end_unix_secs,
+            query.step_secs,
+        );
     }
     Ok(url)
 }

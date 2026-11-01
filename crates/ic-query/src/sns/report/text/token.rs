@@ -13,10 +13,10 @@ use ic_host_text::escape::terminal_text;
 #[must_use]
 pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
         format!("ledger_canister_id: {}", report.ledger_canister_id),
         format!("sns_index_canister_id: {}", report.sns_index_canister_id),
         format!(
@@ -26,11 +26,14 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
     ];
     lines.extend(token_summary_lines(&report.token));
     lines.extend([
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
     ]);
     if let Some(error) = report.ledger_index.unavailable_reason() {

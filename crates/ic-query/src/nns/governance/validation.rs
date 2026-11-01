@@ -117,28 +117,11 @@ macro_rules! validate_governance_continuation {
 
 pub(in crate::nns) use validate_governance_continuation;
 
-///
-/// GovernanceAnalyticsHeader
-///
-/// Borrowed collection evidence shared by complete proposal and neuron analytics.
-///
-
-pub(in crate::nns) struct GovernanceAnalyticsHeader<'a> {
-    pub(in crate::nns) schema_version: u32,
-    pub(in crate::nns) network: &'a str,
-    pub(in crate::nns) governance_canister_id: &'a str,
-    pub(in crate::nns) source: &'a NnsGovernanceSourceProvenance,
-    pub(in crate::nns) collection_started_at: &'a str,
-    pub(in crate::nns) collection_updated_at: &'a str,
-    pub(in crate::nns) collection_page_count: u32,
-    pub(in crate::nns) collected_row_count: u64,
-    pub(in crate::nns) point_in_time_guaranteed: bool,
-}
-
-impl GovernanceAnalyticsHeader<'_> {
+impl super::NnsGovernanceAnalyticsContext {
     pub(in crate::nns) fn validate(
-        self,
+        &self,
         schema_version: u32,
+        collected_row_count: u64,
         (report_label, row_label): (&str, &str),
         point_in_time_error: &str,
     ) -> Result<(), String> {
@@ -148,24 +131,24 @@ impl GovernanceAnalyticsHeader<'_> {
                 self.schema_version
             ));
         }
-        validate_governance_report_identity(self.network, self.governance_canister_id)?;
+        validate_governance_report_identity(&self.network, &self.governance_canister_id)?;
         validate_governance_analytics_pages(
             self.collection_page_count,
-            self.collected_row_count,
+            collected_row_count,
             report_label,
             row_label,
         )?;
         validate_governance_time_interval(
             "collection_started_at",
-            self.collection_started_at,
+            &self.collection_started_at,
             "collection_updated_at",
-            self.collection_updated_at,
+            &self.collection_updated_at,
         )
         .map_err(|error| error.to_string())?;
         if self.point_in_time_guaranteed {
             return Err(point_in_time_error.to_string());
         }
-        validate_governance_collection_source(self.network, self.source)
+        validate_governance_collection_source(&self.network, &self.source)
     }
 }
 

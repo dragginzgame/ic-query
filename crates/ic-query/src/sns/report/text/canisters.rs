@@ -22,10 +22,10 @@ const MODULE_HASH_TEXT_CHARS: usize = 12;
 #[must_use]
 pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("sns_id: {}", report.id),
-        format!("name: {}", terminal_text(&report.name)),
-        format!("root_canister_id: {}", report.root_canister_id),
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
         format!("canister_count: {}", report.canister_count),
         format!("health_status_count: {}", report.health_status_count),
         format!(
@@ -62,11 +62,14 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             "health_update_canister_list: {}",
             yes_no(report.inventory.health_update_canister_list)
         ),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
         String::new(),
         canisters_table(report),

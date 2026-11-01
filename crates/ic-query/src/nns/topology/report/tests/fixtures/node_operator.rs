@@ -1,22 +1,12 @@
 use crate::nns::NnsInventoryRefreshReport;
-use crate::{
-    nns::node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow},
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
-};
+use crate::nns::node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow};
 
 pub(in crate::nns::topology::report::tests) fn node_operator_refresh_report_fixture()
 -> NnsInventoryRefreshReport {
     NnsInventoryRefreshReport {
         schema_version: 1,
         collection: "node_operators".to_string(),
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 45,
-            fetched_at: "2026-06-04T00:03:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(45, "2026-06-04T00:03:00Z"),
         cache_path: "/cache/nns/ic/node-operator/operators.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node-operator/refresh.lock".to_string(),
         output_path: None,
@@ -41,14 +31,7 @@ pub(in crate::nns::topology::report::tests) fn node_operator_report_fixture()
 -> NnsNodeOperatorListReport {
     NnsNodeOperatorListReport {
         schema_version: 1,
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 45,
-            fetched_at: "2026-06-04T00:03:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
+        provenance: super::inventory_provenance(45, "2026-06-04T00:03:00Z"),
         node_operator_count: 2,
         node_operators: vec![
             NnsNodeOperatorRow {

@@ -1,6 +1,5 @@
 mod info;
 mod list;
-mod principal;
 mod refresh;
 
 pub use info::subnet_catalog_info_report_text;
@@ -70,4 +69,8 @@ pub(super) fn append_catalog_policy(
             terminal_text(&metadata.resolver_backend)
         ),
     ]);
+}
+
+fn compact_principal(value: &str) -> String {
+    crate::text_value::compact_text(value, 5)
 }

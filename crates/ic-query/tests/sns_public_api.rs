@@ -189,6 +189,11 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
     let decoded: SnsNeuronDetailReport =
         serde_json::from_value(value.clone()).expect("detail round trip");
     assert_eq!(decoded, report);
+    let duplicate = serde_json::to_string(&report).unwrap().replace(
+        "\"root_canister_id\":",
+        "\"root_canister_id\":\"aaaaa-aa\",\"root_canister_id\":",
+    );
+    assert!(serde_json::from_str::<SnsNeuronDetailReport>(&duplicate).is_err());
     let mut invalid = value;
     invalid["unexpected"] = serde_json::json!(true);
     assert!(serde_json::from_value::<SnsNeuronDetailReport>(invalid).is_err());
@@ -639,14 +644,7 @@ fn public_sns_info_api_is_constructible_and_renderable() {
 fn public_sns_metrics_api_is_constructible_and_renderable() {
     let report = SnsMetricsReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        context: sample_sns_context().instance,
         treasury_metric_count: 1,
 
         metrics: MainnetSnsMetrics {
@@ -679,6 +677,7 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
     };
 
     let json = serde_json::to_value(&report).expect("serialize public SNS metrics report");
+    assert_instance_json_fields(&json, &report.context);
     let text = sns_metrics_report_text(&report);
 
     assert_eq!(json["treasury_metrics"][0]["treasury"], 1);
@@ -697,14 +696,7 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
     };
     let report = SnsCanisterReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        context: sample_sns_context().instance,
         canister_count: 1,
         health_status_count: 1,
         reported_zero_cycles_count: 0,
@@ -733,6 +725,7 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
     };
 
     let json = serde_json::to_value(&report).expect("serialize public SNS canister report");
+    assert_instance_json_fields(&json, &report.context);
     let text = sns_canister_report_text(&report);
 
     assert_eq!(SnsCanisterRole::Governance.as_str(), "governance");
@@ -780,14 +773,13 @@ fn public_sns_token_api_is_constructible_and_renderable() {
 
     let report = SnsTokenReport {
         schema_version: 1,
-        network: request.network,
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: request.input,
+        context: ic_query::sns::SnsInstanceContext {
+            network: request.network,
+            fetched_at: "2023-11-14T22:13:20Z".to_string(),
+            source_endpoint: request.source_endpoint,
+            root_canister_id: request.input,
+            ..sample_sns_context().instance
+        },
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         sns_index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
         ledger_index: ic_query::icrc::IcrcIndexData::Unavailable("not configured".to_string()),
@@ -813,6 +805,7 @@ fn public_sns_token_api_is_constructible_and_renderable() {
 
     let text = sns_token_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize SNS token report");
+    assert_instance_json_fields(&json, &report.context);
 
     assert!(text.contains("token_symbol: EXT"));
     assert!(text.contains("transfer_fee: 1.00"));
@@ -835,8 +828,11 @@ fn public_sns_params_api_is_constructible_and_renderable() {
     let report = SnsParamsReport {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
-            network: request.network,
-            source_endpoint: request.source_endpoint,
+            instance: ic_query::sns::SnsInstanceContext {
+                network: request.network,
+                source_endpoint: request.source_endpoint,
+                ..sample_sns_context().instance
+            },
             ..sample_sns_context()
         },
 
@@ -860,14 +856,7 @@ fn public_sns_params_api_is_constructible_and_renderable() {
 fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
     let report = SnsSwapReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        context: sample_sns_context().instance,
         component_query_count: 3,
         successful_component_query_count: 3,
         component_gap_count: 0,
@@ -922,6 +911,7 @@ fn public_sns_swap_api_is_constructible_serializable_and_renderable() {
 
     let text = sns_swap_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize swap report");
+    assert_instance_json_fields(&json, &report.context);
 
     assert!(text.contains("lifecycle_name"));
     assert_eq!(json["lifecycle_method"], "get_lifecycle");
@@ -1019,8 +1009,11 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         },
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
-            network: request.lookup.network,
-            source_endpoint: request.lookup.source_endpoint,
+            instance: ic_query::sns::SnsInstanceContext {
+                network: request.lookup.network,
+                source_endpoint: request.lookup.source_endpoint,
+                ..sample_sns_context().instance
+            },
             ..sample_sns_context()
         },
 
@@ -1089,8 +1082,11 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         },
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
-            network: request.lookup.network,
-            source_endpoint: request.lookup.source_endpoint,
+            instance: ic_query::sns::SnsInstanceContext {
+                network: request.lookup.network,
+                source_endpoint: request.lookup.source_endpoint,
+                ..sample_sns_context().instance
+            },
             ..sample_sns_context()
         },
 
@@ -2476,14 +2472,53 @@ fn clear_reward_checkpoint_rows(report: &mut SnsRewardCheckpointReport) {
 
 fn sample_sns_context() -> ic_query::sns::SnsReportContext {
     ic_query::sns::SnsReportContext {
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        instance: ic_query::sns::SnsInstanceContext {
+            network: "ic".to_string(),
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        },
         governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
     }
+}
+
+fn assert_instance_json_fields(
+    json: &serde_json::Value,
+    context: &ic_query::sns::SnsInstanceContext,
+) {
+    let fields = serde_json::to_value(context).expect("instance JSON");
+    for (key, value) in fields.as_object().unwrap() {
+        assert_eq!(json.get(key), Some(value), "flat instance field {key}");
+    }
+}
+
+#[test]
+fn public_sns_contexts_round_trip_the_flat_identity_contract() {
+    let context = sample_sns_context();
+    let instance_json = serde_json::to_value(&context.instance).unwrap();
+    let expected = serde_json::json!({
+        "network": "ic",
+        "sns_wasm_canister_id": "qaa6y-5yaaa-aaaaa-aaafa-cai",
+        "fetched_at": SAMPLE_SNS_FETCHED_AT,
+        "source_endpoint": "https://icp-api.io",
+        "fetched_by": "ic-query",
+        "id": 1,
+        "name": "Example SNS",
+        "root_canister_id": SAMPLE_SNS_ROOT_CANISTER_ID,
+    });
+    assert_eq!(instance_json, expected);
+    let decoded_instance: ic_query::sns::SnsInstanceContext =
+        serde_json::from_value(instance_json).unwrap();
+    assert_eq!(decoded_instance, context.instance);
+
+    let mut expected = expected;
+    expected["governance_canister_id"] = serde_json::json!(SAMPLE_SNS_GOVERNANCE_CANISTER_ID);
+    let json = serde_json::to_value(&context).unwrap();
+    assert_eq!(json, expected);
+    let decoded: ic_query::sns::SnsReportContext = serde_json::from_value(json).unwrap();
+    assert_eq!(decoded, context);
 }

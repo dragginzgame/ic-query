@@ -5,10 +5,9 @@
 //! Boundary: resolves SNS identity, calls one source capability, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, SNS_CANISTER_REPORT_SCHEMA_VERSION,
-    SnsCanisterCycleBalanceStatus, SnsCanisterReport, SnsCanisterSource, SnsHostError,
-    SnsLookupRequest, live::LiveSnsSource, lookup::resolve_sns_lookup,
-    source::canonicalize_mainnet_sns_canister_inventory,
+    SNS_CANISTER_REPORT_SCHEMA_VERSION, SnsCanisterCycleBalanceStatus, SnsCanisterReport,
+    SnsCanisterSource, SnsHostError, SnsLookupRequest, live::LiveSnsSource,
+    lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_canister_inventory,
 };
 
 /// Build a live SNS Root canister inventory and health report.
@@ -49,14 +48,12 @@ pub async fn build_sns_canister_report_with_source(
         .count();
     Ok(SnsCanisterReport {
         schema_version: SNS_CANISTER_REPORT_SCHEMA_VERSION,
-        network: lookup.fetch_request.network,
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: lookup.fetch_request.fetched_at,
-        source_endpoint: lookup.fetch_request.endpoint,
-        fetched_by: lookup.fetch_request.fetched_by,
-        id: lookup.sns.id,
-        name: lookup.sns.name,
-        root_canister_id: lookup.sns.canisters.root_canister_id,
+        context: crate::sns::SnsInstanceContext::from_live(
+            lookup.fetch_request,
+            lookup.sns.id,
+            lookup.sns.name,
+            lookup.sns.canisters.root_canister_id,
+        ),
         canister_count: inventory.canisters.len(),
         health_status_count,
         reported_zero_cycles_count,

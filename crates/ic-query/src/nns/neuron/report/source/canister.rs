@@ -5,8 +5,8 @@
 //! Boundary: maps shared canister transport responses into neuron source data.
 
 use super::{
-    NnsNeuronPage, NnsNeuronSource, NnsNeuronSourceFuture, governance_result,
-    map_neuron_info_error, neuron_page_from_wire, neuron_page_request, neuron_row_from_wire,
+    NnsNeuronPage, NnsNeuronSource, NnsNeuronSourceFuture, neuron_page_from_wire,
+    neuron_page_request, neuron_row_from_response,
 };
 use crate::nns::{
     governance::{
@@ -51,10 +51,8 @@ impl NnsNeuronSource for CanisterNnsSource {
             let provenance = canister_provenance(request)?;
             let result: GetNeuronInfoResultWire =
                 call_with_arg("get_neuron_info", "nat64", "NeuronInfoResult", &neuron_id).await?;
-            let wire = governance_result(result)
-                .map_err(|error| map_neuron_info_error(error, neuron_id))?;
             Ok(NnsGovernanceSourceData::new(
-                neuron_row_from_wire(*wire)?,
+                neuron_row_from_response(result, neuron_id)?,
                 provenance,
             ))
         })

@@ -9,7 +9,7 @@ pub use report::{
     SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport,
     SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality,
     SnsDefaultFollowees, SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
+    SnsInstanceContext, SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
     SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
     SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
     SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,

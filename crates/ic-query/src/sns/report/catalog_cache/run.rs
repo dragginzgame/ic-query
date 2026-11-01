@@ -153,7 +153,7 @@ pub async fn refresh_sns_catalog_with_source(
             refresh_lock_path: &paths.refresh_lock_path,
         },
         |error| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, error)),
-        async |state| {
+        async |replaced_existing_snapshot| {
             let list_request = SnsListRequest::new(
                 &request.cache.network,
                 &request.source_endpoint,
@@ -194,7 +194,7 @@ pub async fn refresh_sns_catalog_with_source(
                 fetched_by: cache.fetched_by,
                 cache_path: paths.snapshot_path.display().to_string(),
                 refresh_lock_path: paths.refresh_lock_path.display().to_string(),
-                replaced_existing_cache: state.replaced_existing_snapshot,
+                replaced_existing_cache: replaced_existing_snapshot,
                 sns_count,
                 metadata_error_count,
                 lifecycle_error_count,

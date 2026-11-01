@@ -40,18 +40,21 @@ pub fn nns_neuron_distribution_report_text(report: &NnsNeuronDistributionReport)
 
 fn distribution_preamble(report: &NnsNeuronDistributionReport) -> Vec<String> {
     let mut lines = governance_collection_context_lines(
-        &report.network,
-        &report.governance_canister_id,
-        &report.collection_started_at,
-        &report.collection_updated_at,
-        &report.source,
+        &report.context.network,
+        &report.context.governance_canister_id,
+        &report.context.collection_started_at,
+        &report.context.collection_updated_at,
+        &report.context.source,
     );
     lines.extend([
-        format!("collection_page_count: {}", report.collection_page_count),
+        format!(
+            "collection_page_count: {}",
+            report.context.collection_page_count
+        ),
         format!("collected_neuron_count: {}", report.collected_neuron_count),
         format!(
             "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+            yes_no(report.context.point_in_time_guaranteed)
         ),
         format!(
             "earliest_retrieved_at_timestamp_seconds: {}",

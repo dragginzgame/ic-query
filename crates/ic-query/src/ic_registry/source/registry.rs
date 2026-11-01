@@ -7,9 +7,8 @@ use crate::{
         model::CertifiedRegistryDeltaBatch,
         transport::{get_certified_changes_since, get_certified_latest_version},
     },
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
-use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 
 pub async fn fetch_mainnet_registry_version(
     request: &MainnetRegistryFetchRequest,
@@ -17,26 +16,10 @@ pub async fn fetch_mainnet_registry_version(
     let agent = mainnet_agent(request)?;
     let registry_canister = mainnet_registry_canister()?;
     let certified = get_certified_latest_version(&agent, &registry_canister).await?;
-    validate_live_certificate_time(request, certified.certificate_time_nanos)?;
+    validate_live_certificate_time(request, certified.certification.certificate_time_nanos)?;
     Ok(NnsRegistryVersionData {
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: certified.registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
-        certification: crate::nns::registry::NnsRegistryCertification {
-            certificate_verified: true,
-            certificate_time_nanos: certified.certificate_time_nanos,
-            certificate_time: format_utc_timestamp_secs(
-                certified.certificate_time_nanos / 1_000_000_000,
-            ),
-            root_key_digest: certified.root_key_digest,
-            certificate_hex: certified.certificate_hex,
-            certificate_bytes: certified.certificate_bytes,
-            hash_tree_hex: certified.hash_tree_hex,
-            hash_tree_bytes: certified.hash_tree_bytes,
-        },
+        provenance: request.inventory_provenance(certified.registry_version),
+        certification: certified.certification,
     })
 }
 
@@ -48,7 +31,7 @@ pub async fn fetch_mainnet_certified_registry_delta_batch_async(
     let agent = mainnet_agent(request)?;
     let registry_canister = mainnet_registry_canister()?;
     let batch = get_certified_changes_since(&agent, &registry_canister, requested_version).await?;
-    validate_live_certificate_time(request, batch.certificate_time_nanos)?;
+    validate_live_certificate_time(request, batch.certification.certificate_time_nanos)?;
     Ok(batch)
 }
 

@@ -23,13 +23,13 @@ pub struct MainnetSnsCanisters {
 }
 
 ///
-/// SnsReportContext
+/// SnsInstanceContext
 ///
-/// SNS identity and collection provenance shared by governance report envelopes.
+/// SNS instance identity and acquisition metadata shared by lookup reports.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct SnsReportContext {
+pub struct SnsInstanceContext {
     /// Requested IC network identity.
     pub network: String,
     /// SNS-W canister used for discovery.
@@ -46,6 +46,54 @@ pub struct SnsReportContext {
     pub name: String,
     /// Stable SNS Root canister identity.
     pub root_canister_id: String,
+}
+
+///
+/// SnsReportContext
+///
+/// SNS identity and collection provenance shared by governance report envelopes.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SnsReportContext {
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub instance: SnsInstanceContext,
     /// Stable SNS Governance canister identity.
     pub governance_canister_id: String,
+}
+
+impl<'de> Deserialize<'de> for SnsReportContext {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // A strict parent must see every consumed key; nested Serde flattening cannot track them.
+        #[derive(Deserialize)]
+        struct Fields {
+            network: String,
+            sns_wasm_canister_id: String,
+            fetched_at: String,
+            source_endpoint: String,
+            fetched_by: String,
+            id: usize,
+            name: String,
+            root_canister_id: String,
+            governance_canister_id: String,
+        }
+        let fields = Fields::deserialize(deserializer)?;
+        Ok(Self {
+            instance: SnsInstanceContext {
+                network: fields.network,
+                sns_wasm_canister_id: fields.sns_wasm_canister_id,
+                fetched_at: fields.fetched_at,
+                source_endpoint: fields.source_endpoint,
+                fetched_by: fields.fetched_by,
+                id: fields.id,
+                name: fields.name,
+                root_canister_id: fields.root_canister_id,
+            },
+            governance_canister_id: fields.governance_canister_id,
+        })
+    }
 }

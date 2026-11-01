@@ -64,12 +64,9 @@ impl NnsRegistryVersionRequest {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsRegistryVersionReport {
     pub schema_version: u32,
-    pub network: String,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: NnsRegistryInventoryProvenance,
     /// Authenticated evidence for the certified latest version.
     pub certification: NnsRegistryCertification,
 }
@@ -371,18 +368,9 @@ pub struct NnsCertifiedRegistryPrecondition {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsRegistryVersionData {
-    /// Canonical network identity.
-    pub network: String,
-    /// Registry canister supplying this version.
-    pub registry_canister_id: String,
-    /// Authenticated Registry version.
-    pub registry_version: u64,
-    /// Caller-selected collection time in UTC.
-    pub fetched_at: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// Explicit replica endpoint.
-    pub source_endpoint: String,
+    /// Shared record, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: NnsRegistryInventoryProvenance,
     /// Authenticated evidence for the certified latest version.
     pub certification: NnsRegistryCertification,
 }

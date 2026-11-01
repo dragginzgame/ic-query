@@ -714,14 +714,14 @@ async fn cached_proposal_activity_preserves_collection_evidence_and_window_bound
     assert_eq!(report.included_proposal_count, 1);
     assert_eq!(report.excluded_before_from_count, 1);
     assert_eq!(report.excluded_at_or_after_until_count, 1);
-    assert_eq!(report.collection_page_count, 2);
-    assert_eq!(report.collection_started_at, "2023-11-14T22:13:20Z");
-    assert_eq!(report.collection_updated_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.context.collection_page_count, 2);
+    assert_eq!(report.context.collection_started_at, "2023-11-14T22:13:20Z");
+    assert_eq!(report.context.collection_updated_at, "2023-11-14T22:13:20Z");
     assert_eq!(
-        report.source,
+        report.context.source,
         fixture_provenance(&proposal_governance_request(1_700_000_000))
     );
-    assert!(!report.point_in_time_guaranteed);
+    assert!(!report.context.point_in_time_guaranteed);
     assert_eq!(fs::read(&path).expect("read unchanged snapshot"), original);
     assert!(matches!(
         build_nns_proposal_activity_report_from_cache(

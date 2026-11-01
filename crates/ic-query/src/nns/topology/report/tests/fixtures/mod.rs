@@ -244,3 +244,17 @@ impl NnsTopologySource for RecordingTopologySource {
         })
     }
 }
+
+fn inventory_provenance(
+    registry_version: u64,
+    fetched_at: &str,
+) -> crate::nns::registry::NnsRegistryInventoryProvenance {
+    crate::nns::registry::NnsRegistryInventoryProvenance {
+        network: crate::subnet_catalog::MAINNET_NETWORK.to_string(),
+        registry_canister_id: crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID.to_string(),
+        registry_version,
+        fetched_at: fetched_at.to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "test".to_string(),
+    }
+}

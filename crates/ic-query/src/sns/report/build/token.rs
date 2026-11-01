@@ -5,9 +5,8 @@
 //! Boundary: resolves SNS identity, fetches token data, and assembles the report.
 
 use crate::sns::report::{
-    MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsHostError,
-    SnsLookupRequest, SnsTokenReport, live::LiveSnsSource, lookup::resolve_sns_lookup,
-    source::SnsTokenSource,
+    MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsHostError, SnsLookupRequest,
+    SnsTokenReport, live::LiveSnsSource, lookup::resolve_sns_lookup, source::SnsTokenSource,
 };
 
 pub async fn build_sns_token_report(
@@ -30,14 +29,12 @@ pub async fn build_sns_token_report_with_source(
     } = token;
     Ok(SnsTokenReport {
         schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
-        network: lookup.fetch_request.network,
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: lookup.fetch_request.fetched_at,
-        source_endpoint: lookup.fetch_request.endpoint,
-        fetched_by: lookup.fetch_request.fetched_by,
-        id: lookup.sns.id,
-        name: lookup.sns.name,
-        root_canister_id: lookup.sns.canisters.root_canister_id,
+        context: crate::sns::SnsInstanceContext::from_live(
+            lookup.fetch_request,
+            lookup.sns.id,
+            lookup.sns.name,
+            lookup.sns.canisters.root_canister_id,
+        ),
         ledger_canister_id: lookup.sns.canisters.ledger_canister_id,
         sns_index_canister_id: lookup.sns.canisters.index_canister_id,
         token,

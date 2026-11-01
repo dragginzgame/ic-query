@@ -6,7 +6,7 @@ use ic_host_text::{
 
 use super::ranges::append_compact_range_lines;
 use crate::{
-    subnet_catalog::{SubnetCatalogListReport, text::principal::compact_principal},
+    subnet_catalog::{SubnetCatalogListReport, text::compact_principal},
     text_value::yes_no,
 };
 
