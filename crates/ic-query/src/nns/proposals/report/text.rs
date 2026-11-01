@@ -199,12 +199,12 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         format!("result_scope: {}", report.result_scope),
         format!("verbose: {}", yes_no(report.verbose)),
         format!("proposal_count: {}", report.proposal_count),
-        format!("data_source: {}", report.data_source),
+        format!("data_source: {}", report.provenance.data_source),
     ]);
-    if let Some(cache_path) = report.cache_path.as_ref() {
+    if let Some(cache_path) = report.provenance.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
-    if let Some(cache_complete) = report.cache_complete {
+    if let Some(cache_complete) = report.provenance.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
     if !report.proposals.is_empty() {
@@ -257,12 +257,12 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
         format!("proposal_id: {}", report.proposal_id),
         format!("show_ballots: {}", yes_no(report.show_ballots)),
         format!("verbose: {}", yes_no(report.verbose)),
-        format!("data_source: {}", report.data_source),
+        format!("data_source: {}", report.provenance.data_source),
     ]);
-    if let Some(cache_path) = report.cache_path.as_ref() {
+    if let Some(cache_path) = report.provenance.cache_path.as_ref() {
         lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
-    if let Some(cache_complete) = report.cache_complete {
+    if let Some(cache_complete) = report.provenance.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
     lines.push(String::new());

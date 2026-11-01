@@ -667,16 +667,13 @@ pub struct IcReplicaVersionListReport {
 }
 
 ///
-/// IcReplicaVersionInfoReport
+/// IcReplicaVersionDetails
 ///
-/// One exact replica-version release record from the official Dashboard API.
+/// Exact Dashboard release-election payload shared by sources and reports.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcReplicaVersionInfoReport {
-    /// Shared Dashboard provenance, flattened in serialized report JSON.
-    #[serde(flatten)]
-    pub provenance: IcDashboardReportProvenance,
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, serde::Deserialize)]
+pub struct IcReplicaVersionDetails {
     /// Lowercase hexadecimal replica-version identifier.
     pub replica_version_id: String,
     /// NNS proposal that elected this version.
@@ -689,10 +686,26 @@ pub struct IcReplicaVersionInfoReport {
     pub url: String,
     /// Raw release-note summary.
     pub summary: String,
-    /// Number of Dashboard-recorded Subnet assignments.
-    pub subnet_count: usize,
     /// Dashboard-recorded Subnet assignments in execution order.
     pub subnets: Vec<IcReplicaVersionSubnetRollout>,
+}
+
+///
+/// IcReplicaVersionInfoReport
+///
+/// One exact replica-version release record from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcReplicaVersionInfoReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub release: IcReplicaVersionDetails,
+    /// Number of Dashboard-recorded Subnet assignments.
+    pub subnet_count: usize,
 }
 
 ///

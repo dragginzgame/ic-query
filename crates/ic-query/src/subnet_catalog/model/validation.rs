@@ -312,16 +312,17 @@ impl ValidatedSubnetCatalog {
 }
 
 fn validate_raw_subnet_classification(subnet: &SubnetInfo) -> Result<(), CatalogError> {
-    let expected_kind = super::SubnetKind::from_registry_subnet_type(subnet.registry_subnet_type);
-    if subnet.subnet_kind != expected_kind {
+    let expected_kind =
+        super::SubnetKind::from_registry_subnet_type(subnet.classification.registry_subnet_type);
+    if subnet.classification.subnet_kind != expected_kind {
         return Err(CatalogError::SubnetKindMismatch {
             subnet_principal: subnet.subnet_principal.clone(),
-            registry_subnet_type: subnet.registry_subnet_type,
+            registry_subnet_type: subnet.classification.registry_subnet_type,
             expected: expected_kind.as_str().to_string(),
-            actual: subnet.subnet_kind.as_str().to_string(),
+            actual: subnet.classification.subnet_kind.as_str().to_string(),
         });
     }
-    if subnet.subnet_kind_source != super::ClassificationSource::Registry {
+    if subnet.classification.subnet_kind_source != super::ClassificationSource::Registry {
         return Err(CatalogError::ClassificationMismatch {
             subnet_principal: subnet.subnet_principal.clone(),
             field: "subnet_kind_source",
@@ -868,7 +869,7 @@ fn validate_policy_identity(raw: &RawSubnetCatalog) -> Result<(), CatalogError> 
 #[cfg(feature = "subnet-catalog-host")]
 fn validate_classification_policy(raw: &RawSubnetCatalog) -> Result<(), CatalogError> {
     for actual in &raw.subnets {
-        if !mainnet_classification(actual).matches(actual) {
+        if mainnet_classification(actual) != actual.classification {
             return Err(CatalogError::ClassificationMismatch {
                 subnet_principal: actual.subnet_principal.clone(),
                 field: "curated_or_computed_annotations",

@@ -242,25 +242,18 @@ impl SubnetCatalogSource for LiveSubnetCatalogSource {
             crate::ic_registry::fetch_with_acquisition(&fetch_request, self.acquisition.clone())
                 .await
                 .map_err(|failure| {
-                    let (subject, source) = match failure.source {
-                        crate::ic_registry::RegistryFetchError::HistoryCache(source) => (
-                            self.acquisition.history_cache_paths().map(|(path, _)| {
-                                SubnetCatalogSubject::CachePath(path.to_path_buf())
-                            }),
-                            SubnetCatalogHostError::Cache(source),
-                        ),
-                        source => (
-                            failure.subject,
-                            SubnetCatalogHostError::RegistryRefresh(source),
-                        ),
+                    let mut evidence = failure.evidence;
+                    let source = match failure.source {
+                        crate::ic_registry::RegistryFetchError::HistoryCache(source) => {
+                            evidence.subject =
+                                self.acquisition.history_cache_paths().map(|(path, _)| {
+                                    SubnetCatalogSubject::CachePath(path.to_path_buf())
+                                });
+                            SubnetCatalogHostError::Cache(source)
+                        }
+                        source => SubnetCatalogHostError::RegistryRefresh(source),
                     };
-                    SubnetCatalogSourceFailure::new(failure.registry_version, subject, source)
-                        .with_registry_evidence(
-                            failure.returned_registry_value_version,
-                            failure.source_endpoint,
-                            failure.assurance,
-                            failure.registry_records,
-                        )
+                    Box::new(SubnetCatalogSourceFailure { evidence, source })
                 })
         })
     }
@@ -441,18 +434,21 @@ fn endpoint_error(
         error
     } else {
         SubnetCatalogSourceFailure::new(
-            error.registry_version,
-            error.subject,
+            error.evidence.registry_version,
+            error.evidence.subject,
             SubnetCatalogHostError::AgreementEndpoint {
                 endpoint: endpoint.to_string(),
                 source: Box::new(error.source),
             },
         )
         .with_registry_evidence(
-            error.returned_registry_value_version,
-            error.source_endpoint.or_else(|| Some(endpoint.to_string())),
-            error.assurance,
-            error.registry_records,
+            error.evidence.returned_registry_value_version,
+            error
+                .evidence
+                .source_endpoint
+                .or_else(|| Some(endpoint.to_string())),
+            error.evidence.assurance,
+            error.evidence.registry_records,
         )
     }
 }

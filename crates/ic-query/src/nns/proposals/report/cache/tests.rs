@@ -59,6 +59,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
         build_nns_proposal_list_report_with_cache_and_source(&list, &root, &FixtureSource)
             .await
             .unwrap()
+            .provenance
             .data_source
             .as_str(),
         "live"
@@ -67,6 +68,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
         build_nns_proposal_report_with_cache_and_source(&info, &root, &FixtureSource)
             .await
             .unwrap()
+            .provenance
             .data_source
             .as_str(),
         "live"
@@ -76,6 +78,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
         build_nns_proposal_list_report_with_cache_and_source(&list, &root, &FixtureSource)
             .await
             .unwrap()
+            .provenance
             .data_source
             .as_str(),
         "cache"
@@ -84,6 +87,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
         build_nns_proposal_report_with_cache_and_source(&info, &root, &FixtureSource)
             .await
             .unwrap()
+            .provenance
             .data_source
             .as_str(),
         "cache"
@@ -92,7 +96,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
     let report = build_nns_proposal_report_with_cache_and_source(&missing, &root, &FixtureSource)
         .await
         .unwrap();
-    assert_eq!(report.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.proposal_id, 999);
 
     fs::write(&path, "{}").unwrap();
@@ -568,8 +572,13 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         report.context.schema_version,
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
     );
-    assert_eq!(report.data_source.as_str(), "cache");
-    assert!(report.cache_complete.expect("cache completeness"));
+    assert_eq!(report.provenance.data_source.as_str(), "cache");
+    assert!(
+        report
+            .provenance
+            .cache_complete
+            .expect("cache completeness")
+    );
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
     assert_eq!(report.topic_filter, NnsProposalTopic::Governance.as_str());
     assert_eq!(report.proposer_filter, Some(99));
@@ -937,10 +946,16 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     );
     assert_eq!(report.proposal_id, 2);
     assert_eq!(report.proposal.title.as_deref(), Some("Proposal 2"));
-    assert_eq!(report.data_source.as_str(), "cache");
-    assert!(report.cache_complete.expect("cache completeness"));
+    assert_eq!(report.provenance.data_source.as_str(), "cache");
     assert!(
         report
+            .provenance
+            .cache_complete
+            .expect("cache completeness")
+    );
+    assert!(
+        report
+            .provenance
             .cache_path
             .as_deref()
             .expect("cache path")

@@ -7,11 +7,7 @@
 use super::{
     NnsProposalCollectionState, collection::validate_collection_state, model::NnsProposalRow,
 };
-use crate::nns::governance::{
-    NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance,
-    validate_governance_analytics_pages, validate_governance_collection_source,
-    validate_governance_report_identity, validate_governance_time_interval,
-};
+use crate::nns::governance::{NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 use thiserror::Error as ThisError;
@@ -267,36 +263,23 @@ pub fn validate_nns_proposal_activity_report(
 fn validate_activity_header(
     report: &NnsProposalActivityReport,
 ) -> Result<(), NnsProposalActivityValidationError> {
-    if report.schema_version != NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION {
-        return Err(invalid_validation(format!(
-            "schema version {} does not equal {}",
-            report.schema_version, NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION
-        )));
+    crate::nns::governance::GovernanceAnalyticsHeader {
+        schema_version: report.schema_version,
+        network: &report.network,
+        governance_canister_id: &report.governance_canister_id,
+        source: &report.source,
+        collection_started_at: &report.collection_started_at,
+        collection_updated_at: &report.collection_updated_at,
+        collection_page_count: report.collection_page_count,
+        collected_row_count: report.collected_proposal_count,
+        point_in_time_guaranteed: report.point_in_time_guaranteed,
     }
-    validate_governance_report_identity(&report.network, &report.governance_canister_id)
-        .map_err(invalid_validation)?;
-    validate_governance_analytics_pages(
-        report.collection_page_count,
-        report.collected_proposal_count,
-        "activity",
-        "proposals",
+    .validate(
+        NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
+        ("activity", "proposals"),
+        "sequential proposal activity cannot claim a point-in-time snapshot",
     )
-    .map_err(invalid_validation)?;
-    validate_governance_time_interval(
-        "collection_started_at",
-        &report.collection_started_at,
-        "collection_updated_at",
-        &report.collection_updated_at,
-    )
-    .map_err(|error| invalid_validation(error.to_string()))?;
-    if report.point_in_time_guaranteed {
-        return Err(invalid_validation(
-            "sequential proposal activity cannot claim a point-in-time snapshot",
-        ));
-    }
-
-    validate_governance_collection_source(&report.network, &report.source)
-        .map_err(invalid_validation)
+    .map_err(invalid_validation)
 }
 
 fn validate_activity_selection(

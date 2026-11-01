@@ -56,7 +56,10 @@ fn validated_route_retains_exact_catalog_authority() {
     assert_eq!(route.canister.to_text(), CANISTER_A);
     assert_eq!(route.subnet.to_text(), SUBNET_A);
     assert_eq!(route.subnet_info.subnet_principal, SUBNET_A);
-    assert_eq!(route.subnet_info.subnet_kind, SubnetKind::Application);
+    assert_eq!(
+        route.subnet_info.classification.subnet_kind,
+        SubnetKind::Application
+    );
     assert_eq!(route.registry_version, 123_456);
     assert_eq!(
         route.provenance.assurance,
@@ -168,7 +171,7 @@ fn certified_and_incomplete_agreement_claims_fail_closed() {
 #[test]
 fn raw_registry_kind_charging_and_policy_relations_fail_closed() {
     let mut kind = fixture_catalog();
-    kind.subnets[0].registry_subnet_type = 2;
+    kind.subnets[0].classification.registry_subnet_type = 2;
     assert!(matches!(
         kind.validate(),
         Err(CatalogError::SubnetKindMismatch { .. })
@@ -192,16 +195,20 @@ fn raw_registry_kind_charging_and_policy_relations_fail_closed() {
         let mut annotation = fixture_catalog();
         let subnet = &mut annotation.subnets[0];
         match field {
-            "subnet_specialization" => subnet.subnet_specialization = SubnetSpecialization::None,
-            "geographic_scope" => subnet.geographic_scope = GeographicScope::Europe,
+            "subnet_specialization" => {
+                subnet.classification.subnet_specialization = SubnetSpecialization::None;
+            }
+            "geographic_scope" => subnet.classification.geographic_scope = GeographicScope::Europe,
             "subnet_specialization_source" => {
-                subnet.subnet_specialization_source = ClassificationSource::Computed;
+                subnet.classification.subnet_specialization_source = ClassificationSource::Computed;
             }
             "geographic_scope_source" => {
-                subnet.geographic_scope_source = ClassificationSource::Computed;
+                subnet.classification.geographic_scope_source = ClassificationSource::Computed;
             }
-            "subnet_label" => subnet.subnet_label = "edited".to_string(),
-            "subnet_label_source" => subnet.subnet_label_source = ClassificationSource::Computed,
+            "subnet_label" => subnet.classification.subnet_label = "edited".to_string(),
+            "subnet_label_source" => {
+                subnet.classification.subnet_label_source = ClassificationSource::Computed;
+            }
             _ => unreachable!(),
         }
         assert!(

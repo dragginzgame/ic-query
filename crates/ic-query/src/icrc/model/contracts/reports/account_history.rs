@@ -40,10 +40,9 @@ pub struct IcrcAccountTransactionPageData {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAccountTransactionPageReport {
-    /// Report schema version.
-    pub schema_version: u32,
-    /// Ledger canister whose transactions were indexed.
-    pub ledger_canister_id: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     /// Queried account owner principal.
     pub account_owner: String,
     /// Queried subaccount as normalized hex.
@@ -52,12 +51,6 @@ pub struct IcrcAccountTransactionPageReport {
     pub requested_start: Option<String>,
     /// Maximum number of transactions requested.
     pub requested_limit: u32,
-    /// Collection timestamp in UTC text form.
-    pub fetched_at: String,
-    /// IC API endpoint used for ledger and index calls.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
     /// Validated index response and ledger display metadata.
     #[serde(flatten)]
     pub page: IcrcAccountTransactionPageData,

@@ -195,12 +195,8 @@ pub enum RegistryFetchError {
 
 #[derive(Debug)]
 pub struct SubnetCatalogRegistryFailure {
-    pub registry_version: Option<u64>,
-    pub returned_registry_value_version: Option<u64>,
-    pub source_endpoint: Option<String>,
-    pub assurance: Option<CatalogAssurance>,
-    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
-    pub subject: Option<SubnetCatalogSubject>,
+    /// Registry progress and offending identity retained across failure layers.
+    pub evidence: crate::subnet_catalog::SubnetCatalogFailureEvidence,
     pub source: RegistryFetchError,
 }
 
@@ -211,12 +207,11 @@ impl SubnetCatalogRegistryFailure {
         source: RegistryFetchError,
     ) -> Box<Self> {
         Box::new(Self {
-            registry_version,
-            returned_registry_value_version: None,
-            source_endpoint: None,
-            assurance: None,
-            registry_records: Vec::new(),
-            subject,
+            evidence: crate::subnet_catalog::SubnetCatalogFailureEvidence {
+                registry_version,
+                subject,
+                ..Default::default()
+            },
             source,
         })
     }
@@ -226,9 +221,9 @@ impl SubnetCatalogRegistryFailure {
         endpoint: &str,
         returned_registry_value_version: Option<u64>,
     ) -> Box<Self> {
-        self.returned_registry_value_version = returned_registry_value_version;
-        self.source_endpoint = Some(endpoint.to_string());
-        self.assurance = Some(CatalogAssurance::UncertifiedQuery);
+        self.evidence.returned_registry_value_version = returned_registry_value_version;
+        self.evidence.source_endpoint = Some(endpoint.to_string());
+        self.evidence.assurance = Some(CatalogAssurance::UncertifiedQuery);
         self
     }
 
@@ -236,7 +231,7 @@ impl SubnetCatalogRegistryFailure {
         mut self: Box<Self>,
         registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     ) -> Box<Self> {
-        self.registry_records = registry_records;
+        self.evidence.registry_records = registry_records;
         self
     }
 }

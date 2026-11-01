@@ -548,15 +548,13 @@ impl ValidatedSubnetCatalog {
 }
 
 ///
-/// SubnetInfo
+/// SubnetClassification
 ///
-/// One Subnet entry, raw Registry type code, and classification metadata.
+/// Registry kind and policy annotations shared by catalog rows and reports.
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct SubnetInfo {
-    /// Canonical Subnet principal text.
-    pub subnet_principal: String,
+pub struct SubnetClassification {
     /// Raw numeric `SubnetType` discriminant from the Registry record.
     pub registry_subnet_type: i32,
     /// IC-native classification derived from `registry_subnet_type`.
@@ -575,6 +573,21 @@ pub struct SubnetInfo {
     pub subnet_label: String,
     /// Source of `subnet_label`.
     pub subnet_label_source: ClassificationSource,
+}
+
+///
+/// SubnetInfo
+///
+/// One Subnet entry, raw Registry type code, and classification metadata.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct SubnetInfo {
+    /// Canonical Subnet principal text.
+    pub subnet_principal: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub classification: SubnetClassification,
     /// Node membership count reported by the Subnet record.
     pub node_count: Option<u32>,
     /// Whether application charging applies by default for the raw Subnet kind.

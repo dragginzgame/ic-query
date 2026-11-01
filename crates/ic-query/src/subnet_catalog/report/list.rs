@@ -106,13 +106,15 @@ pub async fn build_subnet_catalog_list_report_with_source_and_progress(
 }
 
 fn subnet_matches_filters(subnet: &SubnetInfo, filters: SubnetCatalogFilters) -> bool {
-    filters.kind.is_none_or(|kind| subnet.subnet_kind == kind)
-        && filters
-            .specialization
-            .is_none_or(|specialization| subnet.subnet_specialization == specialization)
+    filters
+        .kind
+        .is_none_or(|kind| subnet.classification.subnet_kind == kind)
+        && filters.specialization.is_none_or(|specialization| {
+            subnet.classification.subnet_specialization == specialization
+        })
         && filters
             .geographic_scope
-            .is_none_or(|scope| subnet.geographic_scope == scope)
+            .is_none_or(|scope| subnet.classification.geographic_scope == scope)
 }
 
 fn subnet_row(
@@ -122,16 +124,8 @@ fn subnet_row(
     shown_ranges: Vec<RoutingRange>,
 ) -> SubnetCatalogSubnetRow {
     SubnetCatalogSubnetRow {
+        classification: subnet.classification.clone(),
         subnet_principal: subnet.subnet_principal.clone(),
-        registry_subnet_type: subnet.registry_subnet_type,
-        subnet_kind: subnet.subnet_kind,
-        subnet_kind_source: subnet.subnet_kind_source,
-        subnet_specialization: subnet.subnet_specialization,
-        subnet_specialization_source: subnet.subnet_specialization_source,
-        geographic_scope: subnet.geographic_scope,
-        geographic_scope_source: subnet.geographic_scope_source,
-        subnet_label: subnet.subnet_label.clone(),
-        subnet_label_source: subnet.subnet_label_source,
         node_count: subnet.node_count,
         charges_apply_by_default: subnet.charges_apply_by_default,
         range_count,

@@ -41,13 +41,7 @@ pub fn sns_list_report_text_with_metadata_style(
     lines.push(format!("excluded_sns_count: {}", report.excluded_sns_count));
     lines.push(format!("sns_count: {}", report.sns_count));
     lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
-    lines.push(format!("data_source: {}", report.data_source));
-    if let Some(cache_path) = report.cache_path.as_ref() {
-        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
-    }
-    if let Some(cache_complete) = report.cache_complete {
-        lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
-    }
+    super::common::push_report_provenance_lines(&mut lines, &report.provenance);
     lines.push(format!(
         "source_endpoint: {}",
         terminal_text(&report.source_endpoint)

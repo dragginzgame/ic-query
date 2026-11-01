@@ -22,7 +22,7 @@ pub(super) fn topology_summary_report_from_reports(
     let mut unknown_subnet_count = 0;
     let mut routing_range_count = 0;
     for subnet in &subnet_report.subnets {
-        match subnet.subnet_kind {
+        match subnet.classification.subnet_kind {
             SubnetKind::Application => application_subnet_count += 1,
             SubnetKind::CloudEngine => cloud_engine_subnet_count += 1,
             SubnetKind::System => system_subnet_count += 1,

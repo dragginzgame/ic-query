@@ -13,7 +13,7 @@ pub use types::{
     RawSubnetCatalog, RoutingRange, SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX,
     SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
     SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
-    SubnetCatalogRoutingSource, SubnetInfo, ValidatedSubnetCatalog,
+    SubnetCatalogRoutingSource, SubnetClassification, SubnetInfo, ValidatedSubnetCatalog,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use validation::canonicalize_subnet_catalog_content;

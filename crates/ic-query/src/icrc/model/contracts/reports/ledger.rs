@@ -16,11 +16,9 @@ use serde_json::Value as JsonValue;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     /// Raw ledger metadata shared with token source capabilities.
     #[serde(flatten)]
     pub token: IcrcTokenData,
@@ -34,11 +32,9 @@ pub struct IcrcTokenReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcIndexReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub index_canister_id: Option<String>,
     pub index_error: Option<String>,
 }
@@ -72,11 +68,9 @@ pub struct IcrcTransactionsData {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTransactionsReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub requested_start: String,
     pub requested_limit: u32,
     pub follow_archives: bool,
@@ -93,11 +87,9 @@ pub struct IcrcTransactionsReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcBlockTypesReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub block_types: Vec<IcrcBlockTypeRow>,
 }
 
@@ -109,12 +101,10 @@ pub struct IcrcBlockTypesReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcArchivesReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub from_canister_id: Option<String>,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
     pub archives: Vec<IcrcArchiveRow>,
 }
 
@@ -126,11 +116,9 @@ pub struct IcrcArchivesReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcTipCertificateReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub certificate_present: bool,
     pub certificate_hex: Option<String>,
     pub certificate_bytes: Option<usize>,
@@ -146,11 +134,9 @@ pub struct IcrcTipCertificateReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcCapabilitiesReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub supported_standards: Vec<IcrcTokenStandardRow>,
     pub capabilities: Vec<IcrcCapabilityRow>,
 }

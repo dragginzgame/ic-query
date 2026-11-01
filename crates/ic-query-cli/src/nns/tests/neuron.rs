@@ -5,24 +5,22 @@ use ic_query::nns::neuron::{DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_P
 
 #[test]
 fn nns_neuron_options_parse_defaults_and_explicit_values() {
-    let list = parse_test_options(
-        neuron_list_command(),
-        &[],
-        NnsNeuronListOptions::from_matches,
-    )
+    let (list_format, list) = parse_test_options(neuron_list_command(), &[], |matches, network| {
+        neuron_list_request(matches, network, TEST_NOW_UNIX_SECS)
+    })
     .expect("list defaults");
-    assert_eq!(list.common.network, MAINNET_NETWORK);
-    assert_eq!(list.common.format, OutputFormat::Text);
+    assert_eq!(list.governance.network, MAINNET_NETWORK);
+    assert_eq!(list_format, OutputFormat::Text);
     assert_eq!(
-        list.common.source_endpoint,
+        replica_endpoint(&list.governance),
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT
     );
     assert_eq!(list.limit, 25);
-    assert_eq!(list.start_neuron_id, None);
+    assert_eq!(list.exclusive_start_neuron_id, None);
     assert!(!list.verbose);
 
     let max_page_size = NNS_NEURON_MAX_PAGE_SIZE.to_string();
-    let list = parse_test_options(
+    let (list_format, list) = parse_test_options(
         neuron_list_command(),
         &[
             "--limit",
@@ -32,18 +30,18 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
             "--verbose",
             "--json",
         ],
-        NnsNeuronListOptions::from_matches,
+        |matches, network| neuron_list_request(matches, network, TEST_NOW_UNIX_SECS),
     )
     .expect("explicit list options");
     assert_eq!(list.limit, NNS_NEURON_MAX_PAGE_SIZE);
-    assert_eq!(list.start_neuron_id, Some(123));
+    assert_eq!(list.exclusive_start_neuron_id, Some(123));
     assert!(list.verbose);
-    assert_eq!(list.common.format, OutputFormat::Json);
+    assert_eq!(list_format, OutputFormat::Json);
 
-    let info = parse_test_options(
+    let (_, info) = parse_test_options(
         neuron_info_command(),
         &["456", "--verbose"],
-        NnsNeuronInfoOptions::from_matches,
+        |matches, network| neuron_info_request(matches, network, TEST_NOW_UNIX_SECS),
     )
     .expect("info options");
     assert_eq!(info.neuron_id, 456);
@@ -74,7 +72,7 @@ fn nns_neuron_rejects_invalid_numeric_values() {
         parse_test_options(
             neuron_list_command(),
             &["--limit", "0"],
-            NnsNeuronListOptions::from_matches,
+            |matches, network| neuron_list_request(matches, network, TEST_NOW_UNIX_SECS),
         )
         .is_err()
     );
@@ -87,11 +85,9 @@ fn nns_neuron_rejects_invalid_numeric_values() {
         .is_err()
     );
     assert!(
-        parse_test_options(
-            neuron_info_command(),
-            &["0"],
-            NnsNeuronInfoOptions::from_matches,
-        )
+        parse_test_options(neuron_info_command(), &["0"], |matches, network| {
+            neuron_info_request(matches, network, TEST_NOW_UNIX_SECS)
+        },)
         .is_err()
     );
 }

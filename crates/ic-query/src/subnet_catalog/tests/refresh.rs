@@ -223,9 +223,9 @@ fn detailed_agreement_mismatch_retains_every_completed_endpoint_record() {
             .expect_err("mismatched endpoint evidence");
 
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
-    assert_eq!(failure.registry_records.len(), 8);
+    assert_eq!(failure.evidence.registry_records.len(), 8);
     assert!(
-        failure.registry_records.iter().all(|evidence| {
+        failure.evidence.registry_records.iter().all(|evidence| {
             evidence.source_endpoint == alpha || evidence.source_endpoint == beta
         })
     );

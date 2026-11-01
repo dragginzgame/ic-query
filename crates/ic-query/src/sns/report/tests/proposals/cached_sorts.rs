@@ -16,7 +16,7 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
         .await
         .expect("auto refresh sorted proposals cache");
 
-    assert_eq!(first.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "created");
     assert_eq!(
         first
@@ -31,7 +31,7 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
         .await
         .expect("reuse sorted proposals cache");
 
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "created");
     assert_eq!(
         second
@@ -63,7 +63,7 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
         .await
         .expect("auto refresh ascending sorted proposals cache");
 
-    assert_eq!(first.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "created");
     assert_eq!(first.sort_direction, "asc");
     assert_eq!(
@@ -79,7 +79,7 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
         .await
         .expect("reuse ascending sorted proposals cache");
 
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "created");
     assert_eq!(second.sort_direction, "asc");
     assert_eq!(
@@ -112,7 +112,7 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
         .await
         .expect("auto refresh decided sorted proposals cache");
 
-    assert_eq!(first.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "decided");
     assert_eq!(
         first
@@ -127,7 +127,7 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
         .await
         .expect("reuse decided sorted proposals cache");
 
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "decided");
     assert_eq!(
         second
@@ -158,7 +158,7 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
         .await
         .expect("auto refresh executed sorted proposals cache");
 
-    assert_eq!(first.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "executed");
     assert_eq!(
         first
@@ -173,7 +173,7 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
         .await
         .expect("reuse executed sorted proposals cache");
 
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "executed");
     assert_eq!(
         second
@@ -204,7 +204,7 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
         .await
         .expect("auto refresh failed sorted proposals cache");
 
-    assert_eq!(first.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "failed");
     assert_eq!(
         first
@@ -219,7 +219,7 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
         .await
         .expect("reuse failed sorted proposals cache");
 
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "failed");
     assert_eq!(
         second

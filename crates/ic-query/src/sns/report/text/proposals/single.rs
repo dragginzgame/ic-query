@@ -21,12 +21,7 @@ pub fn sns_proposal_report_text(report: &SnsProposalReport) -> String {
         format!("verbose: {}", yes_no(report.verbose)),
         format!("show_ballots: {}", yes_no(report.show_ballots)),
     ]);
-    push_report_provenance_lines(
-        &mut lines,
-        report.data_source,
-        report.cache_path.as_deref(),
-        report.cache_complete,
-    );
+    push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend(crate::sns::report::text::common::sns_collection_lines(
         &report.context,
     ));

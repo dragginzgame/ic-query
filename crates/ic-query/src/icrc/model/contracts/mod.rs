@@ -16,8 +16,8 @@ pub use reports::{
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcBalanceData,
     IcrcBalanceReport, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
     IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionBlockRow, IcrcTransactionsData,
-    IcrcTransactionsReport,
+    IcrcReportProvenance, IcrcTipCertificateReport, IcrcTokenReport, IcrcTransactionBlockRow,
+    IcrcTransactionsData, IcrcTransactionsReport,
 };
 pub use requests::{
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,

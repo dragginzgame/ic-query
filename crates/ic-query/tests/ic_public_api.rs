@@ -306,15 +306,17 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
         REPLICA_VERSION_ID,
     );
     let info = IcReplicaVersionInfoReport {
+        release: ic_query::ic::IcReplicaVersionDetails {
+            replica_version_id: info_request.replica_version_id,
+            proposal_id: 143_250,
+            executed_timestamp_seconds: 1_785_759_673,
+            title: "Elect new IC/GuestOS revision".to_string(),
+            url: "https://forum.dfinity.org/t/release/1".to_string(),
+            summary: "Raw release notes".to_string(),
+            subnets: vec![public_replica_version_rollout()],
+        },
         provenance: public_provenance(info_request.dashboard.source_endpoint),
-        replica_version_id: info_request.replica_version_id,
-        proposal_id: 143_250,
-        executed_timestamp_seconds: 1_785_759_673,
-        title: "Elect new IC/GuestOS revision".to_string(),
-        url: "https://forum.dfinity.org/t/release/1".to_string(),
-        summary: "Raw release notes".to_string(),
         subnet_count: 1,
-        subnets: vec![public_replica_version_rollout()],
     };
 
     let list_text = ic_replica_version_list_report_text(&list);

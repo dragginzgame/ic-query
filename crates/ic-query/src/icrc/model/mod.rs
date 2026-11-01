@@ -23,8 +23,9 @@ pub use contracts::{
     IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest,
     IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
     IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
-    IcrcIndexReport, IcrcLedgerRequest, IcrcTipCertificateReport, IcrcTokenReport,
-    IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport, IcrcTransactionsRequest,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcReportProvenance, IcrcTipCertificateReport,
+    IcrcTokenReport, IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
+    IcrcTransactionsRequest,
 };
 #[cfg(feature = "icrc-host")]
 pub use data::{

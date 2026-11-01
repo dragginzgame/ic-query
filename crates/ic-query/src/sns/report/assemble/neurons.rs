@@ -20,15 +20,13 @@ pub(in crate::sns::report) fn sns_neurons_report_from_rows(
     neurons: Vec<SnsNeuronRow>,
 ) -> SnsNeuronsReport {
     SnsNeuronsReport {
+        provenance,
         schema_version: SNS_NEURONS_REPORT_SCHEMA_VERSION,
         context,
         requested_limit: request.limit,
         owner_principal_id,
         verbose: request.verbose,
-        data_source: provenance.data_source,
         sort: request.collection.sort_label().to_string(),
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         total_neuron_count,
         neuron_count: neurons.len(),
         neurons,

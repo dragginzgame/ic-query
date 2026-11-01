@@ -69,9 +69,9 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.sort, "title");
     assert_eq!(report.sort_direction, "asc");
     assert_eq!(report.result_scope.as_str(), "bounded-live");
-    assert_eq!(report.data_source.as_str(), "live");
-    assert!(report.cache_path.is_none());
-    assert!(report.cache_complete.is_none());
+    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert!(report.provenance.cache_path.is_none());
+    assert!(report.provenance.cache_complete.is_none());
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(101));
     assert!(text.contains(&format!(

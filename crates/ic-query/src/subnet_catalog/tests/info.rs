@@ -67,8 +67,8 @@ async fn info_report_rejects_canister_prefix() {
 async fn system_subnet_has_no_catalog_rate() {
     let root = temp_dir("ic-query-subnet-system");
     let mut catalog = fixture_catalog();
-    catalog.subnets[0].registry_subnet_type = 2;
-    catalog.subnets[0].subnet_kind = SubnetKind::System;
+    catalog.subnets[0].classification.registry_subnet_type = 2;
+    catalog.subnets[0].classification.subnet_kind = SubnetKind::System;
     catalog.subnets[0].charges_apply_by_default = false;
     catalog.canonicalize_and_seal().expect("reseal fixture");
     write_catalog(&root, catalog);
@@ -91,9 +91,9 @@ async fn system_subnet_has_no_catalog_rate() {
 async fn cloud_engine_subnet_keeps_application_rate_class() {
     let root = temp_dir("ic-query-subnet-cloud-engine");
     let mut catalog = fixture_catalog();
-    catalog.subnets[0].registry_subnet_type = 5;
-    catalog.subnets[0].subnet_kind = SubnetKind::CloudEngine;
-    catalog.subnets[0].subnet_label = "cloud_engine".to_string();
+    catalog.subnets[0].classification.registry_subnet_type = 5;
+    catalog.subnets[0].classification.subnet_kind = SubnetKind::CloudEngine;
+    catalog.subnets[0].classification.subnet_label = "cloud_engine".to_string();
     catalog.subnets[0].charges_apply_by_default = true;
     catalog.canonicalize_and_seal().expect("reseal fixture");
     write_catalog(&root, catalog);
@@ -104,7 +104,7 @@ async fn cloud_engine_subnet_keeps_application_rate_class() {
         .expect("info report");
 
     let _ = fs::remove_dir_all(root);
-    assert_eq!(report.subnet_kind, SubnetKind::CloudEngine);
+    assert_eq!(report.classification.subnet_kind, SubnetKind::CloudEngine);
     assert!(report.charges_apply_to_subject);
     assert_eq!(
         report.charge_applicability_reason,

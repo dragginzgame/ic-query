@@ -22,9 +22,13 @@ pub fn subnet_catalog_list_report_text(report: &SubnetCatalogListReport) -> Stri
         .map(|subnet| {
             [
                 compact_principal(&subnet.subnet_principal),
-                subnet.subnet_kind.as_str().to_string(),
-                subnet.subnet_specialization.as_str().to_string(),
-                subnet.geographic_scope.as_str().to_string(),
+                subnet.classification.subnet_kind.as_str().to_string(),
+                subnet
+                    .classification
+                    .subnet_specialization
+                    .as_str()
+                    .to_string(),
+                subnet.classification.geographic_scope.as_str().to_string(),
                 subnet
                     .node_count
                     .map_or_else(|| "unknown".to_string(), |count| count.to_string()),

@@ -33,8 +33,9 @@ pub use reports::{
     IcIcrcTotalSupplyObservation, IcIcrcTotalSupplyReport, IcMetricObservation, IcMetricReport,
     IcMetricSeries, IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryReport,
     IcNodeProviderRewardInfoReport, IcNodeProviderRewardListReport, IcNodeProviderRewardRow,
-    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionInfoReport, IcReplicaVersionListReport,
-    IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
+    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionDetails, IcReplicaVersionInfoReport,
+    IcReplicaVersionListReport, IcReplicaVersionListRow, IcReplicaVersionStatus,
+    IcReplicaVersionSubnetRollout,
 };
 pub use requests::{
     IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,

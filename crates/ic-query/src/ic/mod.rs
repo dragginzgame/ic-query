@@ -67,9 +67,10 @@ pub use model::{
     IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoReport,
     IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery, IcNodeProviderRewardListReport,
     IcNodeProviderRewardListRequest, IcNodeProviderRewardRow,
-    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionInfoReport, IcReplicaVersionInfoRequest,
-    IcReplicaVersionListQuery, IcReplicaVersionListReport, IcReplicaVersionListRequest,
-    IcReplicaVersionListRow, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
+    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionDetails, IcReplicaVersionInfoReport,
+    IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListReport,
+    IcReplicaVersionListRequest, IcReplicaVersionListRow, IcReplicaVersionStatus,
+    IcReplicaVersionSubnetRollout,
 };
 #[cfg(feature = "dashboard-host")]
 pub use model::{

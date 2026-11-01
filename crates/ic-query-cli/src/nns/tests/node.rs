@@ -4,18 +4,19 @@ use ic_query::subnet_catalog::SubnetKind;
 
 #[test]
 fn node_list_parses_defaults_and_json_format() {
-    let defaults = parse_test_options(node_list_command(), &[], node_list_options_from_matches)
-        .expect("parse defaults");
+    let (defaults_format, defaults_verbose, defaults) =
+        parse_test_options(node_list_command(), &[], test_node_list_request)
+            .expect("parse defaults");
 
-    assert_eq!(defaults.common.network, MAINNET_NETWORK);
-    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(defaults.inventory.cache.network, MAINNET_NETWORK);
+    assert_eq!(defaults_format, OutputFormat::Text);
     assert_eq!(
-        defaults.common.source_endpoint,
+        defaults.inventory.source_endpoint,
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT
     );
-    assert!(!defaults.verbose);
+    assert!(!defaults_verbose);
 
-    let options = parse_test_options(
+    let (options_format, options_verbose, options) = parse_test_options(
         node_list_command(),
         &[
             "--json",
@@ -33,13 +34,13 @@ fn node_list_parses_defaults_and_json_format() {
             "--kind",
             "system",
         ],
-        node_list_options_from_matches,
+        test_node_list_request,
     )
     .expect("parse node list");
 
-    assert_eq!(options.common.format, OutputFormat::Json);
-    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
-    assert!(options.verbose);
+    assert_eq!(options_format, OutputFormat::Json);
+    assert_eq!(options.inventory.source_endpoint, "https://icp-api.io");
+    assert!(options_verbose);
     assert_eq!(options.filters.data_center.as_deref(), Some("zh2"));
     assert_eq!(options.filters.node_provider.as_deref(), Some("7at4h"));
     assert_eq!(options.filters.node_operator.as_deref(), Some("4lp6i"));
@@ -70,10 +71,10 @@ fn node_kind_filter_parses_every_registry_kind() {
         ("system", SubnetKind::System),
         ("unknown", SubnetKind::Unknown),
     ] {
-        let options = parse_test_options(
+        let (_, _, options) = parse_test_options(
             node_list_command(),
             &["--kind", value],
-            node_list_options_from_matches,
+            test_node_list_request,
         )
         .expect("parse supported Subnet kind");
 
@@ -83,8 +84,8 @@ fn node_kind_filter_parses_every_registry_kind() {
     assert!(
         parse_test_options(
             node_list_command(),
-            &["--kind", "public"],
-            node_list_options_from_matches,
+            &["--kind", "not-a-kind"],
+            test_node_list_request,
         )
         .is_err()
     );

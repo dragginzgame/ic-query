@@ -22,14 +22,16 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
     provenance: ReportProvenance,
     proposals: Vec<NnsProposalRow>,
 ) -> NnsProposalListReport {
+    let result_scope = match provenance.data_source {
+        ReportDataSource::Live => ReportResultScope::BoundedLive,
+        ReportDataSource::Cache => ReportResultScope::CompleteCache,
+    };
     NnsProposalListReport {
+        provenance,
         context: NnsGovernanceReportContext {
             schema_version: NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION,
             ..context
         },
-        data_source: provenance.data_source,
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),
@@ -42,10 +44,7 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
             .sort
             .direction_label(request.sort_direction)
             .to_string(),
-        result_scope: match provenance.data_source {
-            ReportDataSource::Live => ReportResultScope::BoundedLive,
-            ReportDataSource::Cache => ReportResultScope::CompleteCache,
-        },
+        result_scope,
         verbose: request.verbose,
         proposal_count: proposals.len(),
         proposals,
@@ -60,13 +59,11 @@ pub(in crate::nns::proposals::report) fn nns_proposal_report_from_row(
     proposal: NnsProposalRow,
 ) -> NnsProposalReport {
     NnsProposalReport {
+        provenance,
         context: NnsGovernanceReportContext {
             schema_version: NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
             ..context
         },
-        data_source: provenance.data_source,
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         proposal_id: request.proposal_id,
         show_ballots: request.show_ballots,
         verbose: request.verbose,

@@ -57,7 +57,7 @@ fn public_subnet_catalog_api_parses_and_resolves_without_host() {
         .resolve_principal(SUBNET_A, Some(ResolveAs::Subnet))
         .expect("subnet resolves");
     assert_eq!(subnet.resolved_as, ResolvedSubnetSubject::Subnet);
-    assert_eq!(subnet.subnet.subnet_label, "fiduciary");
+    assert_eq!(subnet.subnet.classification.subnet_label, "fiduciary");
 
     let canister = parsed
         .resolve_principal(CANISTER_A, Some(ResolveAs::Canister))
@@ -101,7 +101,10 @@ async fn public_subnet_catalog_host_api_loads_cached_catalog_for_downstream_reso
     assert_eq!(cached.path, path);
     assert_eq!(resolved.subnet.to_text(), SUBNET_A);
     assert_eq!(resolved.subnet_info.subnet_principal, SUBNET_A);
-    assert_eq!(resolved.subnet_info.subnet_kind, SubnetKind::Application);
+    assert_eq!(
+        resolved.subnet_info.classification.subnet_kind,
+        SubnetKind::Application
+    );
     assert_eq!(resolved.registry_version, 123_456);
     assert_eq!(cached.disposition, CacheDisposition::CacheHit);
     let authority: CatalogSnapshotAuthorityEvidence = cached.snapshot_authority();
@@ -222,11 +225,11 @@ fn public_detailed_load_api_exposes_typed_failure_provenance() {
         failure.cache_disposition,
         SubnetCatalogFailureCacheDisposition::CacheMissing
     );
-    assert_eq!(failure.registry_version, None);
-    assert_eq!(failure.returned_registry_value_version, None);
-    assert_eq!(failure.source_endpoint, None);
-    assert_eq!(failure.assurance, None);
-    assert_eq!(failure.registry_records, Vec::new());
+    assert_eq!(failure.evidence.registry_version, None);
+    assert_eq!(failure.evidence.returned_registry_value_version, None);
+    assert_eq!(failure.evidence.source_endpoint, None);
+    assert_eq!(failure.evidence.assurance, None);
+    assert_eq!(failure.evidence.registry_records, Vec::new());
     assert_eq!(failure.request.network, MAINNET_NETWORK);
     assert!(matches!(
         failure.source,
@@ -335,9 +338,9 @@ async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
         .await
         .expect_err("fixture source fails");
 
-    assert_eq!(failure.registry_version, Some(700_008));
+    assert_eq!(failure.evidence.registry_version, Some(700_008));
     assert_eq!(
-        failure.subject,
+        failure.evidence.subject,
         Some(SubnetCatalogSubject::RegistryRecord(
             SubnetCatalogRegistryRecordSubject::legacy_routing_table()
         ))
@@ -569,16 +572,18 @@ fn fixture_catalog() -> RawSubnetCatalog {
         },
         catalog_digest: "00".repeat(32),
         subnets: vec![SubnetInfo {
+            classification: ic_query::subnet_catalog::SubnetClassification {
+                registry_subnet_type: 1,
+                subnet_kind: SubnetKind::Application,
+                subnet_kind_source: ClassificationSource::Registry,
+                subnet_specialization: SubnetSpecialization::Fiduciary,
+                subnet_specialization_source: ClassificationSource::Curated,
+                geographic_scope: GeographicScope::Global,
+                geographic_scope_source: ClassificationSource::Curated,
+                subnet_label: "fiduciary".to_string(),
+                subnet_label_source: ClassificationSource::Curated,
+            },
             subnet_principal: SUBNET_A.to_string(),
-            registry_subnet_type: 1,
-            subnet_kind: SubnetKind::Application,
-            subnet_kind_source: ClassificationSource::Registry,
-            subnet_specialization: SubnetSpecialization::Fiduciary,
-            subnet_specialization_source: ClassificationSource::Curated,
-            geographic_scope: GeographicScope::Global,
-            geographic_scope_source: ClassificationSource::Curated,
-            subnet_label: "fiduciary".to_string(),
-            subnet_label_source: ClassificationSource::Curated,
             node_count: Some(34),
             charges_apply_by_default: true,
         }],

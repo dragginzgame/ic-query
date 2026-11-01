@@ -17,9 +17,9 @@ pub use error::{
 };
 pub use failure::subject_from_catalog_error;
 pub use failure::{
-    SubnetCatalogFailureCacheDisposition, SubnetCatalogField, SubnetCatalogLoadFailure,
-    SubnetCatalogLoadFailureRequest, SubnetCatalogLoadStage, SubnetCatalogRefreshTrigger,
-    SubnetCatalogSourceFailure, SubnetCatalogSubject,
+    SubnetCatalogFailureCacheDisposition, SubnetCatalogFailureEvidence, SubnetCatalogField,
+    SubnetCatalogLoadFailure, SubnetCatalogLoadFailureRequest, SubnetCatalogLoadStage,
+    SubnetCatalogRefreshTrigger, SubnetCatalogSourceFailure, SubnetCatalogSubject,
 };
 pub use paths::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
 pub use paths::{subnet_catalog_path, subnet_catalog_refresh_lock_path};

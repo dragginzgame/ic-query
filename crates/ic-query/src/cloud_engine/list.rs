@@ -152,15 +152,15 @@ async fn collect_binding_rows(
 
         cloud_engines.push(CloudEngineListRow {
             subnet_id: subnet.subnet_principal.clone(),
-            subnet_label: subnet.subnet_label.clone(),
-            subnet_label_source: subnet.subnet_label_source,
-            registry_subnet_type: subnet.registry_subnet_type,
-            subnet_kind: subnet.subnet_kind,
-            subnet_kind_source: subnet.subnet_kind_source,
-            subnet_specialization: subnet.subnet_specialization,
-            subnet_specialization_source: subnet.subnet_specialization_source,
-            geographic_scope: subnet.geographic_scope,
-            geographic_scope_source: subnet.geographic_scope_source,
+            subnet_label: subnet.classification.subnet_label.clone(),
+            subnet_label_source: subnet.classification.subnet_label_source,
+            registry_subnet_type: subnet.classification.registry_subnet_type,
+            subnet_kind: subnet.classification.subnet_kind,
+            subnet_kind_source: subnet.classification.subnet_kind_source,
+            subnet_specialization: subnet.classification.subnet_specialization,
+            subnet_specialization_source: subnet.classification.subnet_specialization_source,
+            geographic_scope: subnet.classification.geographic_scope,
+            geographic_scope_source: subnet.classification.geographic_scope_source,
             node_count: subnet.node_count,
             charges_apply_by_default: subnet.charges_apply_by_default,
             range_count: subnet.range_count,
@@ -240,11 +240,11 @@ fn validate_requests(
 
 fn validate_catalog_rows(catalog: &SubnetCatalogListReport) -> Result<(), CloudEngineHostError> {
     for subnet in &catalog.subnets {
-        if subnet.subnet_kind != SubnetKind::CloudEngine {
+        if subnet.classification.subnet_kind != SubnetKind::CloudEngine {
             return invalid_source(format!(
                 "catalog row {} has kind {}, expected cloud_engine",
                 subnet.subnet_principal,
-                subnet.subnet_kind.as_str()
+                subnet.classification.subnet_kind.as_str()
             ));
         }
         crate::principal_text::validate_canonical(

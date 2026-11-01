@@ -48,15 +48,13 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         })
         .collect::<Vec<_>>();
     SnsListReport {
+        provenance,
         schema_version: SNS_LIST_REPORT_SCHEMA_VERSION,
         network,
         sns_wasm_canister_id,
         fetched_at,
         source_endpoint,
         fetched_by,
-        data_source: provenance.data_source,
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         all_lifecycles: request.all_lifecycles,
         verbose: request.verbose,
         sort: request.sort.as_str().to_string(),

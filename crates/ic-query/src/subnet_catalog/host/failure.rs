@@ -231,13 +231,13 @@ pub enum SubnetCatalogSubject {
 }
 
 ///
-/// SubnetCatalogSourceFailure
+/// SubnetCatalogFailureEvidence
 ///
-/// Detailed failure returned by a caller-supplied Subnet Catalog source.
+/// Registry progress and offending subject retained across catalog failure layers.
 ///
 
-#[derive(Debug)]
-pub struct SubnetCatalogSourceFailure {
+#[derive(Debug, Default)]
+pub struct SubnetCatalogFailureEvidence {
     /// Exact pinned Registry version when collection progressed far enough to know it.
     pub registry_version: Option<u64>,
     /// Individual Registry value version returned for the failing record.
@@ -250,6 +250,18 @@ pub struct SubnetCatalogSourceFailure {
     pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Typed offending identity when known.
     pub subject: Option<SubnetCatalogSubject>,
+}
+
+///
+/// SubnetCatalogSourceFailure
+///
+/// Detailed failure returned by a caller-supplied Subnet Catalog source.
+///
+
+#[derive(Debug)]
+pub struct SubnetCatalogSourceFailure {
+    /// Registry progress and offending identity retained across failure layers.
+    pub evidence: SubnetCatalogFailureEvidence,
     /// Original host error.
     pub source: SubnetCatalogHostError,
 }
@@ -263,12 +275,11 @@ impl SubnetCatalogSourceFailure {
         source: SubnetCatalogHostError,
     ) -> Box<Self> {
         Box::new(Self {
-            registry_version,
-            returned_registry_value_version: None,
-            source_endpoint: None,
-            assurance: None,
-            registry_records: Vec::new(),
-            subject,
+            evidence: SubnetCatalogFailureEvidence {
+                registry_version,
+                subject,
+                ..Default::default()
+            },
             source,
         })
     }
@@ -282,10 +293,10 @@ impl SubnetCatalogSourceFailure {
         assurance: Option<CatalogAssurance>,
         registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     ) -> Box<Self> {
-        self.returned_registry_value_version = returned_registry_value_version;
-        self.source_endpoint = source_endpoint;
-        self.assurance = assurance;
-        self.registry_records = registry_records;
+        self.evidence.returned_registry_value_version = returned_registry_value_version;
+        self.evidence.source_endpoint = source_endpoint;
+        self.evidence.assurance = assurance;
+        self.evidence.registry_records = registry_records;
         self
     }
 
@@ -315,20 +326,10 @@ pub struct SubnetCatalogLoadFailure {
     pub request: SubnetCatalogLoadFailureRequest,
     /// Exact load stage.
     pub stage: SubnetCatalogLoadStage,
-    /// Exact Registry version when known.
-    pub registry_version: Option<u64>,
-    /// Individual Registry value version returned for the failing record.
-    pub returned_registry_value_version: Option<u64>,
-    /// Exact endpoint that returned the failing record, when known.
-    pub source_endpoint: Option<String>,
-    /// Assurance of the individual failing read, when known.
-    pub assurance: Option<CatalogAssurance>,
-    /// Successful Registry reads completed before the failure.
-    pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
+    /// Registry progress and offending identity retained across failure layers.
+    pub evidence: SubnetCatalogFailureEvidence,
     /// Failure-side cache state or action.
     pub cache_disposition: SubnetCatalogFailureCacheDisposition,
-    /// Typed offending identity when known.
-    pub subject: Option<SubnetCatalogSubject>,
     /// Stable machine-readable source-error code.
     pub code: SubnetCatalogErrorCode,
     /// Stable operational source-error category.
@@ -353,13 +354,8 @@ impl SubnetCatalogLoadFailure {
         Box::new(Self {
             request: SubnetCatalogLoadFailureRequest::from_load_request(request),
             stage,
-            registry_version: failure.registry_version,
-            returned_registry_value_version: failure.returned_registry_value_version,
-            source_endpoint: failure.source_endpoint,
-            assurance: failure.assurance,
-            registry_records: failure.registry_records,
+            evidence: failure.evidence,
             cache_disposition,
-            subject: failure.subject,
             code,
             category,
             retryability,

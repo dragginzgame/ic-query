@@ -116,10 +116,14 @@ pub type SourceFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output 
 /// Source and complete-cache metadata shared by report families.
 ///
 
-pub(crate) struct ReportProvenance {
-    pub(crate) data_source: ReportDataSource,
-    pub(crate) cache_path: Option<String>,
-    pub(crate) cache_complete: Option<bool>,
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ReportProvenance {
+    /// Whether rows came from live collection or a complete cache.
+    pub data_source: ReportDataSource,
+    /// Complete cache path, absent for live results.
+    pub cache_path: Option<String>,
+    /// API-exhaustion evidence, absent for live results.
+    pub cache_complete: Option<bool>,
 }
 
 impl ReportProvenance {

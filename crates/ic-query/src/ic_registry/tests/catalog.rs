@@ -25,13 +25,13 @@ fn registry_records_convert_to_catalog_domain_structs() {
     assert_eq!(catalog.routing_ranges.len(), 1);
     let fiduciary = catalog.subnet_by_principal(SUBNET_A).expect("fiduciary");
     assert_eq!(
-        fiduciary.subnet_specialization,
+        fiduciary.classification.subnet_specialization,
         SubnetSpecialization::Fiduciary
     );
     assert_eq!(fiduciary.node_count, Some(34));
     assert!(fiduciary.charges_apply_by_default);
     let system = catalog.subnet_by_principal(SUBNET_B).expect("system");
-    assert_eq!(system.subnet_kind, SubnetKind::System);
+    assert_eq!(system.classification.subnet_kind, SubnetKind::System);
     assert!(!system.charges_apply_by_default);
 }
 
@@ -52,6 +52,6 @@ fn registry_records_preserve_cloud_engine_subnet_type() {
     .expect("catalog");
 
     let subnet = catalog.subnet_by_principal(SUBNET_A).expect("subnet");
-    assert_eq!(subnet.subnet_kind, SubnetKind::CloudEngine);
+    assert_eq!(subnet.classification.subnet_kind, SubnetKind::CloudEngine);
     assert!(subnet.charges_apply_by_default);
 }

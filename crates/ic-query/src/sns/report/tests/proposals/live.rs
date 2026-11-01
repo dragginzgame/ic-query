@@ -127,9 +127,9 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     );
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote, 1);
-    assert_eq!(report.data_source.as_str(), "live");
-    assert_eq!(report.cache_path, None);
-    assert_eq!(report.cache_complete, None);
+    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.cache_path, None);
+    assert_eq!(report.provenance.cache_complete, None);
     assert!(text.contains("proposal_id: 42"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains("action: motion"));
@@ -202,9 +202,9 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
             .map(|tally| tally.yes),
         Some(10)
     );
-    assert_eq!(report.data_source.as_str(), "live");
-    assert_eq!(report.cache_path, None);
-    assert_eq!(report.cache_complete, None);
+    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.cache_path, None);
+    assert_eq!(report.provenance.cache_complete, None);
     assert!(text.contains("status_filter: open"));
     assert!(text.contains("data_source: live"));
     assert!(text.contains("topic_filter: governance"));
@@ -229,7 +229,7 @@ async fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
         .await
         .expect("sns proposals report");
 
-    assert_eq!(report.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
@@ -244,7 +244,7 @@ async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
         .await
         .expect("sns proposals report");
 
-    assert_eq!(report.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
     assert_eq!(report.proposal_count, 0);
     assert_eq!(report.proposals, Vec::new());
@@ -261,7 +261,7 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let text = sns_proposals_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
 
-    assert_eq!(report.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.query_filter.as_deref(), Some("FiXtUrE PrOpOsAl"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);

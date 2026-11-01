@@ -20,7 +20,7 @@ pub(super) fn charge_applicability(
 }
 
 pub(super) fn catalog_cycles_per_billion(subnet: &SubnetInfo) -> Option<u128> {
-    if !subnet.subnet_kind.charges_apply_by_default() {
+    if !subnet.classification.subnet_kind.charges_apply_by_default() {
         return None;
     }
     let node_count = u128::from(subnet.node_count?);

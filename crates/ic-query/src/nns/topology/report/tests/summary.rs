@@ -84,7 +84,7 @@ fn topology_summary_preserves_all_kind_counts_and_routing_ranges() {
     .map(|(index, kind)| {
         let mut row = subnets.subnets[0].clone();
         row.subnet_principal = format!("subnet-{index}");
-        row.subnet_kind = kind;
+        row.classification.subnet_kind = kind;
         row.range_count = index + 1;
         row
     })

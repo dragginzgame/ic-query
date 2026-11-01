@@ -204,16 +204,18 @@ pub fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) ->
     let subnet_kind = subnet_kind_from_registry(record.subnet_type);
     let charges_apply_by_default = subnet_kind.charges_apply_by_default();
     SubnetInfo {
+        classification: crate::subnet_catalog::SubnetClassification {
+            registry_subnet_type: record.subnet_type,
+            subnet_kind,
+            subnet_kind_source: ClassificationSource::Registry,
+            subnet_specialization: SubnetSpecialization::None,
+            subnet_specialization_source: ClassificationSource::Computed,
+            geographic_scope: GeographicScope::Global,
+            geographic_scope_source: ClassificationSource::Computed,
+            subnet_label: subnet_kind.as_str().to_string(),
+            subnet_label_source: ClassificationSource::Computed,
+        },
         subnet_principal: subnet_principal.to_string(),
-        registry_subnet_type: record.subnet_type,
-        subnet_kind,
-        subnet_kind_source: ClassificationSource::Registry,
-        subnet_specialization: SubnetSpecialization::None,
-        subnet_specialization_source: ClassificationSource::Computed,
-        geographic_scope: GeographicScope::Global,
-        geographic_scope_source: ClassificationSource::Computed,
-        subnet_label: subnet_kind.as_str().to_string(),
-        subnet_label_source: ClassificationSource::Computed,
         node_count: Some(u32::try_from(record.membership.len()).unwrap_or(u32::MAX)),
         charges_apply_by_default,
     }
@@ -231,7 +233,7 @@ fn routing_ranges_from_table_detailed(
     registry_version: u64,
 ) -> Result<Vec<RoutingRange>, Box<SubnetCatalogRegistryFailure>> {
     routing_ranges_from_table_inner(table).map_err(|mut failure| {
-        failure.registry_version = Some(registry_version);
+        failure.evidence.registry_version = Some(registry_version);
         failure
     })
 }
@@ -335,9 +337,9 @@ mod detailed_failure_tests {
             RegistryFetchError::MissingValue { key: key.clone() },
         );
 
-        assert_eq!(failure.registry_version, Some(882_110));
+        assert_eq!(failure.evidence.registry_version, Some(882_110));
         assert_eq!(
-            failure.subject,
+            failure.evidence.subject,
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject {
                     kind: SubnetCatalogRegistryRecordKind::SubnetRecord,
@@ -347,9 +349,12 @@ mod detailed_failure_tests {
                 }
             ))
         );
-        assert_eq!(failure.returned_registry_value_version, Some(882_000));
         assert_eq!(
-            failure.source_endpoint.as_deref(),
+            failure.evidence.returned_registry_value_version,
+            Some(882_000)
+        );
+        assert_eq!(
+            failure.evidence.source_endpoint.as_deref(),
             Some(request.endpoint.as_str())
         );
     }
@@ -366,9 +371,9 @@ mod detailed_failure_tests {
             None,
             RegistryFetchError::EmptyRoutingTable,
         );
-        assert_eq!(table_failure.registry_version, Some(882_111));
+        assert_eq!(table_failure.evidence.registry_version, Some(882_111));
         assert!(matches!(
-            table_failure.subject,
+            table_failure.evidence.subject,
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject {
                     kind: SubnetCatalogRegistryRecordKind::RoutingTable,
@@ -385,10 +390,10 @@ mod detailed_failure_tests {
             },
         );
         let mut range_failure = range_failure;
-        range_failure.registry_version = Some(882_111);
-        assert_eq!(range_failure.registry_version, Some(882_111));
+        range_failure.evidence.registry_version = Some(882_111);
+        assert_eq!(range_failure.evidence.registry_version, Some(882_111));
         assert_eq!(
-            range_failure.subject,
+            range_failure.evidence.subject,
             Some(SubnetCatalogSubject::RegistryRoutingTableEntry {
                 index: 7,
                 field: Some(SubnetCatalogField::RoutingRangeStart),

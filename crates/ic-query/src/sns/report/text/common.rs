@@ -11,7 +11,7 @@ use ic_host_text::timestamp::format_utc_timestamp_secs;
 #[cfg(feature = "sns-host")]
 use crate::sns::report::SnsCacheSummary;
 use crate::{
-    report::ReportDataSource,
+    report::ReportProvenance,
     sns::report::{SnsNeuronDissolveState, SnsNeuronPermissionList},
     text_value::yes_no,
     token_amount::e8s_decimal_text,
@@ -123,15 +123,13 @@ pub(in crate::sns::report::text) fn neuron_id_text(value: &str, verbose: bool) -
 
 pub(in crate::sns::report::text) fn push_report_provenance_lines(
     lines: &mut Vec<String>,
-    data_source: ReportDataSource,
-    cache_path: Option<&str>,
-    cache_complete: Option<bool>,
+    provenance: &ReportProvenance,
 ) {
-    lines.push(format!("data_source: {data_source}"));
-    if let Some(cache_path) = cache_path {
+    lines.push(format!("data_source: {}", provenance.data_source));
+    if let Some(cache_path) = provenance.cache_path.as_deref() {
         lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
-    if let Some(cache_complete) = cache_complete {
+    if let Some(cache_complete) = provenance.cache_complete {
         lines.push(format!("cache_complete: {}", yes_no(cache_complete)));
     }
 }

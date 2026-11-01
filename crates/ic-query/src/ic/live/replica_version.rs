@@ -35,8 +35,11 @@ impl IcReplicaVersionSource for LiveIcSource {
         Box::pin(async move {
             source::validate_replica_version_id(replica_version_id)?;
             let url = replica_version_info_url(&request.endpoint, replica_version_id)?;
-            let wire: DashboardReplicaVersionInfo = self.fetch_live(url).await?;
-            Ok(wire.into_source_data(request))
+            let wire: crate::ic::IcReplicaVersionDetails = self.fetch_live(url).await?;
+            Ok(IcReplicaVersionInfoSourceData {
+                source: request.clone(),
+                release: wire,
+            })
         })
     }
 }
@@ -127,32 +130,6 @@ impl DashboardReplicaVersionListRow {
             subnet_count,
             subnets: self.subnets,
         })
-    }
-}
-
-#[derive(SerdeDeserialize)]
-struct DashboardReplicaVersionInfo {
-    executed_timestamp_seconds: u64,
-    proposal_id: u64,
-    replica_version_id: String,
-    subnets: Vec<IcReplicaVersionSubnetRollout>,
-    summary: String,
-    title: String,
-    url: String,
-}
-
-impl DashboardReplicaVersionInfo {
-    fn into_source_data(self, request: &IcSourceRequest) -> IcReplicaVersionInfoSourceData {
-        IcReplicaVersionInfoSourceData {
-            source: request.clone(),
-            replica_version_id: self.replica_version_id,
-            proposal_id: self.proposal_id,
-            executed_timestamp_seconds: self.executed_timestamp_seconds,
-            title: self.title,
-            url: self.url,
-            summary: self.summary,
-            subnets: self.subnets,
-        }
     }
 }
 

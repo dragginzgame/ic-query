@@ -5,6 +5,22 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.81.0]
+
+### ⚠️ Breaking
+
+- Read shared report metadata through `provenance`, catalog annotations through
+  `classification`, replica-version details through `release`, and detailed
+  catalog failure context through `evidence`. Update Rust field access and custom
+  source fixtures; JSON fields, CLI output and schema-1 caches are preserved.
+
+### 🧹 Cleanup
+
+- Construct NNS requests directly from CLI arguments, centralize analytics header
+  validation and ICRC text provenance, and group topology request adapters.
+
+Detailed release notes: [docs/changelog/0.81.md](docs/changelog/0.81.md)
+
 ## [0.80.1] - 2026-11-01
 
 ### 🔧 Changed

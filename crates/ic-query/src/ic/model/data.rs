@@ -10,7 +10,7 @@ use super::{
     reports::{
         IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
         IcIcrcTotalSupplyObservation, IcMetricSeries, IcNodeProviderRewardHistoryObservation,
-        IcNodeProviderRewardRow, IcReplicaVersionListRow, IcReplicaVersionSubnetRollout,
+        IcNodeProviderRewardRow, IcReplicaVersionListRow,
     },
     requests::{
         IcCanisterFilters, IcDailyStatsQuery, IcIcrcAccountListQuery, IcIcrcHolderListQuery,
@@ -448,18 +448,6 @@ pub struct IcReplicaVersionListSourceData {
 pub struct IcReplicaVersionInfoSourceData {
     /// Source request and provenance preserved by the source.
     pub source: IcSourceRequest,
-    /// Replica-version identifier returned by the source.
-    pub replica_version_id: String,
-    /// NNS proposal that elected this version.
-    pub proposal_id: u64,
-    /// Election proposal execution time as raw Unix seconds.
-    pub executed_timestamp_seconds: u64,
-    /// Raw proposal title.
-    pub title: String,
-    /// Raw proposal discussion URL.
-    pub url: String,
-    /// Raw release-note summary.
-    pub summary: String,
-    /// Raw Dashboard-recorded Subnet assignments.
-    pub subnets: Vec<IcReplicaVersionSubnetRollout>,
+    /// Exact release payload shared with the report.
+    pub release: crate::ic::IcReplicaVersionDetails,
 }

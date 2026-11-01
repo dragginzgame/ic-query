@@ -5,7 +5,7 @@
 //! Boundary: preserves neuron listing metadata and rows for text and JSON.
 
 use super::row::SnsNeuronRow;
-use crate::report::ReportDataSource;
+use crate::report::ReportProvenance;
 use crate::sns::report::SnsReportContext;
 use serde::Serialize;
 
@@ -24,10 +24,10 @@ pub struct SnsNeuronsReport {
     pub requested_limit: u32,
     pub owner_principal_id: Option<String>,
     pub verbose: bool,
-    pub data_source: ReportDataSource,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: ReportProvenance,
     pub sort: String,
-    pub cache_path: Option<String>,
-    pub cache_complete: Option<bool>,
     pub total_neuron_count: usize,
     pub neuron_count: usize,
     pub neurons: Vec<SnsNeuronRow>,

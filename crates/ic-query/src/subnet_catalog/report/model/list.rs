@@ -8,8 +8,8 @@
 //! policy remains in host modules.
 
 use crate::subnet_catalog::{
-    CacheDisposition, CatalogReadPolicy, CatalogSourceSelection, ClassificationSource,
-    GeographicScope, RoutingRange, SubnetCatalogCacheRequest, SubnetKind, SubnetSpecialization,
+    CacheDisposition, CatalogReadPolicy, CatalogSourceSelection, GeographicScope, RoutingRange,
+    SubnetCatalogCacheRequest, SubnetKind, SubnetSpecialization,
 };
 use serde::{Deserialize, Serialize};
 
@@ -197,24 +197,9 @@ pub struct SubnetCatalogListReport {
 pub struct SubnetCatalogSubnetRow {
     /// Canonical principal of the Subnet described by this row.
     pub subnet_principal: String,
-    /// Raw numeric `SubnetType` discriminant from the Registry record.
-    pub registry_subnet_type: i32,
-    /// IC-native classification derived from the Registry Subnet type code.
-    pub subnet_kind: SubnetKind,
-    /// Authority that supplied the Subnet kind classification.
-    pub subnet_kind_source: ClassificationSource,
-    /// Curated or default Subnet specialization.
-    pub subnet_specialization: SubnetSpecialization,
-    /// Authority that supplied the specialization classification.
-    pub subnet_specialization_source: ClassificationSource,
-    /// Curated or default geographic classification of the Subnet.
-    pub geographic_scope: GeographicScope,
-    /// Authority that supplied the geographic classification.
-    pub geographic_scope_source: ClassificationSource,
-    /// Human-facing label assigned by the current classification policy.
-    pub subnet_label: String,
-    /// Authority that supplied the human-facing Subnet label.
-    pub subnet_label_source: ClassificationSource,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub classification: crate::subnet_catalog::SubnetClassification,
     /// Node membership count, when supplied by the Registry Subnet record.
     pub node_count: Option<u32>,
     /// Whether application charging applies to this Subnet kind by default.

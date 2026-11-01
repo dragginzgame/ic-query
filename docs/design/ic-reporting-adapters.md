@@ -40,12 +40,19 @@ Dependencies own the reusable mechanisms beneath that policy:
 | Developer tooling implementation | Reviewed Shared Tooling snapshot | Local Make/CI wiring, selected catalogs, release adapters and product qualification |
 
 Shared report records preserve flattened JSON while giving Rust callers one owner
-for inventory detail rows, catalog collection metadata, ICRC history payloads and
-refresh-attempt lifecycle fields. Registry collection returns the portable NNS
-version/evidence contract directly. Native node, operator and data-center projections
-carry their canonical NNS inventory rows into report envelopes without another
-row DTO; provider-name enrichment remains a separate NNS projection. SNS enrichment sources carry success or bounded
-failure outcomes; joined catalogs retain their existing persisted shape and validation.
+for acquisition metadata and payloads. Live ICRC reports carry ledger acquisition
+fields through `provenance`; NNS proposal and SNS list/proposal/neuron-list reports
+carry `ReportProvenance` through the same field. Catalog annotations live in
+`classification`, Dashboard release details in `release`, and detailed catalog
+failure progress in `evidence`. Custom sources and callers use these records
+directly; source, cache and restored-report validation retain their own trust
+boundaries. See the [0.81 consumer update](../changelog/0.81.md).
+
+Registry collection returns the portable NNS version/evidence contract directly.
+Native node, operator and data-center projections carry their canonical NNS rows
+into report envelopes; provider-name enrichment remains a separate NNS projection.
+SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
+retain their persisted shape and validation.
 
 The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment

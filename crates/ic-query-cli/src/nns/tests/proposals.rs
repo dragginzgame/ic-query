@@ -6,19 +6,19 @@ use ic_query::report::SortDirection;
 #[test]
 fn nns_proposal_activity_parses_cache_only_window_and_json() {
     let matches = parse_test_matches(nns_proposal_activity_command(), &[]).unwrap();
-    let defaults = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
-    assert_eq!(defaults.request.from_proposal_timestamp_seconds, None);
-    assert_eq!(defaults.request.until_proposal_timestamp_seconds, None);
+    let (defaults_format, defaults) = proposal_activity_request(&matches);
+    assert_eq!(defaults_format, OutputFormat::Text);
+    assert_eq!(defaults.from_proposal_timestamp_seconds, None);
+    assert_eq!(defaults.until_proposal_timestamp_seconds, None);
     let matches = parse_test_matches(
         nns_proposal_activity_command(),
         &["--from", "1", "--until", "3", "--json"],
     )
     .unwrap();
-    let options = NnsProposalActivityOptions::from_matches(&matches, MAINNET_NETWORK);
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.request.from_proposal_timestamp_seconds, Some(1));
-    assert_eq!(options.request.until_proposal_timestamp_seconds, Some(3));
+    let (options_format, options) = proposal_activity_request(&matches);
+    assert_eq!(options_format, OutputFormat::Json);
+    assert_eq!(options.from_proposal_timestamp_seconds, Some(1));
+    assert_eq!(options.until_proposal_timestamp_seconds, Some(3));
     for args in [
         &["--from", "invalid"][..],
         &["--until", "18446744073709551616"][..],
@@ -30,19 +30,27 @@ fn nns_proposal_activity_parses_cache_only_window_and_json() {
     );
 }
 
-fn parse_list_options(args: &[&str]) -> Result<NnsProposalListOptions, NnsCommandError> {
+fn parse_list_options(
+    args: &[&str],
+) -> Result<
+    (
+        OutputFormat,
+        ic_query::nns::proposals::NnsProposalListRequest,
+    ),
+    NnsCommandError,
+> {
     let matches = parse_test_matches(nns_proposal_list_command(), args)?;
-    NnsProposalListOptions::from_matches(&matches, MAINNET_NETWORK)
+    proposal_list_request(&matches, MAINNET_NETWORK, TEST_NOW_UNIX_SECS)
 }
 
 #[test]
 fn nns_proposal_list_parses_defaults_and_json_format() {
-    let defaults = parse_list_options(&[]).expect("parse defaults");
+    let (defaults_format, defaults) = parse_list_options(&[]).expect("parse defaults");
 
-    assert_eq!(defaults.common.network, MAINNET_NETWORK);
-    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(defaults.governance.network, MAINNET_NETWORK);
+    assert_eq!(defaults_format, OutputFormat::Text);
     assert_eq!(
-        defaults.common.source_endpoint,
+        replica_endpoint(&defaults.governance),
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT
     );
     assert_eq!(defaults.limit, 25);
@@ -64,7 +72,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     );
     assert!(!defaults.verbose);
 
-    let options = parse_list_options(&[
+    let (options_format, options) = parse_list_options(&[
         "--json",
         "--source-endpoint",
         "https://icp-api.io",
@@ -89,8 +97,8 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     ])
     .expect("parse nns proposal list");
 
-    assert_eq!(options.common.format, OutputFormat::Json);
-    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
+    assert_eq!(options_format, OutputFormat::Json);
+    assert_eq!(replica_endpoint(&options.governance), "https://icp-api.io");
     assert_eq!(options.limit, 50);
     assert_eq!(options.before_proposal_id, Some(132_000));
     assert_eq!(options.status, NnsProposalStatusFilter::Executed);
@@ -110,7 +118,7 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(options.sort.direction_label(options.sort_direction), "asc");
     assert!(options.verbose);
 
-    let grouped_options = parse_list_options(&["--limit", "10", "--reward-status", "settled"])
+    let (_, grouped_options) = parse_list_options(&["--limit", "10", "--reward-status", "settled"])
         .expect("parse nns proposal list");
 
     assert_eq!(grouped_options.limit, 10);
@@ -122,26 +130,27 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
 
 #[test]
 fn nns_proposal_list_parses_extended_local_sort_values() {
-    let reward_status_sort =
+    let (_, reward_status_sort) =
         parse_list_options(&["--sort", "reward-status"]).expect("parse reward-status sort");
 
     assert_eq!(reward_status_sort.sort, NnsProposalListSort::RewardStatus);
     assert_eq!(reward_status_sort.sort_direction, SortDirection::Asc);
     assert_eq!(reward_status_sort.sort.as_str(), "reward-status");
 
-    let deadline_sort = parse_list_options(&["--sort", "deadline"]).expect("parse deadline sort");
+    let (_, deadline_sort) =
+        parse_list_options(&["--sort", "deadline"]).expect("parse deadline sort");
 
     assert_eq!(deadline_sort.sort, NnsProposalListSort::Deadline);
     assert_eq!(deadline_sort.sort_direction, SortDirection::Desc);
 
-    let tally_time_sort =
+    let (_, tally_time_sort) =
         parse_list_options(&["--sort", "tally-time"]).expect("parse tally-time sort");
 
     assert_eq!(tally_time_sort.sort, NnsProposalListSort::TallyTime);
     assert_eq!(tally_time_sort.sort_direction, SortDirection::Desc);
     assert_eq!(tally_time_sort.sort.as_str(), "tally-time");
 
-    let voting_power_sort =
+    let (_, voting_power_sort) =
         parse_list_options(&["--sort", "voting-power"]).expect("parse voting-power sort");
 
     assert_eq!(voting_power_sort.sort, NnsProposalListSort::VotingPower);
@@ -150,7 +159,7 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
 
 #[test]
 fn nns_proposal_parses_id_and_json_format() {
-    let options = parse_test_options(
+    let (options_format, options) = parse_test_options(
         nns_proposal_info_command(),
         &[
             "132411",
@@ -160,21 +169,21 @@ fn nns_proposal_parses_id_and_json_format() {
             "--ballots",
             "--verbose",
         ],
-        NnsProposalOptions::from_matches,
+        |matches, network| proposal_info_request(matches, network, TEST_NOW_UNIX_SECS),
     )
     .expect("parse nns proposal info");
 
-    assert_eq!(options.common.network, MAINNET_NETWORK);
-    assert_eq!(options.common.format, OutputFormat::Json);
-    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.governance.network, MAINNET_NETWORK);
+    assert_eq!(options_format, OutputFormat::Json);
+    assert_eq!(replica_endpoint(&options.governance), "https://icp-api.io");
     assert_eq!(options.proposal_id, 132_411);
     assert!(options.show_ballots);
     assert!(options.verbose);
 
-    let grouped_options = parse_test_options(
+    let (_, grouped_options) = parse_test_options(
         nns_proposal_info_command(),
         &["132411", "--ballots", "--verbose"],
-        NnsProposalOptions::from_matches,
+        |matches, network| proposal_info_request(matches, network, TEST_NOW_UNIX_SECS),
     )
     .expect("parse nns proposal info");
 

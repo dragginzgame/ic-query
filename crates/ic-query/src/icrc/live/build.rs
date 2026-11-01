@@ -8,7 +8,7 @@ use super::{
     ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION, ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
     ICRC_ARCHIVES_REPORT_SCHEMA_VERSION, ICRC_BALANCE_REPORT_SCHEMA_VERSION,
     ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION, ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
-    ICRC_FETCHED_BY, ICRC_INDEX_REPORT_SCHEMA_VERSION, ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
+    ICRC_INDEX_REPORT_SCHEMA_VERSION, ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
     ICRC_TOKEN_REPORT_SCHEMA_VERSION, ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
     account_transactions::{
         normalize_account_transaction_identity, normalize_optional_index_canister_id,
@@ -32,7 +32,6 @@ use crate::icrc::{
         IcrcTransactionsRequest, normalize_optional_subaccount_hex,
     },
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 pub async fn build_icrc_token_report(
     request: &IcrcLedgerRequest,
@@ -102,11 +101,10 @@ pub async fn build_icrc_token_report_with_source(
 ) -> Result<IcrcTokenReport, IcrcError> {
     let token = source.fetch_token(request).await?;
     Ok(IcrcTokenReport {
-        schema_version: ICRC_TOKEN_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            request,
+            ICRC_TOKEN_REPORT_SCHEMA_VERSION,
+        ),
         token,
     })
 }
@@ -121,13 +119,12 @@ pub async fn build_icrc_balance_report_with_source(
     };
     let balance = source.fetch_balance(&request).await?;
     Ok(IcrcBalanceReport {
-        schema_version: ICRC_BALANCE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            &request.ledger,
+            ICRC_BALANCE_REPORT_SCHEMA_VERSION,
+        ),
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
-        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: ICRC_FETCHED_BY.to_string(),
         value: balance,
     })
 }
@@ -147,15 +144,14 @@ pub async fn build_icrc_allowance_report_with_source(
     };
     let allowance = source.fetch_allowance(&request).await?;
     Ok(IcrcAllowanceReport {
-        schema_version: ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            &request.ledger,
+            ICRC_ALLOWANCE_REPORT_SCHEMA_VERSION,
+        ),
         account_owner: request.account_owner,
         account_subaccount_hex: request.account_subaccount_hex,
         spender_owner: request.spender_owner,
         spender_subaccount_hex: request.spender_subaccount_hex,
-        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: ICRC_FETCHED_BY.to_string(),
         value: allowance,
     })
 }
@@ -214,15 +210,14 @@ pub async fn build_icrc_account_transaction_page_report_with_source(
         transactions.next_start.as_deref(),
     )?;
     Ok(IcrcAccountTransactionPageReport {
-        schema_version: ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            &request.ledger,
+            ICRC_ACCOUNT_TRANSACTION_PAGE_REPORT_SCHEMA_VERSION,
+        ),
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
         requested_start: request.start,
         requested_limit: request.limit,
-        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: ICRC_FETCHED_BY.to_string(),
 
         page: crate::icrc::IcrcAccountTransactionPageData {
             index_canister_id: actual_index,
@@ -240,11 +235,10 @@ pub async fn build_icrc_index_report_with_source(
         crate::icrc::IcrcIndexData::Unavailable(error) => (None, Some(error)),
     };
     Ok(IcrcIndexReport {
-        schema_version: ICRC_INDEX_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            request,
+            ICRC_INDEX_REPORT_SCHEMA_VERSION,
+        ),
         index_canister_id,
         index_error,
     })
@@ -257,11 +251,10 @@ pub async fn build_icrc_transactions_report_with_source(
     let transactions = source.fetch_transactions(request).await?;
     super::fetch::validate_transactions_data(request, &transactions)?;
     Ok(IcrcTransactionsReport {
-        schema_version: ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
-        source_endpoint: request.ledger.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            &request.ledger,
+            ICRC_TRANSACTIONS_REPORT_SCHEMA_VERSION,
+        ),
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
         follow_archives: request.follow_archives,
@@ -275,11 +268,10 @@ pub async fn build_icrc_block_types_report_with_source(
 ) -> Result<IcrcBlockTypesReport, IcrcError> {
     let block_types = source.fetch_block_types(request).await?;
     Ok(IcrcBlockTypesReport {
-        schema_version: ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            request,
+            ICRC_BLOCK_TYPES_REPORT_SCHEMA_VERSION,
+        ),
         block_types,
     })
 }
@@ -301,12 +293,11 @@ pub async fn build_icrc_archives_report_with_source(
     };
     let archives = source.fetch_archives(&request).await?;
     Ok(IcrcArchivesReport {
-        schema_version: ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            &request.ledger,
+            ICRC_ARCHIVES_REPORT_SCHEMA_VERSION,
+        ),
         from_canister_id: request.from_canister_id,
-        fetched_at: format_utc_timestamp_secs(request.ledger.now_unix_secs),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: ICRC_FETCHED_BY.to_string(),
         archives,
     })
 }
@@ -317,11 +308,10 @@ pub async fn build_icrc_tip_certificate_report_with_source(
 ) -> Result<IcrcTipCertificateReport, IcrcError> {
     let certificate = source.fetch_tip_certificate(request).await?;
     Ok(IcrcTipCertificateReport {
-        schema_version: ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            request,
+            ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
+        ),
         certificate_present: certificate.is_some(),
         certificate_hex: certificate
             .as_ref()
@@ -344,11 +334,10 @@ pub async fn build_icrc_capabilities_report_with_source(
 ) -> Result<IcrcCapabilitiesReport, IcrcError> {
     let capabilities = source.fetch_capabilities(request).await?;
     Ok(IcrcCapabilitiesReport {
-        schema_version: ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: request.ledger_canister_id.clone(),
-        fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: ICRC_FETCHED_BY.to_string(),
+        provenance: crate::icrc::IcrcReportProvenance::from_request(
+            request,
+            ICRC_CAPABILITIES_REPORT_SCHEMA_VERSION,
+        ),
         supported_standards: capabilities.supported_standards,
         capabilities: capabilities.capabilities,
     })

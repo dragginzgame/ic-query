@@ -33,12 +33,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
         ),
         format!("verbose: {}", yes_no(report.verbose)),
     ]);
-    push_report_provenance_lines(
-        &mut lines,
-        report.data_source,
-        report.cache_path.as_deref(),
-        report.cache_complete,
-    );
+    push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend([
         format!("sort: {}", report.sort),
         format!("total_neuron_count: {}", report.total_neuron_count),

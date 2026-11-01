@@ -26,16 +26,16 @@ pub use host::{
     CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, CatalogSourceSelection,
     LiveSubnetCatalogSource, SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture,
     SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogFailureCacheDisposition,
-    SubnetCatalogField, SubnetCatalogHostError, SubnetCatalogLoadFailure,
-    SubnetCatalogLoadFailureRequest, SubnetCatalogLoadRequest, SubnetCatalogLoadStage,
-    SubnetCatalogRefreshRequest, SubnetCatalogRefreshTrigger, SubnetCatalogRemediation,
-    SubnetCatalogRetryability, SubnetCatalogSource, SubnetCatalogSourceFailure,
-    SubnetCatalogSourceFuture, SubnetCatalogSubject, SubnetCatalogUnknownRetryReason,
-    fetch_subnet_catalog_async, load_cached_subnet_catalog, load_cached_subnet_catalog_detailed,
-    load_subnet_catalog, load_subnet_catalog_detailed, load_subnet_catalog_detailed_with_progress,
-    load_subnet_catalog_detailed_with_source, load_subnet_catalog_with_source,
-    refresh_subnet_catalog, refresh_subnet_catalog_with_source, subnet_catalog_path,
-    subnet_catalog_refresh_lock_path,
+    SubnetCatalogFailureEvidence, SubnetCatalogField, SubnetCatalogHostError,
+    SubnetCatalogLoadFailure, SubnetCatalogLoadFailureRequest, SubnetCatalogLoadRequest,
+    SubnetCatalogLoadStage, SubnetCatalogRefreshRequest, SubnetCatalogRefreshTrigger,
+    SubnetCatalogRemediation, SubnetCatalogRetryability, SubnetCatalogSource,
+    SubnetCatalogSourceFailure, SubnetCatalogSourceFuture, SubnetCatalogSubject,
+    SubnetCatalogUnknownRetryReason, fetch_subnet_catalog_async, load_cached_subnet_catalog,
+    load_cached_subnet_catalog_detailed, load_subnet_catalog, load_subnet_catalog_detailed,
+    load_subnet_catalog_detailed_with_progress, load_subnet_catalog_detailed_with_source,
+    load_subnet_catalog_with_source, refresh_subnet_catalog, refresh_subnet_catalog_with_source,
+    subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
@@ -54,7 +54,7 @@ pub use model::{
     RawSubnetCatalog, RoutingRange, SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX,
     SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
     SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
-    SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,
+    SubnetCatalogRoutingSource, SubnetClassification, SubnetInfo, SubnetKind, SubnetSpecialization,
     ValidatedSubnetCatalog,
 };
 pub use principal::canonical_principal_text;

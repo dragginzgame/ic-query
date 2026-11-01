@@ -353,7 +353,7 @@ async fn public_icrc_host_api_accepts_custom_source_adapters() {
         .await
         .expect("token report");
 
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.token.token_symbol, "FIX");
     assert_eq!(
         report.token.supported_standards,
@@ -663,11 +663,13 @@ fn public_icrc_token_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcTokenReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         token: ic_query::icrc::IcrcTokenData {
             token_name: "Internet Computer".to_string(),
             token_symbol: "ICP".to_string(),
@@ -710,13 +712,15 @@ fn public_icrc_balance_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcBalanceReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.ledger.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         account_owner: request.account_owner,
         subaccount_hex: request.subaccount_hex,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
         value: IcrcBalanceData {
             token_symbol: "ICP".to_string(),
             decimals: 8,
@@ -763,15 +767,17 @@ fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcAllowanceReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.ledger.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         account_owner: request.account_owner,
         account_subaccount_hex: request.account_subaccount_hex,
         spender_owner: request.spender_owner,
         spender_subaccount_hex: request.spender_subaccount_hex,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
         value: IcrcAllowanceData {
             token_symbol: "ICP".to_string(),
             decimals: 8,
@@ -815,15 +821,17 @@ fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
         account_identifier: None,
     };
     let report = IcrcAccountTransactionPageReport {
-        schema_version: 1,
-        ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: SOURCE_ENDPOINT.to_string(),
+            fetched_by: FETCHED_BY.to_string(),
+        },
         account_owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: Some(SUBACCOUNT_HEX.to_string()),
         requested_start: Some("100".to_string()),
         requested_limit: 25,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: SOURCE_ENDPOINT.to_string(),
-        fetched_by: FETCHED_BY.to_string(),
 
         page: ic_query::icrc::IcrcAccountTransactionPageData {
             index_canister_id: ARCHIVE_CANISTER_ID.to_string(),
@@ -871,11 +879,13 @@ fn public_icrc_index_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcIndexReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         index_canister_id: None,
         index_error: Some("not configured".to_string()),
     };
@@ -900,11 +910,13 @@ fn public_icrc_transactions_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcTransactionsReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.ledger.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         requested_start: request.start.to_string(),
         requested_limit: request.limit,
         follow_archives: request.follow_archives,
@@ -964,11 +976,13 @@ fn public_icrc_block_types_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcBlockTypesReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         block_types: vec![IcrcBlockTypeRow {
             block_type: "1xfer".to_string(),
             url: "https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-3".to_string(),
@@ -993,12 +1007,14 @@ fn public_icrc_archives_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcArchivesReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger.ledger_canister_id,
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.ledger.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         from_canister_id: request.from_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.ledger.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
         archives: vec![IcrcArchiveRow {
             canister_id: ARCHIVE_CANISTER_ID.to_string(),
             start: "0".to_string(),
@@ -1022,11 +1038,13 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
     };
 
     let report = IcrcTipCertificateReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         certificate_present: true,
         certificate_hex: Some("010203".to_string()),
         certificate_bytes: Some(3),
@@ -1050,11 +1068,13 @@ fn public_icrc_capabilities_api_is_constructible_and_renderable_without_host() {
     };
 
     let report = IcrcCapabilitiesReport {
-        schema_version: 1,
-        ledger_canister_id: request.ledger_canister_id,
-        fetched_at: FETCHED_AT.to_string(),
-        source_endpoint: request.source_endpoint,
-        fetched_by: FETCHED_BY.to_string(),
+        provenance: ic_query::icrc::IcrcReportProvenance {
+            schema_version: 1,
+            ledger_canister_id: request.ledger_canister_id,
+            fetched_at: FETCHED_AT.to_string(),
+            source_endpoint: request.source_endpoint,
+            fetched_by: FETCHED_BY.to_string(),
+        },
         supported_standards: vec![standard_row("ICRC-1")],
         capabilities: vec![IcrcCapabilityRow {
             capability: "ICRC-3 tip certificate".to_string(),

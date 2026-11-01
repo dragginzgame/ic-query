@@ -5,10 +5,7 @@
 //! Boundary: formats bounded ledger blocks and archive evidence for humans.
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
-use ic_host_text::{
-    escape::terminal_text,
-    table::{Alignment, render},
-};
+use ic_host_text::table::{Alignment, render};
 
 use super::{LEFT_2_ALIGNMENTS, push_table_section};
 use crate::{
@@ -40,7 +37,10 @@ const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [Alignment; 4] = [
 #[must_use]
 pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("requested_start: {}", report.requested_start),
         format!("requested_limit: {}", report.requested_limit),
         format!("follow_archives: {}", report.follow_archives),
@@ -61,12 +61,8 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
             "archive_follow_errors: {}",
             report.transactions.archive_follow_errors.len()
         ),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     push_table_section(
         &mut lines,
         &report.transactions.blocks,
@@ -198,14 +194,13 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
 #[must_use]
 pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("block_type_count: {}", report.block_types.len()),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
         format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
         ),
+        format!("block_type_count: {}", report.block_types.len()),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.block_types, |rows| {
         render(
             &["BLOCK_TYPE", "URL"],
@@ -223,18 +218,17 @@ pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
 #[must_use]
 pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!(
             "from_canister_id: {}",
             optional_text(report.from_canister_id.as_ref())
         ),
         format!("archive_count: {}", report.archives.len()),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.archives, |rows| {
         render(
             &["ARCHIVE_CANISTER", "START", "END"],

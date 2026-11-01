@@ -5,7 +5,9 @@
 //! Boundary: applies and validates the annotations committed by the policy digest.
 
 #[cfg(feature = "subnet-catalog-host")]
-use super::{ClassificationSource, GeographicScope, SubnetInfo, SubnetSpecialization};
+use super::{
+    ClassificationSource, GeographicScope, SubnetClassification, SubnetInfo, SubnetSpecialization,
+};
 #[cfg(feature = "subnet-catalog-host")]
 use ic_host_artifacts::artifact::Sha256Digest;
 
@@ -45,39 +47,7 @@ pub(super) fn classification_policy_digest() -> String {
 #[cfg(feature = "subnet-catalog-host")]
 pub(super) fn apply_mainnet_classification_policy(subnets: &mut [SubnetInfo]) {
     for subnet in subnets {
-        let classification = mainnet_classification(subnet);
-        subnet.subnet_specialization = classification.specialization;
-        subnet.subnet_specialization_source = classification.source;
-        subnet.geographic_scope = classification.geographic_scope;
-        subnet.geographic_scope_source = classification.source;
-        subnet.subnet_label = classification.label.to_string();
-        subnet.subnet_label_source = classification.source;
-    }
-}
-
-///
-/// SubnetClassification
-///
-/// Derived annotations used to apply and independently check the current policy.
-///
-
-#[cfg(feature = "subnet-catalog-host")]
-pub(super) struct SubnetClassification {
-    specialization: SubnetSpecialization,
-    geographic_scope: GeographicScope,
-    label: &'static str,
-    source: ClassificationSource,
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-impl SubnetClassification {
-    pub(super) fn matches(&self, subnet: &SubnetInfo) -> bool {
-        subnet.subnet_specialization == self.specialization
-            && subnet.subnet_specialization_source == self.source
-            && subnet.geographic_scope == self.geographic_scope
-            && subnet.geographic_scope_source == self.source
-            && subnet.subnet_label == self.label
-            && subnet.subnet_label_source == self.source
+        subnet.classification = mainnet_classification(subnet);
     }
 }
 
@@ -99,14 +69,19 @@ pub(super) fn mainnet_classification(subnet: &SubnetInfo) -> SubnetClassificatio
         _ => (
             SubnetSpecialization::None,
             GeographicScope::Global,
-            subnet.subnet_kind.as_str(),
+            subnet.classification.subnet_kind.as_str(),
             ClassificationSource::Computed,
         ),
     };
     SubnetClassification {
-        specialization,
+        subnet_specialization: specialization,
         geographic_scope,
-        label,
-        source,
+        subnet_label: label.to_string(),
+        subnet_specialization_source: source,
+        geographic_scope_source: source,
+        subnet_label_source: source,
+        registry_subnet_type: subnet.classification.registry_subnet_type,
+        subnet_kind: subnet.classification.subnet_kind,
+        subnet_kind_source: subnet.classification.subnet_kind_source,
     }
 }

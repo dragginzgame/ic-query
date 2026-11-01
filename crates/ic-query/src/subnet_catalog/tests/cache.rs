@@ -126,7 +126,7 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
         missing.cache_disposition,
         SubnetCatalogFailureCacheDisposition::CacheMissing
     );
-    assert_eq!(missing.registry_version, None);
+    assert_eq!(missing.evidence.registry_version, None);
 
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
@@ -139,7 +139,7 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
         rejected.cache_disposition,
         SubnetCatalogFailureCacheDisposition::CacheRejected
     );
-    assert_eq!(rejected.registry_version, None);
+    assert_eq!(rejected.evidence.registry_version, None);
     assert!(matches!(
         rejected.source,
         SubnetCatalogHostError::Catalog(CatalogError::Json(_))
@@ -180,9 +180,9 @@ async fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
             failure.retryability,
             SubnetCatalogRetryability::NotRetryable
         );
-        assert_eq!(failure.registry_version, None);
+        assert_eq!(failure.evidence.registry_version, None);
         assert_eq!(
-            failure.subject,
+            failure.evidence.subject,
             Some(SubnetCatalogSubject::CachePath(path.clone()))
         );
         assert!(matches!(failure.source,
@@ -319,11 +319,17 @@ async fn detailed_refresh_failure_retains_request_version_subject_and_unknown_re
         failure.cache_disposition,
         SubnetCatalogFailureCacheDisposition::RefreshFailed(SubnetCatalogRefreshTrigger::Missing)
     );
-    assert_eq!(failure.registry_version, Some(881_337));
-    assert_eq!(failure.returned_registry_value_version, Some(881_100));
-    assert_eq!(failure.source_endpoint.as_deref(), Some(endpoint));
-    assert_eq!(failure.assurance, Some(CatalogAssurance::UncertifiedQuery));
-    assert_eq!(failure.subject, Some(subject));
+    assert_eq!(failure.evidence.registry_version, Some(881_337));
+    assert_eq!(
+        failure.evidence.returned_registry_value_version,
+        Some(881_100)
+    );
+    assert_eq!(failure.evidence.source_endpoint.as_deref(), Some(endpoint));
+    assert_eq!(
+        failure.evidence.assurance,
+        Some(CatalogAssurance::UncertifiedQuery)
+    );
+    assert_eq!(failure.evidence.subject, Some(subject));
     assert_eq!(failure.request.network, MAINNET_NETWORK);
     assert_eq!(
         failure.request.minimum_assurance,
@@ -408,8 +414,8 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
         .await
         .expect_err("fixture fails");
 
-        assert_eq!(failure.registry_version, registry_version);
-        assert_eq!(failure.subject, Some(subject));
+        assert_eq!(failure.evidence.registry_version, registry_version);
+        assert_eq!(failure.evidence.subject, Some(subject));
         assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
         let _ = fs::remove_dir_all(root);
     }

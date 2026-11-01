@@ -61,14 +61,14 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         .await
         .expect("cached neurons report");
 
-    assert_eq!(report.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source.as_str(), "cache");
     assert_eq!(report.sort, "stake");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neuron_count, 2);
     assert_eq!(report.requested_limit, 2);
     assert!(report.verbose);
     assert_eq!(report.owner_principal_id, None);
-    assert_eq!(report.cache_complete, Some(true));
+    assert_eq!(report.provenance.cache_complete, Some(true));
     let report_json = serde_json::to_value(&report).expect("serialize cached report");
     for field in [
         "network",
@@ -206,7 +206,7 @@ async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
         .await
         .expect("previous complete cache remains usable");
 
-    assert_eq!(report.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source.as_str(), "cache");
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neurons[0].neuron_id, "03".repeat(32));
 

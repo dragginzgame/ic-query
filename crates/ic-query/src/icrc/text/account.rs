@@ -33,8 +33,11 @@ const ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS: [Alignment; 8] = [
 ];
 #[must_use]
 pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
-    [
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+    let mut lines = vec![
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("account_owner: {}", report.account_owner),
         format!(
             "subaccount_hex: {}",
@@ -51,19 +54,18 @@ pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
             terminal_text(&report.value.token_symbol)
         ),
         format!("balance_base_units: {}", report.value.balance),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-    ]
-    .join("\n")
+    ];
+    lines.extend(super::acquisition_lines(&report.provenance));
+    lines.join("\n")
 }
 
 #[must_use]
 pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
-    [
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+    let mut lines = vec![
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("account_owner: {}", report.account_owner),
         format!(
             "account_subaccount_hex: {}",
@@ -89,13 +91,9 @@ pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
             "expires_at_unix_nanos: {}",
             optional_text(report.value.expires_at_unix_nanos.as_ref())
         ),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-    ]
-    .join("\n")
+    ];
+    lines.extend(super::acquisition_lines(&report.provenance));
+    lines.join("\n")
 }
 
 /// Renders an ICRC index account-transaction report as human-facing text.
@@ -104,7 +102,10 @@ pub fn icrc_account_transaction_page_report_text(
     report: &IcrcAccountTransactionPageReport,
 ) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("index_canister_id: {}", report.page.index_canister_id),
         format!("account_owner: {}", report.account_owner),
         format!(
@@ -131,12 +132,8 @@ pub fn icrc_account_transaction_page_report_text(
         ),
         format!("balance_base_units: {}", report.page.balance),
         format!("returned_transactions: {}", report.page.transactions.len()),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.page.transactions, |transactions| {
         render_account_transactions_table(
             transactions,

@@ -15,33 +15,39 @@ pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> Stri
     lines.push(format!("subnet_principal: {}", report.subnet_principal));
     lines.push(format!(
         "registry_subnet_type: {}",
-        report.registry_subnet_type
+        report.classification.registry_subnet_type
     ));
-    lines.push(format!("subnet_kind: {}", report.subnet_kind.as_str()));
+    lines.push(format!(
+        "subnet_kind: {}",
+        report.classification.subnet_kind.as_str()
+    ));
     lines.push(format!(
         "subnet_kind_source: {}",
-        report.subnet_kind_source.as_str()
+        report.classification.subnet_kind_source.as_str()
     ));
     lines.push(format!(
         "subnet_specialization: {}",
-        report.subnet_specialization.as_str()
+        report.classification.subnet_specialization.as_str()
     ));
     lines.push(format!(
         "subnet_specialization_source: {}",
-        report.subnet_specialization_source.as_str()
+        report.classification.subnet_specialization_source.as_str()
     ));
     lines.push(format!(
         "geographic_scope: {}",
-        report.geographic_scope.as_str()
+        report.classification.geographic_scope.as_str()
     ));
     lines.push(format!(
         "geographic_scope_source: {}",
-        report.geographic_scope_source.as_str()
+        report.classification.geographic_scope_source.as_str()
     ));
-    lines.push(safe_line("subnet_label", &report.subnet_label));
+    lines.push(safe_line(
+        "subnet_label",
+        &report.classification.subnet_label,
+    ));
     lines.push(format!(
         "subnet_label_source: {}",
-        report.subnet_label_source.as_str()
+        report.classification.subnet_label_source.as_str()
     ));
     lines.push(format!(
         "node_count: {}",

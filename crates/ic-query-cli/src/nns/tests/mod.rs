@@ -11,24 +11,24 @@ use super::{
         list_command as leaf_list_command, refresh_command as leaf_refresh_command,
     },
     neuron::{
-        NnsNeuronInfoOptions, NnsNeuronListOptions, neuron_cache_command,
-        neuron_cache_status_command, neuron_command, neuron_distribution_command,
-        neuron_info_command, neuron_list_command, neuron_refresh_command,
+        neuron_cache_command, neuron_cache_status_command, neuron_command,
+        neuron_distribution_command, neuron_info_command, neuron_info_request, neuron_list_command,
+        neuron_list_request, neuron_refresh_command,
     },
-    node::{NODE_SPEC, node_command, node_list_command, node_list_options_from_matches},
+    node::{NODE_SPEC, node_command, node_list_command, node_list_request},
     node_operator::{NODE_OPERATOR_SPEC, command as node_operator_command},
     node_provider::{NODE_PROVIDER_SPEC, command as node_provider_command},
     proposals::{
-        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalActivityOptions, NnsProposalListOptions,
-        NnsProposalListSort, NnsProposalOptions, NnsProposalRewardStatusFilter,
+        DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalListSort, NnsProposalRewardStatusFilter,
         NnsProposalStatusFilter, NnsProposalTopicFilter, nns_proposal_activity_command,
         nns_proposal_cache_command, nns_proposal_cache_list_command,
         nns_proposal_cache_status_command, nns_proposal_command, nns_proposal_info_command,
-        nns_proposal_list_command, nns_proposal_refresh_command,
+        nns_proposal_list_command, nns_proposal_refresh_command, proposal_activity_request,
+        proposal_info_request, proposal_list_request,
     },
     registry::{registry_command, registry_version_command},
     subnet::{
-        CatalogInfoOptions, CatalogListOptions, info_command, list_command, refresh_command,
+        catalog_info_request, catalog_list_request, info_command, list_command, refresh_command,
         subnet_command,
     },
     topology::{
@@ -76,3 +76,64 @@ mod registry;
 mod subnet;
 mod topology_help;
 mod topology_options;
+
+const TEST_NOW_UNIX_SECS: u64 = 1_780_531_200;
+
+fn test_node_list_request(
+    matches: &ArgMatches,
+    network: &str,
+) -> (OutputFormat, bool, ic_query::nns::node::NnsNodeListRequest) {
+    node_list_request(
+        matches,
+        ic_query::nns::NnsInventoryCacheRequest::new("/cache", network),
+        TEST_NOW_UNIX_SECS,
+    )
+}
+
+fn test_catalog_list_request(
+    matches: &ArgMatches,
+    network: &str,
+) -> (
+    OutputFormat,
+    bool,
+    ic_query::subnet_catalog::SubnetCatalogListRequest,
+) {
+    catalog_list_request(
+        matches,
+        ic_query::subnet_catalog::SubnetCatalogCacheRequest::new("/cache", network),
+        TEST_NOW_UNIX_SECS,
+    )
+}
+
+fn test_catalog_info_request(
+    matches: &ArgMatches,
+    network: &str,
+) -> (
+    OutputFormat,
+    ic_query::subnet_catalog::SubnetCatalogInfoRequest,
+) {
+    catalog_info_request(
+        matches,
+        ic_query::subnet_catalog::SubnetCatalogCacheRequest::new("/cache", network),
+        TEST_NOW_UNIX_SECS,
+    )
+}
+
+fn replica_endpoint(request: &ic_query::nns::governance::NnsGovernanceRequest) -> &str {
+    let ic_query::nns::governance::NnsGovernanceSourceSelection::ReplicaQuery { endpoint, .. } =
+        &request.source
+    else {
+        panic!("CLI parser must select a replica query")
+    };
+    endpoint
+}
+
+fn catalog_endpoint(policy: &ic_query::subnet_catalog::CatalogReadPolicy) -> &str {
+    let ic_query::subnet_catalog::CatalogReadPolicy::RefreshMissingOrInvalid {
+        source: ic_query::subnet_catalog::CatalogSourceSelection::UncertifiedQuery { endpoint },
+    } = policy
+    else {
+        panic!("CLI parser must select missing-or-invalid recovery from one endpoint")
+    };
+    endpoint
+}

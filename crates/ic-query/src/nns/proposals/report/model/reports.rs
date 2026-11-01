@@ -6,7 +6,7 @@
 
 use crate::{
     nns::governance::NnsGovernanceReportContext,
-    report::{ReportDataSource, ReportResultScope},
+    report::{ReportProvenance, ReportResultScope},
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,12 +21,9 @@ pub struct NnsProposalListReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]
     pub context: NnsGovernanceReportContext,
-    /// Whether the rows came from a live call or a local complete snapshot.
-    pub data_source: ReportDataSource,
-    /// Snapshot file used for this report, absent for a live result.
-    pub cache_path: Option<String>,
-    /// Snapshot completeness when a cache supplied the rows; absent for live results.
-    pub cache_complete: Option<bool>,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: ReportProvenance,
     /// Maximum number of matching rows requested by the caller.
     pub requested_limit: u32,
     /// Exclusive upper proposal-id bound; absent on the first page.
@@ -66,12 +63,9 @@ pub struct NnsProposalReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]
     pub context: NnsGovernanceReportContext,
-    /// Whether the rows came from a live call or a local complete snapshot.
-    pub data_source: ReportDataSource,
-    /// Snapshot file used for this report, absent for a live result.
-    pub cache_path: Option<String>,
-    /// Snapshot completeness when a cache supplied the rows; absent for live results.
-    pub cache_complete: Option<bool>,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: ReportProvenance,
     /// Governance proposal identifier.
     pub proposal_id: u64,
     /// Whether the human-facing detail renderer displays ballot rows.

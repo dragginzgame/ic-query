@@ -110,27 +110,21 @@ pub(in crate::ic) fn replica_version_info_report_from_source(
     validate_provenance(request, &source.source)?;
     validate_release_identity(
         "replica_version_id",
-        &source.replica_version_id,
-        source.proposal_id,
+        &source.release.replica_version_id,
+        source.release.proposal_id,
     )?;
-    if source.replica_version_id != requested_replica_version_id {
+    if source.release.replica_version_id != requested_replica_version_id {
         return invalid_source(format!(
             "replica_version_id is {:?}, expected requested value {requested_replica_version_id:?}",
-            source.replica_version_id
+            source.release.replica_version_id
         ));
     }
-    validate_subnet_rollouts(&mut source.subnets)?;
+    validate_subnet_rollouts(&mut source.release.subnets)?;
 
     Ok(IcReplicaVersionInfoReport {
+        subnet_count: source.release.subnets.len(),
+        release: source.release,
         provenance: report_provenance(source.source),
-        replica_version_id: source.replica_version_id,
-        proposal_id: source.proposal_id,
-        executed_timestamp_seconds: source.executed_timestamp_seconds,
-        title: source.title,
-        url: source.url,
-        summary: source.summary,
-        subnet_count: source.subnets.len(),
-        subnets: source.subnets,
     })
 }
 
@@ -270,11 +264,11 @@ mod tests {
 
         assert_eq!((*source.info_calls.lock().unwrap()), 1);
         assert_eq!((*source.list_calls.lock().unwrap()), 0);
-        assert_eq!(report.replica_version_id, VERSION_A);
-        assert_eq!(report.summary, "Release notes\nwith raw detail");
+        assert_eq!(report.release.replica_version_id, VERSION_A);
+        assert_eq!(report.release.summary, "Release notes\nwith raw detail");
         assert_eq!(report.subnet_count, 2);
-        assert_eq!(report.subnets[0].subnet_id, SUBNET_A);
-        assert_eq!(report.subnets[1].subnet_id, SUBNET_B);
+        assert_eq!(report.release.subnets[0].subnet_id, SUBNET_A);
+        assert_eq!(report.release.subnets[1].subnet_id, SUBNET_B);
         assert!(text.contains("summary: Release notes\\nwith raw detail"));
         assert!(text.contains("subnet_rollouts:"));
     }
@@ -457,20 +451,22 @@ mod tests {
             Box::pin(async move {
                 *self.info_calls.lock().unwrap() += 1;
                 let mut source = IcReplicaVersionInfoSourceData {
+                    release: crate::ic::IcReplicaVersionDetails {
+                        replica_version_id: replica_version_id.to_string(),
+                        proposal_id: 143_250,
+                        executed_timestamp_seconds: 1_785_759_673,
+                        title: "Elect release".to_string(),
+                        url: "https://forum.dfinity.org/t/release/1".to_string(),
+                        summary: "Release notes\nwith raw detail".to_string(),
+                        subnets: vec![
+                            rollout(SUBNET_B, 143_298, 1_785_759_900),
+                            rollout(SUBNET_A, 143_297, 1_785_759_892),
+                        ],
+                    },
                     source: request.clone(),
-                    replica_version_id: replica_version_id.to_string(),
-                    proposal_id: 143_250,
-                    executed_timestamp_seconds: 1_785_759_673,
-                    title: "Elect release".to_string(),
-                    url: "https://forum.dfinity.org/t/release/1".to_string(),
-                    summary: "Release notes\nwith raw detail".to_string(),
-                    subnets: vec![
-                        rollout(SUBNET_B, 143_298, 1_785_759_900),
-                        rollout(SUBNET_A, 143_297, 1_785_759_892),
-                    ],
                 };
                 if self.mutation.lock().unwrap().take() == Some(Mutation::WrongInfoVersion) {
-                    source.replica_version_id = VERSION_B.to_string();
+                    source.release.replica_version_id = VERSION_B.to_string();
                 }
                 Ok(source)
             })

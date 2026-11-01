@@ -8,7 +8,7 @@ mod account;
 mod history;
 mod ledger;
 
-use ic_host_text::table::Alignment;
+use ic_host_text::{escape::terminal_text, table::Alignment};
 
 pub use account::{
     icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,
@@ -31,4 +31,14 @@ fn push_table_section<T>(lines: &mut Vec<String>, rows: &[T], render: impl FnOnc
     }
     lines.push(String::new());
     lines.push(render(rows));
+}
+
+fn acquisition_lines(provenance: &crate::icrc::IcrcReportProvenance) -> [String; 2] {
+    [
+        format!("fetched_at: {}", terminal_text(&provenance.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            terminal_text(&provenance.source_endpoint)
+        ),
+    ]
 }

@@ -33,8 +33,8 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
         sns_swap_lifecycle_name(report.sns_instances[0].lifecycle),
         Some("committed")
     );
-    assert_eq!(report.data_source.as_str(), "live");
-    assert_eq!(report.cache_path, None);
+    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.cache_path, None);
     assert_eq!(report.sns_instances[0].metadata_error, None);
     assert!(text.contains("ID   NAME"));
     assert!(text.contains("METADATA"));
@@ -51,7 +51,9 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
 
     let json = serde_json::to_value(&report).expect("serialize SNS list report");
     assert_eq!(json["sns_instances"][0]["lifecycle"], 3);
-    assert_eq!(json["sns_instances"][0]["lifecycle"], 3);
+    assert_eq!(json["data_source"], "live");
+    assert!(json["cache_path"].is_null());
+    assert!(json["cache_complete"].is_null());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -78,10 +80,10 @@ async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
     .await
     .expect("fresh catalog read");
 
-    assert_eq!(first.data_source.as_str(), "cache");
-    assert_eq!(first.cache_complete, Some(true));
+    assert_eq!(first.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.cache_complete, Some(true));
     assert!(sns_list_report_text(&first).contains("cache_complete: yes"));
-    assert_eq!(second.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!((*source.inventory.lock().unwrap()), 1);
     assert_eq!((*source.metadata.lock().unwrap()), 1);
     assert_eq!((*source.lifecycles.lock().unwrap()), 1);
@@ -148,7 +150,7 @@ async fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
             && refresh_path == &path
             && source_endpoint == &request.source_endpoint
     ));
-    assert_eq!(report.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source.as_str(), "cache");
     assert_eq!((*source.inventory.lock().unwrap()), 2);
     assert_eq!((*source.metadata.lock().unwrap()), 2);
     assert_eq!((*source.lifecycles.lock().unwrap()), 2);
@@ -304,9 +306,9 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
             assert_eq!(cached.source_endpoint, live.source_endpoint);
             assert_eq!(cached.fetched_at, live.fetched_at);
             assert_eq!(cached.fetched_by, live.fetched_by);
-            assert_eq!(cached.data_source.as_str(), "cache");
-            assert_eq!(cached.cache_path.as_deref(), path.to_str());
-            assert_eq!(cached.cache_complete, Some(true));
+            assert_eq!(cached.provenance.data_source.as_str(), "cache");
+            assert_eq!(cached.provenance.cache_path.as_deref(), path.to_str());
+            assert_eq!(cached.provenance.cache_complete, Some(true));
             assert_eq!(fs::read(&path).expect("reread catalog"), snapshot);
         }
     }

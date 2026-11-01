@@ -48,12 +48,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         format!("sort_direction: {}", report.sort_direction),
         format!("verbose: {}", yes_no(report.verbose)),
     ]);
-    push_report_provenance_lines(
-        &mut lines,
-        report.data_source,
-        report.cache_path.as_deref(),
-        report.cache_complete,
-    );
+    push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend([format!("proposal_count: {}", report.proposal_count)]);
     lines.extend(crate::sns::report::text::common::sns_collection_lines(
         &report.context,

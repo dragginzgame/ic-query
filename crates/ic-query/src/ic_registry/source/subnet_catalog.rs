@@ -577,20 +577,20 @@ mod tests {
         ))
         .expect_err("live mainnet requires modern routing authority");
 
-        assert_eq!(failure.registry_version, Some(PINNED_VERSION));
+        assert_eq!(failure.evidence.registry_version, Some(PINNED_VERSION));
         assert!(matches!(
             failure.source,
             RegistryFetchError::InvalidRegistryKeyFamily { .. }
         ));
         assert!(matches!(
-            failure.subject,
+            failure.evidence.subject,
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject { key, .. }
             )) if key == format!("{CANISTER_RANGES_KEY_PREFIX}*")
         ));
-        assert_eq!(failure.registry_records.len(), 1);
+        assert_eq!(failure.evidence.registry_records.len(), 1);
         assert_eq!(
-            failure.registry_records[0].record.kind,
+            failure.evidence.registry_records[0].record.kind,
             SubnetCatalogRegistryRecordKind::SubnetList
         );
         assert!(
@@ -618,20 +618,26 @@ mod tests {
         ))
         .expect_err("missing shard must fail closed");
 
-        assert_eq!(failure.registry_version, Some(PINNED_VERSION));
-        assert_eq!(failure.returned_registry_value_version, Some(63_410));
+        assert_eq!(failure.evidence.registry_version, Some(PINNED_VERSION));
         assert_eq!(
-            failure.source_endpoint.as_deref(),
+            failure.evidence.returned_registry_value_version,
+            Some(63_410)
+        );
+        assert_eq!(
+            failure.evidence.source_endpoint.as_deref(),
             Some("https://icp-api.io")
         );
-        assert_eq!(failure.assurance, Some(CatalogAssurance::UncertifiedQuery));
+        assert_eq!(
+            failure.evidence.assurance,
+            Some(CatalogAssurance::UncertifiedQuery)
+        );
         assert!(matches!(
-            failure.subject,
+            failure.evidence.subject,
             Some(SubnetCatalogSubject::RegistryRecord(
                 SubnetCatalogRegistryRecordSubject { key, .. }
             )) if key == missing_key
         ));
-        assert!(failure.registry_records.iter().all(|evidence| {
+        assert!(failure.evidence.registry_records.iter().all(|evidence| {
             evidence.requested_registry_version == PINNED_VERSION
                 && evidence.returned_registry_version <= PINNED_VERSION
         }));

@@ -28,15 +28,12 @@ const ICRC_DETAIL_TEXT_LIMIT: usize = 160;
 
 #[must_use]
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
-    let mut lines = vec![format!("ledger_canister_id: {}", report.ledger_canister_id)];
+    let mut lines = vec![format!(
+        "ledger_canister_id: {}",
+        report.provenance.ledger_canister_id
+    )];
     lines.extend(token_summary_lines(&report.token));
-    lines.extend([
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-    ]);
+    lines.extend(super::acquisition_lines(&report.provenance));
     append_token_metadata_tables(&mut lines, &report.token);
     lines.join("\n")
 }
@@ -44,17 +41,16 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
 #[must_use]
 pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!(
             "index_canister_id: {}",
             optional_text(report.index_canister_id.as_ref())
         ),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     if let Some(error) = report.index_error.as_deref() {
         lines.push(format!("index_error: {}", terminal_text(error)));
     }
@@ -63,8 +59,11 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
 
 #[must_use]
 pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> String {
-    [
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+    let mut lines = vec![
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("certificate_present: {}", report.certificate_present),
         format!(
             "certificate_bytes: {}",
@@ -88,27 +87,22 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
             )
         ),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-    ]
-    .join("\n")
+    ];
+    lines.extend(super::acquisition_lines(&report.provenance));
+    lines.join("\n")
 }
 
 #[must_use]
 pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!(
+            "ledger_canister_id: {}",
+            report.provenance.ledger_canister_id
+        ),
         format!("standard_count: {}", report.supported_standards.len()),
         format!("capability_count: {}", report.capabilities.len()),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
     ];
+    lines.extend(super::acquisition_lines(&report.provenance));
     push_table_section(
         &mut lines,
         &report.supported_standards,

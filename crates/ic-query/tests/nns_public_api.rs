@@ -2585,10 +2585,12 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
 
     let proposal = sample_nns_proposal_row();
     let list_report = NnsProposalListReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Cache,
+            cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
+            cache_complete: Some(true),
+        },
         context: governance_report_context(&request.governance),
-        data_source: ReportDataSource::Cache,
-        cache_path: Some("/cache/nns/ic/governance/proposals/full.json".to_string()),
-        cache_complete: Some(true),
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
         status_filter: request.status.as_str().to_string(),
@@ -2623,10 +2625,12 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
             .with_show_ballots(true);
     let detail_report = NnsProposalReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        },
         context: governance_report_context(&detail_request.governance),
-        data_source: ReportDataSource::Live,
-        cache_path: None,
-        cache_complete: None,
         proposal_id: detail_request.proposal_id,
         show_ballots: detail_request.show_ballots,
         verbose: detail_request.verbose,
@@ -3309,9 +3313,9 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
     assert_eq!(cache_status_request.cache_root(), root.as_path());
     assert_eq!(cache_list.cache_count, 1);
     assert!(cache_status.found);
-    assert_eq!(proposal_list.data_source.as_str(), "cache");
+    assert_eq!(proposal_list.provenance.data_source.as_str(), "cache");
     assert_eq!(proposal_list.proposal_count, 1);
-    assert_eq!(cached_detail.data_source.as_str(), "cache");
+    assert_eq!(cached_detail.provenance.data_source.as_str(), "cache");
     assert_eq!(cached_detail.proposal_id, 132_411);
     assert!(nns_proposal_cache_path(&root, "ic").is_file());
     assert!(nns_proposal_cache_root(&root, "ic").ends_with("proposals"));
@@ -3370,7 +3374,7 @@ async fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         .expect("proposal refresh report");
 
     assert_eq!(list.proposal_count, 1);
-    assert_eq!(list.data_source.as_str(), "live");
+    assert_eq!(list.provenance.data_source.as_str(), "live");
     assert_eq!(detail.proposal_id, 132_411);
     assert_eq!(detail.proposal.title.as_deref(), Some("Upgrade subnet"));
     assert_eq!(refresh.row_count, 1);
@@ -3882,16 +3886,18 @@ fn sample_subnet_catalog_refresh_report() -> SubnetCatalogRefreshReport {
 fn sample_subnet_catalog_row() -> SubnetCatalogSubnetRow {
     let subnet_kind = SubnetKind::Application;
     SubnetCatalogSubnetRow {
+        classification: ic_query::subnet_catalog::SubnetClassification {
+            registry_subnet_type: 1,
+            subnet_kind,
+            subnet_kind_source: ClassificationSource::Registry,
+            subnet_specialization: SubnetSpecialization::None,
+            subnet_specialization_source: ClassificationSource::Computed,
+            geographic_scope: GeographicScope::Global,
+            geographic_scope_source: ClassificationSource::Computed,
+            subnet_label: subnet_kind.as_str().to_string(),
+            subnet_label_source: ClassificationSource::Computed,
+        },
         subnet_principal: "tdb26-jop6g-7sc54-foywl".to_string(),
-        registry_subnet_type: 1,
-        subnet_kind,
-        subnet_kind_source: ClassificationSource::Registry,
-        subnet_specialization: SubnetSpecialization::None,
-        subnet_specialization_source: ClassificationSource::Computed,
-        geographic_scope: GeographicScope::Global,
-        geographic_scope_source: ClassificationSource::Computed,
-        subnet_label: subnet_kind.as_str().to_string(),
-        subnet_label_source: ClassificationSource::Computed,
         node_count: Some(1),
         charges_apply_by_default: subnet_kind.charges_apply_by_default(),
         range_count: 1,

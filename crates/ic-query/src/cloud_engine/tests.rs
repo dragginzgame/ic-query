@@ -596,16 +596,18 @@ fn list_catalog_report(subnet_ids: &[&str]) -> SubnetCatalogListReport {
                 .iter()
                 .enumerate()
                 .map(|(index, subnet_id)| SubnetCatalogSubnetRow {
+                    classification: crate::subnet_catalog::SubnetClassification {
+                        registry_subnet_type: 5,
+                        subnet_kind: SubnetKind::CloudEngine,
+                        subnet_kind_source: ClassificationSource::Registry,
+                        subnet_specialization: SubnetSpecialization::None,
+                        subnet_specialization_source: ClassificationSource::Curated,
+                        geographic_scope: GeographicScope::Global,
+                        geographic_scope_source: ClassificationSource::Curated,
+                        subnet_label: format!("cloud-engine-{}", index + 1),
+                        subnet_label_source: ClassificationSource::Curated,
+                    },
                     subnet_principal: (*subnet_id).to_string(),
-                    registry_subnet_type: 5,
-                    subnet_kind: SubnetKind::CloudEngine,
-                    subnet_kind_source: ClassificationSource::Registry,
-                    subnet_specialization: SubnetSpecialization::None,
-                    subnet_specialization_source: ClassificationSource::Curated,
-                    geographic_scope: GeographicScope::Global,
-                    geographic_scope_source: ClassificationSource::Curated,
-                    subnet_label: format!("cloud-engine-{}", index + 1),
-                    subnet_label_source: ClassificationSource::Curated,
                     node_count: Some(13),
                     charges_apply_by_default: true,
                     range_count: 1,

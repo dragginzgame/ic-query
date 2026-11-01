@@ -2,28 +2,25 @@ use super::cache_request;
 use crate::progress::StderrQueryProgress;
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json_verbose},
-    nns::{NnsCommandError, node::options::node_list_options_from_matches},
+    nns::{NnsCommandError, node::options::node_list_request},
 };
 use clap::ArgMatches;
 use ic_query::nns::node::{
-    NnsNodeListRequest, build_nns_node_list_report_with_progress, nns_node_list_report_text,
+    build_nns_node_list_report_with_progress, nns_node_list_report_text,
     nns_node_list_report_verbose_text,
 };
 pub(super) async fn run_node_list(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    let options = node_list_options_from_matches(matches, network);
-    let cache = cache_request(&options.common.network)?;
-    let request =
-        NnsNodeListRequest::new(cache, options.common.source_endpoint, current_unix_secs()?)
-            .with_filters(options.filters);
+    let (format, verbose, request) =
+        node_list_request(matches, cache_request(network)?, current_unix_secs()?);
     let report =
         build_nns_node_list_report_with_progress(&request, &mut StderrQueryProgress::new()).await?;
     write_text_or_json_verbose(
-        options.common.format,
+        format,
         &report,
-        options.verbose,
+        verbose,
         nns_node_list_report_text,
         nns_node_list_report_verbose_text,
     )

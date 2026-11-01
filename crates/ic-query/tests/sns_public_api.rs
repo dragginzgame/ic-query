@@ -540,15 +540,17 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     assert_eq!(request.sort.as_str(), "id");
 
     let report = SnsListReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        },
         schema_version: 1,
         network: request.network,
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint,
         fetched_by: "ic-query".to_string(),
-        data_source: ReportDataSource::Live,
-        cache_path: None,
-        cache_complete: None,
         all_lifecycles: request.all_lifecycles,
         verbose: request.verbose,
         sort: request.sort.as_str().to_string(),
@@ -993,6 +995,11 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
     assert_eq!(request.topic.as_str(), "governance");
 
     let report = SnsProposalsReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        },
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: request.lookup.network,
@@ -1019,9 +1026,6 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
             .direction_label(request.sort_direction)
             .to_string(),
         verbose: request.verbose,
-        data_source: ReportDataSource::Live,
-        cache_path: None,
-        cache_complete: None,
         proposal_count: 1,
         proposals: vec![sample_sns_proposal_row()],
     };
@@ -1067,6 +1071,11 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
     };
 
     let report = SnsProposalReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        },
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: request.lookup.network,
@@ -1083,9 +1092,6 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
-        data_source: ReportDataSource::Live,
-        cache_path: None,
-        cache_complete: None,
         proposal: sample_sns_proposal_row(),
     };
 
@@ -1233,7 +1239,7 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
     .with_show_ballots(true);
     let detail = build_sns_proposal_report_with_source(&detail_request, &source).await?;
     assert_eq!(detail.proposal.proposal_id, 42);
-    assert_eq!(detail.data_source.as_str(), "live");
+    assert_eq!(detail.provenance.data_source.as_str(), "live");
 
     let list_request = SnsProposalsRequest::new(
         ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1"),
@@ -2171,6 +2177,11 @@ fn sample_sns_governance_parameters() -> SnsGovernanceParameters {
 #[cfg(feature = "sns-host")]
 fn sample_sns_neurons_report() -> SnsNeuronsReport {
     SnsNeuronsReport {
+        provenance: ic_query::report::ReportProvenance {
+            data_source: ReportDataSource::Live,
+            cache_path: None,
+            cache_complete: None,
+        },
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: "ic".to_string(),
@@ -2187,10 +2198,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
         requested_limit: 1,
         owner_principal_id: None,
         verbose: false,
-        data_source: ReportDataSource::Live,
         sort: "api".to_string(),
-        cache_path: None,
-        cache_complete: None,
         total_neuron_count: 1,
         neuron_count: 1,
         neurons: vec![SnsNeuronRow {

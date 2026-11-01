@@ -1,62 +1,53 @@
-use crate::{
-    cli::clap::{required_string, required_typed, typed_option},
-    nns::leaf::NnsCommonOptions,
+//! Construct catalog requests while keeping text verbosity at the CLI boundary.
+
+use crate::cli::{
+    clap::{required_string, required_typed, typed_option},
+    common::{OutputFormat, SourceOutputOptions},
 };
 use clap::ArgMatches;
-use ic_query::subnet_catalog::{ResolveAs, SubnetCatalogFilters};
+use ic_query::subnet_catalog::{
+    DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogCacheRequest, SubnetCatalogFilters,
+    SubnetCatalogInfoRequest, SubnetCatalogListRequest,
+};
 
-///
-/// CatalogListOptions
-///
-/// Parsed options accepted by `icq nns subnet list`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct CatalogListOptions {
-    pub(in crate::nns) common: NnsCommonOptions,
-    pub(in crate::nns) filters: SubnetCatalogFilters,
-    pub(in crate::nns) show_ranges: bool,
-    pub(in crate::nns) verbose: bool,
-    pub(in crate::nns) range_limit: usize,
-    pub(in crate::nns) range_offset: usize,
+pub(in crate::nns) fn catalog_list_request(
+    matches: &ArgMatches,
+    cache: SubnetCatalogCacheRequest,
+    now_unix_secs: u64,
+) -> (OutputFormat, bool, SubnetCatalogListRequest) {
+    let source = SourceOutputOptions::from_matches(matches);
+    let request = SubnetCatalogListRequest::new(
+        cache,
+        source.source_endpoint,
+        now_unix_secs,
+        DEFAULT_STALE_AFTER_SECONDS,
+    )
+    .with_filters(SubnetCatalogFilters {
+        kind: typed_option(matches, "kind"),
+        specialization: typed_option(matches, "specialization"),
+        geographic_scope: typed_option(matches, "geo"),
+    })
+    .with_show_ranges(matches.get_flag("show-ranges"))
+    .with_range_limit(required_typed(matches, "range-limit"))
+    .with_range_offset(required_typed(matches, "range-offset"));
+    (source.format, matches.get_flag("verbose"), request)
 }
 
-///
-/// CatalogInfoOptions
-///
-/// Parsed options accepted by `icq nns subnet info`.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::nns) struct CatalogInfoOptions {
-    pub(in crate::nns) input: String,
-    pub(in crate::nns) common: NnsCommonOptions,
-    pub(in crate::nns) forced: Option<ResolveAs>,
-}
-
-impl CatalogListOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            common: NnsCommonOptions::from_matches(matches, network),
-            filters: SubnetCatalogFilters {
-                kind: typed_option(matches, "kind"),
-                specialization: typed_option(matches, "specialization"),
-                geographic_scope: typed_option(matches, "geo"),
-            },
-            show_ranges: matches.get_flag("show-ranges"),
-            verbose: matches.get_flag("verbose"),
-            range_limit: required_typed(matches, "range-limit"),
-            range_offset: required_typed(matches, "range-offset"),
-        }
+pub(in crate::nns) fn catalog_info_request(
+    matches: &ArgMatches,
+    cache: SubnetCatalogCacheRequest,
+    now_unix_secs: u64,
+) -> (OutputFormat, SubnetCatalogInfoRequest) {
+    let source = SourceOutputOptions::from_matches(matches);
+    let mut request = SubnetCatalogInfoRequest::new(
+        cache,
+        source.source_endpoint,
+        required_string(matches, "input"),
+        now_unix_secs,
+        DEFAULT_STALE_AFTER_SECONDS,
+    );
+    if let Some(forced) = typed_option(matches, "as") {
+        request = request.with_forced(forced);
     }
-}
-
-impl CatalogInfoOptions {
-    pub(in crate::nns) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            input: required_string(matches, "input"),
-            common: NnsCommonOptions::from_matches(matches, network),
-            forced: typed_option(matches, "as"),
-        }
-    }
+    (source.format, request)
 }

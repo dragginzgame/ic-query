@@ -62,8 +62,10 @@ pub async fn build_subnet_catalog_info_report_with_source_and_progress(
         .catalog
         .raw()
         .resolve_principal_or_prefix(&request.input, request.forced)?;
-    let (charges_apply_to_subject, charge_applicability_reason) =
-        charge_applicability(resolved.resolved_as, resolved.subnet.subnet_kind);
+    let (charges_apply_to_subject, charge_applicability_reason) = charge_applicability(
+        resolved.resolved_as,
+        resolved.subnet.classification.subnet_kind,
+    );
     let cycles_per_billion_instructions = catalog_cycles_per_billion(&resolved.subnet);
     let rate_source = cycles_per_billion_instructions
         .is_some()
@@ -73,6 +75,7 @@ pub async fn build_subnet_catalog_info_report_with_source_and_progress(
         .then(|| FORMULA_VERSION.to_string());
 
     Ok(SubnetCatalogInfoReport {
+        classification: resolved.subnet.classification,
         metadata: super::SubnetCatalogReportMetadata::from_catalog(&cached.catalog),
         cache_disposition: cached.disposition,
         catalog_schema_version: cached.catalog.raw().catalog_schema_version,
@@ -85,15 +88,6 @@ pub async fn build_subnet_catalog_info_report_with_source_and_progress(
         resolved_as: resolved.resolved_as.as_str().to_string(),
         resolved_from: resolved.resolved_from,
         subnet_principal: resolved.subnet.subnet_principal,
-        registry_subnet_type: resolved.subnet.registry_subnet_type,
-        subnet_kind: resolved.subnet.subnet_kind,
-        subnet_kind_source: resolved.subnet.subnet_kind_source,
-        subnet_specialization: resolved.subnet.subnet_specialization,
-        subnet_specialization_source: resolved.subnet.subnet_specialization_source,
-        geographic_scope: resolved.subnet.geographic_scope,
-        geographic_scope_source: resolved.subnet.geographic_scope_source,
-        subnet_label: resolved.subnet.subnet_label,
-        subnet_label_source: resolved.subnet.subnet_label_source,
         node_count: resolved.subnet.node_count,
         charges_apply_to_subject,
         charge_applicability_reason,

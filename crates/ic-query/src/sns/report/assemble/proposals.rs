@@ -12,21 +12,19 @@ use crate::sns::report::{
 };
 
 /// Assemble resolved proposal evidence with the original detail view options.
-pub(in crate::sns::report) fn sns_proposal_report_from_parts(
+pub(in crate::sns::report) const fn sns_proposal_report_from_parts(
     request: &SnsProposalRequest,
     context: SnsReportContext,
     provenance: ReportProvenance,
     proposal: SnsProposalRow,
 ) -> SnsProposalReport {
     SnsProposalReport {
+        provenance,
         schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
         context,
         proposal_id: request.proposal_id,
         verbose: request.verbose,
         show_ballots: request.show_ballots,
-        data_source: provenance.data_source,
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         proposal,
     }
 }
@@ -40,6 +38,7 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
 ) -> SnsProposalsReport {
     let proposal_count = proposals.len();
     SnsProposalsReport {
+        provenance,
         schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
         context,
         requested_limit: request.limit,
@@ -55,9 +54,6 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
             .direction_label(request.sort_direction)
             .to_string(),
         verbose: request.verbose,
-        data_source: provenance.data_source,
-        cache_path: provenance.cache_path,
-        cache_complete: provenance.cache_complete,
         proposal_count,
         proposals,
     }

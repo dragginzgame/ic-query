@@ -335,26 +335,29 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
     lines.extend([
         format!(
             "replica_version_id: {}",
-            terminal_text(&report.replica_version_id)
+            terminal_text(&report.release.replica_version_id)
         ),
-        format!("proposal_id: {}", report.proposal_id),
+        format!("proposal_id: {}", report.release.proposal_id),
         format!(
             "executed_timestamp_seconds: {}",
-            report.executed_timestamp_seconds
+            report.release.executed_timestamp_seconds
         ),
-        format!("title: {}", text_or_dash(&report.title)),
-        format!("url: {}", text_or_dash(&report.url)),
+        format!("title: {}", text_or_dash(&report.release.title)),
+        format!("url: {}", text_or_dash(&report.release.url)),
         format!("subnet_count: {}", report.subnet_count),
         format!(
             "summary: {}",
-            truncate_text(&report.summary, IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT)
+            truncate_text(
+                &report.release.summary,
+                IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT
+            )
         ),
     ]);
 
-    if !report.subnets.is_empty() {
+    if !report.release.subnets.is_empty() {
         lines.push(String::new());
         lines.push("subnet_rollouts:".to_string());
-        lines.extend(report.subnets.iter().map(|subnet| {
+        lines.extend(report.release.subnets.iter().map(|subnet| {
             format!(
                 "  {}  proposal={}  executed_at={}",
                 subnet.subnet_id, subnet.proposal_id, subnet.executed_timestamp_seconds

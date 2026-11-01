@@ -48,13 +48,11 @@ pub struct IcrcAllowanceData {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcBalanceReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub account_owner: String,
     pub subaccount_hex: Option<String>,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
     /// Raw balance and token display metadata.
     #[serde(flatten)]
     pub value: IcrcBalanceData,
@@ -68,15 +66,13 @@ pub struct IcrcBalanceReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAllowanceReport {
-    pub schema_version: u32,
-    pub ledger_canister_id: String,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: super::IcrcReportProvenance,
     pub account_owner: String,
     pub account_subaccount_hex: Option<String>,
     pub spender_owner: String,
     pub spender_subaccount_hex: Option<String>,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
     /// Raw allowance, expiry and token display metadata.
     #[serde(flatten)]
     pub value: IcrcAllowanceData,

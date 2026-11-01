@@ -5,7 +5,7 @@
 //! Boundary: preserves report-level fields for text and JSON output.
 
 use super::row::SnsProposalRow;
-use crate::report::ReportDataSource;
+use crate::report::ReportProvenance;
 use crate::sns::report::SnsReportContext;
 use serde::Serialize;
 
@@ -24,9 +24,9 @@ pub struct SnsProposalReport {
     pub proposal_id: u64,
     pub verbose: bool,
     pub show_ballots: bool,
-    pub data_source: ReportDataSource,
-    pub cache_path: Option<String>,
-    pub cache_complete: Option<bool>,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: ReportProvenance,
     pub proposal: SnsProposalRow,
 }
 
@@ -52,9 +52,9 @@ pub struct SnsProposalsReport {
     pub sort: String,
     pub sort_direction: String,
     pub verbose: bool,
-    pub data_source: ReportDataSource,
-    pub cache_path: Option<String>,
-    pub cache_complete: Option<bool>,
+    /// Shared record, flattened in serialized output.
+    #[serde(flatten)]
+    pub provenance: ReportProvenance,
     pub proposal_count: usize,
     pub proposals: Vec<SnsProposalRow>,
 }

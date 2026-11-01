@@ -632,8 +632,8 @@ async fn token_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC token report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.token.token_name, "Fixture Token");
     assert_eq!(report.token.token_symbol, "FIX");
     assert_eq!(report.token.transfer_fee, "123456789");
@@ -674,7 +674,7 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC balance report");
 
-    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
     assert_eq!(report.value.balance, "123456789");
 
@@ -684,6 +684,10 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
 
     let json = serde_json::to_value(&report).expect("serialize ICRC balance report");
     assert_eq!(json["balance"], json!("123456789"));
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["ledger_canister_id"], LEDGER_CANISTER_ID);
+    assert_eq!(json["source_endpoint"], SOURCE_ENDPOINT);
+    assert_eq!(json["fetched_by"], "ic-query");
     assert_eq!(json["subaccount_hex"], json!(LOWER_SUBACCOUNT_HEX));
 }
 
@@ -705,7 +709,7 @@ async fn allowance_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC allowance report");
 
-    assert_eq!(report.schema_version, 1);
+    assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(
         report.account_subaccount_hex.as_deref(),
         Some(LOWER_SUBACCOUNT_HEX)
@@ -744,8 +748,8 @@ async fn index_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC index report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.index_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
     assert_eq!(report.index_error, None);
 
@@ -780,8 +784,8 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
     .await
     .expect("build ICRC account transaction page report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.page.index_canister_id, INDEX_CANISTER_ID);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
     assert_eq!(report.requested_start.as_deref(), Some("42"));
@@ -1112,8 +1116,8 @@ async fn transactions_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC transactions report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.requested_start, "100");
     assert_eq!(report.requested_limit, 3);
     assert_eq!(report.transactions.log_length.as_deref(), Some("1000"));
@@ -1176,8 +1180,8 @@ async fn block_types_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC block types report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.block_types.len(), 2);
     assert_eq!(report.block_types[0].block_type, "1xfer");
 
@@ -1206,8 +1210,8 @@ async fn archives_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC archives report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(
         report.from_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)
@@ -1245,8 +1249,8 @@ async fn tip_certificate_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC tip certificate report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert!(report.certificate_present);
     assert_eq!(report.certificate_hex.as_deref(), Some("010203"));
     assert_eq!(report.certificate_bytes, Some(3));
@@ -1280,8 +1284,8 @@ async fn capabilities_report_builds_text_and_json_friendly_fields() {
         .await
         .expect("build ICRC capabilities report");
 
-    assert_eq!(report.schema_version, 1);
-    assert_eq!(report.ledger_canister_id, LEDGER_CANISTER_ID);
+    assert_eq!(report.provenance.schema_version, 1);
+    assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(report.supported_standards.len(), 2);
     assert_eq!(report.capabilities.len(), 2);
     assert_eq!(

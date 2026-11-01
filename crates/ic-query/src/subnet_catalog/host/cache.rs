@@ -544,8 +544,8 @@ async fn refresh_then_load_detailed(
         SubnetCatalogRefreshTrigger::Stale => CacheDisposition::RefreshedStale,
     };
     load_cached_with_disposition_detailed(request, disposition).map_err(|mut failure| {
-        if failure.registry_version.is_none() {
-            failure.registry_version = Some(refresh.metadata.registry_version);
+        if failure.evidence.registry_version.is_none() {
+            failure.evidence.registry_version = Some(refresh.metadata.registry_version);
         }
         post_refresh_load_failure(request, trigger, failure)
     })
@@ -649,6 +649,6 @@ mod detailed_failure_tests {
                 SubnetCatalogRefreshTrigger::Missing
             )
         );
-        assert_eq!(failure.registry_version, Some(9001));
+        assert_eq!(failure.evidence.registry_version, Some(9001));
     }
 }

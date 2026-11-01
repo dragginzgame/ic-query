@@ -26,7 +26,13 @@ assurance. `SubnetCatalogLoadStage` identifies the exact failing operation, and
 attempt. Refresh failures also retain whether missing, rejected, stale, or
 forcibly bypassed cache content caused the refresh path.
 
-The failure separately carries:
+`SubnetCatalogSourceFailure` and `SubnetCatalogLoadFailure` carry Registry progress
+and the offending subject through one `evidence: SubnetCatalogFailureEvidence`.
+For example, read `failure.evidence.registry_version` and
+`failure.evidence.subject`. Load stage, cache disposition, error classification
+and the original `source` remain on the outer failure.
+
+Together these records retain:
 
 - `registry_version: Option<u64>`;
 - `returned_registry_value_version: Option<u64>` for an individual

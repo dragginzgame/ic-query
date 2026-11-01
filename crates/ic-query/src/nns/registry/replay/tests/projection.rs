@@ -22,9 +22,9 @@ async fn complete_replay_projects_through_shared_catalog_classification() {
     assert_eq!(projection.subnets().len(), 1);
     let subnet = &projection.subnets()[0];
     assert_eq!(subnet.subnet_principal, PROJECTION_SUBNET);
-    assert_eq!(subnet.subnet_kind, SubnetKind::Application);
+    assert_eq!(subnet.classification.subnet_kind, SubnetKind::Application);
     assert_eq!(
-        subnet.subnet_specialization,
+        subnet.classification.subnet_specialization,
         SubnetSpecialization::Fiduciary
     );
     assert_eq!(subnet.node_count, Some(2));

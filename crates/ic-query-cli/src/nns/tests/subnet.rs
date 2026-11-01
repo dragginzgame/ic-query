@@ -4,22 +4,22 @@ use ic_query::subnet_catalog::SubnetCatalogHostError;
 
 #[test]
 fn list_defaults_to_mainnet_ic_catalog() {
-    let options = parse_test_options(list_command(), &[], CatalogListOptions::from_matches)
-        .expect("parse list");
+    let (options_format, options_verbose, options) =
+        parse_test_options(list_command(), &[], test_catalog_list_request).expect("parse list");
 
-    assert_eq!(options.common.network, MAINNET_NETWORK);
-    assert_eq!(options.common.format, OutputFormat::Text);
+    assert_eq!(options.cache.network, MAINNET_NETWORK);
+    assert_eq!(options_format, OutputFormat::Text);
     assert_eq!(
-        options.common.source_endpoint,
+        catalog_endpoint(&options.read_policy),
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
     assert_eq!(options.range_limit, 50);
-    assert!(!options.verbose);
+    assert!(!options_verbose);
 }
 
 #[test]
 fn list_parses_filters_and_json_format() {
-    let options = parse_test_options(
+    let (options_format, options_verbose, options) = parse_test_options(
         list_command(),
         &[
             "--kind",
@@ -34,7 +34,7 @@ fn list_parses_filters_and_json_format() {
             "--range-limit",
             "12",
         ],
-        CatalogListOptions::from_matches,
+        test_catalog_list_request,
     )
     .expect("parse list");
 
@@ -47,13 +47,13 @@ fn list_parses_filters_and_json_format() {
         options.filters.geographic_scope,
         Some(GeographicScope::Global)
     );
-    assert_eq!(options.common.format, OutputFormat::Json);
+    assert_eq!(options_format, OutputFormat::Json);
     assert_eq!(
-        options.common.source_endpoint,
+        catalog_endpoint(&options.read_policy),
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
     assert!(options.show_ranges);
-    assert!(options.verbose);
+    assert!(options_verbose);
     assert_eq!(options.range_limit, 12);
 }
 
@@ -63,7 +63,7 @@ fn clap_rejects_invalid_nns_option_values() {
         parse_test_options(
             list_command(),
             &["--kind", "subnet"],
-            CatalogListOptions::from_matches,
+            test_catalog_list_request,
         ),
         Err(NnsCommandError::Usage(_))
     ));
@@ -71,7 +71,7 @@ fn clap_rejects_invalid_nns_option_values() {
         parse_test_options(
             list_command(),
             &["--range-limit", "0"],
-            CatalogListOptions::from_matches,
+            test_catalog_list_request,
         ),
         Err(NnsCommandError::Usage(_))
     ));
@@ -79,7 +79,7 @@ fn clap_rejects_invalid_nns_option_values() {
         parse_test_options(
             info_command(),
             &["aaaaa-aa", "--as", "route"],
-            CatalogInfoOptions::from_matches,
+            test_catalog_info_request,
         ),
         Err(NnsCommandError::Usage(_))
     ));
@@ -96,7 +96,7 @@ fn info_usage_names_subnet_lookup_input() {
 }
 
 #[test]
-fn list_and_info_help_hide_stale_policy_knobs() {
+fn list_and_info_help_describe_cache_recovery() {
     let list = render_help(list_command());
     let info = render_help(info_command());
 
@@ -104,10 +104,6 @@ fn list_and_info_help_hide_stale_policy_knobs() {
     assert!(info.contains("Collection mode: Cache-backed read"));
     assert!(list.contains("missing or recoverably invalid"));
     assert!(info.contains("missing or recoverably invalid"));
-    assert!(!list.contains("--stale-after"));
-    assert!(!list.contains("--allow-stale-subnet-catalog"));
-    assert!(!info.contains("--stale-after"));
-    assert!(!info.contains("--allow-stale-subnet-catalog"));
 }
 
 #[test]
@@ -154,7 +150,6 @@ fn nns_namespace_help_mentions_subnet() {
 
     assert!(text.contains("Inspect NNS metadata"));
     assert!(text.contains("subnet"));
-    assert!(!text.contains("Inspect cached IC network subnet metadata"));
 }
 
 #[test]
