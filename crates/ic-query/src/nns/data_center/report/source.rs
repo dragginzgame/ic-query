@@ -1,6 +1,5 @@
 use super::{
     NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
-    NnsDataCenterRow,
 };
 use crate::report::CollectionSourceRequest;
 use crate::{
@@ -39,20 +38,7 @@ impl NnsDataCenterSource for LiveNnsSource {
 }
 
 fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {
-    let data_centers = list
-        .data_centers
-        .into_iter()
-        .map(|data_center| NnsDataCenterRow {
-            data_center_id: data_center.id,
-            region: data_center.region,
-            owner: data_center.owner,
-            latitude: data_center.latitude,
-            longitude: data_center.longitude,
-            node_operator_count: data_center.node_operator_count,
-            node_provider_count: data_center.node_provider_count,
-            node_count: data_center.node_count,
-        })
-        .collect::<Vec<_>>();
+    let data_centers = list.data_centers;
     NnsDataCenterListReport {
         schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
         network: list.network,

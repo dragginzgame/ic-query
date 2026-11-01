@@ -25,9 +25,12 @@ the default; [PR delivery](#pr-delivery) adds review and fresh merged-commit
 validation before tagging. A repository
 without package metadata may use a dedicated version file; otherwise it uses
 its latest finalized changelog version. Shared Tooling owns its current local
-version in root `VERSION`, displayed by `make version`. Its undated changelog
-heading names the next proposed release. Preparation updates both files and
-stages them together; neither a version file nor a changelog heading proves
+version in root `VERSION`, displayed by `make version`. Ordinary meaningful work
+runs `make prepare-work` to create or reuse an explicit `- Unreleased` entry and
+align `VERSION`. `WORK_VERSION_KIND=minor` or `major` promotes the pending batch;
+the default is patch. Add meaningful notes to that entry. CI's `check-version`
+rejects disagreement. Release preparation dates that same version and stages
+both files together; neither a version file nor a changelog heading proves
 that a tag was pushed. Pre-release versions require a separately selected release plan;
 these commands must reject ambiguous or unsupported version inputs.
 
@@ -36,6 +39,16 @@ the original files and rendered candidates under the reported Git-owned scratch
 directory, including after a partial replacement. Retry uses the existing release
 reconciliation; it does not delete earlier evidence or automatically restore files.
 Successful attempts remove only their own scratch directory.
+
+Shared selects `RELEASE_VERSION_MODE=pending` and supplies `release-base-version`.
+That read-only hook returns the preceding ledger version when `VERSION` already
+matches an explicit pending heading, otherwise the current version for the legacy
+workflow. The runner computes the requested increment from that base and still
+requires the candidate to agree with the prepared metadata. Preparation must be
+idempotent because the pending version can already be present before finalization
+or recovery. A mismatched release kind fails before validation or delivery.
+The default `released` mode and Cargo release-group adapters retain their existing
+version selection; pending-file mode cannot be used with a Cargo release group.
 
 ## Required workflow
 
@@ -92,8 +105,9 @@ effects remain outside that scope. Keep the finalized release at the
 top of the changelog until subsequent work needs a new numbered, undated pending
 entry under the [automatic next-version rules](../rules/changelogs.md).
 
-Agents maintain that proposed changelog version during ordinary development.
-The proposal does not bump package metadata or execute a release. Select the
+Agents maintain that proposed changelog version and canonical standalone `VERSION`
+file during ordinary development. The proposal does not bump package metadata or
+execute a release. Select the
 matching release kind when invoking the explicitly authorized command; its computed
 candidate must agree with the pending heading and the complete batch's
 compatibility impact before finalization.

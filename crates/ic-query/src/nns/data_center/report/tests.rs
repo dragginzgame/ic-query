@@ -4,7 +4,6 @@ use super::{
     build_nns_data_center_list_report_with_source, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text, resolve_data_center,
 };
-use crate::ic_registry::MainnetDataCenter;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
@@ -105,9 +104,9 @@ fn data_center_report_fixture() -> NnsDataCenterListReport {
     }
 }
 
-fn data_center_fixture() -> MainnetDataCenter {
-    MainnetDataCenter {
-        id: "dc1".to_string(),
+fn data_center_fixture() -> NnsDataCenterRow {
+    NnsDataCenterRow {
+        data_center_id: "dc1".to_string(),
         region: "eu-west".to_string(),
         owner: "example owner".to_string(),
         latitude: Some(48.8566),
@@ -126,7 +125,7 @@ fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
 }
 
 struct FixtureDataCenterSource {
-    data_centers: Vec<MainnetDataCenter>,
+    data_centers: Vec<NnsDataCenterRow>,
 }
 
 impl NnsDataCenterSource for FixtureDataCenterSource {
@@ -136,20 +135,7 @@ impl NnsDataCenterSource for FixtureDataCenterSource {
     ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
     {
         Box::pin(async move {
-            let data_centers = self
-                .data_centers
-                .iter()
-                .map(|data_center| NnsDataCenterRow {
-                    data_center_id: data_center.id.clone(),
-                    region: data_center.region.clone(),
-                    owner: data_center.owner.clone(),
-                    latitude: data_center.latitude,
-                    longitude: data_center.longitude,
-                    node_operator_count: data_center.node_operator_count,
-                    node_provider_count: data_center.node_provider_count,
-                    node_count: data_center.node_count,
-                })
-                .collect::<Vec<_>>();
+            let data_centers = self.data_centers.clone();
             Ok(NnsDataCenterListReport {
                 schema_version: 1,
                 network: MAINNET_NETWORK.to_string(),

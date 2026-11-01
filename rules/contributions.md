@@ -33,8 +33,10 @@ agreement does not establish acceptance or configure fleet-wide signing checks.
 
 ## Implementation and delivery authority
 
-Ordinary implementation does not automatically include staging, commits, version
-changes, tags, pushes or release execution. A request to release, publish, ship or
+Ordinary implementation includes pending changelog and canonical `VERSION`
+preparation under the [next-version rules](changelogs.md#automatic-next-version-selection).
+It does not automatically include staging, commits, package version changes,
+tags, pushes or release execution. A request to release, publish, ship or
 deploy delegates the corresponding delivery workflow under
 [delegated delivery](#delegated-delivery), without requiring the user to choose
 every command or release group. The standing
@@ -44,7 +46,7 @@ changes, numbered changelog notes and the appropriate validation. Leave existing
 staging untouched; do not stage or unstage the user's work to make checks pass.
 
 In particular, do not run `git add .`, `git add -A`, `git commit` (including
-amend), version-bump helpers, `git tag`, `git push`, `make release-patch`,
+amend), package version-bump helpers, `git tag`, `git push`, `make release-patch`,
 `make release-minor`, `make release-major`, `make release-resume` or their
 mutating adapters as an automatic completion step. Inspect wrappers and Make
 targets for these effects before invoking them. A validation request does not
@@ -57,10 +59,10 @@ During implementation, "keep going", "finish this", "prepare the release",
 "work on 0.4", "new changelog" and "ready to push?" do not newly delegate
 release operations. During an already delegated delivery workflow, continuation
 retains that authority; do not stop for permission at each group or command.
-A release number selects the work/notes; it is not permission to update
-`VERSION`, application/workspace/package versions, matching release lock entries
-or generated release metadata. Explicit dependency-update authority remains
-separate and does not authorize bumping the repository's own release version.
+A release number selects the work/notes and canonical pending `VERSION` where
+applicable; it is not permission to update application/workspace/package versions,
+matching release lock entries or generated release metadata. Explicit dependency
+updates remain separate from package release-version changes.
 
 Do not change a published version, delete a tag, reset or rewrite history to
 undo an unexpected release. Report the observed state and leave recovery to an

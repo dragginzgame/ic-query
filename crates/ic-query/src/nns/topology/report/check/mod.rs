@@ -36,11 +36,11 @@ pub(super) fn topology_check_report_from_reports(
         .filter(|row| row.stale.is_none())
         .count();
     let (known_join_count, unknown_join_count) = topology_join_coverage_counts(reports)
-        .join_counts()
+        .relationships()
         .into_iter()
         .fold(
             (0_usize, 0_usize),
-            |(known, unknown), (next_known, next_unknown)| {
+            |(known, unknown), (_, next_known, next_unknown)| {
                 (
                     known.saturating_add(next_known),
                     unknown.saturating_add(next_unknown),

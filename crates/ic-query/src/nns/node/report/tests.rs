@@ -4,7 +4,6 @@ use super::{
     cache::load_cached_nns_node_report, filter_node_list_report, nns_node_cache_path,
     nns_node_list_report_text, nns_node_list_report_verbose_text, resolve_node,
 };
-use crate::ic_registry::MainnetNode;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind};
@@ -317,9 +316,9 @@ fn node_report_fixture() -> NnsNodeListReport {
     }
 }
 
-fn node_fixture() -> MainnetNode {
-    MainnetNode {
-        principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+fn node_fixture() -> NnsNodeRow {
+    NnsNodeRow {
+        node_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         node_operator_principal: "aaaaa-aa".to_string(),
         node_provider_principal: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         subnet_principal: "pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae"
@@ -337,7 +336,7 @@ fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
 }
 
 struct FixtureNodeSource {
-    nodes: Vec<MainnetNode>,
+    nodes: Vec<NnsNodeRow>,
 }
 
 struct InvalidNodeSource;
@@ -363,18 +362,7 @@ impl NnsNodeSource for FixtureNodeSource {
         request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
         Box::pin(async move {
-            let nodes = self
-                .nodes
-                .iter()
-                .map(|node| NnsNodeRow {
-                    node_principal: node.principal.clone(),
-                    node_operator_principal: node.node_operator_principal.clone(),
-                    node_provider_principal: node.node_provider_principal.clone(),
-                    subnet_principal: node.subnet_principal.clone(),
-                    subnet_kind: node.subnet_kind,
-                    data_center_id: node.data_center_id.clone(),
-                })
-                .collect::<Vec<_>>();
+            let nodes = self.nodes.clone();
             Ok(NnsNodeListReport {
                 schema_version: 1,
                 network: MAINNET_NETWORK.to_string(),

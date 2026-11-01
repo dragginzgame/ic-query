@@ -42,7 +42,9 @@ Dependencies own the reusable mechanisms beneath that policy:
 Shared report records preserve flattened JSON while giving Rust callers one owner
 for inventory detail rows, catalog collection metadata, ICRC history payloads and
 refresh-attempt lifecycle fields. Registry collection returns the portable NNS
-version/evidence contract directly. SNS enrichment sources carry success or bounded
+version/evidence contract directly. Native node, operator and data-center projections
+carry their canonical NNS inventory rows into report envelopes without another
+row DTO; provider-name enrichment remains a separate NNS projection. SNS enrichment sources carry success or bounded
 failure outcomes; joined catalogs retain their existing persisted shape and validation.
 
 The Governance smoke example is contributor tooling, not a library transport or
@@ -71,7 +73,7 @@ released from integration (Host Tools and Testkit). Query selects their publishe
 packages through one root catalog and lockfile while retaining Rust 1.91.
 
 The current workspace minimums are Platform 0.15.2, Metrics 0.24.0,
-Foundation 0.73.2, integration 0.75.1 and Wire 0.13.1. Platform, Host Tools and
+Foundation 0.73.3, integration 0.75.2 and Wire 0.13.1. Platform, Host Tools and
 Testkit share one Platform identity and its canonical `ic-platform-types` 0.15.1
 supplier. Query and Testkit share arithmetic-only Metrics 0.24; the lockfile
 contains one Metrics identity. Direct Wire use belongs to probes and development

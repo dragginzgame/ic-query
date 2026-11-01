@@ -4,7 +4,6 @@ use super::{
     build_nns_node_operator_list_report_with_source, nns_node_operator_list_report_text,
     nns_node_operator_list_report_verbose_text, resolve_node_operator,
 };
-use crate::ic_registry::MainnetNodeOperator;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
@@ -40,8 +39,8 @@ async fn node_operator_report_uses_live_registry_source() {
     let report = build_nns_node_operator_list_report_with_source(
         &request,
         &FixtureNodeOperatorSource {
-            node_operators: vec![MainnetNodeOperator {
-                principal: "aaaaa-aa".to_string(),
+            node_operators: vec![NnsNodeOperatorRow {
+                node_operator_principal: "aaaaa-aa".to_string(),
                 node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
                 node_allowance: 4,
                 data_center_id: "dc1".to_string(),
@@ -127,7 +126,7 @@ fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
 }
 
 struct FixtureNodeOperatorSource {
-    node_operators: Vec<MainnetNodeOperator>,
+    node_operators: Vec<NnsNodeOperatorRow>,
 }
 
 impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
@@ -137,17 +136,7 @@ impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
     {
         Box::pin(async move {
-            let node_operators = self
-                .node_operators
-                .iter()
-                .map(|operator| NnsNodeOperatorRow {
-                    node_operator_principal: operator.principal.clone(),
-                    node_provider_principal: operator.node_provider_principal.clone(),
-                    node_allowance: operator.node_allowance,
-                    data_center_id: operator.data_center_id.clone(),
-                    node_count: operator.node_count,
-                })
-                .collect::<Vec<_>>();
+            let node_operators = self.node_operators.clone();
             Ok(NnsNodeOperatorListReport {
                 schema_version: 1,
                 network: MAINNET_NETWORK.to_string(),

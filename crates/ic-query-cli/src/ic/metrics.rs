@@ -7,7 +7,6 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
-#[cfg(test)]
 use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::{required_typed, typed_option, value_arg},
@@ -40,25 +39,7 @@ capped at 1000 observations per returned series. Values are preserved as the
 raw value strings returned by this off-chain, non-certified API.";
 
 pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = MetricOptions::from_matches(matches);
-    let now_unix_secs = current_unix_secs()?;
-    let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
-        options.start_unix_secs,
-        options.end_unix_secs,
-        now_unix_secs,
-        DEFAULT_IC_METRIC_WINDOW_SECS,
-        0,
-    );
-    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
-    let request = IcMetricRequest::new(
-        dashboard,
-        IcMetricQuery::new(
-            options.metric,
-            start_unix_secs,
-            end_unix_secs,
-            options.step_secs,
-        ),
-    );
+    let (format, request) = metric_request(matches, current_unix_secs()?);
     let report = build_ic_metric_report(&request).await?;
     write_text_or_json(format, &report, ic_metric_report_text)
 }
@@ -111,26 +92,26 @@ pub(super) fn command() -> ClapCommand {
         .after_help(collection_help(COLLECTION_MODE_LIVE, METRICS_HELP_AFTER))
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct MetricOptions {
-    metric: IcMetricKind,
-    start_unix_secs: Option<u64>,
-    end_unix_secs: Option<u64>,
-    step_secs: u32,
-    source: SourceOutputOptions,
-}
-
-impl MetricOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        let metric = required_typed(matches, "metric");
-        Self {
-            metric,
-            start_unix_secs: typed_option(matches, "start"),
-            end_unix_secs: typed_option(matches, "end"),
-            step_secs: required_typed(matches, "step"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
+fn metric_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcMetricRequest) {
+    let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
+        typed_option(matches, "start"),
+        typed_option(matches, "end"),
+        now_unix_secs,
+        DEFAULT_IC_METRIC_WINDOW_SECS,
+        0,
+    );
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcMetricRequest::new(
+        dashboard,
+        IcMetricQuery::new(
+            required_typed(matches, "metric"),
+            start_unix_secs,
+            end_unix_secs,
+            required_typed(matches, "step"),
+        ),
+    );
+    (format, request)
 }
 
 #[cfg(test)]
@@ -150,7 +131,7 @@ mod tests {
 
     #[test]
     fn options_preserve_official_kind_bounds_and_endpoint() {
-        let options = parse_test_options(
+        let (format, request) = parse_test_options(
             command(),
             &[
                 "cycle-burn-rate",
@@ -164,37 +145,43 @@ mod tests {
                 "--source-endpoint",
                 "https://example.com/api/v1",
             ],
-            MetricOptions::from_matches,
+            |matches| metric_request(matches, 1_780_531_200),
         )
         .expect("metric options");
 
-        assert_eq!(options.metric, IcMetricKind::CycleBurnRate);
-        assert_eq!(options.start_unix_secs, Some(1_700_000_000));
-        assert_eq!(options.end_unix_secs, Some(1_700_003_600));
-        assert_eq!(options.step_secs, 600);
-        assert_eq!(options.source.format, OutputFormat::Json);
-        assert_eq!(options.source.source_endpoint, "https://example.com/api/v1");
+        assert_eq!(request.query.metric, IcMetricKind::CycleBurnRate);
+        assert_eq!(request.query.start_unix_secs, 1_700_000_000);
+        assert_eq!(request.query.end_unix_secs, 1_700_003_600);
+        assert_eq!(request.query.step_secs, 600);
+        assert_eq!(format, OutputFormat::Json);
+        assert_eq!(
+            request.dashboard.source_endpoint,
+            "https://example.com/api/v1"
+        );
     }
 
     #[test]
     fn options_use_bounded_defaults_and_reject_unknown_kinds() {
-        let options = parse_test_options(
-            command(),
-            &["instruction-rate"],
-            MetricOptions::from_matches,
-        )
+        let (_, request) = parse_test_options(command(), &["instruction-rate"], |matches| {
+            metric_request(matches, 1_780_531_200)
+        })
         .expect("default options");
 
-        assert_eq!(options.step_secs, DEFAULT_IC_METRIC_STEP_SECS);
+        assert_eq!(request.query.step_secs, DEFAULT_IC_METRIC_STEP_SECS);
         assert_eq!(
-            options.source.source_endpoint,
+            request.dashboard.source_endpoint,
             DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT
         );
-        assert_eq!(options.start_unix_secs, None);
-        assert_eq!(options.end_unix_secs, None);
+        assert_eq!(
+            request.query.start_unix_secs,
+            1_780_531_200 - DEFAULT_IC_METRIC_WINDOW_SECS
+        );
+        assert_eq!(request.query.end_unix_secs, 1_780_531_200);
 
-        let error = parse_test_options(command(), &["made-up-rate"], MetricOptions::from_matches)
-            .expect_err("unknown metric must fail");
+        let error = parse_test_options(command(), &["made-up-rate"], |matches| {
+            metric_request(matches, 1_780_531_200)
+        })
+        .expect_err("unknown metric must fail");
         assert!(matches!(error, IcCommandError::Usage(_)));
     }
 }

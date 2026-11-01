@@ -1,4 +1,4 @@
-use super::{NNS_NODE_LIST_REPORT_SCHEMA_VERSION, NnsNodeHostError, NnsNodeListReport, NnsNodeRow};
+use super::{NNS_NODE_LIST_REPORT_SCHEMA_VERSION, NnsNodeHostError, NnsNodeListReport};
 use crate::report::CollectionSourceRequest;
 use crate::{
     ic_registry::{MainnetNodeList, fetch_mainnet_node_list},
@@ -35,18 +35,7 @@ impl NnsNodeSource for LiveNnsSource {
 }
 
 fn node_report_from_list(list: MainnetNodeList) -> NnsNodeListReport {
-    let nodes = list
-        .nodes
-        .into_iter()
-        .map(|node| NnsNodeRow {
-            node_principal: node.principal,
-            node_operator_principal: node.node_operator_principal,
-            node_provider_principal: node.node_provider_principal,
-            subnet_principal: node.subnet_principal,
-            subnet_kind: node.subnet_kind,
-            data_center_id: node.data_center_id,
-        })
-        .collect::<Vec<_>>();
+    let nodes = list.nodes;
     NnsNodeListReport {
         schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
         network: list.network,

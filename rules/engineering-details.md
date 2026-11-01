@@ -66,12 +66,14 @@ product, release and recovery obligations remain binding when applicable.
 - Ordinary implementation does not include staging, commits or release execution. During
   ordinary implementation, leave the real checkout's index, package/application
   release versions and Git refs alone. Do not run `git add .`, `git add -A`,
-  `git commit`, version-bump helpers, `git tag`, pushes, `make release-*` or
+  `git commit`, package version-bump helpers, `git tag`, pushes, `make release-*` or
   mutating release adapters to finish a coding task. This includes release
   recovery and indirect calls from scripts or Make targets. "Keep going",
   "prepare the release", "work on 0.4" and "ready to push?" authorize no such
   effects unless the session already delegates delivery. Prepare source, numbered
-  changelog notes and validation within the established scope. A release/ship/deploy
+  changelog notes, the matching canonical pending `VERSION` under the
+  [next-version rules](changelogs.md#automatic-next-version-selection), and
+  validation within the established scope. A release/ship/deploy
   request delegates its corresponding workflow and routine group/version/order
   choices under [delegated delivery](contributions.md#delegated-delivery).
   Continue that workflow without per-step permission; preserve explicit target
@@ -82,7 +84,7 @@ product, release and recovery obligations remain binding when applicable.
   branch, commits, branch push and PR creation/update needed to deliver it;
   do not require the maintainer to commit first or approve each substep again.
   The standing cross-repository PR workflow supplies the same scoped authority
-  without a separate PR request. Neither route authorizes release versions or tags.
+  without a separate PR request. Neither route authorizes package release versions or tags.
 - A PR request does not authorize merging, pushing directly to `main`, `master`
   or another integration/release branch, or rewriting shared history. Those
   effects require explicit authorization. Preserve branch protections and

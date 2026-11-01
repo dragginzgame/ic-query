@@ -4,6 +4,7 @@
 //! Does not own: Dashboard transport, source validation, report construction, or rendering.
 //! Boundary: exposes one page, one exact reward record, or one bounded aggregate history window.
 
+use crate::cli::common::OutputFormat;
 use crate::{
     cli::{
         clap::{required_typed, typed_option, value_arg},
@@ -80,36 +81,19 @@ pub(super) async fn run(matches: &ArgMatches, _network: &str) -> Result<(), NnsC
 }
 
 async fn run_info(matches: &ArgMatches) -> Result<(), NnsCommandError> {
-    let options = RewardInfoOptions::from_matches(matches);
-    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
-    let request = IcNodeProviderRewardInfoRequest::new(dashboard, options.reward_id);
+    let (format, request) = info_request(matches, current_unix_secs()?);
     let report = build_ic_node_provider_reward_info_report(&request).await?;
     write_text_or_json(format, &report, ic_node_provider_reward_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches) -> Result<(), NnsCommandError> {
-    let options = RewardListOptions::from_matches(matches);
-    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
-    let request = IcNodeProviderRewardListRequest::new(
-        dashboard,
-        IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
-    );
+    let (format, request) = list_request(matches, current_unix_secs()?);
     let report = build_ic_node_provider_reward_list_report(&request).await?;
     write_text_or_json(format, &report, ic_node_provider_reward_list_report_text)
 }
 
 async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
-    let options = RewardHistoryOptions::from_matches(matches);
-    let now = current_unix_secs()?;
-    let end = options.end_unix_secs.unwrap_or(now);
-    let start = options
-        .start_unix_secs
-        .unwrap_or_else(|| end.saturating_sub(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS));
-    let (format, dashboard) = options.source.into_dashboard_request(now);
-    let request = IcNodeProviderRewardHistoryRequest::new(
-        dashboard,
-        IcNodeProviderRewardHistoryQuery::new(start, end, options.step_secs),
-    );
+    let (format, request) = history_request(matches, current_unix_secs()?);
     let report = build_ic_node_provider_reward_history_report(&request).await?;
     write_text_or_json(format, &report, ic_node_provider_reward_history_report_text)
 }
@@ -192,57 +176,48 @@ fn history_command() -> ClapCommand {
         .after_help(collection_help(COLLECTION_MODE_LIVE, HISTORY_HELP_AFTER))
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct RewardInfoOptions {
-    reward_id: u64,
-    source: SourceOutputOptions,
+fn info_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcNodeProviderRewardInfoRequest) {
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request =
+        IcNodeProviderRewardInfoRequest::new(dashboard, required_typed(matches, "reward-id"));
+    (format, request)
 }
 
-impl RewardInfoOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            reward_id: required_typed(matches, "reward-id"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
+fn list_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcNodeProviderRewardListRequest) {
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcNodeProviderRewardListRequest::new(
+        dashboard,
+        IcNodeProviderRewardListQuery::new(
+            required_typed(matches, "limit"),
+            required_typed(matches, "offset"),
+            typed_option(matches, "max-reward-index"),
+        ),
+    );
+    (format, request)
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct RewardListOptions {
-    limit: u16,
-    offset: u64,
-    max_reward_index: Option<u64>,
-    source: SourceOutputOptions,
-}
-
-impl RewardListOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            limit: required_typed(matches, "limit"),
-            offset: required_typed(matches, "offset"),
-            max_reward_index: typed_option(matches, "max-reward-index"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct RewardHistoryOptions {
-    start_unix_secs: Option<u64>,
-    end_unix_secs: Option<u64>,
-    step_secs: u32,
-    source: SourceOutputOptions,
-}
-
-impl RewardHistoryOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            start_unix_secs: typed_option(matches, "start"),
-            end_unix_secs: typed_option(matches, "end"),
-            step_secs: required_typed(matches, "step"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
+fn history_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcNodeProviderRewardHistoryRequest) {
+    let end = typed_option::<u64>(matches, "end").unwrap_or(now_unix_secs);
+    let start = typed_option::<u64>(matches, "start")
+        .unwrap_or_else(|| end.saturating_sub(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS));
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcNodeProviderRewardHistoryRequest::new(
+        dashboard,
+        IcNodeProviderRewardHistoryQuery::new(start, end, required_typed(matches, "step")),
+    );
+    (format, request)
 }
 
 #[cfg(test)]
@@ -273,7 +248,7 @@ mod tests {
 
     #[test]
     fn options_preserve_explicit_bounds_and_raw_format() {
-        let list = options(
+        let (format, list) = options(
             list_command(),
             &[
                 "--limit",
@@ -284,14 +259,14 @@ mod tests {
                 "6470",
                 "--json",
             ],
-            RewardListOptions::from_matches,
+            |matches| list_request(matches, 1_780_531_200),
         );
-        assert_eq!(list.limit, 25);
-        assert_eq!(list.offset, 50);
-        assert_eq!(list.max_reward_index, Some(6_470));
-        assert_eq!(list.source.format, OutputFormat::Json);
+        assert_eq!(list.query.limit, 25);
+        assert_eq!(list.query.offset, 50);
+        assert_eq!(list.query.max_reward_index, Some(6_470));
+        assert_eq!(format, OutputFormat::Json);
 
-        let history = options(
+        let (_, history) = options(
             history_command(),
             &[
                 "--start",
@@ -301,10 +276,10 @@ mod tests {
                 "--step",
                 "86400",
             ],
-            RewardHistoryOptions::from_matches,
+            |matches| history_request(matches, 1_780_531_200),
         );
-        assert_eq!(history.start_unix_secs, Some(1_752_537_600));
-        assert_eq!(history.end_unix_secs, Some(1_784_073_600));
-        assert_eq!(history.step_secs, 86_400);
+        assert_eq!(history.query.start_unix_secs, 1_752_537_600);
+        assert_eq!(history.query.end_unix_secs, 1_784_073_600);
+        assert_eq!(history.query.step_secs, 86_400);
     }
 }

@@ -63,7 +63,7 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
     let primary_result = list
         .node_operators
         .iter()
-        .find(|operator| operator.principal == primary_operator)
+        .find(|operator| operator.node_operator_principal == primary_operator)
         .expect("primary operator");
     assert_eq!(primary_result.node_provider_principal, provider);
     assert_eq!(primary_result.node_allowance, 4);
@@ -72,7 +72,7 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
     let secondary_result = list
         .node_operators
         .iter()
-        .find(|operator| operator.principal == secondary_operator)
+        .find(|operator| operator.node_operator_principal == secondary_operator)
         .expect("secondary operator");
     assert_eq!(secondary_result.node_count, Some(1));
 }

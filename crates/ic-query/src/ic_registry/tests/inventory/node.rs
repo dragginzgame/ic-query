@@ -38,7 +38,7 @@ fn node_list_follows_nodes_to_subnets_operators_and_providers() {
 
     assert_eq!(list.registry_version, 42);
     assert_eq!(list.nodes.len(), 1);
-    assert_eq!(list.nodes[0].principal, node);
+    assert_eq!(list.nodes[0].node_principal, node);
     assert_eq!(list.nodes[0].node_operator_principal, operator);
     assert_eq!(list.nodes[0].node_provider_principal, provider);
     assert_eq!(list.nodes[0].subnet_principal, subnet);

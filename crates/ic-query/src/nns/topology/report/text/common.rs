@@ -8,28 +8,24 @@ use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::table::{Alignment, render};
 
 use crate::{
-    nns::topology::report::{NnsTopologyRegistryVersionRow, percent::coverage_percent_text},
+    nns::topology::report::{
+        NnsTopologyJoinCoverageCounts, NnsTopologyRegistryVersionRow,
+        percent::coverage_percent_text,
+    },
     text_value::yes_no,
 };
 
-pub(super) fn render_join_coverage_table(counts: [(usize, usize); 5]) -> String {
+pub(super) fn render_join_coverage_table(counts: &NnsTopologyJoinCoverageCounts) -> String {
     let headers = ["RELATION", "KNOWN", "UNKNOWN", "COVERAGE"];
-    let labels = [
-        "nodes -> node providers",
-        "nodes -> node operators",
-        "nodes -> data centers",
-        "node operators -> node providers",
-        "node operators -> data centers",
-    ];
     let rows = counts
-        .iter()
-        .zip(labels)
-        .map(|((known, unknown), link)| {
+        .relationships()
+        .into_iter()
+        .map(|(link, known, unknown)| {
             [
                 link.to_string(),
                 known.to_string(),
                 unknown.to_string(),
-                coverage_percent_text(*known, *unknown),
+                coverage_percent_text(known, unknown),
             ]
         })
         .collect::<Vec<_>>();

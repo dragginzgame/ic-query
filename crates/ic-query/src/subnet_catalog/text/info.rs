@@ -91,7 +91,7 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
         "registry_version: {}",
         report.metadata.registry_version
     ));
-    super::append_catalog_authority!(lines, report);
+    super::append_catalog_authority(lines, &report.metadata, report.cache_disposition);
     lines.push(format!(
         "catalog_schema_version: {}",
         report.catalog_schema_version
@@ -109,5 +109,5 @@ fn append_catalog_evidence(lines: &mut Vec<String>, report: &SubnetCatalogInfoRe
         "stale_reason: {}",
         terminal_text(&report.stale_reason)
     ));
-    super::append_catalog_policy!(lines, report);
+    super::append_catalog_policy(lines, &report.metadata);
 }

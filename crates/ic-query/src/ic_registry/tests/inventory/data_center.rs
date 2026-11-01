@@ -101,7 +101,7 @@ fn data_center_list_aggregates_registry_relations() {
 
     assert_eq!(list.registry_version, 42);
     assert_eq!(list.data_centers.len(), 1);
-    assert_eq!(list.data_centers[0].id, "dc-a");
+    assert_eq!(list.data_centers[0].data_center_id, "dc-a");
     assert_eq!(list.data_centers[0].region, "eu-west");
     assert_eq!(list.data_centers[0].owner, "example owner");
     assert_eq!(list.data_centers[0].latitude, Some(48.8566));

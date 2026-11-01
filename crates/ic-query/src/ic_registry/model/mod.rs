@@ -20,11 +20,11 @@ pub use certified_delta::{
     CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
 };
 #[cfg(feature = "nns-host")]
-pub use data_center::{MainnetDataCenter, MainnetDataCenterList};
+pub use data_center::MainnetDataCenterList;
 #[cfg(feature = "nns-host")]
-pub use node::{MainnetNode, MainnetNodeList};
+pub use node::MainnetNodeList;
 #[cfg(feature = "nns-host")]
-pub use node_operator::{MainnetNodeOperator, MainnetNodeOperatorList};
+pub use node_operator::MainnetNodeOperatorList;
 #[cfg(feature = "nns-host")]
 pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
 pub use request::MainnetRegistryFetchRequest;

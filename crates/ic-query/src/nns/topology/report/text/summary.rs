@@ -30,9 +30,7 @@ pub fn nns_topology_summary_report_text(report: &NnsTopologySummaryReport) -> St
     lines.push(String::new());
     lines.push(render_kind_table(report));
     lines.push(String::new());
-    lines.push(render_join_coverage_table(
-        report.join_coverage.join_counts(),
-    ));
+    lines.push(render_join_coverage_table(&report.join_coverage));
     lines.push(String::new());
     lines.push(render_registry_version_table(&report.registry_versions));
     lines.join("\n")

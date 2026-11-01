@@ -1,6 +1,6 @@
 use super::{
     NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION, NnsNodeOperatorHostError,
-    NnsNodeOperatorListReport, NnsNodeOperatorRow,
+    NnsNodeOperatorListReport,
 };
 use crate::report::CollectionSourceRequest;
 use crate::{
@@ -39,17 +39,7 @@ impl NnsNodeOperatorSource for LiveNnsSource {
 }
 
 fn node_operator_report_from_list(list: MainnetNodeOperatorList) -> NnsNodeOperatorListReport {
-    let node_operators = list
-        .node_operators
-        .into_iter()
-        .map(|operator| NnsNodeOperatorRow {
-            node_operator_principal: operator.principal,
-            node_provider_principal: operator.node_provider_principal,
-            node_allowance: operator.node_allowance,
-            data_center_id: operator.data_center_id,
-            node_count: operator.node_count,
-        })
-        .collect::<Vec<_>>();
+    let node_operators = list.node_operators;
     NnsNodeOperatorListReport {
         schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
         network: list.network,

@@ -28,8 +28,10 @@ same approach: mandatory local constraints first, task-specific references after
   sibling inspection needs no additional permission. Never edit another
   contributor's sibling working checkout in place.
 - Ordinary fixes authorize local implementation and focused checks. Leave staging,
-  commits, own release versions, tags and release execution to the user unless
-  delegated. A PR request includes its branch, scoped commits, branch push and PR.
+  commits, package release versions, tags and release execution to the user unless
+  delegated. Automatically prepare a canonical `VERSION` file with its pending
+  changelog under the [next-version rules](rules/changelogs.md#automatic-next-version-selection).
+  A PR request includes its branch, scoped commits, branch push and PR.
   A release/ship/deploy request delegates the corresponding delivery workflow,
   including routine group/version/order choices under
   [delegated delivery](rules/contributions.md#delegated-delivery). Do not ask again

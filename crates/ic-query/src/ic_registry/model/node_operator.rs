@@ -1,3 +1,4 @@
+use crate::nns::node_operator::NnsNodeOperatorRow;
 use serde::Serialize;
 
 ///
@@ -14,20 +15,5 @@ pub struct MainnetNodeOperatorList {
     pub fetched_at: String,
     pub fetched_by: String,
     pub source_endpoint: String,
-    pub node_operators: Vec<MainnetNodeOperator>,
-}
-
-///
-/// MainnetNodeOperator
-///
-/// One node operator decoded from the mainnet registry.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct MainnetNodeOperator {
-    pub principal: String,
-    pub node_provider_principal: String,
-    pub node_allowance: u64,
-    pub data_center_id: String,
-    pub node_count: Option<u32>,
+    pub node_operators: Vec<NnsNodeOperatorRow>,
 }

@@ -7,6 +7,7 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
+use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::{typed_option, value_arg},
     common::{
@@ -58,27 +59,13 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_boundary_node_data_centers(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = SourceOutputOptions::from_matches(matches);
-    let (format, dashboard) = options.into_dashboard_request(current_unix_secs()?);
-    let request = dashboard;
+    let (format, request) = options.into_dashboard_request(current_unix_secs()?);
     let report = build_ic_boundary_node_data_centers_report(&request).await?;
     write_text_or_json(format, &report, ic_boundary_node_data_centers_report_text)
 }
 
 async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = DailyStatsOptions::from_matches(matches);
-    let now_unix_secs = current_unix_secs()?;
-    let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
-        options.start_unix_secs,
-        options.end_unix_secs,
-        now_unix_secs,
-        DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
-        0,
-    );
-    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
-    let request = IcDailyStatsRequest::new(
-        dashboard,
-        IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
-    );
+    let (format, request) = daily_stats_request(matches, current_unix_secs()?);
     let report = build_ic_daily_stats_report(&request).await?;
     write_text_or_json(format, &report, ic_daily_stats_report_text)
 }
@@ -139,21 +126,24 @@ fn daily_stats_command() -> ClapCommand {
         ))
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct DailyStatsOptions {
-    start_unix_secs: Option<u64>,
-    end_unix_secs: Option<u64>,
-    source: SourceOutputOptions,
-}
-
-impl DailyStatsOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            start_unix_secs: typed_option(matches, "start"),
-            end_unix_secs: typed_option(matches, "end"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
+fn daily_stats_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcDailyStatsRequest) {
+    let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
+        typed_option(matches, "start"),
+        typed_option(matches, "end"),
+        now_unix_secs,
+        DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
+        0,
+    );
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcDailyStatsRequest::new(
+        dashboard,
+        IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),
+    );
+    (format, request)
 }
 
 #[cfg(test)]
@@ -195,7 +185,7 @@ mod tests {
 
     #[test]
     fn daily_stats_options_preserve_bounds_format_and_endpoint() {
-        let options = parse_test_options(
+        let (format, request) = parse_test_options(
             daily_stats_command(),
             &[
                 "--start",
@@ -206,27 +196,34 @@ mod tests {
                 "--source-endpoint",
                 "https://example.com/api/v3",
             ],
-            DailyStatsOptions::from_matches,
+            |matches| daily_stats_request(matches, 1_780_531_200),
         )
         .expect("daily-statistics options");
 
-        assert_eq!(options.start_unix_secs, Some(1_784_937_600));
-        assert_eq!(options.end_unix_secs, Some(1_785_542_400));
-        assert_eq!(options.source.format, OutputFormat::Json);
-        assert_eq!(options.source.source_endpoint, "https://example.com/api/v3");
+        assert_eq!(request.query.start_unix_secs, 1_784_937_600);
+        assert_eq!(request.query.end_unix_secs, 1_785_542_400);
+        assert_eq!(format, OutputFormat::Json);
+        assert_eq!(
+            request.dashboard.source_endpoint,
+            "https://example.com/api/v3"
+        );
     }
 
     #[test]
     fn daily_stats_options_use_live_bounded_defaults() {
-        let options =
-            parse_test_options(daily_stats_command(), &[], DailyStatsOptions::from_matches)
-                .expect("default daily-statistics options");
+        let (format, request) = parse_test_options(daily_stats_command(), &[], |matches| {
+            daily_stats_request(matches, 1_780_531_200)
+        })
+        .expect("default daily-statistics options");
 
-        assert_eq!(options.start_unix_secs, None);
-        assert_eq!(options.end_unix_secs, None);
-        assert_eq!(options.source.format, OutputFormat::Text);
         assert_eq!(
-            options.source.source_endpoint,
+            request.query.start_unix_secs,
+            1_780_531_200 - DEFAULT_IC_DAILY_STATS_WINDOW_SECS
+        );
+        assert_eq!(request.query.end_unix_secs, 1_780_531_200);
+        assert_eq!(format, OutputFormat::Text);
+        assert_eq!(
+            request.dashboard.source_endpoint,
             DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT
         );
     }

@@ -5,6 +5,24 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.80.1]
+
+### 🔧 Changed
+
+- Adopt Build/Foundation Host 0.73.3 and Host Tools/Testkit 0.75.2. Preserve
+  Query's public API, CLI behavior, raw report fields, schema-1 caches and Rust 1.91.
+
+- Refresh Shared Tooling to 0.27.23 through its canonical exporter; retain Query's
+  Cargo release workflow and maintainer-owned version bumps.
+
+### 🧹 Cleanup
+
+- Reuse Registry inventory rows, construct Dashboard requests directly and replace
+  catalog text macros with typed helpers. Keep topology relationship labels with
+  their counters; public APIs, output and cache contracts are unchanged.
+
+Detailed release notes: [docs/changelog/0.80.md](docs/changelog/0.80.md)
+
 ## [0.80.0] - 2026-10-31
 
 ### ⚠️ Breaking

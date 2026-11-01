@@ -33,8 +33,8 @@ pub use model::{
 };
 #[cfg(feature = "nns-host")]
 pub use model::{
-    MainnetDataCenter, MainnetDataCenterList, MainnetNode, MainnetNodeList, MainnetNodeOperator,
-    MainnetNodeOperatorList, MainnetNodeProvider, MainnetNodeProviderList,
+    MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProvider,
+    MainnetNodeProviderList,
 };
 #[cfg(feature = "nns-topology-host")]
 pub use model::{

@@ -7,7 +7,6 @@
 use super::IcCommandError;
 #[cfg(test)]
 use super::parse_test_options;
-#[cfg(test)]
 use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::{required_string, required_typed, string_option, typed_option, value_arg},
@@ -63,32 +62,19 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 }
 
 async fn run_count(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = CanisterCollectionOptions::from_matches(matches);
-    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
-    let request = IcCanisterCountRequest::new(dashboard).with_filters(options.filters);
+    let (format, request) = count_request(matches, current_unix_secs()?);
     let report = build_ic_canister_count_report(&request).await?;
     write_text_or_json(format, &report, ic_canister_count_report_text)
 }
 
 async fn run_page(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = CanisterPageOptions::from_matches(matches);
-    let (format, dashboard) = options
-        .collection
-        .source
-        .into_dashboard_request(current_unix_secs()?);
-    let mut request = IcCanisterPageRequest::new(dashboard)
-        .with_filters(options.collection.filters)
-        .with_limit(options.limit);
-    request.after = options.after;
-    request.before = options.before;
+    let (format, request) = page_request(matches, current_unix_secs()?);
     let report = build_ic_canister_page_report(&request).await?;
     write_text_or_json(format, &report, ic_canister_page_report_text)
 }
 
 async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
-    let options = CanisterInfoOptions::from_matches(matches);
-    let (format, dashboard) = options.source.into_dashboard_request(current_unix_secs()?);
-    let request = IcCanisterRequest::new(dashboard, options.canister_id);
+    let (format, request) = info_request(matches, current_unix_secs()?);
     let report = build_ic_canister_report(&request).await?;
     write_text_or_json(format, &report, ic_canister_report_text)
 }
@@ -220,55 +206,6 @@ fn info_command() -> ClapCommand {
         ))
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct CanisterInfoOptions {
-    canister_id: String,
-    source: SourceOutputOptions,
-}
-
-impl CanisterInfoOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            canister_id: required_string(matches, "canister-id"),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct CanisterCollectionOptions {
-    filters: IcCanisterFilters,
-    source: SourceOutputOptions,
-}
-
-impl CanisterCollectionOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            filters: canister_filters(matches),
-            source: SourceOutputOptions::from_matches(matches),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct CanisterPageOptions {
-    collection: CanisterCollectionOptions,
-    limit: u16,
-    after: Option<String>,
-    before: Option<String>,
-}
-
-impl CanisterPageOptions {
-    fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            collection: CanisterCollectionOptions::from_matches(matches),
-            limit: required_typed(matches, "limit"),
-            after: string_option(matches, "after"),
-            before: string_option(matches, "before"),
-        }
-    }
-}
-
 fn canister_filters(matches: &ArgMatches) -> IcCanisterFilters {
     IcCanisterFilters {
         has_name: typed_option(matches, "has-name"),
@@ -285,6 +222,33 @@ fn repeated_strings(matches: &ArgMatches, id: &str) -> Vec<String> {
         .get_many::<String>(id)
         .map(|values| values.cloned().collect())
         .unwrap_or_default()
+}
+
+fn info_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcCanisterRequest) {
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcCanisterRequest::new(dashboard, required_string(matches, "canister-id"));
+    (format, request)
+}
+
+fn count_request(
+    matches: &ArgMatches,
+    now_unix_secs: u64,
+) -> (OutputFormat, IcCanisterCountRequest) {
+    let (format, dashboard) =
+        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let request = IcCanisterCountRequest::new(dashboard).with_filters(canister_filters(matches));
+    (format, request)
+}
+
+fn page_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcCanisterPageRequest) {
+    let (format, collection) = count_request(matches, now_unix_secs);
+    let mut request = IcCanisterPageRequest::new(collection.dashboard)
+        .with_filters(collection.filters)
+        .with_limit(required_typed(matches, "limit"));
+    request.after = string_option(matches, "after");
+    request.before = string_option(matches, "before");
+    (format, request)
 }
 
 #[cfg(test)]
@@ -320,7 +284,7 @@ mod tests {
 
     #[test]
     fn canister_info_options_preserve_principal_format_and_endpoint() {
-        let options = parse_test_options(
+        let (format, request) = parse_test_options(
             info_command(),
             &[
                 CANISTER_ID,
@@ -328,26 +292,31 @@ mod tests {
                 "--source-endpoint",
                 "https://example.com/api/v3",
             ],
-            CanisterInfoOptions::from_matches,
+            |matches| info_request(matches, 1_780_531_200),
         )
         .expect("canister options");
 
-        assert_eq!(options.canister_id, CANISTER_ID);
-        assert_eq!(options.source.format, OutputFormat::Json);
-        assert_eq!(options.source.source_endpoint, "https://example.com/api/v3");
+        assert_eq!(request.canister_id, CANISTER_ID);
+        assert_eq!(format, OutputFormat::Json);
+        assert_eq!(
+            request.dashboard.source_endpoint,
+            "https://example.com/api/v3"
+        );
     }
 
     #[test]
     fn canister_info_options_require_a_canister_id() {
-        let error = parse_test_options(info_command(), &[], CanisterInfoOptions::from_matches)
-            .expect_err("missing canister id");
+        let error = parse_test_options(info_command(), &[], |matches| {
+            info_request(matches, 1_780_531_200)
+        })
+        .expect_err("missing canister id");
 
         assert!(matches!(error, IcCommandError::Usage(message) if message.contains("required")));
     }
 
     #[test]
     fn canister_count_options_preserve_official_filters() {
-        let options = parse_test_options(
+        let (_, request) = parse_test_options(
             count_command(),
             &[
                 "--has-name",
@@ -363,45 +332,43 @@ mod tests {
                 "--query",
                 "ICP Ledger",
             ],
-            CanisterCollectionOptions::from_matches,
+            |matches| count_request(matches, 1_780_531_200),
         )
         .expect("count options");
 
-        assert_eq!(options.filters.has_name, Some(true));
-        assert_eq!(options.filters.languages, ["rust", "motoko"]);
-        assert_eq!(options.filters.canister_types, ["ledger"]);
-        assert_eq!(options.filters.query.as_deref(), Some("ICP Ledger"));
+        assert_eq!(request.filters.has_name, Some(true));
+        assert_eq!(request.filters.languages, ["rust", "motoko"]);
+        assert_eq!(request.filters.canister_types, ["ledger"]);
+        assert_eq!(request.filters.query.as_deref(), Some("ICP Ledger"));
         assert_eq!(
-            options.source.source_endpoint,
+            request.dashboard.source_endpoint,
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT
         );
     }
 
     #[test]
     fn canister_page_options_are_bounded_and_cursors_are_exclusive() {
-        let options = parse_test_options(
+        let (_, request) = parse_test_options(
             page_command(),
             &["--limit", "100", "--after", CANISTER_ID],
-            CanisterPageOptions::from_matches,
+            |matches| page_request(matches, 1_780_531_200),
         )
         .expect("page options");
 
-        assert_eq!(options.limit, MAX_IC_CANISTER_PAGE_LIMIT);
-        assert_eq!(options.after.as_deref(), Some(CANISTER_ID));
-        assert_eq!(options.before, None);
+        assert_eq!(request.limit, MAX_IC_CANISTER_PAGE_LIMIT);
+        assert_eq!(request.after.as_deref(), Some(CANISTER_ID));
+        assert_eq!(request.before, None);
 
-        let excessive = parse_test_options(
-            page_command(),
-            &["--limit", "101"],
-            CanisterPageOptions::from_matches,
-        )
+        let excessive = parse_test_options(page_command(), &["--limit", "101"], |matches| {
+            page_request(matches, 1_780_531_200)
+        })
         .expect_err("page limit above API maximum must fail");
         assert!(matches!(excessive, IcCommandError::Usage(_)));
 
         let conflicting = parse_test_options(
             page_command(),
             &["--after", CANISTER_ID, "--before", CANISTER_ID],
-            CanisterPageOptions::from_matches,
+            |matches| page_request(matches, 1_780_531_200),
         )
         .expect_err("page cursors must be exclusive");
         assert!(matches!(conflicting, IcCommandError::Usage(_)));
@@ -409,10 +376,12 @@ mod tests {
 
     #[test]
     fn cli_and_library_page_defaults_remain_aligned() {
-        let options = parse_test_options(page_command(), &[], CanisterPageOptions::from_matches)
-            .expect("default page options");
+        let (_, request) = parse_test_options(page_command(), &[], |matches| {
+            page_request(matches, 1_780_531_200)
+        })
+        .expect("default page options");
 
-        assert_eq!(options.limit, ic_query::ic::DEFAULT_IC_CANISTER_PAGE_LIMIT);
+        assert_eq!(request.limit, ic_query::ic::DEFAULT_IC_CANISTER_PAGE_LIMIT);
     }
 
     #[tokio::test(flavor = "current_thread")]

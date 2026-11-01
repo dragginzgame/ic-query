@@ -43,5 +43,5 @@ fn render_coverage_count_table(report: &NnsTopologyCoverageReport) -> String {
 }
 
 fn render_coverage_join_coverage_table(report: &NnsTopologyCoverageReport) -> String {
-    render_join_coverage_table(report.join_coverage.join_counts())
+    render_join_coverage_table(&report.join_coverage)
 }

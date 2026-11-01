@@ -71,8 +71,12 @@ fn append_catalog_evidence(report: &SubnetCatalogListReport, lines: &mut Vec<Str
         "catalog_path: {}",
         terminal_text(&report.catalog_path)
     ));
-    crate::subnet_catalog::text::append_catalog_authority!(lines, report);
-    crate::subnet_catalog::text::append_catalog_policy!(lines, report);
+    crate::subnet_catalog::text::append_catalog_authority(
+        lines,
+        &report.metadata,
+        report.cache_disposition,
+    );
+    crate::subnet_catalog::text::append_catalog_policy(lines, &report.metadata);
     lines.push(format!(
         "stale_reason: {}",
         terminal_text(&report.stale_reason)

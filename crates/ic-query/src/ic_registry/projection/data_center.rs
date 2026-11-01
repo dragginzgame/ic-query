@@ -1,6 +1,7 @@
+use crate::nns::data_center::NnsDataCenterRow;
 use crate::{
     ic_registry::{
-        MainnetDataCenter, MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
+        MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
         normalized_data_center_id,
         relations::{
             DataCenterOperatorCounts, RegistryRelationInventory,
@@ -46,14 +47,14 @@ fn data_center_from_record(
     record: DataCenterRecord,
     operator_counts: &BTreeMap<String, DataCenterOperatorCounts>,
     node_counts: &BTreeMap<String, u32>,
-) -> Result<MainnetDataCenter, RegistryFetchError> {
+) -> Result<NnsDataCenterRow, RegistryFetchError> {
     if !record.id.is_empty() && normalized_data_center_id(&record.id).as_deref() != Some(&id) {
         return Err(RegistryFetchError::InvalidDataCenterRecordId {
             key_id: id,
             record_id: record.id,
         });
     }
-    Ok(MainnetDataCenter {
+    Ok(NnsDataCenterRow {
         node_operator_count: operator_counts
             .get(&id)
             .map_or(0, |counts| counts.operators),
@@ -61,7 +62,7 @@ fn data_center_from_record(
             .get(&id)
             .map_or(0, |counts| counts.providers),
         node_count: node_counts.get(&id).copied().unwrap_or(0),
-        id,
+        data_center_id: id,
         region: record.region,
         owner: record.owner,
         latitude: record.gps.as_ref().map(|gps| gps.latitude),

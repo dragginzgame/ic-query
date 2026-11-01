@@ -1,4 +1,4 @@
-use crate::subnet_catalog::SubnetKind;
+use crate::nns::node::NnsNodeRow;
 use serde::Serialize;
 
 ///
@@ -15,21 +15,5 @@ pub struct MainnetNodeList {
     pub fetched_at: String,
     pub fetched_by: String,
     pub source_endpoint: String,
-    pub nodes: Vec<MainnetNode>,
-}
-
-///
-/// MainnetNode
-///
-/// One node decoded from the mainnet registry.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct MainnetNode {
-    pub principal: String,
-    pub node_operator_principal: String,
-    pub node_provider_principal: String,
-    pub subnet_principal: String,
-    pub subnet_kind: SubnetKind,
-    pub data_center_id: String,
+    pub nodes: Vec<NnsNodeRow>,
 }

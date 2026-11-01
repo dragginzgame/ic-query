@@ -1,6 +1,7 @@
+use crate::nns::node::NnsNodeRow;
 use crate::{
     ic_registry::{
-        MainnetNode, MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
+        MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
         projection::subnet_kind_from_registry,
         relations::{
             RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
@@ -50,7 +51,7 @@ fn node_from_relation(
     relation: ResolvedNodeRelation,
     subnet_records: &BTreeMap<String, SubnetRecord>,
     node_subnets: &BTreeMap<String, String>,
-) -> Result<MainnetNode, RegistryFetchError> {
+) -> Result<NnsNodeRow, RegistryFetchError> {
     let subnet_principal =
         node_subnets
             .get(&principal)
@@ -63,8 +64,8 @@ fn node_from_relation(
             .ok_or(RegistryFetchError::MissingField {
                 field: "subnet_record",
             })?;
-    Ok(MainnetNode {
-        principal,
+    Ok(NnsNodeRow {
+        node_principal: principal,
         node_operator_principal: relation.node_operator_principal,
         node_provider_principal: relation.node_provider_principal,
         subnet_principal: subnet_principal.clone(),

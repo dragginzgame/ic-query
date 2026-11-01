@@ -1,7 +1,7 @@
+use crate::nns::node_operator::NnsNodeOperatorRow;
 use crate::{
     ic_registry::{
-        MainnetNodeOperator, MainnetNodeOperatorList, MainnetRegistryFetchRequest,
-        RegistryFetchError,
+        MainnetNodeOperatorList, MainnetRegistryFetchRequest, RegistryFetchError,
         relations::{
             RegistryRelationInventory, node_counts_from_relations,
             node_provider_principal_from_record,
@@ -43,11 +43,11 @@ fn node_operator_from_record(
     principal: String,
     record: NodeOperatorRecord,
     node_counts: &BTreeMap<String, u32>,
-) -> Result<MainnetNodeOperator, RegistryFetchError> {
+) -> Result<NnsNodeOperatorRow, RegistryFetchError> {
     let node_provider_principal = node_provider_principal_from_record(&principal, &record)?;
-    Ok(MainnetNodeOperator {
+    Ok(NnsNodeOperatorRow {
         node_count: Some(node_counts.get(&principal).copied().unwrap_or(0)),
-        principal,
+        node_operator_principal: principal,
         node_provider_principal,
         node_allowance: record.node_allowance,
         data_center_id: record.dc_id,
