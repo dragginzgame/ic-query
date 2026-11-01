@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, metrics, or network resources.
 //! Boundary: builds official canister URLs and preserves raw wire values in source data.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcCanisterCollectionSource, IcCanisterCountSourceData, IcCanisterFilters,
     IcCanisterPageController, IcCanisterPageRow, IcCanisterPageSourceData, IcCanisterSource,
@@ -83,9 +83,7 @@ impl IcCanisterCollectionSource for LiveIcSource {
 }
 
 fn canister_url(endpoint: &str, canister_id: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["canisters", canister_id])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["canisters", canister_id])
 }
 
 enum CollectionOperation<'a> {
@@ -102,12 +100,11 @@ fn canister_collection_url(
     filters: &IcCanisterFilters,
     operation: CollectionOperation<'_>,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
     let path = match operation {
         CollectionOperation::Count => &["canisters", "count"][..],
         CollectionOperation::Page { .. } => &["canisters"][..],
     };
-    append_path_segments(endpoint, &mut url, path)?;
+    let mut url = dashboard_resource_url(endpoint, path)?;
 
     {
         let mut query = url.query_pairs_mut();

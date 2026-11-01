@@ -5,7 +5,7 @@
 //! Boundary: performs one explicitly filtered list request or one exact node request.
 
 use super::{
-    LiveIcSource, append_path_segments, dashboard_base_url,
+    LiveIcSource, dashboard_resource_url,
     node_status::{DashboardNode, DashboardNodes},
 };
 use crate::{
@@ -65,8 +65,7 @@ fn cloud_engine_node_list_url(
     endpoint: &str,
     node_provider_id: Option<&str>,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["nodes"])?;
+    let mut url = dashboard_resource_url(endpoint, &["nodes"])?;
     {
         let mut query = url.query_pairs_mut();
         for status in CLOUD_ENGINE_NODE_INCLUDED_STATUSES {
@@ -82,9 +81,7 @@ fn cloud_engine_node_list_url(
 }
 
 fn cloud_engine_node_info_url(endpoint: &str, node_id: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["nodes", node_id])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["nodes", node_id])
 }
 
 fn included_statuses() -> Vec<String> {

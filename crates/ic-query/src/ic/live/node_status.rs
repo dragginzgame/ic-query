@@ -4,7 +4,7 @@
 //! Does not own: snapshot validation, cache policy, projections, or rendering.
 //! Boundary: performs one finite read-only `/nodes` request with no follow-up calls.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcHostError, IcNodeStatusRow, IcNodeStatusScope, IcNodeStatusSource, IcNodeStatusSourceData,
     IcSourceRequest,
@@ -35,9 +35,7 @@ impl IcNodeStatusSource for LiveIcSource {
 }
 
 fn node_status_url(endpoint: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["nodes"])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["nodes"])
 }
 
 ///

@@ -11,7 +11,7 @@ use ic_query::sns::MainnetSnsMetrics;
 use ic_query::sns::MainnetSnsSwap;
 use ic_query::sns::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGapKind,
+    MainnetSnsCanisters, SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGapKind,
     SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
     SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality, SnsGovernanceParameters,
     SnsInfoReport, SnsListReport, SnsListRequest, SnsListSort, SnsLookupRequest,
@@ -23,10 +23,10 @@ use ic_query::sns::{
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
     SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
     SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort, SnsRewardAllocationStatus,
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCollectionStatus,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent, SnsRewardProposalId,
-    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
+    SnsRewardCollectionStatus, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     build_sns_reward_diff_report, sns_canister_report_text, sns_info_report_text,
@@ -39,19 +39,18 @@ use ic_query::sns::{
 #[cfg(feature = "sns-host")]
 use ic_query::sns::{
     DEFAULT_SNS_SOURCE_ENDPOINT, LiveSnsSource, MainnetSns, MainnetSnsCanisterInventory,
-    MainnetSnsCanisters, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
-    MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest,
-    SnsCatalogRefreshReport, SnsCatalogRefreshRequest, SnsCatalogSource, SnsDiscoverySource,
-    SnsHostError, SnsMetricsSource, SnsNeuronId, SnsNeuronRequest, SnsNeuronSource,
-    SnsNeuronsCacheSort, SnsNeuronsReport, SnsNeuronsRequest, SnsNeuronsSource, SnsParamsSource,
-    SnsProposalSource, SnsProposalsSource, SnsRewardCheckpointRequest, SnsRewardSource,
-    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource, build_sns_canister_report, build_sns_canister_report_with_source,
-    build_sns_info_report, build_sns_info_report_with_source, build_sns_list_report,
-    build_sns_list_report_from_cache, build_sns_list_report_from_cache_or_refresh,
-    build_sns_list_report_with_source, build_sns_metrics_report,
-    build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
+    MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsNeuronPage,
+    MainnetSnsRewardNeuronPage, MainnetSnsToken, MainnetSnsUpgrade, SnsCacheListRequest,
+    SnsCacheStatusRequest, SnsCanisterSource, SnsCatalogCacheRequest, SnsCatalogRefreshReport,
+    SnsCatalogRefreshRequest, SnsCatalogSource, SnsDiscoverySource, SnsHostError, SnsMetricsSource,
+    SnsNeuronId, SnsNeuronRequest, SnsNeuronSource, SnsNeuronsCacheSort, SnsNeuronsReport,
+    SnsNeuronsRequest, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsRewardCheckpointRequest, SnsRewardSource, SnsSnapshotRefreshReport,
+    SnsSnapshotRefreshRequest, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
+    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_from_cache,
+    build_sns_list_report_from_cache_or_refresh, build_sns_list_report_with_source,
+    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
     build_sns_neuron_detail_report_with_source, build_sns_neurons_cache_list_report,
     build_sns_neurons_cache_status_report, build_sns_neurons_report,
     build_sns_neurons_report_with_source, build_sns_params_report,
@@ -213,14 +212,39 @@ fn public_sns_reward_checkpoint_models_round_trip_and_render_without_host() {
         value["aggregate_combined_maturity_e8s_equivalent"],
         15_000_000
     );
+    let summary = serde_json::to_value(&report.summary).expect("summary JSON");
+    let canisters = serde_json::to_value(&report.canisters).expect("canister identities");
+    for (key, expected) in summary
+        .as_object()
+        .expect("summary fields")
+        .iter()
+        .chain(canisters.as_object().expect("canister fields"))
+    {
+        assert_eq!(
+            value.get(key),
+            Some(expected),
+            "top-level summary field {key}"
+        );
+    }
     let decoded: SnsRewardCheckpointReport =
         serde_json::from_value(value.clone()).expect("strict checkpoint decode");
+    assert_eq!(decoded, report);
+    for field in ["permission_entry_count", "governance_canister_id"] {
+        let mut missing = value.clone();
+        missing.as_object_mut().unwrap().remove(field);
+        assert!(serde_json::from_value::<SnsRewardCheckpointReport>(missing).is_err());
+    }
     let mut invalid = value;
     invalid["unexpected"] = serde_json::json!(true);
     assert!(serde_json::from_value::<SnsRewardCheckpointReport>(invalid).is_err());
     let duplicate = serde_json::to_string(&report).unwrap().replace(
         "\"permission_entry_count\":",
         "\"permission_entry_count\":99,\"permission_entry_count\":",
+    );
+    assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
+    let duplicate = serde_json::to_string(&report).unwrap().replace(
+        "\"root_canister_id\":",
+        "\"root_canister_id\":\"aaaaa-aa\",\"root_canister_id\":",
     );
     assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
 
@@ -336,17 +360,20 @@ fn public_sns_reward_diff_fails_closed_for_unknown_permissions_and_tampering() {
         SnsPolicyObservationStatus::Unassessable;
     unknown.rows[0].manual_maturity_staking_observed_disabled =
         SnsPolicyObservationStatus::Unassessable;
-    unknown.unassessable_permission_code_count = 1;
-    unknown.maturity_mint_conversion_observed_disabled = SnsPolicyObservationStatus::Unassessable;
-    unknown.manual_maturity_staking_observed_disabled = SnsPolicyObservationStatus::Unassessable;
-    unknown.maturity_conversion_policy_observed_status = SnsPolicyObservationStatus::Unassessable;
+    unknown.summary.unassessable_permission_code_count = 1;
+    unknown.summary.maturity_mint_conversion_observed_disabled =
+        SnsPolicyObservationStatus::Unassessable;
+    unknown.summary.manual_maturity_staking_observed_disabled =
+        SnsPolicyObservationStatus::Unassessable;
+    unknown.summary.maturity_conversion_policy_observed_status =
+        SnsPolicyObservationStatus::Unassessable;
     let report = build_sns_reward_diff_report(&before, &unknown);
     assert!(report.invalid_reasons.iter().any(|reason| {
         reason.kind == SnsRewardDiffInvalidReasonKind::PolicyNotObservedSatisfied
     }));
 
     let mut tampered = advance_reward_checkpoint(&before, 5_000, 5_000);
-    tampered.aggregate_combined_maturity_e8s_equivalent += 1;
+    tampered.summary.aggregate_combined_maturity_e8s_equivalent += 1;
     let report = build_sns_reward_diff_report(&before, &tampered);
     assert!(
         report.invalid_reasons.iter().any(|reason| {
@@ -363,7 +390,9 @@ fn public_sns_reward_diff_retains_raw_summaries_when_checkpoint_validation_fails
     let mut bad_header = after.clone();
     bad_header.schema_version = 0;
     let mut bad_summary = after.clone();
-    bad_summary.aggregate_combined_maturity_e8s_equivalent += 1;
+    bad_summary
+        .summary
+        .aggregate_combined_maturity_e8s_equivalent += 1;
     for invalid in [bad_header, bad_summary] {
         let report = build_sns_reward_diff_report(&before, &invalid);
         assert!(report.invalid_reasons.iter().any(|reason| {
@@ -373,11 +402,11 @@ fn public_sns_reward_diff_retains_raw_summaries_when_checkpoint_validation_fails
         assert_eq!(report.rows, Vec::new());
         assert_eq!(
             report.aggregate_after_combined_maturity_e8s_equivalent,
-            Some(after.aggregate_combined_maturity_e8s_equivalent)
+            Some(after.summary.aggregate_combined_maturity_e8s_equivalent)
         );
         assert_eq!(
             report.after_policy_status,
-            Some(after.maturity_conversion_policy_observed_status)
+            Some(after.summary.maturity_conversion_policy_observed_status)
         );
     }
 
@@ -401,8 +430,8 @@ fn public_sns_reward_diff_preserves_negative_missing_and_new_neuron_evidence() {
     let mut decreased = advance_reward_checkpoint(&before, 0, 50);
     decreased.rows[0].maturity_e8s_equivalent -= 40;
     decreased.rows[0].combined_maturity_e8s_equivalent -= 40;
-    decreased.aggregate_maturity_e8s_equivalent -= 40;
-    decreased.aggregate_combined_maturity_e8s_equivalent -= 40;
+    decreased.summary.aggregate_maturity_e8s_equivalent -= 40;
+    decreased.summary.aggregate_combined_maturity_e8s_equivalent -= 40;
     let report = build_sns_reward_diff_report(&before, &decreased);
     assert_eq!(report.rows[0].maturity_delta_e8s_equivalent, -40);
     assert!(
@@ -477,7 +506,7 @@ fn public_sns_reward_diff_matches_stable_canister_identity_not_display_metadata(
         SnsRewardAllocationStatus::Valid
     );
 
-    after.ledger_canister_id = "rkp4c-7iaaa-aaaaa-aaaca-cai".to_string();
+    after.canisters.ledger_canister_id = "rkp4c-7iaaa-aaaaa-aaaca-cai".to_string();
     let report = build_sns_reward_diff_report(&before, &after);
     assert!(
         report
@@ -926,15 +955,17 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
     let next_version = sample_sns_version("02");
     let report = SnsUpgradeReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: "ic".to_string(),
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        },
         running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
         next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
@@ -958,6 +989,17 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
 
     let text = sns_upgrade_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize upgrade report");
+    for (key, expected) in serde_json::to_value(&report.context)
+        .unwrap()
+        .as_object()
+        .unwrap()
+    {
+        assert_eq!(
+            json.get(key),
+            Some(expected),
+            "top-level context field {key}"
+        );
+    }
 
     assert!(text.contains("next_version: available"));
     assert_eq!(json["running_version_method"], "get_running_sns_version");
@@ -1220,7 +1262,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
 
     let upgrade = build_sns_upgrade_report_with_source(&params_request, &source).await?;
     assert_eq!(
-        upgrade.governance_canister_id,
+        upgrade.context.governance_canister_id,
         SAMPLE_SNS_GOVERNANCE_CANISTER_ID
     );
     assert_eq!(upgrade.successful_component_query_count, 2);
@@ -1342,7 +1384,7 @@ async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<()
     assert_eq!(report.page_count, 1);
     assert_eq!(report.client_query_count, 9);
     assert_eq!(
-        report.maturity_conversion_policy_observed_status,
+        report.summary.maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::ObservedSatisfied
     );
     Ok(())
@@ -1612,6 +1654,17 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
         assert!(text.contains("row_count: 1"));
         assert!(text.contains("wrote_cache: yes"));
         let json = serde_json::to_value(&report).expect("serialize snapshot refresh report");
+        for (key, expected) in serde_json::to_value(&report.context)
+            .unwrap()
+            .as_object()
+            .unwrap()
+        {
+            assert_eq!(
+                json.get(key),
+                Some(expected),
+                "top-level context field {key}"
+            );
+        }
         assert_eq!(json["schema_version"], 1);
         assert_eq!(json["collection"], collection);
         assert_eq!(json["row_count"], 1);
@@ -2229,15 +2282,17 @@ fn sample_sns_snapshot_refresh_report(
 ) -> SnsSnapshotRefreshReport {
     SnsSnapshotRefreshReport {
         schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        context: ic_query::sns::SnsReportContext {
+            network: "ic".to_string(),
+            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+            source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+            fetched_by: "ic-query".to_string(),
+            id: 1,
+            name: "Example SNS".to_string(),
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+        },
         cache_path: cache_path.display().to_string(),
         refresh_lock_path: refresh_lock_path.display().to_string(),
         refresh_attempt_path: refresh_attempt_path.display().to_string(),
@@ -2387,11 +2442,13 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         fetched_by: "ic-query".to_string(),
         id: 1,
         name: "Example SNS".to_string(),
-        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-        swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
-        index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
+        canisters: MainnetSnsCanisters {
+            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+            ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+            swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
+            index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
+        },
         data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: 1_700_086_400,
         collection_started_at: "2023-11-15T22:13:20Z".to_string(),
@@ -2411,19 +2468,24 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         reward_event_after: reward_event,
         running_version_before: running_version.clone(),
         running_version_after: running_version,
-        aggregate_maturity_e8s_equivalent: 10_000_000,
-        aggregate_staked_maturity_e8s_equivalent: 5_000_000,
-        aggregate_combined_maturity_e8s_equivalent: 15_000_000,
-        permission_entry_count: 1,
-        unassessable_permission_code_count: 0,
-        pending_maturity_disbursement_count: 0,
-        auto_stake_maturity_enabled_count: 1,
-        auto_stake_maturity_disabled_count: 0,
-        auto_stake_maturity_unspecified_count: 0,
-        manage_principals_grantable: Some(true),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        maturity_conversion_policy_observed_status: SnsPolicyObservationStatus::ObservedSatisfied,
+        summary: SnsRewardCheckpointSummary {
+            aggregate_maturity_e8s_equivalent: 10_000_000,
+            aggregate_staked_maturity_e8s_equivalent: 5_000_000,
+            aggregate_combined_maturity_e8s_equivalent: 15_000_000,
+            permission_entry_count: 1,
+            unassessable_permission_code_count: 0,
+            pending_maturity_disbursement_count: 0,
+            auto_stake_maturity_enabled_count: 1,
+            auto_stake_maturity_disabled_count: 0,
+            auto_stake_maturity_unspecified_count: 0,
+            manage_principals_grantable: Some(true),
+            maturity_mint_conversion_observed_disabled:
+                SnsPolicyObservationStatus::ObservedSatisfied,
+            manual_maturity_staking_observed_disabled:
+                SnsPolicyObservationStatus::ObservedSatisfied,
+            maturity_conversion_policy_observed_status:
+                SnsPolicyObservationStatus::ObservedSatisfied,
+        },
 
         rows: vec![row],
     }
@@ -2449,8 +2511,8 @@ fn advance_reward_checkpoint(
     after.reward_event_after = event;
     after.rows[0].maturity_e8s_equivalent += maturity_delta;
     after.rows[0].combined_maturity_e8s_equivalent += maturity_delta;
-    after.aggregate_maturity_e8s_equivalent += maturity_delta;
-    after.aggregate_combined_maturity_e8s_equivalent += maturity_delta;
+    after.summary.aggregate_maturity_e8s_equivalent += maturity_delta;
+    after.summary.aggregate_combined_maturity_e8s_equivalent += maturity_delta;
     after
 }
 
@@ -2458,13 +2520,13 @@ fn clear_reward_checkpoint_rows(report: &mut SnsRewardCheckpointReport) {
     report.rows.clear();
     report.row_count = 0;
     report.unique_neuron_id_count = 0;
-    report.aggregate_maturity_e8s_equivalent = 0;
-    report.aggregate_staked_maturity_e8s_equivalent = 0;
-    report.aggregate_combined_maturity_e8s_equivalent = 0;
-    report.permission_entry_count = 0;
-    report.unassessable_permission_code_count = 0;
-    report.pending_maturity_disbursement_count = 0;
-    report.auto_stake_maturity_enabled_count = 0;
-    report.auto_stake_maturity_disabled_count = 0;
-    report.auto_stake_maturity_unspecified_count = 0;
+    report.summary.aggregate_maturity_e8s_equivalent = 0;
+    report.summary.aggregate_staked_maturity_e8s_equivalent = 0;
+    report.summary.aggregate_combined_maturity_e8s_equivalent = 0;
+    report.summary.permission_entry_count = 0;
+    report.summary.unassessable_permission_code_count = 0;
+    report.summary.pending_maturity_disbursement_count = 0;
+    report.summary.auto_stake_maturity_enabled_count = 0;
+    report.summary.auto_stake_maturity_disabled_count = 0;
+    report.summary.auto_stake_maturity_unspecified_count = 0;
 }

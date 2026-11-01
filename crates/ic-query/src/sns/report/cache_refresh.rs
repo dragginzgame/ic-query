@@ -15,8 +15,8 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsSnapshotRefreshReport,
-        SnsSnapshotRefreshRequest,
+        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsReportContext,
+        SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
         cache_attempt::{
             SnsRefreshContext, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
@@ -164,17 +164,10 @@ where
             )
         },
     )?;
+    let (report_context, _) = SnsReportContext::from_snapshot(cache);
     Ok(SnsSnapshotRefreshReport {
         schema_version: 1,
-        network: context.fetch_request.network.clone(),
-        sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-        fetched_at: context.fetch_request.fetched_at.clone(),
-        source_endpoint: context.fetch_request.endpoint.clone(),
-        fetched_by: context.fetch_request.fetched_by.clone(),
-        id: context.sns.id,
-        name: context.sns.name.clone(),
-        root_canister_id: context.sns.canisters.root_canister_id.clone(),
-        governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
+        context: report_context,
         collection: Collection::COLLECTION.to_string(),
         cache_path: context.paths.snapshot_path.display().to_string(),
         refresh_lock_path: context.paths.refresh_lock_path.display().to_string(),

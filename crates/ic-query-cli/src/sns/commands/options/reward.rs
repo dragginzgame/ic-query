@@ -2,7 +2,7 @@
 
 use crate::{
     cli::{clap::typed_option, common::OutputFormat},
-    sns::commands::options::SnsLookupOptions,
+    sns::commands::options::lookup_request,
 };
 use clap::ArgMatches;
 use ic_query::sns::SnsRewardCheckpointRequest;
@@ -12,8 +12,7 @@ pub(in crate::sns::commands) fn reward_checkpoint_request(
     network: &str,
     now_unix_secs: u64,
 ) -> (OutputFormat, SnsRewardCheckpointRequest) {
-    let (format, lookup) =
-        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
     (
         format,
         SnsRewardCheckpointRequest::new(lookup).with_max_pages(typed_option(matches, "max-pages")),

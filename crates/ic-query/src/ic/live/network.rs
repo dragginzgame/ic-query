@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, canisters, or metric series.
 //! Boundary: fetches bounded daily statistics or one finite boundary-node resource.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersSourceData, IcDailyStatsQuery,
     IcDailyStatsRow, IcDailyStatsSourceData, IcHostError, IcNetworkSource, IcSourceRequest, source,
@@ -47,14 +47,11 @@ impl IcNetworkSource for LiveIcSource {
 }
 
 fn boundary_node_data_centers_url(endpoint: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["boundary-node-data-centers"])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["boundary-node-data-centers"])
 }
 
 fn daily_stats_url(endpoint: &str, query: &IcDailyStatsQuery) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["daily-stats"])?;
+    let mut url = dashboard_resource_url(endpoint, &["daily-stats"])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("format", "json");

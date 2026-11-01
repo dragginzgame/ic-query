@@ -17,8 +17,8 @@ pub fn sns_reward_diff_report_text(report: &SnsRewardDiffReport) -> String {
     let mut text = format!(
         "network: {}\nroot_canister_id: {}\ngovernance_canister_id: {}\nallocation_status: {}\ncheckpoint_content_authenticated: {}\nbefore_event_end_timestamp_seconds: {}\nafter_event_end_timestamp_seconds: {}\nafter_event_actual_timestamp_seconds: {}\ndistributed_e8s_equivalent: {}\naggregate_maturity_delta_e8s_equivalent: {}\nsummed_neuron_maturity_delta_e8s_equivalent: {}\naggregate_reconciled: {}\nper_neuron_reconciled: {}\nrow_count: {}\ninvalid_reason_count: {}",
         terminal_text(&report.before.network),
-        report.before.root_canister_id,
-        report.before.governance_canister_id,
+        report.before.canisters.root_canister_id,
+        report.before.canisters.governance_canister_id,
         report.allocation_status.as_str(),
         report.checkpoint_content_authenticated,
         optional_u64_text(report.before.reward_event_end_timestamp_seconds),

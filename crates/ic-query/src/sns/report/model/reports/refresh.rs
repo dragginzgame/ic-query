@@ -4,6 +4,7 @@
 //! Does not own: page fetching, persistence, or text rendering.
 //! Boundary: collection identity and row accounting share one schema-1 result.
 
+use crate::sns::report::SnsReportContext;
 use serde::Serialize;
 
 ///
@@ -16,24 +17,9 @@ use serde::Serialize;
 pub struct SnsSnapshotRefreshReport {
     /// Serialized report schema version, currently 1.
     pub schema_version: u32,
-    /// Network whose snapshot was collected.
-    pub network: String,
-    /// SNS-W canister used to resolve the SNS.
-    pub sns_wasm_canister_id: String,
-    /// UTC collection timestamp.
-    pub fetched_at: String,
-    /// Explicit replica endpoint used for collection.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// SNS id resolved for this refresh.
-    pub id: usize,
-    /// SNS display name.
-    pub name: String,
-    /// Root principal identifying the SNS.
-    pub root_canister_id: String,
-    /// Governance principal queried for rows.
-    pub governance_canister_id: String,
+    /// SNS identity and provenance, serialized as flat report fields.
+    #[serde(flatten)]
+    pub context: SnsReportContext,
     /// Published collection: neurons or proposals.
     pub collection: String,
     /// Path of the published complete snapshot.

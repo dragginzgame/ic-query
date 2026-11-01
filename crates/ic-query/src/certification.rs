@@ -10,6 +10,8 @@
     feature = "icrc-host"
 ))]
 use ic_platform::agent::Agent;
+#[cfg(feature = "certified-subnet-catalog-host")]
+use ic_platform::agent::ExternalCertificate;
 #[cfg(any(
     feature = "certified-subnet-catalog-host",
     feature = "cmc-host",
@@ -90,7 +92,7 @@ pub fn authenticate_canister_hash_tree(
     })
 }
 
-/// Authenticate a decoded certificate and its authority-specific hash tree.
+/// Authenticate a decoded certificate and tree, retaining its native Agent value for lookups.
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub fn authenticate_canister_tree(
     agent: &Agent,
@@ -98,13 +100,15 @@ pub fn authenticate_canister_tree(
     certificate: &Certificate,
     hash_tree: &HashTree,
     certified_data_owner: &str,
-) -> Result<(), CertifiedDataError> {
+) -> Result<ExternalCertificate, CertifiedDataError> {
+    let external = certificate.clone().into();
     agent
-        .verify(certificate, *canister)
+        .verify(&external, *canister)
         .map_err(|error| CertifiedDataError::Authentication {
             reason: error.to_string(),
         })?;
-    verify_canister_tree(certificate, canister, hash_tree, certified_data_owner)
+    verify_canister_tree(certificate, canister, hash_tree, certified_data_owner)?;
+    Ok(external)
 }
 
 /// Validate that a decoded certificate commits to a decoded hash tree.

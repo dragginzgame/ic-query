@@ -1,8 +1,8 @@
 //! Module: sns::commands::options::lookup
 //!
 //! Responsibility: parse shared SNS selector, source, and collection options.
-//! Does not own: command-specific option fields or report requests.
-//! Boundary: captures common lookup, cache selection, and pagination inputs.
+//! Does not own: command-specific fields, clock reads, or cache-root selection.
+//! Boundary: constructs shared lookup, cache selection, and pagination requests.
 
 use crate::cli::{
     clap::{required_string, required_typed, typed_option},
@@ -14,121 +14,53 @@ use ic_query::sns::{
 };
 use std::path::PathBuf;
 
-///
-/// SnsLookupOptions
-///
-/// Common selector and source options shared by SNS lookup commands.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsLookupOptions {
-    pub(in crate::sns::commands) input: String,
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-    pub(in crate::sns::commands) source_endpoint: String,
+pub(in crate::sns::commands) fn lookup_request(
+    matches: &ArgMatches,
+    network: &str,
+    now_unix_secs: u64,
+) -> (OutputFormat, SnsLookupRequest) {
+    (
+        output_format(matches),
+        SnsLookupRequest::new(
+            network,
+            required_string(matches, "source-endpoint"),
+            now_unix_secs,
+            required_string(matches, "input"),
+        ),
+    )
 }
 
-impl SnsLookupOptions {
-    pub(in crate::sns::commands) fn into_request(
-        self,
-        now_unix_secs: u64,
-    ) -> (OutputFormat, SnsLookupRequest) {
-        (
-            self.format,
-            SnsLookupRequest::new(
-                self.network,
-                self.source_endpoint,
-                now_unix_secs,
-                self.input,
-            ),
-        )
-    }
-
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            input: required_string(matches, "input"),
-            network: network.to_string(),
-            format: output_format(matches),
-            source_endpoint: required_string(matches, "source-endpoint"),
-        }
-    }
-}
-
-///
-/// SnsPagedRefreshOptions
-///
-/// Common SNS selector and page bounds for complete Governance refreshes.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsPagedRefreshOptions {
-    pub(in crate::sns::commands) lookup: SnsLookupOptions,
-    pub(in crate::sns::commands) page_size: u32,
-    pub(in crate::sns::commands) max_pages: Option<u32>,
-}
-
-impl SnsPagedRefreshOptions {
-    pub(in crate::sns::commands) fn into_request(
-        self,
-        cache_root: PathBuf,
-        now_unix_secs: u64,
-    ) -> (OutputFormat, SnsSnapshotRefreshRequest) {
-        let (format, lookup) = self.lookup.into_request(now_unix_secs);
-        (
-            format,
-            SnsSnapshotRefreshRequest {
-                lookup,
-                cache_root,
-                page_size: self.page_size,
-                max_pages: self.max_pages,
-            },
-        )
-    }
-
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            lookup: SnsLookupOptions::from_matches(matches, network),
+pub(in crate::sns::commands) fn snapshot_refresh_request(
+    matches: &ArgMatches,
+    network: &str,
+    cache_root: PathBuf,
+    now_unix_secs: u64,
+) -> (OutputFormat, SnsSnapshotRefreshRequest) {
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
+    (
+        format,
+        SnsSnapshotRefreshRequest {
+            lookup,
+            cache_root,
             page_size: required_typed(matches, "page-size"),
-            max_pages: typed_option::<u32>(matches, "max-pages"),
-        }
-    }
+            max_pages: typed_option(matches, "max-pages"),
+        },
+    )
 }
 
-///
-/// SnsCacheStatusOptions
-///
-/// Common selector and output options for local SNS Governance cache status.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::sns::commands) struct SnsCacheStatusOptions {
-    pub(in crate::sns::commands) input: String,
-    pub(in crate::sns::commands) network: String,
-    pub(in crate::sns::commands) format: OutputFormat,
-}
-
-impl SnsCacheStatusOptions {
-    pub(in crate::sns::commands) fn into_request(
-        self,
-        cache_root: PathBuf,
-    ) -> (OutputFormat, SnsCacheStatusRequest) {
-        (
-            self.format,
-            SnsCacheStatusRequest {
-                network: self.network,
-                cache_root,
-                input: self.input,
-            },
-        )
-    }
-
-    pub(in crate::sns::commands) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
-        Self {
-            input: required_string(matches, "input"),
+pub(in crate::sns::commands) fn cache_status_request(
+    matches: &ArgMatches,
+    network: &str,
+    cache_root: PathBuf,
+) -> (OutputFormat, SnsCacheStatusRequest) {
+    (
+        output_format(matches),
+        SnsCacheStatusRequest {
             network: network.to_string(),
-            format: output_format(matches),
-        }
-    }
+            cache_root,
+            input: required_string(matches, "input"),
+        },
+    )
 }
 
 pub(in crate::sns::commands) fn cache_list_request(

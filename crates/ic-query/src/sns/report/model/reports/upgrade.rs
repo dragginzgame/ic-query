@@ -6,6 +6,7 @@
 
 use super::invocation::SnsCanisterMethod;
 use crate::hex::is_canonical_lowercase_hex;
+use crate::sns::report::SnsReportContext;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 ///
@@ -117,24 +118,9 @@ pub struct SnsUpgradeQueryGap {
 pub struct SnsUpgradeReport {
     /// Report schema version.
     pub schema_version: u32,
-    /// Requested IC network identity.
-    pub network: String,
-    /// Mainnet SNS-W canister used for discovery and next-version lookup.
-    pub sns_wasm_canister_id: String,
-    /// Collection timestamp in UTC.
-    pub fetched_at: String,
-    /// IC API endpoint used for all calls.
-    pub source_endpoint: String,
-    /// Collector identity recorded by the source request.
-    pub fetched_by: String,
-    /// SNS-W list id assigned to this deployed SNS.
-    pub id: usize,
-    /// SNS name resolved during discovery.
-    pub name: String,
-    /// Root canister identity used to resolve this SNS.
-    pub root_canister_id: String,
-    /// Governance canister queried for deployed and pending versions.
-    pub governance_canister_id: String,
+    /// SNS identity and provenance, serialized as flat report fields.
+    #[serde(flatten)]
+    pub context: SnsReportContext,
     /// Native Governance running-version method.
     pub running_version_method: SnsCanisterMethod,
     /// Native SNS-W next-version method.

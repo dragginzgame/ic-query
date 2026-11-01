@@ -8,7 +8,7 @@ use crate::{
     cli::common::{current_unix_secs, write_text_or_json},
     sns::commands::{
         SnsCommandError,
-        options::{SnsLookupOptions, metrics_request},
+        options::{lookup_request, metrics_request},
     },
 };
 use clap::ArgMatches;
@@ -34,9 +34,7 @@ pub(super) async fn run_sns_lookup<Report>(
 where
     Report: Serialize,
 {
-    let options = SnsLookupOptions::from_matches(matches, network);
-    let now_unix_secs = current_unix_secs()?;
-    let (format, request) = options.into_request(now_unix_secs);
+    let (format, request) = lookup_request(matches, network, current_unix_secs()?);
     let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)
 }

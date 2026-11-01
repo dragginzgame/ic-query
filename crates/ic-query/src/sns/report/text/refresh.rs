@@ -4,7 +4,7 @@
 //! Does not own: refresh execution, cache writes, report construction, or JSON output.
 //! Boundary: formats complete SNS snapshot refresh results for humans.
 
-use crate::sns::report::text::common::sns_identity_fields_lines;
+use crate::sns::report::text::common::sns_identity_lines;
 
 use ic_host_text::escape::terminal_text;
 
@@ -15,13 +15,7 @@ use crate::{sns::report::SnsSnapshotRefreshReport, text_value::yes_no};
 pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
     let [attempt_finalized, attempt_finalization_error] =
         crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
-    let mut lines = sns_identity_fields_lines(
-        &report.network,
-        report.id,
-        &report.name,
-        &report.root_canister_id,
-        &report.governance_canister_id,
-    );
+    let mut lines = sns_identity_lines(&report.context);
     lines.extend([
         format!("page_size: {}", report.page_size),
         format!("page_count: {}", report.page_count),
@@ -44,11 +38,14 @@ pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> St
             "refresh_attempt_path: {}",
             terminal_text(&report.refresh_attempt_path)
         ),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
     ]);
     lines.join("\n")

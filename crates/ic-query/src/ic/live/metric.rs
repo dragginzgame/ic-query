@@ -4,7 +4,7 @@
 //! Does not own: shared HTTP transport, report projection, canisters, or network resources.
 //! Boundary: fetches one bounded metric response and preserves raw observation values.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcHostError, IcMetricKind, IcMetricObservation, IcMetricQuery, IcMetricSeries, IcMetricSource,
     IcMetricSourceData, IcSourceRequest, source,
@@ -38,8 +38,7 @@ impl IcMetricSource for LiveIcSource {
 }
 
 fn metric_url(endpoint: &str, query: &IcMetricQuery) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &[query.metric.as_str()])?;
+    let mut url = dashboard_resource_url(endpoint, &[query.metric.as_str()])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("format", "json");

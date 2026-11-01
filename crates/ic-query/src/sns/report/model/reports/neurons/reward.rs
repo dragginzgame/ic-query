@@ -16,7 +16,7 @@ use crate::{
     hex::is_lowercase_hex_32_bytes,
     report::ReportDataSource,
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SNS_REWARD_CHECKPOINT_MAX_NEURONS,
+        MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsCanisters, SNS_REWARD_CHECKPOINT_MAX_NEURONS,
         SNS_REWARD_CHECKPOINT_PAGE_SIZE, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         model::reports::{SnsGovernanceParameters, SnsRunningVersionResponse},
     },
@@ -165,16 +165,9 @@ pub struct SnsRewardCheckpointReport {
     pub id: usize,
     /// Current SNS name retained only as display metadata.
     pub name: String,
-    /// Stable SNS Root canister identity.
-    pub root_canister_id: String,
-    /// Stable SNS Governance canister identity.
-    pub governance_canister_id: String,
-    /// Stable SNS ledger canister identity.
-    pub ledger_canister_id: String,
-    /// Stable SNS decentralization-swap canister identity.
-    pub swap_canister_id: String,
-    /// Stable SNS ledger-index canister identity.
-    pub index_canister_id: String,
+    /// Complete deployed-SNS canister identity, serialized as flat fields.
+    #[serde(flatten)]
+    pub canisters: MainnetSnsCanisters,
     /// Explicit source classification; checkpoint reports are live-only.
     pub data_source: ReportDataSource,
     /// Unix timestamp captured immediately before targeted discovery.
@@ -213,32 +206,9 @@ pub struct SnsRewardCheckpointReport {
     pub running_version_before: SnsRunningVersionResponse,
     /// Complete running-version response read after neuron pagination.
     pub running_version_after: SnsRunningVersionResponse,
-    /// Checked aggregate unstaked maturity across every row.
-    pub aggregate_maturity_e8s_equivalent: u64,
-    /// Checked aggregate staked maturity across every row.
-    pub aggregate_staked_maturity_e8s_equivalent: u64,
-    /// Checked aggregate combined maturity across every row.
-    pub aggregate_combined_maturity_e8s_equivalent: u64,
-    /// Number of principal permission entries observed across every row.
-    pub permission_entry_count: usize,
-    /// Number of raw unknown or anomalous permission codes observed globally and per-neuron.
-    pub unassessable_permission_code_count: usize,
-    /// Number of pending maturity disbursements observed across every row.
-    pub pending_maturity_disbursement_count: usize,
-    /// Number of neurons with automatic maturity staking enabled.
-    pub auto_stake_maturity_enabled_count: usize,
-    /// Number of neurons with automatic maturity staking explicitly disabled.
-    pub auto_stake_maturity_disabled_count: usize,
-    /// Number of neurons without an automatic maturity-staking value.
-    pub auto_stake_maturity_unspecified_count: usize,
-    /// Whether permission 2 is currently grantable, or unknown when the list is missing.
-    pub manage_principals_grantable: Option<bool>,
-    /// Global observation for disabling permissions 7 and 8 and pending disbursements.
-    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
-    /// Global observation for disabling manual maturity-staking permission 9.
-    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
-    /// Combined observed maturity-conversion policy status.
-    pub maturity_conversion_policy_observed_status: SnsPolicyObservationStatus,
+    /// Recomputed maturity totals and policy findings, flattened into report JSON.
+    #[serde(flatten)]
+    pub summary: SnsRewardCheckpointSummary,
     /// Strictly increasing full neuron rows retained as raw checkpoint evidence.
     pub rows: Vec<SnsRewardCheckpointRow>,
 }
@@ -312,14 +282,12 @@ pub(in crate::sns::report) fn assess_reward_checkpoint(
 }
 
 impl SnsRewardCheckpointReport {
-    /// Validate an internally assembled checkpoint using its already recomputed summary.
+    /// Validate collection evidence after constructing the summary directly from raw rows.
     #[cfg(feature = "sns-host")]
-    pub(in crate::sns::report) fn validate_collected_summary(
+    pub(in crate::sns::report) fn validate_collected_evidence(
         &self,
-        summary: &SnsRewardCheckpointSummary,
     ) -> Result<(), SnsRewardCheckpointValidationError> {
-        validate_checkpoint_evidence(self)?;
-        validate_checkpoint_summary(self, summary)
+        validate_checkpoint_evidence(self)
     }
 }
 
@@ -342,24 +310,36 @@ fn validate_checkpoint_header(
     }
     for (field, principal) in [
         ("sns_wasm_canister_id", report.sns_wasm_canister_id.as_str()),
-        ("root_canister_id", report.root_canister_id.as_str()),
+        (
+            "root_canister_id",
+            report.canisters.root_canister_id.as_str(),
+        ),
         (
             "governance_canister_id",
-            report.governance_canister_id.as_str(),
+            report.canisters.governance_canister_id.as_str(),
         ),
-        ("ledger_canister_id", report.ledger_canister_id.as_str()),
-        ("swap_canister_id", report.swap_canister_id.as_str()),
-        ("index_canister_id", report.index_canister_id.as_str()),
+        (
+            "ledger_canister_id",
+            report.canisters.ledger_canister_id.as_str(),
+        ),
+        (
+            "swap_canister_id",
+            report.canisters.swap_canister_id.as_str(),
+        ),
+        (
+            "index_canister_id",
+            report.canisters.index_canister_id.as_str(),
+        ),
     ] {
         validate_canonical_principal(principal, field).map_err(invalid_validation)?;
     }
     let canister_ids = [
         report.sns_wasm_canister_id.as_str(),
-        report.root_canister_id.as_str(),
-        report.governance_canister_id.as_str(),
-        report.ledger_canister_id.as_str(),
-        report.swap_canister_id.as_str(),
-        report.index_canister_id.as_str(),
+        report.canisters.root_canister_id.as_str(),
+        report.canisters.governance_canister_id.as_str(),
+        report.canisters.ledger_canister_id.as_str(),
+        report.canisters.swap_canister_id.as_str(),
+        report.canisters.index_canister_id.as_str(),
     ];
     if canister_ids.into_iter().collect::<HashSet<_>>().len() != canister_ids.len() {
         return Err(invalid_validation(
@@ -560,28 +540,7 @@ fn validate_checkpoint_summary(
     report: &SnsRewardCheckpointReport,
     summary: &SnsRewardCheckpointSummary,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
-    let valid = report.aggregate_maturity_e8s_equivalent
-        == summary.aggregate_maturity_e8s_equivalent
-        && report.aggregate_staked_maturity_e8s_equivalent
-            == summary.aggregate_staked_maturity_e8s_equivalent
-        && report.aggregate_combined_maturity_e8s_equivalent
-            == summary.aggregate_combined_maturity_e8s_equivalent
-        && report.permission_entry_count == summary.permission_entry_count
-        && report.unassessable_permission_code_count == summary.unassessable_permission_code_count
-        && report.pending_maturity_disbursement_count
-            == summary.pending_maturity_disbursement_count
-        && report.auto_stake_maturity_enabled_count == summary.auto_stake_maturity_enabled_count
-        && report.auto_stake_maturity_disabled_count == summary.auto_stake_maturity_disabled_count
-        && report.auto_stake_maturity_unspecified_count
-            == summary.auto_stake_maturity_unspecified_count
-        && report.manage_principals_grantable == summary.manage_principals_grantable
-        && report.maturity_mint_conversion_observed_disabled
-            == summary.maturity_mint_conversion_observed_disabled
-        && report.manual_maturity_staking_observed_disabled
-            == summary.manual_maturity_staking_observed_disabled
-        && report.maturity_conversion_policy_observed_status
-            == summary.maturity_conversion_policy_observed_status;
-    if valid {
+    if report.summary == *summary {
         Ok(())
     } else {
         Err(invalid_validation(

@@ -445,8 +445,8 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
             .await
             .expect("refresh second SNS");
 
-        assert_eq!(refresh.id, 2);
-        assert_eq!(refresh.root_canister_id, ROOT_B);
+        assert_eq!(refresh.context.id, 2);
+        assert_eq!(refresh.context.root_canister_id, ROOT_B);
         assert!(
             !crate::cache_file::inspect_refresh_lock(
                 &root,
@@ -460,9 +460,9 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
         let attempt: serde_json::Value =
             serde_json::from_slice(&fs::read(&refresh.refresh_attempt_path).expect("read attempt"))
                 .expect("parse attempt");
-        assert_eq!(cache["metadata"]["id"], refresh.id);
+        assert_eq!(cache["metadata"]["id"], refresh.context.id);
         assert_eq!(cache["entity"], ROOT_B);
-        assert_eq!(attempt["metadata"]["id"], refresh.id);
+        assert_eq!(attempt["metadata"]["id"], refresh.context.id);
         assert_eq!(attempt["metadata"]["root_canister_id"], ROOT_B);
         assert_eq!(attempt["status"], "complete");
 
@@ -472,7 +472,7 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
             build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
                 .await
                 .expect("read second SNS from cache");
-        assert_eq!(report.context.id, refresh.id);
+        assert_eq!(report.context.id, refresh.context.id);
         assert_eq!(report.context.root_canister_id, ROOT_B);
         let _ = fs::remove_dir_all(root);
     }

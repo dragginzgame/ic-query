@@ -708,8 +708,8 @@ reports share the transport-aware `NnsGovernanceRequest` and one portable async
 simple ledger-wide ICRC metadata and capability builders share
 `IcrcLedgerRequest`. There are no per-report aliases for those canonical
 types.
-Governance parameter, proposal and neuron envelopes carry their common identity
-and provenance in `SnsReportContext` through `report.context`. Topology summary
+Governance parameter, proposal, neuron, upgrade and complete-refresh envelopes carry
+their common identity and provenance in `SnsReportContext` through `report.context`. Topology summary
 and coverage expose their counters through `report.join_coverage`. Both are
 flattened by Serde, so the JSON field names and schema 1 remain unchanged.
 NNS and SNS proposal requests use `report::SortDirection`; each family's sort
@@ -1841,11 +1841,17 @@ time or zero ballot time displays `-`. JSON retains Unix seconds rather than
 stored display strings. Update consumers and preserve needed evidence before
 explicitly refreshing affected complete snapshots; schemas remain 1.
 
-SNS reward checkpoint aggregates and policy observations retain their flat
-Rust and JSON fields. `SnsRewardCheckpointSummary` is recomputed from raw
-parameters and neuron rows, then compared with every stored aggregate and policy
-observation. Historical files remain current evidence; recollection is not a
+SNS reward checkpoint aggregates and policy observations live in
+`report.summary: SnsRewardCheckpointSummary`. Rust callers update field access
+and struct literals to use that record; JSON fields remain at the top level.
+Restored reports recompute the summary from raw parameters and neuron rows,
+then compare it with the stored record. Strict file decoding and schema 1 are
+unchanged. Historical files remain current evidence; recollection is not a
 substitute for an earlier observation.
+
+Reward checkpoints and their diff references carry all five canister identities
+through `canisters: MainnetSnsCanisters`. Update Rust field access and literals;
+these identities retain their existing top-level JSON keys and strict decoding.
 
 `SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
 `MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host

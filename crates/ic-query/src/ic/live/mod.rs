@@ -143,14 +143,16 @@ fn ledger_resource_url(
     ledger_canister_id: &str,
     resource_path: &[&str],
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["ledgers", ledger_canister_id])?;
+    let mut url = dashboard_resource_url(endpoint, &["ledgers", ledger_canister_id])?;
     append_path_segments(endpoint, &mut url, resource_path)?;
     Ok(url)
 }
 
-fn dashboard_base_url(endpoint: &str) -> Result<Url, IcHostError> {
-    parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))
+fn dashboard_resource_url(endpoint: &str, path: &[&str]) -> Result<Url, IcHostError> {
+    let mut url =
+        parse_http_endpoint(endpoint).map_err(|reason| invalid_endpoint(endpoint, reason))?;
+    append_path_segments(endpoint, &mut url, path)?;
+    Ok(url)
 }
 
 fn append_path_segments(endpoint: &str, url: &mut Url, path: &[&str]) -> Result<(), IcHostError> {

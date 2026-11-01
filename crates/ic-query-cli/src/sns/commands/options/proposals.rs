@@ -10,7 +10,7 @@ use crate::{
     cli::common::resolve_proposal_sort_direction,
     sns::commands::{
         SnsCommandError,
-        options::lookup::SnsLookupOptions,
+        options::lookup::lookup_request,
         spec::{
             SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
             SnsProposalsSortArg,
@@ -36,8 +36,7 @@ pub(in crate::sns::commands) fn proposals_request(
         || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
     )
     .map_err(SnsCommandError::Usage)?;
-    let (format, lookup) =
-        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
     Ok((
         format,
         SnsProposalsRequest {
@@ -63,8 +62,7 @@ pub(in crate::sns::commands) fn proposal_request(
     now_unix_secs: u64,
     cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
 ) -> Result<(OutputFormat, SnsProposalRequest), SnsCommandError> {
-    let (format, lookup) =
-        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
     let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
         .ok()
         .map(|_| cache_root())

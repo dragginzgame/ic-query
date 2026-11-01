@@ -10,8 +10,8 @@ async fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
     let text = sns_upgrade_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_UPGRADE_REPORT_SCHEMA_VERSION);
-    assert_eq!(report.id, 1);
-    assert_eq!(report.governance_canister_id, GOVERNANCE_A);
+    assert_eq!(report.context.id, 1);
+    assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.component_query_count, 2);
     assert_eq!(report.successful_component_query_count, 2);
     assert_eq!(report.component_gap_count, 0);

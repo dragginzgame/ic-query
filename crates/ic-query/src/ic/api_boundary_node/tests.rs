@@ -145,8 +145,9 @@ mod host {
             delegation: None,
         };
 
-        let data = super::super::host::source_data_from_certificate(&source_request, certificate)
-            .expect("authenticated tree shape");
+        let data =
+            super::super::host::source_data_from_certificate(&source_request, certificate.into())
+                .expect("authenticated tree shape");
 
         assert_eq!(data.certificate_time_unix_nanos, NOW * 1_000_000_000);
         assert_eq!(data.rows.len(), 2);
@@ -176,9 +177,11 @@ mod host {
                 signature: Vec::new(),
                 delegation: None,
             };
-            let error =
-                super::super::host::source_data_from_certificate(&source_request(), certificate)
-                    .unwrap_err();
+            let error = super::super::host::source_data_from_certificate(
+                &source_request(),
+                certificate.into(),
+            )
+            .unwrap_err();
             assert!(matches!(
                 error, IcApiBoundaryNodeHostError::InvalidCertifiedState { reason }
                     if reason.contains("certificate time")

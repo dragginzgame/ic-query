@@ -5,7 +5,7 @@ use crate::{
         clap::{required_string, required_typed, typed_option},
         common::OutputFormat,
     },
-    sns::commands::{SnsCommandError, options::SnsLookupOptions, spec::SnsNeuronsSortArg},
+    sns::commands::{SnsCommandError, options::lookup_request, spec::SnsNeuronsSortArg},
 };
 use clap::ArgMatches;
 use ic_platform::candid::contract::Principal;
@@ -19,8 +19,7 @@ pub(in crate::sns::commands) fn neuron_request(
     network: &str,
     now_unix_secs: u64,
 ) -> (OutputFormat, SnsNeuronRequest) {
-    let (format, lookup) =
-        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
     (
         format,
         SnsNeuronRequest::new(lookup, required_string(matches, "neuron-id")),
@@ -33,8 +32,7 @@ pub(in crate::sns::commands) fn neurons_request(
     now_unix_secs: u64,
     cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
 ) -> Result<(OutputFormat, SnsNeuronsRequest), SnsCommandError> {
-    let (format, lookup) =
-        SnsLookupOptions::from_matches(matches, network).into_request(now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
     let limit = required_typed(matches, "limit");
     let owner_principal_id =
         typed_option::<Principal>(matches, "owner").map(|principal| principal.to_text());

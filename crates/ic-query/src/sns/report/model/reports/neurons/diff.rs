@@ -5,6 +5,7 @@
 //! Boundary: preserves joined raw maturity deltas, typed invalid reasons, and allocations.
 
 use super::SnsPolicyObservationStatus;
+use crate::sns::report::MainnetSnsCanisters;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -135,16 +136,9 @@ pub struct SnsRewardDiffCheckpointRef {
     pub id: usize,
     /// Mutable SNS name retained only as display metadata.
     pub name: String,
-    /// Stable SNS Root canister principal.
-    pub root_canister_id: String,
-    /// Stable SNS Governance canister principal.
-    pub governance_canister_id: String,
-    /// Stable SNS ledger canister principal.
-    pub ledger_canister_id: String,
-    /// Stable SNS swap canister principal.
-    pub swap_canister_id: String,
-    /// Stable SNS index canister principal.
-    pub index_canister_id: String,
+    /// Complete deployed-SNS canister identity, serialized as flat fields.
+    #[serde(flatten)]
+    pub canisters: MainnetSnsCanisters,
     /// Explicit source endpoint retained as provenance, not target identity.
     pub source_endpoint: String,
     /// Collection completion timestamp from the checkpoint.

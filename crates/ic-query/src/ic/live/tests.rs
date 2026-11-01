@@ -24,6 +24,30 @@ impl TestServer {
     }
 }
 
+#[test]
+fn dashboard_resource_urls_preserve_base_paths_and_encode_each_segment() {
+    for endpoint in ["https://example.com/api/v3", "https://example.com/api/v3/"] {
+        assert_eq!(
+            dashboard_resource_url(endpoint, &["nodes", "a/b c?#"])
+                .expect("resource URL")
+                .as_str(),
+            "https://example.com/api/v3/nodes/a%2Fb%20c%3F%23"
+        );
+        assert_eq!(
+            ledger_resource_url(endpoint, "ledger", &["accounts", "a/b"])
+                .expect("ledger resource URL")
+                .as_str(),
+            "https://example.com/api/v3/ledgers/ledger/accounts/a%2Fb"
+        );
+    }
+    for endpoint in ["not a URL", "file:///tmp/dashboard"] {
+        assert!(matches!(
+            dashboard_resource_url(endpoint, &["nodes"]),
+            Err(IcHostError::InvalidEndpoint { endpoint: rejected, .. }) if rejected == endpoint
+        ));
+    }
+}
+
 #[tokio::test(flavor = "current_thread")]
 async fn bounded_transport_accepts_valid_json_at_the_exact_byte_limit() {
     let body = br#"{"value":"ok"}"#;

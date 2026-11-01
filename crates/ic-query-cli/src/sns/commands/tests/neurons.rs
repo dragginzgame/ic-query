@@ -94,7 +94,7 @@ fn sns_neurons_allows_large_limits_for_cached_sorts() {
 
 #[test]
 fn sns_neurons_refresh_parses_page_controls() {
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         sns_neuron_refresh_command(),
         &[
             "1",
@@ -106,14 +106,26 @@ fn sns_neurons_refresh_parses_page_controls() {
             "--max-pages",
             "3",
         ],
-        SnsPagedRefreshOptions::from_matches,
+        |m, n| {
+            snapshot_refresh_request(
+                m,
+                n,
+                std::path::PathBuf::from("fixture-cache"),
+                1_780_531_200,
+            )
+        },
     )
     .expect("parse neurons refresh");
 
     assert_eq!(options.lookup.input, "1");
     assert_eq!(options.lookup.network, "ic");
-    assert_eq!(options.lookup.format, OutputFormat::Json);
+    assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.lookup.now_unix_secs, 1_780_531_200);
+    assert_eq!(
+        options.cache_root,
+        std::path::PathBuf::from("fixture-cache")
+    );
     assert_eq!(options.page_size, 50);
     assert_eq!(options.max_pages, Some(3));
 }
@@ -130,14 +142,15 @@ fn sns_neurons_cache_parses_list_and_status_options() {
     assert_eq!(list.network, "ic");
     assert_eq!(list.format, OutputFormat::Json);
 
-    let status = parse_test_options(
+    let (format, status) = parse_test_options(
         sns_neuron_cache_status_command(),
         &["be2us-64aaa-aaaaa-qaabq-cai", "--json"],
-        SnsCacheStatusOptions::from_matches,
+        |m, n| cache_status_request(m, n, std::path::PathBuf::from("fixture-cache")),
     )
     .expect("parse cache status");
 
     assert_eq!(status.input, "be2us-64aaa-aaaaa-qaabq-cai");
     assert_eq!(status.network, "ic");
-    assert_eq!(status.format, OutputFormat::Json);
+    assert_eq!(status.cache_root, std::path::PathBuf::from("fixture-cache"));
+    assert_eq!(format, OutputFormat::Json);
 }

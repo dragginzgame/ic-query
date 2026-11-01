@@ -5,6 +5,29 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.82.0]
+
+### ⚠️ Breaking
+
+- Read reward checkpoint findings through `summary`, checkpoint and diff-reference
+  identities through `canisters`, and SNS upgrade/refresh metadata through `context`.
+  Update Rust field access and struct literals; JSON fields and schema-1 files
+  retain their current contract.
+- Adopt Platform 0.16 and Host Tools/Testkit 0.76. Align direct dependencies and
+  rebuild consumers using certificate, ledger or canister runtime types.
+
+### ⬆️ Dependencies
+
+- Align Host/Foundation minimums to 0.73.4 and Wire to 0.13.3. Existing Wire
+  representations and protocol bytes are unchanged.
+
+### 🧹 Cleanup
+
+- Share Dashboard resource URL construction and build SNS lookup/cache and NNS
+  topology refresh requests directly from CLI arguments. CLI behavior is unchanged.
+
+Detailed release notes: [docs/changelog/0.82.md](docs/changelog/0.82.md)
+
 ## [0.81.1] - 2026-11-01
 
 ### 🧹 Cleanup

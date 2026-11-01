@@ -81,23 +81,31 @@ topology_read_options_parse_test!(
 
 #[test]
 fn topology_refresh_parses_defaults_and_dry_run() {
-    let defaults = parse_test_options(
-        topology_refresh_command(),
-        &[],
-        TopologyRefreshOptions::from_matches,
-    )
+    let (format, defaults) = parse_test_options(topology_refresh_command(), &[], |m, n| {
+        topology_refresh_request(
+            m,
+            n,
+            std::path::PathBuf::from("fixture-cache"),
+            1_780_531_200,
+        )
+    })
     .expect("parse defaults");
 
-    assert_eq!(defaults.common.network, MAINNET_NETWORK);
-    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(defaults.read.cache.network, MAINNET_NETWORK);
+    assert_eq!(format, OutputFormat::Text);
     assert_eq!(
-        defaults.common.source_endpoint,
+        defaults.read.source_endpoint,
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT
     );
 
+    assert_eq!(
+        defaults.read.cache.cache_root,
+        std::path::PathBuf::from("fixture-cache")
+    );
+    assert_eq!(defaults.read.now_unix_secs, 1_780_531_200);
     assert!(!defaults.dry_run);
 
-    let options = parse_test_options(
+    let (format, options) = parse_test_options(
         topology_refresh_command(),
         &[
             "--json",
@@ -105,11 +113,18 @@ fn topology_refresh_parses_defaults_and_dry_run() {
             "https://icp-api.io",
             "--dry-run",
         ],
-        TopologyRefreshOptions::from_matches,
+        |m, n| {
+            topology_refresh_request(
+                m,
+                n,
+                std::path::PathBuf::from("fixture-cache"),
+                1_780_531_200,
+            )
+        },
     )
     .expect("parse topology refresh");
 
-    assert_topology_json_source(options.common.format, &options.common.source_endpoint);
+    assert_topology_json_source(format, &options.read.source_endpoint);
 
     assert!(options.dry_run);
 }

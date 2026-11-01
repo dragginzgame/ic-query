@@ -79,8 +79,8 @@ Foundation (Host Artifacts, FS, HTTP, Process, Text and Build) is independently
 released from integration (Host Tools and Testkit). Query selects their published
 packages through one root catalog and lockfile while retaining Rust 1.91.
 
-The current workspace minimums are Platform 0.15.2, Metrics 0.24.0,
-Foundation 0.73.3, integration 0.75.2 and Wire 0.13.1. Platform, Host Tools and
+The current workspace minimums are Platform 0.16.0, Metrics 0.24.0,
+Foundation 0.73.4, integration 0.76.0 and Wire 0.13.3. Platform, Host Tools and
 Testkit share one Platform identity and its canonical `ic-platform-types` 0.15.1
 supplier. Query and Testkit share arithmetic-only Metrics 0.24; the lockfile
 contains one Metrics identity. Direct Wire use belongs to probes and development
@@ -92,7 +92,7 @@ Platform's root Principal is its canonical owned type. Required external Candid
 contracts and Agent/PocketIC calls retain the explicit external Principal from
 `candid::contract::Principal`. Query's existing conversions preserve raw identity
 bytes when crossing Host Registry helper and external protocol boundaries.
-Platform's ICRC DTO and runtime handles have the 0.15 Rust identity. Custom
+Platform's ICRC DTO and runtime handles have the 0.16 Rust identity. Custom
 `IcrcTipCertificateSource` implementations return that version's
 `ICRC3DataCertificate`; runtime consumers rebuild against the same Platform line.
 
@@ -103,8 +103,8 @@ arity policy. This wire-nesting bound does not guarantee arbitrary custom
 deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by Platform 0.7.
 Required external Candid parsing and type checking remain in Testkit fixtures.
-External Agent, Candid and certificate identities remain shared. Query's canister
-runtime selects Platform 0.15's embedded IC0 and executor, with one runtime owner
+External Agent and Candid identities remain shared. Query's canister
+runtime selects Platform 0.16's embedded IC0 and executor, with one runtime owner
 and no registry executor or IC0 package in the Wasm normal/build graph. Embedders
 align their runtime suppliers, including timer/endpoint integrations, on this line.
 The singleton guard is selected only through executor/runtime features; portable
@@ -113,9 +113,9 @@ or compatibility wrapper is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
-Host Tools' `ledger_evidence::LedgerTip`. Adopting Host Tools 0.75 and Platform
-0.15 public identities requires the pending Query 0.79 minor release. Callers
-naming these Host types align their direct `ic-host-tools` dependency to 0.75.
+Host Tools' `ledger_evidence::LedgerTip`. Adopting Host Tools 0.76 and Platform
+0.16 public identities requires the pending Query 0.82 minor release. Callers
+naming these Host types align their direct `ic-host-tools` dependency to 0.76.
 Serialized reports and schema-1 caches remain unchanged.
 
 Managed cache operations use published Host FS `capability::Directory` and
@@ -182,7 +182,7 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Its embedded executor and IC0 share the selected Platform 0.15 identity;
+graphs. Its embedded executor and IC0 share the selected Platform 0.16 identity;
 the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
@@ -197,8 +197,11 @@ and its public parse error identity; Agent retains authentication. Query keeps
 combined evidence byte allowances, freshness and
 application leaf admission. Subtree lookup results and labeled fixture hashes now
 also come from Platform; there are no remaining Agent hash-tree import exceptions.
-There is no direct `ic-certification` declaration; its transitive presence through
-Platform, Host and Agent is intentional.
+Platform owns these certificate/hash-tree types. Native Agent retains its external
+certificate identity; Query converts explicitly at that boundary and retains the
+external certificate for repeated Agent verification/lookup calls. There is no
+direct `ic-certification` declaration; Agent's transitive registry dependency is
+intentional.
 
 Platform's optional ledger surface owns the maintained ICRC Rust DTOs.
 `icrc-host` and `sns-host` select it directly; Host's
@@ -649,6 +652,12 @@ assurance.
   validated before the walk; ending evidence must equal it in full. Final
   checkpoint validation retains the checks against collection completion
   time, and restored reports are independently validated.
+  `SnsRewardCheckpointReport.summary` owns the aggregate and policy fields through
+  `SnsRewardCheckpointSummary`, flattened into the existing strict schema-1 JSON.
+  Both checkpoints and diff references carry `MainnetSnsCanisters` through
+  `canisters`, also flattened into their current strict JSON.
+  The collector moves its computed summary into the report; restored reports
+  independently recompute and compare the whole record.
   The portable neuron model owns permission and pending-disbursement checks
   shared by source admission and restored checkpoints. Exact detail still
   requires permission principals; checkpoints preserve missing principals and

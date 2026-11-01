@@ -4,7 +4,7 @@
 //! Does not own: live calls, report construction, source validation, or JSON output.
 //! Boundary: labels Governance and SNS-W evidence precisely and preserves query gaps.
 
-use crate::sns::report::text::common::sns_identity_fields_lines;
+use crate::sns::report::text::common::sns_identity_lines;
 
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::{
@@ -20,13 +20,7 @@ use crate::{
 /// Render one SNS upgrade report as human-facing text.
 #[must_use]
 pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
-    let mut lines = sns_identity_fields_lines(
-        &report.network,
-        report.id,
-        &report.name,
-        &report.root_canister_id,
-        &report.governance_canister_id,
-    );
+    let mut lines = sns_identity_lines(&report.context);
     lines.extend([
         format!("component_query_count: {}", report.component_query_count),
         format!(
@@ -46,11 +40,14 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
             "next_version_method: {}",
             report.next_version_method.as_str()
         ),
-        format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
         format!(
             "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+            terminal_text(&report.context.source_endpoint)
         ),
         String::new(),
         next_version_status(report),

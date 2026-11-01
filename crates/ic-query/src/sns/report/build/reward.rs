@@ -34,10 +34,6 @@ pub async fn build_sns_reward_checkpoint_report(
 }
 
 /// Build one SNS reward checkpoint through an explicit source adapter.
-#[expect(
-    clippy::too_many_lines,
-    reason = "Keep bracketed call order and final report projection together"
-)]
 pub async fn build_sns_reward_checkpoint_report_with_source(
     request: &SnsRewardCheckpointRequest,
     source: &dyn SnsRewardSource,
@@ -105,11 +101,7 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         fetched_by: lookup.fetch_request.fetched_by,
         id: lookup.sns.id,
         name: lookup.sns.name,
-        root_canister_id: lookup.sns.canisters.root_canister_id,
-        governance_canister_id: lookup.sns.canisters.governance_canister_id,
-        ledger_canister_id: lookup.sns.canisters.ledger_canister_id,
-        swap_canister_id: lookup.sns.canisters.swap_canister_id,
-        index_canister_id: lookup.sns.canisters.index_canister_id,
+        canisters: lookup.sns.canisters,
         data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: request.lookup.now_unix_secs,
         collection_started_at: format_utc_timestamp_secs(request.lookup.now_unix_secs),
@@ -129,27 +121,11 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         reward_event_after,
         running_version_before,
         running_version_after,
-        aggregate_maturity_e8s_equivalent: summary.aggregate_maturity_e8s_equivalent,
-        aggregate_staked_maturity_e8s_equivalent: summary.aggregate_staked_maturity_e8s_equivalent,
-        aggregate_combined_maturity_e8s_equivalent: summary
-            .aggregate_combined_maturity_e8s_equivalent,
-        permission_entry_count: summary.permission_entry_count,
-        unassessable_permission_code_count: summary.unassessable_permission_code_count,
-        pending_maturity_disbursement_count: summary.pending_maturity_disbursement_count,
-        auto_stake_maturity_enabled_count: summary.auto_stake_maturity_enabled_count,
-        auto_stake_maturity_disabled_count: summary.auto_stake_maturity_disabled_count,
-        auto_stake_maturity_unspecified_count: summary.auto_stake_maturity_unspecified_count,
-        manage_principals_grantable: summary.manage_principals_grantable,
-        maturity_mint_conversion_observed_disabled: summary
-            .maturity_mint_conversion_observed_disabled,
-        manual_maturity_staking_observed_disabled: summary
-            .manual_maturity_staking_observed_disabled,
-        maturity_conversion_policy_observed_status: summary
-            .maturity_conversion_policy_observed_status,
+        summary,
         rows,
     };
     report
-        .validate_collected_summary(&summary)
+        .validate_collected_evidence()
         .map_err(|error| SnsHostError::InvalidSourceData {
             capability: "SNS reward checkpoint",
             reason: error.reason,

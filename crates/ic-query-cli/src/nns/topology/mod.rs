@@ -9,5 +9,5 @@ pub(in crate::nns) use commands::{
     topology_regions_command, topology_summary_command, topology_versions_command,
 };
 #[cfg(test)]
-pub(in crate::nns) use options::TopologyRefreshOptions;
+pub(in crate::nns) use options::topology_refresh_request;
 pub(super) use run::run;

@@ -1,9 +1,9 @@
 use super::{
     error::SnsCommandError,
     options::{
-        SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, list_request,
-        metrics_request, neuron_request, neurons_request, proposal_request, proposals_request,
-        reward_checkpoint_request,
+        cache_status_request, list_request, lookup_request, metrics_request, neuron_request,
+        neurons_request, proposal_request, proposals_request, reward_checkpoint_request,
+        snapshot_refresh_request,
     },
     spec::{
         SnsListSortArg, sns_canister_command, sns_canister_list_command, sns_command,

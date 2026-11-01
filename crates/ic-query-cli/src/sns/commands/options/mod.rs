@@ -1,6 +1,6 @@
 //! Module: sns::commands::options
 //!
-//! Responsibility: expose SNS command option DTOs parsed from clap matches.
+//! Responsibility: construct SNS requests from clap matches.
 //! Does not own: clap command definitions, command dispatch, or reports.
 //! Boundary: keeps parsed command inputs scoped to SNS runtime code.
 
@@ -13,7 +13,7 @@ mod reward;
 
 pub(super) use list::list_request;
 pub(super) use lookup::{
-    SnsCacheStatusOptions, SnsLookupOptions, SnsPagedRefreshOptions, cache_list_request,
+    cache_list_request, cache_status_request, lookup_request, snapshot_refresh_request,
 };
 pub(super) use metrics::metrics_request;
 pub(super) use neurons::{neuron_request, neurons_request};

@@ -4,7 +4,7 @@
 //! Does not own: report filtering, source validation, native CloudEngine queries, or rendering.
 //! Boundary: performs one complete provider-resource request or one exact provider request.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::{
     cloud_engine::{
         CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
@@ -51,15 +51,11 @@ impl CloudEngineProviderSource for LiveIcSource {
 }
 
 fn provider_list_url(endpoint: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["node-providers"])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["node-providers"])
 }
 
 fn provider_info_url(endpoint: &str, node_provider_id: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["node-providers", node_provider_id])?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["node-providers", node_provider_id])
 }
 
 #[derive(SerdeDeserialize)]

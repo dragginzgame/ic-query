@@ -10,7 +10,7 @@ use ic_host_tools::certificate::{
 };
 #[cfg(feature = "ledger-evidence-host")]
 use ic_host_tools::ledger_evidence::LedgerTip;
-use ic_platform::agent::{Agent, AgentError};
+use ic_platform::agent::{Agent, AgentError, ExternalCertificate};
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{Certificate, HashTree, LookupResult};
 use thiserror::Error;
@@ -67,17 +67,18 @@ pub fn authenticate(
     bytes: &[u8],
     maximum_bytes: usize,
 ) -> Result<Certificate, CertificateVerificationError> {
-    let certificate = decode_certificate(
+    let certificate: ExternalCertificate = decode_certificate(
         bytes,
         DecodeLimits {
             bytes: maximum_bytes,
         },
     )
-    .map_err(decode_error)?;
+    .map_err(decode_error)?
+    .into();
     agent
         .verify(&certificate, canister)
         .map_err(CertificateVerificationError::Invalid)?;
-    Ok(certificate)
+    Ok(certificate.into())
 }
 
 fn decode_error(error: DecodeError) -> CertificateVerificationError {

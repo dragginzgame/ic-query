@@ -4,7 +4,7 @@
 //! Does not own: report validation, CLI parsing, provenance projection, or rendering.
 //! Boundary: performs one page, one exact record, or one bounded history request.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcHostError, IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryQuery,
     IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
@@ -84,8 +84,7 @@ fn node_provider_reward_list_url(
     endpoint: &str,
     query: &IcNodeProviderRewardListQuery,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["reward-node-providers"])?;
+    let mut url = dashboard_resource_url(endpoint, &["reward-node-providers"])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("format", "json");
@@ -102,21 +101,14 @@ fn node_provider_reward_list_url(
 }
 
 fn node_provider_reward_info_url(endpoint: &str, reward_id: u64) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(
-        endpoint,
-        &mut url,
-        &["reward-node-providers", &reward_id.to_string()],
-    )?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["reward-node-providers", &reward_id.to_string()])
 }
 
 fn node_provider_reward_history_url(
     endpoint: &str,
     query: &IcNodeProviderRewardHistoryQuery,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["timeseries", "reward-node-providers"])?;
+    let mut url = dashboard_resource_url(endpoint, &["timeseries", "reward-node-providers"])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("format", "json");

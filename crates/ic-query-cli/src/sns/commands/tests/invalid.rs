@@ -11,15 +11,17 @@ fn sns_neurons_rejects_invalid_clap_values() {
         ));
     }
     assert!(matches!(
-        parse_test_options(
-            sns_info_command(),
-            &["not-a-principal"],
-            SnsLookupOptions::from_matches,
-        ),
+        parse_test_options(sns_info_command(), &["not-a-principal"], |m, n| {
+            lookup_request(m, n, 1_780_531_200)
+        },),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        parse_test_options(sns_token_command(), &["0"], SnsLookupOptions::from_matches,),
+        parse_test_options(sns_token_command(), &["0"], |m, n| lookup_request(
+            m,
+            n,
+            1_780_531_200
+        ),),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
@@ -70,7 +72,12 @@ fn sns_neurons_rejects_invalid_clap_values() {
         parse_test_options(
             sns_neuron_refresh_command(),
             &["1", "--page-size", "0"],
-            SnsPagedRefreshOptions::from_matches,
+            |m, n| snapshot_refresh_request(
+                m,
+                n,
+                std::path::PathBuf::from("fixture-cache"),
+                1_780_531_200
+            ),
         ),
         Err(SnsCommandError::Usage(_))
     ));
@@ -78,7 +85,7 @@ fn sns_neurons_rejects_invalid_clap_values() {
         parse_test_options(
             sns_neuron_cache_status_command(),
             &["not-a-principal"],
-            SnsCacheStatusOptions::from_matches,
+            |m, n| cache_status_request(m, n, std::path::PathBuf::from("fixture-cache")),
         ),
         Err(SnsCommandError::Usage(_))
     ));

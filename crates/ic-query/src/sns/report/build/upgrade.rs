@@ -6,8 +6,8 @@
 
 use crate::sns::report::{
     SNS_UPGRADE_QUERY_COUNT, SNS_UPGRADE_REPORT_SCHEMA_VERSION, SnsHostError, SnsLookupRequest,
-    SnsUpgradeReport, SnsUpgradeSource, live::LiveSnsSource, lookup::resolve_sns_lookup,
-    source::canonicalize_mainnet_sns_upgrade,
+    SnsReportContext, SnsUpgradeReport, SnsUpgradeSource, live::LiveSnsSource,
+    lookup::resolve_sns_lookup, source::canonicalize_mainnet_sns_upgrade,
 };
 
 /// Build a live bounded upgrade report for one deployed SNS.
@@ -30,15 +30,7 @@ pub async fn build_sns_upgrade_report_with_source(
     let component_gap_count = usize::from(upgrade.next_version_gap.is_some());
     Ok(SnsUpgradeReport {
         schema_version: SNS_UPGRADE_REPORT_SCHEMA_VERSION,
-        network: lookup.fetch_request.network,
-        sns_wasm_canister_id: upgrade.sns_wasm_canister_id,
-        fetched_at: lookup.fetch_request.fetched_at,
-        source_endpoint: lookup.fetch_request.endpoint,
-        fetched_by: lookup.fetch_request.fetched_by,
-        id: lookup.sns.id,
-        name: lookup.sns.name,
-        root_canister_id: lookup.sns.canisters.root_canister_id,
-        governance_canister_id: upgrade.governance_canister_id,
+        context: SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
         running_version_method: upgrade.running_version_method,
         next_version_method: upgrade.next_version_method,
         point_in_time_guaranteed: upgrade.point_in_time_guaranteed,

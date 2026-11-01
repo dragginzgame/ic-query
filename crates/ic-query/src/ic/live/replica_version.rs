@@ -4,7 +4,7 @@
 //! Does not own: report validation, CLI parsing, provenance projection, or rendering.
 //! Boundary: performs one bounded list request or one exact release request.
 
-use super::{LiveIcSource, append_path_segments, dashboard_base_url};
+use super::{LiveIcSource, dashboard_resource_url};
 use crate::ic::{
     IcHostError, IcReplicaVersionInfoSourceData, IcReplicaVersionListQuery,
     IcReplicaVersionListRow, IcReplicaVersionListSourceData, IcReplicaVersionSource,
@@ -48,8 +48,7 @@ fn replica_version_list_url(
     endpoint: &str,
     query: &IcReplicaVersionListQuery,
 ) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(endpoint, &mut url, &["subnet-replica-versions"])?;
+    let mut url = dashboard_resource_url(endpoint, &["subnet-replica-versions"])?;
     {
         let mut pairs = url.query_pairs_mut();
         pairs.append_pair("limit", &query.limit.to_string());
@@ -70,13 +69,7 @@ fn replica_version_list_url(
 }
 
 fn replica_version_info_url(endpoint: &str, replica_version_id: &str) -> Result<Url, IcHostError> {
-    let mut url = dashboard_base_url(endpoint)?;
-    append_path_segments(
-        endpoint,
-        &mut url,
-        &["subnet-replica-versions", replica_version_id],
-    )?;
-    Ok(url)
+    dashboard_resource_url(endpoint, &["subnet-replica-versions", replica_version_id])
 }
 
 #[derive(SerdeDeserialize)]

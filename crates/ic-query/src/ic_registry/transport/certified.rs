@@ -136,7 +136,7 @@ pub(super) fn authenticate_registry_response(
         },
     )
     .map_err(|error| invalid_certified_registry(format!("certificate CBOR is invalid: {error}")))?;
-    authenticate_canister_tree(
+    let certificate = authenticate_canister_tree(
         agent,
         registry_canister,
         &certificate,
