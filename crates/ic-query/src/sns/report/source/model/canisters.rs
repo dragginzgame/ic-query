@@ -9,9 +9,8 @@ use crate::decimal::is_canonical_unsigned_decimal;
 use crate::{
     hex::is_canonical_lowercase_hex,
     sns::report::{
-        SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
-        SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterRole, SnsCanisterRow,
-        SnsHostError,
+        MainnetSnsCanisterInventory, SnsCanisterCallType, SnsCanisterCycleBalanceStatus,
+        SnsCanisterGapKind, SnsCanisterMethod, SnsCanisterRole, SnsCanisterRow, SnsHostError,
     },
 };
 use std::collections::BTreeMap;
@@ -19,32 +18,6 @@ use std::collections::BTreeMap;
 pub(in crate::sns::report) const SNS_CANISTER_HEALTH_CALL_TYPE: SnsCanisterCallType =
     SnsCanisterCallType::IngressUpdate;
 const VALIDATOR: SnsSourceValidator = SnsSourceValidator::new("SNS Root canister inventory");
-
-///
-/// MainnetSnsCanisterInventory
-///
-/// Source-layer SNS Root inventory and health evidence for one deployed SNS.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MainnetSnsCanisterInventory {
-    /// Root query method used as the inventory authority.
-    pub inventory_method: SnsCanisterMethod,
-    /// Root ingress method used for operational health.
-    pub health_method: SnsCanisterMethod,
-    /// Transport kind used for the health call.
-    pub health_call_type: SnsCanisterCallType,
-    /// Value sent in the Root health request.
-    pub health_update_canister_list: bool,
-    /// Whether the source can prove one point-in-time snapshot for all values.
-    pub point_in_time_guaranteed: bool,
-    /// Inventory rows returned by the source.
-    pub canisters: Vec<SnsCanisterRow>,
-    /// Root health ingress failure retained after successful inventory collection.
-    pub health_query_gap: Option<SnsCanisterHealthQueryGap>,
-    /// Explicit inventory or health relation gaps returned by the source.
-    pub gaps: Vec<SnsCanisterGap>,
-}
 
 pub(in crate::sns::report) fn canonicalize_mainnet_sns_canister_inventory(
     inventory: &mut MainnetSnsCanisterInventory,

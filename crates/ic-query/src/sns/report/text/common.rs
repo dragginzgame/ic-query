@@ -82,10 +82,6 @@ pub(in crate::sns::report::text) fn optional_u32_text(value: Option<u32>) -> Str
     value.map_or_else(|| "-".to_string(), |value| value.to_string())
 }
 
-pub(in crate::sns::report::text) fn optional_bool_text(value: Option<bool>) -> String {
-    value.map_or_else(|| "-".to_string(), |value| yes_no(value).to_string())
-}
-
 pub(in crate::sns::report::text) fn optional_permissions_text(
     value: Option<&SnsNeuronPermissionList>,
 ) -> String {

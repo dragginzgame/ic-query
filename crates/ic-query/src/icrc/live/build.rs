@@ -230,17 +230,13 @@ pub async fn build_icrc_index_report_with_source(
     request: &IcrcLedgerRequest,
     source: &dyn IcrcIndexSource,
 ) -> Result<IcrcIndexReport, IcrcError> {
-    let (index_canister_id, index_error) = match source.fetch_index(request).await? {
-        crate::icrc::IcrcIndexData::Found(principal) => (Some(principal), None),
-        crate::icrc::IcrcIndexData::Unavailable(error) => (None, Some(error)),
-    };
+    let index = source.fetch_index(request).await?;
     Ok(IcrcIndexReport {
         provenance: crate::icrc::IcrcReportProvenance::from_request(
             request,
             ICRC_INDEX_REPORT_SCHEMA_VERSION,
         ),
-        index_canister_id,
-        index_error,
+        index,
     })
 }
 
@@ -312,19 +308,12 @@ pub async fn build_icrc_tip_certificate_report_with_source(
             request,
             ICRC_TIP_CERTIFICATE_REPORT_SCHEMA_VERSION,
         ),
-        certificate_present: certificate.is_some(),
-        certificate_hex: certificate
-            .as_ref()
-            .map(|evidence| crate::hex::hex_bytes(&evidence.certificate)),
-        certificate_bytes: certificate
-            .as_ref()
-            .map(|evidence| evidence.certificate.len()),
-        hash_tree_hex: certificate
-            .as_ref()
-            .map(|evidence| crate::hex::hex_bytes(&evidence.hash_tree)),
-        hash_tree_bytes: certificate
-            .as_ref()
-            .map(|evidence| evidence.hash_tree.len()),
+        certificate: certificate.map(|evidence| crate::icrc::IcrcTipCertificateEvidence {
+            certificate_hex: crate::hex::hex_bytes(&evidence.certificate),
+            certificate_bytes: evidence.certificate.len(),
+            hash_tree_hex: crate::hex::hex_bytes(&evidence.hash_tree),
+            hash_tree_bytes: evidence.hash_tree.len(),
+        }),
     })
 }
 

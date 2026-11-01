@@ -42,12 +42,7 @@ fn node_operator_report_from_list(list: MainnetNodeOperatorList) -> NnsNodeOpera
     let node_operators = list.node_operators;
     NnsNodeOperatorListReport {
         schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
+        provenance: list.provenance,
         node_operator_count: node_operators.len(),
         node_operators,
     }

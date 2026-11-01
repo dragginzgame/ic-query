@@ -24,12 +24,7 @@ pub fn nns_node_info_report_text(report: &NnsNodeInfoReport) -> String {
         ),
     ];
     lines.extend(crate::nns::render::registry_provenance_lines(
-        &report.registry_canister_id,
-        report.registry_version,
-        &report.network,
-        &report.fetched_at,
-        &report.source_endpoint,
-        &report.fetched_by,
+        &report.provenance,
     ));
     lines.join("\n")
 }

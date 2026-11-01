@@ -214,6 +214,32 @@ pub struct SnsCanisterRow {
 }
 
 ///
+/// MainnetSnsCanisterInventory
+///
+/// SNS Root inventory and health evidence shared by sources and reports.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct MainnetSnsCanisterInventory {
+    /// Root query method used as the inventory authority.
+    pub inventory_method: SnsCanisterMethod,
+    /// Root ingress method used for operational health.
+    pub health_method: SnsCanisterMethod,
+    /// Transport kind used for the health call.
+    pub health_call_type: SnsCanisterCallType,
+    /// Value sent in the Root health request.
+    pub health_update_canister_list: bool,
+    /// Whether the source can prove one point-in-time snapshot for all values.
+    pub point_in_time_guaranteed: bool,
+    /// Inventory rows returned by the source.
+    pub canisters: Vec<SnsCanisterRow>,
+    /// Root health ingress failure retained after successful inventory collection.
+    pub health_query_gap: Option<SnsCanisterHealthQueryGap>,
+    /// Explicit inventory or health relation gaps returned by the source.
+    pub gaps: Vec<SnsCanisterGap>,
+}
+
+///
 /// SnsCanisterReport
 ///
 /// Joined SNS Root inventory and operational-health report.
@@ -239,16 +265,9 @@ pub struct SnsCanisterReport {
     pub name: String,
     /// Root canister queried for inventory and health.
     pub root_canister_id: String,
-    /// Root query method used as the inventory authority.
-    pub inventory_method: SnsCanisterMethod,
-    /// Root ingress method used for operational health.
-    pub health_method: SnsCanisterMethod,
-    /// Transport kind used for the health call.
-    pub health_call_type: SnsCanisterCallType,
-    /// Value sent in the Root health request; always false for this read-only report.
-    pub health_update_canister_list: bool,
-    /// Whether all joined values represent one authoritative point-in-time snapshot.
-    pub point_in_time_guaranteed: bool,
+    /// Canonical Root inventory and health evidence, flattened in JSON.
+    #[serde(flatten)]
+    pub inventory: MainnetSnsCanisterInventory,
     /// Number of canisters in the Root inventory response.
     pub canister_count: usize,
     /// Number of inventory canisters with returned operational status.
@@ -259,10 +278,4 @@ pub struct SnsCanisterReport {
     pub cycles_unavailable_count: usize,
     /// Number of explicit inventory or health relation gaps.
     pub gap_count: usize,
-    /// Root health ingress failure retained after successful inventory collection.
-    pub health_query_gap: Option<SnsCanisterHealthQueryGap>,
-    /// Canonically ordered inventory rows.
-    pub canisters: Vec<SnsCanisterRow>,
-    /// Canonically ordered typed relation gaps.
-    pub gaps: Vec<SnsCanisterGap>,
 }

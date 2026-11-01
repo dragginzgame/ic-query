@@ -12,31 +12,43 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     assert_eq!(report.schema_version, SNS_CANISTER_REPORT_SCHEMA_VERSION);
     assert_eq!(report.id, 1);
     assert_eq!(report.root_canister_id, ROOT_A);
-    assert_eq!(report.inventory_method, SnsCanisterMethod::ListSnsCanisters);
     assert_eq!(
-        report.health_method,
+        report.inventory.inventory_method,
+        SnsCanisterMethod::ListSnsCanisters
+    );
+    assert_eq!(
+        report.inventory.health_method,
         SnsCanisterMethod::GetSnsCanistersSummary
     );
-    assert_eq!(report.health_call_type, SnsCanisterCallType::IngressUpdate);
-    assert!(!report.health_update_canister_list);
-    assert!(!report.point_in_time_guaranteed);
+    assert_eq!(
+        report.inventory.health_call_type,
+        SnsCanisterCallType::IngressUpdate
+    );
+    assert!(!report.inventory.health_update_canister_list);
+    assert!(!report.inventory.point_in_time_guaranteed);
     assert_eq!(report.canister_count, 2);
     assert_eq!(report.health_status_count, 1);
     assert_eq!(report.reported_zero_cycles_count, 1);
     assert_eq!(report.cycles_unavailable_count, 1);
     assert_eq!(report.gap_count, 1);
-    assert_eq!(report.health_query_gap, None);
-    assert_eq!(report.canisters[0].role, SnsCanisterRole::Root);
+    assert_eq!(report.inventory.health_query_gap, None);
+    assert_eq!(report.inventory.canisters[0].role, SnsCanisterRole::Root);
     assert_eq!(
-        report.canisters[0].cycle_balance_status,
+        report.inventory.canisters[0].cycle_balance_status,
         SnsCanisterCycleBalanceStatus::ReportedZero
     );
-    assert_eq!(report.canisters[1].role, SnsCanisterRole::Extension);
     assert_eq!(
-        report.canisters[1].cycle_balance_status,
+        report.inventory.canisters[1].role,
+        SnsCanisterRole::Extension
+    );
+    assert_eq!(
+        report.inventory.canisters[1].cycle_balance_status,
         SnsCanisterCycleBalanceStatus::Unavailable
     );
-    assert_eq!(report.gaps[0].kind, SnsCanisterGapKind::HealthUnsupported);
+    assert_eq!(
+        report.inventory.gaps[0].kind,
+        SnsCanisterGapKind::HealthUnsupported
+    );
     assert!(text.contains("health_call_type: ingress_update"));
     assert!(text.contains("health_update_canister_list: no"));
     assert!(text.contains("reported_zero_cycles_count: 1"));
@@ -82,12 +94,13 @@ async fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
     assert_eq!(report.health_status_count, 0);
     assert_eq!(report.reported_zero_cycles_count, 0);
     assert_eq!(report.cycles_unavailable_count, 2);
-    assert!(report.canisters.iter().all(|canister| {
+    assert!(report.inventory.canisters.iter().all(|canister| {
         canister.cycles.is_none()
             && canister.cycle_balance_status == SnsCanisterCycleBalanceStatus::Unavailable
     }));
     assert!(
         report
+            .inventory
             .health_query_gap
             .as_ref()
             .is_some_and(|gap| gap.reason == "health failed")

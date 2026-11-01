@@ -129,13 +129,34 @@ mod tests {
 ///
 /// IcrcIndexData
 ///
-/// Source-layer ICRC-106 index discovery result.
+/// ICRC-106 discovery outcome shared by sources and serialized reports.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum IcrcIndexData {
     /// Index principal returned by the ledger.
     Found(String),
     /// Index discovery is unavailable; source families own transport-error policy.
     Unavailable(String),
+}
+
+impl IcrcIndexData {
+    /// Borrow the discovered index principal when discovery succeeded.
+    #[must_use]
+    pub fn canister_id(&self) -> Option<&str> {
+        match self {
+            Self::Found(principal) => Some(principal),
+            Self::Unavailable(_) => None,
+        }
+    }
+
+    /// Borrow the source's explanation when discovery is unavailable.
+    #[must_use]
+    pub fn unavailable_reason(&self) -> Option<&str> {
+        match self {
+            Self::Found(_) => None,
+            Self::Unavailable(reason) => Some(reason),
+        }
+    }
 }

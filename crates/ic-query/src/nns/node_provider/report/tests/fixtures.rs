@@ -5,13 +5,15 @@ use crate::test_support::temp_dir;
 pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         node_provider_count: 2,
         node_providers: vec![
             NnsNodeProviderRow {
@@ -59,13 +61,15 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
                 .collect::<Vec<_>>();
             Ok(NnsNodeProviderListReport {
                 schema_version: 1,
-                network: MAINNET_NETWORK.to_string(),
+                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                    network: MAINNET_NETWORK.to_string(),
+                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                    registry_version: 42,
+                    fetched_at: request.fetched_at.clone(),
+                    source_endpoint: request.endpoint.clone(),
+                    fetched_by: "test".to_string(),
+                },
                 governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                registry_version: 42,
-                fetched_at: request.fetched_at.clone(),
-                fetched_by: "test".to_string(),
-                source_endpoint: request.endpoint.clone(),
                 node_provider_count: node_providers.len(),
                 node_providers,
             })

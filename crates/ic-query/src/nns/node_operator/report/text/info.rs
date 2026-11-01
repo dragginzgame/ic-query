@@ -29,12 +29,7 @@ pub fn nns_node_operator_info_report_text(report: &NnsNodeOperatorInfoReport) ->
         ),
     ];
     lines.extend(crate::nns::render::registry_provenance_lines(
-        &report.registry_canister_id,
-        report.registry_version,
-        &report.network,
-        &report.fetched_at,
-        &report.source_endpoint,
-        &report.fetched_by,
+        &report.provenance,
     ));
     lines.join("\n")
 }

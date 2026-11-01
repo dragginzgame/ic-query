@@ -35,12 +35,7 @@ pub fn nns_data_center_info_report_text(report: &NnsDataCenterInfoReport) -> Str
         format!("node_count: {}", report.data_center.node_count),
     ];
     lines.extend(crate::nns::render::registry_provenance_lines(
-        &report.registry_canister_id,
-        report.registry_version,
-        &report.network,
-        &report.fetched_at,
-        &report.source_endpoint,
-        &report.fetched_by,
+        &report.provenance,
     ));
     lines.join("\n")
 }

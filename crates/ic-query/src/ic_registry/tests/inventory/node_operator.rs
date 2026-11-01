@@ -56,9 +56,12 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
 
     let list = node_operator_list_from_inventory(&request, inventory, 42).expect("node operators");
 
-    assert_eq!(list.network, MAINNET_NETWORK);
-    assert_eq!(list.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
-    assert_eq!(list.registry_version, 42);
+    assert_eq!(list.provenance.network, MAINNET_NETWORK);
+    assert_eq!(
+        list.provenance.registry_canister_id,
+        MAINNET_REGISTRY_CANISTER_ID
+    );
+    assert_eq!(list.provenance.registry_version, 42);
     assert_eq!(list.node_operators.len(), 2);
     let primary_result = list
         .node_operators

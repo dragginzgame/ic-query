@@ -886,11 +886,12 @@ fn public_icrc_index_api_is_constructible_and_renderable_without_host() {
             source_endpoint: request.source_endpoint,
             fetched_by: FETCHED_BY.to_string(),
         },
-        index_canister_id: None,
-        index_error: Some("not configured".to_string()),
+        index: ic_query::icrc::IcrcIndexData::Unavailable("not configured".to_string()),
     };
 
     let text = icrc_index_report_text(&report);
+    let json = serde_json::to_value(&report).expect("serialize index outcome");
+    assert_eq!(json["index"], json!({"unavailable": "not configured"}));
 
     assert!(text.contains("index_canister_id: -"));
     assert!(text.contains("index_error: not configured"));
@@ -1037,7 +1038,7 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
         ledger_canister_id: LEDGER_CANISTER_ID.to_string(),
     };
 
-    let report = IcrcTipCertificateReport {
+    let mut report = IcrcTipCertificateReport {
         provenance: ic_query::icrc::IcrcReportProvenance {
             schema_version: 1,
             ledger_canister_id: request.ledger_canister_id,
@@ -1045,11 +1046,12 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
             source_endpoint: request.source_endpoint,
             fetched_by: FETCHED_BY.to_string(),
         },
-        certificate_present: true,
-        certificate_hex: Some("010203".to_string()),
-        certificate_bytes: Some(3),
-        hash_tree_hex: Some("aabb".to_string()),
-        hash_tree_bytes: Some(2),
+        certificate: Some(ic_query::icrc::IcrcTipCertificateEvidence {
+            certificate_hex: "010203".to_string(),
+            certificate_bytes: 3,
+            hash_tree_hex: "aabb".to_string(),
+            hash_tree_bytes: 2,
+        }),
     };
 
     let text = icrc_tip_certificate_report_text(&report);
@@ -1057,6 +1059,24 @@ fn public_icrc_tip_certificate_api_is_constructible_and_renderable_without_host(
     assert!(text.contains("certificate_present: true"));
     assert!(text.contains("certificate_bytes: 3 B"));
     assert!(text.contains("hash_tree_hex: aabb"));
+    let json = serde_json::to_value(&report).expect("serialize certificate evidence");
+    assert_eq!(
+        json["certificate"],
+        json!({
+            "certificate_hex": "010203",
+            "certificate_bytes": 3,
+            "hash_tree_hex": "aabb",
+            "hash_tree_bytes": 2,
+        })
+    );
+
+    report.certificate = None;
+    let json = serde_json::to_value(&report).expect("serialize absent certificate");
+    assert_eq!(json["certificate"], serde_json::Value::Null);
+    let text = icrc_tip_certificate_report_text(&report);
+    assert!(text.contains("certificate_present: false"));
+    assert!(text.contains("certificate_bytes: -"));
+    assert!(text.contains("hash_tree_hex: -"));
 }
 
 #[test]

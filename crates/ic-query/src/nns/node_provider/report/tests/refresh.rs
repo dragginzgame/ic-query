@@ -47,12 +47,21 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
             .await
             .expect("cached report");
 
-    assert_eq!(report.source_endpoint, "https://icp-api.io");
+    assert_eq!(report.provenance.source_endpoint, "https://icp-api.io");
     assert_eq!(report.node_providers.len(), 1);
     assert_eq!(report.node_providers[0].node_count, Some(13));
-    assert_eq!(refresh_report.registry_version, report.registry_version);
-    assert_eq!(refresh_report.fetched_at, report.fetched_at);
-    assert_eq!(refresh_report.source_endpoint, report.source_endpoint);
+    assert_eq!(
+        refresh_report.provenance.registry_version,
+        report.provenance.registry_version
+    );
+    assert_eq!(
+        refresh_report.provenance.fetched_at,
+        report.provenance.fetched_at
+    );
+    assert_eq!(
+        refresh_report.provenance.source_endpoint,
+        report.provenance.source_endpoint
+    );
 
     let cache_bytes = std::fs::read(&refresh_report.cache_path).expect("read published inventory");
     let output_path = list_request

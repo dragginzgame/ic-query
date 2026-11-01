@@ -11,9 +11,9 @@ use ic_host_text::timestamp::format_utc_timestamp_secs;
 use crate::{
     sns::report::{
         SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
-        text::common::{dissolve_state_text, optional_bool_text, optional_e8s_text},
+        text::common::{dissolve_state_text, optional_e8s_text},
     },
-    text_value::{optional_text, optional_u64_text},
+    text_value::{optional_bool_text, optional_text, optional_u64_text},
     token_amount::e8s_decimal_text,
 };
 

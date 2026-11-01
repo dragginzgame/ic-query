@@ -15,10 +15,13 @@ fn governance_node_provider_response_converts_to_domain_structs() {
     let list = node_provider_list_from_response(&request, response, node_counts, 42)
         .expect("node providers");
 
-    assert_eq!(list.network, MAINNET_NETWORK);
+    assert_eq!(list.provenance.network, MAINNET_NETWORK);
     assert_eq!(list.governance_canister_id, MAINNET_GOVERNANCE_CANISTER_ID);
-    assert_eq!(list.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
-    assert_eq!(list.registry_version, 42);
+    assert_eq!(
+        list.provenance.registry_canister_id,
+        MAINNET_REGISTRY_CANISTER_ID
+    );
+    assert_eq!(list.provenance.registry_version, 42);
     assert_eq!(list.node_providers.len(), 2);
     assert_eq!(list.node_providers[0].principal, "aaaaa-aa");
     assert_eq!(list.node_providers[0].node_count, Some(2));

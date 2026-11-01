@@ -14,11 +14,11 @@ use crate::{
     sns::report::{
         SnsNeuronsReport,
         text::common::{
-            dissolve_state_text, neuron_id_text, optional_bool_text, optional_e8s_text,
-            optional_text, push_report_provenance_lines,
+            dissolve_state_text, neuron_id_text, optional_e8s_text, optional_text,
+            push_report_provenance_lines,
         },
     },
-    text_value::yes_no,
+    text_value::{optional_bool_text, yes_no},
     token_amount::e8s_decimal_text,
 };
 
@@ -67,7 +67,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
                         e8s_decimal_text(neuron.maturity_e8s_equivalent),
                         optional_e8s_text(neuron.staked_maturity_e8s_equivalent),
                         dissolve_state_text(neuron.dissolve_state),
-                        optional_bool_text(neuron.auto_stake_maturity),
+                        optional_bool_text(neuron.auto_stake_maturity).to_string(),
                         neuron.voting_power_percentage_multiplier.to_string(),
                         format_utc_timestamp_secs(neuron.created_timestamp_seconds),
                     ]

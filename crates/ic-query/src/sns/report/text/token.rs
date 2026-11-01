@@ -6,7 +6,6 @@
 
 use crate::{
     sns::report::SnsTokenReport,
-    text_value::optional_text,
     token_metadata_text::{append_token_metadata_tables, token_summary_lines},
 };
 use ic_host_text::escape::terminal_text;
@@ -22,7 +21,7 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
         format!("sns_index_canister_id: {}", report.sns_index_canister_id),
         format!(
             "ledger_index_canister_id: {}",
-            optional_text(report.ledger_index_canister_id.as_ref())
+            terminal_text(report.ledger_index.canister_id().unwrap_or("-"))
         ),
     ];
     lines.extend(token_summary_lines(&report.token));
@@ -34,7 +33,7 @@ pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
             terminal_text(&report.source_endpoint)
         ),
     ]);
-    if let Some(error) = report.ledger_index_error.as_deref() {
+    if let Some(error) = report.ledger_index.unavailable_reason() {
         lines.push(format!("ledger_index_error: {}", terminal_text(error)));
     }
     append_token_metadata_tables(&mut lines, &report.token);

@@ -1,4 +1,9 @@
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+#[cfg(feature = "nns-host")]
+use crate::{
+    nns::registry::NnsRegistryInventoryProvenance,
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
+};
 
 ///
 /// MainnetRegistryFetchRequest
@@ -21,6 +26,23 @@ impl MainnetRegistryFetchRequest {
             endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
             fetched_at,
             fetched_by: "ic-query".to_string(),
+        }
+    }
+}
+
+#[cfg(feature = "nns-host")]
+impl MainnetRegistryFetchRequest {
+    pub(in crate::ic_registry) fn inventory_provenance(
+        &self,
+        registry_version: u64,
+    ) -> NnsRegistryInventoryProvenance {
+        NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version,
+            fetched_at: self.fetched_at.clone(),
+            source_endpoint: self.endpoint.clone(),
+            fetched_by: self.fetched_by.clone(),
         }
     }
 }

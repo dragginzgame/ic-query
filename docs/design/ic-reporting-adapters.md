@@ -50,7 +50,11 @@ boundaries. See the [0.81 consumer update](../changelog/0.81.md).
 
 Registry collection returns the portable NNS version/evidence contract directly.
 Native node, operator and data-center projections carry their canonical NNS rows
-into report envelopes; provider-name enrichment remains a separate NNS projection.
+into report envelopes. Sources, list/detail reports and refresh outcomes share
+`NnsRegistryInventoryProvenance` through `provenance`, flattened in JSON;
+provider-name enrichment remains a separate NNS projection. SNS Root reports
+carry their portable `MainnetSnsCanisterInventory` payload through `inventory`,
+also flattened in JSON. Host canonicalization remains independent of rendering.
 SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
 retain their persisted shape and validation.
 
@@ -80,7 +84,7 @@ released from integration (Host Tools and Testkit). Query selects their publishe
 packages through one root catalog and lockfile while retaining Rust 1.91.
 
 The current workspace minimums are Platform 0.16.0, Metrics 0.24.0,
-Foundation 0.73.4, integration 0.76.0 and Wire 0.13.3. Platform, Host Tools and
+Foundation 0.73.5, integration 0.76.1 and Wire 0.13.3. Platform, Host Tools and
 Testkit share one Platform identity and its canonical `ic-platform-types` 0.15.1
 supplier. Query and Testkit share arithmetic-only Metrics 0.24; the lockfile
 contains one Metrics identity. Direct Wire use belongs to probes and development
@@ -869,8 +873,12 @@ validation contract.
 
 ICRC-106 source discovery returns `IcrcIndexData::Found(principal)` or
 `IcrcIndexData::Unavailable(reason)`. Transport failures remain the outer
-`IcrcError`. The report projects the outcome to the existing optional
-`index_canister_id` and `index_error` JSON fields.
+`IcrcError`. The ICRC report retains it in `index`; the SNS token report retains it in
+`ledger_index`. JSON uses externally tagged `found` or `unavailable` outcomes.
+Tip-certificate reports carry one optional `certificate` evidence record, keeping
+the certificate and hash-tree hex and byte counts together. Text preserves the
+existing principal, error and presence labels. See the
+[0.83 consumer update](../changelog/0.83.md).
 
 SNS list text accepts a metadata-cell style callback after Host escaping and
 alignment. The callback receives the typed row's metadata failure state; the CLI

@@ -52,13 +52,15 @@ fn node_provider_info_resolves_unique_prefix() {
 fn node_provider_info_rejects_ambiguous_prefix() {
     let report = NnsNodeProviderListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         node_provider_count: 2,
         node_providers: vec![
             NnsNodeProviderRow {

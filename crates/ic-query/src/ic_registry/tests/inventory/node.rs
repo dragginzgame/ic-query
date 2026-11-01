@@ -36,7 +36,7 @@ fn node_list_follows_nodes_to_subnets_operators_and_providers() {
 
     let list = node_list_from_inventory(&request, inventory, 42).expect("nodes");
 
-    assert_eq!(list.registry_version, 42);
+    assert_eq!(list.provenance.registry_version, 42);
     assert_eq!(list.nodes.len(), 1);
     assert_eq!(list.nodes[0].node_principal, node);
     assert_eq!(list.nodes[0].node_operator_principal, operator);

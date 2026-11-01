@@ -1,5 +1,27 @@
 use serde::{Deserialize, Serialize};
 
+///
+/// NnsRegistryInventoryProvenance
+///
+/// Registry authority, version and acquisition metadata shared by NNS inventories.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NnsRegistryInventoryProvenance {
+    /// Network whose Registry inventory was collected.
+    pub network: String,
+    /// Registry principal supplying the inventory records.
+    pub registry_canister_id: String,
+    /// Registry version used for the complete collection.
+    pub registry_version: u64,
+    /// UTC collection timestamp with second precision.
+    pub fetched_at: String,
+    /// Explicit replica endpoint used for collection.
+    pub source_endpoint: String,
+    /// Collector identity recorded at acquisition.
+    pub fetched_by: String,
+}
+
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub(super) const NNS_REGISTRY_VERSION_REPORT_SCHEMA_VERSION: u32 = 1;
 /// Version of the complete retained certified Registry delta-report contract.

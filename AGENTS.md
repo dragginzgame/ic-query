@@ -21,9 +21,10 @@ Preserve these standing maintainer exceptions and their local scope:
 
 Tool setup and local extension targets follow [local setup](docs/local-setup.md);
 release adapters follow [the local release workflow](docs/release-workflow.md).
-Consumer release fixtures select only `scripts/ci/test-release-runner.sh` with
-simulated Git effects; native tracking, PR and owner-metadata fixtures are not
-selected. The local [host matrix](docs/supported-hosts.md) owns qualification.
+Routine release fixtures qualify Query's adapters with simulated Git effects.
+Generic runner regression fixtures remain upstream for opt-in changed-contract
+qualification; native tracking, PR and owner-metadata fixtures are not selected.
+The local [host matrix](docs/supported-hosts.md) owns qualification.
 Policy adoption does not activate hooks, schedules, installers or release commands.
 
 ## Session Handoff

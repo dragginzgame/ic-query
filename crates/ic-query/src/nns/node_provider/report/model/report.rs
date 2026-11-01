@@ -10,13 +10,10 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields)]
 pub struct NnsNodeProviderListReport {
     pub schema_version: u32,
-    pub network: String,
+    /// Registry acquisition metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     pub governance_canister_id: String,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
     pub node_provider_count: usize,
     pub node_providers: Vec<NnsNodeProviderRow>,
 }
@@ -66,13 +63,10 @@ pub struct NnsNodeProviderInfoReport {
     pub schema_version: u32,
     pub input: String,
     pub resolved_from: String,
-    pub network: String,
+    /// Registry acquisition metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     pub governance_canister_id: String,
-    pub registry_canister_id: String,
-    pub registry_version: u64,
-    pub fetched_at: String,
-    pub source_endpoint: String,
-    pub fetched_by: String,
     /// Resolved inventory row.
     #[serde(flatten)]
     pub node_provider: NnsNodeProviderRow,

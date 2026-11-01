@@ -9,16 +9,18 @@ pub(in crate::nns::topology::report::tests) fn node_operator_refresh_report_fixt
     NnsInventoryRefreshReport {
         schema_version: 1,
         collection: "node_operators".to_string(),
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 45,
+            fetched_at: "2026-06-04T00:03:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         cache_path: "/cache/nns/ic/node-operator/operators.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node-operator/refresh.lock".to_string(),
         output_path: None,
         governance_canister_id: None,
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 45,
-        fetched_at: "2026-06-04T00:03:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         dry_run: false,
         wrote_cache: true,
         replaced_existing_cache: false,
@@ -39,12 +41,14 @@ pub(in crate::nns::topology::report::tests) fn node_operator_report_fixture()
 -> NnsNodeOperatorListReport {
     NnsNodeOperatorListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 45,
-        fetched_at: "2026-06-04T00:03:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 45,
+            fetched_at: "2026-06-04T00:03:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         node_operator_count: 2,
         node_operators: vec![
             NnsNodeOperatorRow {

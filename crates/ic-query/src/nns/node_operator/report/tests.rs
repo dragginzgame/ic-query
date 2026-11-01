@@ -52,10 +52,13 @@ async fn node_operator_report_uses_live_registry_source() {
     .expect("node operator report");
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, MAINNET_NETWORK);
-    assert_eq!(report.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
-    assert_eq!(report.registry_version, 42);
-    assert_eq!(report.fetched_at, "2026-06-04T00:00:00Z");
+    assert_eq!(report.provenance.network, MAINNET_NETWORK);
+    assert_eq!(
+        report.provenance.registry_canister_id,
+        MAINNET_REGISTRY_CANISTER_ID
+    );
+    assert_eq!(report.provenance.registry_version, 42);
+    assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
     assert_eq!(report.node_operator_count, 1);
     assert_eq!(report.node_operators[0].node_operator_principal, "aaaaa-aa");
     assert_eq!(
@@ -101,12 +104,14 @@ fn node_operator_info_resolves_unique_prefix() {
 fn node_operator_report_fixture() -> NnsNodeOperatorListReport {
     NnsNodeOperatorListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         node_operator_count: 1,
         node_operators: vec![NnsNodeOperatorRow {
             node_operator_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
@@ -139,12 +144,14 @@ impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
             let node_operators = self.node_operators.clone();
             Ok(NnsNodeOperatorListReport {
                 schema_version: 1,
-                network: MAINNET_NETWORK.to_string(),
-                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                registry_version: 42,
-                fetched_at: request.fetched_at.clone(),
-                fetched_by: request.fetched_by.clone(),
-                source_endpoint: request.endpoint.clone(),
+                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                    network: MAINNET_NETWORK.to_string(),
+                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                    registry_version: 42,
+                    fetched_at: request.fetched_at.clone(),
+                    source_endpoint: request.endpoint.clone(),
+                    fetched_by: request.fetched_by.clone(),
+                },
                 node_operator_count: node_operators.len(),
                 node_operators,
             })

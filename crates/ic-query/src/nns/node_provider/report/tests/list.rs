@@ -28,14 +28,17 @@ async fn node_provider_report_uses_live_governance_source() {
     .expect("node provider report");
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, MAINNET_NETWORK);
+    assert_eq!(report.provenance.network, MAINNET_NETWORK);
     assert_eq!(
         report.governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert_eq!(report.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
-    assert_eq!(report.registry_version, 42);
-    assert_eq!(report.fetched_at, "2026-06-04T00:00:00Z");
+    assert_eq!(
+        report.provenance.registry_canister_id,
+        MAINNET_REGISTRY_CANISTER_ID
+    );
+    assert_eq!(report.provenance.registry_version, 42);
+    assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
     assert_eq!(report.node_provider_count, 2);
     assert_eq!(report.node_providers[0].node_provider_principal, "aaaaa-aa");
     assert_eq!(report.node_providers[0].name, None);

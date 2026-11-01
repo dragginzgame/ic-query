@@ -48,7 +48,7 @@ macro_rules! impl_nns_inventory_report {
             }
 
             fn network(&self) -> &str {
-                &self.network
+                &self.provenance.network
             }
         }
 
@@ -60,20 +60,8 @@ macro_rules! impl_nns_inventory_report {
                 self.schema_version
             }
 
-            fn network(&self) -> &str {
-                &self.network
-            }
-
-            fn registry_canister_id(&self) -> &str {
-                &self.registry_canister_id
-            }
-
-            fn fetched_at(&self) -> &str {
-                &self.fetched_at
-            }
-
-            fn source_endpoint(&self) -> &str {
-                &self.source_endpoint
+            fn provenance(&self) -> &$crate::nns::registry::NnsRegistryInventoryProvenance {
+                &self.provenance
             }
 
             fn declared_row_count(&self) -> usize {
@@ -93,16 +81,11 @@ macro_rules! impl_nns_inventory_report {
                     schema_version: 1,
                     collection: stringify!($rows_field).to_string(),
                     row_count: self.$count_field,
-                    network: self.network.clone(),
+                    provenance: self.provenance.clone(),
                     cache_path: write.cache_path,
                     refresh_lock_path: write.refresh_lock_path,
                     output_path: write.output_path,
                     governance_canister_id: ($governance)(self),
-                    registry_canister_id: self.registry_canister_id.clone(),
-                    registry_version: self.registry_version,
-                    fetched_at: self.fetched_at.clone(),
-                    source_endpoint: self.source_endpoint.clone(),
-                    fetched_by: self.fetched_by.clone(),
                     dry_run: request.dry_run,
                     wrote_cache: write.wrote_cache,
                     replaced_existing_cache: write.replaced_existing_cache,

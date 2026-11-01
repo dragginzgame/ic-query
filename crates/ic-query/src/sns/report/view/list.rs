@@ -18,13 +18,13 @@ pub(in crate::sns::report) fn filter_mainnet_sns_instances(
     }
 }
 
-/// Sort deployed SNS instances for list reports while preserving assigned ids.
+/// Preserve admitted ascending IDs or sort by name; lifecycle filtering retains ID order.
 pub(in crate::sns::report) fn sort_mainnet_sns_instances(
     instances: &mut [MainnetSns],
     sort: SnsListSort,
 ) {
     match sort {
-        SnsListSort::Id => instances.sort_by_key(|sns| sns.id),
+        SnsListSort::Id => {}
         SnsListSort::Name => instances.sort_by_cached_key(|sns| (sns.name.to_lowercase(), sns.id)),
     }
 }

@@ -29,11 +29,11 @@ ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.82.0" }
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.73.4", default-features = false }
-ic-host-fs = { version = "0.73.4", default-features = false }
-ic-host-http = { version = "0.73.4", default-features = false }
-ic-host-text = "0.73.4"
-ic-host-tools = { version = "0.76.0", default-features = false }
+ic-host-artifacts = { version = "0.73.5", default-features = false }
+ic-host-fs = { version = "0.73.5", default-features = false }
+ic-host-http = { version = "0.73.5", default-features = false }
+ic-host-text = "0.73.5"
+ic-host-tools = { version = "0.76.1", default-features = false }
 ic-metrics = { version = "0.24.0", default-features = false }
 ic-platform = { version = "0.16.0", default-features = false, features = ["candid"] }
 prost = "0.14.3"
@@ -46,9 +46,9 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.73.4"
-ic-host-process = { version = "0.73.4", default-features = false }
-ic-testkit = "0.76.0"
+ic-build = "0.73.5"
+ic-host-process = { version = "0.73.5", default-features = false }
+ic-testkit = "0.76.1"
 ic-wire = "0.13.3"
 libc = "0.2"
 serde_cbor = "0.11.2"

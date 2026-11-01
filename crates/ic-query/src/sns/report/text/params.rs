@@ -13,12 +13,11 @@ use crate::{
     sns::report::{
         SnsGovernanceParameters, SnsParamsReport,
         text::common::{
-            comma_join_u64, optional_basis_points_text, optional_bool_text, optional_duration_text,
-            optional_e8s_text, optional_percentage_text, optional_permissions_text,
-            optional_u32_text,
+            comma_join_u64, optional_basis_points_text, optional_duration_text, optional_e8s_text,
+            optional_percentage_text, optional_permissions_text, optional_u32_text,
         },
     },
-    text_value::optional_u64_text,
+    text_value::{optional_bool_text, optional_u64_text},
 };
 
 #[must_use]
@@ -119,11 +118,11 @@ fn limits_rows(parameters: &SnsGovernanceParameters) -> Vec<[String; 2]> {
         ),
         parameter_row(
             "maturity_modulation_disabled",
-            optional_bool_text(parameters.maturity_modulation_disabled),
+            optional_bool_text(parameters.maturity_modulation_disabled).to_string(),
         ),
         parameter_row(
             "automatically_advance_target_version",
-            optional_bool_text(parameters.automatically_advance_target_version),
+            optional_bool_text(parameters.automatically_advance_target_version).to_string(),
         ),
     ]
 }

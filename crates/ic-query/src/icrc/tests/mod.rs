@@ -750,16 +750,17 @@ async fn index_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(report.index_canister_id.as_deref(), Some(INDEX_CANISTER_ID));
-    assert_eq!(report.index_error, None);
+    assert_eq!(
+        report.index,
+        IcrcIndexData::Found(INDEX_CANISTER_ID.to_string())
+    );
 
     let text = icrc_index_report_text(&report);
     assert!(text.contains("index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
     assert!(!text.contains("index_error"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC index report");
-    assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
-    assert_eq!(json["index_error"], JsonValue::Null);
+    assert_eq!(json["index"], json!({"found": INDEX_CANISTER_ID}));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1251,11 +1252,11 @@ async fn tip_certificate_report_builds_text_and_json_friendly_fields() {
 
     assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(report.provenance.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert!(report.certificate_present);
-    assert_eq!(report.certificate_hex.as_deref(), Some("010203"));
-    assert_eq!(report.certificate_bytes, Some(3));
-    assert_eq!(report.hash_tree_hex.as_deref(), Some("aabb"));
-    assert_eq!(report.hash_tree_bytes, Some(2));
+    let certificate = report.certificate.as_ref().expect("certificate evidence");
+    assert_eq!(certificate.certificate_hex, "010203");
+    assert_eq!(certificate.certificate_bytes, 3);
+    assert_eq!(certificate.hash_tree_hex, "aabb");
+    assert_eq!(certificate.hash_tree_bytes, 2);
 
     let text = icrc_tip_certificate_report_text(&report);
     assert!(text.contains("certificate_present: true"));
@@ -1265,11 +1266,10 @@ async fn tip_certificate_report_builds_text_and_json_friendly_fields() {
     assert!(text.contains("hash_tree_hex: aabb"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC tip certificate report");
-    assert_eq!(json["certificate_present"], json!(true));
-    assert_eq!(json["certificate_hex"], json!("010203"));
-    assert_eq!(json["certificate_bytes"], json!(3));
-    assert_eq!(json["hash_tree_hex"], json!("aabb"));
-    assert_eq!(json["hash_tree_bytes"], json!(2));
+    assert_eq!(json["certificate"]["certificate_hex"], json!("010203"));
+    assert_eq!(json["certificate"]["certificate_bytes"], json!(3));
+    assert_eq!(json["certificate"]["hash_tree_hex"], json!("aabb"));
+    assert_eq!(json["certificate"]["hash_tree_bytes"], json!(2));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1377,8 +1377,10 @@ async fn index_report_renders_index_error_when_not_set() {
     assert!(text.contains("index_error: index principal not set"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC index report");
-    assert_eq!(json["index_canister_id"], JsonValue::Null);
-    assert_eq!(json["index_error"], json!("index principal not set"));
+    assert_eq!(
+        json["index"],
+        json!({"unavailable": "index principal not set"})
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]

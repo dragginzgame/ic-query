@@ -20,9 +20,9 @@ pub(in crate::sns::report) use model::{
     validate_sns_neuron_rows, validate_sns_proposal_rows,
 };
 pub use model::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
-    MainnetSnsToken, MainnetSnsUpgrade, SnsNeuronId,
+    MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
+    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsNeuronId,
 };
 pub use traits::{
     SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronSource,

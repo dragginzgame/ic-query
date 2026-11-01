@@ -93,14 +93,14 @@ pub use catalog_cache::{
 pub use live::LiveSnsSource;
 pub use model::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    MainnetSnsCanisters, SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap,
-    SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport,
-    SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality,
-    SnsDefaultFollowees, SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport,
-    SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
-    SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
-    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
+    MainnetSnsCanisterInventory, MainnetSnsCanisters, SnsCanisterCallType,
+    SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap,
+    SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
+    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRequest, SnsListRow, SnsListSort,
+    SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest,
+    SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,
+    SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
     SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
@@ -152,12 +152,11 @@ pub use reward_checkpoint_file::{
 pub use reward_diff::build_sns_reward_diff_report;
 #[cfg(feature = "sns-host")]
 pub use source::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsInventory, MainnetSnsLifecycle,
-    MainnetSnsMetadata, MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage,
-    MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource,
-    SnsMetricsSource, SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource,
-    SnsProposalSource, SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource,
-    SnsUpgradeSource,
+    MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
+    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
+    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
+    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
+    SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 pub use text::{
     sns_canister_report_text, sns_info_report_text, sns_list_report_text,

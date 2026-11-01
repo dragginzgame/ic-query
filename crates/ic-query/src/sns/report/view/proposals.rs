@@ -100,9 +100,11 @@ pub(in crate::sns::report) fn proposal_matches_query(
     let Some(query) = lowercase_query else {
         return true;
     };
-    let action = sns_proposal_action_label(proposal.action_id);
     optional_text_contains_lowercase_query(Some(&proposal.title), query)
-        || optional_text_contains_lowercase_query(Some(&action), query)
+        || optional_text_contains_lowercase_query(
+            Some(&sns_proposal_action_label(proposal.action_id)),
+            query,
+        )
         || optional_text_contains_lowercase_query(Some(&proposal.summary), query)
         || optional_text_contains_lowercase_query(proposal.url.as_deref(), query)
         || optional_text_contains_lowercase_query(proposal.payload_text_rendering.as_deref(), query)

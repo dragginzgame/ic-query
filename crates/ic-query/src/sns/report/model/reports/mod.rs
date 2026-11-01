@@ -27,8 +27,9 @@ pub use attempt::SnsRefreshAttemptStatus;
 #[cfg(feature = "sns-host")]
 pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
 pub use canisters::{
-    SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap,
-    SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
+    MainnetSnsCanisterInventory, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
+    SnsCanisterHealthQueryGap, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,
+    SnsCanisterStatus,
 };
 pub use governance::{
     SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,

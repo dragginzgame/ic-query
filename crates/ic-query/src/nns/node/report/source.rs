@@ -38,12 +38,7 @@ fn node_report_from_list(list: MainnetNodeList) -> NnsNodeListReport {
     let nodes = list.nodes;
     NnsNodeListReport {
         schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
+        provenance: list.provenance,
         node_count: nodes.len(),
         nodes,
     }

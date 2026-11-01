@@ -28,6 +28,10 @@ ingress call rather than mutation behavior.
 
 ## Report Contract
 
+`SnsCanisterReport.inventory: MainnetSnsCanisterInventory` carries the portable
+Root inventory payload directly from the source. Its fields remain flat in JSON;
+summary counts and SNS acquisition metadata stay in the report envelope.
+
 `SnsCanisterReport` preserves:
 
 - the SNS-W list id, name, Root principal, endpoint, collection timestamp, and

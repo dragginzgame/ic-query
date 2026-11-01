@@ -164,17 +164,7 @@ fn public_sns_request_constructors_set_expected_fields() {
 fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
     let report = SnsNeuronDetailReport {
         schema_version: 1,
-        context: ic_query::sns::SnsReportContext {
-            network: "ic".to_string(),
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        context: sample_sns_context(),
 
         neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
         data_source: ReportDataSource::Live,
@@ -715,29 +705,31 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
         id: 1,
         name: "Example SNS".to_string(),
         root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-        inventory_method: SnsCanisterMethod::ListSnsCanisters,
-        health_method: SnsCanisterMethod::GetSnsCanistersSummary,
-        health_call_type: SnsCanisterCallType::IngressUpdate,
-        health_update_canister_list: false,
-        point_in_time_guaranteed: false,
         canister_count: 1,
         health_status_count: 1,
         reported_zero_cycles_count: 0,
         cycles_unavailable_count: 0,
         gap_count: 0,
-        health_query_gap: None,
-        canisters: vec![SnsCanisterRow {
-            role: SnsCanisterRole::Root,
-            canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            status: Some(SnsCanisterStatus::Running),
-            module_hash_hex: Some("01020304".to_string()),
-            cycles: Some("1000000".to_string()),
-            cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
-            memory_size: Some("2000000".to_string()),
-            idle_cycles_burned_per_day: Some("3000".to_string()),
-            controllers: vec![SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()],
-        }],
-        gaps: Vec::new(),
+        inventory: ic_query::sns::MainnetSnsCanisterInventory {
+            inventory_method: SnsCanisterMethod::ListSnsCanisters,
+            health_method: SnsCanisterMethod::GetSnsCanistersSummary,
+            health_call_type: SnsCanisterCallType::IngressUpdate,
+            health_update_canister_list: false,
+            point_in_time_guaranteed: false,
+            health_query_gap: None,
+            canisters: vec![SnsCanisterRow {
+                role: SnsCanisterRole::Root,
+                canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+                status: Some(SnsCanisterStatus::Running),
+                module_hash_hex: Some("01020304".to_string()),
+                cycles: Some("1000000".to_string()),
+                cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
+                memory_size: Some("2000000".to_string()),
+                idle_cycles_burned_per_day: Some("3000".to_string()),
+                controllers: vec![SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()],
+            }],
+            gaps: Vec::new(),
+        },
     };
 
     let json = serde_json::to_value(&report).expect("serialize public SNS canister report");
@@ -798,8 +790,7 @@ fn public_sns_token_api_is_constructible_and_renderable() {
         root_canister_id: request.input,
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         sns_index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
-        ledger_index_canister_id: None,
-        ledger_index_error: Some("not configured".to_string()),
+        ledger_index: ic_query::icrc::IcrcIndexData::Unavailable("not configured".to_string()),
         token: ic_query::icrc::IcrcTokenData {
             token_name: "Example Token".to_string(),
             token_symbol: "EXT".to_string(),
@@ -845,14 +836,8 @@ fn public_sns_params_api_is_constructible_and_renderable() {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: request.network,
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.source_endpoint,
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+            ..sample_sns_context()
         },
 
         parameters: sample_sns_governance_parameters(),
@@ -955,17 +940,7 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
     let next_version = sample_sns_version("02");
     let report = SnsUpgradeReport {
         schema_version: 1,
-        context: ic_query::sns::SnsReportContext {
-            network: "ic".to_string(),
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        context: sample_sns_context(),
         running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
         next_version_method: SnsCanisterMethod::GetNextSnsVersion,
         point_in_time_guaranteed: false,
@@ -1045,14 +1020,8 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: request.lookup.network,
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.lookup.source_endpoint,
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+            ..sample_sns_context()
         },
 
         requested_limit: request.limit,
@@ -1121,14 +1090,8 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             network: request.lookup.network,
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: "2023-11-14T22:13:20Z".to_string(),
             source_endpoint: request.lookup.source_endpoint,
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-            governance_canister_id: "bkyz2-fmaaa-aaaaa-qaaaq-cai".to_string(),
+            ..sample_sns_context()
         },
 
         proposal_id: request.proposal_id,
@@ -1237,7 +1200,7 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
 
     let canisters = build_sns_canister_report_with_source(&info_request, &source).await?;
     assert_eq!(canisters.canister_count, 1);
-    assert_eq!(canisters.canisters[0].role, SnsCanisterRole::Root);
+    assert_eq!(canisters.inventory.canisters[0].role, SnsCanisterRole::Root);
 
     let token_request = SnsLookupRequest::new(
         "ic",
@@ -2236,17 +2199,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
             cache_complete: None,
         },
         schema_version: 1,
-        context: ic_query::sns::SnsReportContext {
-            network: "ic".to_string(),
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-            source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        context: sample_sns_context(),
 
         requested_limit: 1,
         owner_principal_id: None,
@@ -2282,17 +2235,7 @@ fn sample_sns_snapshot_refresh_report(
 ) -> SnsSnapshotRefreshReport {
     SnsSnapshotRefreshReport {
         schema_version: 1,
-        context: ic_query::sns::SnsReportContext {
-            network: "ic".to_string(),
-            sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-            fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
-            source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-            fetched_by: "ic-query".to_string(),
-            id: 1,
-            name: "Example SNS".to_string(),
-            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        },
+        context: sample_sns_context(),
         cache_path: cache_path.display().to_string(),
         refresh_lock_path: refresh_lock_path.display().to_string(),
         refresh_attempt_path: refresh_attempt_path.display().to_string(),
@@ -2529,4 +2472,18 @@ fn clear_reward_checkpoint_rows(report: &mut SnsRewardCheckpointReport) {
     report.summary.auto_stake_maturity_enabled_count = 0;
     report.summary.auto_stake_maturity_disabled_count = 0;
     report.summary.auto_stake_maturity_unspecified_count = 0;
+}
+
+fn sample_sns_context() -> ic_query::sns::SnsReportContext {
+    ic_query::sns::SnsReportContext {
+        network: "ic".to_string(),
+        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
+        fetched_at: SAMPLE_SNS_FETCHED_AT.to_string(),
+        source_endpoint: "https://icp-api.io".to_string(),
+        fetched_by: "ic-query".to_string(),
+        id: 1,
+        name: "Example SNS".to_string(),
+        root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
+        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
+    }
 }

@@ -1,14 +1,10 @@
-use crate::nns::node_operator::NnsNodeOperatorRow;
-use crate::{
-    ic_registry::{
-        MainnetNodeOperatorList, MainnetRegistryFetchRequest, RegistryFetchError,
-        relations::{
-            RegistryRelationInventory, node_counts_from_relations,
-            node_provider_principal_from_record,
-        },
+use crate::ic_registry::{
+    MainnetNodeOperatorList, MainnetRegistryFetchRequest, RegistryFetchError,
+    relations::{
+        RegistryRelationInventory, node_counts_from_relations, node_provider_principal_from_record,
     },
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use crate::nns::node_operator::NnsNodeOperatorRow;
 use ic_host_tools::registry::proto::NodeOperatorRecord;
 use std::collections::BTreeMap;
 
@@ -29,12 +25,7 @@ pub(in crate::ic_registry) fn node_operator_list_from_inventory(
         .map(|(principal, record)| node_operator_from_record(principal, record, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MainnetNodeOperatorList {
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
+        provenance: request.inventory_provenance(registry_version),
         node_operators,
     })
 }

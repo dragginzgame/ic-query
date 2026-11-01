@@ -39,7 +39,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         format!("gap_count: {}", report.gap_count),
         format!(
             "health_query_status: {}",
-            if report.health_query_gap.is_some() {
+            if report.inventory.health_query_gap.is_some() {
                 "failed"
             } else {
                 "succeeded"
@@ -47,14 +47,20 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         ),
         format!(
             "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+            yes_no(report.inventory.point_in_time_guaranteed)
         ),
-        format!("inventory_method: {}", report.inventory_method.as_str()),
-        format!("health_method: {}", report.health_method.as_str()),
-        format!("health_call_type: {}", report.health_call_type.as_str()),
+        format!(
+            "inventory_method: {}",
+            report.inventory.inventory_method.as_str()
+        ),
+        format!("health_method: {}", report.inventory.health_method.as_str()),
+        format!(
+            "health_call_type: {}",
+            report.inventory.health_call_type.as_str()
+        ),
         format!(
             "health_update_canister_list: {}",
-            yes_no(report.health_update_canister_list)
+            yes_no(report.inventory.health_update_canister_list)
         ),
         format!("sns_wasm_canister_id: {}", report.sns_wasm_canister_id),
         format!("fetched_at: {}", terminal_text(&report.fetched_at)),
@@ -66,7 +72,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         canisters_table(report),
     ];
 
-    if let Some(gap) = &report.health_query_gap {
+    if let Some(gap) = &report.inventory.health_query_gap {
         lines.extend([
             String::new(),
             "health_query_gap:".to_string(),
@@ -82,7 +88,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         ]);
     }
 
-    if !report.gaps.is_empty() {
+    if !report.inventory.gaps.is_empty() {
         lines.push(String::new());
         lines.push("gaps:".to_string());
         lines.push(relation_gaps_table(report));
@@ -103,6 +109,7 @@ fn canisters_table(report: &SnsCanisterReport) -> String {
             "CONTROLLERS",
         ],
         &report
+            .inventory
             .canisters
             .iter()
             .map(|canister| {
@@ -145,6 +152,7 @@ fn relation_gaps_table(report: &SnsCanisterReport) -> String {
     render(
         &["KIND", "ROLE", "INVENTORY CANISTER", "SUMMARY CANISTER"],
         &report
+            .inventory
             .gaps
             .iter()
             .map(|gap| {

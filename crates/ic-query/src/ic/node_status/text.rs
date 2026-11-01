@@ -318,8 +318,5 @@ fn render_node_table<'a>(nodes: impl IntoIterator<Item = &'a IcNodeStatusRow>) -
 }
 
 fn compact(value: &str) -> String {
-    terminal_text(value)
-        .chars()
-        .take(COMPACT_PRINCIPAL_CHARS)
-        .collect()
+    crate::text_value::compact_text(value, COMPACT_PRINCIPAL_CHARS)
 }

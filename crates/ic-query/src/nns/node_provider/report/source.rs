@@ -51,13 +51,8 @@ fn node_provider_report_from_list(list: MainnetNodeProviderList) -> NnsNodeProvi
         .collect::<Vec<_>>();
     NnsNodeProviderListReport {
         schema_version: NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
+        provenance: list.provenance,
         governance_canister_id: list.governance_canister_id,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
         node_provider_count: node_providers.len(),
         node_providers,
     }

@@ -15,31 +15,31 @@ pub use identity::{MainnetSnsCanisters, SnsReportContext};
 
 #[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;
+pub use reports::{
+    MainnetSnsCanisterInventory, SnsCanisterCallType, SnsCanisterCycleBalanceStatus,
+    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod,
+    SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
+    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
+    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRow, SnsMaturityDisbursementRow,
+    SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
+    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
+    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
+    SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
+    SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
+    SnsRewardCheckpointRow, SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError,
+    SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
+    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
+    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
+    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+};
 #[cfg(feature = "sns-host")]
 pub use reports::{
     SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsReport,
     SnsRefreshAttemptStatus, SnsSnapshotRefreshReport,
-};
-pub use reports::{
-    SnsCanisterCallType, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
-    SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole,
-    SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality, SnsDefaultFollowees,
-    SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRow,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail,
-    SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
-    SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow,
-    SnsNeuronTopicFolloweesRow, SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus,
-    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
-    SnsProposalRow, SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus,
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
-    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
-    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport,
-    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
-    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
-    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
-    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 pub use requests::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,

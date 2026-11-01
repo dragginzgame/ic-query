@@ -9,16 +9,18 @@ pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture()
     NnsInventoryRefreshReport {
         schema_version: 1,
         collection: "nodes".to_string(),
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 43,
+            fetched_at: "2026-06-04T00:01:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         cache_path: "/cache/nns/ic/node/nodes.json".to_string(),
         refresh_lock_path: "/cache/nns/ic/node/refresh.lock".to_string(),
         output_path: None,
         governance_canister_id: None,
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 43,
-        fetched_at: "2026-06-04T00:01:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         dry_run: false,
         wrote_cache: true,
         replaced_existing_cache: false,
@@ -38,12 +40,14 @@ pub(in crate::nns::topology::report::tests) fn dry_run_node_refresh_report_fixtu
 pub(in crate::nns::topology::report::tests) fn node_report_fixture() -> NnsNodeListReport {
     NnsNodeListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 43,
-        fetched_at: "2026-06-04T00:01:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 43,
+            fetched_at: "2026-06-04T00:01:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         node_count: 3,
         nodes: vec![
             node_row(

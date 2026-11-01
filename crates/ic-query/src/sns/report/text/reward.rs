@@ -4,12 +4,10 @@
 //! Does not own: neuron collection, checkpoint validation, or JSON serialization.
 //! Boundary: keeps potentially large raw row evidence in JSON while text remains bounded.
 
+use crate::text_value::optional_bool_text;
 use ic_host_text::escape::terminal_text;
 
-use crate::{
-    sns::report::{SnsRewardCheckpointReport, text::common::optional_bool_text},
-    token_amount::e8s_decimal_text,
-};
+use crate::{sns::report::SnsRewardCheckpointReport, token_amount::e8s_decimal_text};
 
 /// Render one API-exhausted SNS reward checkpoint as bounded human-readable text.
 #[must_use]

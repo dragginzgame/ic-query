@@ -4,7 +4,7 @@
 //! Does not own: account-index history, requests, live transport, archive following, or rendering.
 //! Boundary: preserves raw ledger, block, archive, certificate, and capability fields.
 
-use crate::icrc::{IcrcTokenData, IcrcTokenStandardRow};
+use crate::icrc::{IcrcIndexData, IcrcTokenData, IcrcTokenStandardRow};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 
@@ -35,8 +35,8 @@ pub struct IcrcIndexReport {
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: super::IcrcReportProvenance,
-    pub index_canister_id: Option<String>,
-    pub index_error: Option<String>,
+    /// Discovered index principal or the source's unavailability reason.
+    pub index: IcrcIndexData,
 }
 
 ///
@@ -119,11 +119,26 @@ pub struct IcrcTipCertificateReport {
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: super::IcrcReportProvenance,
-    pub certificate_present: bool,
-    pub certificate_hex: Option<String>,
-    pub certificate_bytes: Option<usize>,
-    pub hash_tree_hex: Option<String>,
-    pub hash_tree_bytes: Option<usize>,
+    /// Complete certificate/witness evidence, absent when the ledger returns none.
+    pub certificate: Option<IcrcTipCertificateEvidence>,
+}
+
+///
+/// IcrcTipCertificateEvidence
+///
+/// Original certificate and hash-tree reply evidence with their byte lengths.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcTipCertificateEvidence {
+    /// Original certificate bytes as lowercase hexadecimal text.
+    pub certificate_hex: String,
+    /// Number of bytes in the original certificate.
+    pub certificate_bytes: usize,
+    /// Original hash-tree bytes as lowercase hexadecimal text.
+    pub hash_tree_hex: String,
+    /// Number of bytes in the original hash tree.
+    pub hash_tree_bytes: usize,
 }
 
 ///

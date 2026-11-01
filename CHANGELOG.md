@@ -5,6 +5,33 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.83.0]
+
+### ⚠️ Breaking
+
+- Read NNS Registry inventory metadata through `provenance` and SNS Root
+  inventory evidence through `inventory`. Update Rust field access and custom
+  source fixtures; their flat JSON and schema-1 cache contracts are preserved.
+- ICRC index JSON now carries `index`, SNS token JSON carries `ledger_index`,
+  and ICRC tip JSON carries optional `certificate` evidence. Update report
+  consumers for the typed outcomes and grouped evidence; schema versions remain 1.
+
+### ⬆️ Dependencies
+
+- Adopt Build and Host Foundation 0.73.5 and Host Tools/Testkit 0.76.1,
+  retaining Platform 0.16 and existing external protocol bytes.
+
+### 🧹 Cleanup
+
+- Remove redundant SNS ID sorting, defer proposal action labels during search,
+  and share compact-identity formatting, optional booleans, reward-history time
+  bounds and SNS public-test contexts. CLI options and text output are unchanged.
+
+- Keep generic release-runner regressions in Shared Tooling's suite while retaining
+  Query's release and publication acceptance checks. ([#110](https://github.com/dragginzgame/ic-query/issues/110))
+
+Detailed release notes: [docs/changelog/0.83.md](docs/changelog/0.83.md)
+
 ## [0.82.0] - 2026-11-01
 
 ### ⚠️ Breaking

@@ -13,7 +13,7 @@ use ic_host_text::{
 use super::{CloudEngineNodeInfoReport, CloudEngineNodeListReport, CloudEngineNodeRow};
 use crate::{
     ic::dashboard_provenance_lines,
-    text_value::{optional_text, yes_no},
+    text_value::{optional_bool_text, optional_text},
 };
 
 /// Render one complete explicitly scoped Type4 node list.
@@ -91,12 +91,12 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
         ),
         format!(
             "guestos_tee_active: {}",
-            optional_bool(node.guestos_tee_active)
+            optional_bool_text(node.guestos_tee_active)
         ),
         format!("ip_address: {}", optional_text(node.ip_address.as_ref())),
         format!(
             "ipv4_connectivity_status: {}",
-            optional_bool(node.ipv4_connectivity_status)
+            optional_bool_text(node.ipv4_connectivity_status)
         ),
         format!(
             "node_hardware_generation: {}",
@@ -148,8 +148,4 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
         ],
         REPORT_TABLE_OPTIONS,
     )
-}
-
-fn optional_bool(value: Option<bool>) -> &'static str {
-    value.map_or("-", yes_no)
 }

@@ -6,7 +6,6 @@ use crate::{
         wire::{GovernanceNodeProvider, ListNodeProvidersResponse},
     },
     nns::MAINNET_GOVERNANCE_CANISTER_ID,
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
 use std::collections::BTreeMap;
 
@@ -23,13 +22,8 @@ pub(in crate::ic_registry) fn node_provider_list_from_response(
         .collect::<Result<Vec<_>, _>>()?;
     node_providers.sort_by(|left, right| left.principal.cmp(&right.principal));
     Ok(MainnetNodeProviderList {
-        network: MAINNET_NETWORK.to_string(),
+        provenance: request.inventory_provenance(registry_version),
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
         node_providers,
     })
 }

@@ -1,15 +1,12 @@
-use crate::nns::node::NnsNodeRow;
-use crate::{
-    ic_registry::{
-        MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
-        projection::subnet_kind_from_registry,
-        relations::{
-            RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
-            resolved_node_relations,
-        },
+use crate::ic_registry::{
+    MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
+    projection::subnet_kind_from_registry,
+    relations::{
+        RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
+        resolved_node_relations,
     },
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use crate::nns::node::NnsNodeRow;
 use ic_host_tools::registry::proto::SubnetRecord;
 use std::collections::BTreeMap;
 
@@ -36,12 +33,7 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MainnetNodeList {
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
+        provenance: request.inventory_provenance(registry_version),
         nodes,
     })
 }

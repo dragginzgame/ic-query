@@ -118,9 +118,9 @@ Generic provisioning/provenance guides retain their exact upstream bytes;
 the current split host-crate ownership is documented locally in
 [canister smoke testing](canister-smoke.md).
 
-The release guard fixtures select the shared simulation-only runner entrypoint.
-It refuses native Git effects except inert hashing; actual tracking/race tests
-remain in Shared Tooling's owner suite. The linked maintenance task catalog and
+The release guard fixtures qualify Query's adapters with file-backed Git effects.
+The generic runner matrix, including native tracking/race tests, remains in Shared
+Tooling's owner suite. The linked maintenance task catalog and
 schedule templates are retained offline, without enabling a timer or recurring
 agent execution.
 
@@ -422,7 +422,7 @@ Release fixture ownership follows the shared
 
 | Boundary | Fixture owner |
 | --- | --- |
-| Generic runner phases, lost replies, destination changes, execution admission, locks and atomic refusal | Reviewed `scripts/ci/test-release-runner.sh`, invoked by the local release-guard suite |
+| Generic runner phases, lost replies, destination changes, execution admission, locks and atomic refusal | Shared Tooling's producer suite; opt-in for changed-contract qualification |
 | Query metadata, exact stage roster, source-bound evidence and older-release recovery with newer source | Local `scripts/ci/check-release-guards.sh` |
 | Actual index admission and retained metadata inputs | Local `scripts/ci/check-release-metadata.sh` |
 | Publication ordering and registry observations | Local `scripts/ci/check-publish-guards.sh` |
@@ -431,8 +431,8 @@ Release fixture ownership follows the shared
 Keep shared runner scenarios upstream; local assertions must exercise a Query
 adapter or consumer-owned evidence contract. Isolated command substitutes model
 release effects; fixture indexes and trees never create real commits or tags.
-The canonical runner fixture explicitly selects direct delivery; the separate
-real-Git PR fixture remains upstream and is not invoked by Query's suite.
+Query's adapter fixtures explicitly select direct delivery. Native tracking, PR
+and owner-metadata fixture matrices remain upstream.
 
 Prepared checks compare every file with transformations of the saved validated
 inputs, and check Cargo metadata with `--locked --offline`. An unrelated changed
@@ -550,10 +550,10 @@ version-changing adapter against this repository.
 ## Qualification
 
 `make release-guards-check` uses isolated workspaces and file-backed Git/Cargo
-stubs. It exercises all increments, identical phase order, dependency selection,
+stubs. It exercises Query's increments and stage order, dependency preparation,
 missing-cache and gate failures, metadata/payload conflicts, explicit staging,
-atomic push scope, retained artifacts/logs, occupied locks, and recovery after
-lost preparation/push replies. `make ci-scripts-check` checks the complete CI
+source-bound evidence and recovery after lost preparation replies or a committed
+fix to an interrupted release. `make ci-scripts-check` checks the complete CI
 target sequence; `make publish-guards-check` checks separate publication behavior.
 These focused fixtures perform no real commits, tags, pushes or publication.
 Generic Rust installer, Cargo-version observer, evidence-collector, Cargo
@@ -563,12 +563,16 @@ the production helpers and their guides; optional upstream fixture commands
 described in those shared guides belong to the producer checkout.
 Query retains the actual hook/Make/CI callers, installed-tool admission,
 workflow evidence-retention cases, local public-doc debt checker tests, and
-release-cache/preparation/refusal fixtures. The selected shared release-runner
-fixture remains because the local release adapter depends on its simulated
-phase/recovery contract. Revisit the selection when an adopted helper contract
-or consumer call changes; snapshot integrity alone is not caller qualification.
-Agents may run `bash scripts/ci/check-release-guards.sh` for focused qualification;
-full CI and release gates retain their separate authorization requirements.
+release-cache/preparation/refusal fixtures. The generic runner matrix is not part
+of routine Query CI: the local adapter cases cover its consumer-owned contracts.
+For opt-in qualification after a runner-contract change, select a clean Shared
+Tooling checkout at the revision recorded in `.shared-tooling.snapshot` and run
+`bash scripts/ci/test-release-runner.sh` there. Its simulation-only Git effects
+retain the agent release boundary. Revisit the selection when an adopted helper
+contract or consumer call changes; snapshot integrity alone is not caller qualification.
+Use `make release-guards-check` for focused qualification; Make supplies the
+metadata editor's configured input-byte allowance. Full CI and release gates
+retain their separate authorization requirements.
 Failed CI, publication and release fixture directories retain their inputs and
 diagnostics and print their paths. Feature-boundary and public rustdoc checks
 retain their diagnostics on failure too; successful checks remove their own

@@ -1,15 +1,12 @@
-use crate::nns::data_center::NnsDataCenterRow;
-use crate::{
-    ic_registry::{
-        MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
-        normalized_data_center_id,
-        relations::{
-            DataCenterOperatorCounts, RegistryRelationInventory,
-            data_center_operator_counts_from_records, node_counts_from_relations,
-        },
+use crate::ic_registry::{
+    MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
+    normalized_data_center_id,
+    relations::{
+        DataCenterOperatorCounts, RegistryRelationInventory,
+        data_center_operator_counts_from_records, node_counts_from_relations,
     },
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
 };
+use crate::nns::data_center::NnsDataCenterRow;
 use ic_host_tools::registry::proto::DataCenterRecord;
 use std::collections::BTreeMap;
 
@@ -32,12 +29,7 @@ pub(in crate::ic_registry) fn data_center_list_from_inventory(
         .map(|(id, record)| data_center_from_record(id, record, &operator_counts, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MainnetDataCenterList {
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version,
-        fetched_at: request.fetched_at.clone(),
-        fetched_by: request.fetched_by.clone(),
-        source_endpoint: request.endpoint.clone(),
+        provenance: request.inventory_provenance(registry_version),
         data_centers,
     })
 }

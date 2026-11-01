@@ -10,8 +10,8 @@ use crate::{
         clap::{required_typed, typed_option, value_arg},
         common::{
             COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-            index_ceiling_arg, json_arg, page_limit_arg, page_offset_arg, source_endpoint_arg,
-            write_text_or_json,
+            index_ceiling_arg, json_arg, page_limit_arg, page_offset_arg, resolve_time_bounds,
+            source_endpoint_arg, write_text_or_json,
         },
     },
     nns::NnsCommandError,
@@ -208,9 +208,13 @@ fn history_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcNodeProviderRewardHistoryRequest) {
-    let end = typed_option::<u64>(matches, "end").unwrap_or(now_unix_secs);
-    let start = typed_option::<u64>(matches, "start")
-        .unwrap_or_else(|| end.saturating_sub(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS));
+    let (start, end) = resolve_time_bounds(
+        typed_option(matches, "start"),
+        typed_option(matches, "end"),
+        now_unix_secs,
+        DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS,
+        0,
+    );
     let (format, dashboard) =
         SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
     let request = IcNodeProviderRewardHistoryRequest::new(

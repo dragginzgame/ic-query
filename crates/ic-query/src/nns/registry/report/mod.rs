@@ -31,7 +31,8 @@ pub use model::{
     NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
     NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
     NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
-    NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    NnsRegistryInventoryProvenance, NnsRegistryVersionData, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use source::{

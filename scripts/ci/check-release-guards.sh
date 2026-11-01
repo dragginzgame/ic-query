@@ -18,9 +18,9 @@ if [[ -z "${CARGO_RELEASE_METADATA_EDITOR:-}" ]]; then
   export CARGO_RELEASE_METADATA_EDITOR
 fi
 if [[ "${1:-}" != --assert-completion ]]; then
-bash "$repo_root/scripts/ci/check-release-cache.sh"
-bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
-bash "$repo_root/scripts/ci/test-release-runner.sh"
+  # Query owns cache preparation and actual Make routing; generic runner cases stay upstream.
+  bash "$repo_root/scripts/ci/check-release-cache.sh"
+  bash "$repo_root/scripts/ci/check-release-commands.sh" "$repo_root" make/consumer.mk make/tools.mk make/release.mk make/rust-format.mk make/execution.mk scripts/ci/check-make-execution.sh scripts/ci/run-formatting.sh
 fi
 export REAL_MAKE REAL_GIT
 export REAL_CARGO YQ

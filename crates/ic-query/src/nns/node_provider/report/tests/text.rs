@@ -4,13 +4,15 @@ use super::{fixtures::*, *};
 fn node_provider_text_keeps_table_narrow() {
     let report = NnsNodeProviderListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         node_provider_count: 1,
         node_providers: vec![NnsNodeProviderRow {
             node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
@@ -55,13 +57,15 @@ fn node_provider_info_text_renders_detail_lines() {
         schema_version: 1,
         input: "ryjl".to_string(),
         resolved_from: "node_provider_principal_prefix".to_string(),
-        network: MAINNET_NETWORK.to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
         node_provider: crate::nns::node_provider::NnsNodeProviderRow {
             node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
             name: None,

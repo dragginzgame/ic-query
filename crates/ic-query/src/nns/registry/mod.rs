@@ -47,8 +47,9 @@ pub use report::{
     NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
     NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
     NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryVersionData,
-    NnsRegistryVersionReport, NnsRegistryVersionRequest, nns_registry_version_report_text,
+    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryInventoryProvenance,
+    NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    nns_registry_version_report_text,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use report::{

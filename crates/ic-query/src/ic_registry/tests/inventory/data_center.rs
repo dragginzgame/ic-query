@@ -99,7 +99,7 @@ fn data_center_list_aggregates_registry_relations() {
 
     let list = data_center_list_from_inventory(&request, inventory, 42).expect("data centers");
 
-    assert_eq!(list.registry_version, 42);
+    assert_eq!(list.provenance.registry_version, 42);
     assert_eq!(list.data_centers.len(), 1);
     assert_eq!(list.data_centers[0].data_center_id, "dc-a");
     assert_eq!(list.data_centers[0].region, "eu-west");

@@ -14,9 +14,9 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
     let mut lines = Vec::new();
     lines.push(format!(
         "data_centers: {} count {} fetched_at {}",
-        terminal_text(&report.network),
+        terminal_text(&report.provenance.network),
         report.data_center_count,
-        terminal_text(&report.fetched_at)
+        terminal_text(&report.provenance.fetched_at)
     ));
     if report.data_centers.is_empty() {
         lines.push("data_centers: none".to_string());
@@ -55,9 +55,12 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
     let mut lines = Vec::new();
     lines.push(format!(
         "source_endpoint: {}",
-        terminal_text(&report.source_endpoint)
+        terminal_text(&report.provenance.source_endpoint)
     ));
-    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
+    lines.push(format!(
+        "fetched_by: {}",
+        terminal_text(&report.provenance.fetched_by)
+    ));
     if report.data_centers.is_empty() {
         lines.push("data_centers: none".to_string());
         return lines.join("\n");
@@ -87,8 +90,8 @@ pub fn nns_data_center_list_report_verbose_text(report: &NnsDataCenterListReport
                 data_center.node_operator_count.to_string(),
                 data_center.node_provider_count.to_string(),
                 data_center.node_count.to_string(),
-                report.registry_version.to_string(),
-                report.fetched_at.clone(),
+                report.provenance.registry_version.to_string(),
+                report.provenance.fetched_at.clone(),
             ]
         })
         .collect::<Vec<_>>();

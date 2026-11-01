@@ -113,13 +113,8 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
         schema_version: NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),
         resolved_from,
-        network: report.network,
+        provenance: report.provenance,
         governance_canister_id: report.governance_canister_id,
-        registry_canister_id: report.registry_canister_id,
-        registry_version: report.registry_version,
-        fetched_at: report.fetched_at,
-        source_endpoint: report.source_endpoint,
-        fetched_by: report.fetched_by,
         node_provider: provider,
     })
 }

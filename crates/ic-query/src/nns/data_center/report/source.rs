@@ -41,12 +41,7 @@ fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterLis
     let data_centers = list.data_centers;
     NnsDataCenterListReport {
         schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
-        network: list.network,
-        registry_canister_id: list.registry_canister_id,
-        registry_version: list.registry_version,
-        fetched_at: list.fetched_at,
-        source_endpoint: list.source_endpoint,
-        fetched_by: list.fetched_by,
+        provenance: list.provenance,
         data_center_count: data_centers.len(),
         data_centers,
     }

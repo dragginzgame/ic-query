@@ -113,10 +113,13 @@ async fn node_report_uses_live_registry_source() {
     .expect("node report");
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.network, MAINNET_NETWORK);
-    assert_eq!(report.registry_canister_id, MAINNET_REGISTRY_CANISTER_ID);
-    assert_eq!(report.registry_version, 42);
-    assert_eq!(report.fetched_at, "2026-06-04T00:00:00Z");
+    assert_eq!(report.provenance.network, MAINNET_NETWORK);
+    assert_eq!(
+        report.provenance.registry_canister_id,
+        MAINNET_REGISTRY_CANISTER_ID
+    );
+    assert_eq!(report.provenance.registry_version, 42);
+    assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
     assert_eq!(report.node_count, 1);
     assert_eq!(
         report.nodes[0].node_principal,
@@ -154,7 +157,7 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
     .await
     .expect("invalid cache refreshes");
 
-    assert_eq!(report.registry_version, 42);
+    assert_eq!(report.provenance.registry_version, 42);
     assert_ne!(
         fs::read_to_string(path).expect("refreshed cache"),
         invalid_json
@@ -297,12 +300,14 @@ fn node_list_filter_preparation_preserves_case_whitespace_and_empty_input() {
 fn node_report_fixture() -> NnsNodeListReport {
     NnsNodeListReport {
         schema_version: 1,
-        network: MAINNET_NETWORK.to_string(),
-        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-        registry_version: 42,
-        fetched_at: "2026-06-04T00:00:00Z".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "test".to_string(),
+        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+            network: MAINNET_NETWORK.to_string(),
+            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+            registry_version: 42,
+            fetched_at: "2026-06-04T00:00:00Z".to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
+            fetched_by: "test".to_string(),
+        },
         node_count: 1,
         nodes: vec![NnsNodeRow {
             node_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
@@ -348,8 +353,11 @@ impl NnsNodeSource for InvalidNodeSource {
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
         Box::pin(async move {
             let mut report = node_report_fixture();
-            report.fetched_at.clone_from(&request.fetched_at);
-            report.source_endpoint.clone_from(&request.endpoint);
+            report.provenance.fetched_at.clone_from(&request.fetched_at);
+            report
+                .provenance
+                .source_endpoint
+                .clone_from(&request.endpoint);
             report.node_count = 2;
             Ok(report)
         })
@@ -365,12 +373,14 @@ impl NnsNodeSource for FixtureNodeSource {
             let nodes = self.nodes.clone();
             Ok(NnsNodeListReport {
                 schema_version: 1,
-                network: MAINNET_NETWORK.to_string(),
-                registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                registry_version: 42,
-                fetched_at: request.fetched_at.clone(),
-                fetched_by: request.fetched_by.clone(),
-                source_endpoint: request.endpoint.clone(),
+                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                    network: MAINNET_NETWORK.to_string(),
+                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                    registry_version: 42,
+                    fetched_at: request.fetched_at.clone(),
+                    source_endpoint: request.endpoint.clone(),
+                    fetched_by: request.fetched_by.clone(),
+                },
                 node_count: nodes.len(),
                 nodes,
             })

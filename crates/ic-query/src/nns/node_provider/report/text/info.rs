@@ -29,17 +29,8 @@ pub fn nns_node_provider_info_report_text(report: &NnsNodeProviderInfoReport) ->
         "governance_canister_id: {}",
         report.governance_canister_id
     ));
-    lines.push(format!(
-        "registry_canister_id: {}",
-        report.registry_canister_id
+    lines.extend(crate::nns::render::registry_provenance_lines(
+        &report.provenance,
     ));
-    lines.push(format!("registry_version: {}", report.registry_version));
-    lines.push(format!("network: {}", terminal_text(&report.network)));
-    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
-    lines.push(format!(
-        "source_endpoint: {}",
-        terminal_text(&report.source_endpoint)
-    ));
-    lines.push(format!("fetched_by: {}", terminal_text(&report.fetched_by)));
     lines.join("\n")
 }

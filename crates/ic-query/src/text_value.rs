@@ -26,6 +26,11 @@ pub fn optional_text(value: Option<&String>) -> String {
     )
 }
 
+/// Escape and retain the selected prefix for compact identity columns.
+pub fn compact_text(value: &str, chars: usize) -> String {
+    terminal_text(value).chars().take(chars).collect()
+}
+
 pub fn truncate_text(value: &str, limit: usize) -> String {
     let value = terminal_text(value).into_owned();
     if value.chars().count() <= limit {
@@ -38,6 +43,10 @@ pub fn truncate_text(value: &str, limit: usize) -> String {
 
 pub fn optional_u64_text(value: Option<u64>) -> String {
     value.map_or_else(|| "-".to_string(), |value| value.to_string())
+}
+
+pub fn optional_bool_text(value: Option<bool>) -> &'static str {
+    value.map_or("-", yes_no)
 }
 
 pub const fn yes_no(value: bool) -> &'static str {

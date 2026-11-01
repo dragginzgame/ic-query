@@ -31,8 +31,9 @@ pub struct NnsInventoryRefreshReport {
     pub collection: String,
     /// Number of rows collected before any view filtering.
     pub row_count: usize,
-    /// Network whose inventory was collected.
-    pub network: String,
+    /// Registry acquisition metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     /// Managed complete inventory cache path.
     pub cache_path: String,
     /// Refresh lock path.
@@ -41,16 +42,6 @@ pub struct NnsInventoryRefreshReport {
     pub output_path: Option<String>,
     /// Governance principal supplying provider metadata, when applicable.
     pub governance_canister_id: Option<String>,
-    /// Registry principal supplying inventory records.
-    pub registry_canister_id: String,
-    /// Registry version used for collection.
-    pub registry_version: u64,
-    /// UTC collection timestamp.
-    pub fetched_at: String,
-    /// Explicit replica endpoint used for collection.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
     /// Whether managed-cache publication was disabled.
     pub dry_run: bool,
     /// Whether the managed complete cache was published.
@@ -85,10 +76,7 @@ pub(in crate::nns) trait NnsInventoryReport {
     const ITEM_NAME: &'static str;
 
     fn schema_version(&self) -> u32;
-    fn network(&self) -> &str;
-    fn registry_canister_id(&self) -> &str;
-    fn fetched_at(&self) -> &str;
-    fn source_endpoint(&self) -> &str;
+    fn provenance(&self) -> &super::registry::NnsRegistryInventoryProvenance;
     fn declared_row_count(&self) -> usize;
     fn row_count(&self) -> usize;
 
@@ -101,6 +89,7 @@ pub(in crate::nns) trait NnsInventoryReport {
 
     /// Validate cache-stable provenance, count, and family-specific evidence.
     fn validate(&self) -> Result<(), String> {
+        let provenance = self.provenance();
         if self.schema_version() != Self::SCHEMA_VERSION {
             return Err(format!(
                 "schema_version is {}, expected {}",
@@ -108,22 +97,25 @@ pub(in crate::nns) trait NnsInventoryReport {
                 Self::SCHEMA_VERSION
             ));
         }
-        if self.network() != MAINNET_NETWORK {
+        if provenance.network != MAINNET_NETWORK {
             return Err(format!(
                 "network is {}, expected {MAINNET_NETWORK}",
-                self.network()
+                provenance.network
             ));
         }
-        if self.registry_canister_id() != MAINNET_REGISTRY_CANISTER_ID {
+        if provenance.registry_canister_id != MAINNET_REGISTRY_CANISTER_ID {
             return Err(format!(
                 "registry_canister_id is {}, expected {MAINNET_REGISTRY_CANISTER_ID}",
-                self.registry_canister_id()
+                provenance.registry_canister_id
             ));
         }
-        if parse_utc_timestamp_secs(self.fetched_at()).is_none() {
-            return Err(format!("fetched_at is invalid: {:?}", self.fetched_at()));
+        if parse_utc_timestamp_secs(&provenance.fetched_at).is_none() {
+            return Err(format!(
+                "fetched_at is invalid: {:?}",
+                provenance.fetched_at
+            ));
         }
-        if self.source_endpoint().trim().is_empty() {
+        if provenance.source_endpoint.trim().is_empty() {
             return Err("source_endpoint must not be empty".to_string());
         }
         if self.declared_row_count() != self.row_count() {
@@ -145,25 +137,23 @@ pub(in crate::nns) trait NnsInventoryReport {
     /// Validate source provenance against the exact request used for refresh.
     fn validate_source(&self, request: &CollectionSourceRequest) -> Result<(), String> {
         self.validate()?;
-        if self.network() != request.network {
+        let provenance = self.provenance();
+        if provenance.network != request.network {
             return Err(format!(
                 "network is {}, requested {}",
-                self.network(),
-                request.network
+                provenance.network, request.network
             ));
         }
-        if self.fetched_at() != request.fetched_at {
+        if provenance.fetched_at != request.fetched_at {
             return Err(format!(
                 "fetched_at is {:?}, requested {:?}",
-                self.fetched_at(),
-                request.fetched_at
+                provenance.fetched_at, request.fetched_at
             ));
         }
-        if self.source_endpoint() != request.endpoint {
+        if provenance.source_endpoint != request.endpoint {
             return Err(format!(
                 "source_endpoint is {:?}, requested {:?}",
-                self.source_endpoint(),
-                request.endpoint
+                provenance.source_endpoint, request.endpoint
             ));
         }
         Ok(())

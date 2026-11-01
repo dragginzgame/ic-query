@@ -46,7 +46,10 @@ async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     assert_eq!(report.root_canister_id, ROOT_A);
     assert_eq!(report.ledger_canister_id, LEDGER_A);
     assert_eq!(report.sns_index_canister_id, INDEX_A);
-    assert_eq!(report.ledger_index_canister_id.as_deref(), Some(INDEX_A));
+    assert_eq!(
+        report.ledger_index,
+        IcrcIndexData::Found(INDEX_A.to_string())
+    );
     assert_eq!(report.token.token_name, "Fixture Token");
     assert_eq!(report.token.token_symbol, "FIX");
     assert_eq!(report.token.decimals, 8);
@@ -123,9 +126,13 @@ async fn sns_token_retains_metadata_when_ledger_index_discovery_is_unavailable()
     .expect("metadata survives index discovery failure");
     assert_eq!(report.token.token_symbol, "FIX");
     assert_eq!(report.sns_index_canister_id, INDEX_A);
-    assert_eq!(report.ledger_index_canister_id, None);
-    assert_eq!(report.ledger_index_error.as_deref(), Some(error));
+    assert_eq!(
+        report.ledger_index,
+        IcrcIndexData::Unavailable(error.to_string())
+    );
     let json = serde_json::to_value(&report).unwrap();
-    assert_eq!(json["ledger_index_canister_id"], serde_json::Value::Null);
-    assert_eq!(json["ledger_index_error"], error);
+    assert_eq!(
+        json["ledger_index"],
+        serde_json::json!({"unavailable": error})
+    );
 }

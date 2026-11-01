@@ -4,7 +4,6 @@
 //! Does not own: command parsing, ledger transport internals, or rendering.
 //! Boundary: resolves SNS identity, fetches token data, and assembles the report.
 
-use crate::icrc::IcrcIndexData;
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsToken, SNS_TOKEN_REPORT_SCHEMA_VERSION, SnsHostError,
     SnsLookupRequest, SnsTokenReport, live::LiveSnsSource, lookup::resolve_sns_lookup,
@@ -29,10 +28,6 @@ pub async fn build_sns_token_report_with_source(
         token,
         ledger_index,
     } = token;
-    let (ledger_index_canister_id, ledger_index_error) = match ledger_index {
-        IcrcIndexData::Found(principal) => (Some(principal), None),
-        IcrcIndexData::Unavailable(error) => (None, Some(error)),
-    };
     Ok(SnsTokenReport {
         schema_version: SNS_TOKEN_REPORT_SCHEMA_VERSION,
         network: lookup.fetch_request.network,
@@ -46,7 +41,6 @@ pub async fn build_sns_token_report_with_source(
         ledger_canister_id: lookup.sns.canisters.ledger_canister_id,
         sns_index_canister_id: lookup.sns.canisters.index_canister_id,
         token,
-        ledger_index_canister_id,
-        ledger_index_error,
+        ledger_index,
     })
 }

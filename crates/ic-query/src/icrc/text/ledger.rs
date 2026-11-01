@@ -17,7 +17,7 @@ use crate::{
         IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcIndexReport, IcrcTipCertificateReport,
         IcrcTokenReport,
     },
-    text_value::{optional_text, truncate_text},
+    text_value::truncate_text,
     token_metadata_text::{
         append_token_metadata_tables, render_standard_rows_table, token_summary_lines,
     },
@@ -47,11 +47,11 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
         ),
         format!(
             "index_canister_id: {}",
-            optional_text(report.index_canister_id.as_ref())
+            terminal_text(report.index.canister_id().unwrap_or("-"))
         ),
     ];
     lines.extend(super::acquisition_lines(&report.provenance));
-    if let Some(error) = report.index_error.as_deref() {
+    if let Some(error) = report.index.unavailable_reason() {
         lines.push(format!("index_error: {}", terminal_text(error)));
     }
     lines.join("\n")
@@ -64,26 +64,42 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
             "ledger_canister_id: {}",
             report.provenance.ledger_canister_id
         ),
-        format!("certificate_present: {}", report.certificate_present),
+        format!("certificate_present: {}", report.certificate.is_some()),
         format!(
             "certificate_bytes: {}",
-            optional_byte_count_text(report.certificate_bytes)
+            optional_byte_count_text(
+                report
+                    .certificate
+                    .as_ref()
+                    .map(|evidence| evidence.certificate_bytes)
+            )
         ),
         format!(
             "hash_tree_bytes: {}",
-            optional_byte_count_text(report.hash_tree_bytes)
+            optional_byte_count_text(
+                report
+                    .certificate
+                    .as_ref()
+                    .map(|evidence| evidence.hash_tree_bytes)
+            )
         ),
         format!(
             "certificate_hex: {}",
             optional_truncated_text(
-                report.certificate_hex.as_ref(),
+                report
+                    .certificate
+                    .as_ref()
+                    .map(|evidence| &evidence.certificate_hex),
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
             )
         ),
         format!(
             "hash_tree_hex: {}",
             optional_truncated_text(
-                report.hash_tree_hex.as_ref(),
+                report
+                    .certificate
+                    .as_ref()
+                    .map(|evidence| &evidence.hash_tree_hex),
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
             )
         ),

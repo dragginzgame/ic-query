@@ -15,7 +15,6 @@ mod token;
 mod upgrade;
 mod validation;
 
-pub use canisters::MainnetSnsCanisterInventory;
 pub(in crate::sns::report) use canisters::{
     SNS_CANISTER_HEALTH_CALL_TYPE, canonicalize_mainnet_sns_canister_inventory,
 };
