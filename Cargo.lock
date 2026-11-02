@@ -1811,7 +1811,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.86.0"
+version = "0.85.0"
 dependencies = [
  "futures",
  "futures-util",
@@ -1860,7 +1860,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-testkit"
-version = "0.86.0"
+version = "0.85.0"
 dependencies = [
  "ic-host-artifacts",
  "ic-platform",
