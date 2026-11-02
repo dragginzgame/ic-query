@@ -5,5 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${repo_root}"
 
 cargo package -p ic-query --locked "$@"
-cargo package -p ic-query-cli --locked \
+cargo package -p ic-query-text --locked \
   --config 'patch.crates-io.ic-query.path="crates/ic-query"' "$@"
+cargo package -p ic-query-cli --locked \
+  --config 'patch.crates-io.ic-query.path="crates/ic-query"' --config 'patch.crates-io.ic-query-text.path="crates/ic-query-text"' "$@"

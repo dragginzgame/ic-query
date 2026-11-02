@@ -12,7 +12,6 @@ pub(crate) mod ledger;
 #[cfg(feature = "icrc-host")]
 mod live;
 mod model;
-mod text;
 
 pub const DEFAULT_ICRC_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
@@ -59,28 +58,22 @@ pub use model::{
 };
 pub use model::{
     IcrcAccountRow, IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
-    IcrcAccountTransactionCacheSummary, IcrcAccountTransactionError,
+    IcrcAccountTransactionCacheSummary, IcrcAccountTransactionContext, IcrcAccountTransactionError,
     IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
     IcrcAccountTransactionPageData, IcrcAccountTransactionPageReport,
     IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshAttemptStatus,
     IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRefreshRequest,
     IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot, IcrcAccountTransactionSort,
-    IcrcAllowanceData, IcrcAllowanceReport, IcrcAllowanceRequest, IcrcArchiveFollowErrorRow,
-    IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport,
-    IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow,
-    IcrcBlockTypesReport, IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus,
-    IcrcError, IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexReport, IcrcLedgerRequest,
+    IcrcAccountTransactionValidCacheSummary, IcrcAllowanceData, IcrcAllowanceReport,
+    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceData,
+    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
+    IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcIndexReport, IcrcLedgerRequest,
     IcrcMetadataValueKind, IcrcReportProvenance, IcrcTipCertificateEvidence,
     IcrcTipCertificateReport, IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenReport,
     IcrcTokenStandardRow, IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
     IcrcTransactionsRequest,
-};
-pub use text::{
-    icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,
-    icrc_account_transaction_page_report_text, icrc_account_transaction_refresh_report_text,
-    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
-    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
 };
 
 #[cfg(all(test, feature = "icrc-host"))]

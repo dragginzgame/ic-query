@@ -444,9 +444,7 @@ fn mainnet_sns(id: usize, name: &str) -> MainnetSns {
             index_canister_id: format!("{id}-index"),
         },
         metadata_error: None,
-        lifecycle: None,
-
-        lifecycle_error: None,
+        lifecycle: crate::sns::SnsLifecycleOutcome::NotCollected,
     }
 }
 

@@ -4,10 +4,10 @@
 //! Does not own: live NNS governance calls, report sorting, or text rendering.
 //! Boundary: derives choice defaults from the report-model vocabulary.
 
-use ic_query::nns::proposals::{
-    NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalStatusFilter,
-    NnsProposalTopicFilter,
-};
+use ic_query::nns::proposals::NnsProposalListSort;
+use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
+use ic_query::nns::proposals::NnsProposalStatusFilter;
+use ic_query::nns::proposals::NnsProposalTopicFilter;
 
 pub(in crate::nns::proposals) const NNS_PROPOSAL_ID_ARG: &str = "proposal-id";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";

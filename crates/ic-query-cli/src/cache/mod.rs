@@ -12,9 +12,10 @@ use crate::{
     storage::{CacheRootError, cache_root},
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::cache::{
-    CacheStatusError, CacheStatusRequest, build_cache_status_report, cache_status_report_text,
-};
+use ic_query::cache::CacheStatusError;
+use ic_query::cache::CacheStatusRequest;
+use ic_query::cache::build_cache_status_report;
+use ic_query_text::cache::cache_status_report_text;
 use std::io;
 use thiserror::Error as ThisError;
 

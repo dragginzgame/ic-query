@@ -17,18 +17,27 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
-use ic_query::{
-    QueryProgress, QueryProgressEvent,
-    sns::{
-        SnsCatalogRefreshRequest, SnsListReport, build_sns_canister_report, build_sns_info_report,
-        build_sns_list_report_from_cache_or_refresh, build_sns_params_report,
-        build_sns_swap_report, build_sns_token_report, build_sns_upgrade_report,
-        refresh_sns_catalog, sns_canister_report_text, sns_catalog_cache_path,
-        sns_catalog_refresh_report_text, sns_info_report_text,
-        sns_list_report_text_with_metadata_style, sns_params_report_text, sns_swap_report_text,
-        sns_token_report_text, sns_upgrade_report_text,
-    },
-};
+use ic_query::QueryProgress;
+use ic_query::QueryProgressEvent;
+use ic_query::sns::SnsCatalogRefreshRequest;
+use ic_query::sns::SnsListReport;
+use ic_query::sns::build_sns_canister_report;
+use ic_query::sns::build_sns_info_report;
+use ic_query::sns::build_sns_list_report_from_cache_or_refresh;
+use ic_query::sns::build_sns_params_report;
+use ic_query::sns::build_sns_swap_report;
+use ic_query::sns::build_sns_token_report;
+use ic_query::sns::build_sns_upgrade_report;
+use ic_query::sns::refresh_sns_catalog;
+use ic_query::sns::sns_catalog_cache_path;
+use ic_query_text::sns::sns_canister_report_text;
+use ic_query_text::sns::sns_catalog_refresh_report_text;
+use ic_query_text::sns::sns_info_report_text;
+use ic_query_text::sns::sns_list_report_text_with_metadata_style;
+use ic_query_text::sns::sns_params_report_text;
+use ic_query_text::sns::sns_swap_report_text;
+use ic_query_text::sns::sns_token_report_text;
+use ic_query_text::sns::sns_upgrade_report_text;
 use std::{
     env,
     io::{self, IsTerminal},

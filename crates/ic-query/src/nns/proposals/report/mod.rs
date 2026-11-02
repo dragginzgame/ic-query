@@ -12,7 +12,6 @@ mod collection;
 mod error;
 mod model;
 mod source;
-mod text;
 mod view;
 #[cfg(any(
     feature = "nns-host",
@@ -59,11 +58,6 @@ pub use source::{
 };
 #[cfg(feature = "nns-host")]
 pub use source::{build_nns_proposal_list_report, build_nns_proposal_report};
-#[cfg(feature = "nns-host")]
-pub use text::nns_proposal_cache_list_report_text;
-pub use text::{
-    nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
-};
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

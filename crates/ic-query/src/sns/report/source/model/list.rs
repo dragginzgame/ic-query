@@ -136,10 +136,8 @@ pub struct MainnetSns {
     #[serde(flatten)]
     pub canisters: MainnetSnsCanisters,
     pub metadata_error: Option<String>,
-    /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
-    pub lifecycle: Option<i32>,
-    /// Bounded lifecycle query failure retained instead of dropping the SNS row.
-    pub lifecycle_error: Option<String>,
+    /// Collected lifecycle value or bounded query failure.
+    pub lifecycle: crate::sns::SnsLifecycleOutcome,
 }
 
 ///
@@ -281,11 +279,7 @@ pub(in crate::sns::report) fn validate_joined_mainnet_sns_catalog(
             "metadata_error",
             sns.metadata_error.as_deref(),
         )?;
-        validate_lifecycle_fields(
-            &sns.canisters.root_canister_id,
-            sns.lifecycle,
-            sns.lifecycle_error.as_deref(),
-        )?;
+        validate_lifecycle_fields(&sns.canisters.root_canister_id, &sns.lifecycle)?;
     }
     Ok(())
 }
@@ -299,9 +293,9 @@ pub(in crate::sns::report) fn join_mainnet_sns_lifecycles(
         let lifecycle = lifecycle_by_root
             .remove(&sns.canisters.root_canister_id)
             .expect("exact lifecycle validation requires every inventory root");
-        (sns.lifecycle, sns.lifecycle_error) = match lifecycle.outcome {
-            Ok(value) => (Some(value), None),
-            Err(error) => (None, Some(error)),
+        sns.lifecycle = match lifecycle.outcome {
+            Ok(code) => crate::sns::SnsLifecycleOutcome::Value { code },
+            Err(error) => crate::sns::SnsLifecycleOutcome::Failed { error },
         };
     }
     Ok(())
@@ -400,25 +394,17 @@ fn index_enrichment_rows<Row>(
 
 fn validate_lifecycle_fields(
     root_canister_id: &str,
-    lifecycle: Option<i32>,
-
-    lifecycle_error: Option<&str>,
+    lifecycle: &crate::sns::SnsLifecycleOutcome,
 ) -> Result<(), SnsHostError> {
-    if let Some(error) = lifecycle_error {
-        EnrichmentKind::Lifecycle.validate_text(root_canister_id, "lifecycle_error", error)?;
-        if lifecycle.is_some() {
-            return Err(LIFECYCLE_VALIDATOR.invalid(format!(
-                "lifecycle for {root_canister_id} contains both value fields and lifecycle_error"
-            )));
+    match lifecycle {
+        crate::sns::SnsLifecycleOutcome::Value { .. } => Ok(()),
+        crate::sns::SnsLifecycleOutcome::Failed { error } => {
+            EnrichmentKind::Lifecycle.validate_text(root_canister_id, "lifecycle_error", error)
         }
-        return Ok(());
+        crate::sns::SnsLifecycleOutcome::NotCollected => Err(LIFECYCLE_VALIDATOR.invalid(format!(
+            "lifecycle for {root_canister_id} was not collected"
+        ))),
     }
-    if lifecycle.is_some() {
-        return Ok(());
-    }
-    Err(LIFECYCLE_VALIDATOR.invalid(format!(
-        "lifecycle for {root_canister_id} has neither a value nor lifecycle_error"
-    )))
 }
 
 fn validate_optional_metadata_text(
@@ -461,9 +447,7 @@ fn joined_mainnet_sns(canisters: MainnetSnsCanisters, metadata: MainnetSnsMetada
         url: fields.url,
         canisters,
         metadata_error,
-        lifecycle: None,
-
-        lifecycle_error: None,
+        lifecycle: crate::sns::SnsLifecycleOutcome::NotCollected,
     }
 }
 

@@ -8,17 +8,15 @@ use crate::cli::common::OutputFormat;
 use crate::{
     cli::clap::{required_typed, string_option, typed_option},
     cli::common::resolve_proposal_sort_direction,
-    sns::commands::{
-        SnsCommandError,
-        options::lookup::lookup_request,
-        spec::{
-            SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
-            SnsProposalsSortArg,
-        },
-    },
+    sns::commands::{SnsCommandError, options::lookup::lookup_request},
 };
 use clap::ArgMatches;
-use ic_query::sns::{SnsProposalRequest, SnsProposalsRequest, SnsProposalsSort};
+use ic_query::sns::SnsProposalEligibilityFilter;
+use ic_query::sns::SnsProposalRequest;
+use ic_query::sns::SnsProposalStatusFilter;
+use ic_query::sns::SnsProposalTopicFilter;
+use ic_query::sns::SnsProposalsRequest;
+use ic_query::sns::SnsProposalsSort;
 use std::path::PathBuf;
 
 pub(in crate::sns::commands) fn proposals_request(
@@ -27,13 +25,21 @@ pub(in crate::sns::commands) fn proposals_request(
     now_unix_secs: u64,
     cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
 ) -> Result<(OutputFormat, SnsProposalsRequest), SnsCommandError> {
-    let status = required_typed::<SnsProposalStatusArg>(matches, "status").into();
-    let sort = SnsProposalsSort::from(required_typed::<SnsProposalsSortArg>(matches, "sort"));
+    let status = required_typed::<SnsProposalStatusFilter>(matches, "status");
+    let sort = required_typed::<SnsProposalsSort>(matches, "sort");
     let sort_direction = resolve_proposal_sort_direction(
         matches,
         sort.uses_local_direction(),
         sort.default_direction(),
-        || crate::cli::clap::value_names(SnsProposalsSortArg::Api),
+        || {
+            SnsProposalsSort::ALL
+                .iter()
+                .copied()
+                .filter(|sort| sort.uses_local_direction())
+                .map(SnsProposalsSort::as_str)
+                .collect::<Vec<_>>()
+                .join("|")
+        },
     )
     .map_err(SnsCommandError::Usage)?;
     let (format, lookup) = lookup_request(matches, network, now_unix_secs);
@@ -44,8 +50,8 @@ pub(in crate::sns::commands) fn proposals_request(
             limit: required_typed(matches, "limit"),
             before_proposal_id: typed_option(matches, "before"),
             status,
-            topic: required_typed::<SnsProposalTopicArg>(matches, "topic").into(),
-            eligibility: required_typed::<SnsProposalEligibilityArg>(matches, "eligible").into(),
+            topic: required_typed::<SnsProposalTopicFilter>(matches, "topic"),
+            eligibility: required_typed::<SnsProposalEligibilityFilter>(matches, "eligible"),
             proposer_neuron_id: string_option(matches, "proposer"),
             query: string_option(matches, "query"),
             sort,

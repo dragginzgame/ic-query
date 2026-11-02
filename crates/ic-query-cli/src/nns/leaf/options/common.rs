@@ -9,7 +9,8 @@ use crate::cli::{
     common::{OutputFormat, SOURCE_ENDPOINT_ARG, output_format},
 };
 use clap::ArgMatches;
-use ic_query::nns::{NnsGovernanceRefreshRequest, governance::NnsGovernanceRequest};
+use ic_query::nns::NnsGovernanceRefreshRequest;
+use ic_query::nns::governance::NnsGovernanceRequest;
 use std::path::PathBuf;
 
 ///

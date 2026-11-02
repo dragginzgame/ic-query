@@ -13,12 +13,13 @@ use crate::cli::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::cloud_engine::{
-    CloudEngineNodeInfoRequest, CloudEngineNodeListRequest,
-    DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, build_cloud_engine_node_info_report,
-    build_cloud_engine_node_list_report, cloud_engine_node_info_report_text,
-    cloud_engine_node_list_report_text,
-};
+use ic_query::cloud_engine::CloudEngineNodeInfoRequest;
+use ic_query::cloud_engine::CloudEngineNodeListRequest;
+use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::cloud_engine::build_cloud_engine_node_info_report;
+use ic_query::cloud_engine::build_cloud_engine_node_list_report;
+use ic_query_text::cloud_engine::cloud_engine_node_info_report_text;
+use ic_query_text::cloud_engine::cloud_engine_node_list_report_text;
 
 const SOURCE_ENDPOINT_HELP: &str =
     "Official Dashboard v3 endpoint used for Type4 node observations";

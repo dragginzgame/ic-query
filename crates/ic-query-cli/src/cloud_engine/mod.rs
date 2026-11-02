@@ -20,17 +20,19 @@ use crate::{
     storage::{CacheRootError, cache_root},
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::cloud_engine::{
-    CloudEngineHostError, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
-    build_cloud_engine_list_report_with_progress, build_cloud_engine_operator_report,
-    build_cloud_engine_prices_report, cloud_engine_list_report_text,
-    cloud_engine_operator_report_text, cloud_engine_prices_report_text,
-};
+use ic_query::cloud_engine::CloudEngineHostError;
+use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT;
+use ic_query::cloud_engine::build_cloud_engine_list_report_with_progress;
+use ic_query::cloud_engine::build_cloud_engine_operator_report;
+use ic_query::cloud_engine::build_cloud_engine_prices_report;
 use ic_query::ic::IcHostError;
-use ic_query::subnet_catalog::{
-    DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
-    SubnetCatalogListRequest,
-};
+use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
+use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
+use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
+use ic_query::subnet_catalog::SubnetCatalogListRequest;
+use ic_query_text::cloud_engine::cloud_engine_list_report_text;
+use ic_query_text::cloud_engine::cloud_engine_operator_report_text;
+use ic_query_text::cloud_engine::cloud_engine_prices_report_text;
 use std::io;
 use thiserror::Error as ThisError;
 

@@ -1,10 +1,28 @@
 # Release workflow
 
-The maintainer runs one of `make release-patch`, `make release-minor`, or
-`make release-major`. Each uses the same complete `make ci` gate, then prepares
-metadata and notes, stages the explicit release files, commits, creates an
-annotated tag, and atomically pushes the selected branch and tag. Publication
-remains the separate `make publish` command.
+Release groups share one Cargo workspace and root lockfile. Select
+`RELEASE_GROUP=query` for `ic-query` and unpublished `ic-query-testkit`, or
+`RELEASE_GROUP=cli` for `ic-query-text` and `ic-query-cli`. Every member has an
+explicit package version; the root catalog records the exact current version of
+every local member. Missing and unknown selections fail before setup or effects.
+
+The maintainer runs `make release-minor RELEASE_GROUP=query` (or `release-patch`
+for a compatible batch). Both groups retain the complete `make ci` gate and
+native host matrix. The shared runner stages the selected policy's explicit files,
+commits, creates an annotated `query-vX.Y.Z` or `cli-vX.Y.Z` tag, and atomically
+pushes the selected branch and tag. Publication remains separate:
+`make publish RELEASE_GROUP=query` or `make publish RELEASE_GROUP=cli`.
+
+Root [CHANGELOG.md](../CHANGELOG.md) indexes the group ledgers. Finalized common
+history remains once in [releases/history.md](../releases/history.md). Each group
+owns its numbered pending ledger entry and detailed minor-line notes. The policy
+lists the selected detail path; review that path when starting a new minor draft.
+Group-qualified recovery journals and receipts bind the group, policy digest,
+source, versions and destination. Resume with
+`make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
+
+For the current 0.86 hard cut, release and publish Query first, then the CLI group.
+Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed
 metadata and run fresh validation. They do not scan historical plans, reuse old
@@ -51,8 +69,11 @@ Query selects
 an 8 MiB per-document allowance in Make, retains authenticated source bytes and
 before/after candidates, and owns its exact file set, local dependency projection,
 changelog finalization, source/index admission and interruption reconciliation.
-Build projects all three root catalog versions, including unused CLI/Testkit
-entries, together with the workspace version.
+The canonical shared group planner selects member versions, owned root catalog
+requirements and local lock records. IC Build renders exactly that selection;
+unselected member versions and ledgers remain byte-for-byte unchanged. Query's
+adapter authenticates every retained input against the validated source before
+accepting an interrupted or prepared payload.
 Direct metadata-fixture callers supply `CARGO_RELEASE_METADATA_EDITOR` and
 `CARGO_RELEASE_METADATA_MAX_BYTES` explicitly. No renderer performs Git effects,
 network access or installation. The retired Perl editors are no longer selected.
@@ -191,26 +212,23 @@ matching local upstream tracking ref without fetching or repeating the push.
 It preserves symbolic refs, changed destinations and concurrent observations;
 failed or ineligible reconciliation asks the maintainer to fetch.
 
-The publication tag adapter selects this workspace's package version and exact
-HEAD commit, then delegates annotated-tag identity checks to the vendored
-`scripts/ci/check-release-tag.sh`. Consumer fixtures retain clean-worktree,
-selected-version, stale/missing/lightweight-tag and publication-order checks.
-
-Make's `version`/`release-version`, changelog defaults, release preflight and
-publication/tag admission use the shared workspace version reader with an
-explicit `Cargo.toml` path and `--stable`. It requires the prepared Cargo
-toolchain and jq/yq, validates TOML offline without dependency resolution and
-rejects failed observations before Git or publication effects. Valid TOML
-comments are accepted by the reader. Consumer-owned metadata transformations
-still require the exact canonical release payload and authenticate retained
-inputs against the selected source; reading does not normalize that payload.
+The publication tag adapter selects the explicit group's package version and
+exact HEAD commit, then delegates annotated group-tag identity checks to the
+shared `scripts/ci/check-release-tag.sh`. Make's `version`/`release-version`,
+release preflight and publication admission use the canonical
+`scripts/ci/cargo-release-group.sh` planner with locked, offline Cargo metadata
+and prepared jq/yq. Consumer metadata rendering still authenticates exact
+source, index and committed payload bytes; group admission does not replace
+those checks.
 
 Publication checks the exact stable package version through the shared
 [crates.io observer](verification-helpers.md#exact-cratesio-version-observation).
 Only an HTTP 404 admits publication; transport failures, throttling and other
 unavailable observations stop immediately. An existing version skips its
-publication. The adapter separately waits for Cargo to resolve the library
-from the registry index before publishing the CLI, including on retry.
+publication. Query publishes only its library; Testkit remains unpublished.
+The CLI group first admits the exact selected Query peer, waits for its registry
+index entry before publishing `ic-query-text`, then waits for Text before
+publishing `ic-query-cli`. Retries skip confirmed existing uploads.
 API presence alone does not prove index readiness. Consumer fixtures cover
 unknown observations at both package boundaries without live registry effects.
 
@@ -218,7 +236,7 @@ Publication dispatch uses the shared [single-attempt runner](cargo-publication.m
 Each actual upload retains exact source/package selectors, NUL-separated arguments,
 combined Cargo output and Cargo/logger statuses in a fresh `target/publication/`
 directory. One workspace lock covers registry observations, index waiting and
-both uploads; the shared attempt lock uses that same stable evidence parent.
+the selected uploads; the shared attempt lock uses that same stable evidence parent.
 Completed attempts release their locks and remain available for inspection.
 An incomplete dispatch retains both locks and blocks another invocation before
 registry or Cargo effects. Inspect the owners and receipts, reconcile exact
@@ -301,7 +319,7 @@ distinct from dirty-source refusals. No metadata paths are exempted at this
 initial boundary. A refused initial preflight states that this attempt has not
 started validation or version preparation; saved-evidence recovery keeps its
 separate exact metadata and receipt checks.
-Initial admission checks root and detailed candidate headings before validation or saved intent.
+Initial admission checks selected group and detailed candidate headings before validation or saved intent.
 The maintainer's standard release targets then prepare the selected workspace
 cache with `cargo fetch --locked`, preserving Cargo's explicit offline settings
 and stopping on preparation failure with the original status. The release entry
@@ -345,8 +363,8 @@ then Query's selected formatter and pinned Cargo Audit/Machete, sequentially
 even under parallel Make. `make tools-check` admits the same selections offline;
 the complete CI gate runs it before dependent work. `make dependency-pins-check` checks parsed Cargo/Action inputs
 and tracked workspace lockfiles offline; the complete CI and release gate includes
-it with `--cargo-inheritance`. Member versions and normal, development, build and
-target dependencies inherit their owning workspace catalog. The parser identities
+it with `--cargo-inheritance`. Member versions are literal group-owned declarations; normal, development, build
+and target dependencies inherit the root dependency catalog. The parser identities
 and native setup are documented in
 [supported hosts](supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
@@ -381,19 +399,18 @@ that automatic roster. The checker verifies supported local references exist;
 it does not check anchors or make network requests. Its parsing scope is described
 in the [shared verification guide](verification-helpers.md#local-documentation-links).
 
-Pending notes use one undated `## [X.Y.Z]` root heading, linked to the matching
-`docs/changelog/<major>.<minor>.md` heading. Preserve historical minor-line
-indexes. The selected release kind must compute the same candidate as the notes;
-conflicting notes fail before metadata mutation. Preparation finalizes the
-root and detailed headings with the saved UTC release date.
+Pending notes use one undated `## [X.Y.Z]` heading in each group ledger, linked
+to `releases/<group>/<major>.<minor>.md`. Preserve the common history and each
+group's finalized entries. The selected release kind must compute the notes'
+candidate; conflicting notes fail before mutation. Preparation finalizes only
+the selected ledger and detailed heading with the saved UTC release date.
 
-The consumer adapter changes only the workspace package version, its owned
-`ic-query` dependency version, the two owned lockfile package versions, and
-the selected changelog headings. External dependency records and their checksums
-remain byte-for-byte unchanged. The release file set is exactly:
-
-- `Cargo.toml` and `Cargo.lock`;
-- `CHANGELOG.md` and the selected minor-line detailed changelog.
+The consumer adapter changes only the selected members' literal versions, owned
+root dependency requirements and local lock records, plus selected note headings.
+External dependencies and checksums remain byte-for-byte unchanged. The canonical
+policy selects the complete release-file roster: root manifest and lock, selected
+member manifests, group ledger, and its declared detailed notes. Unselected
+versions and ledgers remain unchanged.
 
 README and library-usage examples are reviewed source, preserved unchanged by
 release preparation. Their version spelling or absence of dependency snippets
@@ -403,12 +420,12 @@ it does not rewrite or stage documentation. Ordinary source admission still
 rejects unreviewed documentation edits during release execution.
 
 The shared [lockfile transformer](verification-helpers.md#local-cargolock-versions)
-produces the candidate for exactly `ic-query` and `ic-query-cli`; registry/Git
+produces the candidate for exactly the selected group members; registry/Git
 packages and source-qualified references keep their identities. The consumer
 still selects the roster, authenticates retained inputs, validates the candidate
 offline and owns atomic replacement and release recovery.
 
-One metadata helper owns both this file set and the canonical workspace version
+The canonical group planner owns the file set and selected package version
 used by Make, changelog checks, tag checks, and publication. The shared runner
 owns release commit/tree/tag checks; consumer hooks check the prepared payload
 and its validation evidence. Late hooks inspect committed files at the explicit

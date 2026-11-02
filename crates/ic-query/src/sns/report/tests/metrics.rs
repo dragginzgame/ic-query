@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
@@ -7,7 +8,6 @@ async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
         build_sns_metrics_report_with_source(&metrics_request("1"), &FixtureSnsMetricsSource)
             .await
             .expect("SNS metrics report");
-    let text = sns_metrics_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_METRICS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.metrics.governance_canister_id, GOVERNANCE_A);
@@ -38,10 +38,6 @@ async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
             .and_then(|metrics| metrics.timestamp_seconds),
         Some(1_780_531_020)
     );
-    assert!(text.contains("time_window: 30d"));
-    assert!(text.contains("treasury_metrics_cached: yes"));
-    assert!(text.contains("SNS token treasury"));
-    assert!(text.contains("governance_total_potential_voting_power"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -54,7 +50,6 @@ async fn sns_metrics_preserves_unknown_native_treasury_codes() {
     .expect("unknown native code is preserved");
 
     assert_eq!(report.metrics.treasury_metrics[1].treasury, 99);
-    assert!(sns_metrics_report_text(&report).contains("unknown"));
 }
 
 #[tokio::test(flavor = "current_thread")]

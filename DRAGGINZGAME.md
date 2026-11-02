@@ -189,7 +189,10 @@ before interface or storage changes.
 `make release-patch`, `make release-minor` and `make release-major` share the
 [release contract](rules/engineering-details.md#release-commands). Read it and the
 local adapter before authorized release work. Normal releases start fresh;
-specific-attempt recovery uses `release-resume`. Preserve required full validation.
+specific-attempt recovery uses `release-resume`. Preserve complete qualification
+of the selected release. Independent groups may adopt an explicitly qualified
+[group validation plan](docs/release-group-validation.md); until adoption, keep
+the existing full gate. Repository-wide CI remains separate and unchanged.
 
 ## Changelogs and artifact preservation
 

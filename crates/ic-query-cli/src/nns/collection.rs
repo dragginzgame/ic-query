@@ -7,16 +7,13 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
-use ic_query::{
-    QueryProgress,
-    nns::{
-        NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
-        governance::{
-            NnsGovernanceCacheStatusReport, NnsGovernanceRefreshReport,
-            nns_governance_cache_status_report_text, nns_governance_refresh_report_text,
-        },
-    },
-};
+use ic_query::QueryProgress;
+use ic_query::nns::NnsGovernanceCacheRequest;
+use ic_query::nns::NnsGovernanceRefreshRequest;
+use ic_query::nns::governance::NnsGovernanceCacheStatusReport;
+use ic_query::nns::governance::NnsGovernanceRefreshReport;
+use ic_query_text::nns::governance::nns_governance_cache_status_report_text;
+use ic_query_text::nns::governance::nns_governance_refresh_report_text;
 
 pub(super) async fn run_refresh<Error>(
     matches: &ArgMatches,

@@ -1,10 +1,8 @@
 //! Compiled-canister coverage using Testkit-owned simulator startup and typed calls.
 
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
-use ic_platform::{
-    candid::contract::Principal,
-    pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time},
-};
+use ic_platform::candid::contract::Principal;
+use ic_platform_pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time};
 use ic_query::nns::governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceSourceProvenance};
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIcStartupConfig,

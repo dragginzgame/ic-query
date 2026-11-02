@@ -31,7 +31,6 @@ async fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
         let report = build_icrc_indexed_count_report_with_source(&request, &source)
             .await
             .expect("ICRC indexed-count report");
-        let text = icrc_indexed_count_report_text(&report);
 
         assert_eq!((*source.calls.lock().unwrap()), 1);
         assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
@@ -40,8 +39,6 @@ async fn icrc_indexed_counts_preserve_kind_total_and_dashboard_provenance() {
         assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
         assert!(!report.provenance.certified);
         assert!(!report.provenance.point_in_time_guaranteed);
-        assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
-        assert!(text.contains(&format!("kind: {kind}")));
     }
 }
 
@@ -90,13 +87,12 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
     let account = build_icrc_account_list_report_with_source(&account_request, &source)
         .await
         .expect("bounded account list");
-    let account_text = icrc_account_list_report_text(&account);
 
     assert_eq!(account.returned_count, 1);
     assert_eq!(account.next_cursor.as_deref(), Some(ICRC_ACCOUNT_ID));
     assert_eq!(account.rows[0].created_at_unix_secs, 1_731_833_720);
     assert_eq!(account.rows[0].created_at_subsec_nanos, 56_622_711);
-    assert!(account_text.contains("\n\naccounts:\n"));
+
     assert!(!account.provenance.certified);
     assert!(!account.provenance.point_in_time_guaranteed);
 
@@ -112,7 +108,6 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
         .await
         .expect("exact account info");
     assert_eq!(info.account.account_id, ICRC_ACCOUNT_ID);
-    assert!(icrc_account_info_report_text(&info).contains("created_at_unix_secs: 1731833720"));
 
     let holder_request = IcIcrcHolderListRequest::new(
         crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
@@ -124,7 +119,7 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
         .expect("bounded holder list");
     assert_eq!(holder.rows[0].principal, ICRC_ACCOUNT_ID);
     assert_eq!(holder.rows[0].percentage, serde_json::json!(0.0));
-    assert!(icrc_holder_list_report_text(&holder).contains("\n\nholders:\n"));
+
     assert_eq!((*source.calls.lock().unwrap()), 3);
 }
 
@@ -179,7 +174,6 @@ async fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
     let report = build_icrc_token_value_report_with_source(&request, &source)
         .await
         .expect("bounded ICRC token-value report");
-    let text = icrc_token_value_report_text(&report);
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
@@ -192,8 +186,6 @@ async fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
     assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("limit_reached: yes"));
-    assert!(text.contains("source=ICPSwap-API"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -264,7 +256,6 @@ async fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance(
     let report = build_icrc_total_supply_report_with_source(&request, &source)
         .await
         .expect("bounded ICRC total-supply report");
-    let text = icrc_total_supply_report_text(&report);
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
@@ -278,8 +269,6 @@ async fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance(
     assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("ledger_canister_id: mxzaz-hqaaa-aaaar-qaada-cai"));
-    assert!(text.contains("1785542400  23326766272"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -349,7 +338,6 @@ async fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_prove
     let report = build_ic_boundary_node_data_centers_report_with_source(&request, &source)
         .await
         .expect("boundary-node data centers");
-    let text = ic_boundary_node_data_centers_report_text(&report);
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.data_center_count, 2);
@@ -360,8 +348,6 @@ async fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_prove
     assert_eq!(report.rows[1].dc_id, "zh2");
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("data_center_count: 2"));
-    assert!(text.contains("fr1  name=Frankfurt"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -401,7 +387,6 @@ async fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
     let report = build_ic_daily_stats_report_with_source(&request, &source)
         .await
         .expect("bounded daily-statistics report");
-    let text = ic_daily_stats_report_text(&report);
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
@@ -414,8 +399,6 @@ async fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
     );
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("returned_day_count: 2"));
-    assert!(text.contains("2026-07-31  timestamp=1785542399"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -481,7 +464,6 @@ async fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
     let report = build_ic_metric_report_with_source(&request, &source)
         .await
         .expect("bounded Dashboard metric report");
-    let text = ic_metric_report_text(&report);
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
@@ -492,8 +474,6 @@ async fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
     assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("metric: instruction-rate"));
-    assert!(text.contains("1699996400  21089992048.10834"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -506,10 +486,8 @@ async fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
     report.series[0].name = "cycle_burn_rate".to_string();
     report.series[0].observations[0].value = "40067084771.847176".to_string();
 
-    let text = ic_metric_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize cycle-burn metric report");
 
-    assert!(text.contains("1699996400  40.07 B"));
     assert_eq!(
         json["series"][0]["observations"][0]["value"],
         "40067084771.847176"
@@ -583,7 +561,6 @@ async fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
     let report = build_ic_canister_report_with_source(&request(), &FixtureSource::default())
         .await
         .expect("Dashboard canister report");
-    let text = ic_canister_report_text(&report);
 
     assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(report.provenance.network, "ic");
@@ -603,9 +580,6 @@ async fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
     );
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(text.contains("authority: official_ic_dashboard_api"));
-    assert!(text.contains("latest_upgrade:"));
-    assert!(text.contains("certified: no"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -617,7 +591,6 @@ async fn canister_report_preserves_null_upgrade_history() {
 
     assert_eq!(report.upgrades, None);
     assert_eq!(report.upgrade_count, None);
-    assert!(ic_canister_report_text(&report).contains("upgrade_history_available: no"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -936,7 +909,6 @@ async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
     assert_eq!(report.filters.languages, ["motoko", "rust"]);
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-    assert!(ic_canister_count_report_text(&report).contains("total: 649"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -962,7 +934,6 @@ async fn canister_page_returns_one_validated_slice_without_following_cursor() {
         report.rows[0].controllers[0].raw_metadata.as_deref(),
         Some("")
     );
-    assert!(ic_canister_page_report_text(&report).contains("returned_count: 2"));
 }
 
 #[tokio::test(flavor = "current_thread")]

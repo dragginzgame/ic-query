@@ -12,7 +12,8 @@ mod replica_version;
 
 use crate::cli::common::CurrentUnixSecsError;
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::{IcApiBoundaryNodeHostError, IcHostError};
+use ic_query::ic::IcApiBoundaryNodeHostError;
+use ic_query::ic::IcHostError;
 use std::io;
 use thiserror::Error as ThisError;
 

@@ -33,7 +33,7 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         .count();
     let lifecycle_error_count = sns_instances
         .iter()
-        .filter(|sns| sns.lifecycle_error.is_some())
+        .filter(|sns| sns.lifecycle.error().is_some())
         .count();
     let sns_instances = sns_instances
         .into_iter()
@@ -43,8 +43,6 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
             canisters: sns.canisters,
             metadata_error: sns.metadata_error,
             lifecycle: sns.lifecycle,
-
-            lifecycle_error: sns.lifecycle_error,
         })
         .collect::<Vec<_>>();
     SnsListReport {

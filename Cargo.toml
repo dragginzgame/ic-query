@@ -5,12 +5,12 @@ members = [
     "crates/ic-query-cli",
     # Tests and tooling only
     "crates/ic-query-testkit",
+    "crates/ic-query-text",
 ]
 default-members = ["crates/ic-query", "crates/ic-query-cli"]
 resolver = "3"
 
 [workspace.package]
-version = "0.85.0"
 edition = "2024"
 rust-version = "1.99.1"
 license = "MIT"
@@ -20,22 +20,25 @@ repository = "https://github.com/dragginzgame/ic-query"
 
 [workspace.dependencies]
 # Query
-# Changelog : CHANGELOG.md
+# Changelog : releases/query/CHANGELOG.md
 ic-query = { path = "crates/ic-query", version = "0.85.0", default-features = false }
-ic-query-cli = { path = "crates/ic-query-cli", version = "0.85.0" }
-# Tests and tooling only
 ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.85.0" }
+
+# CLI and text presentation
+# Changelog : releases/cli/CHANGELOG.md
+ic-query-cli = { path = "crates/ic-query-cli", version = "0.85.0" }
+ic-query-text = { path = "crates/ic-query-text", version = "0.85.0", default-features = false }
 
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.73.6", default-features = false }
-ic-host-fs = { version = "0.73.6", default-features = false }
-ic-host-http = { version = "0.73.6", default-features = false }
-ic-host-text = "0.73.6"
-ic-host-tools = { version = "0.77.0", default-features = false }
-ic-metrics = { version = "0.26.0", default-features = false }
-ic-platform = { version = "0.17.0", default-features = false, features = ["candid"] }
+ic-host-artifacts = { version = "0.74.1", default-features = false }
+ic-host-fs = { version = "0.74.1", default-features = false }
+ic-host-http = { version = "0.74.1", default-features = false }
+ic-host-text = "0.74.0"
+ic-host-tools = { version = "0.78.0", default-features = false }
+ic-metrics = { version = "0.27.0", default-features = false }
+ic-platform = { version = "0.18.0", default-features = false, features = ["candid"] }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
@@ -46,10 +49,12 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.73.6"
-ic-host-process = { version = "0.73.6", default-features = false }
-ic-testkit = "0.78.0"
-ic-wire = "0.14.2"
+ic-build = "0.74.0"
+ic-host-process = { version = "0.74.1", default-features = false }
+# Native fixtures select the independent client matching Testkit.
+ic-platform-pocket-ic = { version = "0.18.0", default-features = false }
+ic-testkit = "0.80.0"
+ic-wire = "0.15.0"
 libc = "0.2"
 serde_cbor = "0.11.2"
 time = { version = "0.3", features = ["formatting"] }

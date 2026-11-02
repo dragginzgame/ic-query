@@ -4,13 +4,16 @@ use crate::cli::common::current_unix_secs;
 use crate::nns::leaf::NnsCommonOptions;
 use crate::nns::{NnsCommandError, write_text_or_json};
 use clap::ArgMatches;
-use ic_query::nns::governance::{
-    NnsGovernanceError, NnsGovernanceRequest, build_nns_governance_economics_report,
-    build_nns_governance_maturity_modulation_report, build_nns_governance_metrics_report,
-    build_nns_governance_reward_event_report, nns_governance_economics_report_text,
-    nns_governance_maturity_modulation_report_text, nns_governance_metrics_report_text,
-    nns_governance_reward_event_report_text,
-};
+use ic_query::nns::governance::NnsGovernanceError;
+use ic_query::nns::governance::NnsGovernanceRequest;
+use ic_query::nns::governance::build_nns_governance_economics_report;
+use ic_query::nns::governance::build_nns_governance_maturity_modulation_report;
+use ic_query::nns::governance::build_nns_governance_metrics_report;
+use ic_query::nns::governance::build_nns_governance_reward_event_report;
+use ic_query_text::nns::governance::nns_governance_economics_report_text;
+use ic_query_text::nns::governance::nns_governance_maturity_modulation_report_text;
+use ic_query_text::nns::governance::nns_governance_metrics_report_text;
+use ic_query_text::nns::governance::nns_governance_reward_event_report_text;
 use serde::Serialize;
 
 pub(in crate::nns) async fn run(

@@ -68,17 +68,17 @@ check_completion_assertions
 check_release_assertions() {
   local fixture="$work_dir/release-assertions" status=0 release_directories
   mkdir -p "$fixture/bin" "$fixture/attempts"
-  cat > "$fixture/bin/tail" <<'STUB'
+  cat > "$fixture/bin/sed" <<'STUB'
 #!/usr/bin/env bash
-if [[ $# == 3 && "$1" == -n && "$2" == 1 && "$3" == .release-state/*.plan ]]; then
-  "$RELEASE_ASSERTION_REAL_TAIL" "$@" >> "$RELEASE_ASSERTION_OBSERVATIONS"
+if [[ $# == 3 && "$1" == -n && "$2" == 11p && "$3" == .release-state/*.plan ]]; then
+  "$RELEASE_ASSERTION_REAL_SED" "$@" >> "$RELEASE_ASSERTION_OBSERVATIONS"
   printf 'contradictory phase\n'
 else
-  exec "$RELEASE_ASSERTION_REAL_TAIL" "$@"
+  exec "$RELEASE_ASSERTION_REAL_SED" "$@"
 fi
 STUB
-  chmod +x "$fixture/bin/tail"
-  RELEASE_ASSERTION_REAL_TAIL="$(command -v tail)" \
+  chmod +x "$fixture/bin/sed"
+  RELEASE_ASSERTION_REAL_SED="$(command -v sed)" \
     RELEASE_ASSERTION_OBSERVATIONS="$fixture/observations" \
     TMPDIR="$fixture/attempts" PATH="$fixture/bin:$PATH" "$BASH" "$repo_root/scripts/ci/check-release-guards.sh" --assert-completion \
     > "$fixture/refusal.log" 2>&1 || status=$?
@@ -292,6 +292,9 @@ done
 drift_case="$work_dir/input-drift"
 git clone --quiet --shared "$repo_root" "$drift_case"
 copy_makefile "$drift_case"
+mkdir -p "$drift_case/crates/ic-query-text"
+cp "$repo_root/crates/ic-query-text/Cargo.toml" "$drift_case/crates/ic-query-text/"
+cp "$repo_root/ci/cargo-release-groups.json" "$drift_case/ci/"
 cp "$repo_root/scripts/ci/"{run-validation-targets,verify-file-checksum}.sh "$drift_case/scripts/ci/"
 mkdir "$drift_case/bin"
 cat > "$drift_case/bin/make" <<'EOF'
@@ -306,7 +309,7 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
+for input in Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-text/Cargo.toml ci/cargo-release-groups.json crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
@@ -360,55 +363,85 @@ if EXPECTED_YQ="$repo_root/.tools/host/bin/yq" FAIL_PIN_CHECK=yes \
 fi
 
 version_case="$work_dir/version-read"
-mkdir -p "$version_case/scripts/ci" "$version_case/bin"
+mkdir -p "$version_case/scripts/ci" "$version_case/bin" "$version_case/ci"
 copy_makefile "$version_case"
-cp "$repo_root/scripts/ci/read-cargo-workspace-version.sh" "$version_case/scripts/ci/"
-printf '[workspace.package]\nversion = "0.1.2" # fixture comment\n[workspace.metadata.fixture]\nversion = "9.9.9"\n' > "$version_case/Cargo.toml"
+bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$version_case" scripts/ci/cargo-release-group.sh
+cp "$repo_root/ci/cargo-release-groups.json" "$version_case/ci/"
+cat > "$version_case/Cargo.toml" <<'TOML'
+[workspace]
+members = ["crates/ic-query", "crates/ic-query-testkit", "crates/ic-query-cli", "crates/ic-query-text"]
+resolver = "3"
+[workspace.metadata.fixture]
+version = "9.9.9"
+[workspace.dependencies]
+ic-query = { path = "crates/ic-query", version = "0.1.2" }
+ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.1.2" }
+ic-query-cli = { path = "crates/ic-query-cli", version = "0.2.0" }
+ic-query-text = { path = "crates/ic-query-text", version = "0.2.0" }
+TOML
+for package in ic-query ic-query-testkit ic-query-cli ic-query-text; do
+  version=0.1.2
+  case "$package" in ic-query-cli|ic-query-text) version=0.2.0 ;; esac
+  mkdir -p "$version_case/crates/$package/src"
+  printf '[package]\nname = "%s"\nversion = "%s" # fixture comment\nedition = "2024"\n' "$package" "$version" > "$version_case/crates/$package/Cargo.toml"
+  : > "$version_case/crates/$package/src/lib.rs"
+done
+while IFS= read -r path; do
+  mkdir -p "$version_case/${path%/*}"
+  printf '# Fixture notes\n' > "$version_case/$path"
+done < <(jq -r '.groups[] | .changelog, .metadata_files[]' "$version_case/ci/cargo-release-groups.json")
+(cd "$version_case" && cargo generate-lockfile --offline)
 version_parser="${YQ:-$repo_root/.tools/host/bin/yq}"
-actual="$("$make_bin" --no-print-directory -s -C "$version_case" version YQ="$version_parser")" \
-  || fail "make version rejected the shared reader's valid manifest"
-[[ "$actual" == 0.1.2 && ! -e "$version_case/Cargo.lock" ]] \
-  || fail "make version selected another field or resolved dependencies"
+cp "$version_case/Cargo.lock" "$version_case/original.lock"
+for group in query cli; do
+  actual="$("$make_bin" --no-print-directory -s -C "$version_case" version RELEASE_GROUP="$group" YQ="$version_parser")" \
+    || fail 'make version rejected an admitted group'
+  expected=0.1.2
+  [[ "$group" != cli ]] || expected=0.2.0
+  [[ "$actual" == "$expected" ]] || fail 'make version selected the wrong group'
+done
+cmp "$version_case/original.lock" "$version_case/Cargo.lock"
 cp "$version_case/Cargo.toml" "$version_case/original.toml"
-cat > "$version_case/bin/cargo" <<'EOF'
+cat > "$version_case/bin/cargo" <<'EOF_CARGO'
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ "$1" == locate-project ]]; then
-  [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 53
-  if [[ "$FAIL_VERSION_CARGO" == yes ]]; then printf '%s\n' "$PWD/Cargo.toml"; exit 52; fi
-  exec "$VERSION_REAL_CARGO" "$@"
-fi
-echo cargo-effect >> "$VERSION_EFFECTS"
-exit 43
-EOF
-cat > "$version_case/failed-parser" <<'EOF'
+[[ "$*" == 'metadata --locked --offline --format-version 1' ]] || { echo cargo-effect >> "$VERSION_EFFECTS"; exit 43; }
+[[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 53
+[[ "$FAIL_VERSION_CARGO" != yes ]] || { printf '{}\n'; exit 52; }
+exec "$VERSION_REAL_CARGO" "$@"
+EOF_CARGO
+cat > "$version_case/failed-parser" <<'EOF_PARSER'
 #!/usr/bin/env bash
-printf '{"workspace":{"package":{"version":"0.1.2"}}}\n'
+printf '{}\n'
 exit 51
-EOF
+EOF_PARSER
 for tool in git curl; do
-  cat > "$version_case/bin/$tool" <<'EOF'
+  cat > "$version_case/bin/$tool" <<'EOF_EFFECT'
 #!/usr/bin/env bash
 echo external-effect >> "$VERSION_EFFECTS"
 exit 43
-EOF
+EOF_EFFECT
 done
 chmod +x "$version_case/bin/"* "$version_case/failed-parser"
 version_fake_path="$version_case/bin:$PATH"
-for failure in cargo parser malformed; do
+for failure in cargo parser malformed missing-group unknown-group; do
   cp "$version_case/original.toml" "$version_case/Cargo.toml"
   selected_parser="$version_parser"
+  selected_group=query
   [[ "$failure" != parser ]] || selected_parser="$version_case/failed-parser"
-  [[ "$failure" != malformed ]] || printf 'version = "0.1.3"\n' >> "$version_case/Cargo.toml"
+  [[ "$failure" != malformed ]] || printf '[\n' >> "$version_case/Cargo.toml"
+  [[ "$failure" != missing-group ]] || selected_group=''
+  [[ "$failure" != unknown-group ]] || selected_group=unknown
   for boundary in make tag publish preflight; do
     if (
       cd "$version_case"
-      export VERSION_REAL_CARGO VERSION_EFFECTS FAIL_VERSION_CARGO YQ
+      export VERSION_REAL_CARGO VERSION_EFFECTS FAIL_VERSION_CARGO YQ RELEASE_GROUP
       VERSION_REAL_CARGO="$(command -v cargo)"
       VERSION_EFFECTS="$version_case/effects"
       FAIL_VERSION_CARGO=no
       [[ "$failure" != cargo ]] || FAIL_VERSION_CARGO=yes
       YQ="$selected_parser"
+      RELEASE_GROUP="$selected_group"
       case "$boundary" in
         make) PATH="$version_fake_path" "$make_bin" --no-print-directory -s version ;;
         tag) PATH="$version_fake_path" bash "$repo_root/scripts/release/check-tag-at-head.sh" ;;
@@ -417,10 +450,10 @@ for failure in cargo parser malformed; do
           perl "$repo_root/scripts/release/metadata.pl" preflight ;;
       esac
     ) > "$version_case/stdout" 2> "$version_case/stderr"; then
-      fail "$boundary accepted a failed $failure version observation"
+      fail "$boundary accepted failed $failure group admission"
     fi
     [[ ! -s "$version_case/stdout" && ! -e "$version_case/effects" ]] \
-      || fail "$boundary emitted an accepted version or reached effects after failed $failure observation"
+      || fail "$boundary emitted an accepted version or reached effects after failed $failure admission"
   done
 done
 
@@ -455,7 +488,7 @@ for target in build check clippy test package; do
     CARGO_NET_OFFLINE=false MAKEFLAGS='' MAKEOVERRIDES='' \
     "$make_bin" --no-print-directory -C "$offline_validation_case" "$target" >/dev/null \
     || fail "$target did not select locked/offline Cargo validation"
-  case "$target" in clippy | package) expected_invocations=2 ;; *) expected_invocations=1 ;; esac
+  case "$target" in clippy) expected_invocations=2 ;; package) expected_invocations=3 ;; *) expected_invocations=1 ;; esac
   [[ "$(wc -l < "$offline_validation_case/trace")" -eq "$expected_invocations" ]] \
     || fail "$target changed its Cargo validation coverage"
   : > "$offline_validation_case/trace"
@@ -1249,13 +1282,14 @@ chmod +x "${package_workspace_case}/bin/cargo"
 PATH="${package_workspace_case}/bin:${PATH}" \
   TRACE_FILE="${package_workspace_case}/trace" \
   bash "${repo_root}/scripts/ci/package-workspace.sh" --offline >/dev/null
-expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query" --offline'
-printf '%s\n' 'cargo package -p ic-query --locked --offline' "${expected_cli_package}" \
+expected_text_package='cargo package -p ic-query-text --locked --config patch.crates-io.ic-query.path="crates/ic-query" --offline'
+expected_cli_package='cargo package -p ic-query-cli --locked --config patch.crates-io.ic-query.path="crates/ic-query" --config patch.crates-io.ic-query-text.path="crates/ic-query-text" --offline'
+printf '%s\n' 'cargo package -p ic-query --locked --offline' "${expected_text_package}" "${expected_cli_package}" \
   > "${package_workspace_case}/expected-trace"
 cmp -s "${package_workspace_case}/expected-trace" "${package_workspace_case}/trace" \
   || fail "the workspace package check did not package the library then verify the CLI against it"
 
-for failed_package in ic-query ic-query-cli; do
+for failed_package in ic-query ic-query-text ic-query-cli; do
   : > "${package_workspace_case}/trace"
   if PATH="${package_workspace_case}/bin:${PATH}" \
     TRACE_FILE="${package_workspace_case}/trace" FAIL_PACKAGE="$failed_package" \
@@ -1266,6 +1300,9 @@ for failed_package in ic-query ic-query-cli; do
   fi
   [[ "$package_status" == 42 ]] || fail "workspace packaging lost Cargo failure status"
   printf '%s\n' 'cargo package -p ic-query --locked --offline' > "${package_workspace_case}/expected-trace"
+  if [[ "$failed_package" != ic-query ]]; then
+    printf '%s\n' "$expected_text_package" >> "${package_workspace_case}/expected-trace"
+  fi
   if [[ "$failed_package" == ic-query-cli ]]; then
     printf '%s\n' "$expected_cli_package" >> "${package_workspace_case}/expected-trace"
   fi

@@ -1,12 +1,14 @@
 use super::*;
+use crate::nns::topology::report::subnet_topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION;
 use crate::report::CollectionSourceRequest;
-use crate::{
-    nns::topology::report::subnet_topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind},
-    test_support::temp_dir,
-};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
+use crate::subnet_catalog::SubnetKind;
+use crate::test_support::temp_dir;
 use ic_platform::candid::contract::Principal;
-use std::{fs, path::PathBuf, sync::Mutex};
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 const NOW: u64 = 1_700_000_000;
 
@@ -158,17 +160,6 @@ fn cache_load_is_local_only_and_missing_is_typed() {
         NnsSubnetTopologyHostError::Cache(crate::HostCacheError::MissingCache { path, .. })
             if path == nns_subnet_topology_cache_path(&root, MAINNET_NETWORK)
     ));
-}
-
-#[test]
-fn text_preserves_raw_subnet_kind_and_provider_counts() {
-    let report = fixture_report(42, "2023-11-14T22:13:20Z");
-
-    let text = nns_subnet_topology_report_text(&report);
-
-    assert!(text.contains("cloud_engine"));
-    assert!(text.contains("PROVIDER_NODES"));
-    assert!(text.contains("registry_version 42"));
 }
 
 struct FixtureSource {

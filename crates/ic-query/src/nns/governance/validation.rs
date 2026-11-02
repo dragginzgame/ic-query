@@ -81,6 +81,7 @@ macro_rules! validate_governance_continuation {
     ($request:expr, $state:expr, $error:ident) => {{
         use $crate::nns::governance::NnsGovernanceCollectionStatus;
         let request = $request;
+        let status = $state.status();
         let state = &$state.collection;
         $crate::nns::governance::validate_governance_continuation_request(
             request,
@@ -98,7 +99,7 @@ macro_rules! validate_governance_continuation {
             "fetched_at",
             &request.fetched_at,
         )?;
-        match state.status {
+        match status {
             NnsGovernanceCollectionStatus::Complete => Err($error::CollectionComplete {
                 pages_fetched: state.pages_fetched,
             }),

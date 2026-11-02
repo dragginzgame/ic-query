@@ -44,11 +44,6 @@ async fn xdr_report_preserves_raw_rate_and_certification() {
     assert_eq!(report.rate.xdr_permyriad_per_icp, 49_164);
     assert!(report.certification.certificate_verified);
 
-    let text = cmc_xdr_report_text(&report);
-    assert!(text.contains("xdr_permyriad_per_icp: 49164"));
-    assert!(text.contains("xdr_per_icp: 4.9164"));
-    assert!(text.contains("certificate_verified: true"));
-
     let json = serde_json::to_value(&report).expect("serialize CMC XDR report");
     assert_eq!(json["xdr_permyriad_per_icp"], serde_json::Value::Null);
     assert_eq!(json["rate"]["xdr_permyriad_per_icp"], 49_164);
@@ -70,11 +65,6 @@ async fn cycles_report_uses_the_exact_protocol_conversion() {
         report.cycles_per_icp_formula,
         "xdr_permyriad_per_icp * cycles_per_xdr / 10000"
     );
-
-    let text = cmc_cycles_report_text(&report);
-    assert!(text.contains("cycles_per_xdr: 1 T"));
-    assert!(text.contains("cycles_per_xdr_source: ic_protocol_constant"));
-    assert!(text.contains("cycles_per_icp: 4.92 T"));
 }
 
 #[tokio::test(flavor = "current_thread")]

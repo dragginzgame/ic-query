@@ -22,7 +22,7 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
     provenance: ReportProvenance,
     proposals: Vec<NnsProposalRow>,
 ) -> NnsProposalListReport {
-    let result_scope = match provenance.data_source {
+    let result_scope = match provenance.data_source() {
         ReportDataSource::Live => ReportResultScope::BoundedLive,
         ReportDataSource::Cache => ReportResultScope::CompleteCache,
     };

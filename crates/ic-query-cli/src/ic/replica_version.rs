@@ -17,14 +17,17 @@ use crate::cli::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
 #[cfg(test)]
 use ic_query::ic::DEFAULT_IC_REPLICA_VERSION_PAGE_LIMIT;
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcReplicaVersionInfoRequest, IcReplicaVersionListQuery,
-    IcReplicaVersionListRequest, MAX_IC_REPLICA_VERSION_PAGE_LIMIT,
-    build_ic_replica_version_info_report, build_ic_replica_version_list_report,
-    ic_replica_version_info_report_text, ic_replica_version_list_report_text,
-};
+use ic_query::ic::IcReplicaVersionInfoRequest;
+use ic_query::ic::IcReplicaVersionListQuery;
+use ic_query::ic::IcReplicaVersionListRequest;
+use ic_query::ic::MAX_IC_REPLICA_VERSION_PAGE_LIMIT;
+use ic_query::ic::build_ic_replica_version_info_report;
+use ic_query::ic::build_ic_replica_version_list_report;
+use ic_query_text::ic::ic_replica_version_info_report_text;
+use ic_query_text::ic::ic_replica_version_list_report_text;
 
 const DEFAULT_LIMIT_ARG: &str = "50";
 

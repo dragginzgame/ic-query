@@ -9,10 +9,10 @@ use crate::{
     sns::commands::{SnsCommandError, options::reward_checkpoint_request},
 };
 use clap::ArgMatches;
-use ic_query::sns::{
-    build_sns_reward_checkpoint_report, build_sns_reward_diff_report_from_paths,
-    sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
-};
+use ic_query::sns::build_sns_reward_checkpoint_report;
+use ic_query::sns::build_sns_reward_diff_report_from_paths;
+use ic_query_text::sns::sns_reward_checkpoint_report_text;
+use ic_query_text::sns::sns_reward_diff_report_text;
 
 pub(super) async fn run_sns_reward(
     matches: &ArgMatches,

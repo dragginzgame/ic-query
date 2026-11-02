@@ -1,5 +1,7 @@
-use crate::sns::report::tests::{fixtures::*, *};
-use crate::{cache::CacheValidationStatus, test_support::temp_dir};
+use crate::cache::CacheValidationStatus;
+use crate::sns::report::tests::fixtures::*;
+use crate::sns::report::tests::*;
+use crate::test_support::temp_dir;
 use std::fs;
 
 #[test]
@@ -101,7 +103,6 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         cache_root: root.clone(),
     })
     .expect("cache list");
-    let list_text = sns_neurons_cache_list_report_text(&list);
 
     assert_eq!(list.schema_version, 1);
     assert_eq!(list.cache_count, 1);
@@ -119,8 +120,6 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
             .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
-    assert!(list_text.contains("cache_count: 1"));
-    assert!(list_text.contains("Fixture SNS"));
 
     let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -128,7 +127,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
         input: ROOT_A.to_string(),
     })
     .expect("cache status");
-    let status_text = sns_neurons_cache_status_report_text(&status);
+
     assert_eq!(
         status.cache.as_ref().unwrap().latest_attempt.as_ref(),
         status.latest_attempt.as_ref()
@@ -137,12 +136,10 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     assert_eq!(status.schema_version, 1);
     assert!(status.found);
     assert_eq!(
-        status.expected_cache_path.as_deref(),
-        Some(
-            sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)
-                .to_string_lossy()
-                .as_ref()
-        )
+        status.expected_cache_path.as_str(),
+        sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A)
+            .to_string_lossy()
+            .as_ref()
     );
     assert_eq!(
         status.cache.as_ref().expect("cache").cache_status.as_str(),
@@ -159,9 +156,6 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
             .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
-    assert!(status_text.contains("found: yes"));
-    assert!(status_text.contains("cache_path:"));
-    assert!(status_text.contains("latest_attempt:\n  status: complete"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -300,16 +294,10 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
         input: ROOT_A.to_string(),
     })
     .expect("cache status");
-    let status_text = sns_neurons_cache_status_report_text(&status);
 
     assert!(!status.found);
     assert!(status.cache.is_none());
-    assert!(
-        status
-            .expected_cache_path
-            .as_ref()
-            .is_some_and(|path| path.contains(ROOT_A))
-    );
+    assert!(status.expected_cache_path.contains(ROOT_A));
     assert_eq!(
         status
             .latest_attempt
@@ -324,9 +312,6 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
             .map(|attempt| attempt.lifecycle.rows_fetched),
         Some(2)
     );
-    assert!(status_text.contains("found: no"));
-    assert!(status_text.contains("refresh_hint: icq sns neuron refresh"));
-    assert!(status_text.contains("latest_attempt:\n  status: failed"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -346,7 +331,7 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
         input: ROOT_A.to_string(),
     })
     .expect("cache status");
-    let status_text = sns_neurons_cache_status_report_text(&status);
+
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
@@ -357,8 +342,6 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
             .as_ref()
             .is_some_and(|error| error.contains(expected_error))
     );
-    assert!(status_text.contains("cache_status: invalid"));
-    assert!(status_text.contains("cache_error:"));
 
     let list = build_sns_neurons_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),

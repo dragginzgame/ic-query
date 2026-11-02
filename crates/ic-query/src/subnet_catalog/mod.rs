@@ -1,4 +1,4 @@
-//! Cached NNS subnet catalog models, resolution helpers, builders, and renderers.
+//! Cached NNS subnet catalog models, resolution helpers, builders.
 
 mod error;
 #[cfg(feature = "subnet-catalog-host")]
@@ -9,8 +9,6 @@ mod principal;
 #[cfg(feature = "subnet-catalog-host")]
 mod report;
 mod resolver;
-#[cfg(feature = "subnet-catalog-host")]
-mod text;
 #[cfg(feature = "subnet-catalog-host")]
 mod time;
 
@@ -32,10 +30,9 @@ pub use host::{
     SubnetCatalogRemediation, SubnetCatalogRetryability, SubnetCatalogSource,
     SubnetCatalogSourceFailure, SubnetCatalogSourceFuture, SubnetCatalogSubject,
     SubnetCatalogUnknownRetryReason, fetch_subnet_catalog_async, load_cached_subnet_catalog,
-    load_cached_subnet_catalog_detailed, load_subnet_catalog, load_subnet_catalog_detailed,
-    load_subnet_catalog_detailed_with_progress, load_subnet_catalog_detailed_with_source,
-    load_subnet_catalog_with_source, refresh_subnet_catalog, refresh_subnet_catalog_with_source,
-    subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    load_subnet_catalog, load_subnet_catalog_with_source,
+    load_subnet_catalog_with_source_and_progress, refresh_subnet_catalog,
+    refresh_subnet_catalog_with_source, subnet_catalog_path, subnet_catalog_refresh_lock_path,
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_path};
@@ -70,11 +67,6 @@ pub use report::{
     build_subnet_catalog_list_report_with_source_and_progress,
 };
 pub use resolver::{ResolveAs, ResolvedCanisterRoute, ResolvedSubnet, ResolvedSubnetSubject};
-#[cfg(feature = "subnet-catalog-host")]
-pub use text::{
-    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
-    subnet_catalog_list_report_verbose_text, subnet_catalog_refresh_report_text,
-};
 #[cfg(feature = "subnet-catalog-host")]
 pub use time::catalog_stale_status;
 

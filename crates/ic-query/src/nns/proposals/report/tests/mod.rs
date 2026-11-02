@@ -1,35 +1,40 @@
-use super::{
-    NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
-    NNS_PROPOSAL_REPORT_SCHEMA_VERSION, NnsProposalError,
-    model::{
-        NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
-        NnsProposalRewardStatus, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalStatus,
-        NnsProposalStatusFilter, NnsProposalTopic, NnsProposalTopicFilter,
-    },
-    source::{
-        NnsProposalSource, NnsProposalSourceFuture,
-        build_nns_proposal_list_report_with_source as build_nns_proposal_list_report_async,
-        build_nns_proposal_report_with_source as build_nns_proposal_report_async,
-        nns_proposal_row_from_info,
-    },
-    text::{nns_proposal_list_report_text, nns_proposal_report_text},
-    view::proposal_matches_query,
-    wire::{
-        NnsGovernanceBallot, NnsProposal, NnsProposalAction, NnsProposalInfo, NnsProposalTallyWire,
-    },
-};
-use crate::nns::governance::{NnsGovernanceNeuronId, NnsGovernanceProposalId};
-use crate::{
-    ic_registry::DEFAULT_MAINNET_ENDPOINT,
-    nns::{
-        LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID,
-        governance::{
-            NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceData,
-            NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
-        },
-    },
-    subnet_catalog::MAINNET_NETWORK,
-};
+use super::NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION;
+use super::NNS_PROPOSAL_MAX_PAGE_SIZE;
+use super::NNS_PROPOSAL_REPORT_SCHEMA_VERSION;
+use super::NnsProposalError;
+use super::model::NnsProposalListReport;
+use super::model::NnsProposalListRequest;
+use super::model::NnsProposalListSort;
+use super::model::NnsProposalRequest;
+use super::model::NnsProposalRewardStatus;
+use super::model::NnsProposalRewardStatusFilter;
+use super::model::NnsProposalRow;
+use super::model::NnsProposalStatus;
+use super::model::NnsProposalStatusFilter;
+use super::model::NnsProposalTopic;
+use super::model::NnsProposalTopicFilter;
+use super::source::NnsProposalSource;
+use super::source::NnsProposalSourceFuture;
+use super::source::build_nns_proposal_list_report_with_source as build_nns_proposal_list_report_async;
+use super::source::build_nns_proposal_report_with_source as build_nns_proposal_report_async;
+use super::source::nns_proposal_row_from_info;
+use super::view::proposal_matches_query;
+use super::wire::NnsGovernanceBallot;
+use super::wire::NnsProposal;
+use super::wire::NnsProposalAction;
+use super::wire::NnsProposalInfo;
+use super::wire::NnsProposalTallyWire;
+use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use crate::nns::LiveNnsSource;
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::governance::NnsGovernanceError;
+use crate::nns::governance::NnsGovernanceNeuronId;
+use crate::nns::governance::NnsGovernanceProposalId;
+use crate::nns::governance::NnsGovernanceRequest;
+use crate::nns::governance::NnsGovernanceSourceData;
+use crate::nns::governance::NnsGovernanceSourceProvenance;
+use crate::nns::governance::NnsGovernanceSourceSelection;
+use crate::subnet_catalog::MAINNET_NETWORK;
 use ic_platform::candid::contract::Reserved;
 
 mod detail;

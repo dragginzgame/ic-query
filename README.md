@@ -45,6 +45,11 @@ move tokens, manage neurons, deploy software, or modify applications.
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-where-it-fits.svg" alt="IC Query observes and reports, while tools such as dfx can deploy or change things">
 </p>
 
+Rust consumers use `ic-query` for typed reports, JSON, collection and cache policy,
+and `ic-query-text` for human-facing report strings. The presentation package and
+`ic-query-cli` release together; library releases advance independently. See the
+[release groups and changelogs](CHANGELOG.md).
+
 ## A few IC terms
 
 <p align="center">

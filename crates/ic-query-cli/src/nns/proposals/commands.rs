@@ -24,10 +24,12 @@ use crate::{
 };
 use clap::Command as ClapCommand;
 use clap::builder::{NonEmptyStringValueParser, RangedU64ValueParser};
-use ic_query::nns::proposals::{
-    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalListSort,
-    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
-};
+use ic_query::nns::proposals::DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT;
+use ic_query::nns::proposals::NNS_PROPOSAL_MAX_PAGE_SIZE;
+use ic_query::nns::proposals::NnsProposalListSort;
+use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
+use ic_query::nns::proposals::NnsProposalStatusFilter;
+use ic_query::nns::proposals::NnsProposalTopicFilter;
 
 const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";

@@ -9,7 +9,6 @@ mod analytics;
 mod dispatch;
 mod ledger;
 pub(in crate::icrc) mod options;
-mod sort;
 #[cfg(test)]
 pub(in crate::icrc) use account::{
     command as icrc_account_command, icrc_account_transaction_cache_command,
@@ -39,7 +38,8 @@ use crate::cli::{
 };
 use clap::{Command as ClapCommand, builder::ValueParser};
 use ic_platform::candid::contract::Principal;
-use ic_query::icrc::{DEFAULT_ICRC_SOURCE_ENDPOINT, normalize_subaccount_hex};
+use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
+use ic_query::icrc::normalize_subaccount_hex;
 
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
 const MAX_ICRC_TRANSACTIONS_LIMIT: u64 = 100;

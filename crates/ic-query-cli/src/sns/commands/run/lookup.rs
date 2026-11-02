@@ -12,9 +12,10 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-use ic_query::sns::{
-    SnsHostError, SnsLookupRequest, build_sns_metrics_report, sns_metrics_report_text,
-};
+use ic_query::sns::SnsHostError;
+use ic_query::sns::SnsLookupRequest;
+use ic_query::sns::build_sns_metrics_report;
+use ic_query_text::sns::sns_metrics_report_text;
 use serde::Serialize;
 pub(super) async fn run_sns_metrics(
     matches: &ArgMatches,

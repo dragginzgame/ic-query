@@ -6,7 +6,9 @@
 
 use ic_metrics::checked_scaled_ratio_nearest;
 
-pub(super) fn coverage_percent_text(known: usize, unknown: usize) -> String {
+/// Format known and unknown relationship counts as a nearest-tenth percentage.
+#[must_use]
+pub fn coverage_percent_text(known: usize, unknown: usize) -> String {
     let Some(total) = known.checked_add(unknown) else {
         return "-".to_string();
     };
@@ -16,7 +18,9 @@ pub(super) fn coverage_percent_text(known: usize, unknown: usize) -> String {
     ratio_percent_text(known, total)
 }
 
-pub(super) fn ratio_percent_text(numerator: u64, denominator: u64) -> String {
+/// Format a ratio as a nearest-tenth percentage, preserving unavailable totals.
+#[must_use]
+pub fn ratio_percent_text(numerator: u64, denominator: u64) -> String {
     let Ok(tenths) = checked_scaled_ratio_nearest(u128::from(numerator), denominator, 1000) else {
         return "-".to_string();
     };

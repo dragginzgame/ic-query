@@ -12,7 +12,8 @@ use crate::cli::{
     },
 };
 use ic_platform::candid::contract::Principal;
-use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, SNS_REFRESH_MAX_PAGE_SIZE};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SNS_REFRESH_MAX_PAGE_SIZE;
 
 pub(super) fn sns_lookup_input_arg() -> clap::Arg {
     value_arg("input")

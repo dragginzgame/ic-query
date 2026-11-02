@@ -9,7 +9,6 @@ mod cache;
 mod counts;
 mod model;
 mod projection;
-mod text;
 mod validation;
 
 #[cfg(feature = "dashboard-host")]
@@ -45,11 +44,6 @@ pub use model::{
 pub use projection::{
     ic_node_provider_status_report_from_snapshot, ic_node_status_report_from_snapshot,
     ic_subnet_status_report_from_snapshot,
-};
-#[cfg(feature = "dashboard-host")]
-pub use text::ic_node_status_refresh_report_text;
-pub use text::{
-    ic_node_provider_status_report_text, ic_node_status_report_text, ic_subnet_status_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 pub(in crate::ic) use validation::canonicalize_node_status_rows;

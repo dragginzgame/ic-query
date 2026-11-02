@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[tokio::test(flavor = "current_thread")]
 async fn topology_refresh_counts_component_reports() {
@@ -32,23 +33,6 @@ async fn topology_refresh_counts_component_reports() {
             "data_centers"
         ]
     );
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn topology_refresh_text_renders_component_table() {
-    let request =
-        NnsTopologyRefreshRequest::new(topology_read_request_fixture()).with_dry_run(true);
-    let report =
-        refresh_nns_topology_report_with_source(&request, &RecordingTopologySource::default())
-            .await
-            .expect("dry-run topology refresh");
-
-    let text = nns_topology_refresh_report_text(&report);
-
-    assert!(text.contains("topology_refresh: ic components 5 wrote 0 replaced 1 dry_run yes"));
-    assert!(text.contains("subnet_catalog"));
-    assert!(text.contains("node_operators"));
-    assert!(text.contains("data_centers"));
 }
 
 #[tokio::test(flavor = "current_thread")]

@@ -11,14 +11,11 @@ use super::{
         normalize_cache_request,
     },
 };
-use crate::{
-    cache::CacheValidationStatus,
-    icrc::model::{
-        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
-        IcrcAccountTransactionCacheSummary, IcrcAccountTransactionError,
-        IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
-        IcrcAccountTransactionSort,
-    },
+use crate::icrc::model::{
+    IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCacheStatusReport,
+    IcrcAccountTransactionCacheSummary, IcrcAccountTransactionError,
+    IcrcAccountTransactionListReport, IcrcAccountTransactionListRequest,
+    IcrcAccountTransactionSort,
 };
 use std::path::Path;
 
@@ -52,11 +49,8 @@ pub fn build_icrc_account_transaction_list_report(
     let returned_transaction_count = transactions.len();
 
     Ok(IcrcAccountTransactionListReport {
+        context: snapshot.context,
         schema_version: ICRC_ACCOUNT_TRANSACTION_LIST_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: snapshot.ledger_canister_id,
-        index_canister_id: snapshot.index_canister_id,
-        account_owner: snapshot.account_owner,
-        subaccount_hex: snapshot.subaccount_hex,
         requested_limit: request.limit,
         sort: request.sort.as_str().to_string(),
         total_transaction_count,
@@ -66,10 +60,6 @@ pub fn build_icrc_account_transaction_list_report(
         balance: snapshot.balance,
         token_symbol: snapshot.token_symbol,
         decimals: snapshot.decimals,
-        collection_started_at: snapshot.collection_started_at,
-        collection_completed_at: snapshot.collection_completed_at,
-        source_endpoint: snapshot.source_endpoint,
-        fetched_by: snapshot.fetched_by,
         complete: snapshot.completeness.is_api_exhausted(),
         point_in_time_guaranteed: snapshot.completeness.point_in_time_guaranteed,
         page_size: snapshot.completeness.page_size,
@@ -115,34 +105,22 @@ fn load_cache_summary(
     file: std::fs::File,
 ) -> IcrcAccountTransactionCacheSummary {
     match load_snapshot_at(path, request, Some(file)) {
-        Ok(cached) => IcrcAccountTransactionCacheSummary {
-            cache_status: CacheValidationStatus::Valid,
-            cache_error: None,
-            index_canister_id: Some(cached.snapshot.index_canister_id),
-            transaction_count: cached.snapshot.transactions.len(),
-            newest_transaction_id: cached.snapshot.newest_transaction_id,
-            oldest_transaction_id: cached.snapshot.oldest_transaction_id,
-            page_size: cached.snapshot.completeness.page_size,
-            page_count: cached.snapshot.completeness.page_count,
-            complete: true,
-            point_in_time_guaranteed: cached.snapshot.completeness.point_in_time_guaranteed,
-            collection_started_at: cached.snapshot.collection_started_at,
-            collection_completed_at: cached.snapshot.collection_completed_at,
-            cache_path: cached.path.display().to_string(),
+        Ok(cached) => IcrcAccountTransactionCacheSummary::Valid {
+            data: crate::icrc::IcrcAccountTransactionValidCacheSummary {
+                index_canister_id: cached.snapshot.context.index_canister_id,
+                transaction_count: cached.snapshot.transactions.len(),
+                newest_transaction_id: cached.snapshot.newest_transaction_id,
+                oldest_transaction_id: cached.snapshot.oldest_transaction_id,
+                page_size: cached.snapshot.completeness.page_size,
+                page_count: cached.snapshot.completeness.page_count,
+                point_in_time_guaranteed: cached.snapshot.completeness.point_in_time_guaranteed,
+                collection_started_at: cached.snapshot.context.collection_started_at,
+                collection_completed_at: cached.snapshot.context.collection_completed_at,
+                cache_path: cached.path.display().to_string(),
+            },
         },
-        Err(error) => IcrcAccountTransactionCacheSummary {
-            cache_status: CacheValidationStatus::Invalid,
-            cache_error: Some(error.to_string()),
-            index_canister_id: None,
-            transaction_count: 0,
-            newest_transaction_id: None,
-            oldest_transaction_id: None,
-            page_size: 0,
-            page_count: 0,
-            complete: false,
-            point_in_time_guaranteed: false,
-            collection_started_at: "-".to_string(),
-            collection_completed_at: "-".to_string(),
+        Err(error) => IcrcAccountTransactionCacheSummary::Invalid {
+            cache_error: error.to_string(),
             cache_path: path.display().to_string(),
         },
     }

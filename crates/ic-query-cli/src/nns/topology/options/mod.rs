@@ -5,9 +5,9 @@ use crate::{
     nns::{leaf::NnsCommonOptions, topology::commands::DRY_RUN_ARG},
 };
 use clap::ArgMatches;
-use ic_query::nns::{
-    NnsInventoryCacheRequest, NnsInventoryListRequest, topology::NnsTopologyRefreshRequest,
-};
+use ic_query::nns::NnsInventoryCacheRequest;
+use ic_query::nns::NnsInventoryListRequest;
+use ic_query::nns::topology::NnsTopologyRefreshRequest;
 use std::path::PathBuf;
 
 pub(in crate::nns) fn topology_refresh_request(

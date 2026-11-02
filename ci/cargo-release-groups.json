@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "groups": [
+    {
+      "name": "query",
+      "primary": "ic-query",
+      "version": "package",
+      "members": [
+        "ic-query",
+        "ic-query-testkit"
+      ],
+      "changelog": "releases/query/CHANGELOG.md",
+      "dependencies": [
+        "ic-query",
+        "ic-query-testkit"
+      ],
+      "metadata_files": [
+        "releases/query/0.86.md"
+      ]
+    },
+    {
+      "name": "cli",
+      "primary": "ic-query-cli",
+      "version": "package",
+      "members": [
+        "ic-query-cli",
+        "ic-query-text"
+      ],
+      "changelog": "releases/cli/CHANGELOG.md",
+      "dependencies": [
+        "ic-query-cli",
+        "ic-query-text"
+      ],
+      "metadata_files": [
+        "releases/cli/0.86.md"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[test]
 fn topology_capacity_report_summarizes_operator_allowance() {
@@ -89,21 +90,4 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
     assert_eq!(report.assigned_node_count, 0);
     assert_eq!(report.available_node_slots, 0);
     assert_eq!(report.over_assigned_node_count, 0);
-}
-
-#[test]
-fn topology_capacity_text_renders_operator_capacity_table() {
-    let report = topology_capacity_report_from_report(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        node_operator_report_fixture(),
-    );
-
-    let text = nns_topology_capacity_report_text(&report);
-
-    assert!(text.contains("NODE_OPERATOR"));
-    assert!(text.contains("ALLOWANCE"));
-    assert!(text.contains("UTILIZATION"));
-    assert!(text.contains("operator-a"));
-    assert!(text.contains("200.0%"));
 }

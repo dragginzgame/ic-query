@@ -26,7 +26,7 @@ pub struct SnsCacheListReport {
 ///
 /// SnsCacheStatusReport
 ///
-/// Serializable report describing one expected or discovered SNS cache.
+/// Serializable report describing one explicitly addressed SNS cache.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -37,8 +37,8 @@ pub struct SnsCacheStatusReport {
     pub input: String,
     pub found: bool,
     pub cache: Option<SnsCacheSummary>,
-    pub expected_cache_path: Option<String>,
-    pub refresh_attempt_path: Option<String>,
+    pub expected_cache_path: String,
+    pub refresh_attempt_path: String,
     pub latest_attempt: Option<SnsRefreshAttemptStatus>,
 }
 

@@ -17,7 +17,6 @@ mod error;
 #[cfg(feature = "nns-host")]
 mod gaps;
 mod model;
-mod percent;
 #[cfg(feature = "nns-host")]
 mod providers;
 #[cfg(feature = "nns-host")]
@@ -32,7 +31,6 @@ mod source;
 mod subnet_topology;
 #[cfg(feature = "nns-host")]
 mod summary;
-mod text;
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
@@ -114,14 +112,7 @@ pub use subnet_topology::{
 pub use subnet_topology::{
     NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
     NnsSubnetTopologyFreshness, NnsSubnetTopologyReport, NnsSubnetTopologyRow,
-    NnsSubnetTopologyValidationError, nns_subnet_topology_report_text,
-};
-pub use text::{
-    nns_topology_capacity_report_text, nns_topology_check_report_text,
-    nns_topology_coverage_report_text, nns_topology_gaps_report_text,
-    nns_topology_providers_report_text, nns_topology_refresh_report_text,
-    nns_topology_regions_report_text, nns_topology_summary_report_text,
-    nns_topology_versions_report_text,
+    NnsSubnetTopologyValidationError,
 };
 
 pub const DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT: &str =
@@ -135,7 +126,9 @@ pub const NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION: u32 = 1;
 pub const NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
-const COMPACT_PRINCIPAL_CHARS: usize = 12;
 
 #[cfg(feature = "nns-host")]
 impl_nns_mainnet_network_enforcer!(NnsTopologyHostError);
+
+mod percent;
+pub use percent::{coverage_percent_text, ratio_percent_text};

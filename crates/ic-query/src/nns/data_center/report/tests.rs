@@ -1,12 +1,15 @@
-use super::{
-    NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterRow, NnsDataCenterSource,
-    NnsInventoryCacheRequest, NnsInventoryListRequest,
-    build_nns_data_center_list_report_with_source_and_progress, nns_data_center_list_report_text,
-    nns_data_center_list_report_verbose_text, resolve_data_center,
-};
+use super::NnsDataCenterHostError;
+use super::NnsDataCenterListReport;
+use super::NnsDataCenterRow;
+use super::NnsDataCenterSource;
+use super::NnsInventoryCacheRequest;
+use super::NnsInventoryListRequest;
+use super::build_nns_data_center_list_report_with_source_and_progress;
+use super::resolve_data_center;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
 use crate::test_support::temp_dir;
 
 #[tokio::test(flavor = "current_thread")]
@@ -56,22 +59,6 @@ async fn data_center_report_uses_live_registry_source() {
     assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
     assert_eq!(report.data_center_count, 1);
     assert_eq!(report.data_centers[0].data_center_id, "dc1");
-}
-
-#[test]
-fn data_center_text_renders_relation_counts() {
-    let report = data_center_report_fixture();
-
-    let text = nns_data_center_list_report_text(&report);
-    let verbose_text = nns_data_center_list_report_verbose_text(&report);
-
-    assert!(text.contains("data_centers: ic count 1"));
-    assert!(text.contains("OPS"));
-    assert!(text.contains("PROVIDERS"));
-    assert!(text.contains("NODES"));
-    assert!(text.contains("dc1"));
-    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nDC"));
-    assert!(verbose_text.contains("fetched_by: test\n\nDC"));
 }
 
 #[test]

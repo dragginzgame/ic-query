@@ -6,8 +6,8 @@ use super::{
         snapshot_refresh_request,
     },
     spec::{
-        SnsListSortArg, sns_canister_command, sns_canister_list_command, sns_command,
-        sns_info_command, sns_list_command, sns_metrics_command, sns_neuron_cache_command,
+        sns_canister_command, sns_canister_list_command, sns_command, sns_info_command,
+        sns_list_command, sns_metrics_command, sns_neuron_cache_command,
         sns_neuron_cache_list_command, sns_neuron_cache_status_command, sns_neuron_command,
         sns_neuron_info_command, sns_neuron_list_command, sns_neuron_refresh_command,
         sns_parameters_command, sns_proposal_cache_list_command, sns_proposal_cache_status_command,
@@ -20,6 +20,7 @@ use super::{
 use crate::cli::common::{OutputFormat, SourceOutputOptions};
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SnsListSort;
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 
 fn parse_test_matches(command: ClapCommand, args: &[&str]) -> Result<ArgMatches, SnsCommandError> {

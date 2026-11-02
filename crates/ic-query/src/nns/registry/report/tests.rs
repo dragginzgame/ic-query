@@ -1,18 +1,24 @@
+use super::NnsCertifiedRegistryChunkEvidence;
+use super::NnsCertifiedRegistryDeltaBatchReport;
+use super::NnsCertifiedRegistryDeltaBatchRequest;
+use super::NnsCertifiedRegistryDeltaSource;
+use super::NnsCertifiedRegistryDeltaSourceFuture;
+use super::NnsCertifiedRegistryDeltaVersion;
+use super::NnsCertifiedRegistryMutation;
+use super::NnsCertifiedRegistryMutationKind;
+use super::NnsCertifiedRegistryValueEncoding;
+use super::NnsRegistryCertification;
+use super::NnsRegistryHostError;
+use super::NnsRegistrySource;
+use super::NnsRegistryVersionRequest;
+use super::build_nns_registry_version_report_with_source;
+use super::fetch_nns_certified_registry_delta_batch_with_source_async;
 use super::source::nns_certified_registry_delta_limits;
-use super::{
-    NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
-    NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaSource,
-    NnsCertifiedRegistryDeltaSourceFuture, NnsCertifiedRegistryDeltaVersion,
-    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryHostError,
-    NnsRegistrySource, NnsRegistryVersionReport, NnsRegistryVersionRequest,
-    build_nns_registry_version_report_with_source,
-    fetch_nns_certified_registry_delta_batch_with_source_async, nns_registry_version_report_text,
-    validate_nns_certified_registry_delta_batch,
-};
+use super::validate_nns_certified_registry_delta_batch;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
@@ -345,31 +351,6 @@ async fn registry_version_report_rejects_unverified_custom_source_evidence() {
         NnsRegistryHostError::InvalidSourceData { reason }
             if reason.contains("certificate_verified")
     ));
-}
-
-#[test]
-fn registry_version_text_is_key_value_output() {
-    let report = NnsRegistryVersionReport {
-        schema_version: 1,
-        provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-            network: MAINNET_NETWORK.to_string(),
-            registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-            registry_version: 42,
-            fetched_at: "2026-06-04T00:00:00Z".to_string(),
-            source_endpoint: "https://icp-api.io".to_string(),
-            fetched_by: "test".to_string(),
-        },
-        certification: certification(1_780_531_200),
-    };
-
-    let text = nns_registry_version_report_text(&report);
-
-    assert!(text.contains("network: ic"));
-    assert!(text.contains("registry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai"));
-    assert!(text.contains("registry_version: 42"));
-    assert!(text.contains("fetched_at: 2026-06-04T00:00:00Z"));
-    assert!(text.contains("assurance: certified"));
-    assert!(text.contains("certificate_verified: true"));
 }
 
 struct FixtureNnsRegistrySource;

@@ -71,10 +71,6 @@ impl NnsTopologyCapacityStatus {
             Self::Available => 3,
         }
     }
-
-    pub(crate) const fn needs_attention(self) -> bool {
-        matches!(self, Self::Over | Self::Unknown)
-    }
 }
 
 ///

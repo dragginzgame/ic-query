@@ -1,4 +1,4 @@
-//! Reusable Service Nervous System query models, builders, caches, and renderers.
+//! Reusable Service Nervous System query models, builders, caches.
 
 mod report;
 
@@ -9,10 +9,10 @@ pub use report::{
     SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod, SnsCanisterReport,
     SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus, SnsCustomProposalCriticality,
     SnsDefaultFollowees, SnsDefaultFolloweesRow, SnsGovernanceParameters, SnsInfoReport,
-    SnsInstanceContext, SnsListReport, SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
-    SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
-    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
+    SnsInstanceContext, SnsLifecycleOutcome, SnsListReport, SnsListRequest, SnsListRow,
+    SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest,
+    SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState,
+    SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
     SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
     SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalDecisionState,
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
@@ -21,17 +21,13 @@ pub use report::{
     SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
     SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
-    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsRewardDiffNeuronEvidence, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
-    build_sns_reward_diff_report, sns_canister_report_text, sns_info_report_text,
-    sns_list_report_text, sns_list_report_text_with_metadata_style, sns_metrics_report_text,
-    sns_neuron_detail_report_text, sns_neuron_permission_name, sns_params_report_text,
-    sns_proposal_report_text, sns_proposals_report_text, sns_reward_checkpoint_report_text,
-    sns_reward_diff_report_text, sns_swap_report_text, sns_token_report_text,
-    sns_upgrade_report_text, validate_sns_reward_checkpoint_report,
+    build_sns_reward_diff_report, sns_neuron_permission_name,
+    validate_sns_reward_checkpoint_report,
 };
 
 #[cfg(feature = "sns-host")]
@@ -66,14 +62,12 @@ pub use report::{
     refresh_sns_neurons_cache_with_progress, refresh_sns_neurons_cache_with_source,
     refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_progress,
     refresh_sns_proposals_cache_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
-    sns_catalog_refresh_report_text, sns_neurons_cache_list_report_text, sns_neurons_cache_path,
-    sns_neurons_cache_status_report_text, sns_neurons_refresh_attempt_path,
-    sns_neurons_refresh_lock_path, sns_neurons_report_text, sns_proposals_cache_list_report_text,
-    sns_proposals_cache_path, sns_proposals_cache_status_report_text,
-    sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
-    sns_snapshot_refresh_report_text,
+    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
+    sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
 
 pub use report::MainnetSnsMetrics;
 
 pub use report::MainnetSnsSwap;
+
+pub use report::sns_proposal_action_label;

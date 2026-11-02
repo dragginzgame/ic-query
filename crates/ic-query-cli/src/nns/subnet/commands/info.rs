@@ -7,7 +7,8 @@ use crate::{
     nns::leaf,
 };
 use clap::Command as ClapCommand;
-use ic_query::subnet_catalog::{DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs};
+use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
+use ic_query::subnet_catalog::ResolveAs;
 
 const INFO_HELP_AFTER: &str = "\
 Examples:

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 For scope, delegated delivery, validation, compiler support and reporting, use
-[Shared policy at e84252f](https://github.com/dragginzgame/shared-tooling/blob/e84252f5740bacd708359580455ea2b6fd67df38/DRAGGINZGAME.md)
+[Shared policy at 651f5f7](https://github.com/dragginzgame/shared-tooling/blob/651f5f7acb2e3055abd51ba5f835a2112801666a/DRAGGINZGAME.md)
 and its revision-bound references over older snapshot or local-guide wording.
 This includes Rust 1.99.1 as minimum and pinned development/release compiler;
 check local declarations and qualification before claiming adoption is complete.
@@ -72,10 +72,11 @@ repository. Preserve Query's native host matrix and release/registry checks.
 
 - Follow the [shared changelog rules](rules/changelogs.md), including automatic
   draft maintenance after meaningful completed batches and next-version selection.
-  Query uses numbered, undated `## [X.Y.Z]` pending root headings and matching
-  detailed notes in `docs/changelog/<major>.<minor>.md`.
+  Each group owns numbered, undated `## [X.Y.Z]` pending headings in
+  `releases/<group>/CHANGELOG.md` and detail notes in `releases/<group>/<major>.<minor>.md`.
+  Root `CHANGELOG.md` is an index; earlier coordinated releases stay in `releases/history.md`.
 - When a patch introduces any new CLI surface, include a fenced `bash` example
-  in both root `CHANGELOG.md` and the matching detailed changelog file. "New
+  in both the owning group changelog and its matching detailed notes. "New
   CLI surface" includes commands, subcommands, options, option values, and new
   supported combinations of existing options. Use `bash`, not `sh`, for the
   fence language. The example must show the newly introduced surface directly.
@@ -85,11 +86,11 @@ repository. Preserve Query's native host matrix and release/registry checks.
 ## Code Boundaries
 
 - Ownership: CLI parsing and dispatch live under `crates/ic-query-cli/src/`.
-  Report construction, host calls, cache reads, and text rendering belong in
-  the relevant report module under `crates/ic-query/src/`; reusable cache
-  mechanics belong in its `cache_file/` module; reusable formatting belongs
-  in Host Text, while report-specific token amount and unit-selection policy
-  stays in local helpers.
+  Report construction, host calls, cache reads and typed/JSON contracts belong
+  under `crates/ic-query/src/`. Pure report-to-text rendering and report-specific
+  token amount/unit policy belong under `crates/ic-query-text/src/`; the core
+  library must not depend on or re-export presentation. Reusable cache mechanics
+  stay in `cache_file/`, and reusable formatting mechanics stay in Host Text.
 - Process arguments, stdout/stderr, terminal detection, and progress rendering
   belong exclusively to `ic-query-cli`. The reusable library may emit typed
   progress events, but it must never select or write to a process output sink.

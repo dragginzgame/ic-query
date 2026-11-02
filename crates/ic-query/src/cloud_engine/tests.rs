@@ -1,12 +1,16 @@
 use super::*;
 use crate::report::CollectionSourceRequest;
-use crate::subnet_catalog::MAINNET_NETWORK;
 #[cfg(feature = "subnet-catalog-host")]
-use crate::subnet_catalog::{
-    CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope,
-    MAINNET_REGISTRY_CANISTER_ID, SubnetCatalogListReport, SubnetCatalogSubnetRow, SubnetKind,
-    SubnetSpecialization,
-};
+use crate::subnet_catalog::CacheDisposition;
+use crate::subnet_catalog::CatalogAssurance;
+use crate::subnet_catalog::ClassificationSource;
+use crate::subnet_catalog::GeographicScope;
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
+use crate::subnet_catalog::SubnetCatalogListReport;
+use crate::subnet_catalog::SubnetCatalogSubnetRow;
+use crate::subnet_catalog::SubnetKind;
+use crate::subnet_catalog::SubnetSpecialization;
 use std::sync::Mutex;
 
 const FETCHED_AT: &str = "2026-08-08T12:00:00Z";
@@ -134,9 +138,6 @@ async fn operator_report_preserves_public_settings_and_provenance() {
         Some(vec!["a.example".to_string(), "z.example".to_string()])
     );
 
-    let text = cloud_engine_operator_report_text(&report);
-    assert!(text.contains("operator_binding_present: yes"));
-    assert!(text.contains("\n\nClaimed domains\n"));
     let json = serde_json::to_value(&report).expect("serialize operator report");
     assert_eq!(json["query_call_count"], 5);
     assert_eq!(json["operator_binding_present"], true);
@@ -183,9 +184,6 @@ async fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
     assert_eq!(report.prices[2].key, "type4.2,de-fr-001");
     assert_eq!(report.prices[1].net_cycles_per_month, "471065106452");
 
-    let text = cloud_engine_prices_report_text(&report);
-    assert!(text.contains("\n\nMarketplace prices\n"));
-    assert!(text.contains("471.07 B"));
     let json = serde_json::to_value(&report).expect("serialize prices report");
     assert_eq!(json["prices"][1]["net_cycles_per_month"], "471065106452");
     assert_eq!(
@@ -269,10 +267,6 @@ async fn list_report_keeps_registry_inventory_and_binding_outcomes_separate() {
             .contains("fixture unavailable")
     );
 
-    let text = cloud_engine_list_report_text(&report);
-    assert!(text.contains("\n\ncontrol_plane_authority:"));
-    assert!(text.contains("\n\nCloudEngine subnets\n"));
-    assert!(text.contains("\n\nOperator lookup failures\n"));
     let json = serde_json::to_value(&report).expect("serialize list report");
     assert_eq!(json["registry_cloud_engine_subnet_count"], 3);
     assert_eq!(

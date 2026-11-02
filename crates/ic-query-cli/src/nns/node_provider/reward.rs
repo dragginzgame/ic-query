@@ -17,17 +17,23 @@ use crate::{
     nns::NnsCommandError,
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS,
-    DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS, IcNodeProviderRewardHistoryQuery,
-    IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoRequest,
-    IcNodeProviderRewardListQuery, IcNodeProviderRewardListRequest,
-    MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT,
-    MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS, build_ic_node_provider_reward_history_report,
-    build_ic_node_provider_reward_info_report, build_ic_node_provider_reward_list_report,
-    ic_node_provider_reward_history_report_text, ic_node_provider_reward_info_report_text,
-    ic_node_provider_reward_list_report_text,
-};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS;
+use ic_query::ic::DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS;
+use ic_query::ic::IcNodeProviderRewardHistoryQuery;
+use ic_query::ic::IcNodeProviderRewardHistoryRequest;
+use ic_query::ic::IcNodeProviderRewardInfoRequest;
+use ic_query::ic::IcNodeProviderRewardListQuery;
+use ic_query::ic::IcNodeProviderRewardListRequest;
+use ic_query::ic::MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS;
+use ic_query::ic::MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT;
+use ic_query::ic::MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS;
+use ic_query::ic::build_ic_node_provider_reward_history_report;
+use ic_query::ic::build_ic_node_provider_reward_info_report;
+use ic_query::ic::build_ic_node_provider_reward_list_report;
+use ic_query_text::ic::ic_node_provider_reward_history_report_text;
+use ic_query_text::ic::ic_node_provider_reward_info_report_text;
+use ic_query_text::ic::ic_node_provider_reward_list_report_text;
 
 const DEFAULT_LIMIT_ARG: &str = "50";
 

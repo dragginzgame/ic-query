@@ -24,11 +24,19 @@
 
 # Library Usage
 
+Text presentation moved to the separate `ic-query-text` package in 0.86. Import
+report DTOs/builders from `ic_query` and report-to-string functions from
+`ic_query_text` under the same command family. Query retains JSON serialization,
+collection and cache policy. Text's optional family features forward Query's
+corresponding report availability; enable `host` for the complete native surface.
+The [0.86 consumer notes](../releases/query/0.86.md) cover the hard cut.
+
+
 This guide is for Rust crates that want to call `ic-query` directly instead of
 spawning the `icq` executable.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-library-runtime-choices.svg" alt="IC Query library choices: no default features for data and rendering, focused host features for one native reporting family, host for all native reporting families, and canister for IC canisters">
+  <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-library-runtime-choices.svg" alt="IC Query library choices: no default features for report data and JSON, optional text presentation through IC Query Text, focused host features for one native reporting family, host for all native reporting families, and canister for IC canisters">
 </p>
 
 The usual downstream shape is:
@@ -181,8 +189,11 @@ Both continuation states return
 Use this shared type when matching `Ready`, `Collecting`, `Complete`, or
 `PageLimitReached`, including the status carried by activity/distribution
 `CollectionNotComplete` errors. The family-specific collection status types
-are removed as a Rust API hard cut. Persisted state still uses schema `1`
-and the labels `ready`, `collecting`, `complete`, and `page_limit_reached`.
+are removed as a Rust API hard cut. Persisted state still uses schema `1`. Lifecycle status is derived by `status()`
+from admitted page counts and cursor presence; continuation JSON carries no
+independent status field. Finish and retain older walks with their original
+collector before upgrading, or archive their pages and state before explicitly
+starting a fresh walk. See the [0.86 contract update](changelog/0.86.md).
 Proposal and neuron cursor and exhaustion rules remain separate.
 
 With `nns-host`, neuron and proposal cache-status builders return
@@ -213,10 +224,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 These functions make no network call or cache write. Missing and invalid
-snapshots return typed host errors. Starting with 0.46.0, complete proposal and
-neuron snapshots must retain their actual final `collection_state`; refresh
-existing snapshots explicitly to replace the schema-1 shape. No continuation,
-timestamp, or source provenance is reconstructed from incomplete metadata.
+snapshots return typed host errors. Complete proposal and neuron snapshots retain
+`data.collection_evidence` beside rows; the envelope owns concrete provenance,
+end time and complete-collection counts. Admission reconstructs final state
+from that evidence and applies the family validators. Caller choices, source
+binding and original collection timing remain mandatory; see the
+[0.85 cache contract update](changelog/0.85.md).
 The CLI exposes these builders as `nns proposal activity` and
 `nns neuron distribution`.
 
@@ -359,7 +372,7 @@ explicit refresh; strict row decoding rejects unsupported fields without
 rewriting the original evidence.
 
 NNS proposal rows also retain only raw Unix-second timestamps. Render UTC labels
-from those fields when needed; Query's text renderers do this automatically.
+from those fields when needed; `ic-query-text` does this automatically.
 Before adopting 0.74, preserve required proposal snapshots and caller-retained
 collection evidence, update custom sources and JSON consumers, and explicitly
 refresh the local proposal cache. Schema identifiers remain 1 and no reader
@@ -803,13 +816,12 @@ assembly and text rendering:
 
 ```rust
 use ic_query::report::CollectionSourceRequest;
-use ic_query::nns::{
-    registry::{
-        NnsRegistryHostError, NnsRegistrySource, NnsRegistryVersionData,
-        NnsRegistryVersionRequest, build_nns_registry_version_report_with_source,
-        nns_registry_version_report_text,
-    },
-};
+use ic_query::nns::registry::NnsRegistryHostError;
+use ic_query::nns::registry::NnsRegistrySource;
+use ic_query::nns::registry::NnsRegistryVersionData;
+use ic_query::nns::registry::NnsRegistryVersionRequest;
+use ic_query::nns::registry::build_nns_registry_version_report_with_source;
+use ic_query_text::nns::registry::nns_registry_version_report_text;
 
 struct FixtureRegistrySource {
     version: NnsRegistryVersionData,
@@ -859,10 +871,11 @@ Native tools can build the same bounded official Dashboard report as
 `icq ic canister info` without spawning the CLI:
 
 ```rust
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcCanisterRequest, IcHostError, build_ic_canister_report,
-    ic_canister_report_text,
-};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::ic::IcCanisterRequest;
+use ic_query::ic::IcHostError;
+use ic_query::ic::build_ic_canister_report;
+use ic_query_text::ic::ic_canister_report_text;
 
 async fn render_canister(canister_id: &str, now_unix_secs: u64) -> Result<String, IcHostError> {
     let request = IcCanisterRequest::new(
@@ -1253,14 +1266,12 @@ its provenance and evidence. JSON retains those fields in its existing flat shap
 
 ## Pure Rendering Example
 
-No-default consumers can use report DTOs and text renderers without native
+No-default consumers can use report DTOs, and `ic-query-text` renderers, without native
 live-call or CLI dependencies:
 
 ```rust
-use ic_query::nns::registry::{
-    NnsRegistryVersionReport,
-    nns_registry_version_report_text,
-};
+use ic_query::nns::registry::NnsRegistryVersionReport;
+use ic_query_text::nns::registry::nns_registry_version_report_text;
 
 fn render_registry_version(report: &NnsRegistryVersionReport) -> String {
     nns_registry_version_report_text(report)
@@ -1275,10 +1286,10 @@ same generic report used by `icq cache status`:
 ```rust
 use std::path::Path;
 
-use ic_query::cache::{
-    CacheStatusError, CacheStatusRequest, build_cache_status_report,
-    cache_status_report_text,
-};
+use ic_query::cache::CacheStatusError;
+use ic_query::cache::CacheStatusRequest;
+use ic_query::cache::build_cache_status_report;
+use ic_query_text::cache::cache_status_report_text;
 
 fn render_cache_status(
     cache_root: &Path,
@@ -1306,11 +1317,14 @@ Native tools can use the same subnet catalog cache/report path as
 ```rust
 use std::path::Path;
 
-use ic_query::subnet_catalog::{
-    DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, ResolveAs,
-    SubnetCatalogCacheRequest, SubnetCatalogHostError, SubnetCatalogInfoRequest,
-    build_subnet_catalog_info_report, subnet_catalog_info_report_text,
-};
+use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
+use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
+use ic_query::subnet_catalog::ResolveAs;
+use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
+use ic_query::subnet_catalog::SubnetCatalogHostError;
+use ic_query::subnet_catalog::SubnetCatalogInfoRequest;
+use ic_query::subnet_catalog::build_subnet_catalog_info_report;
+use ic_query_text::subnet_catalog::subnet_catalog_info_report_text;
 
 async fn render_subnet_info(
     cache_root: &Path,
@@ -1355,13 +1369,13 @@ Stable snapshot authority and per-load acquisition provenance are separate:
 use ic_query::subnet_catalog::{
     CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, SubnetCatalogCacheRequest,
-    SubnetCatalogHostError, SubnetCatalogLoadRequest, load_subnet_catalog,
+    SubnetCatalogLoadFailure, SubnetCatalogLoadRequest, load_subnet_catalog,
 };
 
 async fn load_catalog(
     cache: SubnetCatalogCacheRequest,
     now_unix_secs: u64,
-) -> Result<CatalogSnapshotAuthorityEvidence, SubnetCatalogHostError> {
+) -> Result<CatalogSnapshotAuthorityEvidence, Box<SubnetCatalogLoadFailure>> {
     let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
         cache,
         CatalogSourceSelection::uncertified_query(
@@ -1380,10 +1394,11 @@ async fn load_catalog(
 }
 ```
 
-Callers that need failure provenance use
-`load_cached_subnet_catalog_detailed`, `load_subnet_catalog_detailed`,
-`load_subnet_catalog_detailed_with_source`, or
-`load_subnet_catalog_detailed_with_progress`. These return
+All catalog loads retain failure provenance. Use `load_cached_subnet_catalog`
+for cache-only reads, `load_subnet_catalog` for the default live adapter,
+`load_subnet_catalog_with_source` for an explicit source, or
+`load_subnet_catalog_with_source_and_progress` for source and progress.
+These return
 `Box<SubnetCatalogLoadFailure>`, whose request retains the requested network,
 selected `CatalogSourceSelection`, and minimum assurance. Its typed stage and
 failure-side cache disposition distinguish cache-only loading, cache bypass,
@@ -1394,10 +1409,10 @@ the failing layer knows it. Stable code/category fields and
 `SubnetCatalogRetryability::{Retryable, NotRetryable, Unknown(reason)}` require
 no error-text parsing. `source` is the original `SubnetCatalogHostError`.
 
-The existing simple load functions execute the detailed implementation and
-map a failure back through `SubnetCatalogLoadFailure::into_source`; their
-observable host-error variants are unchanged. Existing `SubnetCatalogSource`
-implementations also remain valid because `fetch_catalog_detailed` has a
+Inspect `failure.source` for the original host error, or explicitly consume the
+failure with `into_source()` when the caller chooses to discard load evidence.
+The former parallel `_detailed` loader names are removed. Existing
+`SubnetCatalogSource` implementations remain valid because `fetch_catalog_detailed` has a
 truthful default with unknown version/subject provenance. A custom source that
 knows more may override it and return `Box<SubnetCatalogSourceFailure>` without
 forking the load or cache algorithm.
@@ -1542,14 +1557,12 @@ builders, refresh helpers, and renderers under `features = ["host"]`:
 ```rust
 use std::path::Path;
 
-use ic_query::nns::{
-    NnsInventoryCacheRequest,
-    node::{
-        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
-        NnsNodeHostError, NnsNodeListRequest,
-        build_nns_node_list_report, nns_node_list_report_text,
-    },
-};
+use ic_query::nns::NnsInventoryCacheRequest;
+use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
+use ic_query::nns::node::NnsNodeHostError;
+use ic_query::nns::node::NnsNodeListRequest;
+use ic_query::nns::node::build_nns_node_list_report;
+use ic_query_text::nns::node::nns_node_list_report_text;
 use ic_query::subnet_catalog::SubnetKind;
 
 async fn render_application_nodes(
@@ -1574,10 +1587,11 @@ and voting-power values remain explicitly cached Governance evidence with
 their own timestamps.
 
 ```rust
-use ic_query::sns::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsMetricsRequest, build_sns_metrics_report,
-    sns_metrics_report_text,
-};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SnsHostError;
+use ic_query::sns::SnsMetricsRequest;
+use ic_query::sns::build_sns_metrics_report;
+use ic_query_text::sns::sns_metrics_report_text;
 
 async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
     let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
@@ -1664,11 +1678,16 @@ any other snapshot shape is rejected and requires an explicit refresh.
 ```rust
 use std::path::Path;
 
-use ic_query::sns::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsNeuronsRequest, SnsNeuronsCacheSort,
-    SnsProposalsRequest, SnsProposalsSort, build_sns_neurons_report,
-    build_sns_proposals_report, sns_neurons_report_text, sns_proposals_report_text,
-};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SnsHostError;
+use ic_query::sns::SnsNeuronsRequest;
+use ic_query::sns::SnsNeuronsCacheSort;
+use ic_query::sns::SnsProposalsRequest;
+use ic_query::sns::SnsProposalsSort;
+use ic_query::sns::build_sns_neurons_report;
+use ic_query::sns::build_sns_proposals_report;
+use ic_query_text::sns::sns_neurons_report_text;
+use ic_query_text::sns::sns_proposals_report_text;
 
 async fn render_recent_sns_proposals(
     cache_root: &Path,
@@ -1719,11 +1738,12 @@ Local cache inspection remains available without making live calls:
 ```rust
 use std::path::Path;
 
-use ic_query::sns::{
-    SnsCacheStatusRequest, SnsHostError,
-    build_sns_neurons_cache_status_report, build_sns_proposals_cache_status_report,
-    sns_neurons_cache_status_report_text, sns_proposals_cache_status_report_text,
-};
+use ic_query::sns::SnsCacheStatusRequest;
+use ic_query::sns::SnsHostError;
+use ic_query::sns::build_sns_neurons_cache_status_report;
+use ic_query::sns::build_sns_proposals_cache_status_report;
+use ic_query_text::sns::sns_neurons_cache_status_report_text;
+use ic_query_text::sns::sns_proposals_cache_status_report_text;
 
 fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
     let proposals = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
@@ -1745,10 +1765,11 @@ fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String,
 Generic ICRC builders are live-only and keep the queried endpoint explicit:
 
 ```rust
-use ic_query::icrc::{
-    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcError, IcrcLedgerRequest,
-    build_icrc_token_report, icrc_token_report_text,
-};
+use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
+use ic_query::icrc::IcrcError;
+use ic_query::icrc::IcrcLedgerRequest;
+use ic_query::icrc::build_icrc_token_report;
+use ic_query_text::icrc::icrc_token_report_text;
 
 async fn render_token(
     ledger_canister_id: &str,

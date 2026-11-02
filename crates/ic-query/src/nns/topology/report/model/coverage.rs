@@ -49,37 +49,3 @@ pub struct NnsTopologyJoinCoverageCounts {
     /// Number of node operators with unknown data center references.
     pub node_operators_with_unknown_data_center_count: usize,
 }
-
-impl NnsTopologyJoinCoverageCounts {
-    pub(in crate::nns::topology::report) const fn relationships(
-        &self,
-    ) -> [(&'static str, usize, usize); 5] {
-        [
-            (
-                "nodes -> node providers",
-                self.nodes_with_known_node_provider_count,
-                self.nodes_with_unknown_node_provider_count,
-            ),
-            (
-                "nodes -> node operators",
-                self.nodes_with_known_node_operator_count,
-                self.nodes_with_unknown_node_operator_count,
-            ),
-            (
-                "nodes -> data centers",
-                self.nodes_with_known_data_center_count,
-                self.nodes_with_unknown_data_center_count,
-            ),
-            (
-                "node operators -> node providers",
-                self.node_operators_with_known_node_provider_count,
-                self.node_operators_with_unknown_node_provider_count,
-            ),
-            (
-                "node operators -> data centers",
-                self.node_operators_with_known_data_center_count,
-                self.node_operators_with_unknown_data_center_count,
-            ),
-        ]
-    }
-}

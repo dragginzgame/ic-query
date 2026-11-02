@@ -1,5 +1,5 @@
 # Common release commands
-<!-- Shared companions: docs/cargo-publication.md docs/release-validation-reuse.md -->
+<!-- Shared companions: docs/cargo-publication.md docs/release-validation-reuse.md docs/release-group-validation.md -->
 
 Every `dragginzgame` repository, including Shared Tooling and repositories without
 a publishable package, must provide these Make targets:
@@ -56,6 +56,11 @@ Content-bound reuse across independent groups has an
 [opt-in exact-input stage interface](release-validation-reuse.md). Consumers must
 qualify their selected stages and fresh group admission before integrating it.
 Existing complete gates and retained receipts keep their current meaning.
+Independent groups may adopt [group-scoped qualification](release-group-validation.md)
+after qualifying their complete stage mapping. “Complete gate” below then means
+every obligation in that admitted plan, equally for patch, minor and major.
+The default remains the existing full workspace gate; group selection alone
+does not change it. Repository-wide CI and enforced protections remain intact.
 
 The default `RELEASE_DELIVERY=direct` workflow is:
 
@@ -984,7 +989,9 @@ shared lockfile and source. Group journals record the group explicitly, and
 validation receipts bind the group and policy blob as well as source/destination.
 Resume requires the same group, version and delivery identity. The runner admits
 the adapter's version and exact release-file list against the declared group;
-selecting a group must never narrow its full workspace/release validation gate.
+selecting a group alone must never narrow its validation gate. An explicitly
+qualified [group validation plan](release-group-validation.md) may select the
+complete applicable obligations while preserving repository-wide CI.
 
 `cargo-release-metadata.sh prepare|check|check-graph PRIMARY` delegates group
 selection when `RELEASE_GROUP` is set and rejects a different primary. Both

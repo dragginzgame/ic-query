@@ -18,8 +18,7 @@ pub use report::{
     NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
     NnsProposalTopicCount, NnsProposalTopicFilter, advance_nns_proposal_collection_with_source,
     build_nns_proposal_activity_report, build_nns_proposal_list_report_with_source,
-    build_nns_proposal_report_with_source, nns_proposal_activity_report_text,
-    nns_proposal_list_report_text, nns_proposal_report_text, validate_nns_proposal_activity_report,
+    build_nns_proposal_report_with_source, validate_nns_proposal_activity_report,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{
@@ -29,7 +28,7 @@ pub use report::{
     build_nns_proposal_list_report_from_cache,
     build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report,
     build_nns_proposal_report_from_cache, build_nns_proposal_report_with_cache_and_source,
-    nns_proposal_cache_list_report_text, nns_proposal_cache_path, nns_proposal_cache_root,
-    nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
+    nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,
+    nns_proposal_refresh_lock_path, refresh_nns_proposal_cache,
     refresh_nns_proposal_cache_with_progress, refresh_nns_proposal_cache_with_source,
 };

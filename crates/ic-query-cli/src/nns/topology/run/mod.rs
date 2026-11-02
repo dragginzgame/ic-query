@@ -15,7 +15,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_summary_report,
-                topology::nns_topology_summary_report_text,
+                ic_query_text::nns::topology::nns_topology_summary_report_text,
             )
             .await
         }
@@ -24,7 +24,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_coverage_report,
-                topology::nns_topology_coverage_report_text,
+                ic_query_text::nns::topology::nns_topology_coverage_report_text,
             )
             .await
         }
@@ -33,7 +33,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_versions_report,
-                topology::nns_topology_versions_report_text,
+                ic_query_text::nns::topology::nns_topology_versions_report_text,
             )
             .await
         }
@@ -42,7 +42,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_check_report,
-                topology::nns_topology_check_report_text,
+                ic_query_text::nns::topology::nns_topology_check_report_text,
             )
             .await
         }
@@ -51,7 +51,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_gaps_report,
-                topology::nns_topology_gaps_report_text,
+                ic_query_text::nns::topology::nns_topology_gaps_report_text,
             )
             .await
         }
@@ -60,7 +60,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_capacity_report,
-                topology::nns_topology_capacity_report_text,
+                ic_query_text::nns::topology::nns_topology_capacity_report_text,
             )
             .await
         }
@@ -69,7 +69,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_regions_report,
-                topology::nns_topology_regions_report_text,
+                ic_query_text::nns::topology::nns_topology_regions_report_text,
             )
             .await
         }
@@ -78,7 +78,7 @@ pub(in crate::nns) async fn run(
                 matches,
                 network,
                 topology::build_nns_topology_providers_report,
-                topology::nns_topology_providers_report_text,
+                ic_query_text::nns::topology::nns_topology_providers_report_text,
             )
             .await
         }

@@ -7,7 +7,6 @@
 #[cfg(feature = "dashboard-host")]
 mod host;
 mod model;
-mod text;
 
 #[cfg(feature = "dashboard-host")]
 pub use host::{
@@ -21,7 +20,6 @@ pub use model::{
 };
 #[cfg(feature = "dashboard-host")]
 pub use model::{CloudEngineNodeInfoSourceData, CloudEngineNodeListSourceData};
-pub use text::{cloud_engine_node_info_report_text, cloud_engine_node_list_report_text};
 
 /// Dashboard reward-type filter selecting CloudEngine nodes.
 pub const CLOUD_ENGINE_NODE_REWARD_TYPE: &str = "Type4";
@@ -32,5 +30,5 @@ pub const CLOUD_ENGINE_NODE_INCLUDED_STATUSES: [&str; 4] = ["DOWN", "UP", "DISAB
 /// Maximum Type4 rows accepted from one Dashboard node response.
 pub const MAX_CLOUD_ENGINE_NODE_ROWS: u32 = 10_000;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "dashboard-host"))]
 mod tests;

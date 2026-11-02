@@ -218,9 +218,8 @@ fn detailed_agreement_mismatch_retains_every_completed_endpoint_record() {
             ]),
         });
 
-    let failure =
-        futures::executor::block_on(load_subnet_catalog_detailed_with_source(&request, &source))
-            .expect_err("mismatched endpoint evidence");
+    let failure = futures::executor::block_on(load_subnet_catalog_with_source(&request, &source))
+        .expect_err("mismatched endpoint evidence");
 
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
     assert_eq!(failure.evidence.registry_records.len(), 8);

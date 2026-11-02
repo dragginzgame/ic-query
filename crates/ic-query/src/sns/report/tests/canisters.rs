@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
@@ -7,7 +8,6 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
         build_sns_canister_report_with_source(&info_request("1"), &FixtureSnsCanisterSource)
             .await
             .expect("sns canister report");
-    let text = sns_canister_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_CANISTER_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.id, 1);
@@ -49,13 +49,6 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
         report.inventory.gaps[0].kind,
         SnsCanisterGapKind::HealthUnsupported
     );
-    assert!(text.contains("health_call_type: ingress_update"));
-    assert!(text.contains("health_update_canister_list: no"));
-    assert!(text.contains("reported_zero_cycles_count: 1"));
-    assert!(text.contains("cycles_unavailable_count: 1"));
-    assert!(text.contains("health_query_status: succeeded"));
-    assert!(text.contains("1.91 MiB"));
-    assert!(text.contains("health_unsupported"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -87,7 +80,7 @@ async fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
     )
     .await
     .expect("partial SNS canister report");
-    let text = sns_canister_report_text(&report);
+
     let json = serde_json::to_value(&report).expect("serialize partial SNS canister report");
 
     assert_eq!(report.canister_count, 2);
@@ -105,9 +98,7 @@ async fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
             .as_ref()
             .is_some_and(|gap| gap.reason == "health failed")
     );
-    assert!(text.contains("health_query_status: failed"));
-    assert!(text.contains("health_query_gap:"));
-    assert!(text.contains("health failed"));
+
     assert_eq!(json["reported_zero_cycles_count"], 0);
     assert_eq!(json["cycles_unavailable_count"], 2);
     assert_eq!(

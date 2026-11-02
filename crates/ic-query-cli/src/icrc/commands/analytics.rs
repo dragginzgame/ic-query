@@ -4,7 +4,6 @@
 //! Does not own: typed option extraction, live HTTP calls, reports, or output.
 //! Boundary: exposes only explicit ledger and time bounds supported by the official API.
 
-use super::sort::{IcrcAccountSortArg, IcrcHolderSortArg};
 use super::{
     ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, END_ARG, LIMIT_ARG, OWNER_ARG, SORT_BY_ARG, START_ARG,
     STEP_ARG, ledger_canister_id_arg, principal_text_value_parser,
@@ -17,11 +16,14 @@ use clap::{
     ArgAction, Command as ClapCommand,
     builder::{PossibleValuesParser, RangedU64ValueParser, TypedValueParser, ValueParser},
 };
-use ic_query::ic::{
-    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
-    DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS, MAX_ICRC_INDEX_PAGE_ROWS, MAX_ICRC_TOKEN_VALUE_ROWS,
-    MIN_ICRC_ANALYTICS_TIMESTAMP,
-};
+use ic_query::ic::DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_ICRC_TOTAL_SUPPLY_STEP_SECS;
+use ic_query::ic::IcIcrcAccountSort;
+use ic_query::ic::IcIcrcHolderSort;
+use ic_query::ic::MAX_ICRC_INDEX_PAGE_ROWS;
+use ic_query::ic::MAX_ICRC_TOKEN_VALUE_ROWS;
+use ic_query::ic::MIN_ICRC_ANALYTICS_TIMESTAMP;
 
 pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("analytics")
@@ -206,7 +208,7 @@ pub(in crate::icrc) fn icrc_analytics_account_list_command() -> ClapCommand {
                         .value_parser(principal_text_value_parser())
                         .help("Restrict accounts to one canonical owner principal"),
                 ),
-            clap::value_parser!(IcrcAccountSortArg).into(),
+            crate::cli::clap::choice_parser(IcIcrcAccountSort::ALL, IcIcrcAccountSort::as_api_value).into(),
             "id",
         ),
     )
@@ -224,7 +226,7 @@ pub(in crate::icrc) fn icrc_analytics_holder_list_command() -> ClapCommand {
                 COLLECTION_MODE_LIVE,
                 "Examples:\n  icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --limit 25\n  icq icrc analytics holder list mxzaz-hqaaa-aaaar-qaada-cai --sort-by=-balance --json",
             )),
-        clap::value_parser!(IcrcHolderSortArg).into(),
+        crate::cli::clap::choice_parser(IcIcrcHolderSort::ALL, IcIcrcHolderSort::as_api_value).into(),
         "principal",
     ))
 }

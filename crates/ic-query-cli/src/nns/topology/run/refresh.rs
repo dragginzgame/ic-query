@@ -4,7 +4,8 @@ use crate::nns::{
 };
 use crate::storage::cache_root;
 use clap::ArgMatches;
-use ic_query::nns::topology::{nns_topology_refresh_report_text, refresh_nns_topology_report};
+use ic_query::nns::topology::refresh_nns_topology_report;
+use ic_query_text::nns::topology::nns_topology_refresh_report_text;
 pub(super) async fn run_topology_refresh(
     matches: &ArgMatches,
     network: &str,

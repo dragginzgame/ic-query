@@ -16,13 +16,16 @@ use crate::cli::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
-use ic_query::ic::{
-    DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT, DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcDailyStatsQuery, IcDailyStatsRequest,
-    MIN_IC_DAILY_STATS_TIMESTAMP, build_ic_boundary_node_data_centers_report,
-    build_ic_daily_stats_report, ic_boundary_node_data_centers_report_text,
-    ic_daily_stats_report_text,
-};
+use ic_query::ic::DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_IC_DAILY_STATS_WINDOW_SECS;
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::ic::IcDailyStatsQuery;
+use ic_query::ic::IcDailyStatsRequest;
+use ic_query::ic::MIN_IC_DAILY_STATS_TIMESTAMP;
+use ic_query::ic::build_ic_boundary_node_data_centers_report;
+use ic_query::ic::build_ic_daily_stats_report;
+use ic_query_text::ic::ic_boundary_node_data_centers_report_text;
+use ic_query_text::ic::ic_daily_stats_report_text;
 
 const BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER: &str = "\
 Examples:

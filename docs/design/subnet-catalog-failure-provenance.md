@@ -1,8 +1,8 @@
 # Subnet Catalog Failure Provenance
 
-- Status: implemented; stable authority/acquisition separation updated for 0.42.0
-- Last reviewed: 2026-10-18
-- Scope: `subnet-catalog-host` detailed load failures
+- Status: implemented; canonical load API updated for 0.86.0
+- Last reviewed: 2026-11-02
+- Scope: `subnet-catalog-host` load failures
 
 ## Contract
 
@@ -74,12 +74,12 @@ the original typed host error.
 
 ## API Boundary
 
-The detailed entry points are:
+Every load entry point retains typed failure provenance:
 
-- `load_cached_subnet_catalog_detailed`;
-- `load_subnet_catalog_detailed`;
-- `load_subnet_catalog_detailed_with_source`; and
-- `load_subnet_catalog_detailed_with_progress`.
+- `load_cached_subnet_catalog`;
+- `load_subnet_catalog`;
+- `load_subnet_catalog_with_source`; and
+- `load_subnet_catalog_with_source_and_progress`.
 
 Live-capable entry points are async on the caller's runtime; the explicit cached
 loader is synchronous and performs no network calls.
@@ -87,9 +87,10 @@ loader is synchronous and performs no network calls.
 `SubnetCatalogSource::fetch_catalog_detailed` lets a caller-supplied source
 return `Box<SubnetCatalogSourceFailure>`. Its default delegates to the existing
 simple source method and truthfully leaves unavailable version/subject
-evidence absent. Existing simple load entry points call the detailed core and
-return `SubnetCatalogLoadFailure::into_source()`, so the collection and cache
-algorithms are not duplicated.
+evidence absent. The parallel detailed loader names are removed. Load callers
+inspect `failure.source` or explicitly consume `into_source()` when they choose
+to discard the acquisition evidence. The collection and cache algorithms have
+one implementation; see the [0.86 consumer update](../changelog/0.86.md).
 
 All of these types and functions are available only with
 `subnet-catalog-host` (or a broader feature that includes it). They add no

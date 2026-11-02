@@ -10,14 +10,15 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
-use ic_query::{
-    QueryProgress,
-    sns::{
-        SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport, SnsCacheStatusRequest,
-        SnsHostError, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
-        sns_snapshot_refresh_report_text,
-    },
-};
+use ic_query::QueryProgress;
+use ic_query::sns::SnsCacheListReport;
+use ic_query::sns::SnsCacheListRequest;
+use ic_query::sns::SnsCacheStatusReport;
+use ic_query::sns::SnsCacheStatusRequest;
+use ic_query::sns::SnsHostError;
+use ic_query::sns::SnsSnapshotRefreshReport;
+use ic_query::sns::SnsSnapshotRefreshRequest;
+use ic_query_text::sns::sns_snapshot_refresh_report_text;
 
 pub(super) async fn run_snapshot_refresh(
     matches: &ArgMatches,

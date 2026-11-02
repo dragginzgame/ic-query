@@ -1,49 +1,7 @@
-use super::{
-    CloudEngineProviderInfoReport, CloudEngineProviderListReport, CloudEngineProviderLocation,
-    CloudEngineProviderRow, cloud_engine_provider_info_report_text,
-    cloud_engine_provider_list_report_text,
-};
-use crate::ic::IcDashboardReportProvenance;
+use super::CloudEngineProviderLocation;
+use super::CloudEngineProviderRow;
 
 const PROVIDER_B: &str = "rbn2y-6vfsb-gv35j-4cyvy-pzbdu-e5aum-jzjg6-5b4n5-vuguf-ycubq-zae";
-
-#[test]
-fn text_keeps_dashboard_provenance_separate_from_provider_tables() {
-    let provider = provider(PROVIDER_B, true);
-    let list = CloudEngineProviderListReport {
-        provenance: provenance(),
-        source_node_provider_count: 2,
-        cloud_engine_provider_count: 1,
-        providers: vec![provider.clone()],
-    };
-    let info = CloudEngineProviderInfoReport {
-        provenance: provenance(),
-        cloud_engine_evidence_present: true,
-        provider,
-    };
-
-    let list_text = cloud_engine_provider_list_report_text(&list);
-    let info_text = cloud_engine_provider_info_report_text(&info);
-
-    assert!(list_text.contains("point_in_time_guaranteed: no"));
-    assert!(list_text.contains("cloud_engine_provider_count: 1\n\nCloudEngine providers\n"));
-    assert!(info_text.contains("cloud_engine_evidence_present: yes"));
-    assert!(info_text.contains("location_count: 1\n\nCloudEngine locations\n"));
-    assert!(info_text.contains("Brussels"));
-}
-
-fn provenance() -> IcDashboardReportProvenance {
-    IcDashboardReportProvenance {
-        schema_version: 1,
-        network: "ic".to_string(),
-        authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: "https://ic-api.internetcomputer.org/api/v3".to_string(),
-        fetched_at: "2026-08-08T12:00:00Z".to_string(),
-        fetched_by: "test".to_string(),
-        certified: false,
-        point_in_time_guaranteed: false,
-    }
-}
 
 fn location() -> CloudEngineProviderLocation {
     CloudEngineProviderLocation {
@@ -84,16 +42,16 @@ fn provider(principal_id: &str, cloud_engine: bool) -> CloudEngineProviderRow {
 #[cfg(feature = "dashboard-host")]
 mod host {
     use super::*;
-    use crate::{
-        cloud_engine::{
-            CloudEngineProviderInfoRequest, CloudEngineProviderInfoSourceData,
-            CloudEngineProviderListRequest, CloudEngineProviderListSourceData,
-            CloudEngineProviderSource, DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            build_cloud_engine_provider_info_report_with_source,
-            build_cloud_engine_provider_list_report_with_source,
-        },
-        ic::{IcHostError, IcSourceRequest},
-    };
+    use crate::cloud_engine::CloudEngineProviderInfoRequest;
+    use crate::cloud_engine::CloudEngineProviderInfoSourceData;
+    use crate::cloud_engine::CloudEngineProviderListRequest;
+    use crate::cloud_engine::CloudEngineProviderListSourceData;
+    use crate::cloud_engine::CloudEngineProviderSource;
+    use crate::cloud_engine::DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT;
+    use crate::cloud_engine::build_cloud_engine_provider_info_report_with_source;
+    use crate::cloud_engine::build_cloud_engine_provider_list_report_with_source;
+    use crate::ic::IcHostError;
+    use crate::ic::IcSourceRequest;
     use std::sync::Mutex;
 
     const PROVIDER_A: &str = "2wxzd-qrbrs-ailta-kdtyb-ucg35-xcxd4-txevb-ot7hx-wiyus-szcca-nqe";
@@ -218,7 +176,8 @@ mod host {
                     Some(Mutation::WrongSource) => data.source.endpoint.push_str("/other"),
                     Some(Mutation::Empty) => data.providers.clear(),
                     Some(Mutation::DuplicateProvider) => {
-                        data.providers[1].principal_id = data.providers[0].principal_id.clone();
+                        let (first, rest) = data.providers.split_at_mut(1);
+                        rest[0].principal_id.clone_from(&first[0].principal_id);
                     }
                     Some(Mutation::BadLocationCount) => data.providers[0].location_count = 2,
                     Some(Mutation::IndependentCloudLocation) => {

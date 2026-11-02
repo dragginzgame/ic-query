@@ -6,12 +6,12 @@
 
 use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
-use ic_query::nns::data_center::{
-    build_nns_data_center_info_report_with_source_and_progress,
-    build_nns_data_center_list_report_with_source_and_progress, nns_data_center_info_report_text,
-    nns_data_center_list_report_text, nns_data_center_list_report_verbose_text,
-    refresh_nns_data_center_report,
-};
+use ic_query::nns::data_center::build_nns_data_center_info_report_with_source_and_progress;
+use ic_query::nns::data_center::build_nns_data_center_list_report_with_source_and_progress;
+use ic_query::nns::data_center::refresh_nns_data_center_report;
+use ic_query_text::nns::data_center::nns_data_center_info_report_text;
+use ic_query_text::nns::data_center::nns_data_center_list_report_text;
+use ic_query_text::nns::data_center::nns_data_center_list_report_verbose_text;
 
 mod spec;
 

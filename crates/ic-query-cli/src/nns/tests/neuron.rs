@@ -1,7 +1,8 @@
 use super::*;
 use crate::cli::clap::render_help;
 use crate::cli::common::NetworkOutputOptions;
-use ic_query::nns::neuron::{DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE};
+use ic_query::nns::neuron::DEFAULT_NNS_NEURON_SOURCE_ENDPOINT;
+use ic_query::nns::neuron::NNS_NEURON_MAX_PAGE_SIZE;
 
 #[test]
 fn nns_neuron_options_parse_defaults_and_explicit_values() {

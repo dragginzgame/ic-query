@@ -5,6 +5,11 @@
 Use `ic-query` for typed requests, reports, validation, cache behavior, source
 adapters, and renderers without spawning `icq`.
 
+The pending [0.86 consumer update](changelog/0.86.md) covers canonical catalog
+load failures, typed report origins and SNS lifecycle outcomes, account-history
+contexts, and grouped reward-diff observations. Continuation status is derived
+from admitted page/cursor facts; all schemas remain `1`.
+
 Pure DTO and rendering use has no host dependencies:
 
 ```toml

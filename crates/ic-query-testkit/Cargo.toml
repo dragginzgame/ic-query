@@ -2,13 +2,14 @@
 name = "ic-query-testkit"
 edition.workspace = true
 rust-version.workspace = true
-version.workspace = true
+version = "0.85.0"
 license.workspace = true
 publish = false
 
 [dev-dependencies]
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
-ic-platform = { workspace = true, features = ["pocket-ic", "candid-parser"] }
+ic-platform = { workspace = true, features = ["candid-parser"] }
+ic-platform-pocket-ic.workspace = true
 ic-query.workspace = true
 ic-testkit = { workspace = true, features = ["reply-fixtures"] }
 ic-wire.workspace = true

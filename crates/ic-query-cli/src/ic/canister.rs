@@ -16,13 +16,19 @@ use crate::cli::{
     },
 };
 use clap::{ArgAction, ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT, DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-    IcCanisterCountRequest, IcCanisterFilters, IcCanisterPageRequest, IcCanisterRequest,
-    MAX_IC_CANISTER_PAGE_LIMIT, build_ic_canister_count_report, build_ic_canister_page_report,
-    build_ic_canister_report, ic_canister_count_report_text, ic_canister_page_report_text,
-    ic_canister_report_text,
-};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::ic::IcCanisterCountRequest;
+use ic_query::ic::IcCanisterFilters;
+use ic_query::ic::IcCanisterPageRequest;
+use ic_query::ic::IcCanisterRequest;
+use ic_query::ic::MAX_IC_CANISTER_PAGE_LIMIT;
+use ic_query::ic::build_ic_canister_count_report;
+use ic_query::ic::build_ic_canister_page_report;
+use ic_query::ic::build_ic_canister_report;
+use ic_query_text::ic::ic_canister_count_report_text;
+use ic_query_text::ic::ic_canister_page_report_text;
+use ic_query_text::ic::ic_canister_report_text;
 
 const CANISTER_INFO_HELP_AFTER: &str = "\
 Examples:

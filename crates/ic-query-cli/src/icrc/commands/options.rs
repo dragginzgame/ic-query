@@ -4,7 +4,6 @@
 //! Does not own: command dispatch, report construction, or output.
 //! Boundary: carries parsed values into requests without report construction or IO.
 
-use super::sort::{IcrcAccountSortArg, IcrcAccountTransactionSortArg, IcrcHolderSortArg};
 use super::{
     ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG,
     INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_PAGES_ARG, OWNER_ARG,
@@ -16,20 +15,28 @@ use crate::cli::{
     common::{OutputFormat, SourceOutputOptions, resolve_time_bounds},
 };
 use clap::ArgMatches;
-use ic_query::{
-    ic::{
-        DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS, DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
-        IcIcrcAccountInfoRequest, IcIcrcAccountListQuery, IcIcrcAccountListRequest,
-        IcIcrcHolderListQuery, IcIcrcHolderListRequest, IcIcrcTokenValueQuery,
-        IcIcrcTokenValueRequest, IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyRequest,
-        MIN_ICRC_ANALYTICS_TIMESTAMP,
-    },
-    icrc::{
-        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,
-        IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest,
-        IcrcAllowanceRequest, IcrcArchivesRequest, IcrcTransactionsRequest,
-    },
-};
+use ic_query::ic::DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS;
+use ic_query::ic::DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS;
+use ic_query::ic::IcIcrcAccountInfoRequest;
+use ic_query::ic::IcIcrcAccountListQuery;
+use ic_query::ic::IcIcrcAccountListRequest;
+use ic_query::ic::IcIcrcAccountSort;
+use ic_query::ic::IcIcrcHolderListQuery;
+use ic_query::ic::IcIcrcHolderListRequest;
+use ic_query::ic::IcIcrcHolderSort;
+use ic_query::ic::IcIcrcTokenValueQuery;
+use ic_query::ic::IcIcrcTokenValueRequest;
+use ic_query::ic::IcIcrcTotalSupplyQuery;
+use ic_query::ic::IcIcrcTotalSupplyRequest;
+use ic_query::ic::MIN_ICRC_ANALYTICS_TIMESTAMP;
+use ic_query::icrc::IcrcAccountTransactionCacheRequest;
+use ic_query::icrc::IcrcAccountTransactionListRequest;
+use ic_query::icrc::IcrcAccountTransactionPageRequest;
+use ic_query::icrc::IcrcAccountTransactionRefreshRequest;
+use ic_query::icrc::IcrcAccountTransactionSort;
+use ic_query::icrc::IcrcAllowanceRequest;
+use ic_query::icrc::IcrcArchivesRequest;
+use ic_query::icrc::IcrcTransactionsRequest;
 
 pub(in crate::icrc) fn analytics_account_list_request(
     matches: &ArgMatches,
@@ -39,7 +46,7 @@ pub(in crate::icrc) fn analytics_account_list_request(
         IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
     let mut query = IcIcrcAccountListQuery::new(
         required_typed(matches, LIMIT_ARG),
-        required_typed::<IcrcAccountSortArg>(matches, SORT_BY_ARG).into(),
+        required_typed::<IcIcrcAccountSort>(matches, SORT_BY_ARG),
     );
     query.owner = string_option(matches, OWNER_ARG);
     query.after = string_option(matches, AFTER_ARG);
@@ -70,7 +77,7 @@ pub(in crate::icrc) fn analytics_holder_list_request(
         IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
     let mut query = IcIcrcHolderListQuery::new(
         required_typed(matches, LIMIT_ARG),
-        required_typed::<IcrcHolderSortArg>(matches, SORT_BY_ARG).into(),
+        required_typed::<IcIcrcHolderSort>(matches, SORT_BY_ARG),
     );
     query.after = string_option(matches, AFTER_ARG);
     query.before = string_option(matches, BEFORE_ARG);
@@ -270,7 +277,7 @@ pub(in crate::icrc) fn account_transaction_list_request(
         IcrcAccountTransactionListRequest {
             cache,
             limit: required_typed(matches, LIMIT_ARG),
-            sort: required_typed::<IcrcAccountTransactionSortArg>(matches, SORT_ARG).into(),
+            sort: required_typed::<IcrcAccountTransactionSort>(matches, SORT_ARG),
         },
     )
 }

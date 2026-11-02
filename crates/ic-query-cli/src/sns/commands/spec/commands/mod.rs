@@ -11,18 +11,16 @@ mod neurons;
 mod proposals;
 mod reward;
 
-use crate::{
-    cli::{
-        clap::{flag_arg, value_arg},
-        common::{
-            COLLECTION_MODE_CACHE_REFRESH_STALE, COLLECTION_MODE_FORCE_REFRESH, collection_help,
-            json_arg, source_endpoint_arg,
-        },
+use crate::cli::{
+    clap::{flag_arg, value_arg},
+    common::{
+        COLLECTION_MODE_CACHE_REFRESH_STALE, COLLECTION_MODE_FORCE_REFRESH, collection_help,
+        json_arg, source_endpoint_arg,
     },
-    sns::commands::spec::values::SnsListSortArg,
 };
 use clap::Command as ClapCommand;
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SnsListSort;
 
 pub(in crate::sns::commands) use canisters::sns_canister_command;
 #[cfg(test)]
@@ -126,6 +124,9 @@ fn sort_arg() -> clap::Arg {
         .long("sort")
         .value_name("id|name")
         .default_value("id")
-        .value_parser(clap::value_parser!(SnsListSortArg))
+        .value_parser(crate::cli::clap::choice_parser(
+            SnsListSort::ALL,
+            SnsListSort::as_str,
+        ))
         .help("Text/JSON row order; ids follow the SNS-W response order")
 }

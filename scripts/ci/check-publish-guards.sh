@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Fixture Make invocations own their selections, independently of the caller.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES
-
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
@@ -16,27 +13,20 @@ source "$repo_root/scripts/ci/fixture-lifecycle.sh"
 fixture_complete=false
 trap 'fixture_finish "$?" "$work_dir" "Publish guard fixtures retained"' EXIT
 export TMPDIR="${work_dir%/*}"
-
-fail() {
-  echo "error: $*" >&2
-  exit 1
-}
-
-prepare_publish_fixture() {
-  bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$1" \
-    scripts/release/publish-workspace.sh \
-    scripts/ci/check-crates-io-version.sh \
-    scripts/ci/read-cargo-workspace-version.sh \
-    scripts/ci/run-cargo-publication.sh
-}
-
-publish_case="${work_dir}/publish"
-mkdir -p "${publish_case}/bin" "${publish_case}/state" "${publish_case}/source/scripts/ci" "${publish_case}/source/scripts/release"
-current_version="$(bash "$repo_root/scripts/ci/read-cargo-workspace-version.sh" --stable "$repo_root/Cargo.toml")"
-# Keep Cargo validation real without referencing absent production members.
-printf '[workspace.package]\nversion = "%s"\n' \
-  "$current_version" > "$publish_case/source/Cargo.toml"
-prepare_publish_fixture "$publish_case/source"
+fail() { echo "publication fixture failed: $*" >&2; exit 1; }
+publish_case="$work_dir/publish"
+mkdir -p "$publish_case/bin" "$publish_case/source"
+bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$publish_case/source" \
+  Makefile scripts/release/publish-workspace.sh scripts/release/check-tag-at-head.sh scripts/ci/check-crates-io-version.sh scripts/ci/run-cargo-publication.sh scripts/ci/check-release-source.sh scripts/ci/check-release-tag.sh
+printf '[workspace]\n' > "$publish_case/source/Cargo.toml"
+# Group graph admission is qualified with real Cargo by the metadata fixtures.
+# This suite owns publication effects and supplies only its selected versions.
+cat > "$publish_case/source/scripts/ci/cargo-release-group.sh" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$1" == version ]] || exit 2
+case "${2:-}" in query) echo 0.86.0 ;; cli) echo 0.85.1 ;; *) exit 2 ;; esac
+STUB
 cat > "$publish_case/bin/git" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -104,286 +94,146 @@ if [[ "$package" == "${REGISTRY_ERROR_PACKAGE:-}" ]]; then
 fi
 if [[ -e "$STATE_DIR/$package" ]]; then printf 200; else printf 404; fi
 EOF
-chmod +x "${publish_case}/bin/"*
-(
-  cd "$publish_case/source"
-  PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/trace" \
-    STATE_DIR="${publish_case}/state" CARGO_PUBLISH_INDEX_ATTEMPTS=2 \
-    CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-    bash scripts/release/publish-workspace.sh
-) >/dev/null
-printf '%s\n' \
-  "observe ic-query@${current_version}" \
-  "cargo publish --locked --registry crates-io --package ic-query@${current_version}" \
-  "observe ic-query-cli@${current_version}" \
-  "cargo info ic-query@${current_version} --registry crates-io" \
-  "cargo publish --locked --registry crates-io --package ic-query-cli@${current_version}" \
-  > "${publish_case}/expected-trace"
-cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
-  || fail "the workspace publisher ran an unexpected Cargo command sequence"
 
-for package in ic-query ic-query-cli; do
-  receipts=("$publish_case/source/target/publication/$package."*)
-  [[ "${#receipts[@]}" == 1 ]] || fail "expected one retained $package publication receipt"
+chmod +x "$publish_case/bin/"*
+export PATH="$publish_case/bin:$PATH"
+new_case() {
+  local name="$1"
+  mkdir -p "$work_dir/$name/state"
+  cp -R "$publish_case/source/." "$work_dir/$name/"
+  cd "$work_dir/$name"
+  export STATE_DIR="$PWD/state" TRACE_FILE="$PWD/trace"
+  export CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0
+}
+run_group() { RELEASE_GROUP="$1" bash scripts/release/publish-workspace.sh > output 2>&1; }
+refuse_group() { if run_group "$1"; then fail "unexpected successful $1 publication"; fi; }
+receipt_check() {
+  local package="$1" version="$2" receipt
+  local receipts=("target/publication/$package."*)
+  [[ ${#receipts[@]} == 1 ]] || fail "one receipt required for $package"
   receipt="${receipts[0]}"
-  printf '%s\n' publish 1111111111111111111111111111111111111111 crates-io "$package@$current_version" > "$publish_case/expected-intent"
-  cmp -s "$publish_case/expected-intent" "$receipt/intent" || fail 'publication intent lost package/source binding'
-  printf '%s\0' cargo publish --locked --registry crates-io --package "$package@$current_version" > "$publish_case/expected-arguments"
-  cmp -s "$publish_case/expected-arguments" "$receipt/arguments" || fail 'publication arguments were not retained exactly'
-  [[ "$(cat "$receipt/status")" == 0 && "$(cat "$receipt/cargo-status")" == 0 && "$(cat "$receipt/log-status")" == 0 ]] \
-    || fail 'successful publication receipt lost completion status'
-  grep -Fq "publication fixture stdout: $package" "$receipt/cargo.log" || fail 'publication stdout missing'
-  grep -Fq "publication fixture stderr: $package" "$receipt/cargo.log" || fail 'publication stderr missing'
-done
-[[ ! -e "$publish_case/source/target/publication/.workspace-publication.lock" && ! -e "$publish_case/source/target/publication/.cargo-publication.lock" ]] \
-  || fail 'completed publication retained an admission lock'
-
-: > "${publish_case}/trace"
-(
-  cd "$publish_case/source"
-  PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/trace" \
-    STATE_DIR="${publish_case}/state" CARGO_PUBLISH_INDEX_ATTEMPTS=2 \
-    CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-    bash scripts/release/publish-workspace.sh
-) >/dev/null
+  printf '%s\n' publish 1111111111111111111111111111111111111111 crates-io "$package@$version" > expected-intent
+  cmp expected-intent "$receipt/intent"
+  printf '%s\0' cargo publish --locked --registry crates-io --package "$package@$version" > expected-arguments
+  cmp expected-arguments "$receipt/arguments"
+  [[ "$(cat "$receipt/status")" == 0 && "$(cat "$receipt/cargo-status")" == 0 && "$(cat "$receipt/log-status")" == 0 ]] || fail 'lost successful statuses'
+  grep -Fq "publication fixture stdout: $package" "$receipt/cargo.log"
+  grep -Fq "publication fixture stderr: $package" "$receipt/cargo.log"
+}
+new_case query-only
+run_group query
+[[ -e state/ic-query && ! -e state/ic-query-text && ! -e state/ic-query-cli ]] || fail 'Query publication crossed group boundary'
+receipt_check ic-query 0.86.0
+cp trace first-trace
+run_group query
+[[ $(rg -c '^cargo publish' trace) == 1 ]] || fail 'published Query uploaded twice'
+new_case cli-only
+: > state/ic-query
+run_group cli
+[[ -e state/ic-query-text && -e state/ic-query-cli ]] || fail 'presentation publication incomplete'
 printf '%s\n' \
-  "observe ic-query@${current_version}" \
-  "observe ic-query-cli@${current_version}" \
-  > "${publish_case}/expected-trace"
-cmp -s "${publish_case}/expected-trace" "${publish_case}/trace" \
-  || fail "the workspace publisher was not retry-safe for published crates"
-
-for package in ic-query ic-query-cli; do
-  state="$publish_case/publish-failure-$package"
-  mkdir -p "$state"
-  failed_publish_status=0
-  (
-    cd "$publish_case/source"
-    PATH="$publish_case/bin:$PATH" TRACE_FILE="$state/trace" STATE_DIR="$state" \
-      PUBLISH_ERROR_PACKAGE="$package" PUBLISH_ERROR_STATUS=47 \
-      CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-      bash scripts/release/publish-workspace.sh
-  ) > "$state/output" 2>&1 || failed_publish_status=$?
-  [[ "$failed_publish_status" == 47 ]] \
-    || fail "the workspace publisher lost the $package publish failure"
-  [[ ! -e "$state/ic-query-cli" ]] || fail 'the CLI was published after a Cargo failure'
-  if [[ "$package" == ic-query ]]; then
-    [[ ! -e "$state/ic-query" ]] || fail 'the failed library publish was treated as successful'
-  else
-    [[ -e "$state/ic-query" ]] || fail 'the CLI publish preceded the library'
-  fi
+  'observe ic-query@0.86.0' 'observe ic-query-text@0.85.1' \
+  'cargo info ic-query@0.86.0 --registry crates-io' \
+  'cargo publish --locked --registry crates-io --package ic-query-text@0.85.1' \
+  'observe ic-query-cli@0.85.1' 'cargo info ic-query-text@0.85.1 --registry crates-io' \
+  'cargo publish --locked --registry crates-io --package ic-query-cli@0.85.1' > expected
+cmp expected trace
+receipt_check ic-query-text 0.85.1
+receipt_check ic-query-cli 0.85.1
+run_group cli
+[[ $(rg -c '^cargo publish' trace) == 2 ]] || fail 'presentation retry repeated uploads'
+for selection in '' unknown; do
+  new_case "unknown-${selection:-missing}"
+  refuse_group "$selection"
+  [[ ! -e trace && ! -e target ]] || fail 'invalid group reached publication'
 done
-
-mkdir -p "${publish_case}/hidden-index-state"
-for index_attempt in initial retry; do
-  if (
-    cd "$publish_case/source"
-    PATH="${publish_case}/bin:${PATH}" TRACE_FILE="${publish_case}/hidden-index-trace" \
-      STATE_DIR="${publish_case}/hidden-index-state" HIDE_LIBRARY_INFO=1 \
-      CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-      bash scripts/release/publish-workspace.sh
-  ) >/dev/null 2>&1; then
-    hidden_index_status=0
-  else
-    hidden_index_status="$?"
-  fi
-  [[ "${hidden_index_status}" -ne 0 ]] \
-    || fail "the workspace publisher accepted an unindexed library on $index_attempt"
-  [[ -e "${publish_case}/hidden-index-state/ic-query" ]] \
-    || fail "the workspace publisher did not publish the missing library"
-  [[ ! -e "${publish_case}/hidden-index-state/ic-query-cli" ]] \
-    || fail "the workspace publisher published the CLI before the library was indexed"
+new_case missing-query
+refuse_group cli
+[[ ! -e state/ic-query-text && ! -e state/ic-query-cli ]] || fail 'presentation preceded Query peer'
+for package in ic-query ic-query-text ic-query-cli; do
+  new_case "failed-$package"
+  group=query
+  if [[ "$package" != ic-query ]]; then group=cli; : > state/ic-query; fi
+  status=0
+  PUBLISH_ERROR_PACKAGE="$package" PUBLISH_ERROR_STATUS=47 run_group "$group" || status=$?
+  [[ "$status" == 47 && ! -e state/$package ]] || fail 'Cargo failure lost status or became successful'
+  [[ "$package" == ic-query-cli || ! -e state/ic-query-cli ]] || fail 'CLI published after prerequisite failed'
+  unset PUBLISH_ERROR_PACKAGE PUBLISH_ERROR_STATUS
+  run_group "$group"
+  [[ -e state/$package ]] || fail 'known failure did not resume'
 done
-
-for package in ic-query ic-query-cli; do
-  for failure in http transport; do
-    state="$publish_case/unavailable-$package-$failure"
-    mkdir -p "$state"
-    : > "$state/ic-query"
-    transport=0
-    http=503
-    if [[ "$failure" == transport ]]; then transport=28; http=404; fi
+for package in ic-query ic-query-text ic-query-cli; do
+  for failure in 429 503 transport; do
+    new_case "registry-$package-$failure"
+    group=query
+    if [[ "$package" != ic-query ]]; then group=cli; : > state/ic-query; fi
     status=0
-    (
-      cd "$publish_case/source"
-      PATH="$publish_case/bin:$PATH" TRACE_FILE="$state/trace" STATE_DIR="$state" \
-        REGISTRY_ERROR_PACKAGE="$package" REGISTRY_HTTP="$http" \
-        REGISTRY_TRANSPORT="$transport" CARGO_PUBLISH_INDEX_ATTEMPTS=2 \
-        CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 bash scripts/release/publish-workspace.sh
-    ) > "$state/output" 2>&1 || status=$?
-    [[ "$status" == 2 ]] || fail 'unavailable registry observation did not stop publication'
-    printf '%s\n' "observe ic-query@$current_version" > "$state/expected"
-    if [[ "$package" == ic-query-cli ]]; then
-      printf '%s\n' "observe ic-query-cli@$current_version" >> "$state/expected"
+    if [[ "$failure" == transport ]]; then
+      REGISTRY_ERROR_PACKAGE="$package" REGISTRY_TRANSPORT=6 run_group "$group" || status=$?
+    else
+      REGISTRY_ERROR_PACKAGE="$package" REGISTRY_HTTP="$failure" run_group "$group" || status=$?
     fi
-    cmp -s "$state/expected" "$state/trace" \
-      || fail 'unavailable registry observation was retried or reached publication'
-    [[ ! -e "$state/ic-query-cli" ]] || fail 'unavailable observation published the CLI'
+    [[ "$status" != 0 && ! -e state/$package && ! -e state/ic-query-cli ]] || fail 'unavailable registry admitted an upload'
   done
 done
-
-for condition in dirty raced; do
-  refused="$publish_case/source-$condition"
-  mkdir -p "$refused/state"
-  cp -R "$publish_case/source/scripts" "$refused/"
-  cp "$publish_case/source/Cargo.toml" "$refused/"
+new_case hidden-query-index
+: > state/ic-query
+HIDE_LIBRARY_INFO=1 refuse_group cli
+[[ ! -e state/ic-query-text ]] || fail 'renderer uploaded before its peer was visible'
+for refusal in dirty race; do
+  new_case "$refusal"
   status=0
-  (
-    cd "$refused"
-    case "$condition" in dirty) export PUBLICATION_DIRTY=1 ;; raced) export PUBLICATION_RACE=1 ;; esac
-    PATH="$publish_case/bin:$PATH" TRACE_FILE="$refused/trace" STATE_DIR="$refused/state" \
-      bash scripts/release/publish-workspace.sh
-  ) > "$refused/output" 2>&1 || status=$?
-  [[ "$status" == 2 ]] || fail 'source admission failure lost its status'
-  printf '%s\n' "observe ic-query@$current_version" > "$refused/expected-trace"
-  cmp -s "$refused/expected-trace" "$refused/trace" || fail 'source admission failure reached Cargo'
-  if [[ "$condition" == raced ]]; then
-    receipts=("$refused/target/publication/ic-query."*)
-    [[ -s "${receipts[0]}/intent" && ! -e "${receipts[0]}/dispatch" && -e "$refused/target/publication/.workspace-publication.lock/owner" ]] \
-      || fail 'pre-dispatch source race discarded retained intent or admission lock'
+  if [[ "$refusal" == dirty ]]; then PUBLICATION_DIRTY=1 run_group query || status=$?
+  else PUBLICATION_RACE=1 run_group query || status=$?; fi
+  [[ "$status" != 0 && ! -e state/ic-query ]] || fail 'publication source race admitted'
+  if [[ "$refusal" == dirty ]]; then
+    [[ ! -e target/publication/.workspace-publication.lock && ! -e target/publication/.cargo-publication.lock ]] || fail 'pre-dispatch refusal retained locks'
+  else
+    [[ -e target/publication/.cargo-publication.lock/owner ]] || fail 'race lost dispatch-admission evidence'
   fi
 done
-
-# An uncertain dispatch keeps both locks; a later invocation must not observe or upload.
-interrupted="$publish_case/interrupted"
-mkdir -p "$interrupted/state"
-cp -R "$publish_case/source/scripts" "$interrupted/"
-cp "$publish_case/source/Cargo.toml" "$interrupted/"
+new_case signal
 status=0
-(
-  cd "$interrupted"
-  PATH="$publish_case/bin:$PATH" TRACE_FILE="$interrupted/trace" STATE_DIR="$interrupted/state" \
-    PUBLICATION_SIGNAL=1 bash scripts/release/publish-workspace.sh
-) > "$interrupted/output" 2>&1 || status=$?
-[[ "$status" == 143 ]] || fail 'interrupted upload lost its signal status'
-receipts=("$interrupted/target/publication/ic-query."*)
-receipt="${receipts[0]}"
-[[ -s "$receipt/dispatch" && ! -e "$receipt/status" && -e "$interrupted/target/publication/.cargo-publication.lock/owner" && -e "$interrupted/target/publication/.workspace-publication.lock/owner" ]] \
-  || fail 'uncertain upload discarded dispatch evidence or admission locks'
-cp "$interrupted/trace" "$interrupted/before-trace"
-status=0
-(
-  cd "$interrupted"
-  PATH="$publish_case/bin:$PATH" TRACE_FILE="$interrupted/trace" STATE_DIR="$interrupted/state" \
-    bash scripts/release/publish-workspace.sh
-) > "$interrupted/retry-output" 2>&1 || status=$?
-[[ "$status" != 0 ]] || fail 'uncertain publication was replayed'
-cmp -s "$interrupted/before-trace" "$interrupted/trace" || fail 'uncertain publication reached observation or Cargo'
-
-make_case="${work_dir}/make-publish"
-mkdir -p "${make_case}/bin" "${make_case}/scripts/release" "${make_case}/scripts/ci"
-printf '[fixture]\nversion = "9.9.9"\n[workspace.package]\nversion = "%s"\n' \
-  "${current_version}" > "${make_case}/Cargo.toml"
-prepare_publish_fixture "$make_case"
-cat > "${make_case}/bin/git" <<'EOF'
+PUBLICATION_SIGNAL=1 run_group query || status=$?
+[[ "$status" == 143 ]] || fail 'signal status was lost'
+[[ -e target/publication/.workspace-publication.lock/owner && -e target/publication/.cargo-publication.lock/owner ]] || fail 'uncertain upload lost locks'
+cp trace before-retry
+refuse_group query
+cmp before-retry trace
+# Actual Make routing and annotated selected-group tag admission.
+new_case make-publication
+: > state/ic-query
+: > state/ic-query-text
+: > state/ic-query-cli
+cat > "$publish_case/bin/git" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
-head_commit=1111111111111111111111111111111111111111
+sha=1111111111111111111111111111111111111111
 case "$*" in
   'rev-parse --show-prefix') printf '\n' ;;
   'rev-parse --show-toplevel') pwd -P ;;
-  'status --porcelain --untracked-files=all') exit 0 ;;
-  'status --porcelain=v1 -z --untracked-files=all')
-    [[ "${DIRTY_STATUS:-0}" == 0 ]] || printf ' M Cargo.lock\0'
-    [[ -z "${UNTRACKED_PATH:-}" ]] || printf '?? %s\0' "${UNTRACKED_PATH}"
-    exit "${INVENTORY_STATUS:-0}"
-    ;;
-  "cat-file -t refs/tags/v${RELEASE_VERSION}")
-    [[ -z "${MISSING_TAG:-}" ]] || exit 1
-    printf '%s\n' "${TAG_TYPE:-tag}"
-    ;;
-  "rev-parse --verify refs/tags/v${RELEASE_VERSION}^{commit}")
-    printf '%s\n' "${TAG_COMMIT:-$head_commit}"
-    ;;
-  'rev-parse --verify HEAD') printf '%s\n' "$head_commit" ;;
-  "rev-parse --verify $head_commit^{commit}") printf '%s\n' "$head_commit" ;;
+  'status --porcelain --untracked-files=all'|'status --porcelain=v1 -z --untracked-files=all') [[ "${DIRTY_STATUS:-0}" == 0 ]] || printf ' M Cargo.lock\0' ;;
+  'cat-file -t refs/tags/cli-v0.85.1') [[ "${MISSING_TAG:-0}" == 0 ]] || exit 1; echo "${TAG_TYPE:-tag}" ;;
+  'rev-parse --verify refs/tags/cli-v0.85.1^{commit}') echo "${TAG_COMMIT:-$sha}" ;;
+  'rev-parse --verify HEAD'|"rev-parse --verify $sha^{commit}") echo "$sha" ;;
   *) exit 2 ;;
 esac
-EOF
-chmod +x "${make_case}/bin/git"
-
-# Already-published fixtures exercise Make's entry checks without registry IO.
-[[ "$(cd "${make_case}" && make --no-print-directory -s -f "${repo_root}/Makefile" version)" == "${current_version}" ]] \
-  || fail "make version did not select the canonical workspace version"
-(
-  cd "${make_case}"
-  PATH="${make_case}/bin:${publish_case}/bin:${PATH}" RELEASE_VERSION="${current_version}" \
-    TRACE_FILE="${make_case}/trace" STATE_DIR="${publish_case}/state" \
-    make --no-print-directory -f "${repo_root}/Makefile" publish
-) >/dev/null \
-  || fail "make publish rejected a clean tagged release"
-printf '%s\n' \
-  'cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings' \
-  'cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings' \
-  > "$make_case/expected-trace"
-cat "$publish_case/expected-trace" >> "$make_case/expected-trace"
-cmp -s "${make_case}/expected-trace" "${make_case}/trace" \
-  || fail "make publish did not delegate once to the retry-safe workspace publisher"
-
-for lint_scope in -p --workspace; do
-  : > "$make_case/lint-trace"
-  if (
-    cd "$make_case"
-    PATH="$make_case/bin:$publish_case/bin:$PATH" RELEASE_VERSION="$current_version" \
-      TRACE_FILE="$make_case/lint-trace" STATE_DIR="$publish_case/state" \
-      PUBLISH_LINT_FAIL="$lint_scope" \
-      make --no-print-directory -j4 -f "$repo_root/Makefile" publish
-  ) > "$make_case/lint-output" 2>&1; then
-    fail 'make publish ignored failed Clippy gate'
-  fi
-  printf '%s\n' \
-    'cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings' \
-    > "$make_case/expected-lint-trace"
-  if [[ "$lint_scope" == --workspace ]]; then
-    printf '%s\n' 'cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings' \
-      >> "$make_case/expected-lint-trace"
-  fi
-  cmp "$make_case/lint-trace" "$make_case/expected-lint-trace" \
-    || fail 'failed Clippy reached publication or registry observation'
-done
-
-mkdir "$make_case/upload-state"
-(
-  cd "$make_case"
-  PATH="$make_case/bin:$publish_case/bin:$PATH" RELEASE_VERSION="$current_version" \
-    TRACE_FILE="$make_case/upload-trace" STATE_DIR="$make_case/upload-state" \
-    CARGO_PUBLISH_INDEX_ATTEMPTS=2 CARGO_PUBLISH_INDEX_DELAY_SECONDS=0 \
-    make --no-print-directory -f "$repo_root/Makefile" publish
-) > "$make_case/upload-output" 2>&1 || fail 'make publish rejected a clean tagged missing-package selection'
-[[ -e "$make_case/upload-state/ic-query" && -e "$make_case/upload-state/ic-query-cli" ]] \
-  || fail 'make publish did not dispatch both admitted packages'
-for package in ic-query ic-query-cli; do
-  receipts=("$make_case/target/publication/$package."*)
-  [[ "${#receipts[@]}" == 1 && "$(cat "${receipts[0]}/status")" == 0 ]] \
-    || fail 'make publish did not retain the completed upload receipt'
-done
-
-for invalid_release in dirty untracked inventory-empty inventory-partial stale-tag missing-tag lightweight-tag; do
-  : > "${make_case}/trace"
-  if (
-    cd "${make_case}"
-    export PATH="${make_case}/bin:${publish_case}/bin:${PATH}"
-    export RELEASE_VERSION="${current_version}" TRACE_FILE="${make_case}/trace"
-    export STATE_DIR="${publish_case}/state"
-    case "${invalid_release}" in
-      dirty) export DIRTY_STATUS=1 ;;
-      untracked) export UNTRACKED_PATH=unexpected.txt ;;
-      inventory-empty) export INVENTORY_STATUS=9 ;;
-      inventory-partial) export INVENTORY_STATUS=9 UNTRACKED_PATH=unexpected.txt ;;
-      stale-tag) export TAG_COMMIT=2222222222222222222222222222222222222222 ;;
-      missing-tag) export MISSING_TAG=1 ;;
-      lightweight-tag) export TAG_TYPE=commit ;;
-    esac
-    make --no-print-directory -f "${repo_root}/Makefile" publish
-  ) > "$make_case/$invalid_release.log" 2>&1; then
-    fail "make publish accepted a ${invalid_release} release"
-  fi
-  [[ ! -s "${make_case}/trace" ]] \
-    || fail "make publish reached the registry or Cargo for a ${invalid_release} release"
-  case "$invalid_release" in
-    dirty) grep -Fq 'unstaged: Cargo.lock' "$make_case/$invalid_release.log" ;;
-    untracked) grep -Fq 'untracked: unexpected.txt' "$make_case/$invalid_release.log" ;;
-    inventory-*) grep -Fq 'cannot inspect release-source status' "$make_case/$invalid_release.log" ;;
+STUB
+chmod +x "$publish_case/bin/git"
+RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1
+[[ $(rg -c '^cargo clippy' trace) == 2 ]] || fail 'Make skipped publication lint admission'
+for failure in dirty missing lightweight wrong-commit lint; do
+  cp trace before-refusal
+  status=0
+  case "$failure" in
+    dirty) DIRTY_STATUS=1 RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1 || status=$? ;;
+    missing) MISSING_TAG=1 RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1 || status=$? ;;
+    lightweight) TAG_TYPE=commit RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1 || status=$? ;;
+    wrong-commit) TAG_COMMIT=2222222222222222222222222222222222222222 RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1 || status=$? ;;
+    lint) PUBLISH_LINT_FAIL=-p RELEASE_GROUP=cli make --no-print-directory publish > output 2>&1 || status=$? ;;
   esac
+  [[ "$status" != 0 ]] || fail "Make admitted $failure"
+  [[ "$failure" == lint ]] || cmp before-refusal trace
 done
+echo 'Selected-group publication, receipts, recovery and Make admission fixtures passed'
 fixture_complete=true

@@ -15,13 +15,15 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
-use ic_query::sns::{
-    build_sns_proposal_report, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_source_and_progress,
-    refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
-    sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
-    sns_proposals_report_text,
-};
+use ic_query::sns::build_sns_proposal_report;
+use ic_query::sns::build_sns_proposals_cache_list_report;
+use ic_query::sns::build_sns_proposals_cache_status_report;
+use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
+use ic_query::sns::refresh_sns_proposals_cache_with_progress;
+use ic_query_text::sns::sns_proposal_report_text;
+use ic_query_text::sns::sns_proposals_cache_list_report_text;
+use ic_query_text::sns::sns_proposals_cache_status_report_text;
+use ic_query_text::sns::sns_proposals_report_text;
 pub(super) async fn run_sns_proposal(
     matches: &ArgMatches,
     network: &str,

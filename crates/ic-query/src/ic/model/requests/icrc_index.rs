@@ -51,6 +51,20 @@ pub enum IcIcrcAccountSort {
 }
 
 impl IcIcrcAccountSort {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[
+        Self::Id,
+        Self::IdDescending,
+        Self::Balance,
+        Self::BalanceDescending,
+        Self::TotalTransactions,
+        Self::TotalTransactionsDescending,
+        Self::CreatedTimestamp,
+        Self::CreatedTimestampDescending,
+        Self::Owner,
+        Self::OwnerDescending,
+    ];
+
     /// Return the exact official API query value.
     #[must_use]
     pub const fn as_api_value(self) -> &'static str {
@@ -110,6 +124,18 @@ pub enum IcIcrcHolderSort {
 }
 
 impl IcIcrcHolderSort {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[
+        Self::Balance,
+        Self::BalanceDescending,
+        Self::TotalTransactions,
+        Self::TotalTransactionsDescending,
+        Self::CreatedTimestamp,
+        Self::CreatedTimestampDescending,
+        Self::Principal,
+        Self::PrincipalDescending,
+    ];
+
     /// Return the exact official API query value.
     #[must_use]
     pub const fn as_api_value(self) -> &'static str {

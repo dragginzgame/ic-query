@@ -1,4 +1,4 @@
-//! Reusable Network Nervous System query families, models, and renderers.
+//! Reusable Network Nervous System query families, models.
 
 #[cfg(feature = "certified-subnet-catalog-host")]
 #[macro_use]
@@ -18,7 +18,6 @@ pub mod node_operator;
 pub mod node_provider;
 pub mod proposals;
 pub mod registry;
-pub mod render;
 #[cfg(feature = "subnet-catalog-host")]
 pub(crate) mod source;
 pub mod topology;
@@ -37,7 +36,5 @@ pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{
     NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
 };
-#[cfg(feature = "nns-host")]
-pub use render::nns_inventory_refresh_report_text;
 #[cfg(feature = "subnet-catalog-host")]
 pub use source::LiveNnsSource;

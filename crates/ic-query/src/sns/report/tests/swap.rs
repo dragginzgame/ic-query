@@ -1,13 +1,12 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::report::CollectionSourceRequest;
-use crate::sns::report::sns_swap_lifecycle_name;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
     let report = build_sns_swap_report_with_source(&swap_request("1"), &FixtureSnsSwapSource)
         .await
         .expect("sns swap report");
-    let text = sns_swap_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_SWAP_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.id, 1);
@@ -24,14 +23,7 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
             .and_then(|lifecycle| lifecycle.lifecycle),
         Some(2)
     );
-    assert_eq!(
-        report
-            .swap
-            .lifecycle
-            .as_ref()
-            .and_then(|lifecycle| sns_swap_lifecycle_name(lifecycle.lifecycle)),
-        Some("open")
-    );
+
     assert_eq!(
         report
             .swap
@@ -48,13 +40,6 @@ async fn sns_swap_preserves_native_bounded_components_and_renders_them() {
             .and_then(|state| state.direct_participant_count),
         Some(120)
     );
-    assert!(text.contains("swap_canister_id: br5f7-7uaaa-aaaaa-qaaca-cai"));
-    assert!(text.contains("point_in_time_guaranteed: no"));
-    assert!(text.contains("get_lifecycle"));
-    assert!(text.contains("lifecycle_name"));
-    assert!(text.contains("open"));
-    assert!(text.contains("min_direct_participation_icp_e8s"));
-    assert!(text.contains("direct_participant_count"));
 }
 
 #[tokio::test(flavor = "current_thread")]

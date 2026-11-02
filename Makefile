@@ -61,7 +61,7 @@ CI_TARGETS := shared-tooling-check compiler-check tools-check clippy changelog-c
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check test package
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml crates/ic-query-text/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/cargo-release-groups.json ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -117,7 +117,7 @@ help:
 	@echo "  rust-tools-check  Verify the common Cargo-tool set offline"
 	@echo "  check-cargo-tool-versions  Check common Cargo pins and user receipts against crates.io (online, read-only)"
 	@echo "  cloc       Report Rust runtime/test LOC for this workspace"
-	@echo "  publish    Publish the library, then the CLI, to crates.io"
+	@echo "  publish    Publish the selected RELEASE_GROUP to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
 	@echo "  release-patch  Bump, stage, commit, tag, and push a patch release"
@@ -130,7 +130,7 @@ ensure-clean:
 	@bash "$(REPO_ROOT)scripts/ci/check-release-source.sh"
 
 version release-version:
-	@YQ="$(YQ)" bash "$(REPO_ROOT)scripts/ci/read-cargo-workspace-version.sh" --stable Cargo.toml
+	@CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 YQ="$(YQ)" bash "$(REPO_ROOT)scripts/ci/cargo-release-group.sh" version "$(RELEASE_GROUP)"
 
 tags:
 	@git tag --sort=-version:refname | head -10
@@ -198,7 +198,7 @@ doc-links-check:
 	perl "$(REPO_ROOT)scripts/ci/check-documentation-links.pl" --root "$(REPO_ROOT)" \
 		"$(REPO_ROOT)README.md" "$(REPO_ROOT)AGENTS.md" "$(REPO_ROOT)CHANGELOG.md" \
 		"$(REPO_ROOT)docs/"*.md "$(REPO_ROOT)docs/design/"*.md "$(REPO_ROOT)docs/roadmap/"*.md \
-		"$(REPO_ROOT)tasks/"*.md
+		"$(REPO_ROOT)tasks/"*.md "$(REPO_ROOT)releases/"*.md "$(REPO_ROOT)releases/"*/*.md
 
 public-docs-check:
 	bash scripts/ci/check-public-docs.sh
@@ -257,9 +257,9 @@ release-tools-check:
 
 publish: ensure-clean release-tag-check
 	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
-	bash scripts/release/publish-workspace.sh
+	RELEASE_GROUP="$(RELEASE_GROUP)" bash scripts/release/publish-workspace.sh
 
-export RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH
+export RELEASE_GROUP RELEASE_KIND RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE RELEASE_COMMIT RELEASE_REMOTE RELEASE_BRANCH
 
 release-files:
 	@bash "$(REPO_ROOT)scripts/release/adapter.sh" files

@@ -1,4 +1,4 @@
-//! NNS topology requests, reports, host builders, source adapters, and renderers.
+//! NNS topology requests, reports, host builders, source adapters.
 
 mod report;
 
@@ -29,12 +29,7 @@ pub use report::{
     NnsTopologyProviderRow, NnsTopologyProviderStatus, NnsTopologyProvidersReport,
     NnsTopologyRefreshReport, NnsTopologyRefreshRequest, NnsTopologyRefreshRow,
     NnsTopologyRegionRow, NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow,
-    NnsTopologySummaryReport, NnsTopologyVersionsReport, nns_subnet_topology_report_text,
-    nns_topology_capacity_report_text, nns_topology_check_report_text,
-    nns_topology_coverage_report_text, nns_topology_gaps_report_text,
-    nns_topology_providers_report_text, nns_topology_refresh_report_text,
-    nns_topology_regions_report_text, nns_topology_summary_report_text,
-    nns_topology_versions_report_text,
+    NnsTopologySummaryReport, NnsTopologyVersionsReport,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{
@@ -49,3 +44,5 @@ pub use report::{
     build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
     refresh_nns_topology_report, refresh_nns_topology_report_with_source,
 };
+
+pub use report::{coverage_percent_text, ratio_percent_text};

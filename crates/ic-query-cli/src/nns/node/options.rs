@@ -7,10 +7,9 @@ use crate::cli::{
     common::{OutputFormat, SourceOutputOptions},
 };
 use clap::ArgMatches;
-use ic_query::nns::{
-    NnsInventoryCacheRequest,
-    node::{NnsNodeListFilters, NnsNodeListRequest},
-};
+use ic_query::nns::NnsInventoryCacheRequest;
+use ic_query::nns::node::NnsNodeListFilters;
+use ic_query::nns::node::NnsNodeListRequest;
 
 pub(in crate::nns) fn node_list_request(
     matches: &ArgMatches,

@@ -101,12 +101,3 @@ pub struct SnsMetricsReport {
     #[serde(flatten)]
     pub metrics: MainnetSnsMetrics,
 }
-
-pub(in crate::sns::report) const fn sns_treasury_kind(treasury: i32) -> &'static str {
-    match treasury {
-        0 => "unspecified",
-        1 => "icp",
-        2 => "sns_token",
-        _ => "unknown",
-    }
-}

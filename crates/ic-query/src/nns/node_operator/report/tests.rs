@@ -1,13 +1,15 @@
-use super::{
-    NnsInventoryCacheRequest, NnsInventoryListRequest, NnsNodeOperatorHostError,
-    NnsNodeOperatorListReport, NnsNodeOperatorRow, NnsNodeOperatorSource,
-    build_nns_node_operator_list_report_with_source_and_progress,
-    nns_node_operator_list_report_text, nns_node_operator_list_report_verbose_text,
-    resolve_node_operator,
-};
+use super::NnsInventoryCacheRequest;
+use super::NnsInventoryListRequest;
+use super::NnsNodeOperatorHostError;
+use super::NnsNodeOperatorListReport;
+use super::NnsNodeOperatorRow;
+use super::NnsNodeOperatorSource;
+use super::build_nns_node_operator_list_report_with_source_and_progress;
+use super::resolve_node_operator;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
 use crate::test_support::temp_dir;
 
 #[tokio::test(flavor = "current_thread")]
@@ -70,23 +72,6 @@ async fn node_operator_report_uses_live_registry_source() {
     assert_eq!(report.node_operators[0].node_allowance, 4);
     assert_eq!(report.node_operators[0].data_center_id, "dc1");
     assert_eq!(report.node_operators[0].node_count, Some(3));
-}
-
-#[test]
-fn node_operator_text_keeps_compact_principals() {
-    let report = node_operator_report_fixture();
-
-    let text = nns_node_operator_list_report_text(&report);
-    let verbose_text = nns_node_operator_list_report_verbose_text(&report);
-
-    assert!(text.contains("node_operators: ic count 1"));
-    assert!(text.contains("NODE_OPERATOR"));
-    assert!(text.contains("ryjl3"));
-    assert!(text.contains("aaaaa"));
-    assert!(text.contains("13"));
-    assert!(!text.contains("ryjl3-tyaaa-aaaaa-aaaba-cai"));
-    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nNODE_OPERATOR"));
-    assert!(verbose_text.contains("fetched_by: test\n\nNODE_OPERATOR"));
 }
 
 #[test]

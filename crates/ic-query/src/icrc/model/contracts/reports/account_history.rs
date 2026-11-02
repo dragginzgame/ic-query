@@ -57,6 +57,32 @@ pub struct IcrcAccountTransactionPageReport {
 }
 
 ///
+/// IcrcAccountTransactionContext
+///
+/// Collected account identity and acquisition metadata shared by complete-history views.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+pub struct IcrcAccountTransactionContext {
+    /// Ledger canister whose history was collected.
+    pub ledger_canister_id: String,
+    /// Verified index canister used for every page.
+    pub index_canister_id: String,
+    /// Queried account owner principal.
+    pub account_owner: String,
+    /// Queried subaccount as normalized hex.
+    pub subaccount_hex: Option<String>,
+    /// Explicit IC API endpoint used for collection.
+    pub source_endpoint: String,
+    /// Complete collection start timestamp.
+    pub collection_started_at: String,
+    /// Complete collection finish timestamp.
+    pub collection_completed_at: String,
+    /// Collector identity.
+    pub fetched_by: String,
+}
+
+///
 /// IcrcAccountTransactionSnapshot
 ///
 /// Complete persisted account-history snapshot collected by exhausting the index API.
@@ -65,24 +91,11 @@ pub struct IcrcAccountTransactionPageReport {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct IcrcAccountTransactionSnapshot {
+    /// Shared identity and collection metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub context: IcrcAccountTransactionContext,
     /// Cache schema version.
     pub schema_version: u32,
-    /// IC API endpoint used for ledger and index calls.
-    pub source_endpoint: String,
-    /// Collection start timestamp supplied by the refresh caller's clock.
-    pub collection_started_at: String,
-    /// Collection completion timestamp derived from the start plus monotonic elapsed time.
-    pub collection_completed_at: String,
-    /// Collector identity.
-    pub fetched_by: String,
-    /// Ledger canister whose transactions were indexed.
-    pub ledger_canister_id: String,
-    /// Verified index canister used for every page.
-    pub index_canister_id: String,
-    /// Queried account owner principal.
-    pub account_owner: String,
-    /// Queried subaccount as normalized hex.
-    pub subaccount_hex: Option<String>,
     /// Account balance reported by the first index page.
     pub balance: String,
     /// Ledger token symbol used for text rendering.
@@ -107,16 +120,11 @@ pub struct IcrcAccountTransactionSnapshot {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAccountTransactionRefreshReport {
+    /// Shared identity and collection metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub context: IcrcAccountTransactionContext,
     /// Report schema version.
     pub schema_version: u32,
-    /// Ledger canister whose account history was collected.
-    pub ledger_canister_id: String,
-    /// Verified index canister used for every page.
-    pub index_canister_id: String,
-    /// Queried account owner principal.
-    pub account_owner: String,
-    /// Queried subaccount as normalized hex.
-    pub subaccount_hex: Option<String>,
     /// Number of unique transactions published.
     pub transaction_count: usize,
     /// Highest published transaction id.
@@ -133,14 +141,6 @@ pub struct IcrcAccountTransactionRefreshReport {
     pub replaced_existing_cache: bool,
     /// Non-fatal error encountered finalizing the refresh-attempt sidecar.
     pub attempt_finalization_error: Option<String>,
-    /// Collection start timestamp.
-    pub collection_started_at: String,
-    /// Collection completion timestamp.
-    pub collection_completed_at: String,
-    /// IC API endpoint used for ledger and index calls.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
     /// Published complete-cache path.
     pub cache_path: String,
     /// Refresh-attempt sidecar path.
@@ -157,16 +157,11 @@ pub struct IcrcAccountTransactionRefreshReport {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IcrcAccountTransactionListReport {
+    /// Shared identity and collection metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub context: IcrcAccountTransactionContext,
     /// Report schema version.
     pub schema_version: u32,
-    /// Ledger canister whose cached history is shown.
-    pub ledger_canister_id: String,
-    /// Verified index canister used to collect the cache.
-    pub index_canister_id: String,
-    /// Cached account owner principal.
-    pub account_owner: String,
-    /// Cached subaccount as normalized hex.
-    pub subaccount_hex: Option<String>,
     /// Maximum cached rows requested by this view.
     pub requested_limit: u32,
     /// Stable requested ordering name.
@@ -185,14 +180,6 @@ pub struct IcrcAccountTransactionListReport {
     pub token_symbol: String,
     /// Ledger token decimals used for text rendering.
     pub decimals: u8,
-    /// Complete collection start timestamp.
-    pub collection_started_at: String,
-    /// Complete collection finish timestamp.
-    pub collection_completed_at: String,
-    /// IC API endpoint represented by the cache.
-    pub source_endpoint: String,
-    /// Collector identity.
-    pub fetched_by: String,
     /// Whether source exhaustion was proven.
     pub complete: bool,
     /// Whether the source guaranteed one point-in-time snapshot.
@@ -242,17 +229,48 @@ pub struct IcrcAccountTransactionCacheStatusReport {
 ///
 /// IcrcAccountTransactionCacheSummary
 ///
-/// Serializable validation summary for one complete account-history cache.
+/// Existing-file admission outcome; invalid files carry no invented collection metadata.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcrcAccountTransactionCacheSummary {
-    /// Stable cache validation status.
-    pub cache_status: CacheValidationStatus,
-    /// Validation error when the existing cache is invalid.
-    pub cache_error: Option<String>,
-    /// Verified index canister when the cache is valid.
-    pub index_canister_id: Option<String>,
+#[serde(tag = "cache_status", rename_all = "snake_case")]
+pub enum IcrcAccountTransactionCacheSummary {
+    /// One admitted complete snapshot.
+    Valid {
+        /// Verified collection facts, flattened in JSON.
+        #[serde(flatten)]
+        data: IcrcAccountTransactionValidCacheSummary,
+    },
+    /// Existing file that failed admission.
+    Invalid {
+        /// Existing file path.
+        cache_path: String,
+        /// Original validation failure.
+        cache_error: String,
+    },
+}
+
+impl IcrcAccountTransactionCacheSummary {
+    /// Return the typed admission status.
+    #[must_use]
+    pub const fn cache_status(&self) -> CacheValidationStatus {
+        match self {
+            Self::Valid { .. } => CacheValidationStatus::Valid,
+            Self::Invalid { .. } => CacheValidationStatus::Invalid,
+        }
+    }
+}
+
+///
+/// IcrcAccountTransactionValidCacheSummary
+///
+/// Facts read only from an admitted complete account-history snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcrcAccountTransactionValidCacheSummary {
+    /// Verified index canister.
+    pub index_canister_id: String,
     /// Number of cached transaction rows.
     pub transaction_count: usize,
     /// Highest cached transaction id.
@@ -263,8 +281,6 @@ pub struct IcrcAccountTransactionCacheSummary {
     pub page_size: u32,
     /// Number of source pages collected.
     pub page_count: u32,
-    /// Whether source exhaustion was proven.
-    pub complete: bool,
     /// Whether the source guaranteed one point-in-time snapshot.
     pub point_in_time_guaranteed: bool,
     /// Complete collection start timestamp.

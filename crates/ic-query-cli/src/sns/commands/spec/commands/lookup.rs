@@ -11,7 +11,8 @@ use crate::{
 };
 use clap::Command as ClapCommand;
 use ic_host_text::duration::parse_duration_seconds;
-use ic_query::sns::{DEFAULT_SNS_SOURCE_ENDPOINT, MAX_SNS_METRICS_TIME_WINDOW_SECONDS};
+use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::MAX_SNS_METRICS_TIME_WINDOW_SECONDS;
 
 const DEFAULT_SNS_METRICS_WINDOW: &str = "30d";
 

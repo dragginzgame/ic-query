@@ -13,4 +13,4 @@ pub use row::{
     SnsProposalTally,
 };
 
-pub(in crate::sns::report) use row::{sns_proposal_action_label, sns_proposal_vote_label};
+pub use row::sns_proposal_action_label;

@@ -15,12 +15,20 @@ User-facing command and collection-mode guidance lives in
 ## Repository boundary
 
 The `ic-query` library owns read-only IC collection policy, source capability
-traits, provenance and validation, report models and rendering, and managed
+traits, provenance and validation, typed report models and JSON contracts, and managed
 snapshot identity, completeness and refresh policy. Its public entry point is
 `crates/ic-query/src/lib.rs`; optional host features select live adapters, while
 `canister` selects replicated Governance calls on Wasm. Embedders supply their
 runtime, endpoint, clocks and progress sink. The `icq` binary in
 `crates/ic-query-cli/src/main.rs` owns argument parsing, dispatch and process IO.
+
+`ic-query-text` consumes Query's public DTOs and owns human-facing report layout,
+provenance preambles, token/unit display policy and pure report-to-string helpers.
+It delegates reusable escaping and tables to Host Text. The dependency direction
+is CLI → Text → Query, with a direct CLI → Query edge for collection and JSON.
+Query has no presentation dependency or renderer compatibility re-exports.
+Text and CLI share one release group; Query and its unpublished fixture package
+share the other. Both groups retain full repository CI and one dependency graph.
 
 Dependencies own the reusable mechanisms beneath that policy:
 
@@ -63,13 +71,21 @@ remain flattened in JSON; see the [0.84 Rust consumer update](../changelog/0.84.
 Registry authentication carries its existing certificate record through private
 version/witness/batch results without rebuilding its evidence fields.
 SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
-retain their persisted shape and validation.
+and list rows retain lifecycle evidence as `SnsLifecycleOutcome`: not collected,
+a raw value, or bounded failure. Complete catalog admission rejects uncollected
+outcomes; direct lookups need not request lifecycle evidence. The schema-1
+catalog shape is replaced in 0.86; see the [consumer update](../changelog/0.86.md).
+Shared report provenance represents live rows or a complete-cache path directly;
+text rendering derives completeness from that origin. Complete ICRC history
+snapshots, refreshes and lists carry identity and collection metadata through
+`context`, flattened in JSON. Invalid ICRC cache summaries carry only their path
+and validation error, without fabricated counts or timestamps.
 
 The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.25.1 keeps arithmetic and validated Serde transport available without
+Metrics 0.27.0 keeps arithmetic and validated Serde transport available without
 native Wire metadata. Query disables defaults because its checked measurement
 and percentage arithmetic is private implementation detail. Dashboard observations
 and Governance metric payloads retain their source-specific report contracts.
@@ -85,27 +101,36 @@ Host's partial wire projections do not authenticate Registry values or establish
 complete routing coverage; those policies and the report/cache contracts remain
 Query-owned.
 
-Host, Build and Testkit are published from the consolidated IC Tooling repository.
-Foundation (Host Artifacts, FS, HTTP, Process, Text and Build), Host Tools and
-Testkit are released as three independent groups. Query selects their published
-packages through one root catalog and lockfile with minimum and development Rust 1.99.1.
+Host, Build and Testkit are published from IC Tooling as five independent groups:
+Foundation (Artifacts, FS, HTTP and Process), Build, Text, Host Tools and Testkit.
+Query selects published packages through one root catalog and lockfile with
+minimum and development Rust 1.99.1.
 
-The current workspace minimums are Platform 0.17.0, Metrics 0.25.1,
-Foundation 0.73.6, Host Tools 0.77.0, Testkit 0.78.0 and Wire 0.14.2. Platform,
-Host Tools and Testkit share one Platform identity and its canonical
-`ic-platform-types` 0.16.0 supplier. Query and Testkit share one arithmetic-only Metrics 0.25 identity;
-no Metrics types cross Query's public boundary. Direct Wire use belongs to probes
-and development fixtures, selecting its core codec. Optional Principal/Account
-schemas belong to Wire's `platform-types` feature; endpoint integration is separately supplied
-by `ic-wire-endpoint`. Query selects neither integration.
+Current production selections are Platform 0.18.0, canonical Types 0.17.0,
+Runtime 0.18.0, arithmetic-only Metrics 0.27.0, Foundation 0.74.1, Text 0.74.0
+and Host Tools 0.78.0. Build 0.74.0 is development tooling. Query and Host Tools
+share the current Platform/Types identities; no Metrics types cross Query's
+public boundary. Wire 0.15.0 remains development-only, selecting its core codec
+with unchanged protocol bytes and budgets.
+Query selects neither Wire's `platform-types` schemas nor its endpoint integration.
+
+Testkit 0.80.0 shares the current Platform, Types, Runtime and Foundation
+identities. Its native implementation retains arithmetic-only Metrics 0.26; Query
+selects Metrics 0.27 without native Wire metadata. Those arithmetic types do not
+cross the fixture boundary. The unpublished native fixture selects the
+independent `ic-platform-pocket-ic` 0.18 client directly, matching Testkit's
+extension traits; required Candid fixture protocols still use Platform 0.18.
+The client selects management DTOs 0.11 and retains the PocketIC 16.1.0 server
+protocol. The native fixture, server provisioning and installed acceptance remain
+separate from production Wasm graphs and source-only qualification.
 
 Platform's root Principal is its canonical owned type. Required external Candid
 contracts and Agent/PocketIC calls retain the explicit external Principal from
 `candid::contract::Principal`. Query's existing conversions preserve raw identity
 bytes when crossing Host Registry helper and external protocol boundaries.
-Platform 0.17 supplies the current ICRC DTOs; canister runtime handles belong to
-canonical Runtime 0.17.1. Custom `IcrcTipCertificateSource` implementations return
-Platform 0.17's `ICRC3DataCertificate`; runtime consumers align on the canonical
+Platform 0.18 supplies the current ICRC DTOs; canister runtime handles belong to
+canonical Runtime 0.18.0. Custom `IcrcTipCertificateSource` implementations return
+Platform 0.18's `ICRC3DataCertificate`; runtime consumers align on the canonical
 Runtime owner.
 
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
@@ -116,7 +141,7 @@ deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by Platform 0.7.
 Required external Candid parsing and type checking remain in Testkit fixtures.
 External Agent and Candid identities remain shared. Query's canister
-runtime selects Platform 0.17's delegated canonical Runtime 0.17.1 IC0 and
+runtime selects Platform 0.18's delegated canonical Runtime 0.18.0 IC0 and
 executor, with one runtime owner and no registry executor or IC0 package in the
 Wasm normal/build graph. Embedders align their runtime suppliers, including
 timer/endpoint integrations, on this Runtime owner.
@@ -195,8 +220,8 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Platform 0.17 delegates executor and IC0 ownership to canonical Runtime
-0.17.1; the canister graph excludes their former registry suppliers.
+graphs. Platform 0.18 delegates executor and IC0 ownership to canonical Runtime
+0.18.0; the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the

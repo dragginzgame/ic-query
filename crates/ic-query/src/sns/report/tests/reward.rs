@@ -1,6 +1,7 @@
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::source::validate_mainnet_sns_neuron;
-use crate::sns::report::tests::{fixtures::*, *};
+use crate::sns::report::tests::fixtures::*;
+use crate::sns::report::tests::*;
 
 #[tokio::test(flavor = "current_thread")]
 async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
@@ -123,7 +124,6 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
         build_sns_reward_checkpoint_report_with_source(&reward_checkpoint_request("1"), &source)
             .await
             .expect("stable checkpoint");
-    let text = sns_reward_checkpoint_report_text(&report);
 
     assert_eq!(
         source.calls(),
@@ -156,9 +156,7 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
         report.summary.maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::ObservedSatisfied
     );
-    assert!(text.contains("collection_status: api_exhausted_observed"));
-    assert!(text.contains("row_count: 2"));
-    assert!(!text.contains(&report.rows[0].neuron_id));
+
     validate_sns_reward_checkpoint_report(&report)
         .expect("collected report satisfies strict import validation");
     let mut restored = report;

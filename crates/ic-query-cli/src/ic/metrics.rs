@@ -19,12 +19,16 @@ use clap::{
     ArgMatches, Command as ClapCommand,
     builder::{PossibleValuesParser, RangedU64ValueParser, TypedValueParser},
 };
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT, DEFAULT_IC_METRIC_STEP_SECS,
-    DEFAULT_IC_METRIC_WINDOW_SECS, IcMetricKind, IcMetricQuery, IcMetricRequest,
-    MAX_IC_METRIC_STEP_SECS, MIN_IC_METRIC_TIMESTAMP, build_ic_metric_report,
-    ic_metric_report_text,
-};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_IC_METRIC_STEP_SECS;
+use ic_query::ic::DEFAULT_IC_METRIC_WINDOW_SECS;
+use ic_query::ic::IcMetricKind;
+use ic_query::ic::IcMetricQuery;
+use ic_query::ic::IcMetricRequest;
+use ic_query::ic::MAX_IC_METRIC_STEP_SECS;
+use ic_query::ic::MIN_IC_METRIC_TIMESTAMP;
+use ic_query::ic::build_ic_metric_report;
+use ic_query_text::ic::ic_metric_report_text;
 
 const METRICS_HELP_AFTER: &str = "\
 Examples:

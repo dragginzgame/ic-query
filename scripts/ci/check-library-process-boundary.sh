@@ -9,7 +9,7 @@ if ! command -v rg >/dev/null 2>&1; then
 fi
 
 status=0
-matches="$(rg -n "${pattern}" crates/ic-query/src --glob '*.rs')" || status=$?
+matches="$(rg -n "${pattern}" crates/ic-query/src crates/ic-query-text/src --glob '*.rs')" || status=$?
 
 case "${status}" in
   0)

@@ -4,19 +4,24 @@
 //! Does not own: HTTP transport, shared provenance, CLI paging, or text rendering.
 //! Boundary: validates one bounded page or one exact release record without runtime claims.
 
-use super::{
-    invalid_request, invalid_source, report_provenance, validate_canonical_principal,
-    validate_offset_page, validate_provenance,
-};
-use crate::{
-    hex::is_lowercase_hex,
-    ic::{
-        IcHostError, IcReplicaVersionInfoReport, IcReplicaVersionInfoSourceData,
-        IcReplicaVersionListQuery, IcReplicaVersionListReport, IcReplicaVersionListRow,
-        IcReplicaVersionListSourceData, IcReplicaVersionStatus, IcReplicaVersionSubnetRollout,
-        IcSourceRequest, MAX_IC_REPLICA_VERSION_PAGE_LIMIT,
-    },
-};
+use super::invalid_request;
+use super::invalid_source;
+use super::report_provenance;
+use super::validate_canonical_principal;
+use super::validate_offset_page;
+use super::validate_provenance;
+use crate::hex::is_lowercase_hex;
+use crate::ic::IcHostError;
+use crate::ic::IcReplicaVersionInfoReport;
+use crate::ic::IcReplicaVersionInfoSourceData;
+use crate::ic::IcReplicaVersionListQuery;
+use crate::ic::IcReplicaVersionListReport;
+use crate::ic::IcReplicaVersionListRow;
+use crate::ic::IcReplicaVersionListSourceData;
+use crate::ic::IcReplicaVersionStatus;
+use crate::ic::IcReplicaVersionSubnetRollout;
+use crate::ic::IcSourceRequest;
+use crate::ic::MAX_IC_REPLICA_VERSION_PAGE_LIMIT;
 use std::collections::HashSet;
 
 ///
@@ -211,12 +216,11 @@ fn validate_subnet_rollouts(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic::{
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcReplicaVersionInfoRequest,
-        IcReplicaVersionListRequest, build_ic_replica_version_info_report_with_source,
-        build_ic_replica_version_list_report_with_source, ic_replica_version_info_report_text,
-        ic_replica_version_list_report_text,
-    };
+    use crate::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+    use crate::ic::IcReplicaVersionInfoRequest;
+    use crate::ic::IcReplicaVersionListRequest;
+    use crate::ic::build_ic_replica_version_info_report_with_source;
+    use crate::ic::build_ic_replica_version_list_report_with_source;
     use std::sync::Mutex;
 
     const VERSION_A: &str = "e3d101b22ae3fa02aca737f9fb96cc6c4ca83ac3";
@@ -231,7 +235,6 @@ mod tests {
         let report = build_ic_replica_version_list_report_with_source(&request, &source)
             .await
             .expect("replica-version list");
-        let text = ic_replica_version_list_report_text(&report);
 
         assert_eq!((*source.list_calls.lock().unwrap()), 1);
         assert_eq!((*source.info_calls.lock().unwrap()), 0);
@@ -248,9 +251,6 @@ mod tests {
         assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
         assert!(!report.provenance.certified);
         assert!(!report.provenance.point_in_time_guaranteed);
-        assert!(text.contains("resolved_max_proposal_index: 438"));
-        assert!(text.contains("EXECUTED"));
-        assert!(text.contains("OPEN"));
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -260,7 +260,6 @@ mod tests {
         let report = build_ic_replica_version_info_report_with_source(&request, &source)
             .await
             .expect("replica-version info");
-        let text = ic_replica_version_info_report_text(&report);
 
         assert_eq!((*source.info_calls.lock().unwrap()), 1);
         assert_eq!((*source.list_calls.lock().unwrap()), 0);
@@ -269,8 +268,6 @@ mod tests {
         assert_eq!(report.subnet_count, 2);
         assert_eq!(report.release.subnets[0].subnet_id, SUBNET_A);
         assert_eq!(report.release.subnets[1].subnet_id, SUBNET_B);
-        assert!(text.contains("summary: Release notes\\nwith raw detail"));
-        assert!(text.contains("subnet_rollouts:"));
     }
 
     #[test]

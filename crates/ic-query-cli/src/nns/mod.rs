@@ -21,17 +21,19 @@ use crate::{
     storage::CacheRootError,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::{
-    ic::{IcHostError, IcNodeStatusHostError},
-    nns::{
-        data_center::NnsDataCenterHostError, governance::NnsGovernanceError,
-        neuron::NnsNeuronHostError, node::NnsNodeHostError,
-        node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
-        proposals::NnsProposalHostError, registry::NnsRegistryHostError,
-        topology::NnsTopologyHostError,
-    },
-    subnet_catalog::{SubnetCatalogHostError, SubnetCatalogRemediation},
-};
+use ic_query::ic::IcHostError;
+use ic_query::ic::IcNodeStatusHostError;
+use ic_query::nns::data_center::NnsDataCenterHostError;
+use ic_query::nns::governance::NnsGovernanceError;
+use ic_query::nns::neuron::NnsNeuronHostError;
+use ic_query::nns::node::NnsNodeHostError;
+use ic_query::nns::node_operator::NnsNodeOperatorHostError;
+use ic_query::nns::node_provider::NnsNodeProviderHostError;
+use ic_query::nns::proposals::NnsProposalHostError;
+use ic_query::nns::registry::NnsRegistryHostError;
+use ic_query::nns::topology::NnsTopologyHostError;
+use ic_query::subnet_catalog::SubnetCatalogHostError;
+use ic_query::subnet_catalog::SubnetCatalogRemediation;
 use std::io;
 use thiserror::Error as ThisError;
 

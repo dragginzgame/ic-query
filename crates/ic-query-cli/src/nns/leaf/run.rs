@@ -7,10 +7,11 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_query::QueryProgress;
-use ic_query::nns::{
-    NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    NnsInventoryRefreshReport, NnsInventoryRefreshRequest,
-};
+use ic_query::nns::NnsInventoryCacheRequest;
+use ic_query::nns::NnsInventoryInfoRequest;
+use ic_query::nns::NnsInventoryListRequest;
+use ic_query::nns::NnsInventoryRefreshReport;
+use ic_query::nns::NnsInventoryRefreshRequest;
 use serde::Serialize;
 
 pub(in crate::nns) async fn run_cached_leaf_list<Report, Error>(
@@ -96,6 +97,6 @@ where
     write_text_or_json(
         format,
         &report,
-        ic_query::nns::nns_inventory_refresh_report_text,
+        ic_query_text::nns::nns_inventory_refresh_report_text,
     )
 }

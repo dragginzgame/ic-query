@@ -1,17 +1,19 @@
 use super::*;
+#[cfg(feature = "dashboard-host")]
+use crate::HostCacheError;
 use crate::ic::IcDashboardReportProvenance;
+#[cfg(feature = "dashboard-host")]
+use crate::ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest};
+#[cfg(feature = "dashboard-host")]
+use crate::progress::IgnoreQueryProgress;
 #[cfg(feature = "dashboard-host")]
 use crate::test_support::temp_dir;
 #[cfg(feature = "dashboard-host")]
-use crate::{
-    HostCacheError,
-    ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourceRequest},
-    progress::IgnoreQueryProgress,
-};
-#[cfg(feature = "dashboard-host")]
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 #[cfg(feature = "dashboard-host")]
-use std::{fs, sync::Mutex};
+use std::fs;
+#[cfg(feature = "dashboard-host")]
+use std::sync::Mutex;
 
 #[test]
 fn raw_operational_status_classification_is_conservative() {
@@ -195,39 +197,6 @@ fn aggregate_status_views_keep_snapshot_totals_when_selecting_rows() {
             .collect::<Vec<_>>();
         assert_eq!(report.providers, expected);
     }
-}
-
-#[test]
-fn status_text_separates_preambles_and_tables() {
-    let snapshot = fixture_snapshot();
-    let view = IcNodeStatusView::attention().with_all(true);
-    let nodes = ic_node_status_report_from_snapshot(&snapshot, &view).expect("node report");
-    let subnets = ic_subnet_status_report_from_snapshot(&snapshot, &view).expect("Subnet report");
-    let providers =
-        ic_node_provider_status_report_from_snapshot(&snapshot, &view).expect("provider report");
-    let node_text = ic_node_status_report_text(&nodes);
-    let subnet_text = ic_subnet_status_report_text(&subnets);
-    let provider_text = ic_node_provider_status_report_text(&providers);
-
-    assert!(
-        node_text.contains("unknown=0/0/0\n\nNODE"),
-        "node preamble must be visually separate from its table"
-    );
-    assert!(
-        subnet_text.contains("assigned_nodes=2\n\nSUBNET"),
-        "Subnet preamble must be visually separate from its table"
-    );
-    assert!(
-        subnet_text.contains("\n\nnon-up node evidence:\nNODE"),
-        "later evidence must be a separate visual section"
-    );
-    assert!(
-        provider_text.contains("non_up=1/0/1\n\nNODE PROVIDER"),
-        "provider preamble must be visually separate from its table"
-    );
-    assert!(provider_text.contains("UNASN VS ASN UP/NON-UP"));
-    assert!(provider_text.contains("less/less"));
-    assert!(provider_text.contains("equal/greater"));
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! CloudEngine control-plane and official Dashboard report models, adapters, and renderers.
+//! CloudEngine control-plane and official Dashboard report models, adapters.
 
 #[cfg(feature = "cloud-engine-host")]
 mod build;
@@ -9,7 +9,6 @@ mod node;
 mod provider;
 #[cfg(feature = "cloud-engine-host")]
 mod source;
-mod text;
 #[cfg(feature = "cloud-engine-host")]
 mod wire;
 
@@ -41,8 +40,7 @@ pub use model::{
 pub use node::{
     CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE, CloudEngineNodeInfoReport,
     CloudEngineNodeInfoRequest, CloudEngineNodeListReport, CloudEngineNodeListRequest,
-    CloudEngineNodeRow, MAX_CLOUD_ENGINE_NODE_ROWS, cloud_engine_node_info_report_text,
-    cloud_engine_node_list_report_text,
+    CloudEngineNodeRow, MAX_CLOUD_ENGINE_NODE_ROWS,
 };
 #[cfg(feature = "dashboard-host")]
 pub use node::{
@@ -54,7 +52,6 @@ pub use provider::{
     CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest, CloudEngineProviderListReport,
     CloudEngineProviderListRequest, CloudEngineProviderLocation, CloudEngineProviderRow,
     MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
-    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
 };
 #[cfg(feature = "dashboard-host")]
 pub use provider::{
@@ -65,9 +62,6 @@ pub use provider::{
 };
 #[cfg(feature = "cloud-engine-host")]
 pub use source::{CloudEngineOperatorBindingSource, CloudEngineSource, LiveCloudEngineSource};
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-pub use text::cloud_engine_list_report_text;
-pub use text::{cloud_engine_operator_report_text, cloud_engine_prices_report_text};
 
 /// Mainnet CloudEngine control-plane registry canister principal.
 pub const MAINNET_CLOUD_ENGINE_CANISTER_ID: &str = "q6cfj-fyaaa-aaaar-qb77q-cai";

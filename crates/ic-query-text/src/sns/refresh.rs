@@ -1,0 +1,56 @@
+//! Module: sns::refresh
+//!
+//! Responsibility: render SNS snapshot refresh reports as text.
+//! Does not own: refresh execution, cache writes, report construction, or JSON output.
+//! Boundary: formats complete SNS snapshot refresh results for humans.
+
+use crate::sns::common::sns_identity_lines;
+
+use ic_host_text::escape::terminal_text;
+
+use crate::text_value::yes_no;
+use ic_query::sns::SnsSnapshotRefreshReport;
+
+/// Render one complete SNS snapshot refresh result, including publication warnings.
+#[must_use]
+pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
+    let [attempt_finalized, attempt_finalization_error] =
+        crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
+    let mut lines = sns_identity_lines(&report.context);
+    lines.extend([
+        format!("page_size: {}", report.page_size),
+        format!("page_count: {}", report.page_count),
+        format!("collection: {}", terminal_text(&report.collection)),
+        format!("row_count: {}", report.row_count),
+        format!("complete: {}", yes_no(report.complete)),
+        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
+        format!(
+            "replaced_existing_cache: {}",
+            yes_no(report.replaced_existing_cache)
+        ),
+        attempt_finalized,
+        attempt_finalization_error,
+        format!("cache_path: {}", terminal_text(&report.cache_path)),
+        format!(
+            "refresh_lock_path: {}",
+            terminal_text(&report.refresh_lock_path)
+        ),
+        format!(
+            "refresh_attempt_path: {}",
+            terminal_text(&report.refresh_attempt_path)
+        ),
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.instance.sns_wasm_canister_id
+        ),
+        format!(
+            "fetched_at: {}",
+            terminal_text(&report.context.instance.fetched_at)
+        ),
+        format!(
+            "source_endpoint: {}",
+            terminal_text(&report.context.instance.source_endpoint)
+        ),
+    ]);
+    lines.join("\n")
+}

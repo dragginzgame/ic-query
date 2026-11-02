@@ -35,17 +35,22 @@ observed_version="$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" 
 [[ "$observed_version" == "$RELEASE_VERSION" ]] \
   || fail 'candidate differs from the selected increment'
 if [[ "$operation" == files ]]; then metadata files; exit; fi
+# Reject absent or unknown group selections before creating release state.
+[[ "${RELEASE_GROUP:-}" == query || "${RELEASE_GROUP:-}" == cli ]] || fail 'select RELEASE_GROUP=query or RELEASE_GROUP=cli'
+policy_digest="$(perl -MDigest::SHA=sha256_hex -0777 -ne 'print sha256_hex($_)' ci/cargo-release-groups.json)"
+[[ "$policy_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'cannot observe release group policy digest'
+release_identity="$RELEASE_GROUP-$RELEASE_VERSION"
 state_root="$(git rev-parse --git-path release-state)"
 mkdir -p "$state_root"
-binding="$state_root/$RELEASE_VERSION.validation"
+binding="$state_root/$release_identity.validation"
 identity() {
   printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION" \
-    "$RELEASE_DATE" "$RELEASE_SOURCE" "$RELEASE_REMOTE" "$RELEASE_BRANCH"
+    "$RELEASE_DATE" "$RELEASE_SOURCE" "$RELEASE_REMOTE" "$RELEASE_BRANCH" "$RELEASE_GROUP" "$policy_digest"
 }
 read_evidence() {
   [[ -f "$binding" && ! -L "$binding" ]] || fail 'successful source-bound validation evidence is missing'
   IFS= read -r evidence < "$binding"
-  case "$evidence" in "$state_root/$RELEASE_VERSION.verify."*) ;; *) fail 'invalid evidence path' ;; esac
+  case "$evidence" in "$state_root/$release_identity.verify."*) ;; *) fail 'invalid evidence path' ;; esac
   [[ -d "$evidence" && ! -L "$evidence" ]] || fail 'validation evidence is missing or symlinked'
   [[ -f "$evidence/passed" ]] || fail 'validation did not complete'
 }
@@ -61,14 +66,14 @@ retain_superseded_validation() {
     && "$saved_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] \
     || fail 'validation selections differ from retained evidence'
   printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION" \
-    "$saved_date" "$saved_source" "$RELEASE_REMOTE" "$RELEASE_BRANCH" \
+    "$saved_date" "$saved_source" "$RELEASE_REMOTE" "$RELEASE_BRANCH" "$RELEASE_GROUP" "$policy_digest" \
     | cmp -s - "$evidence/identity" || fail 'superseded validation has conflicting selections'
   git merge-base --is-ancestor "$saved_source" "$RELEASE_SOURCE" \
     || fail 'superseded validation source is not an ancestor'
   bash scripts/ci/check-release-source.sh
   metadata preflight
   # Keep the original pointer and immutable attempt before a fresh gate binds it.
-  archive="$(mktemp -d "$state_root/$RELEASE_VERSION.validation-attempt.XXXXXX")"
+  archive="$(mktemp -d "$state_root/$release_identity.validation-attempt.XXXXXX")"
   mv "$binding" "$archive/$RELEASE_VERSION.validation"
   printf 'Retained superseded validation: %s\n' "$archive/$RELEASE_VERSION.validation" >&2
 }
@@ -89,7 +94,7 @@ admit_paths() {
 check_manifest_order() {
   local selected_root="$repo_root" observation
   if [[ -n "${1:-}" ]]; then
-    observation="$(mktemp -d "$state_root/$RELEASE_VERSION.manifest-order.XXXXXX")"
+    observation="$(mktemp -d "$state_root/$release_identity.manifest-order.XXXXXX")"
     selected_root="$observation/source"
     mkdir "$selected_root"
     printf '%s\n' "$1" > "$observation/commit"
@@ -147,7 +152,7 @@ case "$operation" in
     make --no-print-directory format-tools-check
     ;;
   verify)
-    attempt="$(mktemp -d "$state_root/$RELEASE_VERSION.verify.XXXXXX")"
+    attempt="$(mktemp -d "$state_root/$release_identity.verify.XXXXXX")"
     identity > "$attempt/identity"
     if metadata capture "$attempt" > "$attempt/input-check.log" 2>&1; then
       :
@@ -159,7 +164,9 @@ case "$operation" in
     CHANGELOG_VERSION="$RELEASE_VERSION" CARGO_NET_OFFLINE=true \
       VALIDATION_FAILURE_LOG_DIR="$attempt/validation-failures" \
       bash scripts/ci/run-validation-targets.sh --fail-fast \
-        --input Cargo.toml --input Cargo.lock ci 2>&1 | tee "$attempt/validation.log"
+        --input Cargo.toml --input Cargo.lock --input ci/cargo-release-groups.json \
+        --input crates/ic-query/Cargo.toml --input crates/ic-query-cli/Cargo.toml \
+        --input crates/ic-query-text/Cargo.toml --input crates/ic-query-testkit/Cargo.toml ci 2>&1 | tee "$attempt/validation.log"
     : > "$attempt/passed"
     temporary_binding="$(mktemp "$binding.tmp.XXXXXX")"
     printf '%s\n' "$attempt" > "$temporary_binding"

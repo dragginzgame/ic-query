@@ -114,7 +114,9 @@ still governs demonstrated integration blockers.
   Approved release groups may keep one workspace and lockfile using the existing
   [explicit release-group contract](../docs/releases.md#explicit-cargo-release-groups).
   Its admitted member versions are the scoped exception to workspace-version
-  inheritance; root dependency inheritance and full workspace qualification remain.
+  inheritance; root dependency inheritance and repository-wide CI remain.
+  Release qualification defaults to the full gate until the consumer qualifies
+  an explicit [group plan](../docs/release-group-validation.md).
 - In a workspace with independent release groups, every member, including private
   tooling and fixtures, belongs to one explicit group. Remove
   `[workspace.package].version`; every member declares a literal package version

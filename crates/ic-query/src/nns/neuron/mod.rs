@@ -17,7 +17,6 @@ pub use report::{
     NnsNeuronVisibility, NnsNeuronVisibilityDistribution,
     advance_nns_neuron_collection_with_source, build_nns_neuron_distribution_report,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
-    nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
     validate_nns_neuron_distribution_report,
 };
 #[cfg(feature = "nns-host")]

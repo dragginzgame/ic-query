@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[test]
 fn topology_providers_report_summarizes_provider_distribution() {
@@ -129,29 +130,4 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
     assert_eq!(report.referenced_node_provider_count, 3);
     assert_eq!(report.unknown_provider_count, 1);
     assert_eq!(report.over_assigned_provider_count, 1);
-}
-
-#[test]
-fn topology_providers_text_renders_provider_table() {
-    let report = topology_providers_report_from_reports(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
-    );
-
-    let text = nns_topology_providers_report_text(&report);
-
-    assert!(text.contains("NODE_PROVIDER"));
-    assert!(text.contains("GOV_NODES"));
-    assert!(text.contains("OPERATORS"));
-    assert!(text.contains("provider-a"));
-    assert!(text.contains("unknown_provider"));
-    assert!(text.contains("SOURCE"));
-    assert!(text.contains("node_providers"));
-    assert!(text.contains("46"));
 }

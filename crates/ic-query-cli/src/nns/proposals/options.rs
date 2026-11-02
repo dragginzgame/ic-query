@@ -19,10 +19,13 @@ use crate::{
     },
 };
 use clap::ArgMatches;
-use ic_query::nns::proposals::{
-    NnsProposalActivityRequest, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
-    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
-};
+use ic_query::nns::proposals::NnsProposalActivityRequest;
+use ic_query::nns::proposals::NnsProposalListRequest;
+use ic_query::nns::proposals::NnsProposalListSort;
+use ic_query::nns::proposals::NnsProposalRequest;
+use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
+use ic_query::nns::proposals::NnsProposalStatusFilter;
+use ic_query::nns::proposals::NnsProposalTopicFilter;
 
 pub(in crate::nns) fn proposal_activity_request(
     matches: &ArgMatches,

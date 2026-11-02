@@ -19,27 +19,49 @@ use crate::{
     storage::cache_root,
 };
 use clap::ArgMatches;
-use ic_query::ic::{
-    IcIcrcIndexedCountKind, IcIcrcIndexedCountRequest, build_icrc_account_info_report,
-    build_icrc_account_list_report, build_icrc_holder_list_report, build_icrc_indexed_count_report,
-    build_icrc_token_value_report, build_icrc_total_supply_report, icrc_account_info_report_text,
-    icrc_account_list_report_text, icrc_holder_list_report_text, icrc_indexed_count_report_text,
-    icrc_token_value_report_text, icrc_total_supply_report_text,
-};
-use ic_query::icrc::{
-    IcrcBalanceRequest, IcrcError, IcrcLedgerRequest,
-    build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,
-    build_icrc_account_transaction_page_report, build_icrc_allowance_report,
-    build_icrc_archives_report, build_icrc_balance_report, build_icrc_block_types_report,
-    build_icrc_capabilities_report, build_icrc_index_report, build_icrc_tip_certificate_report,
-    build_icrc_token_report, build_icrc_transactions_report,
-    icrc_account_transaction_cache_status_report_text, icrc_account_transaction_list_report_text,
-    icrc_account_transaction_page_report_text, icrc_account_transaction_refresh_report_text,
-    icrc_allowance_report_text, icrc_archives_report_text, icrc_balance_report_text,
-    icrc_block_types_report_text, icrc_capabilities_report_text, icrc_index_report_text,
-    icrc_tip_certificate_report_text, icrc_token_report_text, icrc_transactions_report_text,
-    refresh_icrc_account_transaction_cache_with_progress,
-};
+use ic_query::ic::IcIcrcIndexedCountKind;
+use ic_query::ic::IcIcrcIndexedCountRequest;
+use ic_query::ic::build_icrc_account_info_report;
+use ic_query::ic::build_icrc_account_list_report;
+use ic_query::ic::build_icrc_holder_list_report;
+use ic_query::ic::build_icrc_indexed_count_report;
+use ic_query::ic::build_icrc_token_value_report;
+use ic_query::ic::build_icrc_total_supply_report;
+use ic_query::icrc::IcrcBalanceRequest;
+use ic_query::icrc::IcrcError;
+use ic_query::icrc::IcrcLedgerRequest;
+use ic_query::icrc::build_icrc_account_transaction_cache_status_report;
+use ic_query::icrc::build_icrc_account_transaction_list_report;
+use ic_query::icrc::build_icrc_account_transaction_page_report;
+use ic_query::icrc::build_icrc_allowance_report;
+use ic_query::icrc::build_icrc_archives_report;
+use ic_query::icrc::build_icrc_balance_report;
+use ic_query::icrc::build_icrc_block_types_report;
+use ic_query::icrc::build_icrc_capabilities_report;
+use ic_query::icrc::build_icrc_index_report;
+use ic_query::icrc::build_icrc_tip_certificate_report;
+use ic_query::icrc::build_icrc_token_report;
+use ic_query::icrc::build_icrc_transactions_report;
+use ic_query::icrc::refresh_icrc_account_transaction_cache_with_progress;
+use ic_query_text::ic::icrc_account_info_report_text;
+use ic_query_text::ic::icrc_account_list_report_text;
+use ic_query_text::ic::icrc_holder_list_report_text;
+use ic_query_text::ic::icrc_indexed_count_report_text;
+use ic_query_text::ic::icrc_token_value_report_text;
+use ic_query_text::ic::icrc_total_supply_report_text;
+use ic_query_text::icrc::icrc_account_transaction_cache_status_report_text;
+use ic_query_text::icrc::icrc_account_transaction_list_report_text;
+use ic_query_text::icrc::icrc_account_transaction_page_report_text;
+use ic_query_text::icrc::icrc_account_transaction_refresh_report_text;
+use ic_query_text::icrc::icrc_allowance_report_text;
+use ic_query_text::icrc::icrc_archives_report_text;
+use ic_query_text::icrc::icrc_balance_report_text;
+use ic_query_text::icrc::icrc_block_types_report_text;
+use ic_query_text::icrc::icrc_capabilities_report_text;
+use ic_query_text::icrc::icrc_index_report_text;
+use ic_query_text::icrc::icrc_tip_certificate_report_text;
+use ic_query_text::icrc::icrc_token_report_text;
+use ic_query_text::icrc::icrc_transactions_report_text;
 use serde::Serialize;
 
 pub async fn run_matches(matches: &ArgMatches) -> Result<(), IcrcCommandError> {

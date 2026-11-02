@@ -32,6 +32,7 @@ pub const NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION: u32 = 1;
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsProposalCollectionState {
     #[serde(flatten)]
     collection: GovernanceCollectionState,
@@ -154,16 +155,14 @@ impl NnsProposalCollectionState {
     /// Return the collection lifecycle status.
     #[must_use]
     pub const fn status(&self) -> NnsGovernanceCollectionStatus {
-        self.collection.status
+        self.collection
+            .status(self.next_before_proposal_id.is_some())
     }
 
     /// Return whether Governance API exhaustion was observed.
     #[must_use]
     pub const fn is_complete(&self) -> bool {
-        matches!(
-            self.collection.status,
-            NnsGovernanceCollectionStatus::Complete
-        )
+        matches!(self.status(), NnsGovernanceCollectionStatus::Complete)
     }
 }
 
@@ -237,7 +236,6 @@ pub async fn advance_nns_proposal_collection_with_source(
             request,
             page.context.source.clone(),
             pages_fetched,
-            next_before_proposal_id.is_some(),
         ),
         proposals_fetched,
         next_before_proposal_id,
@@ -276,7 +274,7 @@ pub(super) fn validate_collection_state(
     }
 
     let valid_lifecycle = crate::nns::governance::collection_lifecycle_matches(
-        state.collection.status,
+        state.status(),
         state.collection.pages_fetched,
         state.collection.max_pages,
         state.proposals_fetched,
@@ -287,7 +285,7 @@ pub(super) fn validate_collection_state(
     if !valid_lifecycle {
         return Err(invalid(format!(
             "status {} disagrees with cursor, provenance, or counters",
-            state.collection.status
+            state.status()
         )));
     }
     Ok(())

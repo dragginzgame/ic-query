@@ -9,7 +9,9 @@ use crate::{
 };
 use clap::ArgMatches;
 use ic_platform::candid::contract::Principal;
-use ic_query::sns::{SnsNeuronRequest, SnsNeuronsCacheSort, SnsNeuronsRequest};
+use ic_query::sns::SnsNeuronRequest;
+use ic_query::sns::SnsNeuronsCacheSort;
+use ic_query::sns::SnsNeuronsRequest;
 use std::path::PathBuf;
 
 const SNS_NEURONS_LIVE_MAX_LIMIT: u32 = 100;

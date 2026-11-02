@@ -1,36 +1,66 @@
-use super::{
-    IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource, IcrcBalanceSource,
-    IcrcBlockTypesSource, IcrcCapabilitiesSource, IcrcIndexSource, IcrcTipCertificateSource,
-    IcrcTokenSource, IcrcTransactionsSource,
-    build_icrc_account_transaction_page_report_with_source,
-    build_icrc_allowance_report_with_source, build_icrc_archives_report_with_source,
-    build_icrc_balance_report_with_source, build_icrc_block_types_report_with_source,
-    build_icrc_capabilities_report_with_source, build_icrc_index_report_with_source,
-    build_icrc_tip_certificate_report_with_source, build_icrc_token_report_with_source,
-    build_icrc_transactions_report_with_source,
-    model::{
-        IcrcAccountRow, IcrcAccountTransactionError, IcrcAccountTransactionPageData,
-        IcrcAccountTransactionPageRequest, IcrcAccountTransactionRow, IcrcAllowanceData,
-        IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
-        IcrcArchivedRangeRow, IcrcArchivesRequest, IcrcBalanceData, IcrcBalanceRequest,
-        IcrcBlockTypeRow, IcrcCapabilitiesData, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcError,
-        IcrcFollowedArchiveBlockRow, IcrcIndexData, IcrcLedgerRequest, IcrcMetadataValueKind,
-        IcrcTokenData, IcrcTokenMetadataRow, IcrcTokenStandardRow, IcrcTransactionBlockRow,
-        IcrcTransactionsData, IcrcTransactionsRequest,
-    },
-    text::{
-        icrc_account_transaction_page_report_text, icrc_allowance_report_text,
-        icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
-        icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
-        icrc_token_report_text, icrc_transactions_report_text,
-    },
-};
-use ic_platform::candid::contract::{Nat, Principal};
-use ic_platform::icrc_ledger_types::{
-    ArchivedBlocks, BlockWithId, GetArchivesArgs, GetBlocksRequest, GetBlocksResult,
-    ICRC3ArchiveInfo, ICRC3DataCertificate, ICRC3Value, QueryArchiveFn, SupportedBlockType,
-};
-use serde_json::{Value as JsonValue, json};
+use super::IcrcAccountTransactionPageSource;
+use super::IcrcAllowanceSource;
+use super::IcrcArchivesSource;
+use super::IcrcBalanceSource;
+use super::IcrcBlockTypesSource;
+use super::IcrcCapabilitiesSource;
+use super::IcrcIndexSource;
+use super::IcrcTipCertificateSource;
+use super::IcrcTokenSource;
+use super::IcrcTransactionsSource;
+use super::build_icrc_account_transaction_page_report_with_source;
+use super::build_icrc_allowance_report_with_source;
+use super::build_icrc_archives_report_with_source;
+use super::build_icrc_balance_report_with_source;
+use super::build_icrc_block_types_report_with_source;
+use super::build_icrc_capabilities_report_with_source;
+use super::build_icrc_index_report_with_source;
+use super::build_icrc_tip_certificate_report_with_source;
+use super::build_icrc_token_report_with_source;
+use super::build_icrc_transactions_report_with_source;
+use super::model::IcrcAccountRow;
+use super::model::IcrcAccountTransactionError;
+use super::model::IcrcAccountTransactionPageData;
+use super::model::IcrcAccountTransactionPageRequest;
+use super::model::IcrcAccountTransactionRow;
+use super::model::IcrcAllowanceData;
+use super::model::IcrcAllowanceRequest;
+use super::model::IcrcArchiveFollowErrorRow;
+use super::model::IcrcArchiveRow;
+use super::model::IcrcArchivedBlocksRow;
+use super::model::IcrcArchivedRangeRow;
+use super::model::IcrcArchivesRequest;
+use super::model::IcrcBalanceData;
+use super::model::IcrcBalanceRequest;
+use super::model::IcrcBlockTypeRow;
+use super::model::IcrcCapabilitiesData;
+use super::model::IcrcCapabilityRow;
+use super::model::IcrcCapabilityStatus;
+use super::model::IcrcError;
+use super::model::IcrcFollowedArchiveBlockRow;
+use super::model::IcrcIndexData;
+use super::model::IcrcLedgerRequest;
+use super::model::IcrcMetadataValueKind;
+use super::model::IcrcTokenData;
+use super::model::IcrcTokenMetadataRow;
+use super::model::IcrcTokenStandardRow;
+use super::model::IcrcTransactionBlockRow;
+use super::model::IcrcTransactionsData;
+use super::model::IcrcTransactionsRequest;
+use ic_platform::candid::contract::Nat;
+use ic_platform::candid::contract::Principal;
+use ic_platform::icrc_ledger_types::ArchivedBlocks;
+use ic_platform::icrc_ledger_types::BlockWithId;
+use ic_platform::icrc_ledger_types::GetArchivesArgs;
+use ic_platform::icrc_ledger_types::GetBlocksRequest;
+use ic_platform::icrc_ledger_types::GetBlocksResult;
+use ic_platform::icrc_ledger_types::ICRC3ArchiveInfo;
+use ic_platform::icrc_ledger_types::ICRC3DataCertificate;
+use ic_platform::icrc_ledger_types::ICRC3Value;
+use ic_platform::icrc_ledger_types::QueryArchiveFn;
+use ic_platform::icrc_ledger_types::SupportedBlockType;
+use serde_json::Value as JsonValue;
+use serde_json::json;
 use std::collections::BTreeMap;
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_CANISTER_ID: &str = "bw4dl-smaaa-aaaaa-qaacq-cai";
@@ -643,12 +673,6 @@ async fn token_report_builds_text_and_json_friendly_fields() {
         Some(LOWER_SUBACCOUNT_HEX)
     );
 
-    let text = icrc_token_report_text(&report);
-    assert!(text.contains("transfer_fee: 1.23"));
-    assert!(text.contains("total_supply: 1000.00"));
-    assert!(text.contains("ICRC-1"));
-    assert!(text.contains("icrc1:logo"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC token report");
     assert_eq!(json["transfer_fee"], json!("123456789"));
     assert_eq!(json["metadata"][2]["value_type"], json!("text"));
@@ -677,10 +701,6 @@ async fn balance_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.provenance.schema_version, 1);
     assert_eq!(report.subaccount_hex.as_deref(), Some(LOWER_SUBACCOUNT_HEX));
     assert_eq!(report.value.balance, "123456789");
-
-    let text = icrc_balance_report_text(&report);
-    assert!(text.contains("balance: 1.23 FIX"));
-    assert!(text.contains("balance_base_units: 123456789"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC balance report");
     assert_eq!(json["balance"], json!("123456789"));
@@ -724,11 +744,6 @@ async fn allowance_report_builds_text_and_json_friendly_fields() {
         Some("1700000000123456789")
     );
 
-    let text = icrc_allowance_report_text(&report);
-    assert!(text.contains("allowance: 1.23 FIX"));
-    assert!(text.contains("allowance_base_units: 123456789"));
-    assert!(text.contains("expires_at_unix_nanos: 1700000000123456789"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC allowance report");
     assert_eq!(json["allowance"], json!("123456789"));
     assert_eq!(json["account_subaccount_hex"], json!(LOWER_SUBACCOUNT_HEX));
@@ -754,10 +769,6 @@ async fn index_report_builds_text_and_json_friendly_fields() {
         report.index,
         IcrcIndexData::Found(INDEX_CANISTER_ID.to_string())
     );
-
-    let text = icrc_index_report_text(&report);
-    assert!(text.contains("index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
-    assert!(!text.contains("index_error"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC index report");
     assert_eq!(json["index"], json!({"found": INDEX_CANISTER_ID}));
@@ -797,13 +808,6 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
         report.page.transactions[0].memo_hex.as_deref(),
         Some("aabb")
     );
-
-    let text = icrc_account_transaction_page_report_text(&report);
-    assert!(text.contains(&format!("index_canister_id: {INDEX_CANISTER_ID}")));
-    assert!(text.contains("requested_start: 42"));
-    assert!(text.contains("next_start: 40"));
-    assert!(text.contains("balance: 2.50 FIX"));
-    assert!(text.contains("transfer"));
 
     let json = serde_json::to_value(&report).expect("serialize account transaction page report");
     assert_eq!(json["index_canister_id"], json!(INDEX_CANISTER_ID));
@@ -1127,18 +1131,6 @@ async fn transactions_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.transactions.followed_archive_blocks.len(), 1);
     assert_eq!(report.transactions.archive_follow_errors.len(), 1);
 
-    let text = icrc_transactions_report_text(&report);
-    assert!(text.contains("requested_start: 100"));
-    assert!(text.contains("follow_archives: true"));
-    assert!(text.contains("returned_blocks: 2"));
-    assert!(text.contains("followed_archive_blocks: 1"));
-    assert!(text.contains("archive_follow_errors: 1"));
-    assert!(text.contains("1xfer"));
-    assert!(text.contains("1mint"));
-    assert!(text.contains("1700000000123456789"));
-    assert!(text.contains("qaa6y-5yaaa-aaaaa-aaafa-cai"));
-    assert!(text.contains("archive query failed"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC transactions report");
     assert_eq!(json["requested_start"], json!("100"));
     assert_eq!(json["requested_limit"], json!(3));
@@ -1186,11 +1178,6 @@ async fn block_types_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.block_types.len(), 2);
     assert_eq!(report.block_types[0].block_type, "1xfer");
 
-    let text = icrc_block_types_report_text(&report);
-    assert!(text.contains("block_type_count: 2"));
-    assert!(text.contains("1xfer"));
-    assert!(text.contains("2approve"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC block types report");
     assert_eq!(json["block_types"][0]["block_type"], json!("1xfer"));
     assert_eq!(json["block_types"][1]["block_type"], json!("2approve"));
@@ -1222,12 +1209,6 @@ async fn archives_report_builds_text_and_json_friendly_fields() {
     assert_eq!(report.archives[0].start, "0");
     assert_eq!(report.archives[0].end, "999");
 
-    let text = icrc_archives_report_text(&report);
-    assert!(text.contains("archive_count: 1"));
-    assert!(text.contains("from_canister_id: qaa6y-5yaaa-aaaaa-aaafa-cai"));
-    assert!(text.contains("qaa6y-5yaaa-aaaaa-aaafa-cai"));
-    assert!(text.contains("999"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC archives report");
     assert_eq!(json["from_canister_id"], json!(ARCHIVE_CANISTER_ID));
     assert_eq!(
@@ -1257,13 +1238,6 @@ async fn tip_certificate_report_builds_text_and_json_friendly_fields() {
     assert_eq!(certificate.certificate_bytes, 3);
     assert_eq!(certificate.hash_tree_hex, "aabb");
     assert_eq!(certificate.hash_tree_bytes, 2);
-
-    let text = icrc_tip_certificate_report_text(&report);
-    assert!(text.contains("certificate_present: true"));
-    assert!(text.contains("certificate_bytes: 3 B"));
-    assert!(text.contains("hash_tree_bytes: 2 B"));
-    assert!(text.contains("certificate_hex: 010203"));
-    assert!(text.contains("hash_tree_hex: aabb"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC tip certificate report");
     assert_eq!(json["certificate"]["certificate_hex"], json!("010203"));
@@ -1297,13 +1271,6 @@ async fn capabilities_report_builds_text_and_json_friendly_fields() {
         IcrcCapabilityStatus::Unsupported
     );
 
-    let text = icrc_capabilities_report_text(&report);
-    assert!(text.contains("standard_count: 2"));
-    assert!(text.contains("capability_count: 2"));
-    assert!(text.contains("ICRC-1 supported standards"));
-    assert!(text.contains("icrc3_get_tip_certificate"));
-    assert!(text.contains("unsupported"));
-
     let json = serde_json::to_value(&report).expect("serialize ICRC capabilities report");
     assert_eq!(json["supported_standards"][0]["name"], json!("ICRC-1"));
     assert_eq!(json["capabilities"][0]["status"], json!("available"));
@@ -1335,10 +1302,8 @@ async fn capability_detail_preserves_collected_text_and_json() {
         error: None,
     }];
 
-    let text = icrc_capabilities_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize ICRC capabilities report");
 
-    assert!(text.contains("verified certificate 2048 bytes, hash tree 1536 bytes"));
     assert_eq!(
         json["capabilities"][0]["details"],
         "verified certificate 2048 bytes, hash tree 1536 bytes"
@@ -1371,10 +1336,6 @@ async fn index_report_renders_index_error_when_not_set() {
     let report = build_icrc_index_report_with_source(&request, &MissingIndexSource)
         .await
         .expect("build ICRC index report");
-
-    let text = icrc_index_report_text(&report);
-    assert!(text.contains("index_canister_id: -"));
-    assert!(text.contains("index_error: index principal not set"));
 
     let json = serde_json::to_value(&report).expect("serialize ICRC index report");
     assert_eq!(

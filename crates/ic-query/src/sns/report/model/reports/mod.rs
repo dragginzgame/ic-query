@@ -36,7 +36,7 @@ pub use governance::{
     SnsGovernanceParameters, SnsNeuronPermissionList, SnsVotingRewardsParameters,
 };
 pub use invocation::{SnsCanisterCallType, SnsCanisterMethod};
-pub use list::{SnsInfoReport, SnsListReport, SnsListRow};
+pub use list::{SnsInfoReport, SnsLifecycleOutcome, SnsListReport, SnsListRow};
 pub use metrics::{SnsMetricsReport, SnsTreasuryMetricRow, SnsVotingPowerMetrics};
 #[cfg(feature = "sns-host")]
 pub use neurons::SnsNeuronsReport;
@@ -47,8 +47,8 @@ pub use neurons::{
     SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
     SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
-    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+    SnsRewardDiffNeuronEvidence, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
+    SnsRewardProposalId, sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
 };
 pub use params::SnsParamsReport;
 pub use proposals::{
@@ -67,12 +67,8 @@ pub use upgrade::{
     SnsPendingUpgrade, SnsRunningVersionResponse, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
 };
 
-pub(in crate::sns::report) use proposals::{sns_proposal_action_label, sns_proposal_vote_label};
-
 pub use metrics::MainnetSnsMetrics;
 
 pub use swap::MainnetSnsSwap;
 
-pub(in crate::sns::report) use swap::sns_swap_lifecycle_name;
-
-pub(in crate::sns::report) use metrics::sns_treasury_kind;
+pub use proposals::sns_proposal_action_label;

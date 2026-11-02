@@ -47,7 +47,6 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     let report = build_nns_proposal_list_report_with_source(&request, &source)
         .await
         .expect("build proposals report");
-    let text = nns_proposal_list_report_text(&report);
 
     assert_eq!(
         report.context.schema_version,
@@ -69,26 +68,11 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
     assert_eq!(report.sort, "title");
     assert_eq!(report.sort_direction, "asc");
     assert_eq!(report.result_scope.as_str(), "bounded-live");
-    assert_eq!(report.provenance.data_source.as_str(), "live");
-    assert!(report.provenance.cache_path.is_none());
-    assert!(report.provenance.cache_complete.is_none());
+    assert_eq!(report.provenance.data_source().as_str(), "live");
+    assert!(report.provenance.cache_path().is_none());
+    assert!(report.provenance.cache_complete().is_none());
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, Some(101));
-    assert!(text.contains(&format!(
-        "status_filter: {}",
-        NnsProposalStatus::Executed.as_str()
-    )));
-    assert!(text.contains(&format!(
-        "reward_status_filter: {}",
-        NnsProposalRewardStatus::Settled.as_str()
-    )));
-    assert!(text.contains(&format!(
-        "topic_filter: {}",
-        NnsProposalTopic::Governance.as_str()
-    )));
-    assert!(text.contains("proposer_filter: 99"));
-    assert!(text.contains("data_source: live"));
-    assert!(text.contains("proposal_details:"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -109,11 +93,9 @@ async fn nns_proposal_list_report_filters_by_proposer() {
     let report = build_nns_proposal_list_report_with_source(&request, &source)
         .await
         .expect("build proposer-filtered report");
-    let text = nns_proposal_list_report_text(&report);
 
     assert_eq!(report.proposer_filter, Some(99));
     assert_eq!(proposal_ids(&report), vec![103, 101]);
-    assert!(text.contains("proposer_filter: 99"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -151,15 +133,13 @@ async fn nns_proposal_list_report_filters_by_query() {
     let report = build_nns_proposal_list_report_with_source(&request, &source)
         .await
         .expect("build query-filtered report");
-    let text = nns_proposal_list_report_text(&report);
+
     let json = serde_json::to_value(&report).expect("serialize NNS proposal list report");
 
     assert_eq!(report.query_filter.as_deref(), Some("SuBnEt"));
     assert_eq!(proposal_ids(&report), vec![101]);
     assert_eq!(json["query_filter"], "SuBnEt");
     assert_eq!(json["result_scope"], "bounded-live");
-    assert!(text.contains("query_filter: SuBnEt"));
-    assert!(text.contains("result_scope: bounded-live"));
 }
 
 #[test]

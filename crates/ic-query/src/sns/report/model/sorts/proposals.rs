@@ -45,6 +45,31 @@ pub enum SnsProposalsSort {
 }
 
 impl SnsProposalsSort {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[
+        Self::Api,
+        Self::Id,
+        Self::Status,
+        Self::Topic,
+        Self::Proposer,
+        Self::Title,
+        Self::Action,
+        Self::ActionId,
+        Self::Yes,
+        Self::No,
+        Self::TotalVotes,
+        Self::TallyTime,
+        Self::Ballots,
+        Self::Eligible,
+        Self::RejectCost,
+        Self::RewardRound,
+        Self::RewardEnd,
+        Self::Created,
+        Self::Decided,
+        Self::Executed,
+        Self::Failed,
+    ];
+
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -115,6 +140,9 @@ pub enum SnsProposalEligibilityFilter {
 }
 
 impl SnsProposalEligibilityFilter {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[Self::Any, Self::Yes, Self::No];
+
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -155,6 +183,17 @@ pub enum SnsProposalStatusFilter {
 }
 
 impl SnsProposalStatusFilter {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[
+        Self::Any,
+        Self::Open,
+        Self::Decided,
+        Self::Rejected,
+        Self::Adopted,
+        Self::Executed,
+        Self::Failed,
+    ];
+
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
@@ -203,6 +242,18 @@ pub enum SnsProposalTopicFilter {
 }
 
 impl SnsProposalTopicFilter {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[
+        Self::Any,
+        Self::DaoCommunitySettings,
+        Self::SnsFrameworkManagement,
+        Self::DappCanisterManagement,
+        Self::ApplicationBusinessLogic,
+        Self::Governance,
+        Self::TreasuryAssetManagement,
+        Self::CriticalDappOperations,
+    ];
+
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

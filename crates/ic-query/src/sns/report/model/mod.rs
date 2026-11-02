@@ -20,18 +20,19 @@ pub use reports::{
     SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod,
     SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
     SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
-    SnsGovernanceParameters, SnsInfoReport, SnsListReport, SnsListRow, SnsMaturityDisbursementRow,
-    SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
-    SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
-    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
-    SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
-    SnsRewardCheckpointRow, SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError,
-    SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsGovernanceParameters, SnsInfoReport, SnsLifecycleOutcome, SnsListReport, SnsListRow,
+    SnsMaturityDisbursementRow, SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail,
+    SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
+    SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow,
+    SnsNeuronTopicFolloweesRow, SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus,
+    SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport,
+    SnsProposalRow, SnsProposalTally, SnsProposalsReport, SnsRewardAllocationStatus,
+    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
+    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
+    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffNeuronEvidence,
+    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
+    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
@@ -69,12 +70,8 @@ pub use sorts::{
     SnsProposalsSort,
 };
 
-pub(in crate::sns::report) use reports::{sns_proposal_action_label, sns_proposal_vote_label};
-
 pub use reports::MainnetSnsMetrics;
 
 pub use reports::MainnetSnsSwap;
 
-pub(in crate::sns::report) use reports::sns_swap_lifecycle_name;
-
-pub(in crate::sns::report) use reports::sns_treasury_kind;
+pub use reports::sns_proposal_action_label;

@@ -5,7 +5,9 @@
 //! Boundary: owns terminal detection and stderr output for query progress.
 
 use ic_host_text::progress::ProgressLine as ProgressFrames;
-use ic_query::{QueryProgress, QueryProgressEvent, QueryProgressState};
+use ic_query::QueryProgress;
+use ic_query::QueryProgressEvent;
+use ic_query::QueryProgressState;
 use std::io::{self, IsTerminal, Write};
 
 ///

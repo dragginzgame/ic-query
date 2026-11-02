@@ -1,9 +1,9 @@
 //! Reusable report models and helpers for Internet Computer metadata queries.
 //!
 //! The default feature set is empty. A dependency using
-//! `default-features = false` gets the pure report DTOs, renderers, and local
+//! `default-features = false` gets the pure report DTOs, JSON contracts, and local
 //! parsing/resolution helpers that are intended to stay free of native
-//! live-call dependencies.
+//! live-call dependencies. Human-facing rendering lives in `ic-query-text`.
 //!
 //! This is a host dependency boundary, not a `no_std` promise. No-default
 //! builds are expected to compile for `wasm32-unknown-unknown` without
@@ -94,7 +94,6 @@ mod decimal;
 mod freshness;
 mod hex;
 mod http_endpoint;
-mod human_quantity;
 pub mod ic;
 #[cfg(feature = "subnet-catalog-host")]
 mod ic_registry;
@@ -139,9 +138,6 @@ pub mod system;
 ))]
 pub use cache_file::{CacheFileError, HostCacheError};
 mod text_search;
-mod text_value;
-mod token_amount;
-mod token_metadata_text;
 
 #[cfg(all(
     test,
@@ -153,9 +149,6 @@ mod token_metadata_text;
     )
 ))]
 mod test_support;
-
-#[cfg(test)]
-mod tests;
 
 #[cfg(any(
     feature = "dashboard-host",

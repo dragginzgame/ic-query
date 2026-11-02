@@ -18,12 +18,15 @@ use crate::{
     progress::StderrQueryProgress,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::{
-    DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcNodeStatusReadRequest, IcNodeStatusView,
-    build_ic_node_provider_status_report, build_ic_node_status_report,
-    build_ic_subnet_status_report, ic_node_provider_status_report_text, ic_node_status_report_text,
-    ic_subnet_status_report_text,
-};
+use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::ic::IcNodeStatusReadRequest;
+use ic_query::ic::IcNodeStatusView;
+use ic_query::ic::build_ic_node_provider_status_report;
+use ic_query::ic::build_ic_node_status_report;
+use ic_query::ic::build_ic_subnet_status_report;
+use ic_query_text::ic::ic_node_provider_status_report_text;
+use ic_query_text::ic::ic_node_status_report_text;
+use ic_query_text::ic::ic_subnet_status_report_text;
 
 use std::path::PathBuf;
 

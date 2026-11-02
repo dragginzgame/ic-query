@@ -1,6 +1,7 @@
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
-use crate::sns::report::tests::{fixtures::*, *};
+use crate::sns::report::tests::fixtures::*;
+use crate::sns::report::tests::*;
 
 struct InvalidBoundedSnsNeuronsSource;
 
@@ -45,7 +46,6 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
         .await
         .expect("sns neurons report");
-    let text = sns_neurons_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_NEURONS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.instance.id, 1);
@@ -56,9 +56,9 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
     assert_eq!(report.total_neuron_count, 1);
     assert_eq!(report.neuron_count, 1);
-    assert_eq!(report.provenance.data_source.as_str(), "live");
-    assert!(report.provenance.cache_path.is_none());
-    assert!(report.provenance.cache_complete.is_none());
+    assert_eq!(report.provenance.data_source().as_str(), "live");
+    assert!(report.provenance.cache_path().is_none());
+    assert!(report.provenance.cache_complete().is_none());
     assert_eq!(report.neurons[0].neuron_id, NEURON_A);
     assert_eq!(report.neurons[0].cached_neuron_stake_e8s, 123);
     assert_eq!(report.neurons[0].maturity_e8s_equivalent, 456);
@@ -77,29 +77,6 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.neurons[0].voting_power_percentage_multiplier, 100);
     assert_eq!(report.neurons[0].vesting_period_seconds, Some(63_072_000));
     assert_eq!(report.neurons[0].neuron_fees_e8s, 10);
-    assert!(text.contains("governance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
-    assert!(text.contains("requested_limit: 10"));
-    assert!(text.contains("owner_principal_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
-    assert!(text.contains("00010203"));
-    assert!(!text.contains(NEURON_A));
-    assert!(text.contains("STAKE"));
-    assert!(text.contains("MATURITY"));
-    assert!(text.contains("STAKED_MATURITY"));
-    assert!(text.contains("FEES"));
-    assert!(text.contains("DISSOLVE"));
-    assert!(text.contains("delay:31536000"));
-    assert!(text.contains("AUTO_STAKE"));
-    assert!(text.contains("VOTING_%"));
-    assert!(!text.contains("STAKE_E8S"));
-    assert!(!text.contains("MATURITY_E8S"));
-    assert!(text.contains("0.00"));
-    assert!(text.contains("2026-06-01T00:00:00Z"));
-}
-
-#[test]
-fn sns_neurons_text_formats_optional_e8s_as_token_decimals() {
-    assert_eq!(text::optional_e8s_text(None), "-");
-    assert_eq!(text::optional_e8s_text(Some(50_000_000)), "0.50");
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -133,9 +110,6 @@ async fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
     let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
         .await
         .expect("sns neurons report");
-    let text = sns_neurons_report_text(&report);
 
     assert!(report.verbose);
-    assert!(text.contains("verbose: yes"));
-    assert!(text.contains(NEURON_A));
 }

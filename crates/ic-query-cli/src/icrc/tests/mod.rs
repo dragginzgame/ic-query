@@ -21,10 +21,10 @@ use crate::cli::{
     common::OutputFormat,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::{
-    DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_TOKEN_VALUE_LIMIT, IcIcrcAccountSort,
-    IcIcrcHolderSort,
-};
+use ic_query::ic::DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT;
+use ic_query::ic::DEFAULT_ICRC_TOKEN_VALUE_LIMIT;
+use ic_query::ic::IcIcrcAccountSort;
+use ic_query::ic::IcIcrcHolderSort;
 use ic_query::icrc::IcrcAccountTransactionSort;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";

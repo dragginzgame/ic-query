@@ -2,7 +2,7 @@
 name = "ic-query-cli"
 edition.workspace = true
 rust-version.workspace = true
-version.workspace = true
+version = "0.85.0"
 license.workspace = true
 authors.workspace = true
 description = "Command-line wrapper for read-only Internet Computer metadata queries"
@@ -21,6 +21,7 @@ clap = { workspace = true, features = ["string"] }
 ic-host-text.workspace = true
 ic-platform.workspace = true
 ic-query = { workspace = true, features = ["host"] }
+ic-query-text = { workspace = true, features = ["host"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

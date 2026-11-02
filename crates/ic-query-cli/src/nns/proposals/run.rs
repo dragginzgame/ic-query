@@ -9,14 +9,18 @@ use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
 use crate::storage::cache_root;
 use crate::{cli::common::write_text_or_json, nns::NnsCommandError};
 use clap::ArgMatches;
-use ic_query::nns::proposals::{
-    build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
-    build_nns_proposal_cache_status_report, build_nns_proposal_list_report_with_cache_and_source,
-    build_nns_proposal_report_with_cache_and_source, nns_proposal_activity_report_text,
-    nns_proposal_cache_list_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
-    refresh_nns_proposal_cache_with_progress,
-};
-use ic_query::nns::{LiveNnsSource, NnsGovernanceCacheRequest};
+use ic_query::nns::LiveNnsSource;
+use ic_query::nns::NnsGovernanceCacheRequest;
+use ic_query::nns::proposals::build_nns_proposal_activity_report_from_cache;
+use ic_query::nns::proposals::build_nns_proposal_cache_list_report;
+use ic_query::nns::proposals::build_nns_proposal_cache_status_report;
+use ic_query::nns::proposals::build_nns_proposal_list_report_with_cache_and_source;
+use ic_query::nns::proposals::build_nns_proposal_report_with_cache_and_source;
+use ic_query::nns::proposals::refresh_nns_proposal_cache_with_progress;
+use ic_query_text::nns::proposals::nns_proposal_activity_report_text;
+use ic_query_text::nns::proposals::nns_proposal_cache_list_report_text;
+use ic_query_text::nns::proposals::nns_proposal_list_report_text;
+use ic_query_text::nns::proposals::nns_proposal_report_text;
 
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,

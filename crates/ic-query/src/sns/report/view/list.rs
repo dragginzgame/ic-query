@@ -14,7 +14,7 @@ pub(in crate::sns::report) fn filter_mainnet_sns_instances(
     all_lifecycles: bool,
 ) {
     if !all_lifecycles {
-        instances.retain(|sns| sns.lifecycle == Some(COMMITTED_SNS_LIFECYCLE));
+        instances.retain(|sns| sns.lifecycle.value() == Some(COMMITTED_SNS_LIFECYCLE));
     }
 }
 

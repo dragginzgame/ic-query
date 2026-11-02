@@ -5,10 +5,9 @@ use crate::{
     nns::{NnsCommandError, subnet::options::catalog_list_request},
 };
 use clap::ArgMatches;
-use ic_query::subnet_catalog::{
-    build_subnet_catalog_list_report_with_progress, subnet_catalog_list_report_text,
-    subnet_catalog_list_report_verbose_text,
-};
+use ic_query::subnet_catalog::build_subnet_catalog_list_report_with_progress;
+use ic_query_text::subnet_catalog::subnet_catalog_list_report_text;
+use ic_query_text::subnet_catalog::subnet_catalog_list_report_verbose_text;
 pub(super) async fn run_catalog_list(
     matches: &ArgMatches,
     network: &str,

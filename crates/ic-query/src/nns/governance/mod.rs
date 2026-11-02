@@ -9,7 +9,6 @@ mod error;
 mod model;
 mod request;
 mod source;
-mod text;
 mod validation;
 #[cfg(any(feature = "nns-host", feature = "canister"))]
 mod wire;
@@ -57,16 +56,6 @@ pub(crate) use source::canister::{call_with_arg, canister_provenance};
 #[cfg(feature = "nns-host")]
 pub(crate) use source::host::host_request;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
-pub(crate) use text::{
-    collection_context_lines as governance_collection_context_lines,
-    context_lines as governance_context_lines,
-};
-#[cfg(feature = "nns-host")]
-pub use text::{nns_governance_cache_status_report_text, nns_governance_refresh_report_text};
-pub use text::{
-    nns_governance_economics_report_text, nns_governance_maturity_modulation_report_text,
-    nns_governance_metrics_report_text, nns_governance_reward_event_report_text,
-};
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
 pub(in crate::nns) use validation::validate_governance_continuation;

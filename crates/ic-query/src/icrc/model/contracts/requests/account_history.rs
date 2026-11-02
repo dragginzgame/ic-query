@@ -179,6 +179,9 @@ pub enum IcrcAccountTransactionSort {
 }
 
 impl IcrcAccountTransactionSort {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[Self::Newest, Self::Oldest];
+
     /// Stable JSON/text name for this ordering.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

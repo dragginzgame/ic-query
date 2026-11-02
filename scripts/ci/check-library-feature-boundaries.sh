@@ -30,14 +30,14 @@ run_quiet() {
 check_public_api() {
   local feature="$1" test
   shift
-  local -a arguments=(test -p ic-query --no-default-features --locked --offline)
-  if [[ "$feature" != none ]]; then
-    arguments+=(--features "$feature")
-  fi
+  local package
   for test in "$@"; do
-    arguments+=(--test "$test")
+    package=ic-query
+    [[ ! -f "$repo_root/crates/ic-query-text/tests/$test.rs" ]] || package=ic-query-text
+    local -a arguments=(test -p "$package" --no-default-features --locked --offline --test "$test")
+    if [[ "$feature" != none ]]; then arguments+=(--features "$feature"); fi
+    cargo "${arguments[@]}"
   done
-  cargo "${arguments[@]}"
 }
 
 bash "$repo_root/scripts/ci/check-library-dependency-graphs.sh"
@@ -56,7 +56,9 @@ while IFS=$'	' read -r target feature tests; do
 done < "$repo_root/ci/library-feature-cases.tsv"
 
 run_quiet "ic-query deployable Governance probe"   cargo check -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
-run_quiet "ic-query nns canister public API"   cargo check -p ic-query --test nns_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
+run_quiet "ic-query nns canister public API"   cargo check -p ic-query --test canister_public_api --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline
+run_quiet "ic-query-text portable" cargo check -p ic-query-text --no-default-features --locked --offline
+run_quiet "ic-query-text portable Wasm" cargo check -p ic-query-text --target wasm32-unknown-unknown --no-default-features --locked --offline
 cargo check -p ic-query-cli --locked --offline
 
 fixture_complete=true

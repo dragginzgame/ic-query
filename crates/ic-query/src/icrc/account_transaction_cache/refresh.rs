@@ -227,15 +227,17 @@ fn publish_complete_snapshot(
         .last()
         .map(|transaction| transaction.id.clone());
     let snapshot = IcrcAccountTransactionSnapshot {
+        context: crate::icrc::IcrcAccountTransactionContext {
+            ledger_canister_id: request.cache.ledger_canister_id.clone(),
+            index_canister_id: complete.index_canister_id.clone(),
+            account_owner: request.cache.account_owner.clone(),
+            subaccount_hex: request.cache.subaccount_hex.clone(),
+            source_endpoint: request.cache.source_endpoint.clone(),
+            collection_started_at,
+            collection_completed_at,
+            fetched_by: ICRC_ACCOUNT_TRANSACTION_FETCHED_BY.to_string(),
+        },
         schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
-        source_endpoint: request.cache.source_endpoint.clone(),
-        collection_started_at: collection_started_at.clone(),
-        collection_completed_at: collection_completed_at.clone(),
-        fetched_by: ICRC_ACCOUNT_TRANSACTION_FETCHED_BY.to_string(),
-        ledger_canister_id: request.cache.ledger_canister_id.clone(),
-        index_canister_id: complete.index_canister_id.clone(),
-        account_owner: request.cache.account_owner.clone(),
-        subaccount_hex: request.cache.subaccount_hex.clone(),
         balance: complete.balance,
         token_symbol: complete.token_symbol,
         decimals: complete.decimals,
@@ -246,8 +248,8 @@ fn publish_complete_snapshot(
     };
     validate_collection_timestamps(
         &paths.snapshot_path,
-        &snapshot.collection_started_at,
-        &snapshot.collection_completed_at,
+        &snapshot.context.collection_started_at,
+        &snapshot.context.collection_completed_at,
     )?;
     let transaction_count = snapshot.transactions.len();
     let attempt_finalization_error = publish_snapshot_with_attempt(
@@ -264,7 +266,7 @@ fn publish_complete_snapshot(
             write_complete_attempt(
                 &paths.refresh_attempt_path,
                 request,
-                &snapshot.index_canister_id,
+                &snapshot.context.index_canister_id,
                 complete.last_cursor,
                 complete.page_count,
                 transaction_count,
@@ -273,11 +275,8 @@ fn publish_complete_snapshot(
     )?;
 
     Ok(IcrcAccountTransactionRefreshReport {
+        context: snapshot.context,
         schema_version: ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION,
-        ledger_canister_id: snapshot.ledger_canister_id,
-        index_canister_id: snapshot.index_canister_id,
-        account_owner: snapshot.account_owner,
-        subaccount_hex: snapshot.subaccount_hex,
         transaction_count,
         newest_transaction_id,
         oldest_transaction_id,
@@ -286,10 +285,6 @@ fn publish_complete_snapshot(
         point_in_time_guaranteed: false,
         replaced_existing_cache,
         attempt_finalization_error,
-        collection_started_at,
-        collection_completed_at,
-        source_endpoint: snapshot.source_endpoint,
-        fetched_by: snapshot.fetched_by,
         cache_path: paths.snapshot_path.display().to_string(),
         refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
         refresh_lock_path: paths.refresh_lock_path.display().to_string(),
@@ -420,16 +415,16 @@ mod tests {
                 .unwrap();
         let cached = load_cached_icrc_account_transactions(&request.cache).unwrap();
         assert_eq!(
-            parse_utc_timestamp_secs(&report.collection_started_at),
+            parse_utc_timestamp_secs(&report.context.collection_started_at),
             Some(2_000_000_000)
         );
         assert_eq!(
-            parse_utc_timestamp_secs(&report.collection_completed_at),
+            parse_utc_timestamp_secs(&report.context.collection_completed_at),
             Some(2_000_000_023)
         );
         assert_eq!(
-            cached.snapshot.collection_completed_at,
-            report.collection_completed_at
+            cached.snapshot.context.collection_completed_at,
+            report.context.collection_completed_at
         );
         std::fs::remove_dir_all(root).unwrap();
     }

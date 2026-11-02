@@ -7,9 +7,8 @@ mod source;
 
 pub use cache::{
     CacheDisposition, CatalogLoadOutcome, CatalogReadPolicy, SubnetCatalogCacheRequest,
-    SubnetCatalogLoadRequest, load_cached_subnet_catalog, load_cached_subnet_catalog_detailed,
-    load_subnet_catalog, load_subnet_catalog_detailed, load_subnet_catalog_detailed_with_progress,
-    load_subnet_catalog_detailed_with_source, load_subnet_catalog_with_source,
+    SubnetCatalogLoadRequest, load_cached_subnet_catalog, load_subnet_catalog,
+    load_subnet_catalog_with_source, load_subnet_catalog_with_source_and_progress,
 };
 pub use error::{
     SubnetCatalogErrorCategory, SubnetCatalogErrorCode, SubnetCatalogHostError,

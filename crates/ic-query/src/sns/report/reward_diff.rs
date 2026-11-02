@@ -346,30 +346,22 @@ fn row_from_pair(
 ) -> SnsRewardDiffRow {
     SnsRewardDiffRow {
         neuron_id: neuron_id.to_string(),
-        before_combined_maturity_e8s_equivalent: before
-            .map(|row| row.combined_maturity_e8s_equivalent),
-        after_combined_maturity_e8s_equivalent: after
-            .map(|row| row.combined_maturity_e8s_equivalent),
+        before: before.map(neuron_evidence),
+        after: after.map(neuron_evidence),
         maturity_delta_e8s_equivalent: delta,
-        new_neuron: before.is_none(),
-        missing_after: after.is_none(),
-        before_created_timestamp_seconds: before.map(|row| row.created_timestamp_seconds),
-        after_created_timestamp_seconds: after.map(|row| row.created_timestamp_seconds),
-        before_maturity_mint_conversion_observed_disabled: before
-            .map(|row| row.maturity_mint_conversion_observed_disabled),
-        after_maturity_mint_conversion_observed_disabled: after
-            .map(|row| row.maturity_mint_conversion_observed_disabled),
-        before_manual_maturity_staking_observed_disabled: before
-            .map(|row| row.manual_maturity_staking_observed_disabled),
-        after_manual_maturity_staking_observed_disabled: after
-            .map(|row| row.manual_maturity_staking_observed_disabled),
-        before_pending_maturity_disbursement_count: before
-            .map(|row| row.disburse_maturity_in_progress.len()),
-        after_pending_maturity_disbursement_count: after
-            .map(|row| row.disburse_maturity_in_progress.len()),
         policy_evidence_changed: policy_evidence_changed(before, after),
         allocation_numerator_e8s_equivalent: None,
         allocation_denominator_e8s_equivalent: None,
+    }
+}
+
+const fn neuron_evidence(row: &SnsRewardCheckpointRow) -> crate::sns::SnsRewardDiffNeuronEvidence {
+    crate::sns::SnsRewardDiffNeuronEvidence {
+        combined_maturity_e8s_equivalent: row.combined_maturity_e8s_equivalent,
+        created_timestamp_seconds: row.created_timestamp_seconds,
+        maturity_mint_conversion_observed_disabled: row.maturity_mint_conversion_observed_disabled,
+        manual_maturity_staking_observed_disabled: row.manual_maturity_staking_observed_disabled,
+        pending_maturity_disbursement_count: row.disburse_maturity_in_progress.len(),
     }
 }
 

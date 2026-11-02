@@ -113,7 +113,6 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     let mut report = build_sns_proposal_report_with_source(&request, &FixtureSnsProposalSource)
         .await
         .expect("sns proposal report");
-    let text = sns_proposal_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PROPOSAL_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.instance.id, 1);
@@ -130,30 +129,16 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     );
     assert_eq!(report.proposal.ballot_count, 1);
     assert_eq!(report.proposal.ballots[0].vote, 1);
-    assert_eq!(report.provenance.data_source.as_str(), "live");
-    assert_eq!(report.provenance.cache_path, None);
-    assert_eq!(report.provenance.cache_complete, None);
-    assert!(text.contains("proposal_id: 42"));
-    assert!(text.contains("data_source: live"));
-    assert!(text.contains("action: motion"));
-    assert!(text.contains("ballot_count: 1"));
-    assert!(text.contains("show_ballots: yes"));
-    assert!(text.contains("NEURON_ID   VOTE"));
-    assert!(text.contains("00010203"));
-    assert!(text.contains("1.00"));
-    assert!(text.contains("Fixture proposal"));
-    assert!(text.contains("reject_cost: 1.00"));
+    assert_eq!(report.provenance.data_source().as_str(), "live");
+    assert_eq!(report.provenance.cache_path(), None);
+    assert_eq!(report.provenance.cache_complete(), None);
 
     report.proposal.proposal_creation_timestamp_seconds = 0;
     report.proposal.decided_timestamp_seconds = None;
     report.proposal.executed_timestamp_seconds = Some(1_700_000_000);
     report.proposal.failed_timestamp_seconds = Some(0);
     report.proposal.ballots[0].cast_timestamp_seconds = 0;
-    let text = sns_proposal_report_text(&report);
-    assert!(text.contains("created_at: 1970-01-01T00:00:00Z"));
-    assert!(text.contains("decided_at: -"));
-    assert!(text.contains("executed_at: 2023-11-14T22:13:20Z"));
-    assert!(text.contains("failed_at: 1970-01-01T00:00:00Z"));
+
     let json = serde_json::to_value(&report).expect("raw timestamp report");
     assert_eq!(json["proposal"]["proposal_creation_timestamp_seconds"], 0);
     assert_eq!(
@@ -174,7 +159,6 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     )
     .await
     .expect("sns proposals report");
-    let text = sns_proposals_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PROPOSALS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.instance.id, 1);
@@ -209,22 +193,9 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
             .map(|tally| tally.yes),
         Some(10)
     );
-    assert_eq!(report.provenance.data_source.as_str(), "live");
-    assert_eq!(report.provenance.cache_path, None);
-    assert_eq!(report.provenance.cache_complete, None);
-    assert!(text.contains("status_filter: open"));
-    assert!(text.contains("data_source: live"));
-    assert!(text.contains("topic_filter: governance"));
-    assert!(text.contains("eligibility_filter: any"));
-    assert!(text.contains("proposer_filter: -"));
-    assert!(text.contains("query_filter: -"));
-    assert!(text.contains("sort: api"));
-    assert!(text.contains("sort_direction: none"));
-    assert!(text.contains("before_proposal_id: 99"));
-    assert!(text.contains("proposal_count: 1"));
-    assert!(text.contains("ID   ACTION"));
-    assert!(text.contains("motion"));
-    assert!(text.contains("Fixture proposal"));
+    assert_eq!(report.provenance.data_source().as_str(), "live");
+    assert_eq!(report.provenance.cache_path(), None);
+    assert_eq!(report.provenance.cache_complete(), None);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -240,7 +211,7 @@ async fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     .await
     .expect("sns proposals report");
 
-    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
@@ -259,7 +230,7 @@ async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     .await
     .expect("sns proposals report");
 
-    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
     assert_eq!(report.proposal_count, 0);
     assert_eq!(report.proposals, Vec::new());
@@ -277,15 +248,14 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     )
     .await
     .expect("sns proposals report");
-    let text = sns_proposals_report_text(&report);
+
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
 
-    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.query_filter.as_deref(), Some("FiXtUrE PrOpOsAl"));
     assert_eq!(report.proposal_count, 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(json["query_filter"], "FiXtUrE PrOpOsAl");
-    assert!(text.contains("query_filter: FiXtUrE PrOpOsAl"));
 }
 
 #[tokio::test(flavor = "current_thread")]

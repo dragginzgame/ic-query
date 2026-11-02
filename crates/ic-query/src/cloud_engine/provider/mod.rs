@@ -7,7 +7,6 @@
 #[cfg(feature = "dashboard-host")]
 mod host;
 mod model;
-mod text;
 
 #[cfg(feature = "dashboard-host")]
 pub use host::{
@@ -21,7 +20,6 @@ pub use model::{
 };
 #[cfg(feature = "dashboard-host")]
 pub use model::{CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData};
-pub use text::{cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text};
 
 /// Maximum provider rows accepted from the complete Dashboard resource.
 pub const MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS: usize = 1_000;
@@ -29,5 +27,5 @@ pub const MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS: usize = 1_000;
 /// Maximum general or CloudEngine locations accepted for one provider.
 pub const MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS: usize = 100;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "dashboard-host"))]
 mod tests;

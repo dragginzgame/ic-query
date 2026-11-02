@@ -1,18 +1,21 @@
-use ic_query::nns::{
-    NnsGovernanceRefreshRequest,
-    governance::{
-        NnsGovernanceRequest, NnsGovernanceSourceData, NnsGovernanceSourceProvenance,
-        NnsGovernanceSourceSelection,
-    },
-    neuron::{
-        NnsNeuronPage, NnsNeuronRow, NnsNeuronSource, NnsNeuronSourceFuture, nns_neuron_cache_path,
-        refresh_nns_neuron_cache_with_source,
-    },
-    proposals::{
-        NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSource, NnsProposalSourceFuture,
-        NnsProposalStatusFilter, nns_proposal_cache_path, refresh_nns_proposal_cache_with_source,
-    },
-};
+use ic_query::nns::NnsGovernanceRefreshRequest;
+use ic_query::nns::governance::NnsGovernanceRequest;
+use ic_query::nns::governance::NnsGovernanceSourceData;
+use ic_query::nns::governance::NnsGovernanceSourceProvenance;
+use ic_query::nns::governance::NnsGovernanceSourceSelection;
+use ic_query::nns::neuron::NnsNeuronPage;
+use ic_query::nns::neuron::NnsNeuronRow;
+use ic_query::nns::neuron::NnsNeuronSource;
+use ic_query::nns::neuron::NnsNeuronSourceFuture;
+use ic_query::nns::neuron::nns_neuron_cache_path;
+use ic_query::nns::neuron::refresh_nns_neuron_cache_with_source;
+use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
+use ic_query::nns::proposals::NnsProposalRow;
+use ic_query::nns::proposals::NnsProposalSource;
+use ic_query::nns::proposals::NnsProposalSourceFuture;
+use ic_query::nns::proposals::NnsProposalStatusFilter;
+use ic_query::nns::proposals::nns_proposal_cache_path;
+use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source;
 use std::{
     fs,
     path::Path,

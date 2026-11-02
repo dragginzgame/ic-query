@@ -1,46 +1,52 @@
-use super::{
-    refresh::refresh_nns_proposal_cache_with_source,
-    reports::{
-        build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
-        build_nns_proposal_cache_status_report, build_nns_proposal_list_report_from_cache,
-        build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report_from_cache,
-        build_nns_proposal_report_with_cache_and_source,
-    },
-};
-use crate::nns::governance::nns_governance_refresh_report_text;
-use crate::nns::governance::{NnsGovernanceNeuronId, NnsGovernanceProposalId};
+use super::refresh::refresh_nns_proposal_cache_with_source;
+use super::reports::build_nns_proposal_activity_report_from_cache;
+use super::reports::build_nns_proposal_cache_list_report;
+use super::reports::build_nns_proposal_cache_status_report;
+use super::reports::build_nns_proposal_list_report_from_cache;
+use super::reports::build_nns_proposal_list_report_with_cache_and_source;
+use super::reports::build_nns_proposal_report_from_cache;
+use super::reports::build_nns_proposal_report_with_cache_and_source;
+
+use crate::HostCacheError;
+use crate::cache::CacheRefreshAttemptStatus;
+use crate::cache::CacheValidationStatus;
+use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::NnsGovernanceCacheRequest;
+use crate::nns::NnsGovernanceRefreshRequest;
+use crate::nns::governance::NnsGovernanceNeuronId;
+use crate::nns::governance::NnsGovernanceProposalId;
+use crate::nns::governance::NnsGovernanceRequest;
+use crate::nns::governance::NnsGovernanceSourceData;
+use crate::nns::governance::NnsGovernanceSourceProvenance;
+use crate::nns::governance::NnsGovernanceSourceSelection;
+use crate::nns::proposals::report::NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION;
+use crate::nns::proposals::report::NNS_PROPOSAL_REPORT_SCHEMA_VERSION;
+use crate::nns::proposals::report::NnsProposalActivityError;
+use crate::nns::proposals::report::NnsProposalActivityRequest;
+use crate::nns::proposals::report::NnsProposalError;
+use crate::nns::proposals::report::NnsProposalHostError;
+use crate::nns::proposals::report::NnsProposalListRequest;
+use crate::nns::proposals::report::NnsProposalRequest;
+use crate::nns::proposals::report::cache::paths::nns_proposal_cache_paths;
+use crate::nns::proposals::report::model::NnsProposalListSort;
+use crate::nns::proposals::report::model::NnsProposalRewardStatusFilter;
+use crate::nns::proposals::report::model::NnsProposalRow;
+use crate::nns::proposals::report::model::NnsProposalStatus;
+use crate::nns::proposals::report::model::NnsProposalStatusFilter;
+use crate::nns::proposals::report::model::NnsProposalTopic;
+use crate::nns::proposals::report::model::NnsProposalTopicFilter;
+use crate::nns::proposals::report::source::NnsProposalSource;
+use crate::nns::proposals::report::source::NnsProposalSourceFuture;
+use crate::nns::proposals::report::source::nns_proposal_row_from_info;
+use crate::nns::proposals::report::wire::NnsGovernanceBallot;
+use crate::nns::proposals::report::wire::NnsProposal;
+use crate::nns::proposals::report::wire::NnsProposalAction;
+use crate::nns::proposals::report::wire::NnsProposalInfo;
+use crate::nns::proposals::report::wire::NnsProposalTallyWire;
 use crate::report::SortDirection;
-use crate::{
-    HostCacheError,
-    cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
-    ic_registry::DEFAULT_MAINNET_ENDPOINT,
-    nns::{
-        MAINNET_GOVERNANCE_CANISTER_ID, NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest,
-        governance::{
-            NnsGovernanceRequest, NnsGovernanceSourceData, NnsGovernanceSourceProvenance,
-            NnsGovernanceSourceSelection,
-        },
-        proposals::report::{
-            NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION, NNS_PROPOSAL_REPORT_SCHEMA_VERSION,
-            NnsProposalActivityError, NnsProposalActivityRequest, NnsProposalError,
-            NnsProposalHostError, NnsProposalListRequest, NnsProposalRequest,
-            cache::paths::nns_proposal_cache_paths,
-            model::{
-                NnsProposalListSort, NnsProposalRewardStatusFilter, NnsProposalRow,
-                NnsProposalStatus, NnsProposalStatusFilter, NnsProposalTopic,
-                NnsProposalTopicFilter,
-            },
-            source::{NnsProposalSource, NnsProposalSourceFuture, nns_proposal_row_from_info},
-            text::{nns_proposal_list_report_text, nns_proposal_report_text},
-            wire::{
-                NnsGovernanceBallot, NnsProposal, NnsProposalAction, NnsProposalInfo,
-                NnsProposalTallyWire,
-            },
-        },
-    },
-    subnet_catalog::MAINNET_NETWORK,
-    test_support::temp_dir,
-};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::test_support::temp_dir;
 use ic_platform::candid::contract::Reserved;
 use std::fs;
 
@@ -60,7 +66,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
             .await
             .unwrap()
             .provenance
-            .data_source
+            .data_source()
             .as_str(),
         "live"
     );
@@ -69,7 +75,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
             .await
             .unwrap()
             .provenance
-            .data_source
+            .data_source()
             .as_str(),
         "live"
     );
@@ -79,7 +85,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
             .await
             .unwrap()
             .provenance
-            .data_source
+            .data_source()
             .as_str(),
         "cache"
     );
@@ -88,7 +94,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
             .await
             .unwrap()
             .provenance
-            .data_source
+            .data_source()
             .as_str(),
         "cache"
     );
@@ -96,7 +102,7 @@ async fn cache_aware_proposal_builders_preserve_fallback_and_strict_cache_errors
     let report = build_nns_proposal_report_with_cache_and_source(&missing, &root, &FixtureSource)
         .await
         .unwrap();
-    assert_eq!(report.provenance.data_source.as_str(), "live");
+    assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.proposal_id, 999);
 
     fs::write(&path, "{}").unwrap();
@@ -337,7 +343,6 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     let report = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
         .await
         .expect("refresh cache");
-    let refresh_text = nns_governance_refresh_report_text(&report);
 
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(
@@ -351,7 +356,7 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert!(report.complete);
     assert!(report.wrote_cache);
     assert!(!report.replaced_existing_cache);
-    assert!(refresh_text.contains("row_count: 3"));
+
     let cache_path = nns_proposal_cache_paths(&root, MAINNET_NETWORK).snapshot_path;
     assert!(cache_path.is_file());
     let cache: serde_json::Value =
@@ -392,7 +397,6 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         cache_root: root,
     })
     .expect("cache status");
-    let status_text = crate::nns::governance::nns_governance_cache_status_report_text(&status);
 
     assert!(status.found);
     assert_eq!(
@@ -424,8 +428,6 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert_eq!(status_json["schema_version"], 1);
     assert_eq!(list_json["latest_attempt"], status_json["latest_attempt"]);
     assert_eq!(list_json["caches"][0], status_json["cache"]);
-    assert!(status_text.contains("attempt_status:"));
-    assert!(status_text.contains("status: complete"));
 }
 
 #[test]
@@ -437,13 +439,10 @@ fn nns_proposal_cache_status_reports_missing_cache() {
         cache_root: root.clone(),
     })
     .expect("cache status");
-    let text = crate::nns::governance::nns_governance_cache_status_report_text(&status);
 
     assert!(!status.found);
     assert!(status.cache.is_none());
     assert!(status.latest_attempt.is_none());
-    assert!(text.contains("found: no"));
-    assert!(text.contains("refresh_hint: icq nns proposal refresh"));
 
     let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -565,18 +564,18 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let report = build_nns_proposal_list_report_from_cache(&request, &root)
         .expect("cache lookup")
         .expect("cached list report");
-    let text = nns_proposal_list_report_text(&report);
+
     let json = serde_json::to_value(&report).expect("serialize cached NNS proposal list report");
 
     assert_eq!(
         report.context.schema_version,
         NNS_PROPOSAL_LIST_REPORT_SCHEMA_VERSION
     );
-    assert_eq!(report.provenance.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source().as_str(), "cache");
     assert!(
         report
             .provenance
-            .cache_complete
+            .cache_complete()
             .expect("cache completeness")
     );
     assert_eq!(report.status_filter, NnsProposalStatus::Executed.as_str());
@@ -590,10 +589,6 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.proposals[0].proposal_id, Some(1));
     assert_eq!(json["query_filter"], "PrOpOsAl 1");
     assert_eq!(json["result_scope"], "complete-cache");
-    assert!(text.contains("data_source: cache"));
-    assert!(text.contains("cache_complete: yes"));
-    assert!(text.contains("query_filter: PrOpOsAl 1"));
-    assert!(text.contains("result_scope: complete-cache"));
 
     let mut request = request;
     request.query = None;
@@ -940,7 +935,6 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     let report = build_nns_proposal_report_from_cache(&request, &root)
         .expect("cache lookup")
         .expect("cached proposal report");
-    let text = nns_proposal_report_text(&report);
 
     assert_eq!(
         report.context.schema_version,
@@ -948,24 +942,20 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     );
     assert_eq!(report.proposal_id, 2);
     assert_eq!(report.proposal.title.as_deref(), Some("Proposal 2"));
-    assert_eq!(report.provenance.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source().as_str(), "cache");
     assert!(
         report
             .provenance
-            .cache_complete
+            .cache_complete()
             .expect("cache completeness")
     );
     assert!(
         report
             .provenance
-            .cache_path
-            .as_deref()
+            .cache_path()
             .expect("cache path")
             .ends_with("nns/ic/governance/proposals/full.json")
     );
-    assert!(text.contains("data_source: cache"));
-    assert!(text.contains("cache_complete: yes"));
-    assert!(text.contains("cache_path: "));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1022,7 +1012,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
         cache_root: root.to_path_buf(),
     })
     .expect("cache status");
-    let status_text = crate::nns::governance::nns_governance_cache_status_report_text(&status);
+
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
@@ -1040,8 +1030,6 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
             .as_ref()
             .is_some_and(|error| error.contains(expected_error))
     );
-    assert!(status_text.contains("cache_status: invalid"));
-    assert!(status_text.contains("cache_error:"));
 
     let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),

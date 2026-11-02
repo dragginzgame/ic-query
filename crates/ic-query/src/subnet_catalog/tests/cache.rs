@@ -9,7 +9,7 @@ use std::os::unix::fs::{PermissionsExt, symlink};
 async fn load_failure_preserves_display_direct_host_source_and_into_source() {
     let root = temp_dir("ic-query-catalog-error-contract");
     let request = cache_only_load_request(&root);
-    let failure = load_subnet_catalog_detailed_with_source(&request, &FixtureRefreshSource::err())
+    let failure = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
         .await
         .expect_err("missing cache");
     let original_message = failure.source.to_string();
@@ -41,7 +41,8 @@ async fn invalid_utf8_catalog_obeys_content_repair_policy() {
     })
     .unwrap();
     assert!(matches!(
-        load_cached_subnet_catalog(&cache_only_load_request(&root)),
+        load_cached_subnet_catalog(&cache_only_load_request(&root))
+            .map_err(SubnetCatalogLoadFailure::into_source),
         Err(SubnetCatalogHostError::Catalog(CatalogError::Json(_)))
     ));
     let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
@@ -49,7 +50,7 @@ async fn invalid_utf8_catalog_obeys_content_repair_policy() {
         CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
         1_780_531_300,
     );
-    let failure = load_subnet_catalog_detailed_with_source(&request, &FixtureRefreshSource::err())
+    let failure = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
         .await
         .unwrap_err();
     assert_eq!(failure.stage, SubnetCatalogLoadStage::RefreshFailed);
@@ -89,7 +90,7 @@ fn load_cached_catalog_rejects_non_mainnet_network() {
 
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
-        err,
+        err.source,
         SubnetCatalogHostError::UnsupportedNetwork { .. }
     ));
 }
@@ -107,10 +108,10 @@ fn missing_catalog_error_explains_cached_only_slice() {
 
     let err = load_cached_subnet_catalog(&request).expect_err("cache missing");
     let _ = fs::remove_dir_all(root);
-    assert_eq!(err.code(), SubnetCatalogErrorCode::MissingCatalog);
-    assert_eq!(err.category(), SubnetCatalogErrorCategory::Missing);
+    assert_eq!(err.source.code(), SubnetCatalogErrorCode::MissingCatalog);
+    assert_eq!(err.source.category(), SubnetCatalogErrorCategory::Missing);
     assert_eq!(
-        err.remediation(),
+        err.source.remediation(),
         Some(SubnetCatalogRemediation::RefreshCatalog)
     );
 }
@@ -120,7 +121,7 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
     let root = temp_dir("ic-query-subnet-detailed-cache-stages");
     let request = cache_only_load_request(&root);
 
-    let missing = load_cached_subnet_catalog_detailed(&request).expect_err("cache missing");
+    let missing = load_cached_subnet_catalog(&request).expect_err("cache missing");
     assert_eq!(missing.stage, SubnetCatalogLoadStage::CacheAbsence);
     assert_eq!(
         missing.cache_disposition,
@@ -131,7 +132,7 @@ fn detailed_cache_failures_distinguish_absence_and_rejection() {
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
         .expect("invalid cache");
-    let rejected = load_cached_subnet_catalog_detailed(&request).expect_err("cache rejected");
+    let rejected = load_cached_subnet_catalog(&request).expect_err("cache rejected");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(rejected.stage, SubnetCatalogLoadStage::CacheRejection);
@@ -164,7 +165,7 @@ async fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
         let request = cache_only_load_request(&root).with_policy(policy);
         let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
 
-        let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+        let failure = load_subnet_catalog_with_source(&request, &source)
             .await
             .expect_err("oversized local evidence rejected");
 
@@ -255,7 +256,7 @@ async fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger()
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
     );
 
-    let failure = load_subnet_catalog_detailed_with_source(&request, &source)
+    let failure = load_subnet_catalog_with_source(&request, &source)
         .await
         .expect_err("source fails after authorized repair");
     assert_eq!(source.call_count(), 1);
@@ -306,7 +307,7 @@ async fn detailed_refresh_failure_retains_request_version_subject_and_unknown_re
         canister_range_start: None,
     });
 
-    let failure = load_subnet_catalog_detailed_with_source(
+    let failure = load_subnet_catalog_with_source(
         &request,
         &DetailedFailureSource::new(Some(881_337), Some(subject.clone()), "SubnetListRecord")
             .with_value_response(881_100, endpoint),
@@ -407,7 +408,7 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
                     DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
                 ),
             });
-        let failure = load_subnet_catalog_detailed_with_source(
+        let failure = load_subnet_catalog_with_source(
             &request,
             &DetailedFailureSource::new(registry_version, Some(subject.clone()), message),
         )
@@ -440,7 +441,7 @@ async fn simple_load_api_returns_the_original_observable_source_error() {
 
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
-        failure,
+        failure.source,
         SubnetCatalogHostError::RegistryRefresh(
             crate::ic_registry::RegistryFetchError::ProtobufDecode {
                 message: "RoutingTable",
@@ -461,7 +462,7 @@ async fn cache_only_policy_never_invokes_the_supplied_source() {
 
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::MissingCatalog { .. }
     ));
 }
@@ -573,7 +574,7 @@ async fn snapshot_authority_changes_with_registry_version_or_catalog_digest() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn every_simple_load_entry_point_preserves_the_missing_catalog_error() {
+async fn catalog_load_entry_points_preserve_missing_cache_evidence() {
     let root = temp_dir("ic-query-subnet-simple-load-wrappers");
     let request = cache_only_load_request(&root);
     let source = FixtureRefreshSource::err();
@@ -583,16 +584,15 @@ async fn every_simple_load_entry_point_preserves_the_missing_catalog_error() {
     let sync_source = load_subnet_catalog_with_source(&request, &source)
         .await
         .expect_err("sync source load");
-    let async_load =
-        futures::executor::block_on(load_subnet_catalog(&request)).expect_err("async load");
-    let async_source =
-        futures::executor::block_on(load_subnet_catalog_with_source(&request, &source))
-            .expect_err("async source load");
-
     let _ = fs::remove_dir_all(root);
-    for failure in [cached, sync, sync_source, async_load, async_source] {
+    for failure in [cached, sync, sync_source] {
+        assert_eq!(failure.stage, SubnetCatalogLoadStage::CacheAbsence);
+        assert_eq!(
+            failure.cache_disposition,
+            SubnetCatalogFailureCacheDisposition::CacheMissing
+        );
         assert!(matches!(
-            failure,
+            failure.source,
             SubnetCatalogHostError::MissingCatalog { .. }
         ));
     }
@@ -608,10 +608,16 @@ fn caller_minimum_assurance_rejects_weaker_cached_evidence() {
     let error = load_cached_subnet_catalog(&request).expect_err("weak cache rejected");
 
     let _ = fs::remove_dir_all(root);
-    assert_eq!(error.code(), SubnetCatalogErrorCode::InsufficientAssurance);
-    assert_eq!(error.category(), SubnetCatalogErrorCategory::Authority);
+    assert_eq!(
+        error.source.code(),
+        SubnetCatalogErrorCode::InsufficientAssurance
+    );
+    assert_eq!(
+        error.source.category(),
+        SubnetCatalogErrorCategory::Authority
+    );
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::InsufficientAssurance {
             required: CatalogAssurance::MultiEndpointAgreement,
             actual: CatalogAssurance::UncertifiedQuery,
@@ -636,7 +642,7 @@ async fn insufficient_refresh_selection_fails_before_collection() {
 
     let _ = fs::remove_dir_all(root);
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::InsufficientAssurance {
             required: CatalogAssurance::MultiEndpointAgreement,
             actual: CatalogAssurance::UncertifiedQuery,
@@ -663,7 +669,7 @@ async fn missing_only_policy_does_not_repair_invalid_content() {
             .expect_err("missing-only policy keeps invalid content visible");
 
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::Catalog(CatalogError::Json(_))
     ));
     assert_eq!(fs::read_to_string(path).expect("cache remains"), "not-json");
@@ -786,9 +792,12 @@ async fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
         .await
         .expect_err("symlink is not recoverable invalid content");
 
-    assert_eq!(error.category(), SubnetCatalogErrorCategory::Confinement);
+    assert_eq!(
+        error.source.category(),
+        SubnetCatalogErrorCategory::Confinement
+    );
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::Cache(HostCacheError::Operation {
             source: CacheFileError::Confinement { .. },
             ..
@@ -836,9 +845,12 @@ fn catalog_load_rejects_unsafe_managed_file_mode() {
     let error = load_cached_subnet_catalog(&cache_only_load_request(&root))
         .expect_err("unsafe mode rejected");
 
-    assert_eq!(error.category(), SubnetCatalogErrorCategory::Confinement);
+    assert_eq!(
+        error.source.category(),
+        SubnetCatalogErrorCategory::Confinement
+    );
     assert!(matches!(
-        error,
+        error.source,
         SubnetCatalogHostError::Cache(HostCacheError::Operation {
             source: CacheFileError::UnsafeManagedPermissions {
                 actual_mode: 0o664,

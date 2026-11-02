@@ -38,7 +38,6 @@ mod reward_checkpoint_file;
 mod reward_diff;
 #[cfg(feature = "sns-host")]
 mod source;
-mod text;
 #[cfg(feature = "sns-host")]
 mod view;
 
@@ -86,7 +85,6 @@ pub use catalog_cache::{
     build_sns_list_report_from_cache_or_refresh,
     build_sns_list_report_from_cache_or_refresh_with_source, refresh_sns_catalog,
     refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
-    sns_catalog_refresh_report_text,
 };
 #[cfg(feature = "sns-host")]
 pub use live::LiveSnsSource;
@@ -96,9 +94,9 @@ pub use model::{
     SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap,
     SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
     SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
-    SnsGovernanceParameters, SnsInfoReport, SnsInstanceContext, SnsListReport, SnsListRequest,
-    SnsListRow, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow, SnsMetricsReport,
-    SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
+    SnsGovernanceParameters, SnsInfoReport, SnsInstanceContext, SnsLifecycleOutcome, SnsListReport,
+    SnsListRequest, SnsListRow, SnsListSort, SnsLookupRequest, SnsMaturityDisbursementRow,
+    SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionList,
     SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
     SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
@@ -108,9 +106,10 @@ pub use model::{
     SnsProposalsSort, SnsReportContext, SnsRewardAllocationStatus, SnsRewardCheckpointReport,
     SnsRewardCheckpointRow, SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError,
     SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsRewardDiffInvalidReasonKind, SnsRewardDiffNeuronEvidence, SnsRewardDiffReport,
+    SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId, SnsRunningVersionResponse,
+    SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
@@ -157,19 +156,6 @@ pub use source::{
     SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
     SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
-pub use text::{
-    sns_canister_report_text, sns_info_report_text, sns_list_report_text,
-    sns_list_report_text_with_metadata_style, sns_metrics_report_text,
-    sns_neuron_detail_report_text, sns_params_report_text, sns_proposal_report_text,
-    sns_proposals_report_text, sns_reward_checkpoint_report_text, sns_reward_diff_report_text,
-    sns_swap_report_text, sns_token_report_text, sns_upgrade_report_text,
-};
-#[cfg(feature = "sns-host")]
-pub use text::{
-    sns_neurons_cache_list_report_text, sns_neurons_cache_status_report_text,
-    sns_neurons_report_text, sns_proposals_cache_list_report_text,
-    sns_proposals_cache_status_report_text, sns_snapshot_refresh_report_text,
-};
 
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
@@ -205,7 +191,6 @@ const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_MAX_NEURONS: u64 = 200_000;
 const SNS_REWARD_CHECKPOINT_PAGE_SIZE: u32 = 100;
 const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
-const COMPACT_PRINCIPAL_CHARS: usize = 5;
 #[cfg(feature = "sns-host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
 #[cfg(feature = "sns-host")]
@@ -219,16 +204,8 @@ pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(
     })
 }
 
-pub(super) fn short_principal(value: &str) -> String {
-    value.chars().take(COMPACT_PRINCIPAL_CHARS).collect()
-}
-
-pub(in crate::sns::report) use model::{sns_proposal_action_label, sns_proposal_vote_label};
-
 pub use model::MainnetSnsMetrics;
 
 pub use model::MainnetSnsSwap;
 
-pub(in crate::sns::report) use model::sns_swap_lifecycle_name;
-
-pub(in crate::sns::report) use model::sns_treasury_kind;
+pub use model::sns_proposal_action_label;

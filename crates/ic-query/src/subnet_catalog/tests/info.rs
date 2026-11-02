@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[tokio::test(flavor = "current_thread")]
 async fn info_report_resolves_canister_and_marks_application_chargeable() {
@@ -20,10 +21,7 @@ async fn info_report_resolves_canister_and_marks_application_chargeable() {
         "charged_user_canister_subnet"
     );
     assert_eq!(report.cycles_per_billion_instructions, Some(2_615_384_616));
-    assert!(
-        subnet_catalog_info_report_text(&report)
-            .contains("cycles_per_billion_instructions: 2.62 B")
-    );
+
     assert_eq!(json["cycles_per_billion_instructions"], 2_615_384_616_u64);
 }
 

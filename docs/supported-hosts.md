@@ -53,9 +53,11 @@ retain their separate acceptance gates.
   There is no second version list in this guide. dfx is not selected.
 - Build and Testkit executable setup and offline admission select the same
   explicit `cli` feature set. Library-only dependencies omit that feature.
-  Native tests import PocketIC clients and types from `ic_platform::pocket_ic`,
-  enabling Platform's `pocket-ic` feature in native development dependencies.
-  Testkit owns simulator startup, installation extensions and reply fixtures.
+  Native fixtures import the independently published `ic-platform-pocket-ic`
+  0.18 client directly, matching Testkit 0.80 and its management DTO 0.11 identity.
+  Platform 0.18 supplies Candid fixture protocols. Testkit owns simulator startup,
+  installation extensions, reply fixtures and the existing PocketIC 16.1.0 server
+  selection; client compilation does not replace installed server acceptance.
 - Make uses the admitted checkout-local paths. Interactive shells can select them
   with `export PATH="$PWD/.tools/host/bin:$PWD/.tools/ic/bin:$PWD/.tools/rust/common/bin:$PATH"`.
   Existing global executables cannot substitute for missing managed selections.

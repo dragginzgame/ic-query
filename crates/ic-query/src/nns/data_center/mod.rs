@@ -1,11 +1,10 @@
-//! NNS data-center inventory requests, reports, host builders, and renderers.
+//! NNS data-center inventory requests, reports, host builders.
 
 mod report;
 
 pub use report::{
     DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterInfoReport, NnsDataCenterListReport,
-    NnsDataCenterRow, nns_data_center_info_report_text, nns_data_center_list_report_text,
-    nns_data_center_list_report_verbose_text,
+    NnsDataCenterRow,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

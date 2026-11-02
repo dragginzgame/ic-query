@@ -9,15 +9,16 @@ mod requests;
 
 pub use reports::{
     IcrcAccountRow, IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCacheSummary,
-    IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
-    IcrcAccountTransactionPageReport, IcrcAccountTransactionRefreshAttemptStatus,
-    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
-    IcrcAllowanceData, IcrcAllowanceReport, IcrcArchiveFollowErrorRow, IcrcArchiveRow,
-    IcrcArchivedBlocksRow, IcrcArchivedRangeRow, IcrcArchivesReport, IcrcBalanceData,
-    IcrcBalanceReport, IcrcBlockTypeRow, IcrcBlockTypesReport, IcrcCapabilitiesReport,
-    IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow, IcrcIndexReport,
-    IcrcReportProvenance, IcrcTipCertificateEvidence, IcrcTipCertificateReport, IcrcTokenReport,
-    IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
+    IcrcAccountTransactionContext, IcrcAccountTransactionListReport,
+    IcrcAccountTransactionPageData, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
+    IcrcAccountTransactionValidCacheSummary, IcrcAllowanceData, IcrcAllowanceReport,
+    IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,
+    IcrcArchivesReport, IcrcBalanceData, IcrcBalanceReport, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
+    IcrcIndexReport, IcrcReportProvenance, IcrcTipCertificateEvidence, IcrcTipCertificateReport,
+    IcrcTokenReport, IcrcTransactionBlockRow, IcrcTransactionsData, IcrcTransactionsReport,
 };
 pub use requests::{
     IcrcAccountTransactionCacheRequest, IcrcAccountTransactionListRequest,

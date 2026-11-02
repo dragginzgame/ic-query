@@ -35,18 +35,7 @@ pub(super) fn topology_check_report_from_reports(
         .iter()
         .filter(|row| row.stale.is_none())
         .count();
-    let (known_join_count, unknown_join_count) = topology_join_coverage_counts(reports)
-        .relationships()
-        .into_iter()
-        .fold(
-            (0_usize, 0_usize),
-            |(known, unknown), (_, next_known, next_unknown)| {
-                (
-                    known.saturating_add(next_known),
-                    unknown.saturating_add(next_unknown),
-                )
-            },
-        );
+    let (known_join_count, unknown_join_count) = join_totals(reports);
     let join_coverage = coverage_percent_text(known_join_count, unknown_join_count);
     let checks = vec![
         check_row(
@@ -143,4 +132,40 @@ fn cache_freshness_detail(
         );
     }
     format!("{stale_source_count} stale source, {unknown_source_count} without an age policy")
+}
+
+fn join_totals(reports: &TopologyInventoryReports) -> (usize, usize) {
+    let counts = topology_join_coverage_counts(reports);
+    [
+        (
+            counts.nodes_with_known_node_provider_count,
+            counts.nodes_with_unknown_node_provider_count,
+        ),
+        (
+            counts.nodes_with_known_node_operator_count,
+            counts.nodes_with_unknown_node_operator_count,
+        ),
+        (
+            counts.nodes_with_known_data_center_count,
+            counts.nodes_with_unknown_data_center_count,
+        ),
+        (
+            counts.node_operators_with_known_node_provider_count,
+            counts.node_operators_with_unknown_node_provider_count,
+        ),
+        (
+            counts.node_operators_with_known_data_center_count,
+            counts.node_operators_with_unknown_data_center_count,
+        ),
+    ]
+    .into_iter()
+    .fold(
+        (0_usize, 0_usize),
+        |(known, unknown), (next_known, next_unknown)| {
+            (
+                known.saturating_add(next_known),
+                unknown.saturating_add(next_unknown),
+            )
+        },
+    )
 }

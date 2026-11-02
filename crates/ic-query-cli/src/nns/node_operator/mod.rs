@@ -6,12 +6,12 @@
 
 use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
-use ic_query::nns::node_operator::{
-    build_nns_node_operator_info_report_with_source_and_progress,
-    build_nns_node_operator_list_report_with_source_and_progress,
-    nns_node_operator_info_report_text, nns_node_operator_list_report_text,
-    nns_node_operator_list_report_verbose_text, refresh_nns_node_operator_report,
-};
+use ic_query::nns::node_operator::build_nns_node_operator_info_report_with_source_and_progress;
+use ic_query::nns::node_operator::build_nns_node_operator_list_report_with_source_and_progress;
+use ic_query::nns::node_operator::refresh_nns_node_operator_report;
+use ic_query_text::nns::node_operator::nns_node_operator_info_report_text;
+use ic_query_text::nns::node_operator::nns_node_operator_list_report_text;
+use ic_query_text::nns::node_operator::nns_node_operator_list_report_verbose_text;
 
 mod spec;
 

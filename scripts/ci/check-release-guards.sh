@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
-export RELEASE_DELIVERY=direct
+export RELEASE_DELIVERY=direct RELEASE_GROUP=query
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
 work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
@@ -47,8 +47,8 @@ ancestor() {
 }
 snapshot() {
   mkdir -p "commits/$1/files"
-  cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$1/files/"
-  cp -R docs "commits/$1/files/"
+  cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md "commits/$1/files/"
+  cp -R docs ci crates releases "commits/$1/files/"
 }
 case "$1" in
   for-each-ref) printf '\n' ;;
@@ -94,7 +94,7 @@ case "$1" in
     exit 0 ;;
   diff)
     case "$2" in
-      --binary) cat Cargo.toml Cargo.lock CHANGELOG.md ;;
+      --binary) cat Cargo.toml Cargo.lock releases/query/CHANGELOG.md ;;
       --cached)
         if [[ "${3:-}" == --quiet ]]; then
           [[ "${FIXTURE_STAGED:-}" != yes ]]
@@ -135,10 +135,10 @@ case "$1" in
     case "$2" in
       --list) if [[ -f "tags/$3^{commit}" ]]; then printf '%s\n' "$3"; fi ;;
       -a)
-        [[ "$#" == 6 && -f "commits/$4/parent" && "$5" == -m && "$6" == "Release ${3#v}" ]] || exit 1
+        [[ "$#" == 6 && -f "commits/$4/parent" && "$5" == -m && "$6" == "Release query ${3#query-v}" ]] || exit 1
         mkdir -p tags
         printf '%s\n' "$4" > "tags/$3^{commit}"
-        printf '%s\n' "${3#v}" > tag
+        printf '%s\n' "${3#query-v}" > tag
         echo tag >> events ;;
       *) exit 2 ;;
     esac ;;
@@ -153,14 +153,17 @@ case "$1" in
       esac
     done ;;
   add)
-    [[ "$#" == 6 && "$2" == -- && "$3" == Cargo.toml && "$4" == Cargo.lock && "$5" == CHANGELOG.md \
-      && "$6" == "docs/changelog/$(sed 's/\.[0-9]*$//' candidate).md" ]] || exit 1
+    [[ "$#" == 8 && "$2" == -- ]] || exit 1
+    shift 2
+    printf '%s\n' "$@" | sort > staged-paths
+    printf '%s\n' Cargo.toml Cargo.lock releases/query/CHANGELOG.md crates/ic-query/Cargo.toml crates/ic-query-testkit/Cargo.toml "releases/query/$(sed 's/\.[0-9]*$//' candidate).md" | sort > expected-paths
+    cmp staged-paths expected-paths
     mkdir -p index
-    cp Cargo.toml Cargo.lock README.md CHANGELOG.md index/
-    cp -R docs index/
+    cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md index/
+    cp -R docs ci crates releases index/
     echo stage >> events ;;
   commit)
-    [[ "$#" == 3 && "$2" == -m && "$3" == "Release $(cat candidate)" ]] || exit 1
+    [[ "$#" == 3 && "$2" == -m && "$3" == "Release query $(cat candidate)" ]] || exit 1
     if [[ -d "commits/$release_sha" ]]; then
       release_sha="$(printf '%s\n' "$3" "$(cat head)" | "$REAL_GIT" hash-object --stdin)"
     fi
@@ -173,7 +176,7 @@ case "$1" in
   push)
     [[ "$#" == 7 && "$2" == --no-follow-tags && "$3" == --atomic && "$4" == -- \
       && "$5" == https://example.invalid/ic-query && "$6" == *:refs/heads/main \
-      && "$7" == "refs/tags/v$(cat tag):refs/tags/v$(cat tag)" ]] || exit 1
+      && "$7" == "refs/tags/query-v$(cat tag):refs/tags/query-v$(cat tag)" ]] || exit 1
     push_head="$(resolve "${6%:refs/heads/main}")"
     if [[ -f remote-head ]]; then ancestor "$(cat remote-head)" "$push_head"; fi
     printf '%s %s\n' "$push_head" "$(cat tag)" >> pushes
@@ -181,7 +184,7 @@ case "$1" in
     [[ "${FIXTURE_BEFORE_PUSH:-}" != yes ]] || exit 47
     echo "$push_head" > remote-head
     echo "$tag_sha" > remote-tag
-    printf 'refs/tags/v%s\n' "$(cat tag)" > remote-tag-name
+    printf 'refs/tags/query-v%s\n' "$(cat tag)" > remote-tag-name
     [[ "${FIXTURE_LOST_PUSH_REPLY:-}" != yes ]] || exit 47 ;;
   archive)
     selected="$(resolve "${!#}")"
@@ -198,7 +201,7 @@ cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
-printf 'cargo %s\n' "$*" >> events
+if [[ "$*" != 'metadata --locked --offline --format-version 1' ]]; then printf 'cargo %s\n' "$*" >> events; fi
 case "$*" in
   'fetch --locked'|'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
   'sort --version'|'fmt --version')
@@ -212,6 +215,14 @@ case "$*" in
     fi ;;
   'sort --workspace --grouped --check') [[ "${FIXTURE_MANIFEST_ORDER_FAILURE:-}" != yes ]] || exit 79 ;;
   'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
+  'metadata --locked --offline --format-version 1')
+    packages='[]'
+    for package in ic-query ic-query-testkit ic-query-cli ic-query-text; do
+      version="$("$YQ" -p toml -o json -r '.package.version' "crates/$package/Cargo.toml")"
+      packages="$(jq --arg name "$package" --arg version "$version" --arg path "$PWD/crates/$package/Cargo.toml" '. + [{id:$name,name:$name,version:$version,source:null,manifest_path:$path}]' <<< "$packages")"
+    done
+    jq -n --arg root "$PWD" --argjson packages "$packages" '{workspace_root:$root,workspace_members:($packages|map(.id)),packages:$packages}' ;;
+
   generate-lockfile) sed "s/1.0.0/${FIXTURE_NEWER_DEPENDENCY:-2.0.0}/" Cargo.lock > changed.lock; mv changed.lock Cargo.lock ;;
   *) exit 2 ;;
 esac
@@ -285,21 +296,22 @@ export PATH="$work_dir/bin:$PATH"
 fail() { echo "release fixture failed: $*" >&2; exit 1; }
 new_fixture() {
   local name="$1" kind="$2" candidate minor
-  mkdir -p "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/dev" "$work_dir/$name/scripts/release" "$work_dir/$name/ci" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
+  mkdir -p "$work_dir/$name/releases/query" "$work_dir/$name/scripts/ci" "$work_dir/$name/scripts/dev" "$work_dir/$name/scripts/release" "$work_dir/$name/ci" "$work_dir/$name/docs/changelog" "$work_dir/$name/target"
   cd "$work_dir/$name"
   bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
-    Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh
+    Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh scripts/ci/cargo-release-group.sh
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"
   printf '%s\n' "$candidate" > candidate
   printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n' > 'head'
   cat > Cargo.toml <<'MANIFEST'
-[workspace.package]
-version = "0.46.5"
+[workspace]
+members = ["crates/ic-query", "crates/ic-query-testkit", "crates/ic-query-cli", "crates/ic-query-text"]
 [workspace.dependencies]
 ic-query = { path = "crates/ic-query", version = "0.46.5", default-features = false }
 ic-query-cli = { path = "crates/ic-query-cli", version = "0.46.5" }
+ic-query-text = { path = "crates/ic-query-text", version = "0.46.5" }
 ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.46.5" }
 MANIFEST
   cat > Cargo.lock <<'LOCK'
@@ -326,14 +338,23 @@ name = "ic-query-testkit"
 version = "0.46.5"
 dependencies = ["ic-query"]
 LOCK
+  for package in ic-query ic-query-testkit ic-query-cli ic-query-text; do
+    mkdir -p "crates/$package"
+    printf '[package]\nname = "%s"\nversion = "0.46.5"\n' "$package" > "crates/$package/Cargo.toml"
+  done
+  mkdir -p releases/query releases/cli
+  printf '# CLI history\n' > releases/cli/CHANGELOG.md
+  printf '# Root changelog index\n' > CHANGELOG.md
+  jq --arg detail "releases/query/$minor.md" '.groups |= map(if .name == "query" then .metadata_files = [$detail] else .metadata_files = [] end)' "$repo_root/ci/cargo-release-groups.json" > ci/cargo-release-groups.json
   printf 'ic-query = { version = "0.46", default-features = false }\n' > README.md
   cp README.md docs/library-usage.md
-  printf "# Changelog\n\n## [%s]\n\n- Current batch.\n\n## [0.46.x] - 2026-10-04\n\n- \`0.46.5\` historical release.\n" "$candidate" > CHANGELOG.md
-  printf '# %s Changelog\n\n## %s\n\n- Current batch.\n' "$minor" "$candidate" > "docs/changelog/$minor.md"
+  printf "# Changelog\n\n## [%s]\n\n- Current batch.\n\n## [0.46.x] - 2026-10-04\n\n- \`0.46.5\` historical release.\n" "$candidate" > releases/query/CHANGELOG.md
+  printf '# %s Changelog\n\n## %s\n\n- Current batch.\n' "$minor" "$candidate" > "releases/query/$minor.md"
+  printf '\n[[package]]\nname = "ic-query-text"\nversion = "0.46.5"\n' >> Cargo.lock
   cp Cargo.lock original-lock
   mkdir -p commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files
-  cp Cargo.toml Cargo.lock README.md CHANGELOG.md commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
-  cp -R docs commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
+  cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
+  cp -R docs ci crates releases commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/
   printf 'retained artifact\n' > target/original-artifact
 }
 run_release() {
@@ -349,56 +370,59 @@ check_complete() {
   local candidate minor expected_lock
   candidate="$(cat candidate)"
   minor="${candidate%.*}"
-  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$candidate" && "$(cat tag)" == "$candidate" ]] || exit 1
+  [[ "$(bash scripts/ci/cargo-release-group.sh version query)" == "$candidate" && "$(cat tag)" == "$candidate" ]] || exit 1
   [[ "$(count_event commit)" == 1 && "$(count_event tag)" == 1 && "$(count_event push)" == 1 ]] || exit 1
-  [[ "$(tail -n 1 ".release-state/$candidate.plan")" == complete && ! -e .release-state/lock ]] || exit 1
+  [[ "$(sed -n '11p' ".release-state/query-$candidate.plan")" == complete && ! -e .release-state/lock ]] || exit 1
   [[ -f target/original-artifact && -f target/retained-output ]] || exit 1
-  grep -Fxq "## [$candidate] - $(date -u +%F)" CHANGELOG.md
-  grep -Fxq "## $candidate - $(date -u +%F)" "docs/changelog/$minor.md"
-  grep -Fq -- "- \`0.46.5\` historical release." CHANGELOG.md
-  expected_lock="$(sed "s/0.46.5/$candidate/g" original-lock)"
+  grep -Fxq "## [$candidate] - $(date -u +%F)" releases/query/CHANGELOG.md
+  grep -Fxq "## $candidate - $(date -u +%F)" "releases/query/$minor.md"
+  grep -Fq -- "- \`0.46.5\` historical release." releases/query/CHANGELOG.md
+  export SELECTED_FIXTURE_VERSION="$candidate"
+  expected_lock="$(perl -0pe 's/(name = "ic-query(?:-testkit)?"\nversion = ")0\.46\.5/$1$ENV{SELECTED_FIXTURE_VERSION}/g' original-lock)"
   [[ "$(cat Cargo.lock)" == "$expected_lock" ]] || fail 'dependency selection changed'
   bash scripts/ci/check-changelog-version.sh "$candidate"
 }
 commit_fix() {
   local kind="$1" previous candidate minor fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-  previous="$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)"
+  previous="$(bash scripts/ci/cargo-release-group.sh version query)"
   candidate="$(bash scripts/ci/next-release-version.sh "$previous" "$kind")"
   minor="${candidate%.*}"
   printf '%s\n' "$candidate" > candidate
   printf '# Changelog\n\n## [%s]\n\n- Reviewed callback fix.\n\n' "$candidate" > pending-notes
-  cat CHANGELOG.md >> pending-notes
-  mv pending-notes CHANGELOG.md
-  if [[ -f "docs/changelog/$minor.md" ]]; then
+  cat releases/query/CHANGELOG.md >> pending-notes
+  mv pending-notes releases/query/CHANGELOG.md
+  if [[ -f "releases/query/$minor.md" ]]; then
     printf '# %s Changelog\n\n## %s\n\n- Reviewed callback fix.\n\n' "$minor" "$candidate" > pending-notes
-    cat "docs/changelog/$minor.md" >> pending-notes
-    mv pending-notes "docs/changelog/$minor.md"
+    cat "releases/query/$minor.md" >> pending-notes
+    mv pending-notes "releases/query/$minor.md"
   else
-    printf '# %s Changelog\n\n## %s\n\n- Reviewed callback fix.\n' "$minor" "$candidate" > "docs/changelog/$minor.md"
+    printf '# %s Changelog\n\n## %s\n\n- Reviewed callback fix.\n' "$minor" "$candidate" > "releases/query/$minor.md"
   fi
+  jq --arg detail "releases/query/$minor.md" '.groups |= map(if .name == "query" then .metadata_files = [$detail] else . end)' ci/cargo-release-groups.json > policy-next
+  mv policy-next ci/cargo-release-groups.json
   printf 'Reviewed later source change\n' >> README.md
   mkdir -p "commits/$fix/files"
   cp head "commits/$fix/parent"
   printf 'Fix release callback\n' > "commits/$fix/subject"
   printf '%s\n' "$fix" > "commits/$fix/tree"
-  cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$fix/files/"
-  cp -R docs "commits/$fix/files/"
+  cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md "commits/$fix/files/"
+  cp -R docs ci crates releases "commits/$fix/files/"
   printf '%s\n' "$fix" > 'head'
   : > descendant
 }
 save_old_evidence() {
-  cp .release-state/0.47.0.plan original-plan
-  cp .release-state/0.47.0.validation original-binding
-  cp -R .release-state/0.47.0.verify.* original-evidence
-  if [[ -f 'tags/v0.47.0^{commit}' ]]; then cp 'tags/v0.47.0^{commit}' original-tag; fi
+  cp .release-state/query-0.47.0.plan original-plan
+  cp .release-state/query-0.47.0.validation original-binding
+  cp -R .release-state/query-0.47.0.verify.* original-evidence
+  if [[ -f 'tags/query-v0.47.0^{commit}' ]]; then cp 'tags/query-v0.47.0^{commit}' original-tag; fi
 }
 check_old_evidence() {
-  cmp original-plan .release-state/0.47.0.plan
-  cmp original-binding .release-state/0.47.0.validation
-  if [[ -f original-tag ]]; then cmp original-tag 'tags/v0.47.0^{commit}'; fi
-  [[ "$(cat 'tags/v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]] || exit 1
-  diff -r original-evidence .release-state/0.47.0.verify.*
-  [[ "$(tail -n 1 .release-state/0.47.0.plan)" == push ]] || exit 1
+  cmp original-plan .release-state/query-0.47.0.plan
+  cmp original-binding .release-state/query-0.47.0.validation
+  if [[ -f original-tag ]]; then cmp original-tag 'tags/query-v0.47.0^{commit}'; fi
+  [[ "$(cat 'tags/query-v0.47.0^{commit}')" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]] || exit 1
+  diff -r original-evidence .release-state/query-0.47.0.verify.*
+  [[ "$(sed -n '11p' .release-state/query-0.47.0.plan)" == push ]] || exit 1
 }
 # The CI assertion probe invokes this same setup and completion check directly.
 if [[ "${1:-}" == --assert-completion ]]; then
@@ -430,8 +454,8 @@ STUB
     source-prepared) head_failure_at=2 ;;
   esac
   mkdir original-source
-  cp Cargo.toml Cargo.lock README.md CHANGELOG.md head target/original-artifact original-source/
-  cp -R docs original-source/
+  cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md head target/original-artifact original-source/
+  cp -R docs ci crates releases original-source/
   status=0
   FIXTURE_HEAD_FAILURE_AT="$head_failure_at" IC_QUERY_RELEASE_PREPARE_CACHE=1 \
     RELEASE_KIND=patch RELEASE_PREVIOUS=0.46.5 RELEASE_VERSION=0.46.6 \
@@ -440,7 +464,7 @@ STUB
     bash scripts/release/adapter.sh "$operation" > output 2>&1 || status=$?
   [[ "$status" == 23 ]] || fail "$observation did not preserve failed observation status: $status"
   grep -Fq "$diagnostic" output || fail "$observation lost observation diagnostics"
-  for file in Cargo.toml Cargo.lock README.md CHANGELOG.md head; do
+  for file in Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md head; do
     cmp "original-source/$file" "$file"
   done
   cmp original-source/original-artifact target/original-artifact
@@ -467,7 +491,7 @@ fi
 [[ ! -e .release-state && ! -e events ]] || fail 'refused delivery changed release state'
 for kind in patch minor major; do
   new_fixture "success-$kind" "$kind"
-  FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=CHANGELOG.md run_release "$kind" \
+  FIXTURE_NEWER_DEPENDENCY=9.0.0 FIXTURE_CHANGED_PATH=releases/query/CHANGELOG.md run_release "$kind" \
     || { cat output; fail "$kind"; }
   check_complete
   awk '/^cargo metadata / || /^cargo sort --workspace --grouped --check$/ { next } { print }' events > observed
@@ -487,15 +511,15 @@ cmp saved-lock Cargo.lock
 new_fixture committed-preparation-restart patch
 FIXTURE_FAIL_TARGET=release-prepare-version expect_failure patch
 old_candidate="$(cat candidate)"
-old_evidence="$(cat ".release-state/$old_candidate.validation")"
-cp ".release-state/$old_candidate.validation" saved-binding
+old_evidence="$(cat ".release-state/query-$old_candidate.validation")"
+cp ".release-state/query-$old_candidate.validation" saved-binding
 cp -R "$old_evidence" saved-evidence
 printf 'Reviewed preparation fix\n' >> README.md
 fix=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 mkdir -p "commits/$fix/files"
 cp head "commits/$fix/parent"
-cp Cargo.toml Cargo.lock README.md CHANGELOG.md "commits/$fix/files/"
-cp -R docs "commits/$fix/files/"
+cp Cargo.toml Cargo.lock README.md releases/query/CHANGELOG.md "commits/$fix/files/"
+cp -R docs ci crates releases "commits/$fix/files/"
 printf '%s\n' "$fix" > 'head'
 for conflict in selections dirty; do
   cp "$old_evidence/identity" saved-identity
@@ -509,20 +533,20 @@ for conflict in selections dirty; do
     RELEASE_BRANCH=main bash scripts/release/adapter.sh preflight > output 2>&1; then
     fail 'conflicting superseded receipt admitted'
   fi
-  cmp saved-binding ".release-state/$old_candidate.validation"
+  cmp saved-binding ".release-state/query-$old_candidate.validation"
   [[ "$(count_event validate)" == 1 ]] || fail 'conflicting receipt dispatched validation'
   cp saved-identity "$old_evidence/identity"
   unset FIXTURE_DIRTY
 done
 FIXTURE_GATE_FAILURE=yes expect_failure patch
-set -- .release-state/"$old_candidate".validation-attempt.*/"$old_candidate".validation
+set -- .release-state/query-"$old_candidate".validation-attempt.*/"$old_candidate".validation
 [[ $# == 1 && -f "$1" ]] || fail 'superseded validation pointer not retained'
 archived_binding="$1"
 cmp saved-binding "$archived_binding"
 diff -r saved-evidence "$old_evidence"
-[[ ! -e ".release-state/$old_candidate.validation" && "$(count_event stage)" == 0 ]] \
+[[ ! -e ".release-state/query-$old_candidate.validation" && "$(count_event stage)" == 0 ]] \
   || fail 'failed revalidation admitted old evidence or staged metadata'
-failed_evidence=(.release-state/"$old_candidate".verify.*/validation.log)
+failed_evidence=(.release-state/query-"$old_candidate".verify.*/validation.log)
 [[ ${#failed_evidence[@]} == 2 ]] || fail 'revalidation evidence missing'
 for log in "${failed_evidence[@]}"; do
   [[ "$log" == "$old_evidence/validation.log" ]] || failed_log="$log"
@@ -531,7 +555,7 @@ cp "$failed_log" failed-revalidation
 run_release patch || { cat output; fail 'committed preparation restart'; }
 check_complete
 [[ "$(count_event validate)" == 3 ]] || fail 'committed source did not receive fresh validation'
-new_evidence="$(cat ".release-state/$old_candidate.validation")"
+new_evidence="$(cat ".release-state/query-$old_candidate.validation")"
 [[ "$new_evidence" != "$old_evidence" && "$(sed -n '6p' "$new_evidence/identity")" == "$fix" ]] \
   || fail 'fresh receipt did not bind the new source'
 cmp saved-binding "$archived_binding"
@@ -546,12 +570,12 @@ save_old_evidence
 commit_fix patch
 cp Cargo.lock original-lock
 run_release patch || { cat output; fail 'descendant ordinary increment'; }
-[[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == "$(cat candidate)" ]] || exit 1
+[[ "$(bash scripts/ci/cargo-release-group.sh version query)" == "$(cat candidate)" ]] || exit 1
 [[ "$(count_event validate)" == 2 && "$(count_event commit)" == 2 && "$(count_event tag)" == 2 ]] || exit 1
-[[ "$(tail -n 1 ".release-state/$(cat candidate).plan")" == complete ]] || exit 1
-sed "s/0.47.0/$(cat candidate)/g" original-lock > expected-lock
+[[ "$(sed -n '11p' ".release-state/query-$(cat candidate).plan")" == complete ]] || exit 1
+SELECTED_FIXTURE_VERSION="$(cat candidate)" perl -0pe 's/(name = "ic-query(?:-testkit)?"\nversion = ")0\.47\.0/$1$ENV{SELECTED_FIXTURE_VERSION}/g' original-lock > expected-lock
 cmp expected-lock Cargo.lock
-next_evidence="$(cat ".release-state/$(cat candidate).validation")"
+next_evidence="$(cat ".release-state/query-$(cat candidate).validation")"
 [[ "$(sed -n '6p' "$next_evidence/identity")" == eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee ]] || exit 1
 bash scripts/ci/check-changelog-version.sh "$(cat candidate)"
 check_old_evidence
@@ -559,14 +583,14 @@ check_old_evidence
 [[ -f target/original-artifact && -f target/retained-output && ! -e .release-state/lock ]] || exit 1
 for notes in root detail; do
   new_fixture "candidate-mismatch-$notes" patch
-  if [[ "$notes" == root ]]; then notes_path=CHANGELOG.md; else notes_path=docs/changelog/0.46.md; fi
+  if [[ "$notes" == root ]]; then notes_path=releases/query/CHANGELOG.md; else notes_path=releases/query/0.46.md; fi
   printf '# Changelog\n\n## [9.9.9]\n' > "$notes_path"
   cp "$notes_path" "commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/files/$notes_path"
   cp "$notes_path" conflicting-notes
   expect_failure patch
   cmp conflicting-notes "$notes_path"
   cmp original-lock Cargo.lock
-  [[ ! -e events && ! -e .release-state/0.46.6.plan && ! -e .release-state/0.46.6.validation ]] || exit 1
+  [[ ! -e events && ! -e .release-state/query-0.46.6.plan && ! -e .release-state/query-0.46.6.validation ]] || exit 1
 done
 for failure in gate missing-dependency formatter-setup formatter-check dirty staged untracked unusual observation; do
   new_fixture "failure-$failure" patch
@@ -581,17 +605,17 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
     unusual) FIXTURE_UNTRACKED=$'caller-owned\nfile.txt' expect_failure patch ;;
     observation) FIXTURE_STATUS_FAIL=yes expect_failure patch ;;
   esac
-  [[ "$(bash scripts/ci/read-cargo-workspace-version.sh --stable Cargo.toml)" == 0.46.5 && ! -e tag && ! -e remote-head ]] || exit 1
+  [[ "$(bash scripts/ci/cargo-release-group.sh version query)" == 0.46.5 && ! -e tag && ! -e remote-head ]] || exit 1
   cmp original-lock Cargo.lock
-  [[ -f target/original-artifact && ! -e .release-state/0.46.6.plan && ! -e .release-state/lock ]] || exit 1
+  [[ -f target/original-artifact && ! -e .release-state/query-0.46.6.plan && ! -e .release-state/lock ]] || exit 1
   case "$failure" in
     formatter-setup|formatter-check)
-      [[ "$(count_event validate)" == 0 && ! -e .release-state/0.46.6.validation ]] || exit 1
+      [[ "$(count_event validate)" == 0 && ! -e .release-state/query-0.46.6.validation ]] || exit 1
       printf '%s\n' 'cargo fetch --locked' 'formatter setup' > expected
       if [[ "$failure" == formatter-check ]]; then printf '%s\n' 'cargo-audit setup' 'cargo-machete setup' 'editor setup' 'formatter check' >> expected; fi
       cmp expected events ;;
     dirty|staged|untracked|unusual|observation)
-      [[ ! -e events && ! -e .release-state/0.46.6.validation ]] || exit 1
+      [[ ! -e events && ! -e .release-state/query-0.46.6.validation ]] || exit 1
       case "$failure" in
         dirty) grep -Fq 'commit or restore worktree changes before starting a release' output ;;
         staged) grep -Fq 'commit or restore staged changes before starting a release' output ;;
@@ -603,7 +627,7 @@ for failure in gate missing-dependency formatter-setup formatter-check dirty sta
       esac ;;
   esac
   if [[ "$failure" == gate ]]; then
-    failed_logs=(.release-state/0.46.6.verify.*/validation.log)
+    failed_logs=(.release-state/query-0.46.6.verify.*/validation.log)
     [[ -f "${failed_logs[0]}" ]] || fail 'failed gate log was discarded'
     run_release patch || { cat output; fail 'fresh gate retry'; }
     [[ -f "${failed_logs[0]}" && "$(count_event validate)" == 2 ]] || exit 1
@@ -614,10 +638,10 @@ for conflict in payload dependency identity retained-inputs unrelated; do
   new_fixture "conflict-$conflict" patch
   FIXTURE_LOST_PREPARE_REPLY=yes expect_failure patch
   case "$conflict" in
-    payload) echo 'unvalidated edit' >> CHANGELOG.md ;;
+    payload) echo 'unvalidated edit' >> releases/query/CHANGELOG.md ;;
     dependency) sed 's/1.0.0/2.0.0/' Cargo.lock > changed; mv changed Cargo.lock ;;
-    identity) echo invalid > .release-state/0.46.6.verify.*/identity ;;
-    retained-inputs) echo 'changed evidence' >> .release-state/0.46.6.verify.*/before/Cargo.lock ;;
+    identity) echo invalid > .release-state/query-0.46.6.verify.*/identity ;;
+    retained-inputs) echo 'changed evidence' >> .release-state/query-0.46.6.verify.*/before/Cargo.lock ;;
     unrelated) export FIXTURE_CHANGED_PATH=src/unrelated.rs ;;
   esac
   expect_failure resume "$(cat candidate)"
@@ -668,7 +692,8 @@ mkdir -p "$metadata_context"
 cat > "$metadata_context/Makefile" <<'MAKE'
 .PHONY: metadata-check ci
 metadata-check:
-	@bash "$(FIXTURE_REPOSITORY_ROOT)/scripts/ci/check-release-metadata.sh"
+	@RELEASE_GROUP=query bash "$(FIXTURE_REPOSITORY_ROOT)/scripts/ci/check-release-metadata.sh"
+	@RELEASE_GROUP=cli bash "$(FIXTURE_REPOSITORY_ROOT)/scripts/ci/check-release-metadata.sh"
 ci:
 	@echo 'error: metadata fixture reached its parent gate' >&2
 	@echo parent-gate-reached > parent-routing.log

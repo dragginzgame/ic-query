@@ -4,10 +4,9 @@ use crate::nns::{NnsCommandError, leaf};
 use crate::storage::cache_root;
 use clap::ArgMatches;
 use ic_query::nns::NnsInventoryCacheRequest;
-use ic_query::nns::node::{
-    build_nns_node_info_report_with_source_and_progress, nns_node_info_report_text,
-    refresh_nns_node_report,
-};
+use ic_query::nns::node::build_nns_node_info_report_with_source_and_progress;
+use ic_query::nns::node::refresh_nns_node_report;
+use ic_query_text::nns::node::nns_node_info_report_text;
 
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,

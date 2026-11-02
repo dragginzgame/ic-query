@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[tokio::test(flavor = "current_thread")]
 async fn topology_versions_report_preserves_component_registry_provenance() {
@@ -27,22 +28,4 @@ async fn topology_versions_report_preserves_component_registry_provenance() {
         assert_eq!(row.registry_version, version);
         assert_ne!(row.fetched_at, "");
     }
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn topology_versions_text_renders_registry_version_table() {
-    let report = build_nns_topology_versions_report_with_source(
-        &topology_read_request_fixture(),
-        &RecordingTopologySource::default(),
-    )
-    .await
-    .expect("topology versions report");
-
-    let text = nns_topology_versions_report_text(&report);
-
-    assert!(text.contains("SOURCE"));
-    assert!(text.contains("VERSION"));
-    assert!(text.contains("subnet_catalog"));
-    assert!(text.contains("node_operators"));
-    assert!(text.contains("data_centers"));
 }

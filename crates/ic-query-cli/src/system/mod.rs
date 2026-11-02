@@ -9,10 +9,12 @@ use crate::cli::{
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::report::CollectionSourceRequest;
-use ic_query::system::cmc::{
-    CmcHostError, DEFAULT_CMC_SOURCE_ENDPOINT, build_cmc_cycles_report, build_cmc_xdr_report,
-    cmc_cycles_report_text, cmc_xdr_report_text,
-};
+use ic_query::system::cmc::CmcHostError;
+use ic_query::system::cmc::DEFAULT_CMC_SOURCE_ENDPOINT;
+use ic_query::system::cmc::build_cmc_cycles_report;
+use ic_query::system::cmc::build_cmc_xdr_report;
+use ic_query_text::system::cmc::cmc_cycles_report_text;
+use ic_query_text::system::cmc::cmc_xdr_report_text;
 use serde::Serialize;
 use std::io;
 use thiserror::Error as ThisError;

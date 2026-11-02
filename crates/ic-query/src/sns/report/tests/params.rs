@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_params_resolves_list_id_and_renders_governance_parameters() {
@@ -7,7 +8,6 @@ async fn sns_params_resolves_list_id_and_renders_governance_parameters() {
     let report = build_sns_params_report_with_source(&request, &FixtureSnsParamsSource)
         .await
         .expect("sns params report");
-    let text = sns_params_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PARAMS_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.instance.id, 1);
@@ -27,16 +27,4 @@ async fn sns_params_resolves_list_id_and_renders_governance_parameters() {
             .and_then(|rewards| rewards.initial_reward_rate_basis_points),
         Some(1000)
     );
-    assert!(text.contains("governance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai"));
-    assert!(text.contains("neuron_minimum_stake"));
-    assert!(text.contains("transaction_fee"));
-    assert!(text.contains("max_dissolve_delay"));
-    assert!(text.contains("voting_reward_initial_rate"));
-    assert!(text.contains("automatically_advance_target_version"));
-    assert!(text.contains("1.00"));
-    assert!(text.contains("0.00"));
-    assert!(text.contains("2922d"));
-    assert!(text.contains("10.00%"));
-    assert!(text.contains("yes"));
-    assert!(text.contains("1,2,3"));
 }

@@ -5,6 +5,7 @@ native_target="$(rustc -vV | sed -n 's/^host: //p')"
 [[ -n "$native_target" ]] || { echo 'missing compiler host target' >&2; exit 1; }
 
 forbidden_tooling_dependencies=(
+  ic-query-text
   futures-executor
   ic-build
   ic-host-process
@@ -13,6 +14,7 @@ forbidden_tooling_dependencies=(
 )
 
 forbidden_pure_library_dependencies=(
+  ic-query-text
   candid_parser
   clap
   futures-util
@@ -60,6 +62,7 @@ forbidden_canister_dependencies=(
 # Certificate consumers select Host without Candid service parsing; retain
 # interface, process and archive exclusions alongside parser exclusion.
 forbidden_host_dependencies=(
+  ic-query-text
   futures-executor
   candid_parser
   ic-host-tools/candid
@@ -327,6 +330,8 @@ while IFS=$'	' read -r target feature _tests; do
 done < "$repo_root/ci/library-feature-cases.tsv"
 
 # Metrics is arithmetic-only; Wire belongs to development probes and fixtures.
+# Text is a downstream consumer; forbid back-edges only on Query's graph.
+forbidden_tooling_dependencies=(futures-executor ic-build ic-host-process ic-testkit wat)
 check_tree_absent "ic-query-cli production dependencies" \
   "${forbidden_tooling_dependencies[@]}" \
   ic-platform-runtime \

@@ -18,7 +18,8 @@ pub use detail::{
 };
 pub use diff::{
     SnsRewardAllocationStatus, SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason,
-    SnsRewardDiffInvalidReasonKind, SnsRewardDiffReport, SnsRewardDiffRow,
+    SnsRewardDiffInvalidReasonKind, SnsRewardDiffNeuronEvidence, SnsRewardDiffReport,
+    SnsRewardDiffRow,
 };
 #[cfg(feature = "sns-host")]
 pub use report::SnsNeuronsReport;

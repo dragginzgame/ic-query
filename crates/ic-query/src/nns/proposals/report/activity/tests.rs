@@ -1,9 +1,8 @@
 use super::*;
-use crate::nns::{
-    MAINNET_GOVERNANCE_CANISTER_ID,
-    governance::NnsGovernanceRequest,
-    proposals::{NnsProposalBallotRow, NnsProposalTally, nns_proposal_activity_report_text},
-};
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::governance::NnsGovernanceRequest;
+use crate::nns::proposals::NnsProposalBallotRow;
+use crate::nns::proposals::NnsProposalTally;
 
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
@@ -393,15 +392,6 @@ fn empty_report_json_retains_raw_fields_and_text_retains_every_section() {
     assert_eq!(json["included_proposal_count"], 0);
     assert_eq!(json["point_in_time_guaranteed"], false);
     assert_eq!(json["topic_counts"], serde_json::json!([]));
-
-    let text = nns_proposal_activity_report_text(&report);
-    assert!(text.contains("source_transport: replica_query"));
-    assert!(text.contains("point_in_time_guaranteed: no"));
-    assert!(
-        text.contains(
-            "\n\ntopics:\n-\n\nstatuses:\n-\n\nreward_statuses:\n-\n\ndaily_activity:\n-"
-        )
-    );
 }
 
 #[test]
@@ -497,8 +487,7 @@ fn complete_collection(proposals_fetched: usize) -> NnsProposalCollectionState {
         "proposals_fetched": proposals_fetched,
         "next_before_proposal_id": null,
         "started_at": "2026-08-15T00:00:00Z",
-        "updated_at": "2026-08-15T00:00:01Z",
-        "status": "complete"
+        "updated_at": "2026-08-15T00:00:01Z"
     }))
     .expect("complete collection fixture")
 }
@@ -524,8 +513,7 @@ fn page_limited_collection() -> NnsProposalCollectionState {
         "proposals_fetched": 1,
         "next_before_proposal_id": 2,
         "started_at": "2026-08-15T00:00:00Z",
-        "updated_at": "2026-08-15T00:00:01Z",
-        "status": "page_limit_reached"
+        "updated_at": "2026-08-15T00:00:01Z"
     }))
     .expect("page-limited collection fixture")
 }

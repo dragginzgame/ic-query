@@ -18,6 +18,9 @@ pub enum SnsListSort {
 }
 
 impl SnsListSort {
+    /// All supported choices in their public presentation order.
+    pub const ALL: &'static [Self] = &[Self::Id, Self::Name];
+
     /// Return the stable label used in text and JSON reports.
     #[must_use]
     pub const fn as_str(self) -> &'static str {

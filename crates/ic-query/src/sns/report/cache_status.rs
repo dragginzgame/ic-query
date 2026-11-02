@@ -58,8 +58,8 @@ where
         input: request.input.clone(),
         found: cache.is_some(),
         cache,
-        expected_cache_path: Some(paths.snapshot_path.display().to_string()),
-        refresh_attempt_path: Some(paths.refresh_attempt_path.display().to_string()),
+        expected_cache_path: paths.snapshot_path.display().to_string(),
+        refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
         latest_attempt,
     })
 }

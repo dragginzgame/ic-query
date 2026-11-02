@@ -1,0 +1,44 @@
+//! Module: sns::token
+//!
+//! Responsibility: render SNS token reports as text.
+//! Does not own: token source reads, report construction, or JSON output.
+//! Boundary: formats token metadata and base-unit amounts for humans.
+
+use crate::token_metadata_text::append_token_metadata_tables;
+use crate::token_metadata_text::token_summary_lines;
+use ic_host_text::escape::terminal_text;
+use ic_query::sns::SnsTokenReport;
+
+#[must_use]
+/// Render the SNS token report as human-facing text.
+pub fn sns_token_report_text(report: &SnsTokenReport) -> String {
+    let mut lines = vec![
+        format!("network: {}", terminal_text(&report.context.network)),
+        format!("sns_id: {}", report.context.id),
+        format!("name: {}", terminal_text(&report.context.name)),
+        format!("root_canister_id: {}", report.context.root_canister_id),
+        format!("ledger_canister_id: {}", report.ledger_canister_id),
+        format!("sns_index_canister_id: {}", report.sns_index_canister_id),
+        format!(
+            "ledger_index_canister_id: {}",
+            terminal_text(report.ledger_index.canister_id().unwrap_or("-"))
+        ),
+    ];
+    lines.extend(token_summary_lines(&report.token));
+    lines.extend([
+        format!(
+            "sns_wasm_canister_id: {}",
+            report.context.sns_wasm_canister_id
+        ),
+        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
+        format!(
+            "source_endpoint: {}",
+            terminal_text(&report.context.source_endpoint)
+        ),
+    ]);
+    if let Some(error) = report.ledger_index.unavailable_reason() {
+        lines.push(format!("ledger_index_error: {}", terminal_text(error)));
+    }
+    append_token_metadata_tables(&mut lines, &report.token);
+    lines.join("\n")
+}

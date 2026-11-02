@@ -27,7 +27,6 @@ pub(in crate::nns) struct GovernanceCollectionState {
     pub(in crate::nns) pages_fetched: u32,
     pub(in crate::nns) started_at: String,
     pub(in crate::nns) updated_at: String,
-    pub(in crate::nns) status: NnsGovernanceCollectionStatus,
 }
 
 impl GovernanceCollectionState {
@@ -48,7 +47,6 @@ impl GovernanceCollectionState {
             pages_fetched: 0,
             started_at: request.fetched_at.clone(),
             updated_at: request.fetched_at.clone(),
-            status: NnsGovernanceCollectionStatus::Ready,
         }
     }
 
@@ -80,18 +78,24 @@ impl GovernanceCollectionState {
         Ok(())
     }
 
+    pub(in crate::nns) const fn status(&self, has_cursor: bool) -> NnsGovernanceCollectionStatus {
+        if self.pages_fetched == 0 {
+            NnsGovernanceCollectionStatus::Ready
+        } else {
+            super::collection_status_after_page(has_cursor, self.pages_fetched, self.max_pages)
+        }
+    }
+
     pub(in crate::nns) fn after_page(
         &self,
         request: &NnsGovernanceRequest,
         source: NnsGovernanceSourceProvenance,
         pages_fetched: u32,
-        has_next: bool,
     ) -> Self {
         Self {
             source: Some(source),
             pages_fetched,
             updated_at: request.fetched_at.clone(),
-            status: super::collection_status_after_page(has_next, pages_fetched, self.max_pages),
             ..self.clone()
         }
     }

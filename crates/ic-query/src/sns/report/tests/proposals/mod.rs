@@ -1,9 +1,11 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
+use crate::cache::CacheValidationStatus;
 use crate::report::CollectionSourceRequest;
 use crate::report::SortDirection;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::source::validate_sns_proposal_rows;
-use crate::{cache::CacheValidationStatus, test_support::temp_dir};
+use crate::test_support::temp_dir;
 use std::fs;
 
 mod cache_status;
@@ -27,7 +29,7 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
         input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
-    let status_text = sns_proposals_cache_status_report_text(&status);
+
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
@@ -38,8 +40,6 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
             .as_ref()
             .is_some_and(|error| error.contains(expected_error))
     );
-    assert!(status_text.contains("cache_status: invalid"));
-    assert!(status_text.contains("cache_error:"));
 
     let list = build_sns_proposals_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -203,7 +203,7 @@ async fn assert_cached_proposal_sort(
     .await
     .expect("auto refresh sorted proposals cache");
 
-    assert_eq!(report.provenance.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source().as_str(), "cache");
     assert_eq!(report.sort, sort.as_str());
     assert_eq!(proposal_ids(&report), expected_proposal_ids);
 
@@ -234,7 +234,7 @@ async fn assert_cached_status_filter(
     .await
     .expect("auto refresh status-filtered proposals cache");
 
-    assert_eq!(first.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source().as_str(), "cache");
     assert_eq!(first.status_filter, status.as_str());
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
@@ -246,7 +246,7 @@ async fn assert_cached_status_filter(
     .await
     .expect("reuse status-filtered proposals cache");
 
-    assert_eq!(second.provenance.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source().as_str(), "cache");
     assert_eq!(second.status_filter, status.as_str());
     assert_eq!(proposal_ids(&second), expected_proposal_ids);
 
@@ -278,7 +278,7 @@ async fn assert_cached_eligibility_filter(
     .await
     .expect("auto refresh eligibility-filtered proposals cache");
 
-    assert_eq!(first.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source().as_str(), "cache");
     assert_eq!(first.eligibility_filter, eligibility.as_str());
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
@@ -290,12 +290,9 @@ async fn assert_cached_eligibility_filter(
     .await
     .expect("reuse eligibility-filtered proposals cache");
 
-    assert_eq!(second.provenance.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source().as_str(), "cache");
     assert_eq!(second.eligibility_filter, eligibility.as_str());
     assert_eq!(proposal_ids(&second), expected_proposal_ids);
-
-    let text = sns_proposals_report_text(&second);
-    assert!(text.contains(&format!("eligibility_filter: {}", eligibility.as_str())));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -321,7 +318,7 @@ async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_propos
     .await
     .expect("auto refresh proposer-filtered proposals cache");
 
-    assert_eq!(first.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source().as_str(), "cache");
     assert_eq!(first.proposer_filter.as_deref(), Some(proposer_neuron_id));
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
@@ -333,12 +330,9 @@ async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_propos
     .await
     .expect("reuse proposer-filtered proposals cache");
 
-    assert_eq!(second.provenance.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source().as_str(), "cache");
     assert_eq!(second.proposer_filter.as_deref(), Some(proposer_neuron_id));
     assert_eq!(proposal_ids(&second), expected_proposal_ids);
-
-    let text = sns_proposals_report_text(&second);
-    assert!(text.contains(&format!("proposer_filter: {proposer_neuron_id}")));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -362,7 +356,7 @@ async fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) 
     .await
     .expect("auto refresh query-filtered proposals cache");
 
-    assert_eq!(first.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source().as_str(), "cache");
     assert_eq!(first.query_filter.as_deref(), Some(query));
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
@@ -374,14 +368,12 @@ async fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) 
     .await
     .expect("reuse query-filtered proposals cache");
 
-    assert_eq!(second.provenance.data_source.as_str(), "cache");
+    assert_eq!(second.provenance.data_source().as_str(), "cache");
     assert_eq!(second.query_filter.as_deref(), Some(query));
     assert_eq!(proposal_ids(&second), expected_proposal_ids);
 
-    let text = sns_proposals_report_text(&second);
     let json = serde_json::to_value(&second).expect("serialize cached SNS proposals report");
     assert_eq!(json["query_filter"], query);
-    assert!(text.contains(&format!("query_filter: {query}")));
 
     let _ = fs::remove_dir_all(root);
 }

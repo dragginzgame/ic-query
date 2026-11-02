@@ -1,0 +1,56 @@
+[package]
+name = "ic-query-text"
+version = "0.85.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Human-facing text presentation of typed IC Query reports"
+readme = "README.md"
+
+[features]
+default = []
+host = [
+    "ic-query/host",
+    "cloud-engine-host",
+    "cmc-host",
+    "dashboard-host",
+    "ic-state-host",
+    "icrc-host",
+    "nns-host",
+    "sns-host",
+]
+cloud-engine-host = ["ic-query/cloud-engine-host"]
+cmc-host = ["ic-query/cmc-host", "certificate-host"]
+dashboard-host = ["ic-query/dashboard-host"]
+ic-state-host = ["ic-query/ic-state-host"]
+icrc-host = ["ic-query/icrc-host", "certificate-host"]
+nns-host = ["ic-query/nns-host", "nns-topology-host", "certified-subnet-catalog-host"]
+sns-host = ["ic-query/sns-host"]
+subnet-catalog-host = ["ic-query/subnet-catalog-host"]
+certified-subnet-catalog-host = [
+    "ic-query/certified-subnet-catalog-host",
+    "certificate-host",
+    "subnet-catalog-host",
+]
+nns-topology-host = ["ic-query/nns-topology-host", "subnet-catalog-host"]
+certificate-host = ["ic-query/certificate-host"]
+ledger-evidence-host = ["ic-query/ledger-evidence-host", "certificate-host"]
+
+[dependencies]
+ic-host-text.workspace = true
+ic-query.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+futures = { workspace = true, features = ["executor"] }
+ic-host-fs = { workspace = true, features = ["test-support"] }
+ic-host-tools = { workspace = true, features = ["certificate", "ledger-evidence"] }
+ic-platform = { workspace = true, features = ["candid", "icrc-ledger-types"] }
+serde.workspace = true
+tokio = { workspace = true, features = ["rt", "macros", "time", "net"] }
+
+[lints]
+workspace = true

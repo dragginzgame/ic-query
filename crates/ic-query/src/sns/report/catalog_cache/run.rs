@@ -168,7 +168,7 @@ pub async fn refresh_sns_catalog_with_source(
             let lifecycle_error_count = list
                 .sns_instances
                 .iter()
-                .filter(|sns| sns.lifecycle_error.is_some())
+                .filter(|sns| sns.lifecycle.error().is_some())
                 .count();
             let sns_count = list.sns_instances.len();
             let cache = cache_from_list(list)?;

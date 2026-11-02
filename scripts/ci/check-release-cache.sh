@@ -21,6 +21,8 @@ cd "$work_dir/repository"
 bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
   Makefile scripts/release/adapter.sh
 cp "$repo_root/ci/tool-versions.env" ci/tool-versions.env
+cp "$repo_root/ci/cargo-release-groups.json" ci/cargo-release-groups.json
+export RELEASE_GROUP=query
 printf 'selected IC pins\n' > ci/ic-tools.tsv
 cat > scripts/ci/run-release.sh <<'STUB'
 #!/usr/bin/env bash
@@ -325,18 +327,18 @@ printf '%s\n' 'fetch --locked --offline' 'formatter check' 'cargo-audit check' '
 cmp "$TRACE_FILE" "$work_dir/expected"
 
 # Saved evidence is admitted before cache preparation against partial metadata.
-mkdir -p .fixture-state/0.50.4.verify.saved
-printf '%s\n' .fixture-state/0.50.4.verify.saved > .fixture-state/0.50.4.validation
+mkdir -p .fixture-state/query-0.50.4.verify.saved
+printf '%s\n' .fixture-state/query-0.50.4.verify.saved > .fixture-state/query-0.50.4.validation
 printf '%s\n' validation-1 "$RELEASE_KIND" "$RELEASE_PREVIOUS" "$RELEASE_VERSION" \
-  "$RELEASE_DATE" "$RELEASE_SOURCE" "$RELEASE_REMOTE" "$RELEASE_BRANCH" > .fixture-state/0.50.4.verify.saved/identity
-: > .fixture-state/0.50.4.verify.saved/passed
+  "$RELEASE_DATE" "$RELEASE_SOURCE" "$RELEASE_REMOTE" "$RELEASE_BRANCH" "$RELEASE_GROUP" "$(perl -MDigest::SHA=sha256_hex -0777 -ne 'print sha256_hex($_)' ci/cargo-release-groups.json)" > .fixture-state/query-0.50.4.verify.saved/identity
+: > .fixture-state/query-0.50.4.verify.saved/passed
 rm prepared-cache
 printf 'interrupted metadata\n' > Cargo.lock
 cp Cargo.lock "$work_dir/interrupted-lock"
 : > "$TRACE_FILE"
 IC_QUERY_RELEASE_PREPARE_CACHE=1 bash scripts/release/adapter.sh preflight
 cmp "$TRACE_FILE" <(printf 'editor check\n')
-[[ "$(cat selected-editor-lock)" == .fixture-state/0.50.4.verify.saved/before/Cargo.lock && ! -e prepared-cache ]] \
+[[ "$(cat selected-editor-lock)" == .fixture-state/query-0.50.4.verify.saved/before/Cargo.lock && ! -e prepared-cache ]] \
   || fail 'recovery selected interrupted metadata or prepared tools/cache'
 cmp Cargo.lock "$work_dir/interrupted-lock"
 echo 'IC Query locked release-cache preparation and recovery fixtures passed'

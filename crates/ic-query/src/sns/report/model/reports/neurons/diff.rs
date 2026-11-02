@@ -156,6 +156,27 @@ pub struct SnsRewardDiffCheckpointRef {
 }
 
 ///
+/// SnsRewardDiffNeuronEvidence
+///
+/// Correlated maturity and policy observations for one side of a neuron comparison.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SnsRewardDiffNeuronEvidence {
+    /// Combined maturity observed at this checkpoint.
+    pub combined_maturity_e8s_equivalent: u64,
+    /// Neuron creation timestamp.
+    pub created_timestamp_seconds: u64,
+    /// Neuron-local mint-conversion policy observation.
+    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
+    /// Neuron-local manual-staking policy observation.
+    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
+    /// Pending maturity-disbursement count.
+    pub pending_maturity_disbursement_count: usize,
+}
+
+///
 /// SnsRewardDiffRow
 ///
 /// Joined raw maturity and policy evidence for one full SNS neuron identifier.
@@ -166,32 +187,12 @@ pub struct SnsRewardDiffCheckpointRef {
 pub struct SnsRewardDiffRow {
     /// Exact 32-byte neuron identifier as lowercase hexadecimal text.
     pub neuron_id: String,
-    /// Earlier combined maturity, or no value for a supported new neuron.
-    pub before_combined_maturity_e8s_equivalent: Option<u64>,
-    /// Later combined maturity, or no value when the neuron disappeared.
-    pub after_combined_maturity_e8s_equivalent: Option<u64>,
+    /// Earlier evidence, absent for a supported new neuron.
+    pub before: Option<SnsRewardDiffNeuronEvidence>,
+    /// Later evidence, absent when the neuron disappeared.
+    pub after: Option<SnsRewardDiffNeuronEvidence>,
     /// Raw signed later-minus-earlier combined maturity delta.
     pub maturity_delta_e8s_equivalent: i128,
-    /// Whether the neuron was first observed after the earlier checkpoint.
-    pub new_neuron: bool,
-    /// Whether an earlier neuron was absent from the later checkpoint.
-    pub missing_after: bool,
-    /// Earlier creation timestamp when the neuron existed.
-    pub before_created_timestamp_seconds: Option<u64>,
-    /// Later creation timestamp when the neuron existed.
-    pub after_created_timestamp_seconds: Option<u64>,
-    /// Earlier neuron-local mint-conversion observation when present.
-    pub before_maturity_mint_conversion_observed_disabled: Option<SnsPolicyObservationStatus>,
-    /// Later neuron-local mint-conversion observation when present.
-    pub after_maturity_mint_conversion_observed_disabled: Option<SnsPolicyObservationStatus>,
-    /// Earlier neuron-local manual-staking observation when present.
-    pub before_manual_maturity_staking_observed_disabled: Option<SnsPolicyObservationStatus>,
-    /// Later neuron-local manual-staking observation when present.
-    pub after_manual_maturity_staking_observed_disabled: Option<SnsPolicyObservationStatus>,
-    /// Earlier pending maturity-disbursement count.
-    pub before_pending_maturity_disbursement_count: Option<usize>,
-    /// Later pending maturity-disbursement count.
-    pub after_pending_maturity_disbursement_count: Option<usize>,
     /// Whether raw permission, pending-disbursement, or auto-stake evidence changed.
     pub policy_evidence_changed: bool,
     /// Allocation numerator, populated only for a valid positive distribution.

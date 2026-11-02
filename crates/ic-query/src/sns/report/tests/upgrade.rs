@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::report::CollectionSourceRequest;
 
 #[tokio::test(flavor = "current_thread")]
@@ -7,7 +8,6 @@ async fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
         build_sns_upgrade_report_with_source(&upgrade_request("1"), &FixtureSnsUpgradeSource)
             .await
             .expect("sns upgrade report");
-    let text = sns_upgrade_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_UPGRADE_REPORT_SCHEMA_VERSION);
     assert_eq!(report.context.instance.id, 1);
@@ -25,12 +25,6 @@ async fn sns_upgrade_preserves_native_versions_and_renders_comparison() {
             .map(|pending| pending.proposal_id),
         Some(42)
     );
-    assert!(text.contains("get_running_sns_version"));
-    assert!(text.contains("get_next_sns_version"));
-    assert!(text.contains("next_version: available"));
-    assert!(text.contains("DEPLOYED"));
-    assert!(text.contains("CHANGED"));
-    assert!(text.contains("proposal_id"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -46,7 +40,6 @@ async fn sns_upgrade_distinguishes_successful_no_successor_from_a_query_gap() {
     assert_eq!(report.component_gap_count, 0);
     assert!(report.next_version.is_none());
     assert!(report.next_version_gap.is_none());
-    assert!(sns_upgrade_report_text(&report).contains("no blessed successor"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -69,7 +62,6 @@ async fn sns_upgrade_retains_next_version_failure_as_a_typed_gap() {
             .map(|gap| gap.method.as_str()),
         Some("get_next_sns_version")
     );
-    assert!(sns_upgrade_report_text(&report).contains("query failed"));
 }
 
 #[tokio::test(flavor = "current_thread")]

@@ -9,9 +9,10 @@ use crate::cli::{
     common::{NetworkOutputOptions, OutputFormat, output_format},
 };
 use clap::ArgMatches;
-use ic_query::sns::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsLookupRequest, SnsSnapshotRefreshRequest,
-};
+use ic_query::sns::SnsCacheListRequest;
+use ic_query::sns::SnsCacheStatusRequest;
+use ic_query::sns::SnsLookupRequest;
+use ic_query::sns::SnsSnapshotRefreshRequest;
 use std::path::PathBuf;
 
 pub(in crate::sns::commands) fn lookup_request(

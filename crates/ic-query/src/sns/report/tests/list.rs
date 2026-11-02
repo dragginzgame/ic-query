@@ -1,10 +1,12 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::QueryProgressEvent;
 use crate::report::CollectionSourceRequest;
-use crate::sns::report::sns_swap_lifecycle_name;
+
 use crate::test_support::temp_dir;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
-use std::{fs, sync::Mutex};
+use std::fs;
+use std::sync::Mutex;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_report_uses_names_and_compact_ids_by_default() {
@@ -12,7 +14,6 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
         build_sns_list_report_with_source(&list_request(false), &FixtureSnsDiscoverySource)
             .await
             .expect("sns list report");
-    let text = sns_list_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_LIST_REPORT_SCHEMA_VERSION);
     assert_eq!(report.network, MAINNET_NETWORK);
@@ -28,29 +29,17 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.sns_instances[0].canisters.root_canister_id, ROOT_A);
     assert_eq!(report.metadata_error_count, 0);
     assert_eq!(report.lifecycle_error_count, 0);
-    assert_eq!(report.sns_instances[0].lifecycle, Some(3));
-    assert_eq!(
-        sns_swap_lifecycle_name(report.sns_instances[0].lifecycle),
-        Some("committed")
-    );
-    assert_eq!(report.provenance.data_source.as_str(), "live");
-    assert_eq!(report.provenance.cache_path, None);
+    assert_eq!(report.sns_instances[0].lifecycle.value(), Some(3));
+
+    assert_eq!(report.provenance.data_source().as_str(), "live");
+    assert_eq!(report.provenance.cache_path(), None);
     assert_eq!(report.sns_instances[0].metadata_error, None);
-    assert!(text.contains("ID   NAME"));
-    assert!(text.contains("METADATA"));
-    assert!(text.contains("LIFECYCLE"));
-    assert!(text.contains("all_lifecycles: no"));
-    assert!(text.contains("sort: id"));
-    assert!(text.contains("metadata_errors: 0"));
-    assert!(text.contains("lifecycle_errors: 0"));
-    assert!(text.contains("committed"));
-    assert!(text.contains("ok"));
-    assert!(text.contains("Fixture SNS"));
-    assert!(text.contains(&ROOT_A[..COMPACT_PRINCIPAL_CHARS]));
-    assert!(!text.contains(ROOT_A));
 
     let json = serde_json::to_value(&report).expect("serialize SNS list report");
-    assert_eq!(json["sns_instances"][0]["lifecycle"], 3);
+    assert_eq!(
+        json["sns_instances"][0]["lifecycle"],
+        serde_json::json!({"status": "value", "code": 3})
+    );
     assert_eq!(json["data_source"], "live");
     assert!(json["cache_path"].is_null());
     assert!(json["cache_complete"].is_null());
@@ -80,10 +69,10 @@ async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
     .await
     .expect("fresh catalog read");
 
-    assert_eq!(first.provenance.data_source.as_str(), "cache");
-    assert_eq!(first.provenance.cache_complete, Some(true));
-    assert!(sns_list_report_text(&first).contains("cache_complete: yes"));
-    assert_eq!(second.provenance.data_source.as_str(), "cache");
+    assert_eq!(first.provenance.data_source().as_str(), "cache");
+    assert_eq!(first.provenance.cache_complete(), Some(true));
+
+    assert_eq!(second.provenance.data_source().as_str(), "cache");
     assert_eq!((*source.inventory.lock().unwrap()), 1);
     assert_eq!((*source.metadata.lock().unwrap()), 1);
     assert_eq!((*source.lifecycles.lock().unwrap()), 1);
@@ -150,7 +139,7 @@ async fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
             && refresh_path == &path
             && source_endpoint == &request.source_endpoint
     ));
-    assert_eq!(report.provenance.data_source.as_str(), "cache");
+    assert_eq!(report.provenance.data_source().as_str(), "cache");
     assert_eq!((*source.inventory.lock().unwrap()), 2);
     assert_eq!((*source.metadata.lock().unwrap()), 2);
     assert_eq!((*source.lifecycles.lock().unwrap()), 2);
@@ -190,13 +179,14 @@ async fn sns_list_refreshes_invalid_catalog_content() {
             cache["data"]["sns_instances"][0]["name"] = serde_json::json!(" untrimmed ");
         }),
         ("missing_lifecycle", |cache: &mut serde_json::Value| {
-            cache["data"]["sns_instances"][0]["lifecycle"] = serde_json::Value::Null;
+            cache["data"]["sns_instances"][0]["lifecycle"] =
+                serde_json::json!({"status": "not_collected"});
         }),
         (
-            "contradictory_lifecycle",
+            "empty_lifecycle_failure",
             |cache: &mut serde_json::Value| {
-                cache["data"]["sns_instances"][0]["lifecycle_error"] =
-                    serde_json::json!("query failed");
+                cache["data"]["sns_instances"][0]["lifecycle"] =
+                    serde_json::json!({"status": "failed", "error": ""});
             },
         ),
         ("duplicate_root", |cache: &mut serde_json::Value| {
@@ -306,9 +296,9 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
             assert_eq!(cached.source_endpoint, live.source_endpoint);
             assert_eq!(cached.fetched_at, live.fetched_at);
             assert_eq!(cached.fetched_by, live.fetched_by);
-            assert_eq!(cached.provenance.data_source.as_str(), "cache");
-            assert_eq!(cached.provenance.cache_path.as_deref(), path.to_str());
-            assert_eq!(cached.provenance.cache_complete, Some(true));
+            assert_eq!(cached.provenance.data_source().as_str(), "cache");
+            assert_eq!(cached.provenance.cache_path(), path.to_str());
+            assert_eq!(cached.provenance.cache_complete(), Some(true));
             assert_eq!(fs::read(&path).expect("reread catalog"), snapshot);
         }
     }
@@ -568,11 +558,7 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     .expect("publish unknown lifecycle");
     let cached = build_sns_list_report_from_cache(&request, &root).expect("read unknown lifecycle");
     assert_eq!(cached.sns_instances, live.sns_instances);
-    assert_eq!(cached.sns_instances[0].lifecycle, Some(99));
-    assert_eq!(
-        sns_swap_lifecycle_name(cached.sns_instances[0].lifecycle),
-        Some("unknown")
-    );
+    assert_eq!(cached.sns_instances[0].lifecycle.value(), Some(99));
 
     let path = sns_catalog_cache_path(&root, MAINNET_NETWORK);
     let original = fs::read(&path).expect("read published snapshot");
@@ -618,10 +604,9 @@ async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
     assert_eq!(all_report.sns_count, 1);
     assert_eq!(all_report.lifecycle_error_count, 1);
     assert_eq!(
-        all_report.sns_instances[0].lifecycle_error.as_deref(),
+        all_report.sns_instances[0].lifecycle.error(),
         Some("get_lifecycle: query rejected")
     );
-    assert!(sns_list_report_text(&all_report).contains("error"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -629,11 +614,8 @@ async fn sns_list_report_verbose_text_keeps_full_ids() {
     let report = build_sns_list_report_with_source(&list_request(true), &FixtureSnsDiscoverySource)
         .await
         .expect("sns list report");
-    let text = sns_list_report_text(&report);
 
     assert!(report.verbose);
-    assert!(text.contains(ROOT_A));
-    assert!(text.contains(GOVERNANCE_A));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -641,7 +623,6 @@ async fn sns_info_resolves_list_id() {
     let report = build_sns_info_report_with_source(&info_request("1"), &FixtureSnsDiscoverySource)
         .await
         .expect("sns info report");
-    let text = sns_info_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_INFO_REPORT_SCHEMA_VERSION);
     assert_eq!(report.id, 1);
@@ -649,7 +630,6 @@ async fn sns_info_resolves_list_id() {
     assert_eq!(report.description.as_deref(), Some("Fixture description"));
     assert_eq!(report.url.as_deref(), Some("https://example.com"));
     assert_eq!(report.metadata_error, None);
-    assert!(text.contains("root_canister_id: be2us-64aaa-aaaaa-qaabq-cai"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -692,7 +672,7 @@ async fn sns_list_name_sort_keeps_stable_ids() {
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsDiscoverySource)
         .await
         .expect("sns list report");
-    let text = sns_list_report_text(&report);
+
     let info =
         build_sns_info_report_with_source(&info_request("1"), &UnsortedFixtureSnsDiscoverySource)
             .await
@@ -703,7 +683,7 @@ async fn sns_list_name_sort_keeps_stable_ids() {
     assert_eq!(report.sns_instances[0].name, "A Name");
     assert_eq!(report.sns_instances[1].id, 2);
     assert_eq!(report.sns_instances[1].name, "Z Name");
-    assert!(text.contains("sort: name"));
+
     assert_eq!(info.id, 1);
     assert_eq!(info.canisters.root_canister_id, ROOT_A);
 }
@@ -725,7 +705,7 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
     assert_eq!(default_report.excluded_sns_count, 1);
     assert_eq!(default_report.sns_count, 1);
     assert_eq!(default_report.sns_instances[0].id, 1);
-    assert_eq!(default_report.sns_instances[0].lifecycle, Some(3));
+    assert_eq!(default_report.sns_instances[0].lifecycle.value(), Some(3));
     assert_eq!(all_report.catalog_sns_count, 2);
     assert_eq!(all_report.excluded_sns_count, 0);
     assert_eq!(all_report.sns_count, 2);
@@ -734,12 +714,7 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
         all_report.sns_instances[1].canisters.root_canister_id,
         ROOT_B
     );
-    assert_eq!(all_report.sns_instances[1].lifecycle, Some(4));
-    assert_eq!(
-        sns_swap_lifecycle_name(all_report.sns_instances[1].lifecycle),
-        Some("aborted")
-    );
-    assert!(sns_list_report_text(&all_report).contains("aborted"));
+    assert_eq!(all_report.sns_instances[1].lifecycle.value(), Some(4));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -750,14 +725,13 @@ async fn sns_list_surfaces_metadata_fallbacks() {
     )
     .await
     .expect("sns list report");
-    let text = sns_list_report_text(&report);
+
     let info = build_sns_info_report_with_source(
         &info_request("1"),
         &MetadataErrorFixtureSnsDiscoverySource,
     )
     .await
     .expect("sns info report");
-    let info_text = sns_info_report_text(&info);
 
     assert_eq!(report.metadata_error_count, 1);
     assert_eq!(report.sns_instances[0].name, "unnamed-be2us");
@@ -765,31 +739,14 @@ async fn sns_list_surfaces_metadata_fallbacks() {
         report.sns_instances[0].metadata_error.as_deref(),
         Some("get_metadata: Canister has no Wasm module")
     );
-    assert!(text.contains("metadata_errors: 1"));
-    assert!(
-        text.lines()
-            .find(|line| line.contains("unnamed-be2us"))
-            .expect("SNS row")
-            .split_whitespace()
-            .any(|cell| cell == "error")
-    );
-    assert!(!text.contains("metadata_error_details:"));
-    assert!(!text.contains("get_metadata: Canister has no Wasm module"));
+
     assert_eq!(
         info.metadata_error.as_deref(),
         Some("get_metadata: Canister has no Wasm module")
     );
-    assert!(info_text.contains("metadata_error: get_metadata: Canister has no Wasm module"));
 
     let mut other_error = report;
     other_error.sns_instances[0].metadata_error = Some("get_metadata: timed out".to_string());
-    let other_error_text = sns_list_report_text(&other_error);
-    assert!(
-        other_error_text
-            .lines()
-            .any(|line| line.contains("unnamed-be2us") && line.ends_with("error"))
-    );
-    assert!(!other_error_text.contains("get_metadata: timed out"));
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1224,35 +1181,4 @@ fn untrimmed_lifecycle_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
 )]
 fn lifecycle_query_error(lifecycles: &mut Vec<MainnetSnsLifecycle>) {
     lifecycles[0].outcome = Err("get_lifecycle: query rejected".to_string());
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn sns_list_metadata_styling_uses_row_status_and_preserves_escaped_layout() {
-    let mut report =
-        build_sns_list_report_with_source(&list_request(false), &FixtureSnsDiscoverySource)
-            .await
-            .expect("SNS report");
-    let mut ready = report.sns_instances[0].clone();
-    ready.id += 1;
-    report.sns_instances.push(ready);
-    report.sns_count = report.sns_instances.len();
-    report.catalog_sns_count = report.sns_count;
-    report.metadata_error_count = 1;
-    report.sns_instances[0].name = "error\n\u{1b}[31m".to_string();
-    report.sns_instances[0].metadata_error = Some("metadata unavailable".to_string());
-    let plain = sns_list_report_text(&report);
-    let mut statuses = Vec::new();
-    let styled = sns_list_report_text_with_metadata_style(&report, |status, failed| {
-        statuses.push((status.to_string(), failed));
-        format!("\u{1b}[{}m{status}\u{1b}[0m", if failed { 31 } else { 32 })
-    });
-    assert_eq!(statuses.len(), report.sns_instances.len());
-    assert_eq!(statuses[0], ("error".to_string(), true));
-    assert_eq!(statuses[1], ("ok".to_string(), false));
-    let stripped = styled
-        .replace("\u{1b}[31m", "")
-        .replace("\u{1b}[32m", "")
-        .replace("\u{1b}[0m", "");
-    assert_eq!(stripped, plain);
-    assert!(styled.contains("error\\n\\u{1b}[31m"));
 }

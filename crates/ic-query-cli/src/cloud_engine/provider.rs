@@ -13,12 +13,13 @@ use crate::cli::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::cloud_engine::{
-    CloudEngineProviderInfoRequest, CloudEngineProviderListRequest,
-    DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, build_cloud_engine_provider_info_report,
-    build_cloud_engine_provider_list_report, cloud_engine_provider_info_report_text,
-    cloud_engine_provider_list_report_text,
-};
+use ic_query::cloud_engine::CloudEngineProviderInfoRequest;
+use ic_query::cloud_engine::CloudEngineProviderListRequest;
+use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT;
+use ic_query::cloud_engine::build_cloud_engine_provider_info_report;
+use ic_query::cloud_engine::build_cloud_engine_provider_list_report;
+use ic_query_text::cloud_engine::cloud_engine_provider_info_report_text;
+use ic_query_text::cloud_engine::cloud_engine_provider_list_report_text;
 
 const SOURCE_ENDPOINT_HELP: &str = "Official Dashboard v3 endpoint used for provider metadata";
 

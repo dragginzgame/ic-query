@@ -12,17 +12,17 @@ use crate::{
             COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help, json_arg, source_endpoint_arg,
         },
     },
-    sns::commands::spec::{
-        commands::args::{sns_lookup_input_arg, sns_root_input_arg, sns_snapshot_refresh_command},
-        values::{
-            SnsProposalEligibilityArg, SnsProposalStatusArg, SnsProposalTopicArg,
-            SnsProposalsSortArg,
-        },
+    sns::commands::spec::commands::args::{
+        sns_lookup_input_arg, sns_root_input_arg, sns_snapshot_refresh_command,
     },
 };
 use clap::builder::NonEmptyStringValueParser;
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
+use ic_query::sns::SnsProposalEligibilityFilter;
+use ic_query::sns::SnsProposalStatusFilter;
+use ic_query::sns::SnsProposalTopicFilter;
+use ic_query::sns::SnsProposalsSort;
 
 const SNS_PROPOSALS_DEFAULT_LIMIT: &str = "25";
 const SNS_PROPOSALS_MAX_LIMIT: u64 = 100;
@@ -167,7 +167,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
                 .long("status")
                 .value_name("status")
                 .default_value("any")
-                .value_parser(clap::value_parser!(SnsProposalStatusArg))
+                .value_parser(crate::cli::clap::choice_parser(SnsProposalStatusFilter::ALL, SnsProposalStatusFilter::as_str))
                 .help("Governance decision status filter"),
         )
         .arg(
@@ -175,7 +175,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
                 .long("topic")
                 .value_name("topic")
                 .default_value("any")
-                .value_parser(clap::value_parser!(SnsProposalTopicArg))
+                .value_parser(crate::cli::clap::choice_parser(SnsProposalTopicFilter::ALL, SnsProposalTopicFilter::as_str))
                 .help("SNS governance topic filter"),
         )
         .arg(
@@ -183,7 +183,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
                 .long("eligible")
                 .value_name("eligible")
                 .default_value("any")
-                .value_parser(clap::value_parser!(SnsProposalEligibilityArg))
+                .value_parser(crate::cli::clap::choice_parser(SnsProposalEligibilityFilter::ALL, SnsProposalEligibilityFilter::as_str))
                 .help("Reward eligibility filter"),
         )
         .arg(
@@ -205,7 +205,7 @@ pub(in crate::sns::commands) fn sns_proposal_list_command() -> ClapCommand {
                 .long("sort")
                 .value_name("sort")
                 .default_value("api")
-                .value_parser(clap::value_parser!(SnsProposalsSortArg))
+                .value_parser(crate::cli::clap::choice_parser(SnsProposalsSort::ALL, SnsProposalsSort::as_str))
                 .help("Sort proposals locally; status/topic/text sorts default ascending, numeric and timestamp sorts default descending"),
         )
         .arg(

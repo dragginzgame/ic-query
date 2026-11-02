@@ -1,0 +1,126 @@
+//! Module: nns::topology::capacity
+//!
+//! Responsibility: render NNS topology capacity reports as text.
+//! Does not own: capacity calculation, source reads, or JSON output.
+//! Boundary: combines summary and attention capacity tables for humans.
+
+use crate::text_value::REPORT_TABLE_OPTIONS;
+use ic_host_text::table::Alignment;
+use ic_host_text::table::render;
+
+use crate::nns::render::compact_text;
+use crate::nns::topology::COMPACT_PRINCIPAL_CHARS;
+use crate::text_value::optional_u64_text;
+use ic_query::nns::topology::NnsTopologyCapacityReport;
+
+#[must_use]
+/// Render the NNS topology capacity report as human-facing text.
+pub fn nns_topology_capacity_report_text(report: &NnsTopologyCapacityReport) -> String {
+    let lines = [
+        render_capacity_summary_table(report),
+        String::new(),
+        render_capacity_attention_table(report),
+    ];
+    lines.join("\n")
+}
+
+fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
+    let headers = ["FIELD", "VALUE"];
+    let rows = [
+        ["network".to_string(), report.network.clone()],
+        ["status".to_string(), report.status.as_str().to_string()],
+        [
+            "node_operators".to_string(),
+            report.node_operator_count.to_string(),
+        ],
+        [
+            "total_node_allowance".to_string(),
+            report.total_node_allowance.to_string(),
+        ],
+        [
+            "assigned_nodes".to_string(),
+            report.assigned_node_count.to_string(),
+        ],
+        [
+            "available_node_slots".to_string(),
+            report.available_node_slots.to_string(),
+        ],
+        [
+            "over_assigned_operators".to_string(),
+            report.over_assigned_operator_count.to_string(),
+        ],
+        [
+            "over_assigned_nodes".to_string(),
+            report.over_assigned_node_count.to_string(),
+        ],
+        [
+            "unknown_node_count_operators".to_string(),
+            report.unknown_node_count_operator_count.to_string(),
+        ],
+    ];
+    let alignments = [Alignment::Left, Alignment::Right];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+}
+
+fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
+    let attention_rows = report
+        .capacity
+        .iter()
+        .filter(|row| {
+            matches!(
+                row.status,
+                ic_query::nns::topology::NnsTopologyCapacityStatus::Over
+                    | ic_query::nns::topology::NnsTopologyCapacityStatus::Unknown
+            )
+        })
+        .collect::<Vec<_>>();
+    if attention_rows.is_empty() {
+        let headers = ["STATUS", "DETAIL"];
+        let rows = [[
+            report.status.as_str().to_string(),
+            "no capacity attention rows".to_string(),
+        ]];
+        let alignments = [Alignment::Left, Alignment::Left];
+        return render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS);
+    }
+
+    let headers = [
+        "NODE_OPERATOR",
+        "NODE_PROVIDER",
+        "DATA_CENTER",
+        "ALLOWANCE",
+        "NODES",
+        "AVAILABLE",
+        "OVER",
+        "UTILIZATION",
+        "STATUS",
+    ];
+    let rows = attention_rows
+        .iter()
+        .map(|row| {
+            [
+                compact_text(&row.node_operator_principal, COMPACT_PRINCIPAL_CHARS),
+                compact_text(&row.node_provider_principal, COMPACT_PRINCIPAL_CHARS),
+                row.data_center_id.clone(),
+                row.node_allowance.to_string(),
+                optional_u64_text(row.assigned_node_count),
+                optional_u64_text(row.available_node_slots),
+                optional_u64_text(row.over_assigned_node_count),
+                row.utilization.clone(),
+                row.status.as_str().to_string(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let alignments = [
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Left,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Right,
+        Alignment::Left,
+    ];
+    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+}

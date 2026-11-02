@@ -92,7 +92,7 @@ async fn sns_proposals_failed_refresh_preserves_page_progress() {
             .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("failed")
     );
-    assert!(status.expected_cache_path.is_some());
+    assert_ne!(status.expected_cache_path, "");
     let _ = fs::remove_dir_all(root);
 }
 
@@ -142,13 +142,12 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
         cache_root: root.clone(),
     })
     .expect("proposal cache list");
-    let list_text = sns_proposals_cache_list_report_text(&list);
+
     assert_eq!(list.cache_count, 1);
     assert_eq!(list.caches[0].id, 1);
     assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error, None);
     assert_eq!(list.caches[0].row_count, 1);
-    assert!(list_text.contains("COMPLETE"));
 
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -156,7 +155,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
         input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
-    let text = sns_proposals_cache_status_report_text(&status);
+
     assert!(status.found);
     assert_eq!(
         status.cache.as_ref().unwrap().latest_attempt.as_ref(),
@@ -174,10 +173,6 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
             .map(|attempt| attempt.lifecycle.status.as_str()),
         Some("complete")
     );
-    assert!(text.contains("found: yes"));
-    assert!(text.contains("row_count: 1"));
-    assert_eq!(text.matches("refresh_attempt_path:").count(), 1);
-    assert!(text.contains("\n\nlatest_attempt:\n  status: complete"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -192,13 +187,10 @@ fn sns_proposals_cache_status_reports_missing_cache() {
         input: ROOT_A.to_string(),
     })
     .expect("proposal cache status");
-    let text = sns_proposals_cache_status_report_text(&status);
 
     assert!(!status.found);
     assert!(status.cache.is_none());
     assert!(status.latest_attempt.is_none());
-    assert!(text.contains("found: no"));
-    assert!(text.contains("refresh_hint: icq sns proposal refresh"));
 
     let _ = fs::remove_dir_all(root);
 }

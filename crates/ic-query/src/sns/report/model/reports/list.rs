@@ -41,6 +41,49 @@ pub struct SnsListReport {
 }
 
 ///
+/// SnsLifecycleOutcome
+///
+/// Raw Swap lifecycle evidence, including queries not requested for direct lookup.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+pub enum SnsLifecycleOutcome {
+    /// This lookup did not request lifecycle evidence.
+    NotCollected,
+    /// Successful query, preserving every raw discriminant.
+    Value {
+        /// Raw successful Swap discriminant.
+        code: i32,
+    },
+    /// Bounded query failure retained with the SNS identity.
+    Failed {
+        /// Bounded original query failure.
+        error: String,
+    },
+}
+
+impl SnsLifecycleOutcome {
+    /// Return the raw successful lifecycle code.
+    #[must_use]
+    pub const fn value(&self) -> Option<i32> {
+        match self {
+            Self::Value { code } => Some(*code),
+            Self::NotCollected | Self::Failed { .. } => None,
+        }
+    }
+
+    /// Return retained failure evidence.
+    #[must_use]
+    pub fn error(&self) -> Option<&str> {
+        match self {
+            Self::Failed { error } => Some(error),
+            Self::NotCollected | Self::Value { .. } => None,
+        }
+    }
+}
+
+///
 /// SnsListRow
 ///
 /// Serializable row for one deployed SNS in a list report.
@@ -54,10 +97,8 @@ pub struct SnsListRow {
     #[serde(flatten)]
     pub canisters: MainnetSnsCanisters,
     pub metadata_error: Option<String>,
-    /// Native Swap lifecycle discriminant, when the lifecycle query succeeded.
-    pub lifecycle: Option<i32>,
-    /// Bounded lifecycle query failure retained instead of dropping the SNS row.
-    pub lifecycle_error: Option<String>,
+    /// Collected lifecycle value or bounded query failure.
+    pub lifecycle: SnsLifecycleOutcome,
 }
 
 ///

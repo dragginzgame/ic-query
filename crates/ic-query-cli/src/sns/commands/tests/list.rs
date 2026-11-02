@@ -10,7 +10,7 @@ fn sns_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.now_unix_secs, 1_780_531_200);
     assert_eq!(format, OutputFormat::Text);
     assert_eq!(defaults.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-    assert_eq!(defaults.sort, SnsListSortArg::Id.into());
+    assert_eq!(defaults.sort, SnsListSort::Id);
     assert!(!defaults.all_lifecycles);
     assert!(!defaults.verbose);
 
@@ -31,7 +31,7 @@ fn sns_list_parses_defaults_and_json_format() {
 
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
-    assert_eq!(options.sort, SnsListSortArg::Name.into());
+    assert_eq!(options.sort, SnsListSort::Name);
     assert!(options.all_lifecycles);
     assert!(options.verbose);
 }

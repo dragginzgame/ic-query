@@ -7,7 +7,6 @@
 #[cfg(feature = "ic-state-host")]
 mod host;
 mod model;
-mod text;
 mod validation;
 
 #[cfg(feature = "ic-state-host")]
@@ -23,7 +22,6 @@ pub use model::{
     IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
     IcCertifiedStateProvenance,
 };
-pub use text::ic_api_boundary_node_report_text;
 #[cfg(feature = "ic-state-host")]
 pub(super) use validation::report_from_source;
 
@@ -39,5 +37,5 @@ pub const MAX_IC_API_BOUNDARY_NODE_ROWS: usize = 1_000;
 #[cfg(feature = "ic-state-host")]
 pub(super) const IC_API_BOUNDARY_NODE_AUTHORITY: &str = "certified_ic_state_tree";
 
-#[cfg(test)]
+#[cfg(all(test, feature = "ic-state-host"))]
 mod tests;

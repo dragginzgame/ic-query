@@ -4,14 +4,12 @@
 //! Does not own: deployed SNS lookup, report construction, or text output.
 //! Boundary: converts clap matches into the SNS list request inputs.
 
-use crate::{
-    cli::{
-        clap::{required_string, required_typed},
-        common::{OutputFormat, output_format},
-    },
-    sns::commands::spec::SnsListSortArg,
+use crate::cli::{
+    clap::{required_string, required_typed},
+    common::{OutputFormat, output_format},
 };
 use clap::ArgMatches;
+use ic_query::sns::SnsListSort;
 
 pub(in crate::sns::commands) fn list_request(
     matches: &ArgMatches,
@@ -26,7 +24,7 @@ pub(in crate::sns::commands) fn list_request(
             now_unix_secs,
             all_lifecycles: matches.get_flag("all"),
             verbose: matches.get_flag("verbose"),
-            sort: required_typed::<SnsListSortArg>(matches, "sort").into(),
+            sort: required_typed::<SnsListSort>(matches, "sort"),
         },
     )
 }

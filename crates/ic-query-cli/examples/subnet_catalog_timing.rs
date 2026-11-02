@@ -1,9 +1,13 @@
 //! Explicit live agreement with disk history reuse across fresh sources and processes.
-use ic_query::subnet_catalog::{
-    CatalogAssurance, CatalogReadPolicy, CatalogSourceSelection, LiveSubnetCatalogSource,
-    RegistryHistoryCacheDisposition, SubnetCatalogCacheRequest, SubnetCatalogLoadRequest,
-    SubnetCatalogProgressPhase, load_subnet_catalog_detailed_with_source,
-};
+use ic_query::subnet_catalog::CatalogAssurance;
+use ic_query::subnet_catalog::CatalogReadPolicy;
+use ic_query::subnet_catalog::CatalogSourceSelection;
+use ic_query::subnet_catalog::LiveSubnetCatalogSource;
+use ic_query::subnet_catalog::RegistryHistoryCacheDisposition;
+use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
+use ic_query::subnet_catalog::SubnetCatalogLoadRequest;
+use ic_query::subnet_catalog::SubnetCatalogProgressPhase;
+use ic_query::subnet_catalog::load_subnet_catalog_with_source;
 use std::{
     path::Path,
     time::{Instant, SystemTime, UNIX_EPOCH},
@@ -32,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let source = history_source(Path::new(&root));
     let start = Instant::now();
-    let cold = load_subnet_catalog_detailed_with_source(&request, &source).await?;
+    let cold = load_subnet_catalog_with_source(&request, &source).await?;
     println!(
         "acquisition_ms={} version={} calls={} agreement_digest={}",
         start.elapsed().as_millis(),
@@ -46,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let start = Instant::now();
     let cache_only = request.clone().with_policy(CatalogReadPolicy::CacheOnly);
-    let warm = load_subnet_catalog_detailed_with_source(&cache_only, &source).await?;
+    let warm = load_subnet_catalog_with_source(&cache_only, &source).await?;
     println!(
         "reuse_us={} authority_equal={}",
         start.elapsed().as_micros(),
@@ -55,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(source);
     let source = history_source(Path::new(&root));
     let start = Instant::now();
-    let refreshed = load_subnet_catalog_detailed_with_source(&request, &source).await?;
+    let refreshed = load_subnet_catalog_with_source(&request, &source).await?;
     println!(
         "fresh_source_refresh_ms={} version={} calls={} agreement_digest={}",
         start.elapsed().as_millis(),

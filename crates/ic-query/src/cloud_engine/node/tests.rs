@@ -1,59 +1,11 @@
-use super::{
-    CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE, CloudEngineNodeInfoReport,
-    CloudEngineNodeListReport, CloudEngineNodeRow, cloud_engine_node_info_report_text,
-    cloud_engine_node_list_report_text,
-};
-use crate::ic::{IcDashboardReportProvenance, IcNodeStatusCounts};
+use super::CLOUD_ENGINE_NODE_INCLUDED_STATUSES;
+use super::CLOUD_ENGINE_NODE_REWARD_TYPE;
+use super::CloudEngineNodeRow;
 
 const NODE_A: &str = "53amq-7hjxu-6lxaj-o2sp6-kmngy-qa22h-b7bo6-oeyyn-fkqnv-7tauf-7qe";
 const PROVIDER: &str = "bvcsg-3od6r-jnydw-eysln-aql7w-td5zn-ay5m6-sibd2-jzojt-anwag-mqe";
 const OPERATOR: &str = "e3aue-mkha2-6zddy-xbmd7-3oybi-3nfoh-3bwgn-izbjn-uuqx2-ykc2z-7qe";
 const CLOUD_ENGINE_SUBNET: &str = "nx5oj-b2azr-x3alh-sgf7i-duhfw-bflus-hisa2-5n2oq-tv7sd-haspd-cae";
-
-#[test]
-fn text_separates_dashboard_provenance_from_type4_nodes() {
-    let node = node(NODE_A, "UP");
-    let list = CloudEngineNodeListReport {
-        provenance: provenance(),
-        node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
-        included_statuses: included_statuses(),
-        requested_node_provider_id: None,
-        node_count: 1,
-        status_counts: IcNodeStatusCounts {
-            total: 1,
-            up: 1,
-            ..IcNodeStatusCounts::default()
-        },
-        node_provider_count: 1,
-        cloud_engine_subnet_count: 1,
-        unassigned_cloud_engine_node_count: 0,
-        nodes: vec![node.clone()],
-    };
-    let info = CloudEngineNodeInfoReport {
-        provenance: provenance(),
-        node,
-    };
-
-    let list_text = cloud_engine_node_list_report_text(&list);
-    let info_text = cloud_engine_node_info_report_text(&info);
-    assert!(list_text.contains("node_count: 1\n"));
-    assert!(list_text.contains("unassigned_cloud_engine_node_count: 0\n\nCloudEngine nodes\n"));
-    assert!(info_text.contains("node_reward_type: Type4"));
-    assert!(info_text.contains("cloud_engine_subnet_id: nx5oj"));
-}
-
-fn provenance() -> IcDashboardReportProvenance {
-    IcDashboardReportProvenance {
-        schema_version: 1,
-        network: "ic".to_string(),
-        authority: "official_ic_dashboard_api".to_string(),
-        source_endpoint: "https://ic-api.internetcomputer.org/api/v3".to_string(),
-        fetched_at: "2026-08-08T12:00:00Z".to_string(),
-        fetched_by: "test".to_string(),
-        certified: false,
-        point_in_time_guaranteed: false,
-    }
-}
 
 fn included_statuses() -> Vec<String> {
     CLOUD_ENGINE_NODE_INCLUDED_STATUSES
@@ -89,16 +41,16 @@ fn node(node_id: &str, status: &str) -> CloudEngineNodeRow {
 #[cfg(feature = "dashboard-host")]
 mod host {
     use super::*;
-    use crate::{
-        cloud_engine::{
-            CloudEngineNodeInfoRequest, CloudEngineNodeInfoSourceData, CloudEngineNodeListRequest,
-            CloudEngineNodeListSourceData, CloudEngineNodeSource,
-            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-            build_cloud_engine_node_info_report_with_source,
-            build_cloud_engine_node_list_report_with_source,
-        },
-        ic::{IcHostError, IcSourceRequest},
-    };
+    use crate::cloud_engine::CloudEngineNodeInfoRequest;
+    use crate::cloud_engine::CloudEngineNodeInfoSourceData;
+    use crate::cloud_engine::CloudEngineNodeListRequest;
+    use crate::cloud_engine::CloudEngineNodeListSourceData;
+    use crate::cloud_engine::CloudEngineNodeSource;
+    use crate::cloud_engine::DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT;
+    use crate::cloud_engine::build_cloud_engine_node_info_report_with_source;
+    use crate::cloud_engine::build_cloud_engine_node_list_report_with_source;
+    use crate::ic::IcHostError;
+    use crate::ic::IcSourceRequest;
     use std::sync::Mutex;
 
     const NODE_B: &str = "72xg3-cvfed-jrbv3-kal7e-o53wl-tug5y-t432v-5ovop-7et6y-abuzx-oae";
@@ -231,7 +183,8 @@ mod host {
                         data.included_statuses.pop();
                     }
                     Some(Mutation::DuplicateNode) => {
-                        data.nodes[1].node_id = data.nodes[0].node_id.clone();
+                        let (first, rest) = data.nodes.split_at_mut(1);
+                        rest[0].node_id.clone_from(&first[0].node_id);
                     }
                     Some(Mutation::UnknownListStatus) => {
                         data.nodes[0].status = "FUTURE".to_string();

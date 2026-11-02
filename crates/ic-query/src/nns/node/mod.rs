@@ -1,11 +1,10 @@
-//! NNS node inventory requests, reports, host builders, and renderers.
+//! NNS node inventory requests, reports, host builders.
 
 mod report;
 
 pub use report::{
     DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRow, nns_node_info_report_text, nns_node_list_report_text,
-    nns_node_list_report_verbose_text,
+    NnsNodeListRequest, NnsNodeRow,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

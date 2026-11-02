@@ -1,10 +1,11 @@
 use super::*;
-use crate::nns::neuron::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
-use crate::nns::{
-    governance::NnsGovernanceRequest,
-    neuron::{NnsKnownNeuronData, nns_neuron_distribution_report_text},
-};
-use crate::{nns::MAINNET_GOVERNANCE_CANISTER_ID, subnet_catalog::MAINNET_NETWORK};
+use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::governance::NnsGovernanceRequest;
+use crate::nns::neuron::NnsKnownNeuronData;
+use crate::nns::neuron::NnsNeuronState;
+use crate::nns::neuron::NnsNeuronType;
+use crate::nns::neuron::NnsNeuronVisibility;
+use crate::subnet_catalog::MAINNET_NETWORK;
 
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
@@ -122,9 +123,6 @@ fn empty_complete_collection_produces_canonical_zero_distribution() {
     assert_eq!(report.neuron_type_distribution, Vec::new());
     assert_eq!(report.reported_staked_maturity_neuron_count, 0);
     assert_eq!(report.unreported_staked_maturity_neuron_count, 0);
-
-    let text = nns_neuron_distribution_report_text(&report);
-    assert!(text.contains("\n\nstates:\n-\n\nvisibilities:\n-\n\nneuron_types:\n-"));
 }
 
 #[test]
@@ -242,16 +240,6 @@ fn serialized_distribution_round_trips_and_text_separates_sections() {
         json["visibility_distribution"][0]["visibility"],
         serde_json::Value::Null
     );
-
-    let text = nns_neuron_distribution_report_text(&report);
-    assert!(text.contains("source_transport: replica_query"));
-    assert!(text.contains("unknown(-7)"));
-    assert!(text.contains("unknown(-8)"));
-    assert!(text.contains("point_in_time_guaranteed: no"));
-    assert!(text.contains("total_reported_staked_maturity_icp: 0.00"));
-    assert!(text.contains("\n\nstates:\n"));
-    assert!(text.contains("\n\nvisibilities:\n"));
-    assert!(text.contains("\n\nneuron_types:\n"));
 }
 
 #[test]
@@ -438,8 +426,7 @@ fn complete_collection(neurons_fetched: usize) -> NnsNeuronCollectionState {
         "neurons_fetched": neurons_fetched,
         "next_start_neuron_id": null,
         "started_at": "2026-08-15T00:00:00Z",
-        "updated_at": "2026-08-15T00:00:01Z",
-        "status": "complete"
+        "updated_at": "2026-08-15T00:00:01Z"
     }))
     .expect("complete collection fixture")
 }
@@ -465,8 +452,7 @@ fn page_limited_collection() -> NnsNeuronCollectionState {
         "neurons_fetched": 1,
         "next_start_neuron_id": 1,
         "started_at": "2026-08-15T00:00:00Z",
-        "updated_at": "2026-08-15T00:00:01Z",
-        "status": "page_limit_reached"
+        "updated_at": "2026-08-15T00:00:01Z"
     }))
     .expect("page-limited collection fixture")
 }

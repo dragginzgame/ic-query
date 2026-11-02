@@ -525,6 +525,13 @@ contracts; ordinary development does not require rereading these mechanics.
   default; PR delivery prepares a review branch and validates the admitted merged
   commit afresh before tagging. Never select another policy to bypass a rejected
   push or branch protection.
+- Independent release groups may select a complete, consumer-owned gate under
+  the [group validation contract](../docs/release-group-validation.md). Account
+  for every stage, including affected consumers, public identities, generated
+  inputs, native hosts and installed behavior. Shared changes broaden the plan;
+  unknown scope refuses or uses the existing full gate. Keep full repository CI,
+  source/archive admission and recovery intact. Group selection alone grants no
+  omission; qualify the mapping before enabling it in a release adapter.
 - Standard release entrypoints must select their required prepared executables
   through the consumer's offline admission interface; do not require maintainers
   to export tool paths in each shell. Fresh preflight prepares missing selections

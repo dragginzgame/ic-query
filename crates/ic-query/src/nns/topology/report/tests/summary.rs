@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::nns::NnsInventoryListRequest;
 use crate::subnet_catalog::SubnetKind;
 use crate::test_support::temp_dir;
@@ -142,33 +143,6 @@ fn topology_summary_preserves_all_kind_counts_and_routing_ranges() {
         ],
         [3, 2, 1, 1]
     );
-}
-
-#[test]
-fn topology_summary_text_renders_count_and_version_tables() {
-    let report = topology_summary_report_from_reports(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        subnet_report_fixture(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
-    );
-
-    let text = nns_topology_summary_report_text(&report);
-
-    assert!(text.contains("topology: ic subnets 2 nodes 3"));
-    assert!(text.contains("routing_ranges"));
-    assert!(text.contains("KIND"));
-    assert!(text.contains("nodes -> node providers"));
-    assert!(text.contains("node operators -> data centers"));
-    assert!(text.contains("COVERAGE"));
-    assert!(text.contains("SOURCE"));
-    assert!(text.contains("subnet_catalog"));
-    assert!(text.contains("\n\n"));
 }
 
 #[tokio::test(flavor = "current_thread")]

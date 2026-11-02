@@ -110,10 +110,10 @@ fn validate_snapshot(
     };
     if !cache_identity_matches(
         request,
-        &snapshot.source_endpoint,
-        &snapshot.ledger_canister_id,
-        &snapshot.account_owner,
-        snapshot.subaccount_hex.as_deref(),
+        &snapshot.context.source_endpoint,
+        &snapshot.context.ledger_canister_id,
+        &snapshot.context.account_owner,
+        snapshot.context.subaccount_hex.as_deref(),
     ) {
         return Err(invalid(
             "snapshot identity does not match the requested endpoint, ledger, or account"
@@ -145,10 +145,10 @@ fn validate_snapshot(
     }
     validate_collection_timestamps(
         path,
-        &snapshot.collection_started_at,
-        &snapshot.collection_completed_at,
+        &snapshot.context.collection_started_at,
+        &snapshot.context.collection_completed_at,
     )?;
-    Principal::from_text(&snapshot.index_canister_id)
+    Principal::from_text(&snapshot.context.index_canister_id)
         .map_err(|error| invalid(format!("invalid index canister id: {error}")))?;
     Ok(())
 }
@@ -241,7 +241,7 @@ pub(super) fn snapshot_is_stale(
     stale_after_seconds: u64,
 ) -> bool {
     freshness_facts(
-        parse_utc_timestamp_secs(&snapshot.collection_completed_at),
+        parse_utc_timestamp_secs(&snapshot.context.collection_completed_at),
         now_unix_secs,
         stale_after_seconds,
     )

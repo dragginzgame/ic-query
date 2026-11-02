@@ -2,7 +2,7 @@
 set -euo pipefail
 
 failed=0
-packages=(ic-query ic-query-cli)
+packages=(ic-query ic-query-text ic-query-cli)
 
 for package in "${packages[@]}"; do
   if package_files="$(cargo package -p "${package}" --list --allow-dirty --locked --offline)"; then

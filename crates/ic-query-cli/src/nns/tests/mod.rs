@@ -39,16 +39,16 @@ use super::{
     },
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::nns::{
-    data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
-    node_operator::DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-    node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
-    registry::DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT,
-};
-use ic_query::subnet_catalog::{
-    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, GeographicScope, MAINNET_NETWORK, SubnetKind,
-    SubnetSpecialization,
-};
+use ic_query::nns::data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT;
+use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
+use ic_query::nns::node_operator::DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT;
+use ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT;
+use ic_query::nns::registry::DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT;
+use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
+use ic_query::subnet_catalog::GeographicScope;
+use ic_query::subnet_catalog::MAINNET_NETWORK;
+use ic_query::subnet_catalog::SubnetKind;
+use ic_query::subnet_catalog::SubnetSpecialization;
 use std::path::PathBuf;
 
 fn parse_test_options<Options>(

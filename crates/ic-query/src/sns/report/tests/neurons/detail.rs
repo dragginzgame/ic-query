@@ -1,6 +1,7 @@
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronDetail;
-use crate::sns::report::tests::{fixtures::*, *};
+use crate::sns::report::tests::fixtures::*;
+use crate::sns::report::tests::*;
 
 struct NoCallSnsNeuronSource;
 
@@ -58,7 +59,6 @@ async fn exact_neuron_detail_preserves_native_permission_and_disbursement_eviden
         build_sns_neuron_detail_report_with_source(&neuron_request("1"), &FixtureSnsNeuronSource)
             .await
             .expect("exact neuron detail");
-    let text = sns_neuron_detail_report_text(&report);
 
     assert_eq!(
         report.schema_version,
@@ -101,9 +101,6 @@ async fn exact_neuron_detail_preserves_native_permission_and_disbursement_eviden
             .as_deref(),
         Some("governance lead")
     );
-    assert!(text.contains("maturity_mint_conversion_observed_disabled: violated"));
-    assert!(text.contains("9:stake_maturity"));
-    assert!(text.contains(ROOT_A));
 }
 
 #[tokio::test(flavor = "current_thread")]

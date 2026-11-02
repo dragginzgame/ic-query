@@ -9,7 +9,6 @@ mod error;
 mod model;
 #[cfg(feature = "certified-subnet-catalog-host")]
 mod source;
-mod text;
 
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use authentication::{
@@ -39,7 +38,6 @@ pub use source::{
     NnsCertifiedRegistryDeltaSource, NnsCertifiedRegistryDeltaSourceFuture, NnsRegistrySource,
     nns_certified_registry_delta_limits,
 };
-pub use text::nns_registry_version_report_text;
 
 pub const DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 

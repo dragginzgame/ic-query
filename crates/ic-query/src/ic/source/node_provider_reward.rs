@@ -4,23 +4,32 @@
 //! Does not own: HTTP transport, shared provenance, CLI paging, or text rendering.
 //! Boundary: validates one page, one exact record, or one bounded aggregate history response.
 
-use super::{
-    inclusive_observation_count, invalid_request, invalid_source, report_provenance,
-    validate_canonical_principal, validate_collection_end, validate_observation_timestamps,
-    validate_offset_page, validate_provenance, validate_source_text,
-};
-use crate::{
-    hex::is_lowercase_hex_32_bytes,
-    ic::{
-        IcHostError, IcNodeProviderRewardHistoryQuery, IcNodeProviderRewardHistoryReport,
-        IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoReport,
-        IcNodeProviderRewardInfoSourceData, IcNodeProviderRewardListQuery,
-        IcNodeProviderRewardListReport, IcNodeProviderRewardListSourceData,
-        IcNodeProviderRewardRow, IcSourceRequest, MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS,
-        MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT,
-        MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS,
-    },
-};
+use super::inclusive_observation_count;
+use super::invalid_request;
+use super::invalid_source;
+use super::report_provenance;
+use super::validate_canonical_principal;
+use super::validate_collection_end;
+use super::validate_observation_timestamps;
+use super::validate_offset_page;
+use super::validate_provenance;
+use super::validate_source_text;
+use crate::hex::is_lowercase_hex_32_bytes;
+use crate::ic::IcHostError;
+use crate::ic::IcNodeProviderRewardHistoryQuery;
+use crate::ic::IcNodeProviderRewardHistoryReport;
+use crate::ic::IcNodeProviderRewardHistorySourceData;
+use crate::ic::IcNodeProviderRewardInfoReport;
+use crate::ic::IcNodeProviderRewardInfoSourceData;
+use crate::ic::IcNodeProviderRewardListQuery;
+use crate::ic::IcNodeProviderRewardListReport;
+use crate::ic::IcNodeProviderRewardListSourceData;
+use crate::ic::IcNodeProviderRewardRow;
+use crate::ic::IcSourceRequest;
+use crate::ic::MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS;
+use crate::ic::MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS;
+use crate::ic::MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT;
+use crate::ic::MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS;
 use std::collections::HashSet;
 
 ///
@@ -245,16 +254,17 @@ fn validate_reward_row(row: &IcNodeProviderRewardRow) -> Result<(), IcHostError>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ic::{
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, IcNodeProviderRewardHistoryObservation,
-        IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardInfoRequest,
-        IcNodeProviderRewardListRequest, IcNodeProviderRewardXdrConversionRate,
-        build_ic_node_provider_reward_history_report_with_source,
-        build_ic_node_provider_reward_info_report_with_source,
-        build_ic_node_provider_reward_list_report_with_source,
-        ic_node_provider_reward_history_report_text, ic_node_provider_reward_list_report_text,
-    };
-    use std::{collections::BTreeMap, sync::Mutex};
+    use crate::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
+    use crate::ic::IcNodeProviderRewardHistoryObservation;
+    use crate::ic::IcNodeProviderRewardHistoryRequest;
+    use crate::ic::IcNodeProviderRewardInfoRequest;
+    use crate::ic::IcNodeProviderRewardListRequest;
+    use crate::ic::IcNodeProviderRewardXdrConversionRate;
+    use crate::ic::build_ic_node_provider_reward_history_report_with_source;
+    use crate::ic::build_ic_node_provider_reward_info_report_with_source;
+    use crate::ic::build_ic_node_provider_reward_list_report_with_source;
+    use std::collections::BTreeMap;
+    use std::sync::Mutex;
 
     #[tokio::test(flavor = "current_thread")]
     async fn builders_make_one_call_and_preserve_explicit_contracts() {
@@ -303,12 +313,6 @@ mod tests {
         assert_eq!(info.reward.reward_id, 7_562);
         assert_eq!(history.requested_observation_limit, 5);
         assert_eq!(history.returned_observation_count, 1);
-        let list_text = ic_node_provider_reward_list_report_text(&list);
-        let (_, table) = list_text
-            .split_once("\n\n")
-            .expect("reward preamble and table are separate sections");
-        assert!(table.contains("ID"));
-        assert!(ic_node_provider_reward_history_report_text(&history).contains("AMOUNT_E8S"));
     }
 
     #[tokio::test(flavor = "current_thread")]

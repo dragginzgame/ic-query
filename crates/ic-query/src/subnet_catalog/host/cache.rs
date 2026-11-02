@@ -245,15 +245,8 @@ impl CatalogLoadOutcome {
     }
 }
 
-/// Load a catalog without making a live network call.
-pub fn load_cached_subnet_catalog(
-    request: &SubnetCatalogLoadRequest,
-) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
-    load_cached_subnet_catalog_detailed(request).map_err(SubnetCatalogLoadFailure::into_source)
-}
-
 /// Load a catalog locally while retaining typed failure provenance.
-pub fn load_cached_subnet_catalog_detailed(
+pub fn load_cached_subnet_catalog(
     request: &SubnetCatalogLoadRequest,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     if request.policy != CatalogReadPolicy::CacheOnly {
@@ -271,39 +264,20 @@ pub fn load_cached_subnet_catalog_detailed(
         .map_err(|failure| cache_load_failure(request, true, failure))
 }
 
-/// Apply a catalog read policy on the caller's async runtime using the live source.
-pub async fn load_subnet_catalog(
-    request: &SubnetCatalogLoadRequest,
-) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
-    load_subnet_catalog_detailed(request)
-        .await
-        .map_err(SubnetCatalogLoadFailure::into_source)
-}
-
 /// Apply a catalog policy asynchronously while retaining typed failure provenance.
-pub async fn load_subnet_catalog_detailed(
+pub async fn load_subnet_catalog(
     request: &SubnetCatalogLoadRequest,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
     let source = LiveSubnetCatalogSource::default().with_history_cache(&request.cache.cache_root);
-    load_subnet_catalog_detailed_with_source(request, &source).await
-}
-
-/// Apply a catalog read policy on the caller's async runtime using a supplied source.
-pub async fn load_subnet_catalog_with_source(
-    request: &SubnetCatalogLoadRequest,
-    source: &dyn SubnetCatalogSource,
-) -> Result<CatalogLoadOutcome, SubnetCatalogHostError> {
-    load_subnet_catalog_detailed_with_source(request, source)
-        .await
-        .map_err(SubnetCatalogLoadFailure::into_source)
+    load_subnet_catalog_with_source(request, &source).await
 }
 
 /// Apply a catalog policy asynchronously with a supplied source and typed failures.
-pub async fn load_subnet_catalog_detailed_with_source(
+pub async fn load_subnet_catalog_with_source(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
 ) -> Result<CatalogLoadOutcome, Box<SubnetCatalogLoadFailure>> {
-    load_subnet_catalog_detailed_with_progress(request, source, &mut IgnoreQueryProgress).await
+    load_subnet_catalog_with_source_and_progress(request, source, &mut IgnoreQueryProgress).await
 }
 
 /// Apply a catalog read policy with a supplied source and refresh progress.
@@ -311,7 +285,7 @@ pub async fn load_subnet_catalog_detailed_with_source(
 /// Calls the source only when the selected policy authorizes a refresh.
 /// Cache hits emit no refresh events. Failures retain request, stage and
 /// cache-disposition evidence in [`SubnetCatalogLoadFailure`].
-pub async fn load_subnet_catalog_detailed_with_progress(
+pub async fn load_subnet_catalog_with_source_and_progress(
     request: &SubnetCatalogLoadRequest,
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),

@@ -232,7 +232,6 @@ impl NnsGovernanceCollectionEvidence {
             pages_fetched: cache.completeness.page_count,
             started_at: self.started_at.clone(),
             updated_at: cache.fetched_at.clone(),
-            status: super::NnsGovernanceCollectionStatus::Complete,
         }
     }
 }

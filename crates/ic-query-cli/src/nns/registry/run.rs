@@ -2,9 +2,9 @@ use crate::cli::common::current_unix_secs;
 use crate::nns::leaf::NnsCommonOptions;
 use crate::nns::{NnsCommandError, write_text_or_json};
 use clap::ArgMatches;
-use ic_query::nns::registry::{
-    NnsRegistryVersionRequest, build_nns_registry_version_report, nns_registry_version_report_text,
-};
+use ic_query::nns::registry::NnsRegistryVersionRequest;
+use ic_query::nns::registry::build_nns_registry_version_report;
+use ic_query_text::nns::registry::nns_registry_version_report_text;
 pub(in crate::nns) async fn run(
     matches: &ArgMatches,
     network: &str,

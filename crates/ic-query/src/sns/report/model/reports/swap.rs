@@ -190,39 +190,3 @@ pub struct SnsSwapReport {
     #[serde(flatten)]
     pub swap: MainnetSnsSwap,
 }
-
-pub(in crate::sns::report) const fn sns_swap_lifecycle_name(
-    lifecycle: Option<i32>,
-) -> Option<&'static str> {
-    match lifecycle {
-        None => None,
-        Some(0) => Some("unspecified"),
-        Some(1) => Some("pending"),
-        Some(2) => Some("open"),
-        Some(3) => Some("committed"),
-        Some(4) => Some("aborted"),
-        Some(5) => Some("adopted"),
-        Some(_) => Some("unknown"),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::sns_swap_lifecycle_name;
-
-    #[test]
-    fn lifecycle_names_preserve_native_codes_and_unknown_values() {
-        for (code, expected) in [
-            (None, None),
-            (Some(0), Some("unspecified")),
-            (Some(1), Some("pending")),
-            (Some(2), Some("open")),
-            (Some(3), Some("committed")),
-            (Some(4), Some("aborted")),
-            (Some(5), Some("adopted")),
-            (Some(99), Some("unknown")),
-        ] {
-            assert_eq!(sns_swap_lifecycle_name(code), expected);
-        }
-    }
-}

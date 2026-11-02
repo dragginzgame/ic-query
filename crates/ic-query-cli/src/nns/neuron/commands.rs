@@ -11,7 +11,8 @@ use crate::{
     nns::leaf,
 };
 use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
-use ic_query::nns::neuron::{DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_MAX_PAGE_SIZE};
+use ic_query::nns::neuron::DEFAULT_NNS_NEURON_SOURCE_ENDPOINT;
+use ic_query::nns::neuron::NNS_NEURON_MAX_PAGE_SIZE;
 
 const LIST_DEFAULT_LIMIT: &str = "25";
 const REFRESH_DEFAULT_PAGE_SIZE: &str = "300";

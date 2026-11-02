@@ -1,60 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-if [[ "$#" -gt 1 ]]; then
-  echo "Usage: $0 [VERSION]" >&2
-  exit 2
+[[ $# -le 1 ]] || { echo "usage: $0 [VERSION]" >&2; exit 2; }
+requested="${1:-}"
+if [[ -n "$requested" ]]; then
+  [[ "$requested" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 2
+  [[ "${RELEASE_GROUP:-}" == query || "${RELEASE_GROUP:-}" == cli ]] || {
+    echo 'select RELEASE_GROUP with an explicit changelog version' >&2; exit 2;
+  }
+  groups=("$RELEASE_GROUP")
+else
+  groups=(query cli)
 fi
-
-version="${1:-}"
-if [[ -z "${version}" ]]; then
-  version="$(bash "$(dirname "${BASH_SOURCE[0]}")/read-cargo-workspace-version.sh" --stable Cargo.toml)" || exit 1
-fi
-
-if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "error: unsupported version format ${version}" >&2
-  exit 2
-fi
-
-minor="${version%.*}"
-detail_changelog="docs/changelog/${minor}.md"
-root_version_marker="- \`${version}\`"
-version_pattern="${version//./\\.}"
-root_heading_pattern="^## \\[${version_pattern}\\]( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$"
-
-if [[ ! -f "${detail_changelog}" ]]; then
-  echo "error: missing detailed changelog ${detail_changelog} for version ${version}" >&2
-  exit 1
-fi
-
-if ! head_detail_changelog="$(git show "HEAD:${detail_changelog}" 2>/dev/null)"; then
-  echo "error: detailed changelog ${detail_changelog} is not committed in HEAD" >&2
-  exit 1
-fi
-
-if ! head_root_changelog="$(git show HEAD:CHANGELOG.md 2>/dev/null)"; then
-  echo "error: CHANGELOG.md is not committed in HEAD" >&2
-  exit 1
-fi
-
-if ! grep -Fq -- "${root_version_marker}" CHANGELOG.md \
-  && ! grep -Eq -- "${root_heading_pattern}" CHANGELOG.md; then
-  echo "error: CHANGELOG.md has no release-ledger entry for package version ${version}" >&2
-  exit 1
-fi
-
-if ! grep -Fq -- "${root_version_marker}" <<<"${head_root_changelog}" \
-  && ! grep -Eq -- "${root_heading_pattern}" <<<"${head_root_changelog}"; then
-  echo "error: CHANGELOG.md in HEAD has no release-ledger entry for package version ${version}" >&2
-  exit 1
-fi
-
-if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" "${detail_changelog}"; then
-  echo "error: ${detail_changelog} has no heading for package version ${version}" >&2
-  exit 1
-fi
-
-if ! grep -Eq -- "^## ${version_pattern}( - .+)?$" <<<"${head_detail_changelog}"; then
-  echo "error: ${detail_changelog} in HEAD has no heading for package version ${version}" >&2
-  exit 1
-fi
+for group in "${groups[@]}"; do
+  current="$(CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 bash scripts/ci/cargo-release-group.sh version "$group")"
+  version="${requested:-$current}"
+  ledger="$(jq -er --arg group "$group" '.groups[] | select(.name == $group) | .changelog' ci/cargo-release-groups.json)"
+  escaped="${version//./\\.}"
+  if grep -Eq "^## \\[$escaped\\]( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$" "$ledger"; then
+    detail="${ledger%/*}/${version%.*}.md"
+    grep -Eq "^## $escaped( - [0-9]{4}-[0-9]{2}-[0-9]{2})?$" "$detail" || {
+      echo "missing $group detailed changelog for $version" >&2; exit 1;
+    }
+  else
+    # The first grouped release inherits the common finalized history once.
+    [[ -z "$requested" ]] && grep -Fq "Baseline version: \`$version\`." "$ledger" \
+      && grep -Fq "## [$version] - " releases/history.md || {
+      echo "missing $group changelog for $version" >&2; exit 1;
+    }
+  fi
+done

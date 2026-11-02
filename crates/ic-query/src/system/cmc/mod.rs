@@ -5,7 +5,6 @@ mod build;
 mod model;
 #[cfg(feature = "cmc-host")]
 mod source;
-mod text;
 
 #[cfg(feature = "cmc-host")]
 use thiserror::Error as ThisError;
@@ -22,7 +21,6 @@ pub use model::{
 };
 #[cfg(feature = "cmc-host")]
 pub use source::{CmcSource, LiveCmcSource};
-pub use text::{cmc_cycles_report_text, cmc_xdr_report_text};
 
 /// Mainnet Cycle Minting Canister principal.
 pub const MAINNET_CMC_CANISTER_ID: &str = "rkp4c-7iaaa-aaaaa-aaaca-cai";

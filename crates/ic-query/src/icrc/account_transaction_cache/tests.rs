@@ -1,23 +1,23 @@
 use super::*;
-use crate::{
-    QueryProgress,
-    cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
-    icrc::{
-        IcrcAccountTransactionCacheRequest, IcrcAccountTransactionCollectionData,
-        IcrcAccountTransactionCollectionSource, IcrcAccountTransactionError,
-        IcrcAccountTransactionListRequest, IcrcAccountTransactionRefreshRequest,
-        IcrcAccountTransactionRow, IcrcAccountTransactionSort,
-    },
-    test_support::temp_dir,
-};
+use crate::QueryProgress;
+use crate::cache::CacheRefreshAttemptStatus;
+use crate::cache::CacheValidationStatus;
+use crate::icrc::IcrcAccountTransactionCacheRequest;
+use crate::icrc::IcrcAccountTransactionCollectionData;
+use crate::icrc::IcrcAccountTransactionCollectionSource;
+use crate::icrc::IcrcAccountTransactionError;
+use crate::icrc::IcrcAccountTransactionListRequest;
+use crate::icrc::IcrcAccountTransactionRefreshRequest;
+use crate::icrc::IcrcAccountTransactionRow;
+use crate::icrc::IcrcAccountTransactionSort;
+use crate::test_support::temp_dir;
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use serde_json::json;
-use std::{
-    fs,
-    path::Path,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::fs;
+use std::path::Path;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const INDEX_CANISTER_ID: &str = "qhbym-qaaaa-aaaaa-aaafq-cai";
@@ -88,7 +88,7 @@ async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     );
     assert_eq!(oldest.total_transaction_count, 3);
     assert_eq!(
-        status.cache.as_ref().expect("cache summary").cache_status,
+        status.cache.as_ref().expect("cache summary").cache_status(),
         CacheValidationStatus::Valid
     );
     assert_eq!(
@@ -139,7 +139,11 @@ async fn failed_auto_discovered_refresh_preserves_cache_and_resolved_index_evide
     ));
     assert_eq!(after, before);
     assert_eq!(
-        status.cache.as_ref().expect("preserved cache").cache_status,
+        status
+            .cache
+            .as_ref()
+            .expect("preserved cache")
+            .cache_status(),
         CacheValidationStatus::Valid
     );
     let attempt = status.latest_attempt.expect("failed attempt");
@@ -188,7 +192,7 @@ async fn invalid_source_rows_preserve_the_snapshot_and_failure_evidence() {
         assert_eq!(fs::read(&path).unwrap(), before);
         let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
         assert_eq!(
-            status.cache.unwrap().cache_status,
+            status.cache.unwrap().cache_status(),
             CacheValidationStatus::Valid
         );
         let attempt = status.latest_attempt.unwrap();
@@ -232,16 +236,35 @@ async fn cache_only_reads_validate_rows_and_page_capacity_when_declared_counts_m
             transaction["id"] = json!(id);
         }
         fs::write(&path, serde_json::to_vec(&invalid).unwrap()).unwrap();
+        let error = load_cached_icrc_account_transactions(&cache).expect_err("invalid snapshot");
         assert!(matches!(
-            load_cached_icrc_account_transactions(&cache),
-            Err(IcrcAccountTransactionError::InvalidCache { .. })
+            error,
+            IcrcAccountTransactionError::InvalidCache { .. }
         ));
         let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+        let summary = status.cache.as_ref().expect("existing invalid file");
+        assert!(matches!(
+            summary,
+            crate::icrc::IcrcAccountTransactionCacheSummary::Invalid { .. }
+        ));
         assert_eq!(
-            status.cache.unwrap().cache_status,
-            CacheValidationStatus::Invalid
+            serde_json::to_value(summary).unwrap(),
+            json!({
+                "cache_status": "invalid",
+                "cache_path": path.display().to_string(),
+                "cache_error": error.to_string(),
+            })
         );
     }
+    let mut unexpected = original;
+    unexpected["unrecognized_metadata"] = json!(true);
+    fs::write(&path, serde_json::to_vec(&unexpected).unwrap()).unwrap();
+    assert!(matches!(
+        load_cached_icrc_account_transactions(&cache),
+        Err(IcrcAccountTransactionError::Cache(
+            crate::HostCacheError::ParseCache { .. }
+        ))
+    ));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -336,7 +359,7 @@ async fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
         assert_eq!(fs::read(&path).unwrap(), original);
         let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
         assert_eq!(
-            status.cache.unwrap().cache_status,
+            status.cache.unwrap().cache_status(),
             CacheValidationStatus::Valid
         );
         let attempt = status.latest_attempt.unwrap();
@@ -383,9 +406,10 @@ async fn missing_and_stale_refresh_policies_do_not_masquerade_as_each_other() {
             .await
             .expect("refresh stale cache");
     assert_eq!(source.calls.load(Ordering::Relaxed), 2);
-    let completed = parse_utc_timestamp_secs(&refreshed.snapshot.collection_completed_at).unwrap();
+    let completed =
+        parse_utc_timestamp_secs(&refreshed.snapshot.context.collection_completed_at).unwrap();
     assert_eq!(
-        parse_utc_timestamp_secs(&refreshed.snapshot.collection_started_at),
+        parse_utc_timestamp_secs(&refreshed.snapshot.context.collection_started_at),
         Some(stale_request.now_unix_secs)
     );
     assert!(completed >= stale_request.now_unix_secs);
@@ -412,7 +436,10 @@ async fn read_through_cache_hits_normalize_targets_without_admitting_refresh_opt
     let cached = load_or_refresh_missing_icrc_account_transactions_with_source(&request, &source)
         .await
         .expect("a usable cache does not require live refresh options");
-    assert_eq!(cached.snapshot.subaccount_hex, Some("ab".repeat(32)));
+    assert_eq!(
+        cached.snapshot.context.subaccount_hex,
+        Some("ab".repeat(32))
+    );
     assert_eq!(cached.snapshot.transactions.len(), 1);
 
     request.cache.subaccount_hex = Some("cd".repeat(32));
@@ -464,7 +491,7 @@ async fn cached_collection_requires_canonical_ordered_timestamps_and_repairs_exp
     }
     let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
     assert_eq!(
-        status.cache.unwrap().cache_status,
+        status.cache.unwrap().cache_status(),
         CacheValidationStatus::Invalid
     );
     assert_eq!(
@@ -510,7 +537,7 @@ async fn unrepresentable_collection_clock_preserves_the_previous_snapshot() {
     );
     let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
     assert_eq!(
-        status.cache.unwrap().cache_status,
+        status.cache.unwrap().cache_status(),
         CacheValidationStatus::Valid
     );
     assert_eq!(

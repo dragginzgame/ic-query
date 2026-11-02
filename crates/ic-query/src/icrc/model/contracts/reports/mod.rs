@@ -11,9 +11,11 @@ mod ledger;
 pub use account::{IcrcAllowanceData, IcrcAllowanceReport, IcrcBalanceData, IcrcBalanceReport};
 pub use account_history::{
     IcrcAccountRow, IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionCacheSummary,
-    IcrcAccountTransactionListReport, IcrcAccountTransactionPageData,
-    IcrcAccountTransactionPageReport, IcrcAccountTransactionRefreshAttemptStatus,
-    IcrcAccountTransactionRefreshReport, IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
+    IcrcAccountTransactionContext, IcrcAccountTransactionListReport,
+    IcrcAccountTransactionPageData, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionRefreshAttemptStatus, IcrcAccountTransactionRefreshReport,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSnapshot,
+    IcrcAccountTransactionValidCacheSummary,
 };
 pub use ledger::{
     IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow, IcrcArchivedRangeRow,

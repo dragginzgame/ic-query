@@ -8,7 +8,7 @@ use crate::{
     subnet_catalog::{
         CatalogLoadOutcome, CatalogReadPolicy, SubnetCatalogCacheRequest, SubnetCatalogHostError,
         SubnetCatalogLoadFailure, SubnetCatalogLoadRequest, SubnetCatalogSource,
-        catalog_stale_status, load_subnet_catalog_detailed_with_progress,
+        catalog_stale_status, load_subnet_catalog_with_source_and_progress,
     },
 };
 
@@ -38,7 +38,7 @@ async fn load_catalog_for_report(
 ) -> Result<(CatalogLoadOutcome, CatalogStaleStatus), SubnetCatalogHostError> {
     let request = SubnetCatalogLoadRequest::cache_only(cache.clone(), now_unix_secs)
         .with_policy(policy.clone());
-    let cached = load_subnet_catalog_detailed_with_progress(&request, source, progress)
+    let cached = load_subnet_catalog_with_source_and_progress(&request, source, progress)
         .await
         .map_err(SubnetCatalogLoadFailure::into_source)?;
     let stale = catalog_stale_status(cached.catalog.raw(), now_unix_secs, stale_after_seconds);

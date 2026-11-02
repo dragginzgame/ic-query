@@ -5,10 +5,10 @@ use crate::{
     nns::{NnsCommandError, leaf::NnsLeafRefreshOptions},
 };
 use clap::ArgMatches;
-use ic_query::subnet_catalog::{
-    CatalogSourceSelection, SubnetCatalogRefreshRequest, refresh_subnet_catalog,
-    subnet_catalog_refresh_report_text,
-};
+use ic_query::subnet_catalog::CatalogSourceSelection;
+use ic_query::subnet_catalog::SubnetCatalogRefreshRequest;
+use ic_query::subnet_catalog::refresh_subnet_catalog;
+use ic_query_text::subnet_catalog::subnet_catalog_refresh_report_text;
 pub(super) async fn run_catalog_refresh(
     matches: &ArgMatches,
     network: &str,

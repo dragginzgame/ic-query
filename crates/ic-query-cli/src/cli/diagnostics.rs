@@ -1,15 +1,15 @@
 //! Actionable command advice for typed library failures.
 
 use crate::{nns::NnsCommandError, sns::SnsCommandError};
-use ic_query::{
-    nns::{
-        data_center::NnsDataCenterHostError, neuron::NnsNeuronHostError, node::NnsNodeHostError,
-        node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
-        proposals::NnsProposalHostError, registry::NnsRegistryHostError,
-        topology::NnsTopologyHostError,
-    },
-    sns::SnsHostError,
-};
+use ic_query::nns::data_center::NnsDataCenterHostError;
+use ic_query::nns::neuron::NnsNeuronHostError;
+use ic_query::nns::node::NnsNodeHostError;
+use ic_query::nns::node_operator::NnsNodeOperatorHostError;
+use ic_query::nns::node_provider::NnsNodeProviderHostError;
+use ic_query::nns::proposals::NnsProposalHostError;
+use ic_query::nns::registry::NnsRegistryHostError;
+use ic_query::nns::topology::NnsTopologyHostError;
+use ic_query::sns::SnsHostError;
 
 pub const fn nns_advice(error: &NnsCommandError) -> &'static str {
     match error {

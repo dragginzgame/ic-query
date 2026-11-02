@@ -12,10 +12,10 @@ use crate::cli::common::{
     source_endpoint_arg, write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
-use ic_query::ic::{
-    DEFAULT_IC_STATE_SOURCE_ENDPOINT, IcApiBoundaryNodeRequest, build_ic_api_boundary_node_report,
-    ic_api_boundary_node_report_text,
-};
+use ic_query::ic::DEFAULT_IC_STATE_SOURCE_ENDPOINT;
+use ic_query::ic::IcApiBoundaryNodeRequest;
+use ic_query::ic::build_ic_api_boundary_node_report;
+use ic_query_text::ic::ic_api_boundary_node_report_text;
 
 const LIST_HELP_AFTER: &str = "\
 Examples:

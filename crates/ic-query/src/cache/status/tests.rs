@@ -1,13 +1,15 @@
 use super::*;
+use crate::CacheFileError;
+use crate::cache::CacheRecoveryPolicy;
+use crate::cache_file::write_managed_text_atomically;
 use crate::test_support::temp_dir;
-use crate::{
-    CacheFileError, cache::CacheRecoveryPolicy, cache_file::write_managed_text_atomically,
-};
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
-use std::{fs, path::Path};
+use std::fs;
+use std::path::Path;
 
 #[cfg(unix)]
-use std::os::unix::fs::{PermissionsExt, symlink};
+use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::symlink;
 
 #[test]
 fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
@@ -181,14 +183,7 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     );
     assert_eq!(claimed_sns_catalog.age_status, CacheAgeStatus::Unmanaged);
     assert_eq!(claimed_sns_catalog.stale_after_seconds, None);
-    let text = crate::cache::cache_status_report_text(&report);
-    assert!(text.contains("family_validation_performed: no"));
-    let header = text
-        .lines()
-        .find(|line| line.starts_with("HEADER"))
-        .expect("cache status table header");
-    assert!(header.contains("AGE STATE"));
-    assert!(header.contains("RECOVERY"));
+
     let _ = fs::remove_dir_all(root);
 }
 
@@ -278,10 +273,7 @@ fn status_reports_active_available_and_invalid_coordination_files() {
     assert_eq!(report.active_refresh_lock_count, 1);
     assert_eq!(report.available_refresh_lock_count, 1);
     assert_eq!(report.invalid_refresh_lock_count, 1);
-    let text = crate::cache::cache_status_report_text(&report);
-    assert!(text.contains("REFRESH LOCKS"));
-    assert!(text.contains("available"));
-    assert!(text.contains("active"));
+
     assert!(active_lock.exists());
     ic_host_fs::durable::unlock(&file).unwrap();
     drop(file);

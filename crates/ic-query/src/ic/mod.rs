@@ -1,4 +1,4 @@
-//! Certified IC state and official Dashboard report models, adapters, builders, and renderers.
+//! Certified IC state and official Dashboard report models and adapters builders.
 
 mod api_boundary_node;
 #[cfg(feature = "dashboard-host")]
@@ -9,12 +9,11 @@ mod model;
 mod node_status;
 #[cfg(feature = "dashboard-host")]
 mod source;
-mod text;
 
 pub use api_boundary_node::{
     DEFAULT_IC_STATE_SOURCE_ENDPOINT, IC_API_BOUNDARY_NODE_REPORT_SCHEMA_VERSION,
     IcApiBoundaryNodeReport, IcApiBoundaryNodeRequest, IcApiBoundaryNodeRow,
-    IcCertifiedStateProvenance, MAX_IC_API_BOUNDARY_NODE_ROWS, ic_api_boundary_node_report_text,
+    IcCertifiedStateProvenance, MAX_IC_API_BOUNDARY_NODE_ROWS,
 };
 #[cfg(feature = "ic-state-host")]
 pub use api_boundary_node::{
@@ -95,9 +94,7 @@ pub use node_status::{
     IcNodeStatusObservation, IcNodeStatusProjectionError, IcNodeStatusReport, IcNodeStatusRow,
     IcNodeStatusScope, IcNodeStatusSnapshot, IcNodeStatusView, IcSubnetStatusReport,
     IcSubnetStatusRow, MAX_IC_NODE_STATUS_ROWS, ic_node_provider_status_report_from_snapshot,
-    ic_node_provider_status_report_text, ic_node_status_report_from_snapshot,
-    ic_node_status_report_text, ic_subnet_status_report_from_snapshot,
-    ic_subnet_status_report_text,
+    ic_node_status_report_from_snapshot, ic_subnet_status_report_from_snapshot,
 };
 #[cfg(feature = "dashboard-host")]
 pub use node_status::{
@@ -107,8 +104,7 @@ pub use node_status::{
     build_ic_node_status_report, build_ic_node_status_report_with_source,
     build_ic_subnet_status_report, build_ic_subnet_status_report_with_source,
     ic_node_status_cache_path, ic_node_status_refresh_lock_path,
-    ic_node_status_refresh_report_text, load_cached_ic_node_status_snapshot,
-    load_or_refresh_missing_ic_node_status_snapshot,
+    load_cached_ic_node_status_snapshot, load_or_refresh_missing_ic_node_status_snapshot,
     load_or_refresh_missing_ic_node_status_snapshot_with_source,
     load_or_refresh_stale_ic_node_status_snapshot,
     load_or_refresh_stale_ic_node_status_snapshot_with_source, refresh_ic_node_status_snapshot,
@@ -125,16 +121,6 @@ pub(crate) use source::{
     canonical_request_principal, invalid_source, invalid_source_value, report_provenance,
     validate_canonical_principal, validate_dashboard_network, validate_provenance,
     validate_source_text,
-};
-pub(crate) use text::dashboard_provenance_lines;
-pub use text::{
-    ic_boundary_node_data_centers_report_text, ic_canister_count_report_text,
-    ic_canister_page_report_text, ic_canister_report_text, ic_daily_stats_report_text,
-    ic_metric_report_text, ic_node_provider_reward_history_report_text,
-    ic_node_provider_reward_info_report_text, ic_node_provider_reward_list_report_text,
-    ic_replica_version_info_report_text, ic_replica_version_list_report_text,
-    icrc_account_info_report_text, icrc_account_list_report_text, icrc_holder_list_report_text,
-    icrc_indexed_count_report_text, icrc_token_value_report_text, icrc_total_supply_report_text,
 };
 
 /// Default base endpoint for the official IC Dashboard API.

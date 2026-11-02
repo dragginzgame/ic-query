@@ -19,7 +19,4 @@ pub(super) use commands::{
     sns_refresh_command, sns_reward_checkpoint_command, sns_reward_command,
     sns_reward_diff_command, sns_swap_command, sns_token_command, sns_upgrade_command,
 };
-pub(super) use values::{
-    SnsListSortArg, SnsNeuronsSortArg, SnsProposalEligibilityArg, SnsProposalStatusArg,
-    SnsProposalTopicArg, SnsProposalsSortArg,
-};
+pub(super) use values::SnsNeuronsSortArg;

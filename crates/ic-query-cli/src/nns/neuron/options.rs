@@ -8,7 +8,8 @@ use crate::{
     nns::leaf::NnsCommonOptions,
 };
 use clap::ArgMatches;
-use ic_query::nns::neuron::{NnsNeuronInfoRequest, NnsNeuronListRequest};
+use ic_query::nns::neuron::NnsNeuronInfoRequest;
+use ic_query::nns::neuron::NnsNeuronListRequest;
 
 pub(in crate::nns) fn neuron_list_request(
     matches: &ArgMatches,

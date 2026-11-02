@@ -1,13 +1,20 @@
-use super::{
-    NnsInventoryCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRow, NnsNodeSource,
-    build_nns_node_list_report_with_source_and_progress, cache::load_cached_nns_node_report,
-    filter_node_list_report, nns_node_cache_path, nns_node_list_report_text,
-    nns_node_list_report_verbose_text, resolve_node,
-};
+use super::NnsInventoryCacheRequest;
+use super::NnsNodeHostError;
+use super::NnsNodeListFilters;
+use super::NnsNodeListReport;
+use super::NnsNodeListRequest;
+use super::NnsNodeRow;
+use super::NnsNodeSource;
+use super::build_nns_node_list_report_with_source_and_progress;
+use super::cache::load_cached_nns_node_report;
+use super::filter_node_list_report;
+use super::nns_node_cache_path;
+use super::resolve_node;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
-use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, SubnetKind};
+use crate::subnet_catalog::MAINNET_NETWORK;
+use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
+use crate::subnet_catalog::SubnetKind;
 use crate::test_support::temp_dir;
 use std::fs;
 
@@ -196,21 +203,6 @@ async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
         "not-json"
     );
     let _ = fs::remove_dir_all(cache.cache_root);
-}
-
-#[test]
-fn node_text_keeps_compact_principals() {
-    let report = node_report_fixture();
-
-    let text = nns_node_list_report_text(&report);
-    let verbose_text = nns_node_list_report_verbose_text(&report);
-
-    assert!(text.contains("nodes: ic count 1"));
-    assert!(text.contains("NODE"));
-    assert!(text.contains("ryjl3"));
-    assert!(!text.contains("ryjl3-tyaaa-aaaaa-aaaba-cai"));
-    assert!(text.contains("fetched_at 2026-06-04T00:00:00Z\n\nNODE"));
-    assert!(verbose_text.contains("fetched_by: test\n\nNODE"));
 }
 
 #[test]

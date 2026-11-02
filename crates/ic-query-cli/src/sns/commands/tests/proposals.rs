@@ -1,9 +1,10 @@
 use super::*;
 use crate::cli::common::NetworkOutputOptions;
 use ic_query::report::SortDirection;
-use ic_query::sns::{
-    SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter, SnsProposalsSort,
-};
+use ic_query::sns::SnsProposalEligibilityFilter;
+use ic_query::sns::SnsProposalStatusFilter;
+use ic_query::sns::SnsProposalTopicFilter;
+use ic_query::sns::SnsProposalsSort;
 
 fn parse_proposals(
     args: &[&str],

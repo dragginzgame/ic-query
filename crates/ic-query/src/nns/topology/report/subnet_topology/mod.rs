@@ -1,5 +1,4 @@
 mod model;
-mod text;
 
 #[cfg(feature = "nns-topology-host")]
 mod cache;
@@ -12,7 +11,6 @@ pub use model::{
     NnsSubnetNodeProviderRow, NnsSubnetTopologyFreshness, NnsSubnetTopologyReport,
     NnsSubnetTopologyRow, NnsSubnetTopologyValidationError,
 };
-pub use text::nns_subnet_topology_report_text;
 
 #[cfg(feature = "nns-topology-host")]
 pub use cache::{

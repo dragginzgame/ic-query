@@ -8,7 +8,8 @@ use serde::{Deserialize as SerdeDeserialize, Deserializer, Serialize};
 use std::borrow::Cow;
 
 /// Label a native SNS action id without replacing its original numeric evidence.
-pub(in crate::sns::report) fn sns_proposal_action_label(id: u64) -> Cow<'static, str> {
+#[must_use]
+pub fn sns_proposal_action_label(id: u64) -> Cow<'static, str> {
     match id {
         0 => Cow::Borrowed("unspecified"),
         1 => Cow::Borrowed("motion"),
@@ -32,16 +33,6 @@ pub(in crate::sns::report) fn sns_proposal_action_label(id: u64) -> Cow<'static,
         19 => Cow::Borrowed("upgrade_extension"),
         id if id >= 1_000 => Cow::Owned(format!("generic:{id}")),
         id => Cow::Owned(format!("unknown:{id}")),
-    }
-}
-
-/// Label a native SNS ballot code, preserving unknown codes for display.
-pub(in crate::sns::report) fn sns_proposal_vote_label(code: i32) -> Cow<'static, str> {
-    match code {
-        0 => Cow::Borrowed("unspecified"),
-        1 => Cow::Borrowed("yes"),
-        2 => Cow::Borrowed("no"),
-        code => Cow::Owned(format!("unknown:{code}")),
     }
 }
 
@@ -213,19 +204,6 @@ mod tests {
             (u64::MAX, "generic:18446744073709551615"),
         ] {
             assert_eq!(sns_proposal_action_label(id), label);
-        }
-    }
-
-    #[test]
-    fn proposal_vote_labels_preserve_known_and_unknown_codes() {
-        for (code, label) in [
-            (0, "unspecified"),
-            (1, "yes"),
-            (2, "no"),
-            (99, "unknown:99"),
-            (-1, "unknown:-1"),
-        ] {
-            assert_eq!(sns_proposal_vote_label(code), label);
         }
     }
 }

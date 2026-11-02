@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 
 #[test]
 fn topology_coverage_report_counts_inventory_relations() {
@@ -36,45 +37,4 @@ fn topology_coverage_report_counts_inventory_relations() {
             .node_operators_with_unknown_data_center_count,
         1
     );
-}
-
-#[test]
-fn topology_coverage_text_renders_join_coverage_table() {
-    let mut report = topology_coverage_report_from_reports(
-        MAINNET_NETWORK.to_string(),
-        "https://icp-api.io".to_string(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
-    );
-    report.join_coverage.nodes_with_known_node_provider_count = 3;
-    report.join_coverage.nodes_with_unknown_node_provider_count = 0;
-    report
-        .join_coverage
-        .node_operators_with_known_data_center_count = 0;
-    report
-        .join_coverage
-        .node_operators_with_unknown_data_center_count = 2;
-    let text = nns_topology_coverage_report_text(&report);
-
-    assert!(text.contains("FIELD"));
-    assert!(text.contains("RELATION"));
-    assert!(text.contains("\n\n"));
-    assert!(text.contains("nodes -> node providers"));
-    assert!(text.contains("node operators -> data centers"));
-    assert!(text.contains("66.7%"));
-    for (relation, expected_counts) in [
-        ("nodes -> node providers", ["3", "0"]),
-        ("node operators -> data centers", ["0", "2"]),
-    ] {
-        let line = text.lines().find(|line| line.contains(relation)).unwrap();
-        let columns = line.split_whitespace().collect::<Vec<_>>();
-        assert_eq!(
-            &columns[columns.len() - 3..columns.len() - 1],
-            expected_counts
-        );
-    }
 }

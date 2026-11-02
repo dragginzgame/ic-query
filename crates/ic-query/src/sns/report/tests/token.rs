@@ -1,4 +1,5 @@
-use super::{fixtures::*, *};
+use super::fixtures::*;
+use super::*;
 use crate::icrc::IcrcIndexData;
 use ic_platform::icrc_ledger_types::MetadataValue;
 
@@ -14,14 +15,8 @@ async fn sns_token_text_escapes_unsafe_unicode_without_changing_json_evidence() 
     report.token.token_symbol = raw.to_string();
     report.token.metadata[0].value = serde_json::json!(raw);
 
-    let text = sns_token_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize raw report");
-    let escaped = "界 e\u{301}\\u{202e}\\u{2028}\\u{2029}\\u{2069}\\u{9b}\\u{1b}[31m";
-    assert!(text.contains(&format!("token_symbol: {escaped}")));
-    assert!(
-        text.lines()
-            .any(|line| line.starts_with("icrc1:name") && line.ends_with(escaped))
-    );
+
     assert_eq!(json["token_symbol"], serde_json::json!(raw));
     assert_eq!(json["metadata"][0]["value"], serde_json::json!(raw));
     assert_eq!(report.token.token_symbol, raw);
@@ -37,7 +32,7 @@ async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
     )
     .await
     .expect("sns token report");
-    let text = sns_token_report_text(&report);
+
     let json = serde_json::to_value(&report).expect("serialize SNS token report");
 
     assert_eq!(report.schema_version, SNS_TOKEN_REPORT_SCHEMA_VERSION);
@@ -75,18 +70,6 @@ async fn sns_token_resolves_list_id_and_renders_ledger_metadata() {
                 && row.value == serde_json::json!("data:image/png;base64,fixture"))
     );
     assert_eq!(json["metadata"][0]["value_type"], serde_json::json!("text"));
-    assert!(text.contains("token_symbol: FIX"));
-    assert!(text.contains("transfer_fee: 0.00"));
-    assert!(text.contains("total_supply: 10.00"));
-    assert!(!text.contains("10_000"));
-    assert!(!text.contains("1_000_000_000"));
-    assert!(text.contains("ledger_index_canister_id: bw4dl-smaaa-aaaaa-qaacq-cai"));
-    assert!(text.contains("ICRC-1"));
-    assert!(text.contains("icrc1:name"));
-    assert!(text.contains("icrc1:fee"));
-    assert!(text.contains("icrc1:logo"));
-    assert!(text.contains("present"));
-    assert!(!text.contains("data:image"));
 }
 
 #[test]

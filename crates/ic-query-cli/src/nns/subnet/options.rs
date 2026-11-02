@@ -5,10 +5,11 @@ use crate::cli::{
     common::{OutputFormat, SourceOutputOptions},
 };
 use clap::ArgMatches;
-use ic_query::subnet_catalog::{
-    DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogCacheRequest, SubnetCatalogFilters,
-    SubnetCatalogInfoRequest, SubnetCatalogListRequest,
-};
+use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
+use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
+use ic_query::subnet_catalog::SubnetCatalogFilters;
+use ic_query::subnet_catalog::SubnetCatalogInfoRequest;
+use ic_query::subnet_catalog::SubnetCatalogListRequest;
 
 pub(in crate::nns) fn catalog_list_request(
     matches: &ArgMatches,

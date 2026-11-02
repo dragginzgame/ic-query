@@ -8,7 +8,6 @@ mod fixtures;
 mod info;
 mod list;
 mod refresh;
-mod text;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_node_provider_source_rejects_non_mainnet_before_agent_construction() {

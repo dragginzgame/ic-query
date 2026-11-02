@@ -117,32 +117,55 @@ pub type SourceFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output 
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct ReportProvenance {
-    /// Whether rows came from live collection or a complete cache.
-    pub data_source: ReportDataSource,
-    /// Complete cache path, absent for live results.
-    pub cache_path: Option<String>,
-    /// API-exhaustion evidence, absent for live results.
-    pub cache_complete: Option<bool>,
+#[serde(tag = "data_source", rename_all = "snake_case", deny_unknown_fields)]
+pub enum ReportProvenance {
+    /// Rows collected directly from their source.
+    Live,
+    /// Rows read from one admitted complete snapshot.
+    Cache {
+        /// Complete snapshot path.
+        cache_path: String,
+    },
 }
 
 impl ReportProvenance {
     /// Build provenance for live reports.
     pub(crate) const fn live() -> Self {
-        Self {
-            data_source: ReportDataSource::Live,
-            cache_path: None,
-            cache_complete: None,
-        }
+        Self::Live
     }
 
     /// Build provenance for complete-cache reports.
     #[cfg(any(feature = "nns-host", feature = "sns-host"))]
     pub(crate) fn cache(cache_path: &Path) -> Self {
-        Self {
-            data_source: ReportDataSource::Cache,
-            cache_path: Some(cache_path.display().to_string()),
-            cache_complete: Some(true),
+        Self::Cache {
+            cache_path: cache_path.display().to_string(),
+        }
+    }
+
+    /// Return the origin of these rows.
+    #[must_use]
+    pub const fn data_source(&self) -> ReportDataSource {
+        match self {
+            Self::Live => ReportDataSource::Live,
+            Self::Cache { .. } => ReportDataSource::Cache,
+        }
+    }
+
+    /// Return the complete snapshot path for cached rows.
+    #[must_use]
+    pub fn cache_path(&self) -> Option<&str> {
+        match self {
+            Self::Live => None,
+            Self::Cache { cache_path } => Some(cache_path),
+        }
+    }
+
+    /// Return API-exhaustion evidence for cached rows.
+    #[must_use]
+    pub const fn cache_complete(&self) -> Option<bool> {
+        match self {
+            Self::Live => None,
+            Self::Cache { .. } => Some(true),
         }
     }
 }
@@ -228,6 +251,28 @@ mod tests {
             let reason = super::source_provenance_mismatch(expected, actual).unwrap();
             assert!(reason.starts_with(&format!("{field} is ")));
         }
+    }
+
+    #[test]
+    fn report_origins_round_trip_and_require_a_cache_path() {
+        for provenance in [
+            super::ReportProvenance::Live,
+            super::ReportProvenance::Cache {
+                cache_path: "/cache/snapshot.json".to_string(),
+            },
+        ] {
+            let value = serde_json::to_value(&provenance).unwrap();
+            assert_eq!(
+                serde_json::from_value::<super::ReportProvenance>(value).unwrap(),
+                provenance
+            );
+        }
+        assert!(
+            serde_json::from_value::<super::ReportProvenance>(serde_json::json!({
+                "data_source": "cache"
+            }))
+            .is_err()
+        );
     }
 
     #[test]

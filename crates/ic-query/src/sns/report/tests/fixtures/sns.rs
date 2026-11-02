@@ -185,9 +185,7 @@ pub(in crate::sns::report::tests) fn fixture_sns_a() -> MainnetSns {
             index_canister_id: INDEX_A.to_string(),
         },
         metadata_error: None,
-        lifecycle: None,
-
-        lifecycle_error: None,
+        lifecycle: crate::sns::SnsLifecycleOutcome::NotCollected,
     }
 }
 

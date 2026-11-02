@@ -29,7 +29,11 @@ export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TEMPLATE_DIR="$work
 fixture="$work_dir/repository"
 git clone --quiet --shared "$repo_root" "$fixture"
 cp "$repo_root/Makefile" "$repo_root/.shared-tooling.snapshot" "$fixture/"
-for input in Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml crates/ic-query-cli/Cargo.toml; do
+# Reproduce the current workspace, including new members and moved renderers.
+rm -rf -- "$fixture/crates"
+cp -R "$repo_root/crates" "$fixture/"
+git -C "$fixture" add --all -- crates
+for input in Cargo.toml Cargo.lock rust-toolchain.toml; do
   cp "$repo_root/$input" "$fixture/$input"
   git -C "$fixture" add -- "$input"
 done

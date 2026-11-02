@@ -12,7 +12,6 @@ mod distribution;
 mod error;
 mod model;
 mod source;
-mod text;
 #[cfg(any(
     feature = "nns-host",
     all(feature = "canister", target_arch = "wasm32")
@@ -54,9 +53,6 @@ pub use source::{
 };
 #[cfg(feature = "nns-host")]
 pub use source::{build_nns_neuron_info_report, build_nns_neuron_list_report};
-pub use text::{
-    nns_neuron_distribution_report_text, nns_neuron_info_report_text, nns_neuron_list_report_text,
-};
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

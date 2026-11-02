@@ -7,7 +7,6 @@ mod model;
 mod refresh;
 #[cfg(feature = "nns-host")]
 mod source;
-mod text;
 
 #[cfg(feature = "nns-host")]
 use crate::nns::NnsInventoryRefreshRequest;
@@ -33,10 +32,6 @@ pub use source::NnsNodeProviderSource;
 #[cfg(feature = "nns-host")]
 pub use model::NnsNodeProviderHostError;
 pub use model::{NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow};
-pub use text::{
-    nns_node_provider_info_report_text, nns_node_provider_list_report_text,
-    nns_node_provider_list_report_verbose_text,
-};
 
 pub const DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "nns-host")]
