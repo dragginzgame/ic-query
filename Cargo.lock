@@ -1664,11 +1664,12 @@ dependencies = [
 
 [[package]]
 name = "ic-host-tools"
-version = "0.78.0"
+version = "0.78.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "731bb9c3ee4a7023c2687dea4d73d54341a4a3939f32c68b174c4db56b445253"
+checksum = "6415ba9dcf841bb51987868a1cb9ee10143e6c6efca9afa0a05ae6cef826ad87"
 dependencies = [
  "ic-platform",
+ "ic-platform-types",
  "prost",
  "serde",
  "serde_cbor",
@@ -1703,7 +1704,6 @@ dependencies = [
  "ic-certification",
  "ic-management-canister-types",
  "ic-platform-macros",
- "ic-platform-pocket-ic",
  "ic-platform-runtime",
  "ic-platform-types",
  "ic_principal",
@@ -1869,14 +1869,15 @@ dependencies = [
 
 [[package]]
 name = "ic-testkit"
-version = "0.80.1"
+version = "0.80.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "906989a282503594e2ebcb51607eb02d6f77d2822f52ee738604781e103f3af8"
+checksum = "16989ec6d0e323028903f69c66f4bb2914f706f4ed0c1eb055f1f17dc12d3787"
 dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
  "ic-platform",
+ "ic-platform-pocket-ic",
  "ic-platform-runtime",
  "ic-platform-types",
  "libc",
